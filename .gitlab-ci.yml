@@ -51,6 +51,8 @@ migrate:
     - chmod +x gradlew
     # 배포 전 DB 백업 (버전 포함)
     - ssh ubuntu@localhost "cd /home/ubuntu/squiz && ./scripts/backup-db.sh manual" || true
+    # 리소스 컴파일 (classpath:db/migration 사용을 위해 필요)
+    - ./gradlew classes
     # Flyway 마이그레이션 실행
     - source /etc/environment && ./gradlew flywayInfo
     - source /etc/environment && ./gradlew flywayMigrate
@@ -60,7 +62,7 @@ migrate:
   tags:
     - docker
   when: manual
-  allow_failure: true  # migrate 스킵해도 deploy 가능
+  allow_failure: false  # migrate 완료해야 deploy 진행
 
 # ===========================================
 # Deploy Stage (자동 배포)
