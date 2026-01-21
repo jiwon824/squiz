@@ -79,18 +79,19 @@ CI migrate → "V1 이미 적용됨" → 스킵
 
 **모든 배포 시:**
 ```
-build → test → migrate 클릭 → deploy
+build → test → migrate(자동) → deploy
 ```
 
-- migrate는 필수 (allow_failure: false)
+- migrate는 자동 실행 (allow_failure: false)
 - 스키마 변경 없으면 "Nothing to migrate"로 바로 통과
 - 스키마 변경 있으면 V2, V3 등 적용 후 통과
+- 마이그레이션 실패 시 deploy 중단
 
 ### 새 마이그레이션 추가 시
 ```
 1. V2__add_xxx.sql 작성 (V1 수정 금지!)
 2. Git 푸시
-3. build → test → migrate 클릭 → deploy
+3. build → test → migrate(자동) → deploy
 ```
 
 ---

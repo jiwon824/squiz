@@ -61,7 +61,6 @@ migrate:
     - main
   tags:
     - docker
-  when: manual
   allow_failure: false  # migrate 완료해야 deploy 진행
 
 # ===========================================
