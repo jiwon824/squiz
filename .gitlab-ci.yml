@@ -60,7 +60,7 @@ migrate:
   tags:
     - docker
   when: manual
-  allow_failure: false
+  allow_failure: true  # migrate 스킵해도 deploy 가능
 
 # ===========================================
 # Deploy Stage (자동 배포)
