@@ -15,13 +15,13 @@ import java.nio.charset.StandardCharsets;
 @RequestMapping("/api/news")
 public class NewsController {
 
-    @Value("${naver.news.api.client-id}")
+    @Value("${naver.api.client-id}")
     private String clientId;
 
-    @Value("${naver.news.api.client-secret}")
+    @Value("${naver.api.client-secret}")
     private String clientSecret;
 
-    @Value("${naver.news.api.url}")
+    @Value("${naver.api.news-url}")
     private String newsApiUrl;
 
     /**
