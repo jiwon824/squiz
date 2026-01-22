@@ -47,7 +47,7 @@ public class UserSectionAttempt extends BaseEntity {
     private QuizCourseSection section;
 
     /**
-     * 시도 상태.
+     * 시도 상태(시도 중/완료 됨 /포기)
      */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)

@@ -880,6 +880,7 @@ CREATE TABLE `user_section_attempt` (
     `id` BIGINT AUTO_INCREMENT,
     `user_id` BIGINT NOT NULL,
     `section_id` BIGINT NOT NULL,
+    `status` ENUM('IN_PROGRESS', 'COMPLETED', 'ABANDONED') DEFAULT 'IN_PROGRESS', -- IN_PROGRESS: 임시저장(진행중), COMPLETED: 제출완료(수정불가), ABANDONED: 포기
     `score` INT DEFAULT 0,                       -- 점수 (%)
     `correct_count` INT DEFAULT 0,
     `total_questions` INT DEFAULT 0,
