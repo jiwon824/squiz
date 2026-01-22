@@ -111,9 +111,9 @@ script:
                               │     │            │            │        │
                               │     v            v            v        │
                               │  ┌──────┐   ┌────────┐   ┌────────┐   │
-                              │  │ :8080│   │ :4000  │   │ :3001  │   │
+                              │  │ :8080│   │ :4000  │   │ :5000  │   │
                               │  │      │   │        │   │        │   │
-                              │  │backend   │sfu-server  │recorder │   │
+                              │  │backend   │sfu-server  │cs-quiz-ai  │
                               │  │      │   │        │   │        │   │
                               │  └──┬───┘   └────────┘   └────────┘   │
                               │     │                                  │
@@ -137,7 +137,7 @@ script:
 | squiz-nginx | 커스텀 빌드 | 80, 443 | Reverse Proxy, Frontend 정적 파일 서빙 |
 | squiz-backend | 커스텀 빌드 | 8080 | Spring Boot API 서버, WebSocket |
 | squiz-sfu | 커스텀 빌드 | 4000, 20000-22000/udp | Mediasoup SFU (WebRTC) |
-| squiz-recorder | 커스텀 빌드 | 3001 | 녹화 서버 |
+| squiz-cs-quiz-ai | 커스텀 빌드 | 5000 | Flask AI 퀴즈 생성 서비스 |
 | squiz-mysql | mysql:8.0 | 3306 | 데이터베이스 |
 | squiz-redis | redis:alpine | 6379 | 세션/캐시 저장소 |
 
@@ -158,7 +158,6 @@ networks:
 |------|------|
 | mysql-data | MySQL 데이터 영구 저장 |
 | redis-data | Redis 데이터 영구 저장 |
-| recording-data | 녹화 파일 저장 |
 
 ### 서버 전용 파일 (Git 미포함)
 
@@ -210,7 +209,7 @@ backend
   └─> mysql (healthcheck 통과 후 시작)
   └─> redis
 
-recorder (독립)
+cs-quiz-ai (독립)
 ```
 
 ---
