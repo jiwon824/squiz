@@ -10,8 +10,8 @@ import com.ssafy.domain.study.entity.StudyTemplate;
 import com.ssafy.domain.study.repository.StudyTemplateRepository;
 import com.ssafy.domain.user.entity.Role;
 import com.ssafy.domain.user.entity.User;
+import com.ssafy.domain.user.repository.RefreshTokenRepository;
 import com.ssafy.domain.user.repository.UserRepository;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -48,11 +48,16 @@ class StudyTemplateControllerTest {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private RefreshTokenRepository refreshTokenRepository;
+
     private Long testUserId;
     private Long otherUserId;
 
     @BeforeEach
     void setUp() {
+        // FK 순서: 자식 테이블 먼저 삭제
+        refreshTokenRepository.deleteAll();
         studyTemplateRepository.deleteAll();
         userRepository.deleteAll();
 
@@ -92,11 +97,8 @@ class StudyTemplateControllerTest {
         otherUserId = otherUser.getId();
     }
 
-    @AfterEach
-    void tearDown() {
-        studyTemplateRepository.deleteAll();
-        userRepository.deleteAll();
-    }
+    // @Transactional로 인해 각 테스트 후 자동 롤백되므로 수동 삭제 불필요
+    // @AfterEach 제거 (FK 제약 조건 문제 해결)
 
     // ============================================================
     // 템플릿 생성 테스트
