@@ -135,28 +135,101 @@ export const getEmbedding3DBatch = async (answerWord, attemptWords, category = n
 };
 
 /**
- * 어제의 정답 반환 (폴백: 로컬 계산)
- * TODO: API가 추가되면 /api/words/yesterday 호출로 대체
+ * 오늘의 문제 조회 (일일 퀴즈용)
+ * GET /api/words/daily
+ * @returns {Promise<Object>} 오늘의 문제 정보
+ */
+export const fetchDailyWord = async () => {
+    try {
+        const response = await fetch(`${AI_SERVICE_URL}/api/words/daily`);
+        if (!response.ok) throw new Error('Failed to fetch daily word');
+
+        const data = await response.json();
+        currentWordId = data.id;
+        currentProblem = data;
+        return data;
+    } catch (error) {
+        console.error('fetchDailyWord error:', error);
+        // 폴백: 랜덤 단어 사용
+        return await fetchRandomWord();
+    }
+};
+
+/**
+ * 어제의 정답 조회
+ * GET /api/words/yesterday
+ * @returns {Promise<Object>} 어제의 문제 및 정답 정보
+ */
+export const fetchYesterdayWord = async () => {
+    try {
+        const response = await fetch(`${AI_SERVICE_URL}/api/words/yesterday`);
+        if (!response.ok) throw new Error('Failed to fetch yesterday word');
+
+        return await response.json();
+    } catch (error) {
+        console.error('fetchYesterdayWord error:', error);
+        // 폴백: 로컬 계산
+        return getYesterdayAnswerFallback();
+    }
+};
+
+/**
+ * 어제의 정답 반환 (동기 함수, 폴백용)
  * @returns {Object} 어제의 문제 정보
  */
 export const getYesterdayAnswer = () => {
-    // 폴백 로직 유지 (API 추가 시 대체)
-    const WORDS = [
-        { answer: "알고리즘", category: "기초개념" },
-        { answer: "스택", category: "자료구조" },
-        { answer: "큐", category: "자료구조" },
-        { answer: "재귀", category: "프로그래밍기법" },
-        { answer: "해시테이블", category: "자료구조" },
-        { answer: "트리", category: "자료구조" },
-        { answer: "그래프", category: "자료구조" },
-    ];
+    // 폴백 로직 유지
+    return getYesterdayAnswerFallback();
+};
 
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const seed = yesterday.getFullYear() * 10000 + (yesterday.getMonth() + 1) * 100 + yesterday.getDate();
-    const index = seed % WORDS.length;
+/**
+ * 리더보드 조회
+ * GET /api/leaderboard?date=YYYY-MM-DD&limit=10
+ * @param {string} date - 조회할 날짜 (YYYY-MM-DD), 기본값: 오늘
+ * @param {number} limit - 조회할 순위 개수, 기본값: 10
+ * @returns {Promise<Object>} 리더보드 데이터
+ */
+export const fetchLeaderboard = async (date = null, limit = 10) => {
+    try {
+        const params = new URLSearchParams();
+        if (date) params.append('date', date);
+        params.append('limit', limit.toString());
 
-    return WORDS[index];
+        const url = `${AI_SERVICE_URL}/api/leaderboard?${params.toString()}`;
+        const response = await fetch(url);
+
+        if (!response.ok) throw new Error('Failed to fetch leaderboard');
+
+        return await response.json();
+    } catch (error) {
+        console.error('fetchLeaderboard error:', error);
+        return { date: date || new Date().toISOString().split('T')[0], rankings: [], total: 0 };
+    }
+};
+
+/**
+ * 리더보드에 기록 저장
+ * POST /api/leaderboard
+ * @param {string} nickname - 사용자 닉네임
+ * @param {number} attempts - 시도 횟수
+ * @param {number} time - 소요 시간 (초)
+ * @returns {Promise<Object>} 저장 결과
+ */
+export const saveToLeaderboard = async (nickname, attempts, time) => {
+    try {
+        const response = await fetch(`${AI_SERVICE_URL}/api/leaderboard`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nickname, attempts, time })
+        });
+
+        if (!response.ok) throw new Error('Failed to save to leaderboard');
+
+        return await response.json();
+    } catch (error) {
+        console.error('saveToLeaderboard error:', error);
+        return { success: false, error: error.message };
+    }
 };
 
 /**
@@ -228,6 +301,25 @@ const getFallbackProblem = () => {
         difficulty: word.difficulty,
         hints: word.hints,
     };
+};
+
+const getYesterdayAnswerFallback = () => {
+    const WORDS = [
+        { answer: "알고리즘", category: "기초개념" },
+        { answer: "스택", category: "자료구조" },
+        { answer: "큐", category: "자료구조" },
+        { answer: "재귀", category: "프로그래밍기법" },
+        { answer: "해시테이블", category: "자료구조" },
+        { answer: "트리", category: "자료구조" },
+        { answer: "그래프", category: "자료구조" },
+    ];
+
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const seed = yesterday.getFullYear() * 10000 + (yesterday.getMonth() + 1) * 100 + yesterday.getDate();
+    const index = seed % WORDS.length;
+
+    return WORDS[index];
 };
 
 const checkSimilarityFallback = async (userWord) => {
