@@ -23,9 +23,10 @@
     <select id="findByBlockerAndBlocked" resultMap="UserBlockResultMap">
         SELECT ub.*,
                u.nickname as blocked_nickname,
-               u.profile_image as blocked_profile_image
+               p.profile_image_url as blocked_profile_image
         FROM user_block ub
         JOIN user u ON ub.blocked_id = u.id
+        LEFT JOIN profile p ON u.id = p.user_id
         WHERE ub.blocker_id = #{blockerId} AND ub.blocked_id = #{blockedId}
     </select>
 
@@ -47,9 +48,10 @@
     <select id="findByBlockerId" resultMap="UserBlockResultMap">
         SELECT ub.*,
                u.nickname as blocked_nickname,
-               u.profile_image as blocked_profile_image
+               p.profile_image_url as blocked_profile_image
         FROM user_block ub
         JOIN user u ON ub.blocked_id = u.id
+        LEFT JOIN profile p ON u.id = p.user_id
         WHERE ub.blocker_id = #{blockerId}
         ORDER BY ub.created_at DESC
     </select>
