@@ -69,8 +69,8 @@ migrate:
 deploy:
   stage: deploy
   script:
-    # 프로젝트 파일 배포 경로로 복사
-    - rsync -av --delete --exclude '.git' --exclude 'node_modules' --exclude '.gradle' --exclude 'build' --exclude '.env' --exclude 'ssl' --exclude 'init.sql' modustudy/ $DEPLOY_PATH/
+    # 프로젝트 파일 배포 경로로 복사 (backups 폴더는 서버에만 존재하므로 제외)
+    - rsync -av --delete --exclude 'backups' --exclude '.git' --exclude 'node_modules' --exclude '.gradle' --exclude 'build' --exclude '.env' --exclude 'ssl' --exclude 'init.sql' modustudy/ $DEPLOY_PATH/
     # Docker Compose v2로 배포
     - cd $DEPLOY_PATH
     - docker compose up -d --build --force-recreate --remove-orphans
