@@ -6,6 +6,7 @@ import com.ssafy.domain.study.entity.StudyType;
 import com.ssafy.domain.user.entity.Role;
 import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.repository.UserRepository;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -36,6 +37,9 @@ class StudyCommentRepositoryTest {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private EntityManager entityManager;
 
     private User user1;
     private User user2;
@@ -560,6 +564,8 @@ class StudyCommentRepositoryTest {
 
         // when
         commentRepository.deleteByStudyId(studyId);
+        entityManager.flush();
+        entityManager.clear(); // 벌크 삭제 후 영속성 컨텍스트 클리어 (CI 환경 호환)
 
         // then
         List<StudyComment> result = commentRepository.findByStudyIdAndIsDeletedFalseOrderByCreatedAtAsc(studyId);
