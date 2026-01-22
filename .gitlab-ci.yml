@@ -50,7 +50,7 @@ migrate:
     - cd modustudy/backend
     - chmod +x gradlew
     # 배포 전 DB 백업 (버전 포함) - sudo로 실행하여 권한 문제 해결
-    - sudo bash /home/ubuntu/squiz/scripts/backup-db.sh manual
+    - sudo /usr/bin/bash /home/ubuntu/squiz/scripts/backup-db.sh manual
     # 리소스 컴파일 (classpath:db/migration 사용을 위해 필요)
     - ./gradlew classes
     # Flyway 마이그레이션 실행
