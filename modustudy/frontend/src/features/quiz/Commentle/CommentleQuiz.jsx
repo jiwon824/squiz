@@ -7,7 +7,7 @@ import QuizInputList from './QuizInputlist';
 import QuizGuessInput from './QuizGuessInput';
 import { Modal } from '@/shared/components/Modal';
 import { Trophy, ArrowLeft, Info, Crown, Box } from 'lucide-react';
-import { checkSimilarity, getDailyProblem, initDailyProblem } from '../services/quizService';
+import { checkSimilarity, fetchDailyWord, fetchLeaderboard, saveToLeaderboard } from '../services/quizService';
 import { useAuthStore } from '@/store/authStore';
 import './Commentle.css';
 
@@ -31,11 +31,8 @@ const CommentleQuiz = () => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    // 🏆 리더보드 데이터 (localStorage 기반)
-    const [leaderboard, setLeaderboard] = useState(() => {
-        const saved = localStorage.getItem('commentle-leaderboard');
-        return saved ? JSON.parse(saved) : [];
-    });
+    // 🏆 리더보드 데이터 (API 기반)
+    const [leaderboard, setLeaderboard] = useState([]);
 
     // 💡 오늘의 문제 데이터 (API 연동)
     const [problem, setProblem] = useState({
@@ -46,34 +43,46 @@ const CommentleQuiz = () => {
     });
     const [problemLoading, setProblemLoading] = useState(true);
 
-    // 컴포넌트 마운트 시 문제 가져오기
+    // 📅 오늘 날짜 추적 (날짜별 리더보드 관리)
+    const [currentDate, setCurrentDate] = useState(() => new Date().toISOString().split('T')[0]);
+
+    // ⏱️ 퀴즈 시작 시간 추적
+    const [startTime, setStartTime] = useState(() => Date.now());
+
+    // 컴포넌트 마운트 시 문제 및 리더보드 가져오기
     useEffect(() => {
-        const loadProblem = async () => {
+        const loadQuizData = async () => {
             setProblemLoading(true);
+            const today = new Date().toISOString().split('T')[0];
+
+            // 날짜가 바뀌었으면 초기화
+            if (today !== currentDate) {
+                setCurrentDate(today);
+                setGuesses([]);
+                setStartTime(Date.now());
+            }
+
             try {
-                const data = await initDailyProblem('medium');
+                // 오늘의 문제 가져오기
+                const data = await fetchDailyWord();
                 setProblem({
                     id: data.id,
                     category: data.category,
                     difficulty: data.difficulty || 'Medium',
                     hints: data.hints || [],
                 });
+
+                // 오늘 날짜의 리더보드 가져오기
+                const leaderboardData = await fetchLeaderboard(today, 10);
+                setLeaderboard(leaderboardData.rankings || []);
             } catch (error) {
-                console.error('Failed to load problem:', error);
-                // 폴백: 기본 문제 사용
-                const fallback = getDailyProblem();
-                setProblem({
-                    id: fallback.id,
-                    category: fallback.category,
-                    difficulty: fallback.difficulty || 'Medium',
-                    hints: fallback.hints || [],
-                });
+                console.error('Failed to load quiz data:', error);
             } finally {
                 setProblemLoading(false);
             }
         };
-        loadProblem();
-    }, []);
+        loadQuizData();
+    }, [currentDate]);
 
     // 📤 단어 제출 핸들러
     const handleGuess = async (word) => {
@@ -111,34 +120,30 @@ const CommentleQuiz = () => {
     // 🔐 사용자 정보 가져오기
     const { user, isLoggedIn } = useAuthStore();
 
-    // 리더보드 업데이트 함수
-    const updateLeaderboard = (attemptCount) => {
+    // 리더보드 업데이트 함수 (API 기반)
+    const updateLeaderboard = async (attemptCount) => {
         // 로그인 사용자는 닉네임, 비로그인은 Guest_XXXX
-        const userId = isLoggedIn && user?.nickname
+        const nickname = isLoggedIn && user?.nickname
             ? user.nickname
             : `Guest_${Date.now().toString().slice(-4)}`;
 
-        const newEntry = { id: userId, count: attemptCount };
+        // 소요 시간 계산 (초 단위)
+        const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
 
-        // 동일 사용자가 이미 있으면 더 좋은 기록으로 업데이트
-        const existingIndex = leaderboard.findIndex(e => e.id === userId);
-        let updatedList = [...leaderboard];
+        try {
+            // 리더보드에 저장
+            const result = await saveToLeaderboard(nickname, attemptCount, elapsedTime);
 
-        if (existingIndex !== -1) {
-            // 기존 기록보다 좋으면 업데이트
-            if (attemptCount < updatedList[existingIndex].count) {
-                updatedList[existingIndex] = newEntry;
+            if (result.success) {
+                console.log(`리더보드 저장 성공: ${result.rank}위 / ${result.totalPlayers}명`);
+
+                // 리더보드 재조회
+                const leaderboardData = await fetchLeaderboard(currentDate, 10);
+                setLeaderboard(leaderboardData.rankings || []);
             }
-        } else {
-            updatedList.push(newEntry);
+        } catch (error) {
+            console.error('Failed to update leaderboard:', error);
         }
-
-        const updated = updatedList
-            .sort((a, b) => a.count - b.count) // 시도 횟수 오름차순
-            .slice(0, 5); // 상위 5명만 유지
-
-        setLeaderboard(updated);
-        localStorage.setItem('commentle-leaderboard', JSON.stringify(updated));
     };
 
     // 점수 기준 데이터
@@ -223,11 +228,11 @@ const CommentleQuiz = () => {
                             </div>
                             {leaderboard.length > 0 ? (
                                 <ul className="leader-list">
-                                    {leaderboard.map((user, index) => (
-                                        <li key={user.id} className={`leader-item rank-${index + 1}`}>
-                                            <span className="rank-num">{index + 1}</span>
-                                            <span className="user-id">{user.id}</span>
-                                            <span className="guess-count">{user.count}회</span>
+                                    {leaderboard.map((entry, index) => (
+                                        <li key={`${entry.nickname}-${index}`} className={`leader-item rank-${index + 1}`}>
+                                            <span className="rank-num">{entry.rank || index + 1}</span>
+                                            <span className="user-id">{entry.nickname}</span>
+                                            <span className="guess-count">{entry.attempts}회 · {entry.time}초</span>
                                         </li>
                                     ))}
                                 </ul>
@@ -264,11 +269,11 @@ const CommentleQuiz = () => {
                                 </div>
                                 {leaderboard.length > 0 ? (
                                     <ul className="leader-list">
-                                        {leaderboard.map((user, index) => (
-                                            <li key={user.id} className={`leader-item rank-${index + 1}`}>
-                                                <span className="rank-num">{index + 1}</span>
-                                                <span className="user-id">{user.id}</span>
-                                                <span className="guess-count">{user.count}회</span>
+                                        {leaderboard.map((entry, index) => (
+                                            <li key={`${entry.nickname}-${index}`} className={`leader-item rank-${index + 1}`}>
+                                                <span className="rank-num">{entry.rank || index + 1}</span>
+                                                <span className="user-id">{entry.nickname}</span>
+                                                <span className="guess-count">{entry.attempts}회 · {entry.time}초</span>
                                             </li>
                                         ))}
                                     </ul>
