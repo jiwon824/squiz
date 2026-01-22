@@ -56,6 +56,9 @@ class StudyCommentRepositoryTest {
                 .studyType(StudyType.PLANNED)
                 .build());
 
+        // Study INSERT를 즉시 실행 (FK 제약조건 충족)
+        studyRepository.flush();
+
         // 스터디 1의 최상위 댓글들
         parentComment1 = StudyComment.builder()
                 .studyId(study1.getId())
