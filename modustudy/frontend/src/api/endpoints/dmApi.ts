@@ -1,6 +1,17 @@
 // DM API - 다이렉트 메시지 관련 API 함수들
 import api from '../axios';
 
+// WebSocket 서비스 및 타입 re-export
+export { dmWebSocket } from '../websocket';
+export type {
+    DmEventType,
+    DmWebSocketMessage,
+    DirectMessageResponse,
+    DmWebSocketEvent,
+    ConnectionStatus,
+    DmWebSocketHandlers,
+} from '../websocket';
+
 // ===== 타입 정의 =====
 export interface Conversation {
     id: number;
