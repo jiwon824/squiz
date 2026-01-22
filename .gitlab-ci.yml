@@ -49,8 +49,8 @@ migrate:
   script:
     - cd modustudy/backend
     - chmod +x gradlew
-    # 배포 전 DB 백업 (버전 포함)
-    - ssh ubuntu@localhost "cd /home/ubuntu/squiz && ./scripts/backup-db.sh manual" || true
+    # 배포 전 DB 백업 (버전 포함) - sudo로 실행하여 권한 문제 해결
+    - sudo bash /home/ubuntu/squiz/scripts/backup-db.sh manual
     # 리소스 컴파일 (classpath:db/migration 사용을 위해 필요)
     - ./gradlew classes
     # Flyway 마이그레이션 실행
@@ -71,12 +71,32 @@ deploy:
   script:
     # 프로젝트 파일 배포 경로로 복사
     - rsync -av --delete --exclude '.git' --exclude 'node_modules' --exclude '.gradle' --exclude 'build' --exclude '.env' --exclude 'ssl' --exclude 'init.sql' modustudy/ $DEPLOY_PATH/
-    # Docker Compose v2로 무중단 배포
+    # Docker Compose v2로 배포
     - cd $DEPLOY_PATH
     - docker compose up -d --build --force-recreate --remove-orphans
+    # 컨테이너 시작 대기 (health check 완료까지 최대 60초)
+    - |
+      echo "Waiting for containers to be healthy..."
+      for i in $(seq 1 12); do
+        sleep 5
+        if docker compose ps | grep -E "starting|unhealthy" > /dev/null; then
+          echo "Still waiting... ($i/12)"
+        else
+          echo "All containers are ready!"
+          break
+        fi
+      done
+    # Created 상태 컨테이너 강제 시작
+    - docker compose start
     - docker image prune -f
-    # 배포 결과 확인
+    # 배포 결과 확인 및 검증
     - docker compose ps
+    - |
+      if docker compose ps | grep -E "Exit|Created" | grep -v "^$" > /dev/null; then
+        echo "ERROR: Some containers failed to start!"
+        docker compose ps
+        exit 1
+      fi
   only:
     - master
     - main
