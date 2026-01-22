@@ -6,10 +6,11 @@
         SELECT
             u.id as userId,
             u.nickname,
-            u.profile_image as profileImage,
+            p.profile_image_url as profileImage,
             u.is_online as isOnline,
             'NONE' as friendStatus
         FROM user u
+        LEFT JOIN profile p ON u.id = p.user_id
         WHERE u.nickname LIKE CONCAT('%', #{keyword}, '%')
           AND u.is_searchable = true
           AND u.id != #{excludeId}
