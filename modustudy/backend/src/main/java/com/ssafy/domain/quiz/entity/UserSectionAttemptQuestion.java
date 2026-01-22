@@ -111,22 +111,26 @@ public class UserSectionAttemptQuestion extends BaseEntity {
      * @param correctAnswer 정답
      */
     public void grade(String correctAnswer) {
+        // 미답변 문제는 오답 처리
         if (this.userAnswer == null) {
             this.isCorrect = false;
             return;
         }
 
+        // 문제가 있으면서, 문제 유형이 다중 정답 문제인 경우 flag true로 변경
         boolean isMultiValue = false;
-        // Check QuestionType to support multiple answers
-        // Note: Assuming question is loaded or accessible in the current session
-        if (this.question != null && this.question.getQuestionType() == QuestionType.MULTIPLE_CHOICE_MULTIPLE) {
+        if (this.question != null
+                && this.question.getQuestionType() == QuestionType.MULTIPLE_CHOICE_MULTIPLE) {
             isMultiValue = true;
         }
 
         if (isMultiValue) {
+            // 사용자의 답안을 파싱하여 Set에 넣기
             Set<String> userSet = parseAnswerToSet(this.userAnswer);
             // 매개변수로 들어온 correctAnswer를 파싱하여 Set에 넣기
             Set<String> correctSet = parseAnswerToSet(correctAnswer);
+            // 사용자의 답안과 매개변수로 들어온 correctAnswer의 구성요소가 같으면 true 정답
+            // 다르면 false 오답
             this.isCorrect = userSet.equals(correctSet);
         } else {
             // 대소문자 무시, 앞뒤 공백 제거 후 비교
@@ -134,10 +138,17 @@ public class UserSectionAttemptQuestion extends BaseEntity {
         }
     }
 
+    /**
+     * answer를 Set으로 반환
+     *
+     * @param answer
+     * @return
+     */
     private Set<String> parseAnswerToSet(String answer) {
         if (answer == null || answer.isBlank()) {
             return Collections.emptySet();
         }
+
         // Remove JSON brackets and quotes to handle ["A", "B"] or "A, B"
         String cleaned = answer.replaceAll("[\\[\\]\"]", "");
         return Arrays.stream(cleaned.split(","))
