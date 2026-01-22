@@ -7,7 +7,7 @@ import QuizInputList from './QuizInputlist';
 import QuizGuessInput from './QuizGuessInput';
 import { Modal } from '@/shared/components/Modal';
 import { Trophy, ArrowLeft, Info, Crown, Box } from 'lucide-react';
-import { checkSimilarity, fetchDailyWord, fetchLeaderboard, saveToLeaderboard } from '../services/quizService';
+import { checkSimilarity, fetchDailyWord, fetchLeaderboard, saveToLeaderboard, getLocalUserGuesses, saveLocalUserGuesses, cleanupOldGuesses } from '../services/quizService';
 import { useAuthStore } from '@/store/authStore';
 import './Commentle.css';
 
@@ -17,7 +17,10 @@ const Embedding3DViewer = lazy(() => import('./Embedding3DViewer'));
 const CommentleQuiz = () => {
     const navigate = useNavigate();
 
-    // 🔍 게임 상태 관리
+    // � 사용자 정보 가져오기 (먼저 선언)
+    const { user, isLoggedIn } = useAuthStore();
+
+    // �🔍 게임 상태 관리
     const [guesses, setGuesses] = useState([]);
     const [loading, setLoading] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
@@ -75,6 +78,17 @@ const CommentleQuiz = () => {
                 // 오늘 날짜의 리더보드 가져오기
                 const leaderboardData = await fetchLeaderboard(today, 10);
                 setLeaderboard(leaderboardData.rankings || []);
+
+                // 🔐 로그인 유저라면 로컬 스토리지에서 오늘의 추측 기록 불러오기
+                if (isLoggedIn && user?.id) {
+                    const savedGuesses = getLocalUserGuesses(user.id, today);
+                    if (savedGuesses.length > 0) {
+                        setGuesses(savedGuesses);
+                    }
+                }
+
+                // 오래된 추측 기록 정리
+                cleanupOldGuesses();
             } catch (error) {
                 console.error('Failed to load quiz data:', error);
             } finally {
@@ -82,7 +96,7 @@ const CommentleQuiz = () => {
             }
         };
         loadQuizData();
-    }, [currentDate]);
+    }, [currentDate, isLoggedIn, user?.id]);
 
     // 📤 단어 제출 핸들러
     const handleGuess = async (word) => {
@@ -101,7 +115,13 @@ const CommentleQuiz = () => {
                 attemptNum: guesses.length + 1 // 시도 횟수 기록
             };
 
-            setGuesses(prev => [newGuess, ...prev]);
+            const updatedGuesses = [newGuess, ...guesses];
+            setGuesses(updatedGuesses);
+
+            // 🔐 로그인 유저라면 로컬 스토리지에 추측 기록 저장
+            if (isLoggedIn && user?.id) {
+                saveLocalUserGuesses(user.id, updatedGuesses);
+            }
 
             // 정답일 경우 리더보드 업데이트
             if (result.isCorrect) {
@@ -116,9 +136,6 @@ const CommentleQuiz = () => {
             setLoading(false);
         }
     };
-
-    // 🔐 사용자 정보 가져오기
-    const { user, isLoggedIn } = useAuthStore();
 
     // 리더보드 업데이트 함수 (API 기반)
     const updateLeaderboard = async (attemptCount) => {
