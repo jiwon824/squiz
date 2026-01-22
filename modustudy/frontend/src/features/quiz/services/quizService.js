@@ -196,11 +196,16 @@ export const fetchLeaderboard = async (date = null, limit = 10) => {
         params.append('limit', limit.toString());
 
         const url = `${AI_SERVICE_URL}/api/leaderboard?${params.toString()}`;
+        console.log('🏆 리더보드 조회 URL:', url);
+        
         const response = await fetch(url);
+        console.log('🏆 리더보드 응답 상태:', response.status);
 
         if (!response.ok) throw new Error('Failed to fetch leaderboard');
 
-        return await response.json();
+        const data = await response.json();
+        console.log('🏆 리더보드 데이터:', data);
+        return data;
     } catch (error) {
         console.error('fetchLeaderboard error:', error);
         return { date: date || new Date().toISOString().split('T')[0], rankings: [], total: 0 };
@@ -229,6 +234,76 @@ export const saveToLeaderboard = async (nickname, attempts, time) => {
     } catch (error) {
         console.error('saveToLeaderboard error:', error);
         return { success: false, error: error.message };
+    }
+};
+
+// ========================================
+// 로컬 스토리지 기반 유저 추측 기록 관리
+// ========================================
+
+const GUESSES_STORAGE_KEY = 'commentle_guesses';
+
+/**
+ * 로컬 스토리지에서 유저별 추측 기록 조회
+ * @param {string} userId - 유저 ID
+ * @param {string} date - 조회할 날짜 (YYYY-MM-DD), 기본값: 오늘
+ * @returns {Object} 유저의 추측 기록
+ */
+export const getLocalUserGuesses = (userId, date = null) => {
+    const today = date || new Date().toISOString().split('T')[0];
+    const storageKey = `${GUESSES_STORAGE_KEY}_${userId}_${today}`;
+
+    try {
+        const stored = localStorage.getItem(storageKey);
+        if (stored) {
+            return JSON.parse(stored);
+        }
+    } catch (error) {
+        console.error('getLocalUserGuesses error:', error);
+    }
+
+    return [];
+};
+
+/**
+ * 로컬 스토리지에 유저 추측 기록 저장
+ * @param {string} userId - 유저 ID
+ * @param {Array} guesses - 추측 기록 배열
+ * @param {string} date - 저장할 날짜 (YYYY-MM-DD), 기본값: 오늘
+ */
+export const saveLocalUserGuesses = (userId, guesses, date = null) => {
+    const today = date || new Date().toISOString().split('T')[0];
+    const storageKey = `${GUESSES_STORAGE_KEY}_${userId}_${today}`;
+
+    try {
+        localStorage.setItem(storageKey, JSON.stringify(guesses));
+    } catch (error) {
+        console.error('saveLocalUserGuesses error:', error);
+    }
+};
+
+/**
+ * 로컬 스토리지에서 오래된 추측 기록 정리 (오늘이 아닌 모든 데이터 삭제)
+ */
+export const cleanupOldGuesses = () => {
+    const today = new Date().toISOString().split('T')[0];
+
+    try {
+        const keysToRemove = [];
+
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith(GUESSES_STORAGE_KEY)) {
+                // 오늘 날짜가 아닌 키는 삭제
+                if (!key.endsWith(today)) {
+                    keysToRemove.push(key);
+                }
+            }
+        }
+
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+    } catch (error) {
+        console.error('cleanupOldGuesses error:', error);
     }
 };
 
