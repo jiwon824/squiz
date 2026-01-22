@@ -5,294 +5,359 @@ import com.ssafy.domain.study.dto.response.StudyBookmarkResponse;
 import com.ssafy.domain.study.entity.*;
 import com.ssafy.domain.study.repository.StudyBookmarkRepository;
 import com.ssafy.domain.study.repository.StudyRepository;
+import com.ssafy.domain.user.entity.Role;
+import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.repository.UserRepository;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
+/**
+ * StudyBookmarkService 통합 테스트
+ */
+@SpringBootTest
+@Transactional
 class StudyBookmarkServiceTest {
 
-    @InjectMocks
+    @Autowired
     private StudyBookmarkService bookmarkService;
 
-    @Mock
+    @Autowired
     private StudyBookmarkRepository bookmarkRepository;
 
-    @Mock
+    @Autowired
     private StudyRepository studyRepository;
 
-    @Mock
+    @Autowired
     private UserRepository userRepository;
 
-    private Study testStudy;
-    private StudyBookmark testBookmark;
+    @Autowired
+    private EntityManager entityManager;
+
+    private User user1;
+    private User user2;
+    private Study study1;
+    private Study study2;
+    private Study study3;
+    private StudyBookmark bookmark1;
 
     @BeforeEach
     void setUp() {
-        testStudy = Study.builder()
-                .id(1L)
-                .leaderId(10L)
+        // 1. User 생성
+        user1 = userRepository.save(User.builder()
+                .userId("testuser1")
+                .email("test1@test.com")
+                .nickname("테스트유저1")
+                .name("테스트1")
+                .role(Role.USER)
+                .isActive(true)
+                .isOnline(false)
+                .isSearchable(true)
+                .totalExp(0)
+                .currentPoints(0)
+                .currentLevel(1)
+                .levelName("Bronze")
+                .build());
+        userRepository.flush();
+
+        user2 = userRepository.save(User.builder()
+                .userId("testuser2")
+                .email("test2@test.com")
+                .nickname("테스트유저2")
+                .name("테스트2")
+                .role(Role.USER)
+                .isActive(true)
+                .isOnline(false)
+                .isSearchable(true)
+                .totalExp(0)
+                .currentPoints(0)
+                .currentLevel(1)
+                .levelName("Bronze")
+                .build());
+        userRepository.flush();
+
+        // 2. Study 생성
+        study1 = studyRepository.save(Study.builder()
+                .leaderId(user1.getId())
                 .name("알고리즘 스터디")
-                .description("백준 골드 문제 풀이")
+                .description("백준 문제 풀이")
                 .topic("알고리즘")
                 .studyType(StudyType.PLANNED)
                 .meetingType(MeetingType.ONLINE)
                 .status(Status.RECRUITING)
                 .maxMembers(10)
                 .difficulty(Difficulty.INTERMEDIATE)
+                .isPublic(true)
                 .startDate(LocalDate.of(2025, 2, 1))
                 .endDate(LocalDate.of(2025, 5, 1))
-                .build();
+                .extensionCount(0)
+                .build());
+        studyRepository.flush();
 
-        testBookmark = StudyBookmark.builder()
-                .id(1L)
-                .userId(1L)
-                .studyId(1L)
-                .createdAt(LocalDateTime.now())
-                .build();
+        study2 = studyRepository.save(Study.builder()
+                .leaderId(user1.getId())
+                .name("CS 스터디")
+                .description("운영체제 학습")
+                .topic("CS")
+                .studyType(StudyType.PLANNED)
+                .meetingType(MeetingType.ONLINE)
+                .status(Status.RECRUITING)
+                .maxMembers(5)
+                .difficulty(Difficulty.BEGINNER)
+                .isPublic(true)
+                .startDate(LocalDate.of(2025, 2, 1))
+                .endDate(LocalDate.of(2025, 4, 1))
+                .extensionCount(0)
+                .build());
+        studyRepository.flush();
+
+        study3 = studyRepository.save(Study.builder()
+                .leaderId(user2.getId())
+                .name("스프링 스터디")
+                .description("스프링 부트 학습")
+                .topic("백엔드")
+                .studyType(StudyType.PLANNED)
+                .meetingType(MeetingType.ONLINE)
+                .status(Status.RECRUITING)
+                .maxMembers(8)
+                .difficulty(Difficulty.INTERMEDIATE)
+                .isPublic(true)
+                .startDate(LocalDate.of(2025, 2, 1))
+                .endDate(LocalDate.of(2025, 5, 1))
+                .extensionCount(0)
+                .build());
+        studyRepository.flush();
+
+        // 3. Bookmark 생성 - User1이 Study1을 북마크
+        bookmark1 = bookmarkRepository.save(StudyBookmark.create(user1.getId(), study1.getId()));
+        bookmarkRepository.flush();
     }
 
     // ============================================================
     // 북마크 토글 테스트
     // ============================================================
 
-    @Nested
-    @DisplayName("북마크 토글 테스트")
-    class ToggleBookmarkTest {
+    @Test
+    @DisplayName("북마크 추가 성공 - 기존 북마크 없음")
+    void toggleBookmark_Add_Success() {
+        // when - user1이 study2를 북마크 (기존에 없음)
+        StudyBookmarkResponse response = bookmarkService.toggleBookmark(
+                study2.getId(), user1.getId());
 
-        @Test
-        @DisplayName("북마크 추가 성공 - 기존 북마크 없음")
-        void toggleBookmark_Add_Success() {
-            // given
-            Long studyId = 1L;
-            Long userId = 1L;
+        // then
+        assertThat(response.getIsBookmarked()).isTrue();
+        assertThat(response.getStudyId()).isEqualTo(study2.getId());
+        assertThat(response.getId()).isNotNull();
 
-            given(studyRepository.findById(studyId)).willReturn(Optional.of(testStudy));
-            given(userRepository.existsById(userId)).willReturn(true);
-            given(bookmarkRepository.findByUserIdAndStudyId(userId, studyId)).willReturn(Optional.empty());
-            given(bookmarkRepository.save(any(StudyBookmark.class))).willReturn(testBookmark);
+        // DB 확인
+        boolean exists = bookmarkRepository.existsByUserIdAndStudyId(
+                user1.getId(), study2.getId());
+        assertThat(exists).isTrue();
+    }
 
-            // when
-            StudyBookmarkResponse response = bookmarkService.toggleBookmark(studyId, userId);
+    @Test
+    @DisplayName("북마크 삭제 성공 - 기존 북마크 있음")
+    void toggleBookmark_Remove_Success() {
+        // when - user1이 study1을 토글 (이미 북마크됨 → 삭제)
+        StudyBookmarkResponse response = bookmarkService.toggleBookmark(
+                study1.getId(), user1.getId());
 
-            // then
-            assertThat(response.getIsBookmarked()).isTrue();
-            assertThat(response.getStudyId()).isEqualTo(studyId);
-            verify(bookmarkRepository).save(any(StudyBookmark.class));
-            verify(bookmarkRepository, never()).delete(any());
-        }
+        entityManager.flush();
+        entityManager.clear();
 
-        @Test
-        @DisplayName("북마크 삭제 성공 - 기존 북마크 있음")
-        void toggleBookmark_Remove_Success() {
-            // given
-            Long studyId = 1L;
-            Long userId = 1L;
+        // then
+        assertThat(response.getIsBookmarked()).isFalse();
+        assertThat(response.getStudyId()).isEqualTo(study1.getId());
 
-            given(studyRepository.findById(studyId)).willReturn(Optional.of(testStudy));
-            given(userRepository.existsById(userId)).willReturn(true);
-            given(bookmarkRepository.findByUserIdAndStudyId(userId, studyId)).willReturn(Optional.of(testBookmark));
+        // DB 확인
+        boolean exists = bookmarkRepository.existsByUserIdAndStudyId(
+                user1.getId(), study1.getId());
+        assertThat(exists).isFalse();
+    }
 
-            // when
-            StudyBookmarkResponse response = bookmarkService.toggleBookmark(studyId, userId);
+    @Test
+    @DisplayName("북마크 토글 실패 - 존재하지 않는 스터디")
+    void toggleBookmark_StudyNotFound() {
+        // when & then
+        assertThatThrownBy(() -> bookmarkService.toggleBookmark(99999L, user1.getId()))
+                .isInstanceOf(StudyException.StudyNotFoundException.class);
+    }
 
-            // then
-            assertThat(response.getIsBookmarked()).isFalse();
-            assertThat(response.getStudyId()).isEqualTo(studyId);
-            verify(bookmarkRepository).delete(testBookmark);
-            verify(bookmarkRepository, never()).save(any());
-        }
-
-        @Test
-        @DisplayName("북마크 토글 실패 - 존재하지 않는 스터디")
-        void toggleBookmark_StudyNotFound() {
-            // given
-            Long studyId = 99L;
-            Long userId = 1L;
-
-            given(studyRepository.findById(studyId)).willReturn(Optional.empty());
-
-            // when & then
-            assertThatThrownBy(() -> bookmarkService.toggleBookmark(studyId, userId))
-                    .isInstanceOf(StudyException.StudyNotFoundException.class);
-
-            verify(bookmarkRepository, never()).save(any());
-            verify(bookmarkRepository, never()).delete(any());
-        }
-
-        @Test
-        @DisplayName("북마크 토글 실패 - 존재하지 않는 사용자")
-        void toggleBookmark_UserNotFound() {
-            // given
-            Long studyId = 1L;
-            Long userId = 99L;
-
-            given(studyRepository.findById(studyId)).willReturn(Optional.of(testStudy));
-            given(userRepository.existsById(userId)).willReturn(false);
-
-            // when & then
-            assertThatThrownBy(() -> bookmarkService.toggleBookmark(studyId, userId))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("존재하지 않는 사용자");
-
-            verify(bookmarkRepository, never()).save(any());
-            verify(bookmarkRepository, never()).delete(any());
-        }
+    @Test
+    @DisplayName("북마크 토글 실패 - 존재하지 않는 사용자")
+    void toggleBookmark_UserNotFound() {
+        // when & then
+        assertThatThrownBy(() -> bookmarkService.toggleBookmark(study1.getId(), 99999L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("존재하지 않는 사용자");
     }
 
     // ============================================================
     // 내 북마크 목록 조회 테스트
     // ============================================================
 
-    @Nested
-    @DisplayName("내 북마크 목록 조회 테스트")
-    class GetMyBookmarksTest {
+    @Test
+    @DisplayName("내 북마크 목록 조회 성공")
+    void getMyBookmarks_Success() {
+        // given - user1이 study2도 북마크 추가
+        bookmarkRepository.save(StudyBookmark.create(user1.getId(), study2.getId()));
+        bookmarkRepository.flush();
 
-        @Test
-        @DisplayName("내 북마크 목록 조회 성공")
-        void getMyBookmarks_Success() {
-            // given
-            Long userId = 1L;
-            Pageable pageable = PageRequest.of(0, 10);
+        // when
+        Page<StudyBookmarkResponse> response = bookmarkService.getMyBookmarks(
+                user1.getId(),
+                PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "createdAt"))
+        );
 
-            List<StudyBookmark> bookmarks = List.of(testBookmark);
-            Page<StudyBookmark> bookmarkPage = new PageImpl<>(bookmarks, pageable, 1);
+        // then
+        assertThat(response.getContent()).hasSize(2);
+        assertThat(response.getTotalElements()).isEqualTo(2);
+        assertThat(response.getContent()).allMatch(r -> r.getIsBookmarked());
+        assertThat(response.getContent()).extracting("studyName")
+                .containsExactlyInAnyOrder("알고리즘 스터디", "CS 스터디");
+    }
 
-            given(bookmarkRepository.findByUserId(userId, pageable)).willReturn(bookmarkPage);
-            given(studyRepository.findAllById(List.of(1L))).willReturn(List.of(testStudy));
-            List<Object[]> countResult = new ArrayList<>();
-            countResult.add(new Object[]{1L, 5L});
-            given(bookmarkRepository.countByStudyIds(anyList())).willReturn(countResult);
+    @Test
+    @DisplayName("내 북마크 목록 조회 - 빈 목록")
+    void getMyBookmarks_Empty() {
+        // when - user2는 북마크 없음
+        Page<StudyBookmarkResponse> response = bookmarkService.getMyBookmarks(
+                user2.getId(),
+                PageRequest.of(0, 10)
+        );
 
-            // when
-            Page<StudyBookmarkResponse> response = bookmarkService.getMyBookmarks(userId, pageable);
+        // then
+        assertThat(response.getContent()).isEmpty();
+        assertThat(response.getTotalElements()).isZero();
+    }
 
-            // then
-            assertThat(response.getContent()).hasSize(1);
-            assertThat(response.getContent().get(0).getStudyName()).isEqualTo("알고리즘 스터디");
-            assertThat(response.getContent().get(0).getBookmarkCount()).isEqualTo(5L);
-            assertThat(response.getContent().get(0).getIsBookmarked()).isTrue();
-        }
+    @Test
+    @DisplayName("내 북마크 목록 조회 - 스터디 정보 포함 확인")
+    void getMyBookmarks_WithStudyInfo() {
+        // when
+        Page<StudyBookmarkResponse> response = bookmarkService.getMyBookmarks(
+                user1.getId(),
+                PageRequest.of(0, 10)
+        );
 
-        @Test
-        @DisplayName("내 북마크 목록 조회 - 빈 목록")
-        void getMyBookmarks_Empty() {
-            // given
-            Long userId = 1L;
-            Pageable pageable = PageRequest.of(0, 10);
+        // then
+        assertThat(response.getContent()).hasSize(1);
 
-            Page<StudyBookmark> emptyPage = new PageImpl<>(List.of(), pageable, 0);
-
-            given(bookmarkRepository.findByUserId(userId, pageable)).willReturn(emptyPage);
-
-            // when
-            Page<StudyBookmarkResponse> response = bookmarkService.getMyBookmarks(userId, pageable);
-
-            // then
-            assertThat(response.getContent()).isEmpty();
-            assertThat(response.getTotalElements()).isZero();
-        }
+        StudyBookmarkResponse bookmark = response.getContent().get(0);
+        assertThat(bookmark.getStudyId()).isEqualTo(study1.getId());
+        assertThat(bookmark.getStudyName()).isEqualTo("알고리즘 스터디");
+        assertThat(bookmark.getStudyTopic()).isEqualTo("알고리즘");
+        assertThat(bookmark.getStudyStatus()).isEqualTo("RECRUITING");
+        assertThat(bookmark.getMeetingType()).isEqualTo("ONLINE");
     }
 
     // ============================================================
     // 북마크 여부 확인 테스트
     // ============================================================
 
-    @Nested
-    @DisplayName("북마크 여부 확인 테스트")
-    class IsBookmarkedTest {
+    @Test
+    @DisplayName("북마크 여부 확인 - 북마크함")
+    void isBookmarked_True() {
+        // when
+        boolean result = bookmarkService.isBookmarked(study1.getId(), user1.getId());
 
-        @Test
-        @DisplayName("북마크 여부 확인 - 북마크함")
-        void isBookmarked_True() {
-            // given
-            Long studyId = 1L;
-            Long userId = 1L;
+        // then
+        assertThat(result).isTrue();
+    }
 
-            given(bookmarkRepository.existsByUserIdAndStudyId(userId, studyId)).willReturn(true);
+    @Test
+    @DisplayName("북마크 여부 확인 - 북마크 안함")
+    void isBookmarked_False() {
+        // when
+        boolean result = bookmarkService.isBookmarked(study2.getId(), user1.getId());
 
-            // when
-            boolean result = bookmarkService.isBookmarked(studyId, userId);
-
-            // then
-            assertThat(result).isTrue();
-        }
-
-        @Test
-        @DisplayName("북마크 여부 확인 - 북마크 안함")
-        void isBookmarked_False() {
-            // given
-            Long studyId = 1L;
-            Long userId = 1L;
-
-            given(bookmarkRepository.existsByUserIdAndStudyId(userId, studyId)).willReturn(false);
-
-            // when
-            boolean result = bookmarkService.isBookmarked(studyId, userId);
-
-            // then
-            assertThat(result).isFalse();
-        }
+        // then
+        assertThat(result).isFalse();
     }
 
     // ============================================================
     // 통계 조회 테스트
     // ============================================================
 
-    @Nested
-    @DisplayName("통계 조회 테스트")
-    class StatisticsTest {
+    @Test
+    @DisplayName("스터디 북마크 개수 조회")
+    void getBookmarkCount() {
+        // given - user2도 study1 북마크
+        bookmarkRepository.save(StudyBookmark.create(user2.getId(), study1.getId()));
+        bookmarkRepository.flush();
 
-        @Test
-        @DisplayName("스터디 북마크 개수 조회")
-        void getBookmarkCount() {
-            // given
-            Long studyId = 1L;
+        // when
+        Long count = bookmarkService.getBookmarkCount(study1.getId());
 
-            given(bookmarkRepository.countByStudyId(studyId)).willReturn(10L);
+        // then
+        assertThat(count).isEqualTo(2);
+    }
 
-            // when
-            Long count = bookmarkService.getBookmarkCount(studyId);
+    @Test
+    @DisplayName("스터디 북마크 개수 조회 - 0개")
+    void getBookmarkCount_Zero() {
+        // when
+        Long count = bookmarkService.getBookmarkCount(study3.getId());
 
-            // then
-            assertThat(count).isEqualTo(10L);
-        }
+        // then
+        assertThat(count).isZero();
+    }
 
-        @Test
-        @DisplayName("내 북마크 개수 조회")
-        void getMyBookmarkCount() {
-            // given
-            Long userId = 1L;
+    @Test
+    @DisplayName("내 북마크 개수 조회")
+    void getMyBookmarkCount() {
+        // given - user1이 study2도 북마크
+        bookmarkRepository.save(StudyBookmark.create(user1.getId(), study2.getId()));
+        bookmarkRepository.flush();
 
-            given(bookmarkRepository.countByUserId(userId)).willReturn(5L);
+        // when
+        Long count = bookmarkService.getMyBookmarkCount(user1.getId());
 
-            // when
-            Long count = bookmarkService.getMyBookmarkCount(userId);
+        // then
+        assertThat(count).isEqualTo(2);
+    }
 
-            // then
-            assertThat(count).isEqualTo(5L);
-        }
+    @Test
+    @DisplayName("내 북마크 개수 조회 - 0개")
+    void getMyBookmarkCount_Zero() {
+        // when
+        Long count = bookmarkService.getMyBookmarkCount(user2.getId());
+
+        // then
+        assertThat(count).isZero();
+    }
+
+    // ============================================================
+    // 토글 연속 테스트
+    // ============================================================
+
+    @Test
+    @DisplayName("북마크 토글 연속 - 추가 → 삭제 → 추가")
+    void toggleBookmark_Consecutive() {
+        Long studyId = study2.getId();
+        Long userId = user1.getId();
+
+        // 1. 추가 (기존에 없음)
+        StudyBookmarkResponse response1 = bookmarkService.toggleBookmark(studyId, userId);
+        assertThat(response1.getIsBookmarked()).isTrue();
+
+        // 2. 삭제 (방금 추가됨)
+        StudyBookmarkResponse response2 = bookmarkService.toggleBookmark(studyId, userId);
+        assertThat(response2.getIsBookmarked()).isFalse();
+
+        // 3. 다시 추가
+        StudyBookmarkResponse response3 = bookmarkService.toggleBookmark(studyId, userId);
+        assertThat(response3.getIsBookmarked()).isTrue();
     }
 }
