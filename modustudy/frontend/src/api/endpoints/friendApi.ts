@@ -28,6 +28,15 @@ export interface UserSearchResult {
     isPending: boolean;
 }
 
+// API 응답 타입 (백엔드 실제 응답)
+interface UserSearchApiResponse {
+    userId: number;
+    nickname: string;
+    profileImage: string | null;
+    isOnline: boolean;
+    friendStatus: 'NONE' | 'FRIEND' | 'PENDING_SENT' | 'PENDING_RECEIVED' | 'BLOCKED';
+}
+
 // ===== API 함수들 =====
 
 /**
@@ -45,7 +54,15 @@ export const searchUsers = async (query: string): Promise<UserSearchResult[]> =>
     const response = await api.get('/api/v1/friends/search', {
         params: { keyword: query }
     });
-    return response.data;
+    // API 응답을 프론트엔드 타입으로 변환
+    const apiResults: UserSearchApiResponse[] = response.data.data || [];
+    return apiResults.map(user => ({
+        id: user.userId,
+        nickname: user.nickname,
+        profileImage: user.profileImage,
+        isFriend: user.friendStatus === 'FRIEND',
+        isPending: user.friendStatus === 'PENDING_SENT' || user.friendStatus === 'PENDING_RECEIVED'
+    }));
 };
 
 /**
