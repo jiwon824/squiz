@@ -1,6 +1,8 @@
 package com.ssafy.domain.study.repository;
 
+import com.ssafy.domain.study.entity.Study;
 import com.ssafy.domain.study.entity.StudyComment;
+import com.ssafy.domain.study.entity.StudyType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -26,6 +28,11 @@ class StudyCommentRepositoryTest {
     @Autowired
     private StudyCommentRepository commentRepository;
 
+    @Autowired
+    private StudyRepository studyRepository;
+
+    private Study study1;
+    private Study study2;
     private StudyComment parentComment1;
     private StudyComment parentComment2;
     private StudyComment replyComment1;
@@ -34,16 +41,34 @@ class StudyCommentRepositoryTest {
 
     @BeforeEach
     void setUp() {
+        // 먼저 Study 엔티티 생성 (외래 키 제약 조건 충족)
+        study1 = studyRepository.save(Study.builder()
+                .leaderId(10L)
+                .name("테스트 스터디 1")
+                .topic("Java")
+                .studyType(StudyType.PLANNED)
+                .build());
+
+        study2 = studyRepository.save(Study.builder()
+                .leaderId(20L)
+                .name("테스트 스터디 2")
+                .topic("Spring")
+                .studyType(StudyType.PLANNED)
+                .build());
+
+        // Study INSERT를 즉시 실행 (FK 제약조건 충족)
+        studyRepository.flush();
+
         // 스터디 1의 최상위 댓글들
         parentComment1 = StudyComment.builder()
-                .studyId(1L)
+                .studyId(study1.getId())
                 .userId(10L)
                 .content("첫 번째 댓글입니다.")
                 .build();
         parentComment1 = commentRepository.save(parentComment1);
 
         parentComment2 = StudyComment.builder()
-                .studyId(1L)
+                .studyId(study1.getId())
                 .userId(11L)
                 .content("두 번째 댓글입니다.")
                 .imageUrl("https://example.com/image.png")
@@ -52,7 +77,7 @@ class StudyCommentRepositoryTest {
 
         // 첫 번째 댓글의 대댓글들
         replyComment1 = StudyComment.builder()
-                .studyId(1L)
+                .studyId(study1.getId())
                 .userId(12L)
                 .parentId(parentComment1.getId())
                 .content("첫 번째 댓글에 대한 답글입니다.")
@@ -60,7 +85,7 @@ class StudyCommentRepositoryTest {
         replyComment1 = commentRepository.save(replyComment1);
 
         replyComment2 = StudyComment.builder()
-                .studyId(1L)
+                .studyId(study1.getId())
                 .userId(10L)
                 .parentId(parentComment1.getId())
                 .content("작성자의 답글입니다.")
@@ -69,7 +94,7 @@ class StudyCommentRepositoryTest {
 
         // 삭제된 댓글 (스터디 1)
         deletedComment = StudyComment.builder()
-                .studyId(1L)
+                .studyId(study1.getId())
                 .userId(13L)
                 .content("삭제된 댓글입니다.")
                 .build();
@@ -85,7 +110,7 @@ class StudyCommentRepositoryTest {
     @DisplayName("스터디별 최상위 댓글 조회 - 삭제되지 않은 것만")
     void findParentCommentsByStudyId_Success() {
         // given
-        Long studyId = 1L;
+        Long studyId = study1.getId();
         Pageable pageable = PageRequest.of(0, 10);
 
         // when
@@ -102,7 +127,7 @@ class StudyCommentRepositoryTest {
     @DisplayName("스터디별 최상위 댓글 조회 - 삭제된 것 포함")
     void findAllParentCommentsByStudyId_Success() {
         // given
-        Long studyId = 1L;
+        Long studyId = study1.getId();
         Pageable pageable = PageRequest.of(0, 10);
 
         // when
@@ -118,7 +143,7 @@ class StudyCommentRepositoryTest {
     @DisplayName("스터디별 전체 댓글 조회 - 리스트")
     void findByStudyIdAndIsDeletedFalse_Success() {
         // given
-        Long studyId = 1L;
+        Long studyId = study1.getId();
 
         // when
         List<StudyComment> result = commentRepository.findByStudyIdAndIsDeletedFalseOrderByCreatedAtAsc(studyId);
@@ -274,7 +299,7 @@ class StudyCommentRepositoryTest {
     void findByIdAndStudyIdAndIsDeletedFalse_Success() {
         // given
         Long commentId = parentComment1.getId();
-        Long studyId = 1L;
+        Long studyId = study1.getId();
 
         // when
         Optional<StudyComment> result = commentRepository.findByIdAndStudyIdAndIsDeletedFalse(commentId, studyId);
@@ -306,7 +331,7 @@ class StudyCommentRepositoryTest {
     @DisplayName("스터디별 전체 댓글 개수")
     void countByStudyIdAndIsDeletedFalse_Success() {
         // given
-        Long studyId = 1L;
+        Long studyId = study1.getId();
 
         // when
         Long count = commentRepository.countByStudyIdAndIsDeletedFalse(studyId);
@@ -319,7 +344,7 @@ class StudyCommentRepositoryTest {
     @DisplayName("스터디별 최상위 댓글 개수")
     void countParentCommentsByStudyId_Success() {
         // given
-        Long studyId = 1L;
+        Long studyId = study1.getId();
 
         // when
         Long count = commentRepository.countParentCommentsByStudyId(studyId);
@@ -350,7 +375,7 @@ class StudyCommentRepositoryTest {
     void save_Success() {
         // given
         StudyComment newComment = StudyComment.builder()
-                .studyId(2L)
+                .studyId(study2.getId())
                 .userId(20L)
                 .content("새로운 댓글입니다.")
                 .build();
@@ -361,7 +386,7 @@ class StudyCommentRepositoryTest {
         // then
         assertThat(saved).isNotNull();
         assertThat(saved.getId()).isNotNull();
-        assertThat(saved.getStudyId()).isEqualTo(2L);
+        assertThat(saved.getStudyId()).isEqualTo(study2.getId());
         assertThat(saved.getUserId()).isEqualTo(20L);
         assertThat(saved.getContent()).isEqualTo("새로운 댓글입니다.");
         assertThat(saved.getIsDeleted()).isFalse();
@@ -373,7 +398,7 @@ class StudyCommentRepositoryTest {
     void save_Reply_Success() {
         // given
         StudyComment reply = StudyComment.builder()
-                .studyId(1L)
+                .studyId(study1.getId())
                 .userId(20L)
                 .parentId(parentComment1.getId())
                 .content("새로운 대댓글입니다.")
@@ -394,7 +419,7 @@ class StudyCommentRepositoryTest {
     void save_WithImage_Success() {
         // given
         StudyComment commentWithImage = StudyComment.builder()
-                .studyId(1L)
+                .studyId(study1.getId())
                 .userId(20L)
                 .content("이미지 첨부 댓글입니다.")
                 .imageUrl("https://example.com/new-image.png")
@@ -459,7 +484,7 @@ class StudyCommentRepositoryTest {
     @DisplayName("스터디별 댓글 전체 삭제")
     void deleteByStudyId_Success() {
         // given
-        Long studyId = 1L;
+        Long studyId = study1.getId();
 
         // when
         commentRepository.deleteByStudyId(studyId);

@@ -27,18 +27,18 @@ Squiz 프로젝트는 Docker Compose 기반으로 여러 서비스가 하나의 
 │  ┌─────────────────────────────────────────────────────────────────────┐    │
 │  │  역할:                                                               │    │
 │  │  1. React 정적 파일 서빙 (Frontend)                                  │    │
-│  │  2. 리버스 프록시 (Backend, SFU, Recorder로 라우팅)                  │    │
+│  │  2. 리버스 프록시 (Backend, SFU, CS Quiz AI로 라우팅)                │    │
 │  │  3. SSL 종료 (HTTPS → HTTP 변환)                                    │    │
 │  └─────────────────────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────────────────────┘
           │                    │                    │                    │
-          │ /api/*             │ /ws/*              │ /sfu/*             │ /recorder/*
+          │ /api/*             │ /ws/*              │ /sfu/*             │ /ai/*
           │ /oauth2/*          │                    │                    │
           ▼                    ▼                    ▼                    ▼
    ┌─────────────┐      ┌─────────────┐      ┌─────────────┐      ┌─────────────┐
-   │   Backend   │      │   Backend   │      │ SFU Server  │      │  Recorder   │
-   │   :8080     │      │   :8080     │      │   :4000     │      │   :3001     │
-   │  (HTTP API) │      │ (WebSocket) │      │ (Mediasoup) │      │  (녹화)     │
+   │   Backend   │      │   Backend   │      │ SFU Server  │      │ CS Quiz AI  │
+   │   :8080     │      │   :8080     │      │   :4000     │      │   :5000     │
+   │  (HTTP API) │      │ (WebSocket) │      │ (Mediasoup) │      │  (Flask)    │
    └──────┬──────┘      └─────────────┘      └─────────────┘      └─────────────┘
           │
           ▼
@@ -78,7 +78,7 @@ Squiz 프로젝트는 Docker Compose 기반으로 여러 서비스가 하나의 
         ├─ /oauth2/*            → Backend (8080) 프록시
         ├─ /ws/*                → Backend WebSocket 프록시
         ├─ /sfu/*               → SFU Server (4000) 프록시
-        └─ /recorder/*          → Recorder (3001) 프록시
+        └─ /ai/*                → CS Quiz AI (5000) 프록시
 ```
 
 **Dockerfile 빌드 과정**:
@@ -200,21 +200,31 @@ environment:
 
 ---
 
-### 4. Recorder Server (squiz-recorder)
+### 4. CS Quiz AI Server (squiz-cs-quiz-ai)
 
-**역할**: 스터디룸 세션 녹화
+**역할**: AI 기반 CS 퀴즈 생성 서비스
 
 | 항목 | 값 |
 |------|-----|
-| 컨테이너명 | squiz-recorder |
-| 내부 포트 | 3001 |
-| 외부 노출 | nginx를 통해 `/recorder/*` |
-| 빌드 경로 | `./rtc_mockup/recorder-server/Dockerfile` |
-| 저장 경로 | `/app/recordings` (Docker Volume) |
+| 컨테이너명 | squiz-cs-quiz-ai |
+| 내부 포트 | 5000 |
+| 외부 노출 | nginx를 통해 `/ai/*` |
+| 빌드 경로 | `./backend/cs-quiz-ai-service/Dockerfile` |
+| 프레임워크 | Flask (Python) |
 
 **기능**:
-- WebRTC 세션 녹화
-- 녹화 파일 저장/관리
+- CS 지식 기반 퀴즈 자동 생성
+- 문제 난이도 조절
+- 해설 생성
+
+**환경변수**:
+```yaml
+environment:
+  - HOST=0.0.0.0
+  - PORT=5000
+  - DEBUG=False
+  - CORS_ORIGINS=https://i14d106.p.ssafy.io,http://localhost:5173
+```
 
 ---
 
@@ -264,29 +274,6 @@ healthcheck:
 
 ---
 
-### 7. AI Server (예정)
-
-**역할**: AI 기반 퀴즈 생성 및 분석
-
-| 항목 | 예상 값 |
-|------|---------|
-| 컨테이너명 | squiz-ai |
-| 포트 | 5000 (예정) |
-| 프레임워크 | FastAPI (Python) |
-
-**예상 기능**:
-- 문서 기반 퀴즈 자동 생성
-- 학습 분석 및 추천
-- 자연어 처리 (NLP)
-
-**예상 아키텍처**:
-```
-nginx
-   └─ /ai/* → AI Server (5000) 프록시
-
-Backend ──API 호출──> AI Server
-```
-
 ---
 
 ## 네트워크 구성
@@ -304,7 +291,7 @@ networks:
 - `redis:6379`
 - `backend:8080`
 - `sfu-server:4000`
-- `recorder:3001`
+- `cs-quiz-ai:5000`
 
 ### 포트 매핑 (외부 노출)
 
@@ -313,6 +300,8 @@ networks:
 | 80 | nginx | HTTP (→ HTTPS 리다이렉트) |
 | 443 | nginx | HTTPS (메인 진입점) |
 | 3306 | mysql | DB 직접 접근 (개발용) |
+| 4000 | sfu-server | SFU 시그널링 (WebSocket) |
+| 5000 | cs-quiz-ai | AI 퀴즈 생성 서비스 |
 | 6379 | redis | Redis 직접 접근 (개발용) |
 | 20000-22000/UDP | sfu-server | WebRTC 미디어 |
 
@@ -326,7 +315,6 @@ networks:
 |--------|----------|------|------|
 | mysql-data | squiz-mysql | /var/lib/mysql | DB 데이터 |
 | redis-data | squiz-redis | /data | 캐시 데이터 |
-| recording-data | squiz-recorder | /app/recordings | 녹화 파일 |
 
 ### 서버 전용 파일 (Git 미포함)
 
@@ -430,7 +418,7 @@ SFU Server (:4000)
           mysql     redis
           (healthcheck)
 
-recorder (독립)
+cs-quiz-ai (독립)
 ```
 
 **시작 순서**:
@@ -438,8 +426,8 @@ recorder (독립)
 2. redis
 3. backend (mysql, redis 의존)
 4. sfu-server
-5. nginx (backend, sfu-server 의존)
-6. recorder (독립)
+5. cs-quiz-ai (독립)
+6. nginx (backend, sfu-server 의존)
 
 ---
 
