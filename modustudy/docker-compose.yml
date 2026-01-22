@@ -84,24 +84,6 @@ services:
       - squiz-network
 
   # ===========================================
-  # Recorder Server
-  # ===========================================
-  recorder:
-    build:
-      context: ./rtc_mockup/recorder-server
-      dockerfile: Dockerfile
-    container_name: squiz-recorder
-    ports:
-      - "3001:3001"
-    environment:
-      - NODE_ENV=production
-    volumes:
-      - recording-data:/app/recordings
-    restart: unless-stopped
-    networks:
-      - squiz-network
-
-  # ===========================================
   # MySQL
   # ===========================================
   mysql:
@@ -154,4 +136,3 @@ networks:
 volumes:
   mysql-data:
   redis-data:
-  recording-data:

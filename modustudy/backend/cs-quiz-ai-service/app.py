@@ -1,14 +1,24 @@
-from flask import Flask, jsonify
-from flask_cors import CORS
-import os
-from config import Config
+"""
+CS Word Quiz AI Service - Flask 애플리케이션 (옵션 C: 하이브리드 최적화)
 
-# 라우트 임포트
+Features:
+- AI 기반 유사도 계산 (Sentence Transformer)
+- CS 동의어 사전 매칭 (해시테이블 = 해시맵 = 딕셔너리)
+- 부분 일치 보너스 (SQL인젝션 ↔ SQL 인젝션)
+- 카테고리 기반 보너스
+- 점수 스케일링
+"""
+import os
+from flask import Flask
+from flask_cors import CORS
+
+from config import Config
 from routes import health_bp, similarity_bp, word_bp, visualization_bp
 
 
-def create_app():
+def create_app() -> Flask:
     """Flask 애플리케이션 팩토리"""
+    
     app = Flask(__name__)
     
     # CORS 설정
@@ -20,36 +30,42 @@ def create_app():
     app.register_blueprint(word_bp)
     app.register_blueprint(visualization_bp)
     
-    # 에러 핸들러
-    @app.errorhandler(404)
-    def not_found(error):
-        return jsonify({"error": "엔드포인트를 찾을 수 없습니다"}), 404
-
-    @app.errorhandler(500)
-    def internal_error(error):
-        return jsonify({"error": "서버 내부 오류가 발생했습니다"}), 500
-    
     return app
 
 
-if __name__ == '__main__':
-    print("=" * 50)
-    print("🚀 CS Word Quiz AI Service Starting...")
-    print("=" * 50)
+def main():
+    """애플리케이션 메인 진입점"""
+    
+    print("=" * 60)
+    print("🚀 CS Word Quiz AI Service v2.0 (Option C: Hybrid)")
+    print("=" * 60)
     
     # 데이터 디렉토리 생성
     os.makedirs(Config.DATA_DIR, exist_ok=True)
     
-    # Flask 앱 생성
+    # 앱 생성
     app = create_app()
     
     print(f"📍 Server: http://{Config.HOST}:{Config.PORT}")
     print(f"🔧 Debug Mode: {Config.DEBUG}")
     print(f"🌐 CORS Origins: {Config.CORS_ORIGINS}")
-    print("=" * 50)
+    print(f"🤖 Model: {Config.MODEL_NAME}")
+    print("=" * 60)
+    print("✨ Features:")
+    print("   - AI 기반 유사도 계산")
+    print("   - CS 동의어 사전 (70개+ 용어)")
+    print("   - 부분 일치 보너스")
+    print("   - 카테고리 보너스")
+    print("   - 점수 스케일링")
+    print("=" * 60)
     
+    # 서버 실행
     app.run(
         host=Config.HOST,
         port=Config.PORT,
         debug=Config.DEBUG
     )
+
+
+if __name__ == '__main__':
+    main()

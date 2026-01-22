@@ -98,7 +98,10 @@ class WordService:
         """난이도 목록 조회"""
         data = self.load_words()
         difficulties = list(set(w['difficulty'] for w in data['words']))
-        return sorted(difficulties)
+        
+        # easy, medium, hard 순서로 정렬
+        order = {'easy': 0, 'medium': 1, 'hard': 2}
+        return sorted(difficulties, key=lambda x: order.get(x, 99))
     
     def get_words_by_category(self, category: str) -> List[Word]:
         """카테고리별 단어 조회"""

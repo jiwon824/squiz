@@ -98,6 +98,21 @@ public class MeetingRoomWebSocketController {
         messagingTemplate.convertAndSend("/topic/rooms/" + roomId + "/events", event);
     }
 
+    @MessageMapping("/rooms/{roomId}/speaking")
+    public void updateSpeaking(@DestinationVariable String roomId,
+                               @Valid MeetingRoomSpeakingRequest request,
+                               SimpMessageHeaderAccessor headerAccessor) {
+        String sessionId = headerAccessor.getSessionId();
+        MeetingRoomStateService.Participant participant =
+                roomStateService.updateSpeaking(roomId, sessionId, Boolean.TRUE.equals(request.getSpeaking()));
+        if (participant == null) {
+            return;
+        }
+        MeetingRoomEvent event = new MeetingRoomEvent(MeetingRoomEvent.Type.SPEAKING, roomId);
+        event.setParticipant(participant.toDto());
+        messagingTemplate.convertAndSend("/topic/rooms/" + roomId + "/events", event);
+    }
+
     private MessageHeaders createHeaders(String sessionId) {
         SimpMessageHeaderAccessor accessor = SimpMessageHeaderAccessor.create(SimpMessageType.MESSAGE);
         accessor.setSessionId(sessionId);
