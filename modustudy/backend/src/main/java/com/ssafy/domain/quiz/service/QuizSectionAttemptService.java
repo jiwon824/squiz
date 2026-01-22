@@ -60,14 +60,14 @@ public class QuizSectionAttemptService {
      *
      * <h3>처리 흐름</h3>
      * <ol>
-     *   <li>섹션 해금 여부 확인</li>
-     *   <li>진행 중인 시도가 있으면 재개 (기존 순서 유지)</li>
-     *   <li>없으면 새 시도 생성 (문제 셔플)</li>
+     * <li>섹션 해금 여부 확인</li>
+     * <li>진행 중인 시도가 있으면 재개 (기존 순서 유지)</li>
+     * <li>없으면 새 시도 생성 (문제 셔플)</li>
      * </ol>
      *
-     * @param courseId 코스 ID
+     * @param courseId      코스 ID
      * @param sectionNumber 섹션 번호
-     * @param userId 사용자 ID
+     * @param userId        사용자 ID
      * @return 시도 응답 (문제 목록 포함)
      */
     @Transactional
@@ -111,8 +111,8 @@ public class QuizSectionAttemptService {
      * 진행 중인 시도에만 저장 가능하다.
      *
      * @param attemptId 시도 ID
-     * @param request 저장할 답안 목록
-     * @param userId 사용자 ID
+     * @param request   저장할 답안 목록
+     * @param userId    사용자 ID
      */
     @Transactional
     public void saveAnswers(Long attemptId, SaveAnswerRequest request, Long userId) {
@@ -124,8 +124,7 @@ public class QuizSectionAttemptService {
             throw new BusinessException(
                     HttpStatus.FORBIDDEN,
                     "NOT_ATTEMPT_OWNER",
-                    "본인의 시도만 수정할 수 있습니다."
-            );
+                    "본인의 시도만 수정할 수 있습니다.");
         }
 
         // 진행 중인 시도인지 확인
@@ -133,16 +132,14 @@ public class QuizSectionAttemptService {
             throw new BusinessException(
                     HttpStatus.BAD_REQUEST,
                     "ATTEMPT_ALREADY_COMPLETED",
-                    "완료된 시도는 수정할 수 없습니다."
-            );
+                    "완료된 시도는 수정할 수 없습니다.");
         }
 
         // 답안 저장
         Map<Long, UserSectionAttemptQuestion> questionMap = attempt.getAttemptQuestions().stream()
                 .collect(Collectors.toMap(
                         aq -> aq.getQuestion().getId(),
-                        aq -> aq
-                ));
+                        aq -> aq));
 
         for (SaveAnswerRequest.AnswerItem answer : request.answers()) {
             UserSectionAttemptQuestion aq = questionMap.get(answer.questionId());
@@ -156,7 +153,7 @@ public class QuizSectionAttemptService {
      * 시도를 제출하고 채점한다.
      *
      * @param attemptId 시도 ID
-     * @param userId 사용자 ID
+     * @param userId    사용자 ID
      * @return 채점 결과
      */
     @Transactional
@@ -169,8 +166,7 @@ public class QuizSectionAttemptService {
             throw new BusinessException(
                     HttpStatus.FORBIDDEN,
                     "NOT_ATTEMPT_OWNER",
-                    "본인의 시도만 제출할 수 있습니다."
-            );
+                    "본인의 시도만 제출할 수 있습니다.");
         }
 
         // 진행 중인 시도인지 확인
@@ -178,17 +174,30 @@ public class QuizSectionAttemptService {
             throw new BusinessException(
                     HttpStatus.BAD_REQUEST,
                     "ATTEMPT_ALREADY_COMPLETED",
-                    "이미 완료된 시도입니다."
-            );
+                    "이미 완료된 시도입니다.");
         }
 
-        // 채점
-        attemptQuestionRepository.gradeAllByAttemptId(attemptId);
-        int correctCount = attemptQuestionRepository.countCorrectByAttemptId(attemptId);
+        // 1. 문제 목록 조회 (질문 정보 포함)
+        // 이 시점에서 question 정보가 필요하므로 fetch join된 쿼리 사용
+        List<UserSectionAttemptQuestion> attemptQuestions = attemptQuestionRepository
+                .findByAttemptIdWithQuestionOrderByOrderIndex(attemptId);
 
-        // 시도 완료 처리
+        // 2. 각 문제 채점
+        for (UserSectionAttemptQuestion aq : attemptQuestions) {
+            // UserSectionAttemptQuestion 엔티티의 비즈니스 메서드 호출
+            // 내부적으로 userAnswer와 question.correctAnswer 비교
+            aq.grade(aq.getQuestion().getCorrectAnswer());
+        }
+
+        // 3. 정답 개수 계산
+        int correctCount = (int) attemptQuestions.stream()
+                .filter(UserSectionAttemptQuestion::getIsCorrect)
+                .count();
+
+        // 4. 시도 완료 처리
         QuizCourseSection section = attempt.getSection();
         attempt.complete(correctCount, section.getPassScore());
+        // JPA Dirty Checking으로 변경사항 자동 저장
 
         // 통과 시 다음 섹션 해금
         boolean isNextSectionUnlocked = false;
@@ -198,8 +207,7 @@ public class QuizSectionAttemptService {
             isNextSectionUnlocked = updateProgress(
                     userId,
                     section.getCourse().getId(),
-                    section.getSectionNumber()
-            );
+                    section.getSectionNumber());
 
             // 코스 완료 시 배지 수여
             if (isCoursCompleted(userId, section.getCourse())) {
@@ -207,18 +215,14 @@ public class QuizSectionAttemptService {
             }
         }
 
-        // 결과 조회 및 응답 생성
-        List<UserSectionAttemptQuestion> results = attemptQuestionRepository
-                .findByAttemptIdWithQuestionOrderByOrderIndex(attemptId);
-
-        return buildResultResponse(attempt, results, isNextSectionUnlocked, earnedBadge);
+        return buildResultResponse(attempt, attemptQuestions, isNextSectionUnlocked, earnedBadge);
     }
 
     /**
      * 시도를 포기한다.
      *
      * @param attemptId 시도 ID
-     * @param userId 사용자 ID
+     * @param userId    사용자 ID
      */
     @Transactional
     public void abandonAttempt(Long attemptId, Long userId) {
@@ -229,19 +233,18 @@ public class QuizSectionAttemptService {
             throw new BusinessException(
                     HttpStatus.FORBIDDEN,
                     "NOT_ATTEMPT_OWNER",
-                    "본인의 시도만 포기할 수 있습니다."
-            );
+                    "본인의 시도만 포기할 수 있습니다.");
         }
 
         if (!attempt.isInProgress()) {
             throw new BusinessException(
                     HttpStatus.BAD_REQUEST,
                     "ATTEMPT_ALREADY_COMPLETED",
-                    "이미 완료된 시도입니다."
-            );
+                    "이미 완료된 시도입니다.");
         }
 
         attempt.abandon();
+        // JPA Dirty Checking으로 변경사항 자동 저장
     }
 
     // ========== Private Methods ==========
@@ -285,7 +288,7 @@ public class QuizSectionAttemptService {
         IntStream.range(0, selectedQuestions.size()).forEach(i -> {
             UserSectionAttemptQuestion aq = UserSectionAttemptQuestion.builder()
                     .question(selectedQuestions.get(i))
-                    .orderIndex(i + 1)  // 1부터 시작
+                    .orderIndex(i + 1) // 1부터 시작
                     .build();
             attempt.addAttemptQuestion(aq);
         });
@@ -306,7 +309,7 @@ public class QuizSectionAttemptService {
             UserCourseProgress progress = existingProgress.get();
             if (progress.getCurrentSection() <= completedSectionNumber) {
                 progress.advanceToSection(completedSectionNumber + 1);
-                progressRepository.save(progress);  // ✅ 명시적으로 save 추가
+                progressRepository.save(progress); // ✅ 명시적으로 save 추가
                 return true;
             }
             return false;
@@ -316,13 +319,13 @@ public class QuizSectionAttemptService {
             QuizCourse course = courseRepository.getReferenceById(courseId);
 
             UserCourseProgress progress = UserCourseProgress.builder()
-                    .userId(userId)          // @Id 필드 직접 설정
-                    .courseId(courseId)      // @Id 필드 직접 설정
-                    .user(user)              // 연관관계 (조회용)
-                    .course(course)          // 연관관계 (조회용)
+                    .userId(userId) // @Id 필드 직접 설정
+                    .courseId(courseId) // @Id 필드 직접 설정
+                    .user(user) // 연관관계 (조회용)
+                    .course(course) // 연관관계 (조회용)
                     .currentSection(completedSectionNumber + 1)
-                    .completedSections(1)    // 완료된 섹션 수 초기화
-                    .isCompleted(false)      // 완료 여부 초기화
+                    .completedSections(1) // 완료된 섹션 수 초기화
+                    .isCompleted(false) // 완료 여부 초기화
                     .build();
             progressRepository.save(progress);
             return true;
@@ -366,8 +369,7 @@ public class QuizSectionAttemptService {
                         aq.getQuestion().getQuestionText(),
                         aq.getQuestion().getQuestionType(),
                         parseOptions(aq.getQuestion().getOptions()),
-                        aq.getUserAnswer()
-                ))
+                        aq.getUserAnswer()))
                 .toList();
 
         int answeredCount = (int) attempt.getAttemptQuestions().stream()
@@ -383,8 +385,7 @@ public class QuizSectionAttemptService {
                 answeredCount,
                 section.getPassScore(),
                 attempt.getCreatedAt(),
-                questions
-        );
+                questions);
     }
 
     /**
@@ -394,8 +395,7 @@ public class QuizSectionAttemptService {
             UserSectionAttempt attempt,
             List<UserSectionAttemptQuestion> results,
             boolean isNextSectionUnlocked,
-            BadgeInfo earnedBadge
-    ) {
+            BadgeInfo earnedBadge) {
         List<AttemptResultResponse.QuestionResultItem> resultItems = results.stream()
                 .map(aq -> new AttemptResultResponse.QuestionResultItem(
                         aq.getOrderIndex(),
@@ -403,8 +403,7 @@ public class QuizSectionAttemptService {
                         aq.getUserAnswer(),
                         aq.getQuestion().getCorrectAnswer(),
                         aq.getIsCorrect(),
-                        aq.getQuestion().getExplanation()
-                ))
+                        aq.getQuestion().getExplanation()))
                 .toList();
 
         return new AttemptResultResponse(
@@ -416,8 +415,7 @@ public class QuizSectionAttemptService {
                 attempt.getIsPassed(),
                 isNextSectionUnlocked,
                 earnedBadge,
-                resultItems
-        );
+                resultItems);
     }
 
     /**
@@ -431,8 +429,8 @@ public class QuizSectionAttemptService {
         try {
             List<Map<String, String>> optionMaps = objectMapper.readValue(
                     optionsJson,
-                    new TypeReference<List<Map<String, String>>>() {}
-            );
+                    new TypeReference<List<Map<String, String>>>() {
+                    });
 
             return optionMaps.stream()
                     .map(map -> new OptionItem(map.get("id"), map.get("text")))
