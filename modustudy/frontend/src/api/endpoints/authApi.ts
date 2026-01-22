@@ -102,4 +102,22 @@ export const authApi = {
         // 백엔드에서 ApiResponse<UserDTO> 반환함
         return response.data.data as UserDTO;
     },
+
+    /**
+     * 비밀번호 재설정 이메일 발송 요청
+     * POST /api/v1/auth/password/reset-request
+     */
+    requestPasswordReset: async (email: string) => {
+        const response = await api.post<any>('/api/v1/auth/password/reset-request', { email });
+        return response.data;
+    },
+
+    /**
+     * 비밀번호 실제 변경 (토큰 이용)
+     * POST /api/v1/auth/password/reset
+     */
+    resetPassword: async (token: string, newPassword: string) => {
+        const response = await api.post<any>('/api/v1/auth/password/reset', { token, newPassword });
+        return response.data;
+    },
 };
