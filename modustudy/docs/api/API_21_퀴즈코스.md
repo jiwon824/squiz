@@ -425,7 +425,6 @@ Authorization: Bearer {accessToken}
         "courseId": 1,
         "courseCode": "JAVA",
         "courseName": "Java 마스터",
-        "icon": "☕",
         "totalSections": 5,
         "completedSections": 2,
         "progressPercent": 40,
@@ -437,7 +436,6 @@ Authorization: Bearer {accessToken}
         "courseId": 2,
         "courseCode": "PYTHON",
         "courseName": "Python 기초",
-        "icon": "🐍",
         "totalSections": 4,
         "completedAt": "2025-01-05T15:00:00Z",
         "earnedBadge": {
@@ -452,7 +450,6 @@ Authorization: Bearer {accessToken}
         "courseId": 3,
         "courseCode": "CS_BASIC",
         "courseName": "CS 기초",
-        "icon": "💻",
         "totalSections": 6
       }
     ]
@@ -477,7 +474,6 @@ Authorization: Bearer {accessToken}
   "data": {
     "courseId": 1,
     "courseName": "Java 마스터",
-    "icon": "☕",
     "totalSections": 5,
     "completedSections": 2,
     "isCompleted": false,
