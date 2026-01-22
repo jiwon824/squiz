@@ -9,10 +9,12 @@ const DMListMini: React.FC = () => {
         currentConversationId,
         unreadCount,
         isLoading,
+        pendingDMUser,
         fetchConversations,
         fetchUnreadCount,
         setCurrentConversation,
-        sendMessage
+        sendMessage,
+        clearPendingDM
     } = useDMStore();
 
     const [messageInput, setMessageInput] = useState('');
@@ -25,8 +27,19 @@ const DMListMini: React.FC = () => {
 
     // 메시지 전송
     const handleSendMessage = async () => {
-        if (!messageInput.trim() || !currentConversationId) return;
+        if (!messageInput.trim()) return;
 
+        // 새 대화 시작 모드
+        if (pendingDMUser) {
+            await sendMessage(pendingDMUser.id, messageInput);
+            setMessageInput('');
+            clearPendingDM();
+            fetchConversations();
+            return;
+        }
+
+        // 기존 대화
+        if (!currentConversationId) return;
         const conversation = conversations.find(c => c.id === currentConversationId);
         if (conversation) {
             await sendMessage(conversation.participantId, messageInput);
@@ -51,6 +64,57 @@ const DMListMini: React.FC = () => {
             return date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
         }
     };
+
+    // 새 대화 시작 모드
+    if (pendingDMUser) {
+        return (
+            <div className="p-4 h-full flex flex-col">
+                {/* 채팅 헤더 */}
+                <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-100">
+                    <button
+                        onClick={() => clearPendingDM()}
+                        className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                    >
+                        <ArrowLeft size={18} />
+                    </button>
+                    <div className="w-8 h-8 rounded-full bg-study-blue/10 flex items-center justify-center font-bold text-xs text-study-blue">
+                        {pendingDMUser.nickname.charAt(0)}
+                    </div>
+                    <span className="font-bold text-sm">{pendingDMUser.nickname}</span>
+                    <span className="text-xs text-green-500 ml-1">새 대화</span>
+                </div>
+
+                {/* 빈 메시지 영역 */}
+                <div className="flex-1 flex items-center justify-center">
+                    <div className="text-center text-gray-400">
+                        <MessageSquare size={32} className="mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">{pendingDMUser.nickname}님과의 새 대화</p>
+                        <p className="text-xs mt-1">첫 메시지를 보내보세요</p>
+                    </div>
+                </div>
+
+                {/* 메시지 입력 */}
+                <div className="flex gap-2">
+                    <input
+                        type="text"
+                        value={messageInput}
+                        onChange={(e) => setMessageInput(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                        placeholder="메시지 입력..."
+                        className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-study-blue"
+                        autoFocus
+                    />
+                    <button
+                        onClick={handleSendMessage}
+                        disabled={!messageInput.trim()}
+                        className="p-2 bg-study-blue text-white rounded-lg hover:bg-study-blue/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                        <Send size={16} />
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     // 대화방 상세 보기
     if (currentConversationId) {
