@@ -6,7 +6,6 @@ import com.ssafy.domain.study.entity.StudyType;
 import com.ssafy.domain.user.entity.Role;
 import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.repository.UserRepository;
-import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -37,9 +36,6 @@ class StudyCommentRepositoryTest {
 
     @Autowired
     private UserRepository userRepository;
-
-    @Autowired
-    private EntityManager entityManager;
 
     private User user1;
     private User user2;
@@ -561,15 +557,16 @@ class StudyCommentRepositoryTest {
     void deleteByStudyId_Success() {
         // given
         Long studyId = study1.getId();
+        long beforeCount = commentRepository.countByStudyIdAndIsDeletedFalse(studyId);
+        assertThat(beforeCount).isGreaterThan(0);
 
         // when
         commentRepository.deleteByStudyId(studyId);
-        entityManager.flush();
-        entityManager.clear(); // 벌크 삭제 후 영속성 컨텍스트 클리어 (CI 환경 호환)
 
-        // then
-        List<StudyComment> result = commentRepository.findByStudyIdAndIsDeletedFalseOrderByCreatedAtAsc(studyId);
-        assertThat(result).isEmpty();
+        // then - 새로운 트랜잭션에서 조회하는 것처럼 count로 검증
+        long afterCount = commentRepository.count();
+        // deleteByStudyId는 study1의 댓글만 삭제, study2의 댓글은 없으므로 0이어야 함
+        assertThat(afterCount).isEqualTo(0);
     }
 
     // ============================================================
