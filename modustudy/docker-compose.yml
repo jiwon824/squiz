@@ -3,9 +3,7 @@ services:
   # Nginx (Reverse Proxy + Frontend)
   # ===========================================
   nginx:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
+    image: tkdgns11/squiz-frontend:latest
     container_name: squiz-nginx
     ports:
       - "80:80"
@@ -26,9 +24,7 @@ services:
   # Backend (Spring Boot - API + WebSocket)
   # ===========================================
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: tkdgns11/squiz-backend:latest
     container_name: squiz-backend
     ports:
       - "8080:8080"
@@ -65,9 +61,7 @@ services:
   # CS Quiz AI Service (Flask)
   # ===========================================
   cs-quiz-ai:
-    build:
-      context: ./backend/cs-quiz-ai-service
-      dockerfile: Dockerfile
+    image: tkdgns11/squiz-cs-quiz-ai:latest
     container_name: squiz-cs-quiz-ai
     ports:
       - "5000:5000"
@@ -84,9 +78,7 @@ services:
   # SFU Server (Mediasoup)
   # ===========================================
   sfu-server:
-    build:
-      context: ./sfu-server
-      dockerfile: Dockerfile
+    image: tkdgns11/squiz-sfu:latest
     container_name: squiz-sfu
     ports:
       - "4000:4000"
