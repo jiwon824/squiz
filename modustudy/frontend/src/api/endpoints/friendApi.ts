@@ -1,10 +1,10 @@
 // Friend API - 친구 관련 API 함수들
 import api from '../axios';
 
-// ===== 타입 정의 =====
+// ===== 프론트엔드 타입 정의 =====
 export interface Friend {
-    id: number;
-    friendId: number;
+    id: number;          // friendshipId
+    friendId: number;    // 친구의 userId
     nickname: string;
     profileImage: string | null;
     status: 'ONLINE' | 'AWAY' | 'OFFLINE';
@@ -12,11 +12,10 @@ export interface Friend {
 }
 
 export interface FriendRequest {
-    id: number;
+    id: number;          // requestId
     senderId: number;
     senderNickname: string;
     senderProfileImage: string | null;
-    message: string;
     createdAt: string;
 }
 
@@ -28,13 +27,41 @@ export interface UserSearchResult {
     isPending: boolean;
 }
 
-// API 응답 타입 (백엔드 실제 응답)
+// ===== 백엔드 API 응답 타입 =====
+interface FriendApiResponse {
+    friendshipId: number;
+    userId: number;
+    nickname: string;
+    profileImage: string | null;
+    isOnline: boolean;
+    lastSeenAt: string | null;
+    friendSince: string;
+}
+
+interface FriendRequestApiResponse {
+    requestId: number;
+    userId: number;
+    nickname: string;
+    profileImage: string | null;
+    isOnline: boolean;
+    status: string;
+    createdAt: string;
+}
+
 interface UserSearchApiResponse {
     userId: number;
     nickname: string;
     profileImage: string | null;
     isOnline: boolean;
     friendStatus: 'NONE' | 'FRIEND' | 'PENDING_SENT' | 'PENDING_RECEIVED' | 'BLOCKED';
+}
+
+interface BlockedUserApiResponse {
+    id: number;
+    blockedId: number;
+    blockedNickname: string;
+    blockedProfileImage: string | null;
+    createdAt: string;
 }
 
 // ===== API 함수들 =====
@@ -44,7 +71,15 @@ interface UserSearchApiResponse {
  */
 export const getFriends = async (): Promise<Friend[]> => {
     const response = await api.get('/api/v1/friends');
-    return response.data;
+    const apiResults: FriendApiResponse[] = response.data.data || [];
+    return apiResults.map(friend => ({
+        id: friend.friendshipId,
+        friendId: friend.userId,
+        nickname: friend.nickname,
+        profileImage: friend.profileImage,
+        status: friend.isOnline ? 'ONLINE' : 'OFFLINE',
+        createdAt: friend.friendSince
+    }));
 };
 
 /**
@@ -54,7 +89,6 @@ export const searchUsers = async (query: string): Promise<UserSearchResult[]> =>
     const response = await api.get('/api/v1/friends/search', {
         params: { keyword: query }
     });
-    // API 응답을 프론트엔드 타입으로 변환
     const apiResults: UserSearchApiResponse[] = response.data.data || [];
     return apiResults.map(user => ({
         id: user.userId,
@@ -68,10 +102,9 @@ export const searchUsers = async (query: string): Promise<UserSearchResult[]> =>
 /**
  * 친구 요청 보내기
  */
-export const sendFriendRequest = async (userId: number, message?: string): Promise<void> => {
+export const sendFriendRequest = async (targetUserId: number): Promise<void> => {
     await api.post('/api/v1/friends/request', {
-        receiverId: userId,
-        message
+        userId: targetUserId
     });
 };
 
@@ -80,7 +113,14 @@ export const sendFriendRequest = async (userId: number, message?: string): Promi
  */
 export const getReceivedRequests = async (): Promise<FriendRequest[]> => {
     const response = await api.get('/api/v1/friends/requests/received');
-    return response.data;
+    const apiResults: FriendRequestApiResponse[] = response.data.data || [];
+    return apiResults.map(req => ({
+        id: req.requestId,
+        senderId: req.userId,
+        senderNickname: req.nickname,
+        senderProfileImage: req.profileImage,
+        createdAt: req.createdAt
+    }));
 };
 
 /**
@@ -88,7 +128,14 @@ export const getReceivedRequests = async (): Promise<FriendRequest[]> => {
  */
 export const getSentRequests = async (): Promise<FriendRequest[]> => {
     const response = await api.get('/api/v1/friends/requests/sent');
-    return response.data;
+    const apiResults: FriendRequestApiResponse[] = response.data.data || [];
+    return apiResults.map(req => ({
+        id: req.requestId,
+        senderId: req.userId,
+        senderNickname: req.nickname,
+        senderProfileImage: req.profileImage,
+        createdAt: req.createdAt
+    }));
 };
 
 /**
@@ -131,5 +178,12 @@ export const unblockUser = async (userId: number): Promise<void> => {
  */
 export const getBlockedUsers = async (): Promise<UserSearchResult[]> => {
     const response = await api.get('/api/v1/friends/block');
-    return response.data;
+    const apiResults: BlockedUserApiResponse[] = response.data.data || [];
+    return apiResults.map(blocked => ({
+        id: blocked.blockedId,
+        nickname: blocked.blockedNickname,
+        profileImage: blocked.blockedProfileImage,
+        isFriend: false,
+        isPending: false
+    }));
 };
