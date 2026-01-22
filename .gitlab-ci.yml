@@ -1,6 +1,7 @@
 stages:
   - build
   - test
+  - build-images
   - migrate
   - deploy
 
@@ -8,9 +9,14 @@ variables:
   GRADLE_OPTS: "-Dorg.gradle.daemon=false"
   DEPLOY_PATH: "/home/ubuntu/squiz"
   COMPOSE_HTTP_TIMEOUT: "300"
+  # Docker Hub 이미지 경로
+  BACKEND_IMAGE: "$DOCKER_HUB_USER/squiz-backend"
+  FRONTEND_IMAGE: "$DOCKER_HUB_USER/squiz-frontend"
+  SFU_IMAGE: "$DOCKER_HUB_USER/squiz-sfu"
+  AI_IMAGE: "$DOCKER_HUB_USER/squiz-cs-quiz-ai"
 
 # ===========================================
-# Build Stage
+# Build Stage (JAR 빌드)
 # ===========================================
 build:
   stage: build
@@ -49,6 +55,87 @@ test:
     - docker
 
 # ===========================================
+# Build Images Stage (Docker 이미지 빌드 & Push)
+# ===========================================
+
+# Backend 이미지 빌드 (backend 폴더 변경 시에만)
+build-backend-image:
+  stage: build-images
+  script:
+    - echo "$DOCKER_HUB_TOKEN" | docker login -u "$DOCKER_HUB_USER" --password-stdin
+    - cd modustudy/backend
+    # 캐시 활용을 위해 이전 이미지 pull
+    - docker pull $BACKEND_IMAGE:latest || true
+    - docker build --cache-from $BACKEND_IMAGE:latest -t $BACKEND_IMAGE:$CI_COMMIT_SHA -t $BACKEND_IMAGE:latest .
+    - docker push $BACKEND_IMAGE:$CI_COMMIT_SHA
+    - docker push $BACKEND_IMAGE:latest
+  only:
+    refs:
+      - master
+      - main
+    changes:
+      - modustudy/backend/**/*
+  tags:
+    - docker
+
+# Frontend 이미지 빌드 (frontend 폴더 변경 시에만)
+build-frontend-image:
+  stage: build-images
+  script:
+    - echo "$DOCKER_HUB_TOKEN" | docker login -u "$DOCKER_HUB_USER" --password-stdin
+    - cd modustudy/frontend
+    - docker pull $FRONTEND_IMAGE:latest || true
+    - docker build --cache-from $FRONTEND_IMAGE:latest -t $FRONTEND_IMAGE:$CI_COMMIT_SHA -t $FRONTEND_IMAGE:latest .
+    - docker push $FRONTEND_IMAGE:$CI_COMMIT_SHA
+    - docker push $FRONTEND_IMAGE:latest
+  only:
+    refs:
+      - master
+      - main
+    changes:
+      - modustudy/frontend/**/*
+  tags:
+    - docker
+
+# SFU 서버 이미지 빌드 (sfu-server 폴더 변경 시에만)
+build-sfu-image:
+  stage: build-images
+  script:
+    - echo "$DOCKER_HUB_TOKEN" | docker login -u "$DOCKER_HUB_USER" --password-stdin
+    - cd modustudy/sfu-server
+    - docker pull $SFU_IMAGE:latest || true
+    - docker build --cache-from $SFU_IMAGE:latest -t $SFU_IMAGE:$CI_COMMIT_SHA -t $SFU_IMAGE:latest .
+    - docker push $SFU_IMAGE:$CI_COMMIT_SHA
+    - docker push $SFU_IMAGE:latest
+  only:
+    refs:
+      - master
+      - main
+    changes:
+      - modustudy/sfu-server/**/*
+  tags:
+    - docker
+
+# CS Quiz AI 이미지 빌드 (cs-quiz-ai-service 폴더 변경 시에만)
+build-ai-image:
+  stage: build-images
+  script:
+    - echo "$DOCKER_HUB_TOKEN" | docker login -u "$DOCKER_HUB_USER" --password-stdin
+    - cd modustudy/backend/cs-quiz-ai-service
+    - docker pull $AI_IMAGE:latest || true
+    - docker build --cache-from $AI_IMAGE:latest -t $AI_IMAGE:$CI_COMMIT_SHA -t $AI_IMAGE:latest .
+    - docker push $AI_IMAGE:$CI_COMMIT_SHA
+    - docker push $AI_IMAGE:latest
+  only:
+    refs:
+      - master
+      - main
+    changes:
+      - modustudy/backend/cs-quiz-ai-service/**/*
+  tags:
+    - docker
+
+# ===========================================
 # Migrate Stage (DB 마이그레이션)
 # ===========================================
 migrate:
@@ -68,19 +155,26 @@ migrate:
     - main
   tags:
     - docker
-  allow_failure: false  # migrate 완료해야 deploy 진행
+  allow_failure: false
 
 # ===========================================
-# Deploy Stage (자동 배포)
+# Deploy Stage (이미지 Pull & 배포)
 # ===========================================
 deploy:
   stage: deploy
   script:
+    # Docker Hub 로그인
+    - echo "$DOCKER_HUB_TOKEN" | docker login -u "$DOCKER_HUB_USER" --password-stdin
     # 프로젝트 파일 배포 경로로 복사 (backups 폴더는 서버에만 존재하므로 제외)
     - rsync -av --delete --exclude 'backups' --exclude '.git' --exclude 'node_modules' --exclude '.gradle' --exclude 'build' --exclude '.env' --exclude 'ssl' --exclude 'init.sql' modustudy/ $DEPLOY_PATH/
-    # Docker Compose v2로 배포
+    # 최신 이미지 Pull
+    - docker pull $BACKEND_IMAGE:latest || true
+    - docker pull $FRONTEND_IMAGE:latest || true
+    - docker pull $SFU_IMAGE:latest || true
+    - docker pull $AI_IMAGE:latest || true
+    # Docker Compose로 배포 (빌드 없이 이미지 사용)
     - cd $DEPLOY_PATH
-    - docker compose up -d --build --force-recreate --remove-orphans
+    - docker compose up -d --force-recreate --remove-orphans
     # 컨테이너 시작 대기 (health check 완료까지 최대 60초)
     - |
       echo "Waiting for containers to be healthy..."
