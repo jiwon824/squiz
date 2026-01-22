@@ -108,7 +108,7 @@ export const AppRouter = () => {
                     <Route path="/commentle" element={<CommentlePage />} />
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/login/callback" element={<LoginCallbackPage />} />
-                    <Route path="/reset-password" element={<PasswordResetPage />} />
+                    <Route path="/password/reset" element={<PasswordResetPage />} />
                     <Route path="/signup" element={<SignupPage />} />
                     <Route path="/quiz" element={<QuizGameSelection />} />
                     <Route path="/quiz-commentle" element={<CommentleQuiz />} />

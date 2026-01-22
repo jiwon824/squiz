@@ -38,17 +38,19 @@ export const PasswordResetModal = ({ isOpen, onClose }: PasswordResetModalProps)
 
             setMessage({
                 type: 'success',
-                text: '비밀번호 재설정 링크가 이메일로 발송되었습니다. 메일을 확인해주세요.'
+                text: '성공적으로 요청되었습니다! 잠시 후에도 메일이 오지 않는다면 스팸함도 확인해주세요.'
             });
 
+            // 성공 시 입력창 초기화 및 3초 후 닫기
+            setResetEmail('');
             setTimeout(() => {
                 handleClose();
-            }, 2000);
-        } catch (error) {
+            }, 5000);
+        } catch (error: any) {
             console.error('Password reset error:', error);
             setMessage({
                 type: 'error',
-                text: '비밀번호 재설정 요청에 실패했습니다.'
+                text: error.response?.data?.message || '비밀번호 재설정 요청에 실패했습니다. 다시 시도해주세요.'
             });
         } finally {
             setIsLoading(false);
