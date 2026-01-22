@@ -4,6 +4,8 @@
 
 Squiz 프로젝트의 MySQL 데이터베이스 백업 및 복원 방법을 설명합니다.
 
+**Flyway 버전 관리**: 백업 파일에 Flyway 스키마 버전이 포함되어 복원 시 호환성을 확인할 수 있습니다.
+
 ---
 
 ## 백업 스크립트
@@ -66,11 +68,22 @@ cd /home/ubuntu/squiz
 ```bash
 cd /home/ubuntu/squiz
 
-# 백업 파일 목록 확인
+# 백업 파일 목록 확인 (버전 포함)
 ./scripts/restore-db.sh
 
 # 복원 실행
-./scripts/restore-db.sh /home/ubuntu/squiz/backups/daily/squiz_daily_20250120_030000.sql.gz
+./scripts/restore-db.sh /home/ubuntu/squiz/backups/daily/squiz_daily_V1_20250120_030000.sql.gz
+```
+
+**버전 호환성 체크**: 복원 시 백업 버전과 현재 DB 버전을 비교하여 경고를 표시합니다.
+
+```
+백업 Flyway 버전: V1
+현재 DB Flyway 버전: V3
+
+⚠️  버전 불일치 감지!
+    백업이 현재 DB보다 구버전입니다!
+    복원 후 현재 앱 코드와 호환되지 않을 수 있습니다.
 ```
 
 ---
@@ -114,17 +127,31 @@ tail -f /var/log/squiz-backup.log
 ## 백업 파일 형식
 
 ```
-squiz_<타입>_<날짜>_<시간>.sql.gz
+squiz_<타입>_V<버전>_<날짜>_<시간>.sql.gz
 
 예시:
-squiz_daily_20250120_030000.sql.gz
-squiz_weekly_20250119_040000.sql.gz
-squiz_manual_20250120_143052.sql.gz
+squiz_daily_V1_20250120_030000.sql.gz      # Flyway V1 스키마
+squiz_weekly_V3_20250119_040000.sql.gz     # Flyway V3 스키마
+squiz_manual_V5_20250120_143052.sql.gz     # Flyway V5 스키마
 ```
 
 - 형식: mysqldump SQL
 - 압축: gzip
 - 포함: 테이블 구조, 데이터, 트리거, 스토어드 프로시저
+- **버전**: Flyway 마이그레이션 버전 (V1, V2, ...)
+
+### 메타데이터 파일
+
+각 백업 파일과 함께 `.meta` 파일이 생성됩니다:
+
+```
+squiz_daily_V1_20250120_030000.meta
+
+내용:
+FLYWAY_VERSION=1
+BACKUP_DATE=20250120_030000
+DATABASE=squiz
+```
 
 ---
 

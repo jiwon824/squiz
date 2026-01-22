@@ -1,6 +1,7 @@
 stages:
   - build
   - test
+  - migrate
   - deploy
 
 variables:
@@ -31,14 +32,36 @@ test:
   script:
     - cd modustudy/backend
     - chmod +x gradlew
-    # 테스트 DB 초기화 (이전 스키마/제약조건 제거)
-    - source /etc/environment && mysql -h${DB_HOST:-localhost} -u${DB_USERNAME} -p${DB_PASSWORD} -e "DROP DATABASE IF EXISTS ssafy_test_db; CREATE DATABASE ssafy_test_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;" || echo "DB reset skipped"
+    # 테스트 DB 초기화
+    - source /etc/environment && docker exec squiz-mysql mysql -uroot -p${DB_ROOT_PASSWORD} -e "DROP DATABASE IF EXISTS ssafy_test_db; CREATE DATABASE ssafy_test_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; GRANT ALL PRIVILEGES ON ssafy_test_db.* TO '${DB_USERNAME}'@'%'; FLUSH PRIVILEGES;"
     - source /etc/environment && export SPRING_PROFILES_ACTIVE=test && ./gradlew test
   only:
     - master
     - main
   tags:
     - docker
+
+# ===========================================
+# Migrate Stage (DB 마이그레이션)
+# ===========================================
+migrate:
+  stage: migrate
+  script:
+    - cd modustudy/backend
+    - chmod +x gradlew
+    # 배포 전 DB 백업 (버전 포함)
+    - ssh ubuntu@localhost "cd /home/ubuntu/squiz && ./scripts/backup-db.sh manual" || true
+    # 리소스 컴파일 (classpath:db/migration 사용을 위해 필요)
+    - ./gradlew classes
+    # Flyway 마이그레이션 실행
+    - source /etc/environment && ./gradlew flywayInfo
+    - source /etc/environment && ./gradlew flywayMigrate
+  only:
+    - master
+    - main
+  tags:
+    - docker
+  allow_failure: false  # migrate 완료해야 deploy 진행
 
 # ===========================================
 # Deploy Stage (자동 배포)
