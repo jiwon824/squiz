@@ -45,6 +45,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/studies/*/meetings/**").permitAll()
                         // Study - TODO: 나중에 인증 적용 필요
                         .requestMatchers("/api/v1/study/my").permitAll()
+                        .requestMatchers("/api/v1/my/**").permitAll()
                         .requestMatchers("/api/v1/study-templates/**").permitAll()
                         .requestMatchers("/api/v1/study/**").permitAll()
                         // 나머지는 인증 필요
@@ -57,7 +58,12 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000"));
+        configuration.setAllowedOrigins(Arrays.asList(
+                "http://localhost:3000",
+                "http://localhost:3001",
+                "http://localhost:5173",
+                "https://i14d106.p.ssafy.io"
+        ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);

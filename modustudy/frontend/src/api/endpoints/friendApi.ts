@@ -43,7 +43,7 @@ export const getFriends = async (): Promise<Friend[]> => {
  */
 export const searchUsers = async (query: string): Promise<UserSearchResult[]> => {
     const response = await api.get('/api/v1/friends/search', {
-        params: { query }
+        params: { keyword: query }
     });
     return response.data;
 };

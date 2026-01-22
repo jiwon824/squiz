@@ -164,7 +164,7 @@ public class QuizCourseController {
      * @deprecated 시도 기반 API로 변경됨. {@link #startOrResumeAttempt} 사용 권장.
      */
     @Deprecated
-    @Operation(summary = "섹션 문제 조회 (Deprecated)", description = "시도 기반 API로 변경되었습니다. POST /attempts를 사용하세요.")
+    @Operation(summary = "섹션 문제 조회 (Deprecated)", description = "전체 섹션 문제를 조회하는 게 아니라, 1개의 시도에 정해진 개수의 문제를 보여주는 방식으로 변경(시도 기반 API로 변경) POST /attempts 사용 권고")
     @GetMapping("/{courseId}/sections/{sectionNumber}")
     public ApiResponse<SectionQuestionsResponse> getSectionQuestions(
             @Parameter(description = "코스 ID") @PathVariable Long courseId,

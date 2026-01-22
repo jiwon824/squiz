@@ -86,6 +86,15 @@ public class MeetingRoomStateService {
         return presenters.get(roomId);
     }
 
+    public Participant updateSpeaking(String roomId, String sessionId, boolean speaking) {
+        RoomSession session = sessions.get(sessionId);
+        if (session == null || !session.roomId.equals(roomId)) {
+            return null;
+        }
+        session.participant.isSpeaking = speaking;
+        return session.participant;
+    }
+
     public void addChatMessage(String roomId, MeetingRoomChatMessage chatMessage) {
         ArrayDeque<MeetingRoomChatMessage> history = chatHistory.computeIfAbsent(roomId, key -> new ArrayDeque<>());
         synchronized (history) {
@@ -159,6 +168,7 @@ public class MeetingRoomStateService {
         private final String displayName;
         private final String sessionId;
         private volatile boolean active = true;
+        private volatile boolean isSpeaking = false;
 
         public Participant(Long id, String displayName, String sessionId) {
             this.id = id;
@@ -167,7 +177,7 @@ public class MeetingRoomStateService {
         }
 
         public MeetingRoomParticipantDto toDto() {
-            return new MeetingRoomParticipantDto(id, displayName, active);
+            return new MeetingRoomParticipantDto(id, displayName, active, isSpeaking);
         }
     }
 

@@ -13,6 +13,7 @@ import com.ssafy.domain.meeting.dto.request.MeetingSummaryUpdateRequest;
 import com.ssafy.domain.meeting.dto.response.*;
 import com.ssafy.domain.meeting.entity.MeetingType;
 import com.ssafy.domain.meeting.service.MeetingService;
+import com.ssafy.common.websocket.MeetingRoomEvent;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -26,6 +27,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -37,6 +39,7 @@ import java.util.List;
 public class MeetingController {
 
     private final MeetingService meetingService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @GetMapping
     public ResponseEntity<PageResponse<MeetingListItemResponse>> list(
@@ -72,7 +75,11 @@ public class MeetingController {
             @PathVariable Long studyId,
             @PathVariable Long meetingId
     ) {
-        return ResponseEntity.ok(ApiResponse.success(meetingService.endMeeting(studyId, meetingId)));
+        MeetingEndResponse response = meetingService.endMeeting(studyId, meetingId);
+        String roomId = "meeting-" + meetingId;
+        MeetingRoomEvent event = new MeetingRoomEvent(MeetingRoomEvent.Type.MEETING_ENDED, roomId);
+        messagingTemplate.convertAndSend("/topic/rooms/" + roomId + "/events", event);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @PostMapping("/{meetingId}/join")
