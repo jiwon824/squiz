@@ -1,104 +1,258 @@
-// src/features/quiz/services/quizService.js
+// quizService.js - CS 퀴즈 AI API 연동
+// AI 서비스 API를 호출하여 유사도 계산 및 문제 데이터를 가져옵니다.
 
-// 🎯 오늘의 단어 데이터 (백엔드 words.json 기반)
-// TODO: 실제 배포 시 백엔드 API로 대체
-const WORDS = [
-    { id: 1, answer: "알고리즘", category: "기초개념", hints: ["문제 해결의 청사진", "빅오 표기법", "레시피와 같은 것"] },
-    { id: 2, answer: "스택", category: "자료구조", hints: ["LIFO(Last In First Out)", "함수 호출 스택", "Back 버튼 구현"] },
-    { id: 3, answer: "큐", category: "자료구조", hints: ["FIFO", "BFS 알고리즘", "대기열"] },
-    { id: 4, answer: "재귀", category: "프로그래밍기법", hints: ["마트료시카 인형", "스택 오버플로우", "팩토리얼"] },
-    { id: 5, answer: "해시테이블", category: "자료구조", hints: ["O(1) 탐색", "충돌 해결", "키-값 쌍"] },
-    { id: 6, answer: "트리", category: "자료구조", hints: ["루트와 리프", "DOM 구조", "이진 탐색 트리"] },
-    { id: 7, answer: "그래프", category: "자료구조", hints: ["정점과 간선", "DFS/BFS", "네트워크 관계"] },
-];
+// 🔧 AI 서비스 Base URL (환경변수 또는 기본값)
+const AI_SERVICE_URL = import.meta.env.VITE_AI_SERVICE_URL || 'http://localhost:5000';
 
-// 정답으로 인정되는 변형들 (대소문자 무시)
-const ANSWER_VARIATIONS = {
-    "스택": ["스택", "stack", "STACK", "Stack"],
-    "큐": ["큐", "queue", "QUEUE", "Queue"],
-    "알고리즘": ["알고리즘", "algorithm", "ALGORITHM", "Algorithm"],
-    "재귀": ["재귀", "recursion", "RECURSION", "Recursion"],
-    "해시테이블": ["해시테이블", "hashtable", "HASHTABLE", "HashTable", "hash table"],
-    "트리": ["트리", "tree", "TREE", "Tree"],
-    "그래프": ["그래프", "graph", "GRAPH", "Graph"],
-};
+// 🎯 현재 문제 ID 저장 (세션 중 유지)
+let currentWordId = null;
+let currentProblem = null;
 
 /**
- * 날짜 기반으로 오늘의 문제를 선택
- * @returns {Object} 오늘의 문제 데이터
+ * 랜덤 단어 문제 가져오기
+ * GET /api/words/random
+ * @param {string} difficulty - 난이도 (easy, medium, hard) 선택
+ * @param {string} category - 카테고리 선택
+ * @returns {Promise<Object>} 문제 정보
  */
-const getDailyWord = () => {
-    const today = new Date();
-    // 날짜를 시드로 사용하여 매일 다른 문제 선택
-    const seed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
-    const index = seed % WORDS.length;
-    return WORDS[index];
+export const fetchRandomWord = async (difficulty = null, category = null) => {
+    try {
+        let url = `${AI_SERVICE_URL}/api/words/random`;
+        const params = new URLSearchParams();
+        if (difficulty) params.append('difficulty', difficulty);
+        if (category) params.append('category', category);
+        if (params.toString()) url += `?${params.toString()}`;
+
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Failed to fetch random word');
+
+        const data = await response.json();
+        currentWordId = data.id;
+        currentProblem = data;
+        return data;
+    } catch (error) {
+        console.error('fetchRandomWord error:', error);
+        // 폴백: 기존 mock 데이터 사용
+        return getFallbackProblem();
+    }
 };
 
-// 오늘의 문제 (앱 시작 시 결정)
-const DAILY_PROBLEM = getDailyWord();
-
 /**
- * 단어 유사도 계산 API 호출 (Mock)
- * @param {string} userWord 사용자가 입력한 단어
- * @returns {Promise<Object>} 분석 결과
+ * 단어 유사도 확인 (정답 시도)
+ * POST /api/words/{id}/answer
+ * @param {string} userWord - 사용자가 입력한 단어
+ * @returns {Promise<Object>} 유사도 및 점수 결과
  */
 export const checkSimilarity = async (userWord) => {
-    // 네트워크 지연 시뮬레이션 (0.3초)
-    await new Promise(resolve => setTimeout(resolve, 300));
+    // 현재 문제가 없으면 먼저 가져오기
+    if (!currentWordId) {
+        await fetchRandomWord();
+    }
 
-    const cleanWord = userWord.trim();
-    const answerWord = DAILY_PROBLEM.answer;
+    try {
+        const response = await fetch(`${AI_SERVICE_URL}/api/words/${currentWordId}/answer`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userWord: userWord.trim() })
+        });
 
-    // 정답 변형 체크 (대소문자 무시)
-    const variations = ANSWER_VARIATIONS[answerWord] || [answerWord];
-    const isExactMatch = variations.some(v => v.toLowerCase() === cleanWord.toLowerCase());
+        if (!response.ok) throw new Error('Failed to check similarity');
 
-    if (isExactMatch) {
+        const data = await response.json();
+
         return {
-            userWord: cleanWord,
-            answerWord: answerWord,
-            similarity: 1.0,
-            score: 100,
-            isCorrect: true
+            userWord: data.userWord,
+            answerWord: data.answerWord || null,
+            similarity: data.similarity,
+            score: data.score,
+            isCorrect: data.isCorrect,
+            bonuses: data.bonuses || {}
+        };
+    } catch (error) {
+        console.error('checkSimilarity error:', error);
+        // 폴백: 기존 mock 로직 사용
+        return checkSimilarityFallback(userWord);
+    }
+};
+
+/**
+ * 오늘의 문제 정보 반환 (정답 제외)
+ * @returns {Object} 문제 정보
+ */
+export const getDailyProblem = () => {
+    // 캐시된 문제가 있으면 반환
+    if (currentProblem) {
+        return {
+            id: currentProblem.id,
+            category: currentProblem.category,
+            difficulty: currentProblem.difficulty,
+            hints: currentProblem.hints || [],
         };
     }
+    // 없으면 폴백
+    return getFallbackProblem();
+};
 
-    // Mock 유사도 계산 (실제로는 백엔드 AI가 계산)
-    // 관련 단어들에 대해 더 높은 점수를 부여
-    let baseScore = Math.random() * 40 + 10; // 10 ~ 50 기본 점수
-
-    // CS 관련 키워드면 가산점
-    const csKeywords = ["lifo", "fifo", "후입선출", "선입선출", "자료구조", "데이터", "메모리", "포인터", "배열", "리스트"];
-    if (csKeywords.some(kw => cleanWord.toLowerCase().includes(kw))) {
-        baseScore += 20;
-    }
-
-    // 정답과 첫 글자가 같으면 가산점
-    if (cleanWord[0]?.toLowerCase() === answerWord[0]?.toLowerCase()) {
-        baseScore += 10;
-    }
-
-    // 점수 범위 제한 (5 ~ 89)
-    const finalScore = Math.max(5, Math.min(89, baseScore));
-
+/**
+ * 문제 초기화 (새 게임 시작 시)
+ */
+export const initDailyProblem = async (difficulty = 'medium') => {
+    const problem = await fetchRandomWord(difficulty);
     return {
-        userWord: cleanWord,
-        answerWord: answerWord,
-        similarity: finalScore / 100,
-        score: parseFloat(finalScore.toFixed(2)),
-        isCorrect: false
+        id: problem.id,
+        category: problem.category,
+        difficulty: problem.difficulty,
+        hints: problem.hints || [],
     };
 };
 
 /**
- * 오늘의 문제 정보 반환 (정답은 제외)
- * @returns {Object} 문제 정보
+ * 3D 임베딩 좌표 가져오기 (배치)
+ * POST /api/embedding-3d-batch
+ * @param {string} answerWord - 정답 단어
+ * @param {string[]} attemptWords - 시도한 단어들
+ * @param {string} category - 카테고리 (선택)
+ * @returns {Promise<Object>} 3D 좌표 데이터
  */
-export const getDailyProblem = () => {
+export const getEmbedding3DBatch = async (answerWord, attemptWords, category = null) => {
+    try {
+        const response = await fetch(`${AI_SERVICE_URL}/api/embedding-3d-batch`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                answerWord,
+                attemptWords,
+                category
+            })
+        });
+
+        if (!response.ok) throw new Error('Failed to get embedding 3D batch');
+        return await response.json();
+    } catch (error) {
+        console.error('getEmbedding3DBatch error:', error);
+        return null;
+    }
+};
+
+/**
+ * 어제의 정답 반환 (폴백: 로컬 계산)
+ * TODO: API가 추가되면 /api/words/yesterday 호출로 대체
+ * @returns {Object} 어제의 문제 정보
+ */
+export const getYesterdayAnswer = () => {
+    // 폴백 로직 유지 (API 추가 시 대체)
+    const WORDS = [
+        { answer: "알고리즘", category: "기초개념" },
+        { answer: "스택", category: "자료구조" },
+        { answer: "큐", category: "자료구조" },
+        { answer: "재귀", category: "프로그래밍기법" },
+        { answer: "해시테이블", category: "자료구조" },
+        { answer: "트리", category: "자료구조" },
+        { answer: "그래프", category: "자료구조" },
+    ];
+
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const seed = yesterday.getFullYear() * 10000 + (yesterday.getMonth() + 1) * 100 + yesterday.getDate();
+    const index = seed % WORDS.length;
+
+    return WORDS[index];
+};
+
+/**
+ * 오늘의 퀴즈 정보 (위젯용)
+ * @returns {Object} 카테고리와 힌트 수
+ */
+export const getTodayQuizInfo = () => {
+    if (currentProblem) {
+        return {
+            category: currentProblem.category,
+            hintCount: currentProblem.hints?.length || 0,
+        };
+    }
+    return { category: 'CS', hintCount: 3 };
+};
+
+/**
+ * 카테고리 목록 가져오기
+ * GET /api/categories
+ */
+export const getCategories = async () => {
+    try {
+        const response = await fetch(`${AI_SERVICE_URL}/api/categories`);
+        if (!response.ok) throw new Error('Failed to fetch categories');
+        return await response.json();
+    } catch (error) {
+        console.error('getCategories error:', error);
+        return { categories: ['자료구조', '알고리즘', '네트워크', '데이터베이스', '운영체제'] };
+    }
+};
+
+/**
+ * 난이도 목록 가져오기
+ * GET /api/difficulties
+ */
+export const getDifficulties = async () => {
+    try {
+        const response = await fetch(`${AI_SERVICE_URL}/api/difficulties`);
+        if (!response.ok) throw new Error('Failed to fetch difficulties');
+        return await response.json();
+    } catch (error) {
+        console.error('getDifficulties error:', error);
+        return { difficulties: ['easy', 'medium', 'hard'] };
+    }
+};
+
+// ========================================
+// 폴백 함수들 (API 실패 시 사용)
+// ========================================
+
+const FALLBACK_WORDS = [
+    { id: 1, answer: "알고리즘", category: "기초개념", difficulty: "easy", hints: ["문제 해결의 청사진", "빅오 표기법", "레시피와 같은 것"] },
+    { id: 2, answer: "스택", category: "자료구조", difficulty: "medium", hints: ["LIFO(Last In First Out)", "함수 호출 스택", "Back 버튼 구현"] },
+    { id: 3, answer: "큐", category: "자료구조", difficulty: "medium", hints: ["FIFO", "BFS 알고리즘", "대기열"] },
+    { id: 4, answer: "재귀", category: "프로그래밍기법", difficulty: "medium", hints: ["마트료시카 인형", "스택 오버플로우", "팩토리얼"] },
+    { id: 5, answer: "해시테이블", category: "자료구조", difficulty: "hard", hints: ["O(1) 탐색", "충돌 해결", "키-값 쌍"] },
+];
+
+const getFallbackProblem = () => {
+    const today = new Date();
+    const seed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
+    const index = seed % FALLBACK_WORDS.length;
+    const word = FALLBACK_WORDS[index];
+    currentWordId = word.id;
+    currentProblem = word;
     return {
-        id: DAILY_PROBLEM.id,
-        category: DAILY_PROBLEM.category,
-        hints: DAILY_PROBLEM.hints,
+        id: word.id,
+        category: word.category,
+        difficulty: word.difficulty,
+        hints: word.hints,
+    };
+};
+
+const checkSimilarityFallback = async (userWord) => {
+    await new Promise(resolve => setTimeout(resolve, 300));
+
+    const cleanWord = userWord.trim().toLowerCase();
+    const answer = FALLBACK_WORDS.find(w => w.id === currentWordId)?.answer || '스택';
+
+    // 정답 체크
+    if (cleanWord === answer.toLowerCase() || cleanWord === 'stack' && answer === '스택') {
+        return { userWord, answerWord: answer, similarity: 1.0, score: 100, isCorrect: true };
+    }
+
+    // Mock 유사도
+    let baseScore = Math.random() * 40 + 10;
+    const csKeywords = ["lifo", "fifo", "자료구조", "데이터", "메모리", "포인터", "배열"];
+    if (csKeywords.some(kw => cleanWord.includes(kw))) baseScore += 20;
+
+    const finalScore = Math.max(5, Math.min(89, baseScore));
+
+    return {
+        userWord,
+        answerWord: null,
+        similarity: finalScore / 100,
+        score: parseFloat(finalScore.toFixed(2)),
+        isCorrect: false
     };
 };
