@@ -115,7 +115,7 @@
         ) lm ON c.id = lm.conversation_id
         WHERE (c.user1_id = #{userId} AND c.user1_deleted = false)
            OR (c.user2_id = #{userId} AND c.user2_deleted = false)
-        ORDER BY c.last_message_at DESC NULLS LAST, c.created_at DESC
+        ORDER BY c.last_message_at IS NULL, c.last_message_at DESC, c.created_at DESC
     </select>
 
     <update id="updateLastMessageAt">

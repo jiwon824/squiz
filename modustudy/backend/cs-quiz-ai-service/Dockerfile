@@ -11,8 +11,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # 의존성 먼저 복사 (캐싱 활용)
 COPY requirements.txt .
 
-# PyTorch CPU 버전 설치 (이미지 크기 감소)
-RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+# PyTorch + torchvision CPU 버전 설치 (호환성 보장)
+RUN pip install --no-cache-dir torch==2.2.0 torchvision==0.17.0 --index-url https://download.pytorch.org/whl/cpu
 
 # 나머지 의존성 설치
 RUN pip install --no-cache-dir -r requirements.txt
@@ -30,7 +30,5 @@ ENV HOST=0.0.0.0
 ENV PORT=5000
 ENV DEBUG=False
 
-# gunicorn으로 프로덕션 실행
-RUN pip install --no-cache-dir gunicorn
-
+# gunicorn으로 프로덕션 실행 (requirements.txt에 포함됨)
 CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "--timeout", "120", "app:create_app()"]

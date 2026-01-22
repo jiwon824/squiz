@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { authApi } from '@/api/endpoints/authApi';
+import { useAuthStore } from '@/store/authStore';
 
 interface PasswordResetModalProps {
     isOpen: boolean;
@@ -7,9 +9,17 @@ interface PasswordResetModalProps {
 }
 
 export const PasswordResetModal = ({ isOpen, onClose }: PasswordResetModalProps) => {
+    const { user } = useAuthStore();
     const [resetEmail, setResetEmail] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+    // 로그인된 사용자의 경우 이메일 자동 설정
+    useEffect(() => {
+        if (isOpen && user?.email) {
+            setResetEmail(user.email);
+        }
+    }, [isOpen, user]);
 
     // 비밀번호 재설정 요청
     const handleSubmit = async (e: React.FormEvent) => {
@@ -24,24 +34,23 @@ export const PasswordResetModal = ({ isOpen, onClose }: PasswordResetModalProps)
         setMessage(null);
 
         try {
-            // TODO: 실제 API 연결 필요
-            // await authApi.requestPasswordReset(resetEmail);
+            await authApi.requestPasswordReset(resetEmail);
 
-            // 임시: 성공 메시지 표시
-            console.log('[INFO] 비밀번호 재설정 요청:', resetEmail);
             setMessage({
                 type: 'success',
-                text: '임시 비밀번호가 이메일로 발송되었습니다.'
+                text: '성공적으로 요청되었습니다! 잠시 후에도 메일이 오지 않는다면 스팸함도 확인해주세요.'
             });
 
+            // 성공 시 입력창 초기화 및 3초 후 닫기
+            setResetEmail('');
             setTimeout(() => {
                 handleClose();
-            }, 2000);
-        } catch (error) {
+            }, 5000);
+        } catch (error: any) {
             console.error('Password reset error:', error);
             setMessage({
                 type: 'error',
-                text: '비밀번호 재설정 요청에 실패했습니다.'
+                text: error.response?.data?.message || '비밀번호 재설정 요청에 실패했습니다. 다시 시도해주세요.'
             });
         } finally {
             setIsLoading(false);
