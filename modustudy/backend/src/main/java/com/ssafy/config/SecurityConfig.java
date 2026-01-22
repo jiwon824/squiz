@@ -44,6 +44,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/studies/*/meetings/**").permitAll()
                         // Study - TODO: 나중에 인증 적용 필요
                         .requestMatchers("/api/v1/study/my").permitAll()
+                        .requestMatchers("/api/v1/my/**").permitAll()
                         .requestMatchers("/api/v1/study-templates/**").permitAll()
                         .requestMatchers("/api/v1/study/**").permitAll()
                         // 나머지는 인증 필요
