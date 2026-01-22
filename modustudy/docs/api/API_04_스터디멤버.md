@@ -1,7 +1,10 @@
 # 스터디 멤버 API (Study Member)
 
 ## 기본 정보
-- Base URL: `/api/v1/study/{studyId}/members`
+- Base URL: 
+  - 멤버 조회: `/api/v1/study/{studyId}/members`
+  - 신청 관리: `/api/v1/study/{studyId}/applications`
+  - 내 신청: `/api/v1/my/applications`
 - 인증: JWT 필요
  
 ---
@@ -10,17 +13,22 @@
 
 | Method | Endpoint | 설명 | 인증 |
 |--------|----------|------|------|
-| GET | `/` | 멤버 목록 조회 | O |
-| POST | `/apply` | 가입 신청 | O |
-| GET | `/applications` | 신청 목록 조회 (스터디장) | O |
-| GET | `/applications/my` | 내 신청 현황 | O |
-| PUT | `/applications/{applicationId}` | 신청 승인/거절 (스터디장) | O |
-| PUT | `/{memberId}/role` | 역할 변경 (스터디장) | O |
-| DELETE | `/{memberId}` | 멤버 추방 (스터디장) | O |
-| DELETE | `/leave` | 스터디 탈퇴 | O |
-| POST | `/{memberId}/review` | 스터디장 평가 | O |
-| GET | `/expulsion-risk` | 자동 추방 위험 멤버 조회 (스터디장) | O |
-| GET | `/my/expulsion-status` | 내 추방 위험 상태 조회 | O |
+| GET | `/api/v1/study/{studyId}/members` | 멤버 목록 조회 | O |
+| GET | `/api/v1/study/{studyId}/members/count` | 멤버 수 조회 | O |
+| GET | `/api/v1/study/{studyId}/members/{userId}/check` | 멤버 여부 확인 | O |
+| POST | `/api/v1/study/{studyId}/applications` | 가입 신청 | O |
+| GET | `/api/v1/study/{studyId}/applications` | 신청 목록 조회 (스터디장) | O |
+| GET | `/api/v1/my/applications` | 내 신청 현황 | O |
+| GET | `/api/v1/applications/{applicationId}` | 신청 상세 조회 | O |
+| PATCH | `/api/v1/study/{studyId}/applications/{applicationId}/approve` | 신청 승인 (스터디장) | O |
+| PATCH | `/api/v1/study/{studyId}/applications/{applicationId}/reject` | 신청 거절 (스터디장) | O |
+| GET | `/api/v1/user/{userId}/applications` | 사용자별 신청 내역 조회 | O |
+| PUT | `/{memberId}/role` | 역할 변경 (스터디장) - 미구현 | O |
+| DELETE | `/{memberId}` | 멤버 추방 (스터디장) - 미구현 | O |
+| DELETE | `/leave` | 스터디 탈퇴 - 미구현 | O |
+| POST | `/{memberId}/review` | 스터디장 평가 - 미구현 | O |
+| GET | `/expulsion-risk` | 자동 추방 위험 멤버 조회 (스터디장) - 미구현 | O |
+| GET | `/my/expulsion-status` | 내 추방 위험 상태 조회 - 미구현 | O |
 
 ---
 
@@ -31,45 +39,45 @@
 **Request**
 ```
 GET /api/v1/study/{studyId}/members
-Authorization: Bearer {accessToken}
+user-id: {userId}
 ```
 
 **Response**
 ```json
 {
-  "success": true,
-  "data": {
-    "members": [
-      {
-        "id": 1,
-        "userId": 1,
-        "nickname": "홍길동",
-        "profileImage": "https://...",
-        "role": "LEADER",
-        "status": "APPROVED",
-        "isProbation": false,
-        "joinedAt": "2025-01-01T00:00:00Z",
-        "attendanceRate": 100
-      },
-      {
-        "id": 2,
-        "userId": 2,
-        "nickname": "김싸피",
-        "profileImage": "https://...",
-        "role": "MEMBER",
-        "status": "APPROVED",
-        "isProbation": true,
-        "joinedAt": "2025-01-10T00:00:00Z",
-        "attendanceRate": 100
-      }
-    ],
-    "totalCount": 2,
-    "probationInfo": {
-      "isProbationPeriod": true,
-      "probationEndSession": 2,
-      "currentSession": 1
+  "content": [
+    {
+      "memberId": 1,
+      "studyId": 1,
+      "userId": 1,
+      "userName": "홍길동",
+      "userNickname": "hong",
+      "userEmail": "hong@example.com",
+      "role": "LEADER",
+      "status": "APPROVED",
+      "isProbation": false,
+      "joinedAt": "2025-01-01T00:00:00"
+    },
+    {
+      "memberId": 2,
+      "studyId": 1,
+      "userId": 2,
+      "userName": "김싸피",
+      "userNickname": "kim",
+      "userEmail": "kim@example.com",
+      "role": "MEMBER",
+      "status": "APPROVED",
+      "isProbation": true,
+      "joinedAt": "2025-01-10T00:00:00"
     }
-  }
+  ],
+  "pageable": {
+    "pageNumber": 0,
+    "pageSize": 20
+  },
+  "totalElements": 2,
+  "totalPages": 1,
+  "last": true
 }
 ```
 
@@ -79,8 +87,8 @@ Authorization: Bearer {accessToken}
 
 **Request**
 ```
-POST /api/v1/study/{studyId}/members/apply
-Authorization: Bearer {accessToken}
+POST /api/v1/study/{studyId}/applications
+user-id: {userId}
 Content-Type: application/json
 ```
 ```json
@@ -92,12 +100,19 @@ Content-Type: application/json
 **Response**
 ```json
 {
-  "success": true,
-  "data": {
-    "applicationId": 1,
-    "status": "PENDING",
-    "createdAt": "2025-01-10T00:00:00Z"
-  }
+  "applicationId": 1,
+  "studyId": 1,
+  "studyName": "알고리즘 스터디",
+  "userId": 3,
+  "userName": "이싸피",
+  "userNickname": "lee",
+  "userEmail": "lee@example.com",
+  "message": "안녕하세요! 알고리즘 공부를 열심히 하고 싶어서 지원합니다.",
+  "matchingScore": null,
+  "status": "PENDING",
+  "rejectedReason": null,
+  "createdAt": "2025-01-10T00:00:00",
+  "processedAt": null
 }
 ```
 
@@ -107,8 +122,8 @@ Content-Type: application/json
 
 **Request**
 ```
-GET /api/v1/study/{studyId}/members/applications?status=PENDING
-Authorization: Bearer {accessToken}
+GET /api/v1/study/{studyId}/applications?status=PENDING
+user-id: {userId}
 ```
 
 | Parameter | Type | 필수 | 설명 |
@@ -118,24 +133,30 @@ Authorization: Bearer {accessToken}
 **Response**
 ```json
 {
-  "success": true,
-  "data": [
+  "content": [
     {
-      "id": 1,
-      "user": {
-        "id": 3,
-        "nickname": "이싸피",
-        "profileImage": "https://...",
-        "campus": "서울",
-        "generation": 13,
-        "track": "Java"
-      },
+      "applicationId": 1,
+      "studyId": 1,
+      "studyName": "알고리즘 스터디",
+      "userId": 3,
+      "userName": "이싸피",
+      "userNickname": "lee",
+      "userEmail": "lee@example.com",
       "message": "안녕하세요! 알고리즘 공부를 열심히 하고 싶어서 지원합니다.",
       "matchingScore": 85.5,
       "status": "PENDING",
-      "createdAt": "2025-01-10T00:00:00Z"
+      "rejectedReason": null,
+      "createdAt": "2025-01-10T00:00:00",
+      "processedAt": null
     }
-  ]
+  ],
+  "pageable": {
+    "pageNumber": 0,
+    "pageSize": 10
+  },
+  "totalElements": 1,
+  "totalPages": 1,
+  "last": true
 }
 ```
 
@@ -145,37 +166,52 @@ Authorization: Bearer {accessToken}
 
 **Request**
 ```
-GET /api/v1/study/members/applications/my
-Authorization: Bearer {accessToken}
+GET /api/v1/my/applications
+user-id: {userId}
 ```
 
 **Response**
 ```json
 {
-  "success": true,
-  "data": [
+  "content": [
     {
-      "id": 1,
-      "study": {
-        "id": 1,
-        "name": "알고리즘 스터디",
-        "topic": "알고리즘"
-      },
+      "applicationId": 1,
+      "studyId": 1,
+      "studyName": "알고리즘 스터디",
+      "userId": 1,
+      "userName": "홍길동",
+      "userNickname": "hong",
+      "userEmail": "hong@example.com",
+      "message": "열심히 하겠습니다",
+      "matchingScore": null,
       "status": "PENDING",
-      "createdAt": "2025-01-10T00:00:00Z"
+      "rejectedReason": null,
+      "createdAt": "2025-01-10T00:00:00",
+      "processedAt": null
     },
     {
-      "id": 2,
-      "study": {
-        "id": 2,
-        "name": "CS 스터디",
-        "topic": "CS"
-      },
+      "applicationId": 2,
+      "studyId": 2,
+      "studyName": "CS 스터디",
+      "userId": 1,
+      "userName": "홍길동",
+      "userNickname": "hong",
+      "userEmail": "hong@example.com",
+      "message": "CS 공부 함께 하고 싶습니다",
+      "matchingScore": null,
       "status": "APPROVED",
-      "processedAt": "2025-01-09T00:00:00Z",
-      "createdAt": "2025-01-08T00:00:00Z"
+      "rejectedReason": null,
+      "createdAt": "2025-01-08T00:00:00",
+      "processedAt": "2025-01-09T00:00:00"
     }
-  ]
+  ],
+  "pageable": {
+    "pageNumber": 0,
+    "pageSize": 10
+  },
+  "totalElements": 2,
+  "totalPages": 1,
+  "last": true
 }
 ```
 
@@ -185,21 +221,41 @@ Authorization: Bearer {accessToken}
 
 **Request**
 ```
-PUT /api/v1/study/{studyId}/members/applications/{applicationId}
-Authorization: Bearer {accessToken}
+PATCH /api/v1/study/{studyId}/applications/{applicationId}/approve
+user-id: {userId}
+```
+
+**Response**
+```json
+{
+  "applicationId": 1,
+  "studyId": 1,
+  "studyName": "알고리즘 스터디",
+  "userId": 3,
+  "userName": "이싸피",
+  "userNickname": "lee",
+  "userEmail": "lee@example.com",
+  "message": "안녕하세요! 알고리즘 공부를 열심히 하고 싶어서 지원합니다.",
+  "matchingScore": 85.5,
+  "status": "APPROVED",
+  "rejectedReason": null,
+  "createdAt": "2025-01-10T00:00:00",
+  "processedAt": "2025-01-11T00:00:00"
+}
+```
+
+---
+
+### 5-2. 신청 거절 (스터디장)
+
+**Request**
+```
+PATCH /api/v1/study/{studyId}/applications/{applicationId}/reject
+user-id: {userId}
 Content-Type: application/json
 ```
 ```json
 {
-  "status": "APPROVED"
-}
-```
-
-또는
-
-```json
-{
-  "status": "REJECTED",
   "rejectedReason": "죄송합니다. 현재 정원이 마감되었습니다."
 }
 ```
@@ -207,14 +263,130 @@ Content-Type: application/json
 **Response**
 ```json
 {
-  "success": true,
-  "message": "신청이 승인되었습니다."
+  "applicationId": 1,
+  "studyId": 1,
+  "studyName": "알고리즘 스터디",
+  "userId": 3,
+  "userName": "이싸피",
+  "userNickname": "lee",
+  "userEmail": "lee@example.com",
+  "message": "안녕하세요! 알고리즘 공부를 열심히 하고 싶어서 지원합니다.",
+  "matchingScore": 85.5,
+  "status": "REJECTED",
+  "rejectedReason": "죄송합니다. 현재 정원이 마감되었습니다.",
+  "createdAt": "2025-01-10T00:00:00",
+  "processedAt": "2025-01-11T00:00:00"
 }
 ```
 
 ---
 
-### 6. 역할 변경 (스터디장)
+---
+
+### 5-3. 멤버 수 조회
+
+**Request**
+```
+GET /api/v1/study/{studyId}/members/count
+user-id: {userId}
+```
+
+**Response**
+```json
+5
+```
+
+---
+
+### 5-4. 멤버 여부 확인
+
+**Request**
+```
+GET /api/v1/study/{studyId}/members/{userId}/check
+user-id: {requestUserId}
+```
+
+**Response**
+```json
+true
+```
+
+---
+
+### 5-5. 신청 상세 조회
+
+**Request**
+```
+GET /api/v1/applications/{applicationId}
+user-id: {userId}
+```
+
+**Response**
+```json
+{
+  "applicationId": 1,
+  "studyId": 1,
+  "studyName": "알고리즘 스터디",
+  "userId": 3,
+  "userName": "이싸피",
+  "userNickname": "lee",
+  "userEmail": "lee@example.com",
+  "message": "안녕하세요! 알고리즘 공부를 열심히 하고 싶어서 지원합니다.",
+  "matchingScore": 85.5,
+  "status": "PENDING",
+  "rejectedReason": null,
+  "createdAt": "2025-01-10T00:00:00",
+  "processedAt": null
+}
+```
+
+---
+
+### 5-6. 사용자별 신청 내역 조회
+
+**Request**
+```
+GET /api/v1/user/{userId}/applications?status=PENDING
+user-id: {requestUserId}
+```
+
+| Parameter | Type | 필수 | 설명 |
+|-----------|------|------|------|
+| status | string | X | PENDING/APPROVED/REJECTED |
+
+**Response**
+```json
+{
+  "content": [
+    {
+      "applicationId": 1,
+      "studyId": 1,
+      "studyName": "알고리즘 스터디",
+      "userId": 3,
+      "userName": "이싸피",
+      "userNickname": "lee",
+      "userEmail": "lee@example.com",
+      "message": "안녕하세요! 알고리즘 공부를 열심히 하고 싶어서 지원합니다.",
+      "matchingScore": 85.5,
+      "status": "PENDING",
+      "rejectedReason": null,
+      "createdAt": "2025-01-10T00:00:00",
+      "processedAt": null
+    }
+  ],
+  "pageable": {
+    "pageNumber": 0,
+    "pageSize": 10
+  },
+  "totalElements": 1,
+  "totalPages": 1,
+  "last": true
+}
+```
+
+---
+
+### 6. 역할 변경 (스터디장) - 미구현
 
 **Request**
 ```
@@ -238,7 +410,7 @@ Content-Type: application/json
 
 ---
 
-### 7. 멤버 추방 (스터디장)
+### 7. 멤버 추방 (스터디장) - 미구현
 
 **Request**
 ```
@@ -256,7 +428,7 @@ Authorization: Bearer {accessToken}
 
 ---
 
-### 8. 스터디 탈퇴
+### 8. 스터디 탈퇴 - 미구현
 
 **Request**
 ```
@@ -290,7 +462,7 @@ Authorization: Bearer {accessToken}
 
 ---
 
-### 9. 스터디장 평가
+### 9. 스터디장 평가 - 미구현
 
 **Request**
 ```
@@ -315,7 +487,7 @@ Content-Type: application/json
 
 ---
 
-### 10. 자동 추방 위험 멤버 조회 (스터디장)
+### 10. 자동 추방 위험 멤버 조회 (스터디장) - 미구현
 
 남은 세션 모두 출석해도 50% 이하 출석률이 되는 멤버 목록
 
@@ -350,7 +522,7 @@ Authorization: Bearer {accessToken}
 
 ---
 
-### 11. 내 추방 위험 상태 조회
+### 11. 내 추방 위험 상태 조회 - 미구현
 
 **Request**
 ```

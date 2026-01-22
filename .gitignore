@@ -119,3 +119,9 @@ rebel.xml
 # Code Coverage
 *.exec
 jacoco.xml
+
+# Java build artifacts
+**/target/
+**/.classpath
+**/.project
+**/.settings/

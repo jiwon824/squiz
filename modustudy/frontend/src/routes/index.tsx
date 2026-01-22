@@ -13,8 +13,11 @@ import ReuseTest from '../features/reuseTest';
 const CommentlePage = lazy(() =>
     import('../features/commentle/CommentlePage').then(m => ({ default: m.CommentlePage }))
 );
-const QuizPage = lazy(() =>
-    import('../features/quiz/QuizPage').then(m => ({ default: m.QuizPage }))
+const QuizGameSelection = lazy(() =>
+    import('../features/quiz').then(m => ({ default: m.QuizGameSelection }))
+);
+const CommentleQuiz = lazy(() =>
+    import('../features/quiz').then(m => ({ default: m.CommentleQuiz }))
 );
 const LoginPage = lazy(() =>
     import('../features/auth/index').then(m => ({ default: m.LoginPage }))
@@ -89,7 +92,8 @@ export const AppRouter = () => {
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/login/callback" element={<LoginCallbackPage />} />
                     <Route path="/signup" element={<SignupPage />} />
-                    <Route path="/quiz" element={<QuizPage />} />
+                    <Route path="/quiz" element={<QuizGameSelection />} />
+                    <Route path="/quiz-commentle" element={<CommentleQuiz />} />
                     <Route path="/study" element={<StudyPage />} />
                     <Route path="/study/create" element={<StudyCreatePage />} />
                     <Route path="/study/:id" element={<StudyDetailPage />} />

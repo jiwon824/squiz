@@ -3,16 +3,12 @@ package com.ssafy.domain.study.service;
 import com.ssafy.common.exception.StudyException;
 import com.ssafy.domain.study.dto.request.ApplicationCreateRequest;
 import com.ssafy.domain.study.dto.response.ApplicationResponse;
-import com.ssafy.domain.study.entity.ApplicationStatus;
-import com.ssafy.domain.study.entity.Study;
-import com.ssafy.domain.study.entity.StudyApplication;
-import com.ssafy.domain.study.entity.StudyType;
-import com.ssafy.domain.study.entity.MeetingType;
-import com.ssafy.domain.study.entity.Status;
+import com.ssafy.domain.study.entity.*;
 import com.ssafy.domain.study.repository.StudyApplicationRepository;
+import com.ssafy.domain.study.repository.StudyMemberRepository;
 import com.ssafy.domain.study.repository.StudyRepository;
-import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.entity.Role;
+import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,15 +21,23 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.*;
 
 /**
  * ApplicationService 단위 테스트
+ *
+ * 테스트 범위:
+ * 1. 신청 생성 (createApplication)
+ * 2. 스터디별 신청 목록 조회 (getApplicationByStudy)
+ * 3. 사용자별 신청 내역 조회 (getApplicationByUser)
+ * 4. 신청 상세 조회 (getApplication)
+ * 5. 신청 승인 (approveApplication)
+ * 6. 신청 거절 (rejectApplication)
  */
 @ExtendWith(MockitoExtension.class)
 class ApplicationServiceTest {
@@ -47,11 +51,14 @@ class ApplicationServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private StudyMemberRepository studyMemberRepository;
+
     @InjectMocks
     private ApplicationService applicationService;
 
     // ============================================================
-    // 신청 생성 테스트
+    // 1. 신청 생성 테스트
     // ============================================================
 
     @Test
@@ -104,6 +111,8 @@ class ApplicationServiceTest {
         assertThat(response.getUserId()).isEqualTo(userId);
         assertThat(response.getMessage()).isEqualTo("열심히 하겠습니다!");
         assertThat(response.getStatus()).isEqualTo(ApplicationStatus.PENDING);
+        assertThat(response.getStudyName()).isEqualTo("알고리즘 스터디");
+        assertThat(response.getUserName()).isEqualTo("김싸피");
 
         verify(studyRepository, times(1)).findById(studyId);
         verify(userRepository, times(1)).findById(userId);
@@ -220,12 +229,12 @@ class ApplicationServiceTest {
     }
 
     // ============================================================
-    // 신청 목록 조회 테스트
+    // 2. 스터디별 신청 목록 조회 테스트
     // ============================================================
 
     @Test
-    @DisplayName("스터디별 신청 목록 조회 성공")
-    void getApplicationsByStudy_Success() {
+    @DisplayName("스터디별 신청 목록 조회 성공 - 전체 조회")
+    void getApplicationByStudy_Success() {
         // given
         Long studyId = 1L;
         Pageable pageable = PageRequest.of(0, 10);
@@ -235,40 +244,59 @@ class ApplicationServiceTest {
                 .name("알고리즘 스터디")
                 .build();
 
-        StudyApplication app1 = StudyApplication.builder()
-                .id(1L)
-                .studyId(studyId)
-                .userId(10L)
-                .status(ApplicationStatus.PENDING)
-                .build();
-
-        User user = User.builder()
+        User user1 = User.builder()
                 .name("김싸피")
                 .nickname("ssafy_kim")
                 .email("kim@ssafy.com")
                 .build();
 
-        Page<StudyApplication> applicationPage = new PageImpl<>(List.of(app1));
+        User user2 = User.builder()
+                .name("이싸피")
+                .nickname("ssafy_lee")
+                .email("lee@ssafy.com")
+                .build();
+
+        StudyApplication app1 = StudyApplication.builder()
+                .id(1L)
+                .studyId(studyId)
+                .userId(10L)
+                .message("신청합니다!")
+                .status(ApplicationStatus.PENDING)
+                .build();
+
+        StudyApplication app2 = StudyApplication.builder()
+                .id(2L)
+                .studyId(studyId)
+                .userId(11L)
+                .message("참여하고 싶습니다!")
+                .status(ApplicationStatus.PENDING)
+                .build();
+
+        Page<StudyApplication> applicationPage = new PageImpl<>(List.of(app1, app2));
 
         given(studyRepository.findById(studyId)).willReturn(Optional.of(study));
         given(applicationRepository.findByStudyId(studyId, pageable)).willReturn(applicationPage);
-        given(userRepository.findById(10L)).willReturn(Optional.of(user));
+        given(userRepository.findById(10L)).willReturn(Optional.of(user1));
+        given(userRepository.findById(11L)).willReturn(Optional.of(user2));
 
         // when
         Page<ApplicationResponse> response = applicationService.getApplicationByStudy(studyId, null, pageable);
 
         // then
         assertThat(response).isNotNull();
-        assertThat(response.getContent()).hasSize(1);
+        assertThat(response.getContent()).hasSize(2);
         assertThat(response.getContent().get(0).getStudyName()).isEqualTo("알고리즘 스터디");
+        assertThat(response.getContent().get(0).getUserName()).isEqualTo("김싸피");
+        assertThat(response.getContent().get(1).getUserName()).isEqualTo("이싸피");
 
         verify(studyRepository, times(1)).findById(studyId);
         verify(applicationRepository, times(1)).findByStudyId(studyId, pageable);
+        verify(userRepository, times(2)).findById(any());
     }
 
     @Test
-    @DisplayName("스터디별 신청 목록 조회 - 상태별 필터링")
-    void getApplicationsByStudy_WithStatus() {
+    @DisplayName("스터디별 신청 목록 조회 성공 - 상태별 필터링")
+    void getApplicationByStudy_WithStatus() {
         // given
         Long studyId = 1L;
         ApplicationStatus status = ApplicationStatus.PENDING;
@@ -279,24 +307,54 @@ class ApplicationServiceTest {
                 .name("알고리즘 스터디")
                 .build();
 
-        Page<StudyApplication> applicationPage = new PageImpl<>(List.of());
+        StudyApplication app1 = StudyApplication.builder()
+                .id(1L)
+                .studyId(studyId)
+                .userId(10L)
+                .status(ApplicationStatus.PENDING)
+                .build();
+
+        Page<StudyApplication> applicationPage = new PageImpl<>(List.of(app1));
 
         given(studyRepository.findById(studyId)).willReturn(Optional.of(study));
         given(applicationRepository.findByStudyIdAndStatus(studyId, status, pageable))
                 .willReturn(applicationPage);
+        given(userRepository.findById(10L)).willReturn(Optional.of(User.builder().build()));
 
         // when
         Page<ApplicationResponse> response = applicationService.getApplicationByStudy(studyId, status, pageable);
 
         // then
         assertThat(response).isNotNull();
+        assertThat(response.getContent()).hasSize(1);
+        assertThat(response.getContent().get(0).getStatus()).isEqualTo(ApplicationStatus.PENDING);
+
         verify(applicationRepository, times(1)).findByStudyIdAndStatus(studyId, status, pageable);
-        verify(applicationRepository, never()).findByStudyId(any(), any());
     }
 
     @Test
-    @DisplayName("사용자별 신청 내역 조회 성공")
-    void getApplicationsByUser_Success() {
+    @DisplayName("스터디별 신청 목록 조회 실패 - 존재하지 않는 스터디")
+    void getApplicationByStudy_StudyNotFound() {
+        // given
+        Long studyId = 999L;
+        Pageable pageable = PageRequest.of(0, 10);
+
+        given(studyRepository.findById(studyId)).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> applicationService.getApplicationByStudy(studyId, null, pageable))
+                .isInstanceOf(StudyException.StudyNotFoundException.class);
+
+        verify(applicationRepository, never()).findByStudyId(any(), any());
+    }
+
+    // ============================================================
+    // 3. 사용자별 신청 내역 조회 테스트
+    // ============================================================
+
+    @Test
+    @DisplayName("사용자별 신청 내역 조회 성공 - 전체 조회")
+    void getApplicationByUser_Success() {
         // given
         Long userId = 10L;
         Pageable pageable = PageRequest.of(0, 10);
@@ -307,6 +365,16 @@ class ApplicationServiceTest {
                 .email("kim@ssafy.com")
                 .build();
 
+        Study study1 = Study.builder()
+                .id(1L)
+                .name("알고리즘 스터디")
+                .build();
+
+        Study study2 = Study.builder()
+                .id(2L)
+                .name("CS 스터디")
+                .build();
+
         StudyApplication app1 = StudyApplication.builder()
                 .id(1L)
                 .studyId(1L)
@@ -314,29 +382,155 @@ class ApplicationServiceTest {
                 .status(ApplicationStatus.PENDING)
                 .build();
 
-        Study study = Study.builder()
-                .name("알고리즘 스터디")
+        StudyApplication app2 = StudyApplication.builder()
+                .id(2L)
+                .studyId(2L)
+                .userId(userId)
+                .status(ApplicationStatus.APPROVED)
                 .build();
 
-        Page<StudyApplication> applicationPage = new PageImpl<>(List.of(app1));
+        Page<StudyApplication> applicationPage = new PageImpl<>(List.of(app1, app2));
 
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
         given(applicationRepository.findByUserId(userId, pageable)).willReturn(applicationPage);
-        given(studyRepository.findById(1L)).willReturn(Optional.of(study));
+        given(studyRepository.findById(1L)).willReturn(Optional.of(study1));
+        given(studyRepository.findById(2L)).willReturn(Optional.of(study2));
 
         // when
         Page<ApplicationResponse> response = applicationService.getApplicationByUser(userId, null, pageable);
 
         // then
         assertThat(response).isNotNull();
-        assertThat(response.getContent()).hasSize(1);
+        assertThat(response.getContent()).hasSize(2);
+        assertThat(response.getContent().get(0).getUserName()).isEqualTo("김싸피");
+        assertThat(response.getContent().get(0).getStudyName()).isEqualTo("알고리즘 스터디");
+        assertThat(response.getContent().get(1).getStudyName()).isEqualTo("CS 스터디");
 
         verify(userRepository, times(1)).findById(userId);
         verify(applicationRepository, times(1)).findByUserId(userId, pageable);
+        verify(studyRepository, times(2)).findById(any());
+    }
+
+    @Test
+    @DisplayName("사용자별 신청 내역 조회 성공 - 상태별 필터링")
+    void getApplicationByUser_WithStatus() {
+        // given
+        Long userId = 10L;
+        ApplicationStatus status = ApplicationStatus.APPROVED;
+        Pageable pageable = PageRequest.of(0, 10);
+
+        User user = User.builder()
+                .name("김싸피")
+                .build();
+
+        StudyApplication app1 = StudyApplication.builder()
+                .id(1L)
+                .studyId(1L)
+                .userId(userId)
+                .status(ApplicationStatus.APPROVED)
+                .build();
+
+        Page<StudyApplication> applicationPage = new PageImpl<>(List.of(app1));
+
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+        given(applicationRepository.findByUserIdAndStatus(userId, status, pageable))
+                .willReturn(applicationPage);
+        given(studyRepository.findById(1L)).willReturn(Optional.of(Study.builder().build()));
+
+        // when
+        Page<ApplicationResponse> response = applicationService.getApplicationByUser(userId, status, pageable);
+
+        // then
+        assertThat(response).isNotNull();
+        assertThat(response.getContent()).hasSize(1);
+        assertThat(response.getContent().get(0).getStatus()).isEqualTo(ApplicationStatus.APPROVED);
+
+        verify(applicationRepository, times(1)).findByUserIdAndStatus(userId, status, pageable);
+    }
+
+    @Test
+    @DisplayName("사용자별 신청 내역 조회 실패 - 존재하지 않는 사용자")
+    void getApplicationByUser_UserNotFound() {
+        // given
+        Long userId = 999L;
+        Pageable pageable = PageRequest.of(0, 10);
+
+        given(userRepository.findById(userId)).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> applicationService.getApplicationByUser(userId, null, pageable))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("존재하지 않는 사용자");
+
+        verify(applicationRepository, never()).findByUserId(any(), any());
     }
 
     // ============================================================
-    // 신청 승인 테스트
+    // 4. 신청 상세 조회 테스트
+    // ============================================================
+
+    @Test
+    @DisplayName("신청 상세 조회 성공")
+    void getApplication_Success() {
+        // given
+        Long applicationId = 1L;
+
+        Study study = Study.builder()
+                .id(1L)
+                .name("알고리즘 스터디")
+                .build();
+
+        User user = User.builder()
+                .name("김싸피")
+                .nickname("ssafy_kim")
+                .email("kim@ssafy.com")
+                .build();
+
+        StudyApplication application = StudyApplication.builder()
+                .id(applicationId)
+                .studyId(1L)
+                .userId(10L)
+                .message("열심히 하겠습니다!")
+                .status(ApplicationStatus.PENDING)
+                .build();
+
+        given(applicationRepository.findById(applicationId)).willReturn(Optional.of(application));
+        given(studyRepository.findById(1L)).willReturn(Optional.of(study));
+        given(userRepository.findById(10L)).willReturn(Optional.of(user));
+
+        // when
+        ApplicationResponse response = applicationService.getApplication(applicationId);
+
+        // then
+        assertThat(response).isNotNull();
+        assertThat(response.getApplicationId()).isEqualTo(applicationId);
+        assertThat(response.getStudyName()).isEqualTo("알고리즘 스터디");
+        assertThat(response.getUserName()).isEqualTo("김싸피");
+        assertThat(response.getMessage()).isEqualTo("열심히 하겠습니다!");
+
+        verify(applicationRepository, times(1)).findById(applicationId);
+        verify(studyRepository, times(1)).findById(1L);
+        verify(userRepository, times(1)).findById(10L);
+    }
+
+    @Test
+    @DisplayName("신청 상세 조회 실패 - 존재하지 않는 신청")
+    void getApplication_NotFound() {
+        // given
+        Long applicationId = 999L;
+
+        given(applicationRepository.findById(applicationId)).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> applicationService.getApplication(applicationId))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("존재하지 않는 신청");
+
+        verify(applicationRepository, times(1)).findById(applicationId);
+    }
+
+    // ============================================================
+    // 5. 신청 승인 테스트
     // ============================================================
 
     @Test
@@ -346,6 +540,7 @@ class ApplicationServiceTest {
         Long studyId = 1L;
         Long applicationId = 1L;
         Long leaderId = 2L;
+        Long applicantUserId = 10L;
 
         Study study = Study.builder()
                 .id(studyId)
@@ -356,7 +551,7 @@ class ApplicationServiceTest {
         StudyApplication application = StudyApplication.builder()
                 .id(applicationId)
                 .studyId(studyId)
-                .userId(10L)
+                .userId(applicantUserId)
                 .status(ApplicationStatus.PENDING)
                 .build();
 
@@ -369,7 +564,8 @@ class ApplicationServiceTest {
         given(studyRepository.findById(studyId)).willReturn(Optional.of(study));
         given(applicationRepository.findById(applicationId)).willReturn(Optional.of(application));
         given(applicationRepository.save(any(StudyApplication.class))).willReturn(application);
-        given(userRepository.findById(10L)).willReturn(Optional.of(user));
+        given(userRepository.findById(applicantUserId)).willReturn(Optional.of(user));
+        given(studyMemberRepository.save(any(StudyMember.class))).willReturn(StudyMember.builder().build());
 
         // when
         ApplicationResponse response = applicationService.approveApplication(studyId, applicationId, leaderId);
@@ -382,10 +578,11 @@ class ApplicationServiceTest {
         verify(studyRepository, times(1)).findById(studyId);
         verify(applicationRepository, times(1)).findById(applicationId);
         verify(applicationRepository, times(1)).save(application);
+        verify(studyMemberRepository, times(1)).save(any(StudyMember.class));
     }
 
     @Test
-    @DisplayName("신청 승인 실패 - 권한 없음")
+    @DisplayName("신청 승인 실패 - 권한 없음 (스터디장 아님)")
     void approveApplication_NotLeader() {
         // given
         Long studyId = 1L;
@@ -406,6 +603,64 @@ class ApplicationServiceTest {
 
         verify(applicationRepository, never()).findById(any());
         verify(applicationRepository, never()).save(any());
+        verify(studyMemberRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("신청 승인 실패 - 존재하지 않는 신청")
+    void approveApplication_ApplicationNotFound() {
+        // given
+        Long studyId = 1L;
+        Long applicationId = 999L;
+        Long leaderId = 2L;
+
+        Study study = Study.builder()
+                .id(studyId)
+                .leaderId(leaderId)
+                .build();
+
+        given(studyRepository.findById(studyId)).willReturn(Optional.of(study));
+        given(applicationRepository.findById(applicationId)).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> applicationService.approveApplication(studyId, applicationId, leaderId))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("존재하지 않는 신청");
+
+        verify(applicationRepository, never()).save(any());
+        verify(studyMemberRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("신청 승인 실패 - 다른 스터디의 신청")
+    void approveApplication_WrongStudy() {
+        // given
+        Long studyId = 1L;
+        Long applicationId = 1L;
+        Long leaderId = 2L;
+
+        Study study = Study.builder()
+                .id(studyId)
+                .leaderId(leaderId)
+                .build();
+
+        StudyApplication application = StudyApplication.builder()
+                .id(applicationId)
+                .studyId(999L)  // 다른 스터디의 신청!
+                .userId(10L)
+                .status(ApplicationStatus.PENDING)
+                .build();
+
+        given(studyRepository.findById(studyId)).willReturn(Optional.of(study));
+        given(applicationRepository.findById(applicationId)).willReturn(Optional.of(application));
+
+        // when & then
+        assertThatThrownBy(() -> applicationService.approveApplication(studyId, applicationId, leaderId))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("해당 스터디의 신청이 아닙니다");
+
+        verify(applicationRepository, never()).save(any());
+        verify(studyMemberRepository, never()).save(any());
     }
 
     @Test
@@ -437,10 +692,11 @@ class ApplicationServiceTest {
                 .hasMessageContaining("이미 처리된 신청");
 
         verify(applicationRepository, never()).save(any());
+        verify(studyMemberRepository, never()).save(any());
     }
 
     // ============================================================
-    // 신청 거절 테스트
+    // 6. 신청 거절 테스트
     // ============================================================
 
     @Test
@@ -491,7 +747,7 @@ class ApplicationServiceTest {
     }
 
     @Test
-    @DisplayName("신청 거절 실패 - 권한 없음")
+    @DisplayName("신청 거절 실패 - 권한 없음 (스터디장 아님)")
     void rejectApplication_NotLeader() {
         // given
         Long studyId = 1L;
@@ -512,6 +768,95 @@ class ApplicationServiceTest {
                 .isInstanceOf(StudyException.NotStudyLeaderException.class);
 
         verify(applicationRepository, never()).findById(any());
+        verify(applicationRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("신청 거절 실패 - 존재하지 않는 신청")
+    void rejectApplication_ApplicationNotFound() {
+        // given
+        Long studyId = 1L;
+        Long applicationId = 999L;
+        Long leaderId = 2L;
+        String reason = "정원 초과";
+
+        Study study = Study.builder()
+                .id(studyId)
+                .leaderId(leaderId)
+                .build();
+
+        given(studyRepository.findById(studyId)).willReturn(Optional.of(study));
+        given(applicationRepository.findById(applicationId)).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> applicationService.rejectApplication(studyId, applicationId, leaderId, reason))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("존재하지 않는 신청");
+
+        verify(applicationRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("신청 거절 실패 - 다른 스터디의 신청")
+    void rejectApplication_WrongStudy() {
+        // given
+        Long studyId = 1L;
+        Long applicationId = 1L;
+        Long leaderId = 2L;
+        String reason = "정원 초과";
+
+        Study study = Study.builder()
+                .id(studyId)
+                .leaderId(leaderId)
+                .build();
+
+        StudyApplication application = StudyApplication.builder()
+                .id(applicationId)
+                .studyId(999L)  // 다른 스터디의 신청!
+                .userId(10L)
+                .status(ApplicationStatus.PENDING)
+                .build();
+
+        given(studyRepository.findById(studyId)).willReturn(Optional.of(study));
+        given(applicationRepository.findById(applicationId)).willReturn(Optional.of(application));
+
+        // when & then
+        assertThatThrownBy(() -> applicationService.rejectApplication(studyId, applicationId, leaderId, reason))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("해당 스터디의 신청이 아닙니다");
+
+        verify(applicationRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("신청 거절 실패 - 이미 처리된 신청")
+    void rejectApplication_AlreadyProcessed() {
+        // given
+        Long studyId = 1L;
+        Long applicationId = 1L;
+        Long leaderId = 2L;
+        String reason = "정원 초과";
+
+        Study study = Study.builder()
+                .id(studyId)
+                .leaderId(leaderId)
+                .build();
+
+        StudyApplication application = StudyApplication.builder()
+                .id(applicationId)
+                .studyId(studyId)
+                .userId(10L)
+                .status(ApplicationStatus.REJECTED)  // 이미 거절됨!
+                .build();
+
+        given(studyRepository.findById(studyId)).willReturn(Optional.of(study));
+        given(applicationRepository.findById(applicationId)).willReturn(Optional.of(application));
+
+        // when & then
+        assertThatThrownBy(() -> applicationService.rejectApplication(studyId, applicationId, leaderId, reason))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("이미 처리된 신청");
+
         verify(applicationRepository, never()).save(any());
     }
 }

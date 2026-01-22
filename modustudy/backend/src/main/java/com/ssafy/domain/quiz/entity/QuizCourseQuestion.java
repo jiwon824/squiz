@@ -5,9 +5,7 @@ import com.ssafy.domain.quiz.entity.enums.QuestionType;
 import jakarta.persistence.*;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -22,6 +20,8 @@ import org.hibernate.type.SqlTypes;
 @Entity
 @Table(name = "quiz_course_question")
 @Getter
+@Builder
+@AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class QuizCourseQuestion extends BaseEntity {
 

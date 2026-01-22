@@ -5,16 +5,20 @@ import com.ssafy.domain.study.dto.request.StudyCreateRequest;
 import com.ssafy.domain.study.dto.request.StudyUpdateRequest;
 import com.ssafy.domain.study.entity.*;
 import com.ssafy.domain.study.repository.StudyRepository;
+import com.ssafy.domain.user.entity.Role;
+import com.ssafy.domain.user.entity.User;
+import com.ssafy.domain.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.transaction.annotation.Transactional;
+
+import org.springframework.boot.test.context.SpringBootTest;
 
 import java.time.LocalDate;
 
@@ -37,13 +41,34 @@ class StudyControllerTest {
     @Autowired
     private StudyRepository studyRepository;
 
+    @Autowired
+    private UserRepository userRepository;
+
+    private User leader;
     private Study testStudy;
 
     @BeforeEach
     void setUp() {
+        // 스터디장 생성
+        leader = User.builder()
+                .userId("leader123")
+                .email("leader@test.com")
+                .nickname("리더")
+                .name("김리더")
+                .role(Role.USER)
+                .isActive(true)
+                .isOnline(false)
+                .isSearchable(true)
+                .totalExp(0)
+                .currentPoints(0)
+                .currentLevel(1)
+                .levelName("Bronze")
+                .build();
+        leader = userRepository.save(leader);
+
         // 테스트용 스터디 생성
         testStudy = Study.builder()
-                .leaderId(1L)
+                .leaderId(leader.getId())
                 .name("테스트 스터디")
                 .description("테스트용 스터디입니다")
                 .topic("알고리즘")
@@ -85,7 +110,7 @@ class StudyControllerTest {
 
         // when & then
         mockMvc.perform(post("/api/v1/study")
-                        .header("User-Id", "1")
+                        .header("User-Id", leader.getId().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isCreated())
@@ -112,7 +137,7 @@ class StudyControllerTest {
 
         // when & then
         mockMvc.perform(post("/api/v1/study")
-                        .header("User-Id", "1")
+                        .header("User-Id", leader.getId().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isBadRequest())
@@ -136,7 +161,7 @@ class StudyControllerTest {
 
         // when & then
         mockMvc.perform(post("/api/v1/study")
-                        .header("User-Id", "1")
+                        .header("User-Id", leader.getId().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isBadRequest())
@@ -215,7 +240,7 @@ class StudyControllerTest {
 
         // when & then
         mockMvc.perform(put("/api/v1/study/{studyId}", testStudy.getId())
-                        .header("User-Id", "1")
+                        .header("User-Id", leader.getId().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isOk())
@@ -251,7 +276,7 @@ class StudyControllerTest {
     void deleteStudy_Success() throws Exception {
         // when & then
         mockMvc.perform(delete("/api/v1/study/{studyId}", testStudy.getId())
-                        .header("User-Id", "1"))
+                        .header("User-Id", leader.getId().toString()))
                 .andExpect(status().isNoContent());
     }
 
@@ -264,7 +289,7 @@ class StudyControllerTest {
 
         // when & then
         mockMvc.perform(delete("/api/v1/study/{studyId}", testStudy.getId())
-                        .header("User-Id", "1"))
+                        .header("User-Id", leader.getId().toString()))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("진행 중이거나 완료된 스터디는 삭제할 수 없습니다"));
     }
@@ -285,7 +310,7 @@ class StudyControllerTest {
 
         // when & then
         mockMvc.perform(patch("/api/v1/study/{studyId}/status", testStudy.getId())
-                        .header("User-Id", "1")
+                        .header("User-Id", leader.getId().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isOk())
@@ -307,7 +332,7 @@ class StudyControllerTest {
 
         // when & then
         mockMvc.perform(patch("/api/v1/study/{studyId}/status", testStudy.getId())
-                        .header("User-Id", "1")
+                        .header("User-Id", leader.getId().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isBadRequest())
@@ -333,7 +358,7 @@ class StudyControllerTest {
 
         // when & then
         mockMvc.perform(patch("/api/v1/study/{studyId}/extend-recruitment", testStudy.getId())
-                        .header("User-Id", "1")
+                        .header("User-Id", leader.getId().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isOk())
@@ -356,7 +381,7 @@ class StudyControllerTest {
             """;
 
         mockMvc.perform(patch("/api/v1/study/{studyId}/extend-recruitment", testStudy.getId())
-                        .header("User-Id", "1")
+                        .header("User-Id", leader.getId().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(firstRequest))
                 .andExpect(status().isOk());
@@ -370,7 +395,7 @@ class StudyControllerTest {
 
         // when & then
         mockMvc.perform(patch("/api/v1/study/{studyId}/extend-recruitment", testStudy.getId())
-                        .header("User-Id", "1")
+                        .header("User-Id", leader.getId().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(secondRequest))
                 .andDo(result -> {
@@ -393,7 +418,7 @@ class StudyControllerTest {
 
         // when & then
         mockMvc.perform(patch("/api/v1/study/{studyId}/extend-recruitment", testStudy.getId())
-                        .header("User-Id", "1")
+                        .header("User-Id", leader.getId().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isBadRequest())

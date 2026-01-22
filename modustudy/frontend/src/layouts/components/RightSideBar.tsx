@@ -4,10 +4,20 @@ import { useUIStore } from '@/store/uiStore';
 import { Users, MessageSquare, Plus } from 'lucide-react';
 import FriendListMini from '@/features/friend/components/FriendListMini';
 import DMListMini from '@/features/dm/components/DMListMini';
+import { useDMStore } from '@/features/dm/store/dmStore';
+import { useFriendStore } from '@/features/friend/store/friendStore';
 
 export const RightSideBar: React.FC = () => {
     const { activeRightTab, toggleRightTab } = useUIStore();
     const panelRef = useRef<HTMLDivElement>(null);
+    const { unreadCount, fetchUnreadCount } = useDMStore();
+    const { receivedRequests, fetchReceivedRequests } = useFriendStore();
+
+    // 초기 데이터 로드
+    useEffect(() => {
+        fetchUnreadCount();
+        fetchReceivedRequests();
+    }, [fetchUnreadCount, fetchReceivedRequests]);
 
     // 외부 클릭 시 닫기
     useEffect(() => {

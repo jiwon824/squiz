@@ -2,9 +2,7 @@
    프로필 페이지 레이아웃
    ============================================ */
 .profile-page {
-    min-height: 100vh;
-    padding: 2rem;
-    background: var(--color-bg, #f8fafc);
+    width: 100%;
 }
 
 .profile-container {
@@ -12,7 +10,7 @@
     margin: 0 auto;
     display: flex;
     flex-direction: column;
-    gap: 2rem;
+    gap: 1.5rem;
 }
 
 /* ============================================

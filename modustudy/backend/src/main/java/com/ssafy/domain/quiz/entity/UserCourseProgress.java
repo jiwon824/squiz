@@ -34,12 +34,18 @@ public class UserCourseProgress {
     @JoinColumn(name = "course_id", insertable = false, updatable = false)
     private QuizCourse course;
 
+    // @Builder 패턴이 기본값을 무시해서 @Builder.Default 필요
+    @Builder.Default
     @Column(name = "current_section")
     private Integer currentSection = 1;
 
+    // @Builder 패턴이 기본값을 무시해서 @Builder.Default 필요
+    @Builder.Default
     @Column(name = "completed_sections")
     private Integer completedSections = 0;
 
+    // @Builder 패턴이 기본값을 무시해서 @Builder.Default 필요
+    @Builder.Default
     @Column(name = "is_completed")
     private Boolean isCompleted = false;
 

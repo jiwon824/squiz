@@ -106,7 +106,35 @@ GET /api/v1/study/recruiting?page=0&size=20
 
 ---
 
-### 1.3 스터디 검색/필터링
+### 1.3 내 스터디 목록 조회
+
+**Endpoint:** `GET /api/v1/study/my`
+
+**설명:** 현재 사용자가 참여 중인 모든 스터디를 조회합니다.
+
+**인증:** 필요
+
+**Request Headers:**
+```
+user-id: 1
+```
+
+**Query Parameters:**
+| 파라미터 | 타입 | 필수 | 기본값 | 설명 |
+|---------|------|------|--------|------|
+| page | Integer | N | 0 | 페이지 번호 (0부터 시작) |
+| size | Integer | N | 20 | 페이지당 항목 수 |
+
+**Request Example:**
+```
+GET /api/v1/study/my?page=0&size=20
+```
+
+**Response:** (1.1과 동일한 형식)
+
+---
+
+### 1.4 스터디 검색/필터링
 
 **Endpoint:** `GET /api/v1/study/search`
 
@@ -145,7 +173,7 @@ GET /api/v1/study/search?keyword=자바&meetingType=OFFLINE&difficulty=BEGINNER&
 
 ---
 
-### 1.4 스터디장별 스터디 목록 조회
+### 1.5 스터디장별 스터디 목록 조회
 
 **Endpoint:** `GET /api/v1/study/leader/{leaderId}`
 
@@ -173,7 +201,7 @@ GET /api/v1/study/leader/1?page=0&size=20
 
 ---
 
-### 1.5 스터디장의 특정 상태 스터디 목록 조회
+### 1.6 스터디장의 특정 상태 스터디 목록 조회
 
 **Endpoint:** `GET /api/v1/study/leader/{leaderId}/status/{status}`
 
@@ -202,7 +230,7 @@ GET /api/v1/study/leader/1/status/RECRUITING?page=0&size=20
 
 ---
 
-### 1.6 스터디 상세 조회
+### 1.7 스터디 상세 조회
 
 **Endpoint:** `GET /api/v1/study/{studyId}`
 
@@ -260,7 +288,7 @@ GET /api/v1/study/1
 
 ---
 
-### 1.7 특정 상태의 스터디 개수 조회
+### 1.8 특정 상태의 스터디 개수 조회
 
 **Endpoint:** `GET /api/v1/study/count`
 
@@ -283,7 +311,7 @@ GET /api/v1/study/count?status=RECRUITING
 
 ---
 
-### 1.8 스터디 존재 여부 확인
+### 1.9 스터디 존재 여부 확인
 
 **Endpoint:** `GET /api/v1/study/{studyId}/exists`
 

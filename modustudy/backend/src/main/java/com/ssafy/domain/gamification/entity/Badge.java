@@ -7,6 +7,8 @@ import lombok.*;
 @Entity
 @Table(name = "badge")
 @Getter
+@Builder
+@AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Badge extends BaseEntity {
     /**
