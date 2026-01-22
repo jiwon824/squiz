@@ -43,7 +43,21 @@ const StudyDetailPage = lazy(() =>
 const StudyManagementPage = lazy(() =>
     import('../features/study').then(m => ({ default: m.StudyManagementPage }))
 );
-const ProfilePage = lazy(() => import('@/features/profile/components/ProfilePage').then(module => ({ default: module.ProfilePage })));
+const TestSidebarPage = lazy(() =>
+    import('../features/test/TestSidebarPage').then(m => ({ default: m.TestSidebarPage }))
+);
+const ProfilePage = lazy(() => 
+    import('@/features/profile/components/ProfilePage').then(module => ({ default: module.ProfilePage }))
+);
+const MeetingHistoryPage = lazy(() =>
+    import('../features/meeting').then(m => ({ default: m.MeetingHistoryPage }))
+);
+const MeetingDetailPage = lazy(() =>
+    import('../features/meeting').then(m => ({ default: m.MeetingDetailPage }))
+);
+const MeetingRoomPage = lazy(() =>
+    import('../features/meeting').then(m => ({ default: m.MeetingRoomPage }))
+);
 
 export const AppRouter = () => {
     const { login, logout, setInitialized } = useAuthStore();
@@ -98,6 +112,9 @@ export const AppRouter = () => {
                     <Route path="/study/create" element={<StudyCreatePage />} />
                     <Route path="/study/:id" element={<StudyDetailPage />} />
                     <Route path="/study/manage/:id" element={<StudyManagementPage />} />
+                    <Route path="/study/:studyId/meetings" element={<MeetingHistoryPage />} />
+                    <Route path="/study/:studyId/meetings/:meetingId" element={<MeetingDetailPage />} />
+                    <Route path="/study/:studyId/meetings/:meetingId/room" element={<MeetingRoomPage />} />
                     <Route path="/recruitment" element={<RecruitmentPage />} />
                     <Route path="/profile" element={<ProfilePage />} />
                 </Routes>

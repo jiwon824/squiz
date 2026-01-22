@@ -5,6 +5,9 @@ import path from 'path';
 export default defineConfig({
     assetsInclude: ['**/*.lottie'],
     plugins: [react()],
+    define: {
+        global: 'window',
+    },
     resolve: {
         alias: {
             '@': path.resolve(__dirname, './src'),
