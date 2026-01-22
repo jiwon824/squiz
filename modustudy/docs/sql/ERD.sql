@@ -347,26 +347,22 @@ CREATE TABLE `study_leader_review` (
 );
 
 -- =============================================
--- 3. 채널/채팅
+-- 3. 워크스페이스/채팅
 -- =============================================
 
-CREATE TABLE `channel` (
+CREATE TABLE `workspace` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
     `study_id` BIGINT NOT NULL,
     `name` VARCHAR(100) NOT NULL,
-    `type` ENUM('TEXT', 'VOICE') NOT NULL,
-    `voice_room_type` ENUM('DISCUSSION', 'MEETING'),  -- 음성방 타입 (상시토론/미팅)
+    `type` ENUM('TEXT', 'VOICE', 'VIDEO') NOT NULL,
     `description` VARCHAR(500),
-    `is_default` BOOLEAN DEFAULT FALSE,          -- 기본 채널 여부
-    `is_temporary` BOOLEAN DEFAULT FALSE,        -- 임시 채널 여부 (인원 부족 시 논의용, 텍스트만)
-    `sort_order` INT DEFAULT 0,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (`study_id`) REFERENCES `study`(`id`) ON DELETE CASCADE
 );
 
 CREATE TABLE `message` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
-    `channel_id` BIGINT NOT NULL,
+    `workspace_id` BIGINT NOT NULL,
     `user_id` BIGINT NOT NULL,
     `content` TEXT NOT NULL,
     `message_type` ENUM('TEXT', 'IMAGE', 'FILE', 'SYSTEM') DEFAULT 'TEXT',
@@ -374,7 +370,7 @@ CREATE TABLE `message` (
     `is_deleted` BOOLEAN DEFAULT FALSE,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (`channel_id`) REFERENCES `channel`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`workspace_id`) REFERENCES `workspace`(`id`) ON DELETE CASCADE,
     FOREIGN KEY (`user_id`) REFERENCES `user`(`id`)
 );
 
