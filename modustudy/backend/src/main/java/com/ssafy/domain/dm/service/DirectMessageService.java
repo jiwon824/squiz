@@ -171,6 +171,22 @@ public class DirectMessageService {
     }
 
     /**
+     * 대화 상대방 ID 조회 (WebSocket용)
+     */
+    public Long getOtherUserId(Long userId, Long conversationId) {
+        DmConversation conversation = dmConversationMapper.findById(conversationId);
+        if (conversation == null) {
+            return null;
+        }
+        if (conversation.getUser1Id().equals(userId)) {
+            return conversation.getUser2Id();
+        } else if (conversation.getUser2Id().equals(userId)) {
+            return conversation.getUser1Id();
+        }
+        return null;
+    }
+
+    /**
      * 대화방 조회 또는 생성
      */
     private DmConversation getOrCreateConversation(Long userId1, Long userId2) {

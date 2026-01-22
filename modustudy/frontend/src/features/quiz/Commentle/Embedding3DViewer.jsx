@@ -199,12 +199,30 @@ function Scene({ guesses }) {
 
             {/* 사용자 입력들 */}
             {guesses.map((guess, index) => {
-                // 점수를 기반으로 거리 계산 (score가 높을수록 가까움)
-                // 최소 거리(0.25)를 두어 중심 구체(0.15)와 겹치지 않도록 함
-                const minDistance = 0.25;
-                const maxDistance = 1.0;
-                const rawDistance = (100 - guess.score) / 100;
-                const distance = minDistance + rawDistance * (maxDistance - minDistance);
+                // 🎯 점수 구간별로 정확히 가이드 구체 반경에 배치
+                // 가이드 구체 반경: 0.1(95+), 0.2(85-94), 0.4(70-84), 0.6(50-69), 0.8(30-49), 1.0(0-29)
+                let distance;
+                const score = guess.score;
+
+                if (score >= 95) {
+                    // 95+ : 해케르 영역 (0.1 ~ 0.2)
+                    distance = 0.1 + (100 - score) / 5 * 0.1;
+                } else if (score >= 85) {
+                    // 85-94 : 매우 가까움 (0.2 ~ 0.4)
+                    distance = 0.2 + (95 - score) / 10 * 0.2;
+                } else if (score >= 70) {
+                    // 70-84 : 가까움 (0.4 ~ 0.6)
+                    distance = 0.4 + (85 - score) / 15 * 0.2;
+                } else if (score >= 50) {
+                    // 50-69 : 중간 (0.6 ~ 0.8)
+                    distance = 0.6 + (70 - score) / 20 * 0.2;
+                } else if (score >= 30) {
+                    // 30-49 : 멀리 (0.8 ~ 1.0)
+                    distance = 0.8 + (50 - score) / 20 * 0.2;
+                } else {
+                    // 0-29 : 매우 멀리 (1.0 ~ 1.2)
+                    distance = 1.0 + (30 - score) / 30 * 0.2;
+                }
 
                 // 각 시도마다 다른 방향으로 배치 (황금각 사용)
                 const phi = Math.acos(1 - 2 * (index + 1) / (guesses.length + 2));
