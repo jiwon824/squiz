@@ -196,7 +196,7 @@ public class MeetingService {
         if (meeting.getStatus() == MeetingStatus.ENDED) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "MEETING_ALREADY_ENDED");
         }
-        MeetingParticipant participant = meetingParticipantRepository.findByMeetingIdAndUserId(meetingId, userId)
+        MeetingParticipant participant = meetingParticipantRepository.findTopByMeetingIdAndUserIdOrderByJoinedAtDesc(meetingId, userId)
                 .orElseGet(() -> MeetingParticipant.join(meetingId, userId, LocalDateTime.now()));
         if (participant.getId() != null) {
             participant.rejoin(LocalDateTime.now());
@@ -217,7 +217,7 @@ public class MeetingService {
     @Transactional
     public void leaveMeeting(Long studyId, Long meetingId, Long userId) {
         Meeting meeting = getMeetingOrThrow(studyId, meetingId);
-        MeetingParticipant participant = meetingParticipantRepository.findByMeetingIdAndUserId(meetingId, userId)
+        MeetingParticipant participant = meetingParticipantRepository.findTopByMeetingIdAndUserIdOrderByJoinedAtDesc(meetingId, userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "NOT_IN_MEETING"));
         participant.leave(LocalDateTime.now());
         meeting.updateParticipantCount(meetingParticipantRepository.countByMeetingId(meetingId));
@@ -382,7 +382,7 @@ public class MeetingService {
     @Transactional
     public void updateParticipantMute(Long studyId, Long meetingId, Long userId, boolean muted) {
         getMeetingOrThrow(studyId, meetingId);
-        MeetingParticipant participant = meetingParticipantRepository.findByMeetingIdAndUserId(meetingId, userId)
+        MeetingParticipant participant = meetingParticipantRepository.findTopByMeetingIdAndUserIdOrderByJoinedAtDesc(meetingId, userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "NOT_IN_MEETING"));
         participant.updateMute(muted);
     }

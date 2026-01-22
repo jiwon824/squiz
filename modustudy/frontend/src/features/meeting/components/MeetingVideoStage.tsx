@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+﻿import React, { useEffect, useRef } from 'react';
 import '../styles/MeetingRoom.css';
 
 interface VideoTileProps {
@@ -13,6 +13,7 @@ const VideoTile: React.FC<VideoTileProps> = ({ stream, label, isPresenter, isLoc
 
     useEffect(() => {
         if (!videoRef.current) return;
+        videoRef.current.muted = true;
         if (stream) {
             videoRef.current.srcObject = stream;
             videoRef.current.play().catch(() => {});
@@ -21,7 +22,7 @@ const VideoTile: React.FC<VideoTileProps> = ({ stream, label, isPresenter, isLoc
 
     return (
         <div className={`meeting-video-tile ${isPresenter ? 'presenter' : ''}`}>
-            <video ref={videoRef} autoPlay playsInline muted={isLocal} />
+            <video ref={videoRef} autoPlay playsInline muted />
             <div className="meeting-video-tile__label">
                 {label}
                 {isPresenter && <span className="meeting-video-tile__badge">발표자</span>}
@@ -48,19 +49,23 @@ const MeetingVideoStage: React.FC<MeetingVideoStageProps> = ({
     localIsPresenter,
     remoteVideoStreams,
 }) => {
+    const primaryRemote =
+        remoteVideoStreams.find((item) => item.isPresenter) || remoteVideoStreams[0] || null;
+    const showRemote = !localIsPresenter;
+
     return (
         <div className="meeting-video-stage">
-            {localStream && (
-                <VideoTile stream={localStream} label={`${localLabel} (나)`} isPresenter={localIsPresenter} isLocal />
+            {localIsPresenter && localStream && (
+                <VideoTile stream={localStream} label={`${localLabel} (나)`} isPresenter isLocal />
             )}
-            {remoteVideoStreams.map((item) => (
+            {showRemote && primaryRemote && (
                 <VideoTile
-                    key={item.id}
-                    stream={item.stream}
-                    label={item.label}
-                    isPresenter={item.isPresenter}
+                    key={primaryRemote.id}
+                    stream={primaryRemote.stream}
+                    label={primaryRemote.label}
+                    isPresenter={primaryRemote.isPresenter}
                 />
-            ))}
+            )}
             {!localStream && remoteVideoStreams.length === 0 && (
                 <div className="meeting-video-empty">미디어 스트림이 없습니다.</div>
             )}

@@ -1,13 +1,14 @@
-import React from 'react';
+﻿import React from 'react';
 import { MeetingRoomParticipant } from '../types';
 import '../styles/MeetingRoom.css';
 
 interface MeetingParticipantsProps {
     participants: MeetingRoomParticipant[];
     presenterId: number | null;
+    presenterName: string | null;
 }
 
-const MeetingParticipants: React.FC<MeetingParticipantsProps> = ({ participants, presenterId }) => {
+const MeetingParticipants: React.FC<MeetingParticipantsProps> = ({ participants, presenterId, presenterName }) => {
     return (
         <section className="meeting-panel">
             <div className="meeting-panel__header">
@@ -16,9 +17,13 @@ const MeetingParticipants: React.FC<MeetingParticipantsProps> = ({ participants,
             </div>
             <div className="meeting-panel__body">
                 {participants.map((participant) => {
-                    const isPresenter = presenterId !== null && participant.id === presenterId;
+                    const isPresenter =
+                        (presenterId !== null && participant.id === presenterId) ||
+                        (presenterName !== null && participant.displayName === presenterName);
                     const presenceLabel = participant.isPresent === false ? '자리 없음' : '자리 있음';
-                    const presenceIcon = participant.isPresent === false ? '💻' : '🧑‍💻';
+                    const presenceIcon = participant.isPresent === false ? '🙅' : '👨‍💻';
+                    const presenterLabel = '발표 중';
+                    const presenterIcon = '🎤';
                     return (
                         <div
                             key={participant.id}
@@ -29,10 +34,17 @@ const MeetingParticipants: React.FC<MeetingParticipantsProps> = ({ participants,
                                     {participant.displayName}
                                     {isPresenter && <span className="meeting-participant__badge">발표자</span>}
                                 </span>
-                                <span className="meeting-participant__presence">
-                                    <span>{presenceIcon}</span>
-                                    {presenceLabel}
-                                </span>
+                                {isPresenter ? (
+                                    <span className="meeting-participant__presence">
+                                        <span>{presenterIcon}</span>
+                                        {presenterLabel}
+                                    </span>
+                                ) : (
+                                    <span className="meeting-participant__presence">
+                                        <span>{presenceIcon}</span>
+                                        {presenceLabel}
+                                    </span>
+                                )}
                             </div>
                             <div className={`meeting-participant__status ${participant.active ? 'active' : ''}`}>
                                 {participant.active ? '접속' : '퇴장'}

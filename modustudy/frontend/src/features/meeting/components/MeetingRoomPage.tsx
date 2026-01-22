@@ -22,6 +22,7 @@ import '../styles/MeetingRoom.css';
 import '../styles/MeetingShared.css';
 
 type PipPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+type ShareMode = 'camera' | 'screen' | 'mixed';
 
 interface RemoteVideoStream {
     id: string;
@@ -69,6 +70,7 @@ const MeetingRoomPage: React.FC = () => {
     const [micEnabled, setMicEnabled] = useState(true);
     const [cameraEnabled, setCameraEnabled] = useState(false);
     const [screenSharing, setScreenSharing] = useState(false);
+    const [shareMode, setShareMode] = useState<ShareMode | null>(null);
     const [pipPosition, setPipPosition] = useState<PipPosition>('bottom-right');
     const [localStream, setLocalStream] = useState<MediaStream | null>(null);
     const [remoteVideoStreams, setRemoteVideoStreams] = useState<RemoteVideoStream[]>([]);
@@ -78,8 +80,10 @@ const MeetingRoomPage: React.FC = () => {
     const ownerKey = user?.id ?? user?.nickname ?? user?.name ?? 'guest';
     const micEnabledRef = useRef(micEnabled);
     const speakingRef = useRef(false);
+    const presenceRef = useRef(false);
     const recordingRef = useRef(false);
     const prevPresenterRef = useRef(false);
+    const publishedVideoTrackIdRef = useRef<string | null>(null);
 
     useEffect(() => {
         displayNameRef.current = getDisplayName();
@@ -95,12 +99,14 @@ const MeetingRoomPage: React.FC = () => {
     }, [numericMeetingId, ownerKey]);
 
     const isPresenter = useMemo(() => {
-        const selfName = displayNameRef.current;
-        return Boolean(
-            (presenterName && presenterName === selfName) ||
-                (presenterId !== null && presenterId === selfParticipantIdRef.current)
-        );
-    }, [presenterName, presenterId]);
+        if (presenterId !== null && selfParticipantIdRef.current !== null) {
+            return presenterId === selfParticipantIdRef.current;
+        }
+        if (presenterName) {
+            return presenterName === displayNameRef.current;
+        }
+        return false;
+    }, [presenterId, presenterName]);
 
     const stopTracks = (stream: MediaStream | null) => {
         if (!stream) return;
@@ -126,6 +132,29 @@ const MeetingRoomPage: React.FC = () => {
         },
         [setParticipants]
     );
+
+    const ensureAiDetection = useCallback(() => {
+        const stream = localCameraStreamRef.current;
+        if (!stream || !aiVideoRef.current) return;
+        const track = stream.getVideoTracks()?.[0];
+        if (!track || track.readyState !== 'live') return;
+        if (aiVideoRef.current.srcObject !== stream) {
+            aiVideoRef.current.srcObject = stream;
+        }
+        aiVideoRef.current.muted = true;
+        aiVideoRef.current.playsInline = true;
+        aiVideoRef.current.play().catch(() => {});
+        if (!aiDetectionCleanupRef.current) {
+            aiDetectionCleanupRef.current = aiDetection.startDetection(aiVideoRef.current, (isPresent) => {
+                if (presenceRef.current === isPresent) return;
+                presenceRef.current = isPresent;
+                updateSelfParticipant({ isPresent });
+                if (wsClientRef.current && roomIdRef.current) {
+                    wsClientRef.current.setPresence(roomIdRef.current, { present: isPresent });
+                }
+            });
+        }
+    }, [updateSelfParticipant]);
 
     const mergeParticipants = useCallback((incoming: MeetingRoomParticipant[]) => {
         setParticipants((prev) => {
@@ -163,6 +192,8 @@ const MeetingRoomPage: React.FC = () => {
             nextCameraStream?: MediaStream | null;
             nextScreenStream?: MediaStream | null;
             nextPipPosition?: PipPosition;
+            publish?: boolean;
+            cameraEnabledOverride?: boolean;
         }) => {
             const token = ++updateTokenRef.current;
             const cameraStream =
@@ -170,16 +201,37 @@ const MeetingRoomPage: React.FC = () => {
             const screenStream =
                 options?.nextScreenStream !== undefined ? options.nextScreenStream : localScreenStreamRef.current;
             const nextPosition = options?.nextPipPosition ?? pipPosition;
+            const publish = options?.publish ?? true;
+            const cameraEnabledValue = options?.cameraEnabledOverride ?? cameraEnabled;
+            const effectiveCameraStream = cameraEnabledValue ? cameraStream : null;
             let nextStream: MediaStream | null = null;
+            const cameraTrack = effectiveCameraStream?.getVideoTracks()?.[0] ?? null;
+            const screenTrack = screenStream?.getVideoTracks()?.[0] ?? null;
+            const forceMixed = shareMode === 'mixed' && cameraTrack && screenTrack;
+
+            if (
+                options?.nextPipPosition &&
+                !options?.nextCameraStream &&
+                !options?.nextScreenStream &&
+                shareMode === 'mixed' &&
+                cameraTrack &&
+                screenTrack &&
+                canvasComposer.isComposingWith(screenTrack.id, cameraTrack.id)
+            ) {
+                canvasComposer.updatePipPosition(nextPosition);
+                return;
+            }
 
             try {
                 if (
-                    cameraStream &&
+                    effectiveCameraStream &&
                     screenStream &&
-                    cameraStream.getVideoTracks().length > 0 &&
-                    screenStream.getVideoTracks().length > 0
+                    cameraTrack &&
+                    screenTrack &&
+                    cameraTrack.readyState === 'live' &&
+                    screenTrack.readyState === 'live'
                 ) {
-                    const composed = await canvasComposer.composeStreams(screenStream, cameraStream, {
+                    const composed = await canvasComposer.composeStreams(screenStream, effectiveCameraStream, {
                         pipPosition: nextPosition,
                     });
                     if (token !== updateTokenRef.current) {
@@ -195,7 +247,7 @@ const MeetingRoomPage: React.FC = () => {
                     }
                 }
 
-                if (!nextStream) {
+                if (!nextStream && !forceMixed) {
                     canvasComposer.stopComposing();
                     if (composedStreamRef.current) {
                         stopTracks(composedStreamRef.current);
@@ -203,33 +255,48 @@ const MeetingRoomPage: React.FC = () => {
                     }
                     if (screenStream && screenStream.getVideoTracks().length > 0) {
                         nextStream = screenStream;
-                    } else if (cameraStream && cameraStream.getVideoTracks().length > 0) {
-                        nextStream = cameraStream;
+                    } else if (effectiveCameraStream && effectiveCameraStream.getVideoTracks().length > 0) {
+                        nextStream = effectiveCameraStream;
                     }
                 }
             } catch (error) {
                 console.error('Failed to update composed stream', error);
-                canvasComposer.stopComposing();
-                if (screenStream && screenStream.getVideoTracks().length > 0) {
-                    nextStream = screenStream;
-                } else if (cameraStream && cameraStream.getVideoTracks().length > 0) {
-                    nextStream = cameraStream;
+                if (!forceMixed) {
+                    canvasComposer.stopComposing();
+                    if (screenTrack && screenTrack.readyState === 'live') {
+                        nextStream = screenStream;
+                    } else if (cameraTrack && cameraTrack.readyState === 'live') {
+                        nextStream = effectiveCameraStream;
+                    }
                 }
             }
 
             if (token !== updateTokenRef.current) return;
-            setLocalStream(nextStream);
+            setLocalStream(publish ? nextStream : null);
+
+            if (!publish) {
+                if (sfuClientRef.current) {
+                    await sfuClientRef.current.closeProducer('video');
+                }
+                publishedVideoTrackIdRef.current = null;
+                return;
+            }
 
             const videoTrack = nextStream?.getVideoTracks()[0] ?? null;
             if (sfuClientRef.current) {
-                if (videoTrack) {
+                if (videoTrack && videoTrack.readyState === 'live') {
+                    if (publishedVideoTrackIdRef.current && publishedVideoTrackIdRef.current !== videoTrack.id) {
+                        await sfuClientRef.current.closeProducer('video');
+                    }
                     await sfuClientRef.current.produceTrack('video', videoTrack);
+                    publishedVideoTrackIdRef.current = videoTrack.id;
                 } else {
                     await sfuClientRef.current.closeProducer('video');
+                    publishedVideoTrackIdRef.current = null;
                 }
             }
         },
-        [pipPosition]
+        [cameraEnabled, pipPosition, shareMode]
     );
 
     const startMicrophone = useCallback(async () => {
@@ -280,20 +347,47 @@ const MeetingRoomPage: React.FC = () => {
         }
     }, [updateSelfParticipant]);
 
-    const startCamera = useCallback(async () => {
+    const ensureCameraStream = useCallback(async (publishCamera?: boolean) => {
         if (!navigator.mediaDevices?.getUserMedia) {
             setCameraEnabled(false);
             return;
         }
         if (localCameraStreamRef.current) {
-            setCameraEnabled(true);
+            const track = localCameraStreamRef.current.getVideoTracks()?.[0];
+            if (!track || track.readyState !== 'live') {
+                stopTracks(localCameraStreamRef.current);
+                localCameraStreamRef.current = null;
+            }
+        }
+        if (localCameraStreamRef.current) {
+            if (publishCamera && isPresenter) {
+                await updateOutgoingVideo({ publish: true, cameraEnabledOverride: true });
+            }
             return;
         }
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
             localCameraStreamRef.current = stream;
-            setCameraEnabled(true);
-            await updateOutgoingVideo({ nextCameraStream: stream });
+            const shouldPublish = publishCamera ?? (isPresenter && cameraEnabled);
+            if (isPresenter && shouldPublish) {
+                await updateOutgoingVideo({
+                    nextCameraStream: stream,
+                    publish: true,
+                    cameraEnabledOverride: true,
+                });
+            } else if (isPresenter) {
+                await updateOutgoingVideo({
+                    nextCameraStream: stream,
+                    publish: true,
+                    cameraEnabledOverride: false,
+                });
+            } else {
+                await updateOutgoingVideo({
+                    nextCameraStream: stream,
+                    publish: false,
+                    cameraEnabledOverride: false,
+                });
+            }
             if (aiVideoRef.current) {
                 aiVideoRef.current.srcObject = stream;
                 aiVideoRef.current.play().catch(() => {});
@@ -301,28 +395,42 @@ const MeetingRoomPage: React.FC = () => {
                     aiDetectionCleanupRef.current();
                 }
                 aiDetectionCleanupRef.current = aiDetection.startDetection(aiVideoRef.current, (isPresent) => {
+                    if (presenceRef.current === isPresent) return;
+                    presenceRef.current = isPresent;
                     updateSelfParticipant({ isPresent });
+                    if (wsClientRef.current && roomIdRef.current) {
+                        wsClientRef.current.setPresence(roomIdRef.current, { present: isPresent });
+                    }
                 });
             }
         } catch (error) {
             console.error('Failed to access camera', error);
             setCameraEnabled(false);
         }
-    }, [updateOutgoingVideo, updateSelfParticipant]);
+    }, [cameraEnabled, isPresenter, updateOutgoingVideo, updateSelfParticipant]);
 
-    const stopCamera = useCallback(async () => {
+    const stopCameraPublish = useCallback(async () => {
+        setCameraEnabled(false);
+        await updateOutgoingVideo({ publish: isPresenter, cameraEnabledOverride: false });
+        ensureAiDetection();
+    }, [ensureAiDetection, isPresenter, updateOutgoingVideo]);
+
+    const stopCameraHardware = useCallback(() => {
         if (aiDetectionCleanupRef.current) {
             aiDetectionCleanupRef.current();
             aiDetectionCleanupRef.current = null;
         }
+        presenceRef.current = false;
         updateSelfParticipant({ isPresent: false });
+        if (wsClientRef.current && roomIdRef.current) {
+            wsClientRef.current.setPresence(roomIdRef.current, { present: false });
+        }
         stopTracks(localCameraStreamRef.current);
         localCameraStreamRef.current = null;
-        setCameraEnabled(false);
-        await updateOutgoingVideo({ nextCameraStream: null });
-    }, [updateOutgoingVideo, updateSelfParticipant]);
+    }, [updateSelfParticipant]);
 
-    const startScreenShare = useCallback(async () => {
+    const startScreenShare = useCallback(
+        async (cameraEnabledOverride?: boolean) => {
         if (localScreenStreamRef.current) {
             setScreenSharing(true);
             return;
@@ -336,15 +444,22 @@ const MeetingRoomPage: React.FC = () => {
                 track.onended = () => {
                     setScreenSharing(false);
                     localScreenStreamRef.current = null;
+                    if (shareMode === 'mixed' || shareMode === 'screen') {
+                        setShareMode('camera');
+                        setCameraEnabled(true);
+                    }
                     updateOutgoingVideo({ nextScreenStream: null });
                 };
             }
-            await updateOutgoingVideo({ nextScreenStream: stream });
+            await updateOutgoingVideo({
+                nextScreenStream: stream,
+                cameraEnabledOverride,
+            });
         } catch (error) {
             console.error('Failed to start screen share', error);
             setScreenSharing(false);
         }
-    }, [updateOutgoingVideo]);
+    }, [shareMode, updateOutgoingVideo]);
 
     const stopScreenShare = useCallback(async () => {
         stopTracks(localScreenStreamRef.current);
@@ -361,23 +476,65 @@ const MeetingRoomPage: React.FC = () => {
         }
     }, [micEnabled, startMicrophone, stopMicrophone]);
 
-    const handleToggleCamera = useCallback(() => {
-        if (!isPresenter) return;
-        if (cameraEnabled) {
-            void stopCamera();
-        } else {
-            void startCamera();
-        }
-    }, [cameraEnabled, isPresenter, startCamera, stopCamera]);
-
-    const handleToggleScreenShare = useCallback(() => {
-        if (!isPresenter) return;
-        if (screenSharing) {
-            void stopScreenShare();
-        } else {
-            void startScreenShare();
-        }
-    }, [isPresenter, screenSharing, startScreenShare, stopScreenShare]);
+    const handleShareModeChange = useCallback(
+        async (mode: ShareMode) => {
+            if (!isPresenter) return;
+            canvasComposer.stopComposing();
+            if (composedStreamRef.current) {
+                stopTracks(composedStreamRef.current);
+                composedStreamRef.current = null;
+            }
+            setShareMode(mode);
+            if (mode === 'camera') {
+                if (screenSharing) {
+                    await stopScreenShare();
+                }
+                setShareMode('camera');
+                setCameraEnabled(true);
+                await ensureCameraStream(true);
+                await updateOutgoingVideo({ publish: true, cameraEnabledOverride: true, nextScreenStream: null });
+                return;
+            }
+            if (mode === 'screen') {
+                setShareMode('screen');
+                setCameraEnabled(false);
+                await ensureCameraStream(false);
+                if (!screenSharing) {
+                    await startScreenShare(false);
+                } else {
+                    await updateOutgoingVideo({
+                        publish: true,
+                        cameraEnabledOverride: false,
+                        nextScreenStream: localScreenStreamRef.current,
+                    });
+                }
+                return;
+            }
+            // mixed
+            setShareMode('mixed');
+            setCameraEnabled(true);
+            await ensureCameraStream(true);
+            if (!screenSharing) {
+                await startScreenShare(true);
+            } else {
+                await updateOutgoingVideo({
+                    publish: true,
+                    cameraEnabledOverride: true,
+                    nextScreenStream: localScreenStreamRef.current,
+                });
+            }
+            window.setTimeout(() => {
+                if (shareMode === 'mixed' && screenSharing) {
+                    updateOutgoingVideo({
+                        publish: true,
+                        cameraEnabledOverride: true,
+                        nextScreenStream: localScreenStreamRef.current,
+                    });
+                }
+            }, 500);
+        },
+        [ensureCameraStream, isPresenter, screenSharing, shareMode, startScreenShare, stopScreenShare, updateOutgoingVideo]
+    );
 
     const handlePipPositionChange = useCallback(
         (position: PipPosition) => {
@@ -396,6 +553,15 @@ const MeetingRoomPage: React.FC = () => {
             });
             setPresenterName(null);
             setPresenterId(null);
+            setShareMode(null);
+            setScreenSharing(false);
+            setCameraEnabled(false);
+            canvasComposer.stopComposing();
+            if (composedStreamRef.current) {
+                stopTracks(composedStreamRef.current);
+                composedStreamRef.current = null;
+            }
+            updateOutgoingVideo({ publish: false, cameraEnabledOverride: false, nextScreenStream: null });
             return;
         }
         const confirmed = window.confirm('발표자가 되겠습니까? 현재 발표자는 권한이 내려집니다.');
@@ -415,9 +581,15 @@ const MeetingRoomPage: React.FC = () => {
         prevPresenterRef.current = isPresenter;
         if (wasPresenter && !isPresenter) {
             void stopScreenShare();
-            void stopCamera();
+            if (cameraEnabled) {
+                void stopCameraPublish();
+            }
         }
-    }, [isPresenter, stopCamera, stopScreenShare]);
+    }, [cameraEnabled, isPresenter, stopCameraPublish, stopScreenShare]);
+
+    useEffect(() => {
+        void ensureCameraStream(false);
+    }, [ensureCameraStream]);
 
     const handleSendChat = useCallback((text: string) => {
         if (!roomIdRef.current || !wsClientRef.current) return;
@@ -430,6 +602,8 @@ const MeetingRoomPage: React.FC = () => {
         wsClientRef.current.sendChat(roomIdRef.current, payload);
     }, []);
 
+    const presenterLabel = presenterName ? `발표자: ${presenterName}` : '발표자';
+
     const handleEndMeeting = useCallback(async () => {
         if (!numericStudyId || !numericMeetingId || !canEndMeeting) return;
         const confirmed = window.confirm('미팅을 종료하시겠습니까?');
@@ -439,13 +613,15 @@ const MeetingRoomPage: React.FC = () => {
         } catch (error) {
             console.error('Failed to end meeting', error);
         } finally {
+            stopCameraHardware();
             navigate(`/study/${numericStudyId}/meetings/${numericMeetingId}`);
         }
-    }, [numericStudyId, numericMeetingId, canEndMeeting, navigate]);
+    }, [numericStudyId, numericMeetingId, canEndMeeting, navigate, stopCameraHardware]);
 
     const handleRoomEvent = useCallback(
         (event: MeetingRoomEvent) => {
             if (event.type === 'MEETING_ENDED') {
+                stopCameraHardware();
                 navigate(`/study/${numericStudyId}/meetings/${numericMeetingId}`);
                 return;
             }
@@ -481,8 +657,17 @@ const MeetingRoomPage: React.FC = () => {
                     setPresenterId(event.presenterId);
                 }
             }
+            const presenterNameFromEvent = event.presenterName ?? presenterName;
+            if (
+                event.presenterId &&
+                presenterNameFromEvent &&
+                presenterNameFromEvent === displayNameRef.current &&
+                selfParticipantIdRef.current === null
+            ) {
+                selfParticipantIdRef.current = event.presenterId;
+            }
         },
-        [appendChatMessage, mergeParticipants, navigate, numericStudyId, numericMeetingId]
+        [appendChatMessage, mergeParticipants, navigate, numericStudyId, numericMeetingId, presenterName, stopCameraHardware]
     );
 
     const handleNewConsumer = useCallback(
@@ -628,7 +813,7 @@ const MeetingRoomPage: React.FC = () => {
             }
             audioDetection.stopDetection();
             stopTracks(localMicStreamRef.current);
-            stopTracks(localCameraStreamRef.current);
+            stopCameraHardware();
             stopTracks(localScreenStreamRef.current);
             remoteAudioElementsRef.current.forEach((audio) => {
                 try {
@@ -655,12 +840,6 @@ const MeetingRoomPage: React.FC = () => {
         handleRoomEvent,
         startMicrophone,
     ]);
-
-    useEffect(() => {
-        if (!cameraEnabled) {
-            updateSelfParticipant({ isPresent: false });
-        }
-    }, [cameraEnabled, updateSelfParticipant]);
 
     useEffect(() => {
         if (!micEnabled && audioDetectionActiveRef.current) {
@@ -717,20 +896,18 @@ const MeetingRoomPage: React.FC = () => {
                     </button>
                 </div>
 
-                <MeetingControls
-                    isPresenter={isPresenter}
-                    micEnabled={micEnabled}
-                    cameraEnabled={cameraEnabled}
-                    screenSharing={screenSharing}
-                    pipPosition={pipPosition}
-                    onToggleMic={handleToggleMic}
-                    onToggleCamera={handleToggleCamera}
-                    onToggleScreenShare={handleToggleScreenShare}
-                    onTogglePresenter={handleTogglePresenter}
-                    onPipPositionChange={handlePipPositionChange}
-                    onEndMeeting={handleEndMeeting}
-                    canEndMeeting={canEndMeeting}
-                />
+                    <MeetingControls
+                        isPresenter={isPresenter}
+                        micEnabled={micEnabled}
+                        shareMode={shareMode}
+                        pipPosition={pipPosition}
+                        onToggleMic={handleToggleMic}
+                        onShareModeChange={handleShareModeChange}
+                        onTogglePresenter={handleTogglePresenter}
+                        onPipPositionChange={handlePipPositionChange}
+                        onEndMeeting={handleEndMeeting}
+                        canEndMeeting={canEndMeeting}
+                    />
 
                 <div className="meeting-room__content">
                     <div className="meeting-room__stage">
@@ -741,14 +918,18 @@ const MeetingRoomPage: React.FC = () => {
                             remoteVideoStreams={remoteVideoStreams.map((item) => ({
                                 id: item.id,
                                 stream: item.stream,
-                                label: item.label,
-                                isPresenter: false,
+                                label: presenterName ? presenterLabel : item.label,
+                                isPresenter: Boolean(presenterName),
                             }))}
                         />
                         <video ref={aiVideoRef} className="meeting-room__hidden-video" muted playsInline />
                     </div>
                     <div className="meeting-room__side">
-                        <MeetingParticipants participants={participants} presenterId={presenterId} />
+                        <MeetingParticipants
+                            participants={participants}
+                            presenterId={presenterId}
+                            presenterName={presenterName}
+                        />
                         <MeetingChatPanel messages={chatMessages} onSend={handleSendChat} />
                     </div>
                 </div>

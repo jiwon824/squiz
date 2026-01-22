@@ -224,6 +224,7 @@ export type MeetingRoomEventType =
     | 'CHAT_HISTORY'
     | 'PRESENTER'
     | 'SPEAKING'
+    | 'PRESENCE'
     | 'MEETING_ENDED';
 
 export interface MeetingRoomEvent {
