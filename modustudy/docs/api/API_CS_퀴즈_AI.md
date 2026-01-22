@@ -311,6 +311,112 @@ GET /api/difficulties
 
 ---
 
+### 3.7 오늘의 문제 조회 ⭐
+
+매일 00시에 변경되는 오늘의 문제를 반환합니다. **대시보드 CS 퀴즈 위젯용**
+
+```
+GET /api/words/daily
+```
+
+**Response:**
+```json
+{
+  "id": 15,
+  "category": "자료구조",
+  "difficulty": "medium",
+  "hints": ["LIFO 구조", "push, pop 연산"],
+  "date": "2026-01-22"
+}
+```
+
+> 📌 같은 날에는 항상 같은 문제가 반환됩니다.
+
+---
+
+### 3.8 어제의 문제 및 정답 조회
+
+어제의 문제와 정답을 반환합니다. 대시보드에서 "어제의 정답은?" 표시용.
+
+```
+GET /api/words/yesterday
+```
+
+**Response:**
+```json
+{
+  "id": 3,
+  "answer": "스택",
+  "category": "자료구조",
+  "difficulty": "easy",
+  "hints": ["LIFO 구조", "push, pop 연산"],
+  "date": "2026-01-21"
+}
+```
+
+---
+
+### 3.9 리더보드 조회 (명예의 전당) ⭐
+
+일일 퀴즈 리더보드를 조회합니다.
+
+```
+GET /api/leaderboard
+GET /api/leaderboard?date=2026-01-22&limit=10
+```
+
+**Query Parameters:**
+| 파라미터 | 타입 | 기본값 | 설명 |
+|---------|------|--------|------|
+| date | string | 오늘 | 조회할 날짜 (YYYY-MM-DD) |
+| limit | number | 10 | 조회할 순위 개수 |
+
+**Response:**
+```json
+{
+  "date": "2026-01-22",
+  "rankings": [
+    {"rank": 1, "nickname": "홍길동", "attempts": 3, "time": 45},
+    {"rank": 2, "nickname": "김철수", "attempts": 5, "time": 120},
+    {"rank": 3, "nickname": "이영희", "attempts": 5, "time": 180}
+  ],
+  "total": 3
+}
+```
+
+> 📌 순위 기준: 시도 횟수 오름차순 → 소요 시간 오름차순
+
+---
+
+### 3.10 리더보드 저장
+
+퀴즈 완료 시 기록을 저장합니다.
+
+```
+POST /api/leaderboard
+```
+
+**Request Body:**
+```json
+{
+  "nickname": "홍길동",
+  "attempts": 3,
+  "time": 45
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "rank": 1,
+  "date": "2026-01-22",
+  "totalPlayers": 15
+}
+```
+
+---
+
 ## 4. 동의어
 
 ### 4.1 동의어 조회
