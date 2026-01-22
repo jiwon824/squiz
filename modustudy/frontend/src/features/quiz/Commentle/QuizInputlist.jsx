@@ -1,65 +1,102 @@
-import React from 'react';
+// QuizInputlist.jsx - 2열 그리드 + 정렬 기능
+import React, { useState, useMemo } from 'react';
+import { List, ArrowDownWideNarrow, Clock } from 'lucide-react';
 
 const QuizInputList = ({ guesses }) => {
+    // 정렬 상태: 'recent' (입력순) 또는 'score' (유사도 높은 순)
+    const [sortBy, setSortBy] = useState('recent');
 
-    // 다채로운 파스텔 톤 색상 (점수별)
-    const getProgressBarColor = (score) => {
-        if (score >= 90) return '#4ade80'; // Pastel Green (완벽)
-        if (score >= 75) return '#60a5fa'; // Pastel Blue (아주 좋음)
-        if (score >= 50) return '#a78bfa'; // Pastel Purple (좋음)
-        if (score >= 25) return '#fbbf24'; // Pastel Yellow (보통)
-        return '#f87171'; // Pastel Red (멈)
+    // 점수별 색상 매핑
+    const getScoreColor = (score) => {
+        if (score >= 90) return '#22c55e'; // 초록
+        if (score >= 75) return '#3b82f6'; // 파랑
+        if (score >= 50) return '#a855f7'; // 보라
+        if (score >= 25) return '#f59e0b'; // 주황
+        return '#ef4444'; // 빨강
     };
+
+    // 정렬된 목록
+    const sortedGuesses = useMemo(() => {
+        if (!guesses || guesses.length === 0) return [];
+
+        if (sortBy === 'score') {
+            // 유사도 높은 순
+            return [...guesses].sort((a, b) => b.score - a.score);
+        }
+        // 입력순 (최신순 - 기본)
+        return guesses;
+    }, [guesses, sortBy]);
 
     if (!guesses || guesses.length === 0) {
         return (
-            <div className="bg-gray-50 border border-gray-200 border-dashed rounded-xl p-8 w-full text-center text-gray-400 flex flex-col items-center gap-2">
-                <span className="text-4xl">⌨️</span>
-                <p>단어를 입력하여 유사도를 확인해보세요!<br />100점에 가까울수록 정답입니다.</p>
+            <div className="guess-list-container">
+                <div className="text-center py-8 text-gray-400">
+                    <span className="text-4xl block mb-2">⌨️</span>
+                    <p className="text-sm">단어를 입력하여 유사도를 확인해보세요!<br />100점에 가까울수록 정답입니다.</p>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="input-list-container w-full max-w-lg mx-auto flex flex-col gap-2 mt-4">
+        <div className="guess-list-container">
+            {/* 헤더 */}
+            <div className="guess-list-header">
+                <h3>
+                    <List size={16} />
+                    입력 기록
+                </h3>
 
-            <div className="flex flex-col gap-2 max-h-[500px] overflow-y-auto pr-1 custom-scrollbar">
-                {guesses.map((guess, index) => {
-                    const barColor = getProgressBarColor(guess.score);
-                    const listIndex = guesses.length - index; // 최신순 정렬이므로 역순 번호
+                {/* 정렬 토글 버튼 */}
+                <div className="sort-toggle">
+                    <button
+                        className={`sort-btn ${sortBy === 'recent' ? 'active' : ''}`}
+                        onClick={() => setSortBy('recent')}
+                        title="입력순 (최신)"
+                    >
+                        <Clock size={14} />
+                        <span>입력순</span>
+                    </button>
+                    <button
+                        className={`sort-btn ${sortBy === 'score' ? 'active' : ''}`}
+                        onClick={() => setSortBy('score')}
+                        title="유사도 높은 순"
+                    >
+                        <ArrowDownWideNarrow size={14} />
+                        <span>유사도순</span>
+                    </button>
+                </div>
+            </div>
+
+            {/* 2열 그리드 */}
+            <div className="guess-grid custom-scrollbar">
+                {sortedGuesses.map((guess, index) => {
+                    const color = getScoreColor(guess.score);
+                    // 입력순일 때는 원래 순서, 유사도순일 때는 정렬된 순서
+                    const displayNum = sortBy === 'recent'
+                        ? guesses.length - guesses.indexOf(guess)
+                        : index + 1;
 
                     return (
-                        <div key={guess.id || index} className="guess-item">
-                            <div className="flex justify-between items-center mb-1">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-gray-400 text-sm font-mono w-8">#{listIndex}</span>
-                                    <span className="font-bold text-gray-800 text-lg">{guess.word}</span>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <span className="text-xs text-gray-400">유사도</span>
-                                    <span className="font-bold text-lg" style={{ color: barColor }}>
-                                        {typeof guess.score === 'number' ? guess.score.toFixed(2) : guess.score}
-                                    </span>
-                                </div>
+                        <div key={guess.id || index} className="guess-item-compact">
+                            <div className="item-header">
+                                <span className="item-num">
+                                    {sortBy === 'recent' ? `#${displayNum}` : `${displayNum}위`}
+                                </span>
+                                <span className="score" style={{ color }}>
+                                    {typeof guess.score === 'number' ? guess.score.toFixed(1) : guess.score}
+                                </span>
                             </div>
-
-                            {/* 프로그레스 바 */}
-                            <div className="guess-progress-container">
+                            <div className="word">{guess.word}</div>
+                            <div className="progress-bar">
                                 <div
-                                    className="guess-progress-bar"
+                                    className="progress-fill"
                                     style={{
                                         width: `${guess.score}%`,
-                                        backgroundColor: barColor
+                                        backgroundColor: color
                                     }}
-                                ></div>
+                                />
                             </div>
-
-                            {/* 추가 정보나 아이콘 */}
-                            {guess.score >= 90 && (
-                                <div className="mt-1 flex justify-end">
-                                    <span className="text-xs font-bold text-yellow-600">✨ 매우 가까워요!</span>
-                                </div>
-                            )}
                         </div>
                     );
                 })}
