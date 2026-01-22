@@ -7,7 +7,8 @@ import QuizInputList from './QuizInputlist';
 import QuizGuessInput from './QuizGuessInput';
 import { Modal } from '@/shared/components/Modal';
 import { Trophy, ArrowLeft, Info, Crown, Box } from 'lucide-react';
-import { checkSimilarity, getDailyProblem } from '../services/quizService';
+import { checkSimilarity, getDailyProblem, initDailyProblem } from '../services/quizService';
+import { useAuthStore } from '@/store/authStore';
 import './Commentle.css';
 
 // 🚀 3D 시각화 컴포넌트 지연 로딩 (Three.js 번들 분리)
@@ -36,14 +37,43 @@ const CommentleQuiz = () => {
         return saved ? JSON.parse(saved) : [];
     });
 
-    // 💡 오늘의 문제 데이터 (quizService 연동)
-    const dailyProblem = getDailyProblem();
-    const problem = {
-        id: dailyProblem.id,
-        category: dailyProblem.category,
-        difficulty: 'Medium', // TODO: 난이도 데이터 추가 시 연동
-        hints: dailyProblem.hints,
-    };
+    // 💡 오늘의 문제 데이터 (API 연동)
+    const [problem, setProblem] = useState({
+        id: null,
+        category: 'CS',
+        difficulty: 'Medium',
+        hints: [],
+    });
+    const [problemLoading, setProblemLoading] = useState(true);
+
+    // 컴포넌트 마운트 시 문제 가져오기
+    useEffect(() => {
+        const loadProblem = async () => {
+            setProblemLoading(true);
+            try {
+                const data = await initDailyProblem('medium');
+                setProblem({
+                    id: data.id,
+                    category: data.category,
+                    difficulty: data.difficulty || 'Medium',
+                    hints: data.hints || [],
+                });
+            } catch (error) {
+                console.error('Failed to load problem:', error);
+                // 폴백: 기본 문제 사용
+                const fallback = getDailyProblem();
+                setProblem({
+                    id: fallback.id,
+                    category: fallback.category,
+                    difficulty: fallback.difficulty || 'Medium',
+                    hints: fallback.hints || [],
+                });
+            } finally {
+                setProblemLoading(false);
+            }
+        };
+        loadProblem();
+    }, []);
 
     // 📤 단어 제출 핸들러
     const handleGuess = async (word) => {
@@ -78,12 +108,32 @@ const CommentleQuiz = () => {
         }
     };
 
+    // 🔐 사용자 정보 가져오기
+    const { user, isLoggedIn } = useAuthStore();
+
     // 리더보드 업데이트 함수
     const updateLeaderboard = (attemptCount) => {
-        const userId = `Player_${Date.now().toString().slice(-6)}`; // 임시 유저 ID
+        // 로그인 사용자는 닉네임, 비로그인은 Guest_XXXX
+        const userId = isLoggedIn && user?.nickname
+            ? user.nickname
+            : `Guest_${Date.now().toString().slice(-4)}`;
+
         const newEntry = { id: userId, count: attemptCount };
 
-        const updated = [...leaderboard, newEntry]
+        // 동일 사용자가 이미 있으면 더 좋은 기록으로 업데이트
+        const existingIndex = leaderboard.findIndex(e => e.id === userId);
+        let updatedList = [...leaderboard];
+
+        if (existingIndex !== -1) {
+            // 기존 기록보다 좋으면 업데이트
+            if (attemptCount < updatedList[existingIndex].count) {
+                updatedList[existingIndex] = newEntry;
+            }
+        } else {
+            updatedList.push(newEntry);
+        }
+
+        const updated = updatedList
             .sort((a, b) => a.count - b.count) // 시도 횟수 오름차순
             .slice(0, 5); // 상위 5명만 유지
 
@@ -102,11 +152,29 @@ const CommentleQuiz = () => {
 
     return (
         <div className="w-full max-w-[1400px] mx-auto animate-fade-in">
-            {/* 뒤로가기 버튼 */}
-            <div className="py-2 px-4 mb-2">
+            {/* 상단 헤더: 뒤로가기 + 정보 아이콘 */}
+            <div className="quiz-top-header">
                 <button onClick={() => navigate('/quiz')} className="back-btn">
                     <ArrowLeft size={20} />
                 </button>
+
+                {/* 점수 산정 방식 안내 */}
+                <div className="info-tooltip-wrapper">
+                    <button className="info-btn">
+                        <Info size={18} />
+                    </button>
+                    <div className="info-tooltip">
+                        <h4>🎯 점수 산정 방식</h4>
+                        <p>AI가 정답 단어와 입력 단어의 <strong>의미적 유사도</strong>를 분석합니다.</p>
+                        <ul>
+                            <li><span className="dot" style={{ background: '#22c55e' }}></span> <strong>90~100:</strong> 정답!</li>
+                            <li><span className="dot" style={{ background: '#3b82f6' }}></span> <strong>75~89:</strong> 아주 가까움</li>
+                            <li><span className="dot" style={{ background: '#a855f7' }}></span> <strong>50~74:</strong> 좋은 방향</li>
+                            <li><span className="dot" style={{ background: '#f59e0b' }}></span> <strong>25~49:</strong> 보통</li>
+                            <li><span className="dot" style={{ background: '#ef4444' }}></span> <strong>0~24:</strong> 멀어요</li>
+                        </ul>
+                    </div>
+                </div>
             </div>
 
             {/* 1:1 레이아웃 (모바일에서는 세로 스택) */}

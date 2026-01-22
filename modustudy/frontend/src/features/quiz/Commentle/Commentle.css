@@ -520,6 +520,103 @@
     transform: translateX(-2px);
 }
 
+/* ========================================
+   상단 헤더 (뒤로가기 + 정보 아이콘)
+   ======================================== */
+.quiz-top-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    margin-bottom: 0.5rem;
+}
+
+/* 정보 버튼 */
+.info-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.info-btn:hover {
+    background: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+}
+
+/* 정보 툴팁 래퍼 */
+.info-tooltip-wrapper {
+    position: relative;
+}
+
+.info-tooltip {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 8px;
+    width: 280px;
+    padding: 16px;
+    background: white;
+    border-radius: var(--radius-xl);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    border: 1px solid var(--color-border);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.2s ease;
+    z-index: 100;
+}
+
+.info-tooltip-wrapper:hover .info-tooltip {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.info-tooltip h4 {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin-bottom: 8px;
+}
+
+.info-tooltip p {
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+    margin-bottom: 12px;
+    line-height: 1.5;
+}
+
+.info-tooltip ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.info-tooltip li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.75rem;
+    color: var(--color-text-secondary);
+    padding: 4px 0;
+}
+
+.info-tooltip .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
 /* 커스텀 스크롤바 */
 .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
