@@ -32,9 +32,16 @@ test:
   script:
     - cd modustudy/backend
     - chmod +x gradlew
-    # 테스트 DB 초기화
-    - source /etc/environment && docker exec squiz-mysql mysql -uroot -p${DB_ROOT_PASSWORD} -e "DROP DATABASE IF EXISTS ssafy_test_db; CREATE DATABASE ssafy_test_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; GRANT ALL PRIVILEGES ON ssafy_test_db.* TO '${DB_USERNAME}'@'%'; FLUSH PRIVILEGES;"
-    - source /etc/environment && export SPRING_PROFILES_ACTIVE=test && ./gradlew test
+    # 테스트 DB 초기화 (squiz_test 사용)
+    - source /etc/environment && docker exec squiz-mysql mysql -uroot -p${DB_ROOT_PASSWORD} -e "DROP DATABASE IF EXISTS squiz_test; CREATE DATABASE squiz_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; GRANT ALL PRIVILEGES ON squiz_test.* TO '${DB_USERNAME}'@'%'; FLUSH PRIVILEGES;"
+    # 테스트 실행 - 운영 DB 연결 방지를 위해 SPRING_DATASOURCE_URL을 테스트 DB로 명시적 오버라이드
+    # (Spring Boot에서 환경변수가 application.properties보다 우선 적용되므로 필수)
+    - |
+      source /etc/environment
+      export SPRING_DATASOURCE_URL="jdbc:mysql://localhost:3306/squiz_test?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true&useSSL=false"
+      export SPRING_PROFILES_ACTIVE=test
+      echo "테스트 DB URL: $SPRING_DATASOURCE_URL"
+      ./gradlew test
   only:
     - master
     - main
