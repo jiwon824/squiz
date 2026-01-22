@@ -11,6 +11,13 @@ import {
     Message
 } from '@/api/endpoints/dmApi';
 
+// 새 대화 시작을 위한 사용자 정보
+interface PendingDMUser {
+    id: number;
+    nickname: string;
+    profileImage: string | null;
+}
+
 interface DMState {
     // 상태
     conversations: Conversation[];
@@ -19,6 +26,7 @@ interface DMState {
     unreadCount: number;
     isLoading: boolean;
     error: string | null;
+    pendingDMUser: PendingDMUser | null;  // 새 대화 시작 대상
 
     // 액션
     fetchConversations: () => Promise<void>;
@@ -28,6 +36,8 @@ interface DMState {
     markConversationAsRead: (conversationId: number) => Promise<void>;
     removeConversation: (conversationId: number) => Promise<void>;
     setCurrentConversation: (conversationId: number | null) => void;
+    startConversationWith: (user: PendingDMUser) => void;  // 새 대화 시작
+    clearPendingDM: () => void;  // 대기 상태 초기화
     clearError: () => void;
 }
 
@@ -39,6 +49,7 @@ export const useDMStore = create<DMState>((set, get) => ({
     unreadCount: 0,
     isLoading: false,
     error: null,
+    pendingDMUser: null,
 
     // 대화방 목록 조회
     fetchConversations: async () => {
@@ -134,6 +145,28 @@ export const useDMStore = create<DMState>((set, get) => ({
             set({ messages: [] });
         }
     },
+
+    // 특정 사용자와 새 대화 시작
+    startConversationWith: (user: PendingDMUser) => {
+        const { conversations } = get();
+        // 이미 대화가 있는지 확인
+        const existingConv = conversations.find(c => c.participantId === user.id);
+        if (existingConv) {
+            // 기존 대화가 있으면 해당 대화 열기
+            get().setCurrentConversation(existingConv.id);
+            set({ pendingDMUser: null });
+        } else {
+            // 새 대화 시작 모드
+            set({
+                pendingDMUser: user,
+                currentConversationId: null,
+                messages: []
+            });
+        }
+    },
+
+    // 대기 상태 초기화
+    clearPendingDM: () => set({ pendingDMUser: null }),
 
     // 에러 초기화
     clearError: () => set({ error: null })
