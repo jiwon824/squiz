@@ -67,7 +67,7 @@ const MeetingRoomPage: React.FC = () => {
     const [chatMessages, setChatMessages] = useState<MeetingRoomChatMessage[]>([]);
     const [presenterName, setPresenterName] = useState<string | null>(null);
     const [presenterId, setPresenterId] = useState<number | null>(null);
-    const [micEnabled, setMicEnabled] = useState(true);
+    const [micEnabled, setMicEnabled] = useState(false);
     const [cameraEnabled, setCameraEnabled] = useState(false);
     const [screenSharing, setScreenSharing] = useState(false);
     const [shareMode, setShareMode] = useState<ShareMode | null>(null);
@@ -75,8 +75,11 @@ const MeetingRoomPage: React.FC = () => {
     const [localStream, setLocalStream] = useState<MediaStream | null>(null);
     const [remoteVideoStreams, setRemoteVideoStreams] = useState<RemoteVideoStream[]>([]);
     const [isRecording, setIsRecording] = useState(false);
+    const [photoCount, setPhotoCount] = useState(0);
+    const [isCapturing, setIsCapturing] = useState(false);
 
     const aiVideoRef = useRef<HTMLVideoElement | null>(null);
+    const videoStageRef = useRef<HTMLDivElement | null>(null);
     const ownerKey = user?.id ?? user?.nickname ?? user?.name ?? 'guest';
     const micEnabledRef = useRef(micEnabled);
     const speakingRef = useRef(false);
@@ -107,6 +110,9 @@ const MeetingRoomPage: React.FC = () => {
         }
         return false;
     }, [presenterId, presenterName]);
+
+    const maxPhotoCount = 3;
+    const remainingCaptures = Math.max(0, maxPhotoCount - photoCount);
 
     const stopTracks = (stream: MediaStream | null) => {
         if (!stream) return;
@@ -602,6 +608,48 @@ const MeetingRoomPage: React.FC = () => {
         wsClientRef.current.sendChat(roomIdRef.current, payload);
     }, []);
 
+    const captureFrame = (video: HTMLVideoElement) =>
+        new Promise<Blob | null>((resolve) => {
+            if (video.videoWidth === 0 || video.videoHeight === 0) {
+                resolve(null);
+                return;
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                resolve(null);
+                return;
+            }
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            canvas.toBlob(resolve, 'image/png');
+        });
+
+    const handleCapture = useCallback(async () => {
+        if (!numericStudyId || !numericMeetingId || isCapturing || remainingCaptures <= 0) return;
+        const video = videoStageRef.current?.querySelector('video');
+        if (!video) {
+            window.alert('캡쳐할 화면이 없습니다.');
+            return;
+        }
+        setIsCapturing(true);
+        try {
+            const blob = await captureFrame(video);
+            if (!blob) {
+                window.alert('캡쳐할 화면이 없습니다.');
+                return;
+            }
+            const file = new File([blob], 'meeting-capture.png', { type: 'image/png' });
+            await meetingApi.addPhoto(numericStudyId, numericMeetingId, file);
+            setPhotoCount((prev) => Math.min(maxPhotoCount, prev + 1));
+        } catch (error) {
+            console.error('Failed to capture meeting screen', error);
+        } finally {
+            setIsCapturing(false);
+        }
+    }, [isCapturing, maxPhotoCount, numericMeetingId, numericStudyId, remainingCaptures]);
+
     const presenterLabel = presenterName ? `발표자: ${presenterName}` : '발표자';
 
     const handleEndMeeting = useCallback(async () => {
@@ -848,6 +896,14 @@ const MeetingRoomPage: React.FC = () => {
     }, [micEnabled, updateSelfParticipant]);
 
     useEffect(() => {
+        if (!numericStudyId || !numericMeetingId) return;
+        meetingApi
+            .getPhotos(numericStudyId, numericMeetingId)
+            .then((photos) => setPhotoCount(photos.length))
+            .catch(() => setPhotoCount(0));
+    }, [numericMeetingId, numericStudyId]);
+
+    useEffect(() => {
         if (!localStream || recordingRef.current) return;
         const audioTracks = localMicStreamRef.current?.getAudioTracks() ?? [];
         const videoTracks = localStream.getVideoTracks();
@@ -896,18 +952,21 @@ const MeetingRoomPage: React.FC = () => {
                     </button>
                 </div>
 
-                    <MeetingControls
-                        isPresenter={isPresenter}
-                        micEnabled={micEnabled}
-                        shareMode={shareMode}
-                        pipPosition={pipPosition}
-                        onToggleMic={handleToggleMic}
-                        onShareModeChange={handleShareModeChange}
-                        onTogglePresenter={handleTogglePresenter}
-                        onPipPositionChange={handlePipPositionChange}
-                        onEndMeeting={handleEndMeeting}
-                        canEndMeeting={canEndMeeting}
-                    />
+                <MeetingControls
+                    isPresenter={isPresenter}
+                    micEnabled={micEnabled}
+                    shareMode={shareMode}
+                    pipPosition={pipPosition}
+                    onToggleMic={handleToggleMic}
+                    onShareModeChange={handleShareModeChange}
+                    onTogglePresenter={handleTogglePresenter}
+                    onPipPositionChange={handlePipPositionChange}
+                    onEndMeeting={handleEndMeeting}
+                    canEndMeeting={canEndMeeting}
+                    captureRemaining={remainingCaptures}
+                    captureDisabled={remainingCaptures === 0 || isCapturing}
+                    onCapture={handleCapture}
+                />
 
                 <div className="meeting-room__content">
                     <div className="meeting-room__stage">
@@ -915,6 +974,7 @@ const MeetingRoomPage: React.FC = () => {
                             localStream={localStream}
                             localLabel={displayNameRef.current}
                             localIsPresenter={isPresenter}
+                            containerRef={videoStageRef}
                             remoteVideoStreams={remoteVideoStreams.map((item) => ({
                                 id: item.id,
                                 stream: item.stream,

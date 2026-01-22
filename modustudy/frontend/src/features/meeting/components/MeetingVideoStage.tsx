@@ -41,6 +41,7 @@ interface MeetingVideoStageProps {
         label: string;
         isPresenter?: boolean;
     }>;
+    containerRef?: React.Ref<HTMLDivElement>;
 }
 
 const MeetingVideoStage: React.FC<MeetingVideoStageProps> = ({
@@ -48,13 +49,14 @@ const MeetingVideoStage: React.FC<MeetingVideoStageProps> = ({
     localLabel,
     localIsPresenter,
     remoteVideoStreams,
+    containerRef,
 }) => {
     const primaryRemote =
         remoteVideoStreams.find((item) => item.isPresenter) || remoteVideoStreams[0] || null;
     const showRemote = !localIsPresenter;
 
     return (
-        <div className="meeting-video-stage">
+        <div className="meeting-video-stage" ref={containerRef}>
             {localIsPresenter && localStream && (
                 <VideoTile stream={localStream} label={`${localLabel} (나)`} isPresenter isLocal />
             )}

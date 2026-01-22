@@ -190,13 +190,7 @@ class StudyTemplateControllerTest {
         mockMvc.perform(get("/api/v1/study-templates/system"))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPat
-
-
-
-
-
-                        h("$", hasSize(2)));
+                .andExpect(jsonPath("$", hasSize(2)));
     }
 
     @Test

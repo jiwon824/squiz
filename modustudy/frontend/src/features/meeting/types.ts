@@ -185,6 +185,13 @@ export interface MeetingSttSummaryResponse {
     updatedAt: string | null;
 }
 
+export interface MeetingPhotoResponse {
+    id: number;
+    imageUrl: string;
+    capturedAt: string;
+    isSelected: boolean | null;
+}
+
 export interface MeetingTranscriptItemResponse {
     id: number;
     user: MeetingUserResponse | null;

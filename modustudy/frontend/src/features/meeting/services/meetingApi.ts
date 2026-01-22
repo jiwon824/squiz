@@ -8,6 +8,7 @@ import {
     MeetingDetailResponse,
     MeetingJoinResponse,
     MeetingListItemResponse,
+    MeetingPhotoResponse,
     MeetingRecordingResponse,
     MeetingRequestPayload,
     MeetingResponse,
@@ -245,6 +246,31 @@ export const meetingApi = {
         const { data } = await api.get<ApiResponse<MeetingSttSummaryResponse>>(
             `${buildMeetingPath(studyId, meetingId)}/summary/file`,
             { params }
+        );
+        return data.data;
+    },
+
+    async getPhotos(studyId: number, meetingId: number): Promise<MeetingPhotoResponse[]> {
+        const { data } = await api.get<ApiResponse<MeetingPhotoResponse[]>>(
+            `${buildMeetingPath(studyId, meetingId)}/photos`
+        );
+        return data.data;
+    },
+
+    async addPhoto(studyId: number, meetingId: number, file: Blob): Promise<MeetingPhotoResponse> {
+        const formData = new FormData();
+        formData.append('image', file, 'meeting-capture.png');
+        const { data } = await api.post<ApiResponse<MeetingPhotoResponse>>(
+            `${buildMeetingPath(studyId, meetingId)}/photos`,
+            formData,
+            { headers: { 'Content-Type': 'multipart/form-data' } }
+        );
+        return data.data;
+    },
+
+    async selectPhoto(studyId: number, meetingId: number, photoId: number): Promise<MeetingPhotoResponse> {
+        const { data } = await api.put<ApiResponse<MeetingPhotoResponse>>(
+            `${buildMeetingPath(studyId, meetingId)}/photos/${photoId}/select`
         );
         return data.data;
     },

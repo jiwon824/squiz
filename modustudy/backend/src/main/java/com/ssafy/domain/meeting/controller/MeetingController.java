@@ -257,6 +257,15 @@ public class MeetingController {
                 .body(ApiResponse.success(meetingService.addPhoto(studyId, meetingId, image)));
     }
 
+    @PutMapping("/{meetingId}/photos/{photoId}/select")
+    public ResponseEntity<ApiResponse<MeetingPhotoResponse>> selectPhoto(
+            @PathVariable Long studyId,
+            @PathVariable Long meetingId,
+            @PathVariable Long photoId
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(meetingService.selectPhoto(studyId, meetingId, photoId)));
+    }
+
     @PutMapping("/{meetingId}/keywords")
     public ResponseEntity<ApiResponse<MessageResponse>> updateKeywords(
             @PathVariable Long studyId,

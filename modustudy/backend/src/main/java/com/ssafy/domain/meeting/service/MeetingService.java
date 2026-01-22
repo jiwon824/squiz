@@ -41,6 +41,7 @@ import com.lowagie.text.Document;
 import com.lowagie.text.DocumentException;
 import com.lowagie.text.Element;
 import com.lowagie.text.Font;
+import com.lowagie.text.Image;
 import com.lowagie.text.Paragraph;
 import com.lowagie.text.pdf.BaseFont;
 import com.lowagie.text.pdf.PdfWriter;
@@ -317,6 +318,22 @@ public class MeetingService {
         MeetingPhoto saved = meetingPhotoRepository.save(
                 MeetingPhoto.capture(meetingId, imageUrl, LocalDateTime.now()));
         return new MeetingPhotoResponse(saved.getId(), saved.getImageUrl(), saved.getCapturedAt(), saved.getIsSelected());
+    }
+
+    @Transactional
+    public MeetingPhotoResponse selectPhoto(Long studyId, Long meetingId, Long photoId) {
+        getMeetingOrThrow(studyId, meetingId);
+        MeetingPhoto target = meetingPhotoRepository.findById(photoId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "PHOTO_NOT_FOUND"));
+        if (!target.getMeetingId().equals(meetingId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "PHOTO_MEETING_MISMATCH");
+        }
+        List<MeetingPhoto> photos = meetingPhotoRepository.findByMeetingIdOrderByCapturedAtDesc(meetingId);
+        for (MeetingPhoto photo : photos) {
+            photo.updateSelected(photo.getId().equals(photoId));
+        }
+        meetingPhotoRepository.saveAll(photos);
+        return new MeetingPhotoResponse(target.getId(), target.getImageUrl(), target.getCapturedAt(), true);
     }
 
     @Transactional
@@ -664,6 +681,8 @@ public class MeetingService {
         MeetingSttFile transcriptFile = meetingSttFileRepository
                 .findByMeetingIdAndTrackTypeAndUserIdIsNull(meetingId, MeetingTextTrackType.MIXED)
                 .orElse(null);
+        MeetingPhoto selectedPhoto = meetingPhotoRepository.findFirstByMeetingIdAndIsSelectedTrue(meetingId)
+                .orElse(null);
         StringBuilder builder = new StringBuilder();
         builder.append("# Meeting Summary").append("\n\n");
         builder.append("- Title: ").append(meeting.getTitle()).append("\n");
@@ -695,12 +714,18 @@ public class MeetingService {
                 builder.append(transcriptText).append("\n");
             }
         }
+        if (selectedPhoto != null) {
+            builder.append("\n## 회의 사진\n");
+            builder.append("![").append("회의 사진").append("](").append(selectedPhoto.getImageUrl()).append(")\n");
+        }
         return builder.toString();
     }
 
     @Transactional(readOnly = true)
     public byte[] exportMeetingPdf(Long studyId, Long meetingId) {
         String markdown = exportMeetingMarkdown(studyId, meetingId);
+        MeetingPhoto selectedPhoto = meetingPhotoRepository.findFirstByMeetingIdAndIsSelectedTrue(meetingId)
+                .orElse(null);
         try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
             Document document = new Document();
             PdfWriter.getInstance(document, outputStream);
@@ -710,6 +735,9 @@ public class MeetingService {
             Font sectionFont = new Font(baseFont, 13, Font.BOLD);
             Font bodyFont = new Font(baseFont, 11);
             for (String line : markdown.split("\n")) {
+                if (line.startsWith("## 회의 사진") || line.startsWith("![")) {
+                    continue;
+                }
                 if (line.startsWith("# ")) {
                     document.add(new Paragraph(line.substring(2), titleFont));
                 } else if (line.startsWith("## ")) {
@@ -723,6 +751,7 @@ public class MeetingService {
                     document.add(paragraph);
                 }
             }
+            appendSelectedPhoto(document, sectionFont, bodyFont, selectedPhoto);
             document.close();
             return outputStream.toByteArray();
         } catch (DocumentException e) {
@@ -780,6 +809,30 @@ public class MeetingService {
             return BaseFont.createFont(pdfFontPath, BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
         }
         return BaseFont.createFont(BaseFont.HELVETICA, BaseFont.WINANSI, BaseFont.NOT_EMBEDDED);
+    }
+
+    private void appendSelectedPhoto(Document document, Font sectionFont, Font bodyFont, MeetingPhoto selectedPhoto)
+            throws DocumentException {
+        if (selectedPhoto == null) {
+            return;
+        }
+        Paragraph paragraph = new Paragraph("회의 사진", sectionFont);
+        paragraph.setSpacingBefore(10f);
+        document.add(paragraph);
+        Path imagePath = localFileStorageService.resolveUploadedPath(selectedPhoto.getImageUrl());
+        if (imagePath == null || !Files.exists(imagePath)) {
+            document.add(new Paragraph(selectedPhoto.getImageUrl(), bodyFont));
+            return;
+        }
+        try {
+            Image image = Image.getInstance(imagePath.toAbsolutePath().toString());
+            float maxWidth = document.getPageSize().getWidth() - document.leftMargin() - document.rightMargin();
+            image.scaleToFit(maxWidth, 360f);
+            image.setSpacingBefore(6f);
+            document.add(image);
+        } catch (Exception e) {
+            document.add(new Paragraph(selectedPhoto.getImageUrl(), bodyFont));
+        }
     }
 
     private String extractFileExtension(String filename) {
