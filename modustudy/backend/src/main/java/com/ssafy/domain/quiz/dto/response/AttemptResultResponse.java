@@ -1,7 +1,9 @@
 package com.ssafy.domain.quiz.dto.response;
 
+import com.ssafy.domain.quiz.entity.enums.AttemptStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -13,10 +15,10 @@ import java.util.List;
  * @param score 획득 점수 (%)
  * @param correctCount 맞힌 문제 수
  * @param totalQuestions 총 문제 수
- * @param passScore 통과 점수 (%)
  * @param isPassed 통과 여부
- * @param isNextSectionUnlocked 다음 섹션 해금 여부 (통과 시 true)
- * @param earnedBadge 획득한 배지 (코스 완료 시)
+ * @param status 시도 상태
+ * @param completedAt 완료 시각
+ * @param nextSectionUnlocked 다음 섹션 해금 여부
  * @param results 문제별 결과
  */
 @Schema(description = "시도 결과 응답")
@@ -25,58 +27,46 @@ public record AttemptResultResponse(
         Long attemptId,
 
         @Schema(description = "획득 점수 (%)", example = "80")
-        Integer score,
+        int score,
 
         @Schema(description = "맞힌 문제 수", example = "24")
-        Integer correctCount,
+        int correctCount,
 
         @Schema(description = "총 문제 수", example = "30")
-        Integer totalQuestions,
-
-        @Schema(description = "통과 점수 (%)", example = "70")
-        Integer passScore,
+        int totalQuestions,
 
         @Schema(description = "통과 여부", example = "true")
-        Boolean isPassed,
+        boolean isPassed,
+
+        @Schema(description = "시도 상태", example = "COMPLETED")
+        AttemptStatus status,
+
+        @Schema(description = "완료 시각", example = "2025-01-22T10:30:00")
+        LocalDateTime completedAt,
 
         @Schema(description = "다음 섹션 해금 여부", example = "true")
-        Boolean isNextSectionUnlocked,
-
-        @Schema(description = "획득한 배지 (코스 완료 시)")
-        BadgeInfo earnedBadge,
+        boolean nextSectionUnlocked,
 
         @Schema(description = "문제별 결과")
-        List<QuestionResultItem> results
+        List<QuestionResult> results
 ) {
     /**
      * 문제별 결과 항목.
      *
-     * @param orderIndex 문제 순서
      * @param questionId 문제 ID
-     * @param userAnswer 사용자 답안
-     * @param correctAnswer 정답
      * @param isCorrect 정답 여부
-     * @param explanation 해설
+     * @param userAnswer 사용자 답안
      */
     @Schema(description = "문제별 결과")
-    public record QuestionResultItem(
-            @Schema(description = "문제 순서", example = "1")
-            Integer orderIndex,
-
+    public record QuestionResult(
             @Schema(description = "문제 ID", example = "123")
             Long questionId,
 
+            @Schema(description = "정답 여부", example = "true")
+            boolean isCorrect,
+
             @Schema(description = "사용자 답안", example = "A")
-            String userAnswer,
-
-            @Schema(description = "정답", example = "B")
-            String correctAnswer,
-
-            @Schema(description = "정답 여부", example = "false")
-            Boolean isCorrect,
-
-            @Schema(description = "해설", example = "int는 정수형 기본 타입입니다.")
-            String explanation
+            String userAnswer
     ) {
     }
 }
