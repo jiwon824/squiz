@@ -46,14 +46,14 @@ class StudyCommentRepositoryTest {
                 .leaderId(10L)
                 .name("테스트 스터디 1")
                 .topic("Java")
-                .studyType(StudyType.SHORT_TERM)
+                .studyType(StudyType.PLANNED)
                 .build());
 
         study2 = studyRepository.save(Study.builder()
                 .leaderId(20L)
                 .name("테스트 스터디 2")
                 .topic("Spring")
-                .studyType(StudyType.SHORT_TERM)
+                .studyType(StudyType.PLANNED)
                 .build());
 
         // 스터디 1의 최상위 댓글들
