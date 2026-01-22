@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { authApi } from '@/api/endpoints/authApi';
+import { useAuthStore } from '@/store/authStore';
 
 interface PasswordResetModalProps {
     isOpen: boolean;
@@ -7,9 +9,17 @@ interface PasswordResetModalProps {
 }
 
 export const PasswordResetModal = ({ isOpen, onClose }: PasswordResetModalProps) => {
+    const { user } = useAuthStore();
     const [resetEmail, setResetEmail] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+    // 로그인된 사용자의 경우 이메일 자동 설정
+    useEffect(() => {
+        if (isOpen && user?.email) {
+            setResetEmail(user.email);
+        }
+    }, [isOpen, user]);
 
     // 비밀번호 재설정 요청
     const handleSubmit = async (e: React.FormEvent) => {
@@ -24,14 +34,11 @@ export const PasswordResetModal = ({ isOpen, onClose }: PasswordResetModalProps)
         setMessage(null);
 
         try {
-            // TODO: 실제 API 연결 필요
-            // await authApi.requestPasswordReset(resetEmail);
+            await authApi.requestPasswordReset(resetEmail);
 
-            // 임시: 성공 메시지 표시
-            console.log('[INFO] 비밀번호 재설정 요청:', resetEmail);
             setMessage({
                 type: 'success',
-                text: '임시 비밀번호가 이메일로 발송되었습니다.'
+                text: '비밀번호 재설정 링크가 이메일로 발송되었습니다. 메일을 확인해주세요.'
             });
 
             setTimeout(() => {
