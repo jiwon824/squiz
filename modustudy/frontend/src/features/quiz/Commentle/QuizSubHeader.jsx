@@ -1,33 +1,51 @@
+// QuizSubHeader.jsx - Material 디자인 적용
 import React from 'react';
-import { Hash, Lightbulb, BarChart, Tag } from 'lucide-react';
+import { Lightbulb, Tag, BarChart2, Lock } from 'lucide-react';
 
 const QuizSubHeader = ({ problem, attemptCount = 0 }) => {
     // 기본값 방어
-    const { id = '000', category = 'CS', difficulty = 'Medium', hints = [] } = problem || {};
+    const { category = 'CS', difficulty = 'Medium', hints = [] } = problem || {};
+
+    // 난이도 색상 매핑
+    const difficultyColors = {
+        Easy: '#22c55e',
+        Medium: '#f59e0b',
+        Hard: '#ef4444'
+    };
 
     return (
-        <div className="quiz-subheader group">
-            {/* 배경 데코레이션 */}
-            <div style={{ position: 'absolute', top: 0, right: 0, padding: '16px', opacity: 0.05, pointerEvents: 'none' }}>
-                <Hash size={120} />
-            </div>
+        <div className="quiz-subheader">
+            {/* 오늘의 단어 정보 */}
+            <div className="subheader-info-row">
+                <div className="info-card category">
+                    <Tag size={14} className="text-blue-500" />
+                    <div>
+                        <span className="label">카테고리 </span>
+                        <span className="value">{category}</span>
+                    </div>
+                </div>
 
-            <div className="subheader-top">
-                <div className="tags">
-                    <span className="tag-badge tag-category">
-                        <Tag size={12} /> {category}
-                    </span>
-                    <span className={`tag-badge tag-difficulty ${difficulty}`}>
-                        <BarChart size={12} /> {difficulty.toUpperCase()}
-                    </span>
+                <div className="info-card difficulty">
+                    <BarChart2 size={14} style={{ color: difficultyColors[difficulty] }} />
+                    <div>
+                        <span className="label">난이도 </span>
+                        <span className="value" style={{ color: difficultyColors[difficulty] }}>
+                            {difficulty.toUpperCase()}
+                        </span>
+                    </div>
                 </div>
             </div>
 
-            <div className="hints-area">
-                <div className="hints-label">
-                    <Lightbulb size={16} style={{ color: '#f59e0b' }} />
-                    <span>HINTS (Hover to reveal):</span>
+            {/* 힌트 영역 */}
+            <div className="hints-section">
+                <div className="hints-header">
+                    <div className="icon">
+                        <Lightbulb size={16} />
+                    </div>
+                    <span className="title">힌트</span>
+                    <span className="subtitle">마우스를 올려 확인하세요</span>
                 </div>
+
                 <div className="hint-chips">
                     {hints.map((hint, index) => {
                         const unlockStep = (index + 1) * 10;
@@ -36,14 +54,17 @@ const QuizSubHeader = ({ problem, attemptCount = 0 }) => {
                         return (
                             <span
                                 key={index}
-                                className="hint-item"
-                                style={isUnlocked
-                                    ? {}
-                                    : { filter: 'none', background: '#f1f5f9', color: '#94a3b8', cursor: 'default' }
-                                }
-                                title={isUnlocked ? "마우스를 올리면 힌트가 보입니다" : `${unlockStep}회 시도 후 열립니다`}
+                                className={`hint-chip ${!isUnlocked ? 'locked' : ''}`}
+                                title={isUnlocked ? hint : `${unlockStep}회 시도 후 공개`}
                             >
-                                {isUnlocked ? hint : `🔒 ${unlockStep}회째 공개`}
+                                {isUnlocked ? (
+                                    hint
+                                ) : (
+                                    <>
+                                        <Lock size={12} style={{ marginRight: 4 }} />
+                                        {unlockStep}회 후 공개
+                                    </>
+                                )}
                             </span>
                         );
                     })}

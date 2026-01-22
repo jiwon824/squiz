@@ -102,3 +102,33 @@ export const getDailyProblem = () => {
         hints: DAILY_PROBLEM.hints,
     };
 };
+
+/**
+ * 어제의 정답 반환
+ * @returns {Object} 어제의 문제 정보 (정답 포함)
+ */
+export const getYesterdayAnswer = () => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    // 어제 날짜를 시드로 사용
+    const seed = yesterday.getFullYear() * 10000 + (yesterday.getMonth() + 1) * 100 + yesterday.getDate();
+    const index = seed % WORDS.length;
+    const yesterdayWord = WORDS[index];
+
+    return {
+        answer: yesterdayWord.answer,
+        category: yesterdayWord.category,
+    };
+};
+
+/**
+ * 오늘의 문제 카테고리만 반환 (위젯용)
+ * @returns {Object} 카테고리와 힌트 수
+ */
+export const getTodayQuizInfo = () => {
+    return {
+        category: DAILY_PROBLEM.category,
+        hintCount: DAILY_PROBLEM.hints.length,
+    };
+};
