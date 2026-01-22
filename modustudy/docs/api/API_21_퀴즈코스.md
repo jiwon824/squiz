@@ -17,7 +17,7 @@
 | GET | `/{courseId}` | 코스 상세 조회 | X |
 | GET | `/{courseId}/sections` | 섹션 목록 조회 | O |
 | POST | `/{courseId}/sections/{sectionNumber}/attempts` | 섹션 시도 시작/재개 | O |
-| PATCH | `/{courseId}/sections/{sectionNumber}/attempts/{attemptId}/answers` | 답안 임시 저장 | O |
+| PATCH | `/{courseId}/sections/{sectionNumber}/attempts/{attemptId}/answers` | 단일 답안 실시간 저장 | O |
 | POST | `/{courseId}/sections/{sectionNumber}/attempts/{attemptId}/submit` | 섹션 제출 (채점) | O |
 | DELETE | `/{courseId}/sections/{sectionNumber}/attempts/{attemptId}` | 시도 포기 | O |
 | GET | `/my/progress` | 내 코스 진행 현황 | O |
@@ -272,7 +272,13 @@ Authorization: Bearer {accessToken}
 
 ---
 
-### 5. 답안 임시 저장
+### 5. 단일 답안 실시간 저장
+
+사용자가 문제를 풀고 **"다음" 버튼을 클릭할 때마다** 호출되어 해당 답안을 즉시 저장한다.
+브라우저 충돌이나 네트워크 끊김 시에도 데이터 유실을 방지하는 실시간 저장 방식이다.
+
+- **멱등성 보장**: 동일 questionId로 여러 번 호출해도 마지막 답안으로 덮어씀
+- **호출 시점**: 각 문제의 "다음" 버튼 클릭 시, 또는 "이전" 버튼으로 돌아가기 전
 
 **Request**
 ```
@@ -282,10 +288,10 @@ Content-Type: application/json
 ```
 ```json
 {
-  "answers": [
-    { "questionId": 101, "answer": ["B"] },
-    { "questionId": 102, "answer": ["A"] }
-  ]
+  "answer": {
+    "questionId": 101,
+    "answer": "B"
+  }
 }
 ```
 

@@ -450,24 +450,24 @@ class QuizSectionAttemptServiceTest {
         }
 
         // ==========================================================
-        // saveAnswers() 테스트
+        // saveAnswer() 테스트 (단일 답안 실시간 저장)
         // ==========================================================
 
         @Nested
-        @DisplayName("saveAnswers 메서드")
-        class SaveAnswersTest {
+        @DisplayName("saveAnswer 메서드 (단일 답안 실시간 저장)")
+        class SaveAnswerTest {
 
                 /**
-                 * 성공 케이스: 정상적으로 답안 저장
+                 * 성공 케이스: 단일 답안 정상 저장
                  *
                  * 검증 사항:
-                 * - 사용자가 제출한 답안이 정확히 저장되어야 함
-                 * - 여러 문제의 답안을 한 번에 저장할 수 있어야 함
+                 * - 사용자가 제출한 단일 답안이 정확히 저장되어야 함
+                 * - 문제 풀이 중 "다음" 버튼 클릭 시 호출되는 시나리오
                  */
                 @Test
-                @DisplayName("성공: 답안 정상 저장")
-                void saveAnswers_Success() {
-                        // Given: 시도와 답안 요청 준비
+                @DisplayName("성공: 단일 답안 정상 저장")
+                void saveAnswer_Success() {
+                        // Given: 시도와 단일 답안 요청 준비
                         Long attemptId = 1L;
                         Long userId = 1L;
 
@@ -485,22 +485,57 @@ class QuizSectionAttemptServiceTest {
                         attemptQuestions.add(aq2);
                         ReflectionTestUtils.setField(testAttempt, "attemptQuestions", attemptQuestions);
 
-                        // 답안 요청 데이터
-                        List<SaveAnswerRequest.AnswerItem> answers = List.of(
-                                        new SaveAnswerRequest.AnswerItem(1L, "1"),
-                                        new SaveAnswerRequest.AnswerItem(2L, "2"));
-                        SaveAnswerRequest request = new SaveAnswerRequest(answers);
+                        // 단일 답안 요청 데이터 (문제 1번에 대한 답안)
+                        SaveAnswerRequest request = new SaveAnswerRequest(
+                                        new SaveAnswerRequest.AnswerItem(1L, "1"));
 
                         // Mock 동작 정의
                         given(attemptRepository.findById(attemptId))
                                         .willReturn(Optional.of(testAttempt));
 
-                        // When: 답안 저장
-                        quizSectionAttemptService.saveAnswers(attemptId, request, userId);
+                        // When: 단일 답안 저장
+                        quizSectionAttemptService.saveAnswer(attemptId, request, userId);
 
-                        // Then: 답안이 저장되었는지 확인
+                        // Then: 해당 문제의 답안만 저장되었는지 확인
                         assertThat(aq1.getUserAnswer()).isEqualTo("1");
-                        assertThat(aq2.getUserAnswer()).isEqualTo("2");
+                        assertThat(aq2.getUserAnswer()).isNull(); // 다른 문제는 영향 없음
+                }
+
+                /**
+                 * 성공 케이스: 동일 문제 답안 덮어쓰기 (멱등성 테스트)
+                 *
+                 * 검증 사항:
+                 * - 같은 문제에 여러 번 답안을 저장해도 마지막 값으로 덮어씀
+                 * - 멱등성이 보장되어야 함
+                 */
+                @Test
+                @DisplayName("성공: 동일 문제 답안 덮어쓰기 (멱등성 보장)")
+                void saveAnswer_Idempotent() {
+                        // Given: 이미 답안이 저장된 상태
+                        Long attemptId = 1L;
+                        Long userId = 1L;
+
+                        List<UserSectionAttemptQuestion> attemptQuestions = new ArrayList<>();
+                        UserSectionAttemptQuestion aq1 = UserSectionAttemptQuestion.builder()
+                                        .question(testQuestions.get(0))
+                                        .orderIndex(1)
+                                        .build();
+                        ReflectionTestUtils.setField(aq1, "userAnswer", "OLD_ANSWER"); // 기존 답안
+                        attemptQuestions.add(aq1);
+                        ReflectionTestUtils.setField(testAttempt, "attemptQuestions", attemptQuestions);
+
+                        // 새로운 답안으로 덮어쓰기
+                        SaveAnswerRequest request = new SaveAnswerRequest(
+                                        new SaveAnswerRequest.AnswerItem(1L, "NEW_ANSWER"));
+
+                        given(attemptRepository.findById(attemptId))
+                                        .willReturn(Optional.of(testAttempt));
+
+                        // When: 답안 재저장
+                        quizSectionAttemptService.saveAnswer(attemptId, request, userId);
+
+                        // Then: 새로운 답안으로 덮어쓰기 확인
+                        assertThat(aq1.getUserAnswer()).isEqualTo("NEW_ANSWER");
                 }
 
                 /**
@@ -515,14 +550,15 @@ class QuizSectionAttemptServiceTest {
                         // Given: 존재하지 않는 시도 ID
                         Long attemptId = 999L;
                         Long userId = 1L;
-                        SaveAnswerRequest request = new SaveAnswerRequest(Collections.emptyList());
+                        SaveAnswerRequest request = new SaveAnswerRequest(
+                                        new SaveAnswerRequest.AnswerItem(1L, "1"));
 
                         // Mock 동작 정의
                         given(attemptRepository.findById(attemptId))
                                         .willReturn(Optional.empty());
 
                         // When & Then: 예외 발생 확인
-                        assertThatThrownBy(() -> quizSectionAttemptService.saveAnswers(attemptId, request, userId))
+                        assertThatThrownBy(() -> quizSectionAttemptService.saveAnswer(attemptId, request, userId))
                                         .isInstanceOf(NotFoundException.class);
                 }
 
@@ -539,14 +575,15 @@ class QuizSectionAttemptServiceTest {
                         // Given: 다른 사용자가 시도에 접근
                         Long attemptId = 1L;
                         Long otherUserId = 999L; // 다른 사용자
-                        SaveAnswerRequest request = new SaveAnswerRequest(Collections.emptyList());
+                        SaveAnswerRequest request = new SaveAnswerRequest(
+                                        new SaveAnswerRequest.AnswerItem(1L, "1"));
 
                         // Mock 동작 정의
                         given(attemptRepository.findById(attemptId))
                                         .willReturn(Optional.of(testAttempt)); // testAttempt는 userId=1L
 
                         // When & Then: 예외 발생 확인
-                        assertThatThrownBy(() -> quizSectionAttemptService.saveAnswers(attemptId, request, otherUserId))
+                        assertThatThrownBy(() -> quizSectionAttemptService.saveAnswer(attemptId, request, otherUserId))
                                         .isInstanceOf(BusinessException.class)
                                         .hasMessageContaining("본인의 시도만 수정할 수 있습니다");
                 }
@@ -564,7 +601,8 @@ class QuizSectionAttemptServiceTest {
                         // Given: 완료된 시도
                         Long attemptId = 1L;
                         Long userId = 1L;
-                        SaveAnswerRequest request = new SaveAnswerRequest(Collections.emptyList());
+                        SaveAnswerRequest request = new SaveAnswerRequest(
+                                        new SaveAnswerRequest.AnswerItem(1L, "1"));
 
                         // 시도를 완료 상태로 변경
                         testAttempt.complete(7, 70); // 7개 정답, 통과 점수 70
@@ -574,57 +612,45 @@ class QuizSectionAttemptServiceTest {
                                         .willReturn(Optional.of(testAttempt));
 
                         // When & Then: 예외 발생 확인
-                        assertThatThrownBy(() -> quizSectionAttemptService.saveAnswers(attemptId, request, userId))
+                        assertThatThrownBy(() -> quizSectionAttemptService.saveAnswer(attemptId, request, userId))
                                         .isInstanceOf(BusinessException.class)
                                         .hasMessageContaining("완료된 시도는 수정할 수 없습니다");
                 }
 
                 /**
-                 * 성공 케이스: 일부 문제만 답안 저장 (부분 저장)
+                 * 성공 케이스: 존재하지 않는 questionId에 대한 답안 저장 시도
                  *
                  * 검증 사항:
-                 * - 요청에 포함된 문제만 저장되어야 함
-                 * - 요청에 없는 문제는 기존 상태 유지
+                 * - 시도에 포함되지 않은 questionId는 무시되어야 함
+                 * - 예외가 발생하지 않아야 함 (graceful handling)
                  */
                 @Test
-                @DisplayName("성공: 일부 문제만 답안 저장 (부분 저장)")
-                void savePartialAnswers_Success() {
-                        // Given: 3개 문제 중 2개만 답안 제출
+                @DisplayName("성공: 존재하지 않는 questionId는 무시")
+                void nonExistentQuestionId_Ignored() {
+                        // Given: 시도에 문제 1만 존재
                         Long attemptId = 1L;
                         Long userId = 1L;
 
                         List<UserSectionAttemptQuestion> attemptQuestions = new ArrayList<>();
-                        for (int i = 0; i < 3; i++) {
-                                UserSectionAttemptQuestion aq = UserSectionAttemptQuestion.builder()
-                                                .question(testQuestions.get(i))
-                                                .orderIndex(i + 1)
-                                                // .userAnswer(null) // 초기에는 모두 미답변
-                                                .build();
-
-                                // userAnswer는 생성자 Builder 패턴 때문에 .으로 접근할 수 없음
-                                // 명시적 null 넣어주기
-                                ReflectionTestUtils.setField(aq, "userAnswer", null);
-
-                                attemptQuestions.add(aq);
-                        }
+                        UserSectionAttemptQuestion aq1 = UserSectionAttemptQuestion.builder()
+                                        .question(testQuestions.get(0)) // questionId = 1
+                                        .orderIndex(1)
+                                        .build();
+                        attemptQuestions.add(aq1);
                         ReflectionTestUtils.setField(testAttempt, "attemptQuestions", attemptQuestions);
 
-                        // 첫 번째와 세 번째 문제만 답안 제출
-                        List<SaveAnswerRequest.AnswerItem> answers = List.of(
-                                        new SaveAnswerRequest.AnswerItem(1L, "1"),
-                                        new SaveAnswerRequest.AnswerItem(3L, "2"));
-                        SaveAnswerRequest request = new SaveAnswerRequest(answers);
+                        // 존재하지 않는 questionId=999에 대한 답안 저장 시도
+                        SaveAnswerRequest request = new SaveAnswerRequest(
+                                        new SaveAnswerRequest.AnswerItem(999L, "1"));
 
                         given(attemptRepository.findById(attemptId))
                                         .willReturn(Optional.of(testAttempt));
 
-                        // When
-                        quizSectionAttemptService.saveAnswers(attemptId, request, userId);
+                        // When & Then: 예외 없이 정상 처리 (무시됨)
+                        quizSectionAttemptService.saveAnswer(attemptId, request, userId);
 
-                        // Then: 첫 번째와 세 번째만 저장, 두 번째는 null 유지
-                        assertThat(attemptQuestions.get(0).getUserAnswer()).isEqualTo("1");
-                        assertThat(attemptQuestions.get(1).getUserAnswer()).isNull();
-                        assertThat(attemptQuestions.get(2).getUserAnswer()).isEqualTo("2");
+                        // 기존 답안은 영향 없음
+                        assertThat(aq1.getUserAnswer()).isNull();
                 }
         }
 

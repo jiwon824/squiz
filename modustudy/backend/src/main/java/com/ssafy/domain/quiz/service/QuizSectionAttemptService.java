@@ -106,16 +106,21 @@ public class QuizSectionAttemptService {
     }
 
     /**
-     * 답안을 임시 저장한다.
+     * 단일 답안을 임시 저장한다.
      *
-     * 진행 중인 시도에만 저장 가능하다.
+     * <p>사용자가 문제를 풀고 "다음" 버튼을 누를 때마다 호출되어
+     * 실시간으로 답안을 저장한다. 이를 통해 브라우저 충돌이나
+     * 네트워크 끊김 시에도 데이터 유실을 방지한다.</p>
+     *
+     * <p>동일 문제에 대해 여러 번 호출되어도 마지막 답안으로
+     * 덮어쓰기되므로 멱등성이 보장된다.</p>
      *
      * @param attemptId 시도 ID
-     * @param request   저장할 답안 목록
+     * @param request   저장할 단일 답안
      * @param userId    사용자 ID
      */
     @Transactional
-    public void saveAnswers(Long attemptId, SaveAnswerRequest request, Long userId) {
+    public void saveAnswer(Long attemptId, SaveAnswerRequest request, Long userId) {
         UserSectionAttempt attempt = attemptRepository.findById(attemptId)
                 .orElseThrow(NotFoundException::attempt);
 
@@ -135,18 +140,13 @@ public class QuizSectionAttemptService {
                     "완료된 시도는 수정할 수 없습니다.");
         }
 
-        // 답안 저장
-        Map<Long, UserSectionAttemptQuestion> questionMap = attempt.getAttemptQuestions().stream()
-                .collect(Collectors.toMap(
-                        aq -> aq.getQuestion().getId(),
-                        aq -> aq));
+        // 단일 답안 저장 (멱등성 보장: 동일 questionId로 재호출 시 덮어쓰기)
+        SaveAnswerRequest.AnswerItem answerItem = request.answer();
 
-        for (SaveAnswerRequest.AnswerItem answer : request.answers()) {
-            UserSectionAttemptQuestion aq = questionMap.get(answer.questionId());
-            if (aq != null) {
-                aq.saveAnswer(answer.answer());
-            }
-        }
+        attempt.getAttemptQuestions().stream()
+                .filter(aq -> aq.getQuestion().getId().equals(answerItem.questionId()))
+                .findFirst()
+                .ifPresent(aq -> aq.saveAnswer(answerItem.answer()));
     }
 
     /**
