@@ -207,7 +207,7 @@ class UserApiTest {
 }
 ```
 
-### 5.2 Repository 테스트
+### 5.2 Repository 테스트 (JPA)
 
 ```java
 package com.ssafy.squiz.integration.repository;
@@ -245,9 +245,138 @@ class UserRepositoryTest {
 }
 ```
 
-## 6. 도메인별 필수 테스트
+## 6. MyBatis 테스트 작성
 
-### 6.1 최소 테스트 케이스
+### 6.1 MyBatis Mapper 단위 테스트 (Mock 사용)
+
+MyBatis Mapper를 사용하는 Service는 JPA와 동일하게 Mock으로 테스트합니다.
+
+```java
+package com.ssafy.domain.friend.service;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.BDDMockito.*;
+
+@ExtendWith(MockitoExtension.class)
+class FriendServiceTest {
+
+    @Mock
+    private FriendshipMapper friendshipMapper;  // MyBatis Mapper를 Mock
+
+    @Mock
+    private UserBlockMapper userBlockMapper;
+
+    @InjectMocks
+    private FriendService friendService;
+
+    @Test
+    @DisplayName("친구 요청 정상 전송")
+    void sendFriendRequest_Success() {
+        // given
+        Long requesterId = 1L;
+        Long addresseeId = 2L;
+
+        given(userBlockMapper.existsByBlockerAndBlocked(anyLong(), anyLong())).willReturn(false);
+        given(friendshipMapper.findByUsers(requesterId, addresseeId)).willReturn(null);
+
+        Friendship savedFriendship = Friendship.builder()
+            .id(1L)
+            .requesterId(requesterId)
+            .addresseeId(addresseeId)
+            .status(FriendshipStatus.PENDING)
+            .build();
+        given(friendshipMapper.findById(anyLong())).willReturn(savedFriendship);
+
+        // when
+        FriendRequestResponse response = friendService.sendFriendRequest(requesterId, addresseeId);
+
+        // then
+        assertThat(response).isNotNull();
+        verify(friendshipMapper, times(1)).insert(any(Friendship.class));
+    }
+}
+```
+
+### 6.2 MyBatis Mapper 통합 테스트 (실제 DB 사용)
+
+실제 DB와 연결하여 Mapper XML의 SQL이 올바르게 동작하는지 테스트합니다.
+
+```java
+package com.ssafy.domain.friend.mapper;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.mybatis.spring.boot.test.autoconfigure.MybatisTest;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.test.context.jdbc.Sql;
+
+import static org.assertj.core.api.Assertions.*;
+
+@MybatisTest
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)  // 실제 MySQL 사용
+class FriendshipMapperTest {
+
+    @Autowired
+    private FriendshipMapper friendshipMapper;
+
+    @Test
+    @DisplayName("친구 관계 조회")
+    @Sql("/sql/test-data.sql")  // 테스트 데이터 준비
+    void findByUsers_Success() {
+        // given
+        Long userId1 = 1L;
+        Long userId2 = 2L;
+
+        // when
+        Friendship friendship = friendshipMapper.findByUsers(userId1, userId2);
+
+        // then
+        assertThat(friendship).isNotNull();
+        assertThat(friendship.getStatus()).isEqualTo(FriendshipStatus.ACCEPTED);
+    }
+}
+```
+
+### 6.3 MyBatis 테스트 설정
+
+`src/test/resources/application.properties`에 다음 설정 필요:
+
+```properties
+# MyBatis 설정
+mybatis.mapper-locations=classpath:mapper/**/*.xml
+mybatis.configuration.map-underscore-to-camel-case=true
+```
+
+### 6.4 JPA vs MyBatis 테스트 비교
+
+| 항목 | JPA | MyBatis |
+|-----|-----|---------|
+| 단위 테스트 | `@Mock` Repository | `@Mock` Mapper |
+| 슬라이스 테스트 | `@DataJpaTest` | `@MybatisTest` |
+| 통합 테스트 | `@SpringBootTest` | `@SpringBootTest` |
+| DDL 자동 생성 | `hibernate.ddl-auto=create` | SQL 스크립트 필요 |
+
+### 6.5 MyBatis 테스트 주의사항
+
+1. **테이블 생성**: JPA와 달리 MyBatis는 DDL을 자동 생성하지 않음
+   - `@Sql` 어노테이션으로 테스트 데이터 스크립트 실행
+   - 또는 JPA 엔티티와 함께 사용 시 `hibernate.ddl-auto=create` 활용
+
+2. **Mapper XML 경로**: `mybatis.mapper-locations` 설정 확인
+
+3. **네이밍 규칙**: `map-underscore-to-camel-case=true` 설정 시 DB 컬럼 자동 매핑
+
+## 7. 도메인별 필수 테스트
+
+### 7.1 최소 테스트 케이스
 
 각 Service 클래스마다 최소한 다음 테스트가 필요합니다:
 
