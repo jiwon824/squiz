@@ -560,7 +560,6 @@ class StudyCommentRepositoryTest {
 
         // when
         commentRepository.deleteByStudyId(studyId);
-        commentRepository.flush();
 
         // then
         List<StudyComment> result = commentRepository.findByStudyIdAndIsDeletedFalseOrderByCreatedAtAsc(studyId);
