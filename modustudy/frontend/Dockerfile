@@ -3,6 +3,10 @@
 # ===========================================
 FROM node:20-alpine AS builder
 
+# UTF-8 인코딩 설정
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+
 WORKDIR /app
 
 # 의존성 파일 복사
