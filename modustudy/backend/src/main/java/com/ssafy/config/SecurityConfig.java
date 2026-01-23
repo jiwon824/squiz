@@ -32,6 +32,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Swagger
                         .requestMatchers("/swagger-ui/**", "/api-docs/**", "/swagger-resources/**").permitAll()
+                        // Actuator (헬스체크)
+                        .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/ws/**").permitAll()
                         // SFU config for WebRTC clients
                         .requestMatchers("/api/v1/sfu/**").permitAll()
