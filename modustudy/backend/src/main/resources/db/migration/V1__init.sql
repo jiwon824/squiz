@@ -525,7 +525,6 @@ CREATE TABLE IF NOT EXISTS `attendance` (
     `excuse_reason` TEXT,
     `excuse_status` ENUM('PENDING', 'APPROVED', 'REJECTED'),
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (`session_id`) REFERENCES `study_session`(`id`) ON DELETE CASCADE,
     FOREIGN KEY (`user_id`) REFERENCES `user`(`id`),
     FOREIGN KEY (`checked_by`) REFERENCES `user`(`id`),
