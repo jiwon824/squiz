@@ -148,10 +148,10 @@ ensure_shared_services() {
     cd "$DEPLOY_PATH"
 
     # 네트워크 생성 (없으면)
-    docker network create squiz_squiz-network 2>/dev/null || true
+    docker network create squiz-network 2>/dev/null || true
 
     # 공유 서비스 시작
-    docker compose -f docker-compose.yml up -d
+    docker compose -p squiz-shared -f docker-compose.yml up -d
 
     # MySQL 헬스체크 대기
     log "MySQL 헬스체크 대기..."
@@ -172,7 +172,7 @@ ensure_shared_services() {
 ensure_proxy() {
     log "Nginx Proxy 시작..."
     cd "$DEPLOY_PATH"
-    docker compose -f docker-compose.proxy.yml up -d
+    docker compose -p squiz-proxy -f docker-compose.proxy.yml up -d
     log "Nginx Proxy 준비 완료"
 }
 
@@ -184,10 +184,10 @@ deploy_inactive() {
     cd "$DEPLOY_PATH"
 
     # 기존 비활성 환경 정리
-    docker compose -f docker-compose.${inactive}.yml down --remove-orphans 2>/dev/null || true
+    docker compose -p squiz-${inactive} -f docker-compose.${inactive}.yml down --remove-orphans 2>/dev/null || true
 
     # 새 버전 배포
-    docker compose -f docker-compose.${inactive}.yml up -d
+    docker compose -p squiz-${inactive} -f docker-compose.${inactive}.yml up -d
 
     log "비활성 환경(${inactive}) 컨테이너 시작됨"
 }
@@ -286,7 +286,7 @@ deploy() {
     log "헬스체크 진행 중..."
     if ! health_check_all "$inactive"; then
         error "헬스체크 실패! 배포 중단"
-        docker compose -f docker-compose.${inactive}.yml down
+        docker compose -p squiz-${inactive} -f docker-compose.${inactive}.yml down
         exit 1
     fi
 
@@ -380,7 +380,7 @@ init() {
     # Blue 환경 배포
     log "Blue 환경 배포..."
     cd "$DEPLOY_PATH"
-    docker compose -f docker-compose.blue.yml up -d
+    docker compose -p squiz-blue -f docker-compose.blue.yml up -d
 
     # 헬스체크
     log "Blue 환경 헬스체크..."

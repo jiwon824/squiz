@@ -21,4 +21,4 @@ services:
 networks:
   squiz-network:
     external: true
-    name: squiz_squiz-network
+    name: squiz-network
