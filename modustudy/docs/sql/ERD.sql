@@ -347,26 +347,22 @@ CREATE TABLE `study_leader_review` (
 );
 
 -- =============================================
--- 3. 채널/채팅
+-- 3. 워크스페이스/채팅
 -- =============================================
 
-CREATE TABLE `channel` (
+CREATE TABLE `workspace` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
     `study_id` BIGINT NOT NULL,
     `name` VARCHAR(100) NOT NULL,
-    `type` ENUM('TEXT', 'VOICE') NOT NULL,
-    `voice_room_type` ENUM('DISCUSSION', 'MEETING'),  -- 음성방 타입 (상시토론/미팅)
+    `type` ENUM('TEXT', 'VOICE', 'VIDEO') NOT NULL,
     `description` VARCHAR(500),
-    `is_default` BOOLEAN DEFAULT FALSE,          -- 기본 채널 여부
-    `is_temporary` BOOLEAN DEFAULT FALSE,        -- 임시 채널 여부 (인원 부족 시 논의용, 텍스트만)
-    `sort_order` INT DEFAULT 0,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (`study_id`) REFERENCES `study`(`id`) ON DELETE CASCADE
 );
 
 CREATE TABLE `message` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
-    `channel_id` BIGINT NOT NULL,
+    `workspace_id` BIGINT NOT NULL,
     `user_id` BIGINT NOT NULL,
     `content` TEXT NOT NULL,
     `message_type` ENUM('TEXT', 'IMAGE', 'FILE', 'SYSTEM') DEFAULT 'TEXT',
@@ -374,7 +370,7 @@ CREATE TABLE `message` (
     `is_deleted` BOOLEAN DEFAULT FALSE,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (`channel_id`) REFERENCES `channel`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`workspace_id`) REFERENCES `workspace`(`id`) ON DELETE CASCADE,
     FOREIGN KEY (`user_id`) REFERENCES `user`(`id`)
 );
 
@@ -656,7 +652,7 @@ CREATE TABLE `quiz_contest_chat` (
 );
 
 -- 퀴즈 코스 통계 (사용자별 카테고리 학습 현황)
-CREATE TABLE `quiz_practice_stats` (
+CREATE TABLE `quiz_course_stats` (
     `user_id` BIGINT NOT NULL,
     `category_id` BIGINT NOT NULL,
     `total_attempted` INT DEFAULT 0,
@@ -671,8 +667,8 @@ CREATE TABLE `quiz_practice_stats` (
     UNIQUE KEY `uk_user_category` (`user_id`, `category_id`)
 );
 
--- 퀴즈 코스 기록 (연습 세션별 상세 기록)
-CREATE TABLE `quiz_practice_record` (
+-- 퀴즈 코스 기록 (세션별 상세 기록)
+CREATE TABLE `quiz_course_record` (
     `id` BIGINT AUTO_INCREMENT,
     `user_id` BIGINT NOT NULL,
     `category_id` BIGINT NOT NULL,
@@ -684,20 +680,20 @@ CREATE TABLE `quiz_practice_record` (
     PRIMARY KEY (`id`, `user_id`),
     FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON DELETE CASCADE,
     FOREIGN KEY (`category_id`) REFERENCES `quiz_category`(`id`) ON DELETE CASCADE,
-    UNIQUE KEY `uk_practice_record_id` (`id`),
+    UNIQUE KEY `uk_course_record_id` (`id`),
     INDEX `idx_user_created` (`user_id`, `created_at`)
 );
 
--- 퀴즈 코스 답안 (연습에서 푼 문제별 기록)
-CREATE TABLE `quiz_practice_answer` (
-    `practice_record_id` BIGINT NOT NULL,
+-- 퀴즈 코스 답안 (푼 문제별 기록)
+CREATE TABLE `quiz_course_answer` (
+    `course_record_id` BIGINT NOT NULL,
     `question_pool_id` BIGINT NOT NULL,
     `user_answer` JSON,                           -- 사용자 선택 보기 번호 배열 (예: ["A"], ["A","C"])
     `is_correct` BOOLEAN NOT NULL,
     `time_taken_seconds` INT,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (`practice_record_id`, `question_pool_id`),
-    FOREIGN KEY (`practice_record_id`) REFERENCES `quiz_practice_record`(`id`) ON DELETE CASCADE,
+    PRIMARY KEY (`course_record_id`, `question_pool_id`),
+    FOREIGN KEY (`course_record_id`) REFERENCES `quiz_course_record`(`id`) ON DELETE CASCADE,
     FOREIGN KEY (`question_pool_id`) REFERENCES `quiz_question_pool`(`id`)
 );
 
@@ -880,6 +876,7 @@ CREATE TABLE `user_section_attempt` (
     `id` BIGINT AUTO_INCREMENT,
     `user_id` BIGINT NOT NULL,
     `section_id` BIGINT NOT NULL,
+    `status` ENUM('IN_PROGRESS', 'COMPLETED', 'ABANDONED') DEFAULT 'IN_PROGRESS', -- IN_PROGRESS: 임시저장(진행중), COMPLETED: 제출완료(수정불가), ABANDONED: 포기
     `score` INT DEFAULT 0,                       -- 점수 (%)
     `correct_count` INT DEFAULT 0,
     `total_questions` INT DEFAULT 0,

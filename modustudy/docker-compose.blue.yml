@@ -1,0 +1,86 @@
+# ===========================================
+# Blue 환경 (Blue/Green 배포)
+# ===========================================
+
+services:
+  # ===========================================
+  # Frontend (Nginx + React)
+  # ===========================================
+  nginx-blue:
+    image: tkdgns11/squiz-frontend:latest
+    container_name: squiz-nginx-blue
+    expose:
+      - "80"
+    restart: unless-stopped
+    networks:
+      - squiz-network
+
+  # ===========================================
+  # Backend (Spring Boot - API + WebSocket)
+  # ===========================================
+  backend-blue:
+    image: tkdgns11/squiz-backend:latest
+    container_name: squiz-backend-blue
+    expose:
+      - "8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SPRING_DATASOURCE_URL=jdbc:mysql://squiz-mysql:3306/squiz?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul
+      - SPRING_DATASOURCE_USERNAME=${DB_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=squiz-redis
+      - REDIS_PORT=6379
+      - APP_DOMAIN=${APP_DOMAIN:-https://i14d106.p.ssafy.io}
+      - JWT_SECRET=${JWT_SECRET}
+      - KAKAO_REST_API_KEY=${KAKAO_REST_API_KEY}
+      - KAKAO_CLIENT_SECRET_KEY=${KAKAO_CLIENT_SECRET_KEY}
+      - NAVER_CLIENT_ID=${NAVER_CLIENT_ID}
+      - NAVER_CLIENT_SECRET=${NAVER_CLIENT_SECRET}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+    restart: unless-stopped
+    networks:
+      - squiz-network
+
+  # ===========================================
+  # SFU Server (Mediasoup)
+  # ===========================================
+  sfu-blue:
+    image: tkdgns11/squiz-sfu:latest
+    container_name: squiz-sfu-blue
+    expose:
+      - "4000"
+    ports:
+      - "20000-21000:20000-21000/udp"
+    environment:
+      - NODE_ENV=production
+      - SFU_SSL_KEY_PATH=/ssl/sfu-key.pem
+      - SFU_SSL_CERT_PATH=/ssl/sfu-cert.pem
+      - SFU_ANNOUNCED_IP=i14d106.p.ssafy.io
+    volumes:
+      - ./ssl:/ssl:ro
+    restart: unless-stopped
+    networks:
+      - squiz-network
+
+  # ===========================================
+  # CS Quiz AI Service (Flask)
+  # ===========================================
+  cs-quiz-ai-blue:
+    image: tkdgns11/squiz-cs-quiz-ai:latest
+    container_name: squiz-cs-quiz-ai-blue
+    expose:
+      - "5000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=5000
+      - DEBUG=False
+      - CORS_ORIGINS=https://i14d106.p.ssafy.io,http://localhost:5173
+    restart: unless-stopped
+    networks:
+      - squiz-network
+
+networks:
+  squiz-network:
+    external: true
+    name: squiz_squiz-network

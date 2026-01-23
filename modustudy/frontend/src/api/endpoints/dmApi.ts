@@ -1,13 +1,26 @@
 // DM API - 다이렉트 메시지 관련 API 함수들
 import api from '../axios';
 
-// ===== 타입 정의 =====
+// WebSocket 서비스 및 타입 re-export
+export { dmWebSocket } from '../websocket';
+export type {
+    DmEventType,
+    DmWebSocketMessage,
+    DirectMessageResponse,
+    DmWebSocketEvent,
+    ConnectionStatus,
+    DmWebSocketHandlers,
+} from '../websocket';
+
+// ===== 프론트엔드 타입 정의 =====
 export interface Conversation {
     id: number;
     participantId: number;
     participantNickname: string;
     participantProfileImage: string | null;
+    participantIsOnline: boolean;
     lastMessage: string;
+    lastMessageIsMine: boolean;
     lastMessageAt: string;
     unreadCount: number;
 }
@@ -17,14 +30,41 @@ export interface Message {
     conversationId: number;
     senderId: number;
     senderNickname: string;
+    senderProfileImage: string | null;
     content: string;
+    isDeleted: boolean;
+    isMine: boolean;
     createdAt: string;
-    isRead: boolean;
 }
 
 export interface SendMessageRequest {
     receiverId: number;
     content: string;
+}
+
+// ===== 백엔드 API 응답 타입 =====
+interface ConversationApiResponse {
+    conversationId: number;
+    partnerId: number;
+    partnerNickname: string;
+    partnerProfileImage: string | null;
+    partnerIsOnline: boolean;
+    lastMessage: string;
+    lastMessageIsMine: boolean;
+    unreadCount: number;
+    lastMessageAt: string;
+}
+
+interface MessageApiResponse {
+    messageId: number;
+    conversationId: number;
+    senderId: number;
+    senderNickname: string;
+    senderProfileImage: string | null;
+    content: string;
+    isDeleted: boolean;
+    isMine: boolean;
+    createdAt: string;
 }
 
 // ===== API 함수들 =====
@@ -34,7 +74,18 @@ export interface SendMessageRequest {
  */
 export const getConversations = async (): Promise<Conversation[]> => {
     const response = await api.get('/api/v1/dm/conversations');
-    return response.data;
+    const apiResults: ConversationApiResponse[] = response.data.data || [];
+    return apiResults.map(conv => ({
+        id: conv.conversationId,
+        participantId: conv.partnerId,
+        participantNickname: conv.partnerNickname,
+        participantProfileImage: conv.partnerProfileImage,
+        participantIsOnline: conv.partnerIsOnline,
+        lastMessage: conv.lastMessage,
+        lastMessageIsMine: conv.lastMessageIsMine,
+        lastMessageAt: conv.lastMessageAt,
+        unreadCount: conv.unreadCount
+    }));
 };
 
 /**
@@ -44,7 +95,18 @@ export const getMessages = async (conversationId: number, page = 0, size = 20): 
     const response = await api.get(`/api/v1/dm/conversations/${conversationId}/messages`, {
         params: { page, size }
     });
-    return response.data;
+    const apiResults: MessageApiResponse[] = response.data.data || [];
+    return apiResults.map(msg => ({
+        id: msg.messageId,
+        conversationId: msg.conversationId,
+        senderId: msg.senderId,
+        senderNickname: msg.senderNickname,
+        senderProfileImage: msg.senderProfileImage,
+        content: msg.content,
+        isDeleted: msg.isDeleted,
+        isMine: msg.isMine,
+        createdAt: msg.createdAt
+    }));
 };
 
 /**
@@ -55,7 +117,18 @@ export const sendMessage = async (receiverId: number, content: string): Promise<
         receiverId,
         content
     });
-    return response.data;
+    const msg: MessageApiResponse = response.data.data;
+    return {
+        id: msg.messageId,
+        conversationId: msg.conversationId,
+        senderId: msg.senderId,
+        senderNickname: msg.senderNickname,
+        senderProfileImage: msg.senderProfileImage,
+        content: msg.content,
+        isDeleted: msg.isDeleted,
+        isMine: msg.isMine,
+        createdAt: msg.createdAt
+    };
 };
 
 /**
@@ -63,7 +136,7 @@ export const sendMessage = async (receiverId: number, content: string): Promise<
  */
 export const getUnreadCount = async (): Promise<number> => {
     const response = await api.get('/api/v1/dm/unread-count');
-    return response.data.count || response.data;
+    return response.data.data || 0;
 };
 
 /**

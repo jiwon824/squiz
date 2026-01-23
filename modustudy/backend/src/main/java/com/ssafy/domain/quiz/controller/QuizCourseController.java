@@ -85,28 +85,32 @@ public class QuizCourseController {
     }
 
     /**
-     * 답안 임시 저장.
+     * 단일 답안 실시간 저장.
      *
-     * 진행 중인 시도에 대해 부분 답안을 저장한다.
-     * 완료된 시도는 수정할 수 없다.
+     * <p>사용자가 문제를 풀고 "다음" 버튼을 누를 때마다 호출되어
+     * 해당 문제의 답안을 즉시 저장한다. 브라우저 충돌이나 네트워크
+     * 끊김 시에도 데이터 유실을 방지하는 실시간 저장 방식이다.</p>
+     *
+     * <p>동일 문제에 대해 여러 번 호출해도 마지막 답안으로 덮어쓰므로
+     * 멱등성이 보장된다.</p>
      *
      * @param courseId      코스 ID
      * @param sectionNumber 섹션 번호
      * @param attemptId     시도 ID
-     * @param request       저장할 답안 목록
+     * @param request       저장할 단일 답안
      * @param userDetails   인증된 사용자 정보
      * @return 성공 응답
      */
-    @Operation(summary = "답안 임시 저장", description = "진행 중인 시도의 답안을 임시 저장합니다. 인증 필요.")
+    @Operation(summary = "단일 답안 실시간 저장", description = "문제 풀이 중 '다음' 버튼 클릭 시 해당 답안을 즉시 저장합니다. 멱등성 보장. 인증 필요.")
     @PatchMapping("/{courseId}/sections/{sectionNumber}/attempts/{attemptId}/answers")
-    public ApiResponse<Void> saveAnswers(
+    public ApiResponse<Void> saveAnswer(
             @Parameter(description = "코스 ID") @PathVariable Long courseId,
             @Parameter(description = "섹션 번호") @PathVariable Integer sectionNumber,
             @Parameter(description = "시도 ID") @PathVariable Long attemptId,
             @Valid @RequestBody SaveAnswerRequest request,
             @AuthenticationPrincipal SsafyUserDetails userDetails) {
         Long userId = userDetails.getUser().getId();
-        attemptService.saveAnswers(attemptId, request, userId);
+        attemptService.saveAnswer(attemptId, request, userId);
         return ApiResponse.success((Void) null);
     }
 
@@ -164,7 +168,7 @@ public class QuizCourseController {
      * @deprecated 시도 기반 API로 변경됨. {@link #startOrResumeAttempt} 사용 권장.
      */
     @Deprecated
-    @Operation(summary = "섹션 문제 조회 (Deprecated)", description = "시도 기반 API로 변경되었습니다. POST /attempts를 사용하세요.")
+    @Operation(summary = "섹션 문제 조회 (Deprecated)", description = "전체 섹션 문제를 조회하는 게 아니라, 1개의 시도에 정해진 개수의 문제를 보여주는 방식으로 변경(시도 기반 API로 변경) POST /attempts 사용 권고")
     @GetMapping("/{courseId}/sections/{sectionNumber}")
     public ApiResponse<SectionQuestionsResponse> getSectionQuestions(
             @Parameter(description = "코스 ID") @PathVariable Long courseId,

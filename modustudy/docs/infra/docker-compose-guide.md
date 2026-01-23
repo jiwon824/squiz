@@ -197,7 +197,7 @@ docker-compose.yml
 ├── nginx          # 리버스 프록시 + 프론트엔드
 ├── backend        # Spring Boot API 서버
 ├── sfu-server     # WebRTC 미디어 서버 (Mediasoup)
-├── recorder       # 녹화 서버
+├── cs-quiz-ai     # AI 퀴즈 생성 서버 (Flask)
 ├── mysql          # 데이터베이스
 └── redis          # 캐시/세션 저장소
 ```

@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import '../styles/ProfilePage.css';
 import { useAuthStore } from '@/store/authStore';
 import { EditProfileModal } from './EditProfileModal';
+import { PasswordResetModal } from '@/features/auth/components/PasswordResetModal';
 import { userApi } from '@/api/endpoints/userApi';
 import { ProfileHeader } from './ProfileHeader';
 import { StudyMylist } from './StudyMylist';
@@ -11,6 +12,7 @@ import { MainLayout } from '@/layouts/MainLayout';
 export const ProfilePage = () => {
     const { user, updateUser } = useAuthStore();
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
     const [isImageUploading, setIsImageUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -284,6 +286,73 @@ export const ProfilePage = () => {
                         0, 2, 4, 3, 1, 2, 0,
                         4, 3, 2, 1, 4, 3, 2
                     ]} />
+
+                    {/* 계정 관리 섹션 - 비밀번호 변경 */}
+                    <div style={{
+                        marginTop: '3rem',
+                        padding: '2rem',
+                        background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+                        borderRadius: '24px',
+                        border: '1px solid #e2e8f0',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        textAlign: 'center',
+                        gap: '1rem'
+                    }}>
+                        <div style={{
+                            width: '48px',
+                            height: '48px',
+                            background: 'white',
+                            borderRadius: '12px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                            color: 'var(--color-primary)'
+                        }}>
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: '#1e293b' }}>보안 설정</h3>
+                            <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.9rem', color: '#64748b' }}>
+                                비밀번호를 잊으셨나요? 이메일 인증을 통해 안전하게 재설정할 수 있습니다.
+                            </p>
+                        </div>
+                        <button
+                            onClick={() => setIsPasswordModalOpen(true)}
+                            style={{
+                                marginTop: '0.5rem',
+                                padding: '0.75rem 1.5rem',
+                                background: 'white',
+                                border: '1px solid #cbd5e1',
+                                borderRadius: '12px',
+                                color: '#334155',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                            }}
+                            onMouseOver={(e) => {
+                                e.currentTarget.style.borderColor = 'var(--color-primary)';
+                                e.currentTarget.style.color = 'var(--color-primary)';
+                            }}
+                            onMouseOut={(e) => {
+                                e.currentTarget.style.borderColor = '#cbd5e1';
+                                e.currentTarget.style.color = '#334155';
+                            }}
+                        >
+                            비밀번호 재설정 메일 발송
+                        </button>
+                    </div>
+
+                    {/* 비밀번호 재설정 모달 */}
+                    <PasswordResetModal
+                        isOpen={isPasswordModalOpen}
+                        onClose={() => setIsPasswordModalOpen(false)}
+                    />
                 </div>
             </div>
         </MainLayout>

@@ -32,16 +32,18 @@
         SELECT
             c.*,
             u1.nickname as user1_nickname,
-            u1.profile_image as user1_profile_image,
+            p1.profile_image_url as user1_profile_image,
             u1.is_online as user1_is_online,
             u2.nickname as user2_nickname,
-            u2.profile_image as user2_profile_image,
+            p2.profile_image_url as user2_profile_image,
             u2.is_online as user2_is_online,
             lm.content as last_message_content,
             lm.sender_id as last_message_sender_id
         FROM dm_conversation c
         LEFT JOIN user u1 ON c.user1_id = u1.id
+        LEFT JOIN profile p1 ON u1.id = p1.user_id
         LEFT JOIN user u2 ON c.user2_id = u2.id
+        LEFT JOIN profile p2 ON u2.id = p2.user_id
         LEFT JOIN (
             SELECT dm.conversation_id, dm.content, dm.sender_id
             FROM direct_message dm
@@ -59,16 +61,18 @@
         SELECT
             c.*,
             u1.nickname as user1_nickname,
-            u1.profile_image as user1_profile_image,
+            p1.profile_image_url as user1_profile_image,
             u1.is_online as user1_is_online,
             u2.nickname as user2_nickname,
-            u2.profile_image as user2_profile_image,
+            p2.profile_image_url as user2_profile_image,
             u2.is_online as user2_is_online,
             lm.content as last_message_content,
             lm.sender_id as last_message_sender_id
         FROM dm_conversation c
         LEFT JOIN user u1 ON c.user1_id = u1.id
+        LEFT JOIN profile p1 ON u1.id = p1.user_id
         LEFT JOIN user u2 ON c.user2_id = u2.id
+        LEFT JOIN profile p2 ON u2.id = p2.user_id
         LEFT JOIN (
             SELECT dm.conversation_id, dm.content, dm.sender_id
             FROM direct_message dm
@@ -87,16 +91,18 @@
         SELECT
             c.*,
             u1.nickname as user1_nickname,
-            u1.profile_image as user1_profile_image,
+            p1.profile_image_url as user1_profile_image,
             u1.is_online as user1_is_online,
             u2.nickname as user2_nickname,
-            u2.profile_image as user2_profile_image,
+            p2.profile_image_url as user2_profile_image,
             u2.is_online as user2_is_online,
             lm.content as last_message_content,
             lm.sender_id as last_message_sender_id
         FROM dm_conversation c
         LEFT JOIN user u1 ON c.user1_id = u1.id
+        LEFT JOIN profile p1 ON u1.id = p1.user_id
         LEFT JOIN user u2 ON c.user2_id = u2.id
+        LEFT JOIN profile p2 ON u2.id = p2.user_id
         LEFT JOIN (
             SELECT dm.conversation_id, dm.content, dm.sender_id
             FROM direct_message dm
@@ -109,7 +115,7 @@
         ) lm ON c.id = lm.conversation_id
         WHERE (c.user1_id = #{userId} AND c.user1_deleted = false)
            OR (c.user2_id = #{userId} AND c.user2_deleted = false)
-        ORDER BY c.last_message_at DESC NULLS LAST, c.created_at DESC
+        ORDER BY c.last_message_at IS NULL, c.last_message_at DESC, c.created_at DESC
     </select>
 
     <update id="updateLastMessageAt">

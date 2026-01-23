@@ -7,8 +7,9 @@
 ## 목차
 - [1. 스터디 조회 API](#1-스터디-조회-api)
 - [2. 스터디 CRUD API](#2-스터디-crud-api)
-- [3. 에러 코드](#3-에러-코드)
-- [4. Enum 값 정리](#4-enum-값-정리)
+- [3. 스터디 댓글 API](#3-스터디-댓글-api)
+- [4. 에러 코드](#4-에러-코드)
+- [5. Enum 값 정리](#5-enum-값-정리)
 
 ---
 
@@ -596,7 +597,221 @@ PATCH /api/v1/study/9/extend-recruitment
 
 ---
 
-## 3. 에러 코드
+## 3. 스터디 댓글 API
+
+스터디 모집 상세페이지에서 댓글을 작성하고 관리하는 API입니다.
+
+### Base URL: `/api/v1/study/{studyId}/comments`
+
+---
+
+### 3.1 댓글 작성
+
+**Endpoint:** `POST /api/v1/study/{studyId}/comments`
+
+**설명:** 스터디 상세페이지에 댓글 또는 대댓글을 작성합니다.
+
+**인증:** 필요
+
+**Request Headers:**
+```
+Content-Type: application/json
+user-id: 1
+```
+
+**Request Body:**
+```json
+{
+  "parentId": null,
+  "content": "스터디 일정이 어떻게 되나요?",
+  "imageUrl": "https://example.com/image.png"
+}
+```
+
+| 필드 | 타입 | 필수 | 설명 |
+|--------|------|------|------|
+| parentId | Long | N | 부모 댓글 ID (대댓글인 경우) |
+| content | String | Y | 댓글 내용 (1~1000자) |
+| imageUrl | String | N | 첨부 이미지 URL (최대 500자) |
+
+**Response:** (201 Created)
+```json
+{
+  "id": 1,
+  "studyId": 1,
+  "userId": 1,
+  "userNickname": "홍길동",
+  "userProfileImage": "https://...",
+  "parentId": null,
+  "content": "스터디 일정이 어떻게 되나요?",
+  "imageUrl": "https://example.com/image.png",
+  "isDeleted": false,
+  "createdAt": "2025-01-22T10:00:00",
+  "updatedAt": "2025-01-22T10:00:00",
+  "replies": null,
+  "replyCount": null
+}
+```
+
+---
+
+### 3.2 댓글 목록 조회 (대댓글 포함)
+
+**Endpoint:** `GET /api/v1/study/{studyId}/comments`
+
+**설명:** 스터디의 모든 댓글을 대댓글 포함하여 조회합니다.
+
+**인증:** 불필요
+
+**Query Parameters:**
+| 파라미터 | 타입 | 필수 | 기본값 | 설명 |
+|---------|------|------|--------|------|
+| page | Integer | N | 0 | 페이지 번호 |
+| size | Integer | N | 10 | 페이지당 항목 수 |
+
+**Response:**
+```json
+{
+  "comments": [
+    {
+      "id": 1,
+      "studyId": 1,
+      "userId": 1,
+      "userNickname": "홍길동",
+      "userProfileImage": "https://...",
+      "parentId": null,
+      "content": "스터디 일정이 어떻게 되나요?",
+      "imageUrl": null,
+      "isDeleted": false,
+      "createdAt": "2025-01-22T10:00:00",
+      "updatedAt": "2025-01-22T10:00:00",
+      "replies": [
+        {
+          "id": 2,
+          "userId": 2,
+          "userNickname": "김싸피",
+          "parentId": 1,
+          "content": "매주 화요일 저녁 7시에 진행됩니다!",
+          "isDeleted": false,
+          "createdAt": "2025-01-22T11:00:00"
+        }
+      ],
+      "replyCount": 1
+    }
+  ],
+  "totalElements": 15,
+  "totalPages": 2,
+  "currentPage": 0,
+  "hasNext": true,
+  "hasPrevious": false
+}
+```
+
+---
+
+### 3.3 최상위 댓글만 조회 (대댓글 개수만 포함)
+
+**Endpoint:** `GET /api/v1/study/{studyId}/comments/parents`
+
+**설명:** 최상위 댓글만 조회하고, 대댓글은 개수만 표시합니다.
+
+**Response:** (3.2와 동일한 형식, replies는 null, replyCount만 포함)
+
+---
+
+### 3.4 대댓글 목록 조회
+
+**Endpoint:** `GET /api/v1/study/{studyId}/comments/{commentId}/replies`
+
+**설명:** 특정 댓글의 대댓글 목록을 조회합니다.
+
+**Response:**
+```json
+[
+  {
+    "id": 2,
+    "studyId": 1,
+    "userId": 2,
+    "userNickname": "김싸피",
+    "userProfileImage": "https://...",
+    "parentId": 1,
+    "content": "매주 화요일 저녁 7시에 진행됩니다!",
+    "isDeleted": false,
+    "createdAt": "2025-01-22T11:00:00",
+    "updatedAt": "2025-01-22T11:00:00"
+  }
+]
+```
+
+---
+
+### 3.5 댓글 상세 조회
+
+**Endpoint:** `GET /api/v1/study/{studyId}/comments/{commentId}`
+
+**Response:** (3.1 응답과 동일한 형식)
+
+---
+
+### 3.6 댓글 수정
+
+**Endpoint:** `PUT /api/v1/study/{studyId}/comments/{commentId}`
+
+**설명:** 댓글을 수정합니다. (작성자만 가능)
+
+**인증:** 필요
+
+**Request Headers:**
+```
+Content-Type: application/json
+user-id: 1
+```
+
+**Request Body:**
+```json
+{
+  "content": "수정된 댓글 내용입니다.",
+  "imageUrl": "https://example.com/new-image.png"
+}
+```
+
+**Response:** (3.1 응답과 동일한 형식)
+
+---
+
+### 3.7 댓글 삭제
+
+**Endpoint:** `DELETE /api/v1/study/{studyId}/comments/{commentId}`
+
+**설명:** 댓글을 삭제합니다. (작성자 또는 스터디장만 가능, Soft Delete)
+
+**인증:** 필요
+
+**Request Headers:**
+```
+user-id: 1
+```
+
+**Response:** (204 No Content)
+
+> 📌 삭제된 댓글은 "삭제된 댓글입니다." 로 표시됩니다.
+
+---
+
+### 3.8 댓글 개수 조회
+
+**Endpoint:** `GET /api/v1/study/{studyId}/comments/count`
+
+**설명:** 스터디의 전체 댓글 개수를 조회합니다.
+
+**Response:**
+```json
+15
+```
+
+---
+
+## 4. 에러 코드
 
 | 코드 | HTTP 상태 | 설명 |
 |------|-----------|------|
@@ -616,7 +831,7 @@ PATCH /api/v1/study/9/extend-recruitment
 
 ---
 
-## 4. Enum 값 정리
+## 5. Enum 값 정리
 
 ### StudyType (스터디 타입)
 - `PLANNED` - 계획형

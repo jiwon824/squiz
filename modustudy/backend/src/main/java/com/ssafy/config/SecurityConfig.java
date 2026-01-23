@@ -32,6 +32,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Swagger
                         .requestMatchers("/swagger-ui/**", "/api-docs/**", "/swagger-resources/**").permitAll()
+                        // Actuator (헬스체크)
+                        .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/ws/**").permitAll()
                         // SFU config for WebRTC clients
                         .requestMatchers("/api/v1/sfu/**").permitAll()
@@ -44,6 +46,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/studies/*/meetings/**").permitAll()
                         // Study - TODO: 나중에 인증 적용 필요
                         .requestMatchers("/api/v1/study/my").permitAll()
+                        .requestMatchers("/api/v1/my/**").permitAll()
                         .requestMatchers("/api/v1/study-templates/**").permitAll()
                         .requestMatchers("/api/v1/study/**").permitAll()
                         // 나머지는 인증 필요
@@ -64,6 +67,9 @@ public class SecurityConfig {
                 "http://192.168.100.90:3000",
                 "https://192.168.100.90:3000",
                 "https://modustudy.local:3000"
+                "http://localhost:3001",
+                "http://localhost:5173",
+                "https://i14d106.p.ssafy.io"
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("*"));

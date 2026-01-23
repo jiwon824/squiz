@@ -5,381 +5,385 @@
 ================================================================================
 [Epic] 로그인/회원가입
 ================================================================================
-[Story] SC-001-F 랜딩 페이지 UI                                         | 3pt
-[Story] SC-001-B 서비스 통계 API                                        | 2pt
+[Story] SC-001-F 랜딩 페이지 UI 구현                                         | 3pt
+[Story] SC-001-B 서비스 통계 API 구현                                        | 2pt
 
-[Story] SC-002-F 로그인 폼 UI                                           | 3pt
-[Story] SC-002-B 로그인/소셜로그인 API                                  | 5pt
+[Story] SC-002-F 로그인 폼 UI 구현                                          | 3pt
+[Story] SC-002-B 로그인/소셜로그인 API 구현                                     | 5pt
 
-[Story] SC-003-F 회원가입 폼 UI                                         | 3pt
-[Story] SC-003-B 회원가입/이메일인증 API                                | 5pt
+[Story] SC-003-F 회원가입 폼 UI 구현                                         | 3pt
+[Story] SC-003-B 회원가입/이메일인증 API 구현                                    | 5pt
 
 ================================================================================
 [Epic] 스터디 탐색
 ================================================================================
-[Story] SC-004-F 스터디 목록/검색/필터 UI                               | 5pt
-[Story] SC-004-B 스터디 목록/검색/필터 API                              | 5pt
+[Story] SC-004-F 스터디 목록/검색/필터 UI 구현                                   | 5pt
+[Story] SC-004-B 스터디 목록/검색/필터 API 구현                                  | 5pt
 
-[Story] SC-005-F 스터디 상세 UI                                         | 3pt
-[Story] SC-005-B 스터디 상세 조회 API                                   | 3pt
+[Story] SC-005-F 스터디 상세 UI 구현                                         | 3pt
+[Story] SC-005-B 스터디 상세 조회 API 구현                                     | 3pt
 
-[Story] SC-005-2-F 스터디장 프로필 모달 UI                              | 2pt
-[Story] SC-005-2-B 스터디장 정보/리뷰 API                               | 3pt
+[Story] SC-005-2-F 스터디장 프로필 모달 UI 구현                                  | 2pt
+[Story] SC-005-2-B 스터디장 정보/리뷰 API 구현                                  | 3pt
 
-[Story] SC-006-F 모집글 작성 폼 UI                                      | 5pt
-[Story] SC-006-B 모집글 CRUD API                                        | 5pt
+[Story] SC-006-F 모집글 작성 폼 UI 구현                                       | 5pt
+[Story] SC-006-B 모집글 CRUD API 구현                                      | 5pt
 
-[Story] SC-007-F 신청 목록 UI                                           | 3pt
-[Story] SC-007-B 신청 목록 조회 API                                     | 2pt
+[Story] SC-007-F 신청 목록 UI 구현                                          | 3pt
+[Story] SC-007-B 신청 목록 조회 API 구현                                      | 2pt
 
-[Story] SC-008-F 신청 관리 UI (승인/거절)                               | 3pt
-[Story] SC-008-B 신청 승인/거절 API                                     | 3pt
+[Story] SC-008-F 신청 관리 UI (승인/거절) 구현                                  | 3pt
+[Story] SC-008-B 신청 승인/거절 API 구현                                      | 3pt
 
-[Story] SC-009-F 템플릿 선택/저장 UI                                    | 3pt
-[Story] SC-009-B 템플릿 CRUD API                                        | 3pt
+[Story] SC-009-F 템플릿 선택/저장 UI 구현                                      | 3pt
+[Story] SC-009-B 템플릿 CRUD API 구현                                      | 3pt
+
+[Story] SC-255-B 스터디 탐색 목록 찜하기 기능 구현			                	| 3pt
 
 ================================================================================
 [Epic] 메인
 ================================================================================
-[Story] SC-010-F 홈 대시보드 UI                                         | 5pt
-[Story] SC-010-B 내 스터디 목록 API                                     | 3pt
+[Story] SC-010-F 홈 대시보드 UI 구현                                         | 5pt
+[Story] SC-010-B 내 스터디 목록 API 구현                                      | 3pt
 
-[Story] SC-011-F 사이드바 네비게이션 UI                                 | 3pt
-[Story] SC-011-B 채널/팀 목록 API                                       | 2pt
+[Story] SC-011-F 사이드바 네비게이션 UI 구현                                     | 3pt
+[Story] SC-011-B 채널/팀 목록 API 구현                                       | 2pt
 
 ================================================================================
 [Epic] 스터디 관리
 ================================================================================
-[Story] SC-024-F 모집 연장 모달 UI                                      | 2pt
-[Story] SC-024-B 모집 기간 연장 API                                     | 2pt
+[Story] SC-024-F 모집 연장 모달 UI 구현                                       | 2pt
+[Story] SC-024-B 모집 기간 연장 API 구현                                      | 2pt
 
-[Story] SC-025-F 임시 채널 UI                                           | 3pt
-[Story] SC-025-B 임시 채널 생성/관리 API                                | 3pt
+[Story] SC-025-F 임시 채널 UI 구현                                          | 3pt
+[Story] SC-025-B 임시 채널 생성/관리 API 구현                                   | 3pt
 
-[Story] SC-026-F 정식 전환 확인 모달 UI                                 | 2pt
-[Story] SC-026-B 정식 채널 전환 API                                     | 3pt
+[Story] SC-026-F 정식 전환 확인 모달 UI 구현                                    | 2pt
+[Story] SC-026-B 정식 채널 전환 API 구현                                      | 3pt
+
+[Story] SC-244-B 스터디 세션 API 구현                                         | 3pt
 
 ================================================================================
 [Epic] 채널
 ================================================================================
-[Story] SC-030-F 텍스트 채팅 UI (WebSocket)                             | 8pt
-[Story] SC-030-B 메시지 CRUD/WebSocket API                              | 8pt
+[Story] SC-030-F 텍스트 채팅 UI (WebSocket) 구현                             | 8pt
+[Story] SC-030-B 메시지 CRUD/WebSocket API 구현                            | 8pt
 
-[Story] SC-031-F 음성/화상 UI (WebRTC)                                  | 13pt
-[Story] SC-031-B WebRTC 시그널링 서버                                   | 13pt
+[Story] SC-031-F 음성/화상 UI (WebRTC) 구현                                 | 13pt
+[Story] SC-031-B WebRTC 시그널링 서버                                       | 13pt
 
-[Story] SC-032-F 채널 설정 모달 UI                                      | 3pt
-[Story] SC-032-B 채널 설정 API                                          | 3pt
+[Story] SC-032-F 채널 설정 모달 UI 구현                                       | 3pt
+[Story] SC-032-B 채널 설정 API 구현                                         | 3pt
 
 ================================================================================
 [Epic] 미팅
 ================================================================================
-[Story] SC-040-F 미팅 화면 UI (화상+STT)                                | 8pt
-[Story] SC-040-B 미팅 세션 관리 API                                     | 5pt
+[Story] SC-040-F 미팅 화면 UI (화상+STT) 구현                                 | 8pt
+[Story] SC-040-B 미팅 세션 관리 API 구현                                      | 5pt
 
-[Story] SC-041-F 미팅 기록 목록 UI                                      | 3pt
-[Story] SC-041-B 미팅 기록 조회 API                                     | 3pt
+[Story] SC-041-F 미팅 기록 목록 UI 구현                                       | 3pt
+[Story] SC-041-B 미팅 기록 조회 API 구현                                      | 3pt
 
-[Story] SC-042-F 미팅 상세 UI (요약/액션아이템)                         | 5pt
-[Story] SC-042-B 미팅 상세 조회 API                                     | 3pt
+[Story] SC-042-F 미팅 상세 UI (요약/액션아이템) 구현                               | 5pt
+[Story] SC-042-B 미팅 상세 조회 API 구현                                      | 3pt
 
 ================================================================================
 [Epic] 대시보드
 ================================================================================
-[Story] SC-070-F 팀 대시보드 UI                                         | 5pt
-[Story] SC-070-B 팀 통계/현황 API                                       | 5pt
+[Story] SC-070-F 팀 대시보드 UI 구현                                         | 5pt
+[Story] SC-070-B 팀 통계/현황 API 구현                                       | 5pt
 
-[Story] SC-081-F 개인 대시보드 UI                                       | 5pt
-[Story] SC-081-B 개인 활동 통계 API                                     | 3pt
+[Story] SC-081-F 개인 대시보드 UI 구현                                        | 5pt
+[Story] SC-081-B 개인 활동 통계 API 구현                                      | 3pt
 
-[Story] SC-082-F IT 뉴스 피드 UI                                        | 3pt
-[Story] SC-082-B IT 뉴스 크롤링/API                                     | 5pt
+[Story] SC-082-F IT 뉴스 피드 UI 구현                                       | 3pt
+[Story] SC-082-B IT 뉴스 크롤링/API 구현                                     | 5pt
 
-[Story] SC-083-F 인기 모집글 목록 UI                                    | 2pt
-[Story] SC-083-B 인기 모집글 조회 API                                   | 2pt
+[Story] SC-083-F 인기 모집글 목록 UI 구현                                      | 2pt
+[Story] SC-083-B 인기 모집글 조회 API 구현                                     | 2pt
 
 ================================================================================
 [Epic] 데일리/회고/자료
 ================================================================================
-[Story] SC-050-F 데일리 리포트 UI                                       | 5pt
-[Story] SC-050-B 데일리 리포트 조회 API                                 | 3pt
+[Story] SC-050-F 데일리 리포트 UI 구현                                        | 5pt
+[Story] SC-050-B 데일리 리포트 조회 API 구현                                    | 3pt
 
-[Story] SC-051-F 데일리 히스토리 UI                                     | 3pt
-[Story] SC-051-B 데일리 목록 API                                        | 2pt
+[Story] SC-051-F 데일리 히스토리 UI 구현                                       | 3pt
+[Story] SC-051-B 데일리 목록 API 구현                                        | 2pt
 
-[Story] SC-060-F 회고 목록 UI                                           | 3pt
-[Story] SC-060-B 회고 목록 API                                          | 2pt
+[Story] SC-060-F 회고 목록 UI 구현                                          | 3pt
+[Story] SC-060-B 회고 목록 API 구현                                         | 2pt
 
-[Story] SC-061-F 회고 작성 UI (KPT)                                     | 5pt
-[Story] SC-061-B 회고 CRUD API                                          | 3pt
+[Story] SC-061-F 회고 작성 UI (KPT) 구현                                    | 5pt
+[Story] SC-061-B 회고 CRUD API 구현                                       | 3pt
 
-[Story] SC-062-F 회고 분석 UI                                           | 3pt
-[Story] SC-062-B 회고 분석 API                                          | 5pt
+[Story] SC-062-F 회고 분석 UI 구현                                          | 3pt
+[Story] SC-062-B 회고 분석 API 구현                                         | 5pt
 
-[Story] SC-120-F 자료 목록 UI                                           | 3pt
-[Story] SC-120-B 자료 목록 API                                          | 2pt
+[Story] SC-120-F 자료 목록 UI 구현                                          | 3pt
+[Story] SC-120-B 자료 목록 API 구현                                         | 2pt
 
-[Story] SC-121-F 자료 상세 UI                                           | 3pt
-[Story] SC-121-B 자료 상세/댓글 API                                     | 3pt
+[Story] SC-121-F 자료 상세 UI 구현                                          | 3pt
+[Story] SC-121-B 자료 상세/댓글 API 구현                                      | 3pt
 
-[Story] SC-122-F 커리큘럼 UI                                            | 5pt
-[Story] SC-122-B 커리큘럼 CRUD API                                      | 5pt
+[Story] SC-122-F 커리큘럼 UI 구현                                           | 5pt
+[Story] SC-122-B 커리큘럼 CRUD API 구현                                     | 5pt
 
-[Story] SC-123-F 진도 현황 대시보드 UI                                  | 5pt
-[Story] SC-123-B 진도 현황 API                                          | 3pt
+[Story] SC-123-F 진도 현황 대시보드 UI 구현                                     | 5pt
+[Story] SC-123-B 진도 현황 API 구현                                         | 3pt
 
 ================================================================================
 [Epic] 설정/연동
 ================================================================================
-[Story] SC-100-F 프로필 설정 UI                                         | 3pt
-[Story] SC-100-B 프로필 수정 API                                        | 3pt
+[Story] SC-100-F 프로필 설정 UI 구현                                         | 3pt
+[Story] SC-100-B 프로필 수정 API 구현                                        | 3pt
 
-[Story] SC-101-F 알림 설정 UI                                           | 2pt
-[Story] SC-101-B 알림 설정 API                                          | 2pt
+[Story] SC-101-F 알림 설정 UI 구현                                          | 2pt
+[Story] SC-101-B 알림 설정 API 구현                                         | 2pt
 
-[Story] SC-102-F 개인정보 설정 UI                                       | 3pt
-[Story] SC-102-B 개인정보 설정 API                                      | 3pt
+[Story] SC-102-F 개인정보 설정 UI 구현                                        | 3pt
+[Story] SC-102-B 개인정보 설정 API 구현                                       | 3pt
 
-[Story] SC-110-F 캘린더 연동 UI                                         | 3pt
-[Story] SC-110-B Google Calendar OAuth API                              | 8pt
+[Story] SC-110-F 캘린더 연동 UI 구현                                         | 3pt
+[Story] SC-110-B Google Calendar OAuth API 구현                         | 8pt
 
-[Story] SC-112-F 연동 관리 UI                                           | 3pt
-[Story] SC-112-B 외부 서비스 연동 API                                   | 5pt
+[Story] SC-112-F 연동 관리 UI 구현                                          | 3pt
+[Story] SC-112-B 외부 서비스 연동 API 구현                                     | 5pt
 
 ================================================================================
 [Epic] 게이미피케이션
 ================================================================================
-[Story] SC-130-F 뱃지 목록 UI                                           | 3pt
-[Story] SC-130-B 뱃지 목록/조건 API                                     | 3pt
+[Story] SC-130-F 뱃지 목록 UI 구현                                          | 3pt
+[Story] SC-130-B 뱃지 목록/조건 API 구현                                      | 3pt
 
-[Story] SC-131-F 랭킹 UI                                                | 3pt
-[Story] SC-131-B 포인트 랭킹 API                                        | 3pt
+[Story] SC-131-F 랭킹 UI 구현                                             | 3pt
+[Story] SC-131-B 포인트 랭킹 API 구현                                        | 3pt
 
-[Story] SC-132-F 내 활동 UI                                             | 3pt
-[Story] SC-132-B 내 뱃지/레벨 API                                       | 3pt
+[Story] SC-132-F 내 활동 UI 구현                                           | 3pt
+[Story] SC-132-B 내 뱃지/레벨 API 구현                                       | 3pt
 
-[Story] SC-133-F 잔디 그래프 UI                                         | 5pt
-[Story] SC-133-B 활동 히스토리 API                                      | 3pt
+[Story] SC-133-F 잔디 그래프 UI 구현                                         | 5pt
+[Story] SC-133-B 활동 히스토리 API 구현                                       | 3pt
 
-[Story] SC-134-F 활동 통계 UI                                           | 3pt
-[Story] SC-134-B 활동 통계 API                                          | 3pt
+[Story] SC-134-F 활동 통계 UI 구현                                          | 3pt
+[Story] SC-134-B 활동 통계 API 구현                                         | 3pt
 
 ================================================================================
 [Epic] AI
 ================================================================================
-[Story] SC-141-F 일정 추천 모달 UI                                      | 3pt
-[Story] SC-141-B 일정 추천 API                                          | 5pt
+[Story] SC-141-F 일정 추천 모달 UI 구현                                       | 3pt
+[Story] SC-141-B 일정 추천 API 구현                                         | 5pt
 
-[Story] SC-142-F AI 피드백 입력 모달 UI                                 | 2pt
-[Story] SC-142-B 피드백 저장 API                                        | 2pt
+[Story] SC-142-F AI 피드백 입력 모달 UI 구현                                   | 2pt
+[Story] SC-142-B 피드백 저장 API 구현                                        | 2pt
 
-[Story] SC-144-F 미팅 결과 탭 UI                                        | 3pt
-[Story] SC-144-B 미팅 요약/전문 API                                     | 5pt
+[Story] SC-144-F 미팅 결과 탭 UI 구현                                        | 3pt
+[Story] SC-144-B 미팅 요약/전문 API 구현                                      | 5pt
 
-[Story] AI-001 vLLM 추론 서버 구축 (Qwen2.5-7B)                         | 8pt
-[Story] AI-002 Whisper STT 파이프라인 구축                              | 8pt
+[Story] AI-001 vLLM 추론 서버 구축 (Qwen2.5-7B)                             | 8pt
+[Story] AI-002 Whisper STT 파이프라인 구축                                   | 8pt
 [Story] AI-003 Milvus Vector DB 구축                                    | 5pt
-[Story] AI-004 RAG 파이프라인 구축 (bge-m3 + LangChain)                 | 8pt
+[Story] AI-004 RAG 파이프라인 구축 (bge-m3 + LangChain)                      | 8pt
 
-[Story] AI-010 Whisper 한국어 도메인 파인튜닝                           | 13pt
-[Story] AI-011 Qwen2.5 요약 LoRA 파인튜닝                               | 13pt
-[Story] AI-012 KoELECTRA 분류기 파인튜닝 (어제/오늘/블로커)             | 8pt
-[Story] AI-013 KoELECTRA 감정 분석 파인튜닝                             | 8pt
+[Story] AI-010 Whisper 한국어 도메인 파인튜닝                                   | 13pt
+[Story] AI-011 Qwen2.5 요약 LoRA 파인튜닝                                   | 13pt
+[Story] AI-012 KoELECTRA 분류기 파인튜닝 (어제/오늘/블로커)                         | 8pt
+[Story] AI-013 KoELECTRA 감정 분석 파인튜닝                                   | 8pt
 
-[Story] AI-020 미팅 STT 변환 API                                        | 5pt
-[Story] AI-021 화자 분리 API (pyannote)                                 | 8pt
-[Story] AI-022 미팅 요약 생성 API                                       | 5pt
-[Story] AI-023 액션 아이템 추출 API                                     | 5pt
-[Story] AI-024 데일리 자동 분류 API                                     | 5pt
-[Story] AI-025 데일리 리포트 생성 API                                   | 5pt
-[Story] AI-026 회고 초안 생성 API (RAG)                                 | 8pt
-[Story] AI-027 패턴 분석 API (RAG)                                      | 8pt
-[Story] AI-028 보고서 자동 생성 API                                     | 5pt
-[Story] AI-029 퀴즈 생성 API                                            | 5pt
-[Story] AI-030 스터디 추천 엔진                                         | 8pt
+[Story] AI-020 미팅 STT 변환 API 구현                                       | 5pt
+[Story] AI-021 화자 분리 API (pyannote)                                   | 8pt
+[Story] AI-022 미팅 요약 생성 API 구현                                        | 5pt
+[Story] AI-023 액션 아이템 추출 API 구현                                       | 5pt
+[Story] AI-024 데일리 자동 분류 API 구현                                       | 5pt
+[Story] AI-025 데일리 리포트 생성 API 구현                                      | 5pt
+[Story] AI-026 회고 초안 생성 API (RAG)                                     | 8pt
+[Story] AI-027 패턴 분석 API (RAG)                                        | 8pt
+[Story] AI-028 보고서 자동 생성 API 구현                                       | 5pt
+[Story] AI-029 퀴즈 생성 API 구현                                           | 5pt
+[Story] AI-030 스터디 추천 엔진                                              | 8pt
 
 ================================================================================
 [Epic] 어드민
 ================================================================================
-[Story] SC-150-F 어드민 대시보드 UI                                     | 5pt
-[Story] SC-150-B 전체 통계 API                                          | 5pt
+[Story] SC-150-F 어드민 대시보드 UI 구현                                       | 5pt
+[Story] SC-150-B 전체 통계 API 구현                                         | 5pt
 
-[Story] SC-151-F 사용자 관리 UI                                         | 5pt
-[Story] SC-151-B 사용자 조회/제재 API                                   | 5pt
+[Story] SC-151-F 사용자 관리 UI 구현                                         | 5pt
+[Story] SC-151-B 사용자 조회/제재 API 구현                                     | 5pt
 
-[Story] SC-152-F 신고 관리 UI                                           | 3pt
-[Story] SC-152-B 신고 처리 API                                          | 3pt
+[Story] SC-152-F 신고 관리 UI 구현                                          | 3pt
+[Story] SC-152-B 신고 처리 API 구현                                         | 3pt
 
-[Story] SC-153-F 공지사항 관리 UI                                       | 3pt
-[Story] SC-153-B 공지사항 CRUD API                                      | 3pt
+[Story] SC-153-F 공지사항 관리 UI 구현                                        | 3pt
+[Story] SC-153-B 공지사항 CRUD API 구현                                     | 3pt
 
-[Story] SC-154-F AI 피드백 대시보드 UI                                  | 3pt
-[Story] SC-154-B 피드백 통계 API                                        | 3pt
+[Story] SC-154-F AI 피드백 대시보드 UI 구현                                    | 3pt
+[Story] SC-154-B 피드백 통계 API 구현                                        | 3pt
 
 ================================================================================
 [Epic] 완료스터디
 ================================================================================
-[Story] SC-005-1-F 리뷰 작성/목록 UI                                    | 3pt
-[Story] SC-005-1-B 리뷰 CRUD API                                        | 3pt
+[Story] SC-005-1-F 리뷰 작성/목록 UI 구현                                     | 3pt
+[Story] SC-005-1-B 리뷰 CRUD API 구현                                     | 3pt
 
-[Story] SC-005-3-F 완료 스터디 상세 UI                                  | 3pt
-[Story] SC-005-3-B 완료 스터디 조회 API                                 | 2pt
+[Story] SC-005-3-F 완료 스터디 상세 UI 구현                                    | 3pt
+[Story] SC-005-3-B 완료 스터디 조회 API 구현                                   | 2pt
 
-[Story] SC-160-F 보고서 대시보드 UI                                     | 5pt
-[Story] SC-160-B 보고서 목록 API                                        | 3pt
+[Story] SC-160-F 보고서 대시보드 UI 구현                                       | 5pt
+[Story] SC-160-B 보고서 목록 API 구현                                        | 3pt
 
-[Story] SC-161-F 신청서 생성 UI                                         | 3pt
-[Story] SC-161-B 신청서 자동 생성 API                                   | 5pt
+[Story] SC-161-F 신청서 생성 UI 구현                                         | 3pt
+[Story] SC-161-B 신청서 자동 생성 API 구현                                     | 5pt
 
-[Story] SC-162-F 결과보고서 생성 UI                                     | 3pt
-[Story] SC-162-B 결과보고서 자동 생성 API                               | 5pt
+[Story] SC-162-F 결과보고서 생성 UI 구현                                       | 3pt
+[Story] SC-162-B 결과보고서 자동 생성 API 구현                                   | 5pt
 
-[Story] SC-163-F 보고서 미리보기 UI                                     | 3pt
-[Story] SC-163-B 보고서 조회 API                                        | 2pt
+[Story] SC-163-F 보고서 미리보기 UI 구현                                       | 3pt
+[Story] SC-163-B 보고서 조회 API 구현                                        | 2pt
 
-[Story] SC-164-F 보고서 이력 UI                                         | 3pt
-[Story] SC-164-B 보고서 이력/재생성 API                                 | 3pt
+[Story] SC-164-F 보고서 이력 UI 구현                                         | 3pt
+[Story] SC-164-B 보고서 이력/재생성 API 구현                                    | 3pt
 
 ================================================================================
 [Epic] 출석
 ================================================================================
-[Story] SC-170-F 출석 현황 UI                                           | 3pt
-[Story] SC-170-B 출석 현황 API                                          | 3pt
+[Story] SC-170-F 출석 현황 UI 구현                                          | 3pt
+[Story] SC-170-B 출석 현황 API 구현                                         | 3pt
 
-[Story] SC-171-F 출석 캘린더 UI                                         | 5pt
-[Story] SC-171-B 출석 기록 API                                          | 3pt
+[Story] SC-171-F 출석 캘린더 UI 구현                                         | 5pt
+[Story] SC-171-B 출석 기록 API 구현                                         | 3pt
 
-[Story] SC-172-F 세션 메모 UI                                           | 3pt
-[Story] SC-172-B 세션 메모 CRUD API                                     | 3pt
+[Story] SC-172-F 세션 메모 UI 구현                                          | 3pt
+[Story] SC-172-B 세션 메모 CRUD API 구현                                    | 3pt
 
-[Story] SC-173-F 소명 관리 UI                                           | 3pt
-[Story] SC-173-B 소명 CRUD/승인 API                                     | 3pt
+[Story] SC-173-F 소명 관리 UI 구현                                          | 3pt
+[Story] SC-173-B 소명 CRUD/승인 API 구현                                    | 3pt
 
 ================================================================================
 [Epic] 퀴즈대회
 ================================================================================
-[Story] SC-180-F 대회 목록 UI                                           | 3pt
-[Story] SC-180-B 대회 목록 API                                          | 2pt
+[Story] SC-180-F 대회 목록 UI 구현                                          | 3pt
+[Story] SC-180-B 대회 목록 API 구현                                         | 2pt
 
-[Story] SC-181-F 대회 상세 UI                                           | 3pt
-[Story] SC-181-B 대회 상세/참가 API                                     | 3pt
+[Story] SC-181-F 대회 상세 UI 구현                                          | 3pt
+[Story] SC-181-B 대회 상세/참가 API 구현                                      | 3pt
 
-[Story] SC-182-F 대기실 UI (WebSocket)                                  | 5pt
-[Story] SC-182-B 대기실 WebSocket API                                   | 5pt
+[Story] SC-182-F 대기실 UI (WebSocket) 구현                                | 5pt
+[Story] SC-182-B 대기실 WebSocket API 구현                                 | 5pt
 
-[Story] SC-183-F 실시간 퀴즈 UI                                         | 8pt
-[Story] SC-183-B 실시간 퀴즈 WebSocket API                              | 8pt
+[Story] SC-183-F 실시간 퀴즈 UI 구현                                         | 8pt
+[Story] SC-183-B 실시간 퀴즈 WebSocket API 구현                              | 8pt
 
-[Story] SC-184-F 대회 결과 UI                                           | 3pt
-[Story] SC-184-B 대회 결과 API                                          | 3pt
+[Story] SC-184-F 대회 결과 UI 구현                                          | 3pt
+[Story] SC-184-B 대회 결과 API 구현                                         | 3pt
 
-[Story] SC-185-F 역대 순위 UI                                           | 3pt
-[Story] SC-185-B 역대 순위 API                                          | 2pt
+[Story] SC-185-F 역대 순위 UI 구현                                          | 3pt
+[Story] SC-185-B 역대 순위 API 구현                                         | 2pt
 
-[Story] SC-186-F 내 대회 기록 UI                                        | 3pt
-[Story] SC-186-B 내 대회 기록 API                                       | 2pt
+[Story] SC-186-F 내 대회 기록 UI 구현                                        | 3pt
+[Story] SC-186-B 내 대회 기록 API 구현                                       | 2pt
 
-[Story] SC-187-F 꼬멘틀 게임 UI                                         | 5pt
-[Story] SC-187-B 꼬멘틀 게임 API                                        | 5pt
+[Story] SC-187-F 꼬멘틀 게임 UI 구현                                         | 5pt
+[Story] SC-187-B 꼬멘틀 게임 API 구현                                        | 5pt
 
-[Story] SC-188-F 꼬멘틀 결과 UI                                         | 3pt
-[Story] SC-188-B 꼬멘틀 결과/공유 API                                   | 3pt
+[Story] SC-188-F 꼬멘틀 결과 UI 구현                                         | 3pt
+[Story] SC-188-B 꼬멘틀 결과/공유 API 구현                                     | 3pt
 
 ================================================================================
 [Epic] 퀴즈코스
 ================================================================================
-[Story] SC-190-F 코스 목록 UI                                           | 3pt
-[Story] SC-190-B 코스 목록 API                                          | 2pt
+[Story] SC-190-F 코스 목록 UI 구현                                          | 3pt
+[Story] SC-190-B 코스 목록 API 구현                                         | 2pt
 
-[Story] SC-191-F 코스 상세 UI                                           | 3pt
-[Story] SC-191-B 코스 상세 API                                          | 3pt
+[Story] SC-191-F 코스 상세 UI 구현                                          | 3pt
+[Story] SC-191-B 코스 상세 API 구현                                         | 3pt
 
-[Story] SC-192-F 문제 풀이 UI                                           | 5pt
-[Story] SC-192-B 문제 조회 API                                          | 3pt
+[Story] SC-192-F 문제 풀이 UI 구현                                          | 5pt
+[Story] SC-192-B 문제 조회 API 구현                                         | 3pt
 
-[Story] SC-193-F 제출 결과 UI                                           | 3pt
-[Story] SC-193-B 답안 제출/채점 API                                     | 5pt
+[Story] SC-193-F 제출 결과 UI 구현                                          | 3pt
+[Story] SC-193-B 답안 제출/채점 API 구현                                      | 5pt
 
-[Story] SC-194-F 진행 현황 대시보드 UI                                  | 5pt
-[Story] SC-194-B 진행 현황 API                                          | 3pt
+[Story] SC-194-F 진행 현황 대시보드 UI 구현                                     | 5pt
+[Story] SC-194-B 진행 현황 API 구현                                         | 3pt
 
-[Story] SC-195-F 카테고리 퀴즈 목록 UI                                  | 3pt
-[Story] SC-195-B 카테고리 퀴즈 API                                      | 2pt
+[Story] SC-195-F 카테고리 퀴즈 목록 UI 구현                                     | 3pt
+[Story] SC-195-B 카테고리 퀴즈 API 구현                                       | 2pt
 
-[Story] SC-196-F 소분류 퀴즈 목록 UI                                    | 3pt
-[Story] SC-196-B 소분류 퀴즈 API                                        | 2pt
+[Story] SC-196-F 소분류 퀴즈 목록 UI 구현                                      | 3pt
+[Story] SC-196-B 소분류 퀴즈 API 구현                                        | 2pt
 
 ================================================================================
 [Epic] 친구
 ================================================================================
-[Story] SC-200-F 친구 목록 UI                                           | 3pt
-[Story] SC-200-B 친구 목록 API                                          | 2pt
+[Story] SC-200-F 친구 목록 UI 구현                                          | 3pt
+[Story] SC-200-B 친구 목록 API 구현                                         | 2pt
 
-[Story] SC-201-F 친구 검색 UI                                           | 3pt
-[Story] SC-201-B 사용자 검색 API                                        | 3pt
+[Story] SC-201-F 친구 검색 UI 구현                                          | 3pt
+[Story] SC-201-B 사용자 검색 API 구현                                        | 3pt
 
-[Story] SC-202-F 친구 요청 UI                                           | 3pt
-[Story] SC-202-B 친구 요청 CRUD API                                     | 3pt
+[Story] SC-202-F 친구 요청 UI 구현                                          | 3pt
+[Story] SC-202-B 친구 요청 CRUD API 구현                                    | 3pt
 
-[Story] SC-203-F 사용자 프로필 모달 UI                                  | 3pt
-[Story] SC-203-B 사용자 프로필 API                                      | 2pt
+[Story] SC-203-F 사용자 프로필 모달 UI 구현                                     | 3pt
+[Story] SC-203-B 사용자 프로필 API 구현                                       | 2pt
 
-[Story] SC-204-F 차단 관리 UI                                           | 2pt
-[Story] SC-204-B 차단 CRUD API                                          | 2pt
+[Story] SC-204-F 차단 관리 UI 구현                                          | 2pt
+[Story] SC-204-B 차단 CRUD API 구현                                       | 2pt
 
 ================================================================================
 [Epic] DM
 ================================================================================
-[Story] SC-210-F DM 목록 UI                                             | 3pt
-[Story] SC-210-B DM 목록 API                                            | 2pt
+[Story] SC-210-F DM 목록 UI 구현                                          | 3pt
+[Story] SC-210-B DM 목록 API 구현                                         | 2pt
 
-[Story] SC-211-F DM 채팅 UI (WebSocket)                                 | 5pt
-[Story] SC-211-B DM 메시지 WebSocket API                                | 5pt
+[Story] SC-211-F DM 채팅 UI (WebSocket) 구현                              | 5pt
+[Story] SC-211-B DM 메시지 WebSocket API 구현                              | 5pt
 
 ================================================================================
 [Epic] 자유게시판
 ================================================================================
-[Story] SC-220-F 게시판 목록 UI                                         | 3pt
-[Story] SC-220-B 게시글 목록/검색 API                                   | 3pt
+[Story] SC-220-F 게시판 목록 UI 구현                                         | 3pt
+[Story] SC-220-B 게시글 목록/검색 API 구현                                     | 3pt
 
-[Story] SC-221-F 게시글 작성 UI                                         | 3pt
-[Story] SC-221-B 게시글 CRUD API                                        | 3pt
+[Story] SC-221-F 게시글 작성 UI 구현                                         | 3pt
+[Story] SC-221-B 게시글 CRUD API 구현                                      | 3pt
 
-[Story] SC-222-F 게시글 상세 UI                                         | 3pt
-[Story] SC-222-B 게시글 상세/댓글 API                                   | 3pt
+[Story] SC-222-F 게시글 상세 UI 구현                                         | 3pt
+[Story] SC-222-B 게시글 상세/댓글 API 구현                                     | 3pt
 
 ================================================================================
 [Epic] 팀원모집
 ================================================================================
-[Story] SC-230-F 모집 목록 UI                                           | 3pt
-[Story] SC-230-B 모집글 목록/검색 API                                   | 3pt
+[Story] SC-230-F 모집 목록 UI 구현                                          | 3pt
+[Story] SC-230-B 모집글 목록/검색 API 구현                                     | 3pt
 
-[Story] SC-231-F 모집글 작성 UI                                         | 3pt
-[Story] SC-231-B 모집글 CRUD API                                        | 3pt
+[Story] SC-231-F 모집글 작성 UI 구현                                         | 3pt
+[Story] SC-231-B 모집글 CRUD API 구현                                      | 3pt
 
-[Story] SC-232-F 모집글 상세 UI                                         | 3pt
-[Story] SC-232-B 모집글 상세 API                                        | 2pt
+[Story] SC-232-F 모집글 상세 UI 구현                                         | 3pt
+[Story] SC-232-B 모집글 상세 API 구현                                        | 2pt
 
-[Story] SC-233-F 지원 모달 UI                                           | 2pt
-[Story] SC-233-B 지원 CRUD API                                          | 3pt
+[Story] SC-233-F 지원 모달 UI 구현                                          | 2pt
+[Story] SC-233-B 지원 CRUD API 구현                                       | 3pt
 
-[Story] SC-234-F 지원자 관리 UI                                         | 3pt
-[Story] SC-234-B 지원 승인/거절 API                                     | 3pt
+[Story] SC-234-F 지원자 관리 UI 구현                                         | 3pt
+[Story] SC-234-B 지원 승인/거절 API 구현                                      | 3pt
 
 ================================================================================
 [Epic] 스터디복습퀴즈
 ================================================================================
-[Story] SC-240-F 복습퀴즈 홈 UI                                         | 3pt
-[Story] SC-240-B 복습퀴즈 목록 API                                      | 2pt
+[Story] SC-240-F 복습퀴즈 홈 UI 구현                                         | 3pt
+[Story] SC-240-B 복습퀴즈 목록 API 구현                                       | 2pt
 
-[Story] SC-241-F 퀴즈 풀이 UI                                           | 5pt
-[Story] SC-241-B 퀴즈 문제 조회 API                                     | 3pt
+[Story] SC-241-F 퀴즈 풀이 UI 구현                                          | 5pt
+[Story] SC-241-B 퀴즈 문제 조회 API 구현                                      | 3pt
 
-[Story] SC-242-F 퀴즈 결과 UI                                           | 3pt
-[Story] SC-242-B 답안 제출/채점 API                                     | 5pt
+[Story] SC-242-F 퀴즈 결과 UI 구현                                          | 3pt
+[Story] SC-242-B 답안 제출/채점 API 구현                                      | 5pt
 
-[Story] SC-243-F 오답 노트 UI                                           | 3pt
-[Story] SC-243-B 오답 노트 조회 API                                     | 2pt
+[Story] SC-243-F 오답 노트 UI 구현                                          | 3pt
+[Story] SC-243-B 오답 노트 조회 API 구현                                      | 2pt
 
 
 ################################################################################
@@ -389,226 +393,226 @@
 ================================================================================
 [Epic] 공통
 ================================================================================
-[Story] M-001-F 스플래시 화면                                           | 1pt
+[Story] M-001-F 스플래시 화면                                               | 1pt
 
-[Story] M-002-F 소셜 로그인 UI                                          | 3pt
+[Story] M-002-F 소셜 로그인 UI 구현                                          | 3pt
 
-[Story] M-003-F 추가 정보 입력 UI                                       | 3pt
+[Story] M-003-F 추가 정보 입력 UI 구현                                        | 3pt
 
 ================================================================================
 [Epic] 홈
 ================================================================================
-[Story] M-010-F 홈 대시보드 UI                                          | 5pt
+[Story] M-010-F 홈 대시보드 UI 구현                                          | 5pt
 
-[Story] M-011-F 알림 목록 UI                                            | 3pt
+[Story] M-011-F 알림 목록 UI 구현                                           | 3pt
 
 ================================================================================
 [Epic] 스터디 탐색
 ================================================================================
-[Story] M-020-F 스터디 검색/필터 UI                                     | 5pt
+[Story] M-020-F 스터디 검색/필터 UI 구현                                       | 5pt
 
-[Story] M-021-F 스터디 상세 UI                                          | 3pt
+[Story] M-021-F 스터디 상세 UI 구현                                          | 3pt
 
-[Story] M-022-F 댓글 목록/작성 UI                                       | 3pt
+[Story] M-022-F 댓글 목록/작성 UI 구현                                        | 3pt
 
-[Story] M-023-F 찜 목록 UI                                              | 2pt
+[Story] M-023-F 찜 목록 UI 구현                                            | 2pt
 
-[Story] M-024-F 신청 목록 UI                                            | 3pt
+[Story] M-024-F 신청 목록 UI 구현                                           | 3pt
 
-[Story] M-025-F 템플릿 선택 UI                                          | 3pt
+[Story] M-025-F 템플릿 선택 UI 구현                                          | 3pt
 
-[Story] M-027-F 스터디장 프로필 UI                                      | 2pt
+[Story] M-027-F 스터디장 프로필 UI 구현                                        | 2pt
 
 ================================================================================
 [Epic] 완료스터디
 ================================================================================
-[Story] M-026-F 리뷰 작성/목록 UI                                       | 3pt
+[Story] M-026-F 리뷰 작성/목록 UI 구현                                        | 3pt
 
-[Story] M-028-F 완료 스터디 상세 UI                                     | 3pt
+[Story] M-028-F 완료 스터디 상세 UI 구현                                       | 3pt
 
 ================================================================================
 [Epic] 내 스터디
 ================================================================================
-[Story] M-030-F 내 스터디 목록 UI                                       | 3pt
+[Story] M-030-F 내 스터디 목록 UI 구현                                        | 3pt
 
-[Story] M-031-F 스터디 홈 대시보드 UI                                   | 5pt
+[Story] M-031-F 스터디 홈 대시보드 UI 구현                                      | 5pt
 
-[Story] M-032-F 채널 목록 UI                                            | 3pt
+[Story] M-032-F 채널 목록 UI 구현                                           | 3pt
 
-[Story] M-033-F 채팅 UI                                                 | 5pt
+[Story] M-033-F 채팅 UI 구현                                              | 5pt
 
-[Story] M-039-F 팀 대시보드 UI                                          | 5pt
+[Story] M-039-F 팀 대시보드 UI 구현                                          | 5pt
 
-[Story] M-039-1-F 신청 관리 UI                                          | 3pt
+[Story] M-039-1-F 신청 관리 UI 구현                                         | 3pt
 
-[Story] M-039-2-F 모집 연장 모달 UI                                     | 2pt
+[Story] M-039-2-F 모집 연장 모달 UI 구현                                      | 2pt
 
-[Story] M-039-3-F 임시 채널 UI                                          | 3pt
+[Story] M-039-3-F 임시 채널 UI 구현                                         | 3pt
 
-[Story] M-039-4-F 정식 전환 모달 UI                                     | 2pt
+[Story] M-039-4-F 정식 전환 모달 UI 구현                                      | 2pt
 
 ================================================================================
 [Epic] BLE 출석
 ================================================================================
-[Story] M-040-F HCE 모드 활성화 UI                                      | 5pt
+[Story] M-040-F HCE 모드 활성화 UI 구현                                      | 5pt
 
-[Story] M-041-F BLE 리더 모드 UI                                        | 5pt
+[Story] M-041-F BLE 리더 모드 UI 구현                                       | 5pt
 
-[Story] M-042-F 출석 성공 팝업 UI                                       | 2pt
+[Story] M-042-F 출석 성공 팝업 UI 구현                                        | 2pt
 
-[Story] M-043-F 셀프 출석 UI                                            | 3pt
+[Story] M-043-F 셀프 출석 UI 구현                                           | 3pt
 
-[Story] M-044-F 출석 캘린더 UI                                          | 5pt
+[Story] M-044-F 출석 캘린더 UI 구현                                          | 5pt
 
-[Story] M-045-F 세션 메모 UI                                            | 3pt
+[Story] M-045-F 세션 메모 UI 구현                                           | 3pt
 
 ================================================================================
 [Epic] 일정
 ================================================================================
-[Story] M-050-F 일정 목록 UI                                            | 3pt
+[Story] M-050-F 일정 목록 UI 구현                                           | 3pt
 
-[Story] M-051-F 일정 캘린더 UI                                          | 5pt
+[Story] M-051-F 일정 캘린더 UI 구현                                          | 5pt
 
-[Story] M-052-F 일정 상세 UI                                            | 3pt
+[Story] M-052-F 일정 상세 UI 구현                                           | 3pt
 
-[Story] M-053-F 캘린더 연동 UI                                          | 3pt
+[Story] M-053-F 캘린더 연동 UI 구현                                          | 3pt
 
 ================================================================================
 [Epic] 퀴즈
 ================================================================================
-[Story] M-060-F 퀴즈 홈 UI                                              | 3pt
+[Story] M-060-F 퀴즈 홈 UI 구현                                            | 3pt
 
-[Story] M-061-F 퀴즈 풀이 UI                                            | 5pt
+[Story] M-061-F 퀴즈 풀이 UI 구현                                           | 5pt
 
-[Story] M-062-F 퀴즈 결과 UI                                            | 3pt
+[Story] M-062-F 퀴즈 결과 UI 구현                                           | 3pt
 
-[Story] M-063-F 오답 노트 UI                                            | 3pt
+[Story] M-063-F 오답 노트 UI 구현                                           | 3pt
 
-[Story] M-064-F 오답 복습 UI                                            | 3pt
+[Story] M-064-F 오답 복습 UI 구현                                           | 3pt
 
 ================================================================================
 [Epic] 퀴즈 대회
 ================================================================================
-[Story] M-070-F 대회 목록 UI                                            | 3pt
+[Story] M-070-F 대회 목록 UI 구현                                           | 3pt
 
-[Story] M-071-F 대기실 UI                                               | 5pt
+[Story] M-071-F 대기실 UI 구현                                             | 5pt
 
-[Story] M-072-F 실시간 퀴즈 UI                                          | 8pt
+[Story] M-072-F 실시간 퀴즈 UI 구현                                          | 8pt
 
-[Story] M-073-F 대회 결과 UI                                            | 3pt
+[Story] M-073-F 대회 결과 UI 구현                                           | 3pt
 
-[Story] M-074-F 역대 순위 UI                                            | 3pt
+[Story] M-074-F 역대 순위 UI 구현                                           | 3pt
 
-[Story] M-075-F 결과 상세 UI                                            | 3pt
+[Story] M-075-F 결과 상세 UI 구현                                           | 3pt
 
-[Story] M-076-F 내 대회 기록 UI                                         | 3pt
+[Story] M-076-F 내 대회 기록 UI 구현                                         | 3pt
 
-[Story] M-077-F 꼬멘틀 게임 UI                                          | 5pt
+[Story] M-077-F 꼬멘틀 게임 UI 구현                                          | 5pt
 
-[Story] M-078-F 꼬멘틀 결과 UI                                          | 3pt
+[Story] M-078-F 꼬멘틀 결과 UI 구현                                          | 3pt
 
 ================================================================================
 [Epic] 퀴즈 코스
 ================================================================================
-[Story] M-080-F 코스 목록 UI                                            | 3pt
+[Story] M-080-F 코스 목록 UI 구현                                           | 3pt
 
-[Story] M-081-F 코스 상세 UI                                            | 3pt
+[Story] M-081-F 코스 상세 UI 구현                                           | 3pt
 
-[Story] M-082-F 문제 풀이 UI                                            | 5pt
+[Story] M-082-F 문제 풀이 UI 구현                                           | 5pt
 
-[Story] M-083-F 섹션 결과 UI                                            | 3pt
+[Story] M-083-F 섹션 결과 UI 구현                                           | 3pt
 
-[Story] M-084-F 진행 현황 UI                                            | 3pt
+[Story] M-084-F 진행 현황 UI 구현                                           | 3pt
 
-[Story] M-085-F 해금 알림 팝업 UI                                       | 2pt
+[Story] M-085-F 해금 알림 팝업 UI 구현                                        | 2pt
 
-[Story] M-086-F 뱃지 획득 팝업 UI                                       | 2pt
+[Story] M-086-F 뱃지 획득 팝업 UI 구현                                        | 2pt
 
-[Story] M-087-F 카테고리 퀴즈 UI                                        | 3pt
+[Story] M-087-F 카테고리 퀴즈 UI 구현                                         | 3pt
 
-[Story] M-088-F 소분류 퀴즈 UI                                          | 3pt
+[Story] M-088-F 소분류 퀴즈 UI 구현                                          | 3pt
 
 ================================================================================
 [Epic] 데일리/회고/자료
 ================================================================================
-[Story] M-034-F 자료실 UI                                               | 3pt
+[Story] M-034-F 자료실 UI 구현                                             | 3pt
 
-[Story] M-035-F 자료 상세 UI                                            | 3pt
+[Story] M-035-F 자료 상세 UI 구현                                           | 3pt
 
-[Story] M-036-F 자료 업로드 UI                                          | 3pt
+[Story] M-036-F 자료 업로드 UI 구현                                          | 3pt
 
-[Story] M-037-F 커리큘럼 UI                                             | 3pt
+[Story] M-037-F 커리큘럼 UI 구현                                            | 3pt
 
-[Story] M-038-F 진도 현황 UI                                            | 3pt
+[Story] M-038-F 진도 현황 UI 구현                                           | 3pt
 
-[Story] M-090-F 데일리 리포트 UI                                        | 5pt
+[Story] M-090-F 데일리 리포트 UI 구현                                         | 5pt
 
-[Story] M-091-F 데일리 히스토리 UI                                      | 3pt
+[Story] M-091-F 데일리 히스토리 UI 구현                                        | 3pt
 
-[Story] M-092-F 회고 목록 UI                                            | 3pt
+[Story] M-092-F 회고 목록 UI 구현                                           | 3pt
 
-[Story] M-093-F 회고 작성 UI                                            | 5pt
+[Story] M-093-F 회고 작성 UI 구현                                           | 5pt
 
 ================================================================================
 [Epic] 마이페이지
 ================================================================================
-[Story] M-100-F 마이페이지 UI                                           | 3pt
+[Story] M-100-F 마이페이지 UI 구현                                           | 3pt
 
-[Story] M-101-F 프로필 수정 UI                                          | 3pt
+[Story] M-101-F 프로필 수정 UI 구현                                          | 3pt
 
-[Story] M-102-F 알림 설정 UI                                            | 2pt
+[Story] M-102-F 알림 설정 UI 구현                                           | 2pt
 
-[Story] M-103-F 내 활동 UI                                              | 3pt
+[Story] M-103-F 내 활동 UI 구현                                            | 3pt
 
-[Story] M-104-F 잔디 그래프 UI                                          | 5pt
+[Story] M-104-F 잔디 그래프 UI 구현                                          | 5pt
 
-[Story] M-105-F 날짜별 활동 UI                                          | 3pt
+[Story] M-105-F 날짜별 활동 UI 구현                                          | 3pt
 
-[Story] M-106-F 개인정보 설정 UI                                        | 3pt
+[Story] M-106-F 개인정보 설정 UI 구현                                         | 3pt
 
 ================================================================================
 [Epic] 친구
 ================================================================================
-[Story] M-110-F 친구 목록 UI                                            | 3pt
+[Story] M-110-F 친구 목록 UI 구현                                           | 3pt
 
-[Story] M-111-F 친구 검색 UI                                            | 3pt
+[Story] M-111-F 친구 검색 UI 구현                                           | 3pt
 
-[Story] M-112-F 친구 요청 UI                                            | 3pt
+[Story] M-112-F 친구 요청 UI 구현                                           | 3pt
 
-[Story] M-113-F 사용자 프로필 UI                                        | 3pt
+[Story] M-113-F 사용자 프로필 UI 구현                                         | 3pt
 
-[Story] M-114-F 차단 목록 UI                                            | 2pt
+[Story] M-114-F 차단 목록 UI 구현                                           | 2pt
 
 ================================================================================
 [Epic] DM
 ================================================================================
-[Story] M-120-F DM 목록 UI                                              | 3pt
+[Story] M-120-F DM 목록 UI 구현                                           | 3pt
 
-[Story] M-121-F DM 채팅 UI                                              | 5pt
+[Story] M-121-F DM 채팅 UI 구현                                           | 5pt
 
 ================================================================================
 [Epic] 자유게시판
 ================================================================================
-[Story] M-130-F 게시판 목록 UI                                          | 3pt
+[Story] M-130-F 게시판 목록 UI 구현                                          | 3pt
 
-[Story] M-132-F 게시글 작성 UI                                          | 3pt
+[Story] M-132-F 게시글 작성 UI 구현                                          | 3pt
 
-[Story] M-133-F 게시글 상세 UI                                          | 3pt
+[Story] M-133-F 게시글 상세 UI 구현                                          | 3pt
 
 ================================================================================
 [Epic] 팀원모집
 ================================================================================
-[Story] M-140-F 모집 목록 UI                                            | 3pt
+[Story] M-140-F 모집 목록 UI 구현                                           | 3pt
 
-[Story] M-141-F 모집글 작성 UI                                          | 3pt
+[Story] M-141-F 모집글 작성 UI 구현                                          | 3pt
 
-[Story] M-142-F 모집글 상세 UI                                          | 3pt
+[Story] M-142-F 모집글 상세 UI 구현                                          | 3pt
 
-[Story] M-143-F 지원 UI                                                 | 2pt
+[Story] M-143-F 지원 UI 구현                                              | 2pt
 
-[Story] M-144-F 지원 현황 UI                                            | 3pt
+[Story] M-144-F 지원 현황 UI 구현                                           | 3pt
 
 ================================================================================
 [Epic] AI
 ================================================================================
-[Story] M-131-F 스터디 추천 UI                                          | 3pt
+[Story] M-131-F 스터디 추천 UI 구현                                          | 3pt
