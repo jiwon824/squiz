@@ -1,7 +1,7 @@
 // QuizWidget.tsx - quizService와 연동
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { fetchYesterdayWord, fetchDailyWord } from '@/features/quiz/services/quizService';
+import { fetchYesterdayWord, fetchDailyWord } from '../../quiz/services/quizService';
 import './QuizWidget.css';
 
 export const QuizWidget = () => {
@@ -42,7 +42,7 @@ export const QuizWidget = () => {
     }, []);
 
     return (
-        <div className="quiz-action-widget" onClick={() => navigate('/commentle')}>
+        <div className="quiz-action-widget" onClick={() => navigate('/quiz-commentle')}>
             <div className="quiz-action-content">
                 <div className="action-info">
                     <h3>꼬멘틀 <span className="accent-blue">CS ver</span></h3>

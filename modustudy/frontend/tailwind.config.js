@@ -7,17 +7,73 @@ export default {
   theme: {
     extend: {
       colors: {
-        'study-bg': '#FFF7DD',    // 배경 & 사이드바
-        'study-blue': '#80A1BA',  // 메인 포인트 (신뢰)
-        'study-teal': '#91C4C3',  // 보조 포인트 (퀴즈)
-        'study-green': '#B4DEBD', // 액센트 (스터디/완료)
-        'study-text': '#454A4F',  // 기본 텍스트
+        // 🎯 CSS 변수 기반 색상 시스템 (index.css와 연동)
+        primary: {
+          DEFAULT: 'var(--color-primary)',      // #80A1BA
+          light: 'var(--color-primary-light)',  // #9BB5CA  
+          dark: 'var(--color-primary-dark)',    // #6A8AA3
+          50: 'var(--color-primary-alpha-10)',
+          100: 'var(--color-primary-alpha-20)',
+          300: 'var(--color-primary-alpha-30)',
+        },
+        secondary: {
+          DEFAULT: 'var(--color-secondary)',     // #91C4C3
+          light: 'var(--color-secondary-light)', // #A8D4D3
+          dark: 'var(--color-secondary-dark)',   // #7AB3B2  
+          50: 'var(--color-secondary-alpha-10)',
+          100: 'var(--color-secondary-alpha-20)',
+          300: 'var(--color-secondary-alpha-30)',
+        },
+        accent: {
+          DEFAULT: 'var(--color-accent)',       // #B4DEBD
+          light: 'var(--color-accent-light)',  // #C7E8CE
+          dark: 'var(--color-accent-dark)',    // #9FD1A9
+          50: 'var(--color-accent-alpha-10)',
+          100: 'var(--color-accent-alpha-20)',
+          300: 'var(--color-accent-alpha-30)',
+        },
+        background: {
+          DEFAULT: 'var(--color-background)',           // #FFF7DD
+          secondary: 'var(--color-background-secondary)', // #FFF9E6
+          tertiary: 'var(--color-background-tertiary)',   // #FFFBF0
+        },
+        surface: {
+          DEFAULT: 'var(--color-surface)',      // #FFFFFF
+          hover: 'var(--color-surface-hover)',  // #FFFEF8
+        },
+        text: {
+          primary: 'var(--color-text-primary)',     // #454A4F
+          secondary: 'var(--color-text-secondary)', // #5A6C7D
+          tertiary: 'var(--color-text-tertiary)',   // #8A9BA8
+          inverse: 'var(--color-text-inverse)',     // #FFFFFF
+        },
+        // 상태 색상 (의미론적)
+        success: 'var(--color-success)',    // #B4DEBD (accent와 동일)
+        warning: 'var(--color-warning)',    // #FFD88D
+        error: 'var(--color-error)',        // #F4A5A5
+        info: 'var(--color-info)',          // #91C4C3 (secondary와 동일)
+
+        // 퀴즈 전용 색상 (하드코딩)
+        quiz: {
+          success: '#22c55e',   // 90-100점
+          info: '#3b82f6',      // 75-89점  
+          focus: '#a855f7',     // 50-74점
+          warning: '#f59e0b',   // 25-49점
+          danger: '#ef4444',    // 0-24점
+        },
+
+        // 레거시 호환 (단계적 제거 예정)
+        'study-bg': 'var(--color-bg)',
+        'study-blue': 'var(--color-primary)',
+        'study-teal': 'var(--color-secondary)',
+        'study-green': 'var(--color-accent)',
+        'study-text': 'var(--color-text-primary)',
       },
       borderRadius: {
-        'google': '12px',         // 구글스러운 라운드 값
+        'google': '12px',
       },
       fontFamily: {
-        'sans': ['Spoqa Han Sans Neo', 'sans-serif'],
+        'sans': ['Pretendard', 'var(--font-primary)', 'sans-serif'],
       },
     },
   },
