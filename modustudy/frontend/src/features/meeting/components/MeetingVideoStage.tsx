@@ -54,9 +54,13 @@ const MeetingVideoStage: React.FC<MeetingVideoStageProps> = ({
     const primaryRemote =
         remoteVideoStreams.find((item) => item.isPresenter) || remoteVideoStreams[0] || null;
     const showRemote = !localIsPresenter;
+    const hasSingleTile = Boolean((localIsPresenter && localStream) || (showRemote && primaryRemote));
 
     return (
-        <div className="meeting-video-stage" ref={containerRef}>
+        <div
+            className={`meeting-video-stage${hasSingleTile ? ' meeting-video-stage--single' : ''}`}
+            ref={containerRef}
+        >
             {localIsPresenter && localStream && (
                 <VideoTile stream={localStream} label={`${localLabel} (나)`} isPresenter isLocal />
             )}
