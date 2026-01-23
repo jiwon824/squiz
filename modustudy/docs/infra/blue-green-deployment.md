@@ -356,7 +356,7 @@ services:
 networks:
   squiz-network:
     external: true
-    name: modustudy_squiz-network
+    name: squiz_squiz-network
 ```
 
 #### docker-compose.green.yml
@@ -455,7 +455,7 @@ services:
 networks:
   squiz-network:
     external: true
-    name: modustudy_squiz-network
+    name: squiz_squiz-network
 ```
 
 #### docker-compose.proxy.yml
@@ -481,7 +481,7 @@ services:
 networks:
   squiz-network:
     external: true
-    name: modustudy_squiz-network
+    name: squiz_squiz-network
 ```
 
 ### 4.2 Nginx 설정

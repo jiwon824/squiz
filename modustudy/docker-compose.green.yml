@@ -89,4 +89,4 @@ services:
 networks:
   squiz-network:
     external: true
-    name: modustudy_squiz-network
+    name: squiz_squiz-network
