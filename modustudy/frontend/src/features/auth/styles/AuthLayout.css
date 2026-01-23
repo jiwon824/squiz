@@ -9,7 +9,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--color-bg);
+    background: #F8F9FA;
     padding: 2rem;
     overflow: hidden;
     position: relative;

@@ -7,7 +7,7 @@ import { Sidebar } from './components/Sidebar';
 import { RightSideBar } from './components/RightSideBar';
 import { useUIStore } from '@/store/uiStore';
 import { useAuthStore } from '@/store/authStore';
-import { SquizLogo } from '@/shared/components/SquizLogo';
+import { SquizLogoNew } from '@/shared/components/SquizLogoNew';
 
 interface MainLayoutProps {
     children: React.ReactNode;
@@ -54,9 +54,11 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
     return (
         <div className="flex flex-col h-screen bg-study-bg overflow-hidden">
+            {/* 헤더 - 회의 룸에서는 숨김 */}
             {!shouldHideHeader && (
                 <header className="h-16 w-full bg-study-bg flex items-center justify-between px-6 flex-shrink-0 z-50">
                     <div className="flex items-center gap-4">
+                        {/* 사이드바 토글 버튼 */}
                         <button
                             onClick={toggleSidebar}
                             className="p-2 rounded-google hover:bg-study-blue/10 transition-colors"
@@ -67,11 +69,13 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                             </span>
                         </button>
 
+                        {/* 로고 영역 */}
                         <Link to="/dashboard" className="flex items-center">
-                            <SquizLogo width={120} height={40} className="scale-110 origin-left" />
+                            <SquizLogoNew width={160} height={55} className="scale-110 origin-left" />
                         </Link>
                     </div>
 
+                    {/* 우측 인증 영역 */}
                     <div className="flex items-center gap-3 pr-14 h-full">
                         <div className="w-px h-6 bg-study-blue/20 mx-1" />
 
@@ -125,6 +129,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                     layout
                     transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                 >
+                    {/* 페이지 콘텐츠 */}
                     <div
                         className={`flex-1 overflow-auto ${shouldHideHeader ? 'pt-0' : 'pt-2'} pb-6 bg-study-bg transition-all duration-300 ${
                             isSidebarOpen ? 'pl-6' : 'pl-0'

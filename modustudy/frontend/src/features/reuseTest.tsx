@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Button, Input, Modal, Card } from '@/shared/components';
-import { ChevronLeft, ArrowLeft, ChevronRight, X, Heart, Users, Star, Clock, Award, Check, Calendar } from 'lucide-react';
+import { Button, Input, Modal, Card, BackButton, ArrowButton } from '@/shared/components';
+import { X, Heart, Users, Star, Clock, Award, Check, Calendar, ChevronRight } from 'lucide-react';
+import { cn } from '@/shared/utils/cn';
 
 const ReuseTest = () => {
     const [isOpened, setIsOpened] = useState(false);
@@ -17,25 +18,25 @@ const ReuseTest = () => {
                 </h2>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {/* 뒤로가기 버튼 3종 */}
+                    {/* 백버튼 3종 */}
                     <article className="space-y-4 p-6 bg-white rounded-3xl shadow-sm">
                         <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Back Buttons (3 Types)</h3>
                         <div className="flex items-center gap-4">
-                            {/* Type 1: 기본 고스트 원형 */}
-                            <Button variant="google-ghost" isCircle size="md"><ChevronLeft size={24} /></Button>
-                            {/* Type 2: 보더 아웃라인 */}
-                            <Button variant="google-outline" isCircle size="md"><ArrowLeft size={20} /></Button>
-                            {/* Type 3: 텍스트 포함 아웃라인 */}
-                            <Button variant="google-outline" leftIcon={<ChevronLeft size={18} />} size="sm">목록으로</Button>
+                            {/* Type 1: 아이콘만 */}
+                            <BackButton variant="icon-only" onClick={() => console.log('백버튼 클릭')} />
+                            {/* Type 2: 텍스트 포함 */}
+                            <BackButton variant="with-text" onClick={() => console.log('목록으로 클릭')} />
+                            {/* Type 3: 텍스트 포함2 */}
+                            <BackButton variant="with-text-2" onClick={() => console.log('뒤로 가기')} />
                         </div>
                     </article>
 
-                    {/* 카드/슬라이드 화살표 */}
+                    {/* 화살표 컴트롤 */}
                     <article className="space-y-4 p-6 bg-white rounded-3xl shadow-sm">
                         <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Arrow Controls</h3>
                         <div className="flex items-center gap-4">
-                            <Button variant="google-outline" isCircle size="sm" className="shadow-md hover:shadow-lg"><ChevronLeft size={20} /></Button>
-                            <Button variant="google-outline" isCircle size="sm" className="shadow-md hover:shadow-lg"><ChevronRight size={20} /></Button>
+                            <ArrowButton direction="left" onClick={() => console.log('이전')} size="sm" />
+                            <ArrowButton direction="right" onClick={() => console.log('다음')} size="sm" />
                         </div>
                     </article>
 
@@ -58,8 +59,8 @@ const ReuseTest = () => {
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {/* Elevated Card (스터디 카드 스타일) */}
-                    <Card variant="elevated" className="p-6 space-y-4">
-                        <div className="h-40 bg-blue-50 rounded-2xl flex items-center justify-center">
+                    <Card variant="elevated" className={cn("p-6 space-y-4")}>
+                        <div className={cn("h-40 bg-blue-50 rounded-2xl flex items-center justify-center")}>
                             <Star className="text-blue-200" size={48} />
                         </div>
                         <div className="space-y-2">
@@ -169,7 +170,10 @@ const ReuseTest = () => {
                         <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Management & Detail UI</h3>
                         <div className="space-y-4">
                             {/* 관리 페이지 사이드바 아이템 시뮬레이션 */}
-                            <Card variant="flat" className="p-4 flex items-center justify-between hover:bg-white hover:shadow-md transition-all cursor-pointer border border-transparent hover:border-blue-100">
+                            <Card variant="flat" className={cn(
+                                "p-4 flex items-center justify-between transition-all cursor-pointer border border-transparent",
+                                "hover:bg-white hover:shadow-md hover:border-blue-100"
+                            )}>
                                 <div className="flex items-center gap-4">
                                     <div className="w-10 h-10 rounded-2xl bg-blue-100 flex items-center justify-center text-blue-600">
                                         <Users size={20} />
@@ -216,7 +220,10 @@ const ReuseTest = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
                     {/* 통계 카드 1: 누적 학습 시간 */}
-                    <Card variant="default" className="p-5 flex items-center gap-4 hover:border-blue-200 transition-colors">
+                    <Card variant="default" className={cn(
+                        "p-5 flex items-center gap-4 transition-colors",
+                        "hover:border-blue-200"
+                    )}>
                         <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-500 shadow-inner">
                             <Clock size={24} />
                         </div>
@@ -227,18 +234,27 @@ const ReuseTest = () => {
                     </Card>
 
                     {/* 통계 카드 2: 퀴즈 점수 */}
-                    <Card variant="default" className="p-5 flex items-center gap-4 hover:border-orange-200 transition-colors">
-                        <div className="w-12 h-12 bg-orange-50 rounded-2xl flex items-center justify-center text-orange-500 shadow-inner">
+                    <Card variant="default" className={cn(
+                        "p-5 flex items-center gap-4 transition-colors",
+                        "hover:border-orange-200"
+                    )}>
+                        <div className={cn(
+                            "w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner",
+                            "bg-orange-50 text-orange-500"
+                        )}>
                             <Award size={24} />
                         </div>
                         <div>
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-tighter">Quiz Score</p>
-                            <p className="text-xl font-black text-gray-800">920<span className="text-sm font-medium ml-1 text-gray-400">pts</span></p>
+                            <p className={cn("text-xs font-bold uppercase tracking-tighter", "text-gray-400")}>Quiz Score</p>
+                            <p className={cn("text-xl font-black", "text-gray-800")}>920<span className="text-sm font-medium ml-1 text-gray-400">pts</span></p>
                         </div>
                     </Card>
 
                     {/* 통계 카드 3: 출석률 */}
-                    <Card variant="default" className="p-5 flex items-center gap-4 hover:border-green-200 transition-colors">
+                    <Card variant="default" className={cn(
+                        "p-5 flex items-center gap-4 transition-colors",
+                        "hover:border-green-200"
+                    )}>
                         <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center text-green-500 shadow-inner">
                             <Calendar size={24} />
                         </div>
@@ -254,20 +270,39 @@ const ReuseTest = () => {
                             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Activity Grass</p>
                             <div className="flex gap-1">
                                 {[1, 2, 3, 4].map(level => (
-                                    <div key={level} className={`w-2 h-2 rounded-sm ${level === 1 ? 'bg-gray-100' : level === 2 ? 'bg-blue-200' : level === 3 ? 'bg-blue-400' : 'bg-blue-600'}`} />
+                                    <div
+                                        key={level}
+                                        className={cn(
+                                            'w-2 h-2 rounded-sm',
+                                            {
+                                                'bg-gray-100': level === 1,
+                                                'bg-blue-200': level === 2,
+                                                'bg-blue-400': level === 3,
+                                                'bg-blue-600': level === 4,
+                                            }
+                                        )}
+                                    />
                                 ))}
                             </div>
                         </div>
                         <div className="grid grid-cols-7 gap-1.5">
-                            {Array.from({ length: 28 }).map((_, i) => (
-                                <div
-                                    key={i}
-                                    className={`aspect-square rounded-[3px] transition-all hover:scale-110 cursor-pointer ${Math.random() > 0.7 ? 'bg-blue-600' :
-                                        Math.random() > 0.5 ? 'bg-blue-400' :
-                                            Math.random() > 0.3 ? 'bg-blue-200' : 'bg-gray-100'
-                                        }`}
-                                />
-                            ))}
+                            {Array.from({ length: 28 }).map((_, i) => {
+                                const random = Math.random();
+                                return (
+                                    <div
+                                        key={i}
+                                        className={cn(
+                                            'aspect-square rounded-[3px] transition-all hover:scale-110 cursor-pointer',
+                                            {
+                                                'bg-blue-600': random > 0.7,
+                                                'bg-blue-400': random <= 0.7 && random > 0.5,
+                                                'bg-blue-200': random <= 0.5 && random > 0.3,
+                                                'bg-gray-100': random <= 0.3,
+                                            }
+                                        )}
+                                    />
+                                );
+                            })}
                         </div>
                     </Card>
                 </div>
@@ -290,14 +325,30 @@ const ReuseTest = () => {
                                 ].map((goal, i) => (
                                     <div
                                         key={i}
-                                        className={`flex items-center gap-4 p-4 rounded-2xl transition-all cursor-pointer ${goal.done ? 'bg-white/5 opacity-50' : 'bg-white/10 hover:bg-white/15'
-                                            }`}
+                                        className={cn(
+                                            'flex items-center gap-4 p-4 rounded-2xl transition-all cursor-pointer',
+                                            {
+                                                'bg-white/5 opacity-50': goal.done,
+                                                'bg-white/10 hover:bg-white/15': !goal.done,
+                                            }
+                                        )}
                                     >
-                                        <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${goal.done ? 'bg-blue-500 border-blue-500' : 'border-white/20'
-                                            }`}>
+                                        <div className={cn(
+                                            "w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all",
+                                            {
+                                                "bg-blue-500 border-blue-500": goal.done,
+                                                "border-white/20": !goal.done,
+                                            }
+                                        )}>
                                             {goal.done && <Check size={14} className="text-white" />}
                                         </div>
-                                        <span className={`text-sm font-medium ${goal.done ? 'text-white/50 line-through' : 'text-white'}`}>
+                                        <span className={cn(
+                                            "text-sm font-medium",
+                                            {
+                                                "text-white/50 line-through": goal.done,
+                                                "text-white": !goal.done,
+                                            }
+                                        )}>
                                             {goal.text}
                                         </span>
                                     </div>
@@ -321,11 +372,37 @@ const ReuseTest = () => {
                         <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Compact Calendar Cells</h3>
                         <Card variant="outline" className="p-6 bg-white grid grid-cols-4 gap-4">
                             {[17, 18, 19, 20].map((day) => (
-                                <div key={day} className={`aspect-square flex flex-col items-center justify-center gap-2 rounded-2xl border transition-all cursor-pointer ${day === 18 ? 'bg-blue-50 border-blue-200' : 'border-gray-50 hover:border-gray-200'
-                                    }`}>
-                                    <span className={`text-sm font-bold ${day === 18 ? 'text-blue-600' : 'text-gray-400'}`}>{day}</span>
+                                <div
+                                    key={day}
+                                    className={cn(
+                                        'aspect-square flex flex-col items-center justify-center gap-2 rounded-2xl border transition-all cursor-pointer',
+                                        {
+                                            'bg-blue-50 border-blue-200': day === 18,
+                                            'border-gray-50 hover:border-gray-200': day !== 18,
+                                        }
+                                    )}
+                                >
+                                    <span
+                                        className={cn(
+                                            'text-sm font-bold',
+                                            {
+                                                'text-blue-600': day === 18,
+                                                'text-gray-400': day !== 18,
+                                            }
+                                        )}
+                                    >
+                                        {day}
+                                    </span>
                                     <div className="flex gap-1">
-                                        <div className={`w-1.5 h-1.5 rounded-full ${day === 17 ? 'bg-orange-400' : 'bg-blue-400'}`} />
+                                        <div
+                                            className={cn(
+                                                'w-1.5 h-1.5 rounded-full',
+                                                {
+                                                    'bg-orange-400': day === 17,
+                                                    'bg-blue-400': day !== 17,
+                                                }
+                                            )}
+                                        />
                                         {day === 19 && <div className="w-1.5 h-1.5 rounded-full bg-green-400" />}
                                         <div className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
                                     </div>
