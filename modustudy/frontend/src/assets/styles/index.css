@@ -50,8 +50,8 @@ body {
     /* Soft Teal - 사이드바 선택, 보조 버튼 */
     --color-accent: #B4DEBD;
     /* Pale Green - 완료 상태, 긍정적 표시 */
-    --color-bg: #FFF7DD;
-    /* Cream White - 전체 배경 (사이드바와 일체감) */
+    --color-bg: #F8F9FA;
+    /* Light Gray - 전체 배경 (통일된 연한 회색) */
 
     /* ===== Primary 색상 변형 ===== */
     --color-primary-light: #9BB5CA;

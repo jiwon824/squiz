@@ -6,7 +6,7 @@ import { Sidebar } from './components/Sidebar';
 import { RightSideBar } from './components/RightSideBar';
 import { useUIStore } from '@/store/uiStore';
 import { useAuthStore } from '@/store/authStore';
-import { SquizLogo } from '@/shared/components/SquizLogo';
+import { SquizLogoNew } from '@/shared/components/SquizLogoNew';
 import { Link } from 'react-router-dom';
 
 interface MainLayoutProps {
@@ -42,9 +42,9 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     const isCompactMode = windowWidth <= 600;
 
     return (
-        <div className="flex flex-col h-screen bg-study-bg overflow-hidden">
+        <div className="flex flex-col h-screen overflow-hidden" style={{ backgroundColor: '#F8F9FA' }}>
             {/* 헤더 - 상단 100% 너비 */}
-            <header className="h-16 w-full bg-study-bg flex items-center justify-between px-6 flex-shrink-0 z-50">
+            <header className="h-16 w-full flex items-center justify-between px-6 flex-shrink-0 z-50" style={{ backgroundColor: '#F8F9FA' }}>
                 <div className="flex items-center gap-4">
                     {/* 사이드바 토글 버튼 */}
                     <button
@@ -59,7 +59,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
                     {/* 로고 영역 */}
                     <Link to="/dashboard" className="flex items-center">
-                        <SquizLogo width={120} height={40} className="scale-110 origin-left" />
+                        <SquizLogoNew width={160} height={55} className="scale-110 origin-left" />
                     </Link>
                 </div>
 
@@ -116,9 +116,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                     transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                 >
                     {/* 페이지 콘텐츠 */}
-                    <div className={`flex-1 overflow-auto pt-2 pb-6 bg-study-bg transition-all duration-300 ${isSidebarOpen ? 'pl-6' : 'pl-0'
-                        } ${isCompactMode ? 'pr-2' : (activeRightTab ? 'pr-80' : 'pr-14')
-                        }`}>
+                    <div
+                        className={`flex-1 overflow-auto pt-2 pb-6 transition-all duration-300 ${isSidebarOpen ? 'pl-6' : 'pl-0'
+                            } ${isCompactMode ? 'pr-2' : (activeRightTab ? 'pr-80' : 'pr-14')
+                            }`}
+                        style={{ backgroundColor: '#F8F9FA' }}
+                    >
                         {children}
                     </div>
                 </motion.main>
