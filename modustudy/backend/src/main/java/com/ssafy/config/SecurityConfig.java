@@ -66,7 +66,7 @@ public class SecurityConfig {
                 "https://localhost:3001",
                 "http://192.168.100.90:3000",
                 "https://192.168.100.90:3000",
-                "https://modustudy.local:3000"
+                "https://modustudy.local:3000",
                 "http://localhost:3001",
                 "http://localhost:5173",
                 "https://i14d106.p.ssafy.io"
