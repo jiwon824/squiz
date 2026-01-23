@@ -57,7 +57,13 @@ get_inactive_env() {
     fi
 }
 
-# 헬스체크
+# 컨테이너 IP 가져오기
+get_container_ip() {
+    local container_name=$1
+    docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$container_name" 2>/dev/null
+}
+
+# 헬스체크 (호스트에서 실행)
 health_check() {
     local env=$1
     local service=$2
@@ -71,26 +77,29 @@ health_check() {
 
         case $service in
             backend)
-                if docker exec squiz-backend-${env} curl -sf http://localhost:8080/actuator/health > /dev/null 2>&1; then
+                local ip=$(get_container_ip "squiz-backend-${env}")
+                if [ -n "$ip" ] && curl -sf "http://${ip}:8080/actuator/health" > /dev/null 2>&1; then
                     log "  backend-${env} 헬스체크 통과"
                     return 0
                 fi
                 ;;
             sfu)
-                # SFU는 간단한 포트 체크
-                if docker exec squiz-sfu-${env} sh -c "netstat -tlnp 2>/dev/null | grep -q ':4000'" 2>/dev/null; then
+                local ip=$(get_container_ip "squiz-sfu-${env}")
+                if [ -n "$ip" ] && nc -z "$ip" 4000 2>/dev/null; then
                     log "  sfu-${env} 헬스체크 통과"
                     return 0
                 fi
                 ;;
             cs-quiz-ai)
-                if docker exec squiz-cs-quiz-ai-${env} curl -sf http://localhost:5000/health > /dev/null 2>&1; then
+                local ip=$(get_container_ip "squiz-cs-quiz-ai-${env}")
+                if [ -n "$ip" ] && nc -z "$ip" 5000 2>/dev/null; then
                     log "  cs-quiz-ai-${env} 헬스체크 통과"
                     return 0
                 fi
                 ;;
             nginx)
-                if docker exec squiz-nginx-${env} curl -sf http://localhost:80 > /dev/null 2>&1; then
+                local ip=$(get_container_ip "squiz-nginx-${env}")
+                if [ -n "$ip" ] && curl -sf "http://${ip}:80" > /dev/null 2>&1; then
                     log "  nginx-${env} 헬스체크 통과"
                     return 0
                 fi
