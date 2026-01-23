@@ -15,9 +15,9 @@ RUN npm ci --omit=dev
 # 소스 복사
 COPY src ./src
 
-# 포트 노출
-EXPOSE 3000
-EXPOSE 40000-40100/udp
+# 포트 노출 (4000: socket.io, 20000-22000: WebRTC UDP)
+EXPOSE 4000
+EXPOSE 20000-22000/udp
 
 # 실행
 CMD ["node", "src/index.js"]
