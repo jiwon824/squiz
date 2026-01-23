@@ -197,7 +197,7 @@ export const fetchLeaderboard = async (date = null, limit = 10) => {
 
         const url = `${AI_SERVICE_URL}/api/leaderboard?${params.toString()}`;
         console.log('🏆 리더보드 조회 URL:', url);
-        
+
         const response = await fetch(url);
         console.log('🏆 리더보드 응답 상태:', response.status);
 
