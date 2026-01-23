@@ -138,7 +138,7 @@ ensure_shared_services() {
     cd "$DEPLOY_PATH"
 
     # 네트워크 생성 (없으면)
-    docker network create modustudy_squiz-network 2>/dev/null || true
+    docker network create squiz_squiz-network 2>/dev/null || true
 
     # 공유 서비스 시작
     docker compose -f docker-compose.yml up -d
