@@ -197,7 +197,7 @@ switch_traffic() {
     local new_active=$1
     log "트래픽 전환: ${new_active}으로 전환 중..."
 
-    # upstream.conf 업데이트
+    # upstream.conf 업데이트 (backup 서버 없이 - nginx가 존재하지 않는 서버로 시작 실패 방지)
     if [ "$new_active" = "blue" ]; then
         cat > "$DEPLOY_PATH/nginx/conf.d/upstream.conf" << 'EOF'
 # ===========================================
@@ -207,22 +207,18 @@ switch_traffic() {
 
 upstream backend {
     server squiz-backend-blue:8080;
-    server squiz-backend-green:8080 backup;
 }
 
 upstream sfu {
     server squiz-sfu-blue:4000;
-    server squiz-sfu-green:4000 backup;
 }
 
 upstream frontend {
     server squiz-nginx-blue:80;
-    server squiz-nginx-green:80 backup;
 }
 
 upstream cs-quiz-ai {
     server squiz-cs-quiz-ai-blue:5000;
-    server squiz-cs-quiz-ai-green:5000 backup;
 }
 EOF
     else
@@ -233,22 +229,18 @@ EOF
 # ===========================================
 
 upstream backend {
-    server squiz-backend-blue:8080 backup;
     server squiz-backend-green:8080;
 }
 
 upstream sfu {
-    server squiz-sfu-blue:4000 backup;
     server squiz-sfu-green:4000;
 }
 
 upstream frontend {
-    server squiz-nginx-blue:80 backup;
     server squiz-nginx-green:80;
 }
 
 upstream cs-quiz-ai {
-    server squiz-cs-quiz-ai-blue:5000 backup;
     server squiz-cs-quiz-ai-green:5000;
 }
 EOF
