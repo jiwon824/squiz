@@ -10,7 +10,7 @@ interface UIState {
 }
 
 export const useUIStore = create<UIState>((set) => ({
-    isSidebarOpen: true,
+    isSidebarOpen: false,  // 기본값을 false로 변경 (사이드바 닫힌 상태)
     activeRightTab: null,
     toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
     toggleRightTab: (tab) => set((state) => ({

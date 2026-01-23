@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import fs from 'fs';
 import path from 'path';
 
 export default defineConfig({
@@ -14,8 +15,26 @@ export default defineConfig({
         },
     },
     server: {
+        host: '0.0.0.0',
         port: 3000,
         open: true,
+        https: (() => {
+            const certPath = process.env.VITE_HTTPS_CERT
+                ? path.resolve(process.env.VITE_HTTPS_CERT)
+                : path.resolve(__dirname, '..', 'modustudy.local.pem');
+            const keyPath = process.env.VITE_HTTPS_KEY
+                ? path.resolve(process.env.VITE_HTTPS_KEY)
+                : path.resolve(__dirname, '..', 'modustudy.local-key.pem');
+
+            if (!fs.existsSync(certPath) || !fs.existsSync(keyPath)) {
+                return undefined;
+            }
+
+            return {
+                cert: fs.readFileSync(certPath),
+                key: fs.readFileSync(keyPath),
+            };
+        })(),
     },
     build: {
         rollupOptions: {
