@@ -349,11 +349,25 @@ status() {
     echo "======================================"
 }
 
+# 기존 레거시 컨테이너 정리
+cleanup_legacy() {
+    log "기존 레거시 컨테이너 정리 중..."
+
+    # 기존 non-Blue/Green 컨테이너 중지 및 제거
+    docker stop squiz-nginx squiz-backend squiz-sfu squiz-cs-quiz-ai 2>/dev/null || true
+    docker rm squiz-nginx squiz-backend squiz-sfu squiz-cs-quiz-ai 2>/dev/null || true
+
+    log "레거시 컨테이너 정리 완료"
+}
+
 # 초기 설정 (첫 배포 시)
 init() {
     log "======================================"
     log "Blue/Green 배포 초기 설정"
     log "======================================"
+
+    # 기존 레거시 컨테이너 정리 (포트 충돌 방지)
+    cleanup_legacy
 
     # 이미지 Pull
     pull_images
