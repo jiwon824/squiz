@@ -30,18 +30,18 @@ class AIDetectionService {
         }
     }
 
-    async detectPerson(videoElement: HTMLVideoElement | null) {
+    async detectPerson(videoElement: HTMLVideoElement | null): Promise<boolean | null> {
         try {
             if (!this.model) {
                 await this.loadModel();
             }
-            if (!videoElement || videoElement.readyState !== 4) {
-                return false;
+            if (!videoElement || videoElement.readyState < 2) {
+                return null;
             }
             const predictions = await this.model!.detect(videoElement);
             return predictions.some((prediction) => prediction.class === 'person' && prediction.score > 0.5);
         } catch {
-            return false;
+            return null;
         }
     }
 
@@ -51,7 +51,13 @@ class AIDetectionService {
         interval = 2000
     ) {
         const detectionLoop = async () => {
+            if (document.hidden) {
+                return;
+            }
             const isPresent = await this.detectPerson(videoElement);
+            if (isPresent === null) {
+                return;
+            }
             callback(isPresent);
         };
         detectionLoop();

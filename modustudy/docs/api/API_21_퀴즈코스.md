@@ -228,6 +228,9 @@ Authorization: Bearer {accessToken}
 ```
 
 **Response - 시도 생성/재개 성공**
+
+> **status 값**: `IN_PROGRESS` | `SUBMITTED` | `ABANDONED`
+
 ```json
 {
   "success": true,
@@ -320,12 +323,15 @@ Authorization: Bearer {accessToken}
   "success": true,
   "data": {
     "attemptId": 123,
+    "status": "SUBMITTED",
     "score": 80,
     "correctCount": 8,
     "totalQuestions": 10,
     "passScore": 70,
     "isPassed": true,
     "isNextSectionUnlocked": true,
+    "submittedAt": "2025-01-20T10:15:00",
+    "passedAt": "2025-01-20T10:15:00",
     "results": [
       {
         "orderIndex": 1,
@@ -348,12 +354,15 @@ Authorization: Bearer {accessToken}
   "success": true,
   "data": {
     "attemptId": 125,
+    "status": "SUBMITTED",
     "score": 90,
     "correctCount": 9,
     "totalQuestions": 10,
     "passScore": 70,
     "isPassed": true,
     "isNextSectionUnlocked": false,
+    "submittedAt": "2025-01-20T10:15:00",
+    "passedAt": "2025-01-20T10:15:00",
     "earnedBadge": {
       "code": "JAVA_MASTER",
       "name": "Java 마스터",
@@ -372,12 +381,15 @@ Authorization: Bearer {accessToken}
   "success": true,
   "data": {
     "attemptId": 124,
+    "status": "SUBMITTED",
     "score": 50,
     "correctCount": 5,
     "totalQuestions": 10,
     "passScore": 70,
     "isPassed": false,
     "isNextSectionUnlocked": false,
+    "submittedAt": "2025-01-20T10:15:00",
+    "passedAt": null,
     "results": [...]
   },
   "message": "아쉽습니다. 70% 이상 맞춰야 통과입니다. 다시 도전해보세요!"

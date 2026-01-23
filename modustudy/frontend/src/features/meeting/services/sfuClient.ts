@@ -124,9 +124,13 @@ export const createSfuClient = (baseUrl: string) => {
             if (existing.track && existing.track.id === track.id) {
                 return existing;
             }
-            await request('closeProducer', { roomId, producerId: existing.id });
-            existing.close();
-            producers.delete(kind);
+            try {
+                await request('closeProducer', { roomId, producerId: existing.id });
+                existing.close();
+                producers.delete(kind);
+            } catch {
+                // ignore and recreate
+            }
         }
         const producer = await sendTransport.produce({ track });
         producers.set(kind, producer);
@@ -162,6 +166,11 @@ export const createSfuClient = (baseUrl: string) => {
             await consumer.resume();
         } catch {
             // ignore resume errors when transport state changes quickly
+        }
+        if (consumer.kind === 'video') {
+            setTimeout(() => {
+                request('requestKeyFrame', { roomId, consumerId: consumer.id }).catch(() => {});
+            }, 300);
         }
         const stream = new MediaStream([consumer.track]);
         return { consumerId: consumer.id, producerId, stream, kind: consumer.kind as 'audio' | 'video' };

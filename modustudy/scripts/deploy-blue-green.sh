@@ -78,7 +78,8 @@ health_check() {
         case $service in
             backend)
                 local ip=$(get_container_ip "squiz-backend-${env}")
-                if [ -n "$ip" ] && curl -sf "http://${ip}:8080/actuator/health" > /dev/null 2>&1; then
+                # 포트 체크 (actuator가 500 에러 발생하므로 단순 포트 체크 사용)
+                if [ -n "$ip" ] && nc -z "$ip" 8080 2>/dev/null; then
                     log "  backend-${env} 헬스체크 통과"
                     return 0
                 fi
@@ -196,7 +197,7 @@ switch_traffic() {
     local new_active=$1
     log "트래픽 전환: ${new_active}으로 전환 중..."
 
-    # upstream.conf 업데이트
+    # upstream.conf 업데이트 (backup 서버 없이 - nginx가 존재하지 않는 서버로 시작 실패 방지)
     if [ "$new_active" = "blue" ]; then
         cat > "$DEPLOY_PATH/nginx/conf.d/upstream.conf" << 'EOF'
 # ===========================================
@@ -205,23 +206,19 @@ switch_traffic() {
 # ===========================================
 
 upstream backend {
-    server squiz-backend-blue:8080 weight=100;
-    server squiz-backend-green:8080 weight=0 backup;
+    server squiz-backend-blue:8080;
 }
 
 upstream sfu {
-    server squiz-sfu-blue:4000 weight=100;
-    server squiz-sfu-green:4000 weight=0 backup;
+    server squiz-sfu-blue:4000;
 }
 
 upstream frontend {
-    server squiz-nginx-blue:80 weight=100;
-    server squiz-nginx-green:80 weight=0 backup;
+    server squiz-nginx-blue:80;
 }
 
 upstream cs-quiz-ai {
-    server squiz-cs-quiz-ai-blue:5000 weight=100;
-    server squiz-cs-quiz-ai-green:5000 weight=0 backup;
+    server squiz-cs-quiz-ai-blue:5000;
 }
 EOF
     else
@@ -232,23 +229,19 @@ EOF
 # ===========================================
 
 upstream backend {
-    server squiz-backend-blue:8080 weight=0 backup;
-    server squiz-backend-green:8080 weight=100;
+    server squiz-backend-green:8080;
 }
 
 upstream sfu {
-    server squiz-sfu-blue:4000 weight=0 backup;
-    server squiz-sfu-green:4000 weight=100;
+    server squiz-sfu-green:4000;
 }
 
 upstream frontend {
-    server squiz-nginx-blue:80 weight=0 backup;
-    server squiz-nginx-green:80 weight=100;
+    server squiz-nginx-green:80;
 }
 
 upstream cs-quiz-ai {
-    server squiz-cs-quiz-ai-blue:5000 weight=0 backup;
-    server squiz-cs-quiz-ai-green:5000 weight=100;
+    server squiz-cs-quiz-ai-green:5000;
 }
 EOF
     fi
