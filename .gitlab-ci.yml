@@ -93,8 +93,8 @@ build-frontend-image:
   script:
     - echo "$DOCKER_HUB_TOKEN" | docker login -u "$DOCKER_HUB_USER" --password-stdin
     - cd modustudy/frontend
-    - docker pull $FRONTEND_IMAGE:latest || true
-    - docker build --cache-from $FRONTEND_IMAGE:latest -t $FRONTEND_IMAGE:$CI_COMMIT_SHA -t $FRONTEND_IMAGE:latest .
+    # UTF-8 인코딩 문제 해결을 위해 캐시 없이 빌드
+    - docker build --no-cache -t $FRONTEND_IMAGE:$CI_COMMIT_SHA -t $FRONTEND_IMAGE:latest .
     - docker push $FRONTEND_IMAGE:$CI_COMMIT_SHA
     - docker push $FRONTEND_IMAGE:latest
   only:
