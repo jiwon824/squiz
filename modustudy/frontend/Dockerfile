@@ -25,8 +25,8 @@ FROM nginx:alpine
 # 빌드된 파일 복사
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Nginx 설정 (필요시)
-# COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Nginx 설정 (SPA 라우팅)
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
 

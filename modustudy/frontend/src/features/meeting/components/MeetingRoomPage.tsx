@@ -72,6 +72,8 @@ const MeetingRoomPage: React.FC = () => {
     const remoteAudioElementsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
 
     const [meetingTitle, setMeetingTitle] = useState('');
+    const [meetingStartedAt, setMeetingStartedAt] = useState<string | null>(null);
+    const [elapsedSeconds, setElapsedSeconds] = useState(0);
     const [participants, setParticipants] = useState<MeetingRoomParticipant[]>([]);
     const [chatMessages, setChatMessages] = useState<MeetingRoomChatMessage[]>([]);
     const [presenterName, setPresenterName] = useState<string | null>(null);
@@ -119,6 +121,19 @@ const MeetingRoomPage: React.FC = () => {
         screenSharingRef.current = screenSharing;
     }, [screenSharing]);
 
+    useEffect(() => {
+        if (!meetingStartedAt) return;
+        const startedAtMs = new Date(meetingStartedAt).getTime();
+        if (Number.isNaN(startedAtMs)) return;
+        const updateElapsed = () => {
+            const nextSeconds = Math.max(0, Math.floor((Date.now() - startedAtMs) / 1000));
+            setElapsedSeconds(nextSeconds);
+        };
+        updateElapsed();
+        const timerId = window.setInterval(updateElapsed, 1000);
+        return () => window.clearInterval(timerId);
+    }, [meetingStartedAt]);
+
     const canEndMeeting = useMemo(() => {
         if (!numericMeetingId) return false;
         return localStorage.getItem(`meeting-owner-${numericMeetingId}`) === String(ownerKey);
@@ -140,6 +155,14 @@ const MeetingRoomPage: React.FC = () => {
 
     const maxPhotoCount = 3;
     const remainingCaptures = Math.max(0, maxPhotoCount - photoCount);
+    const formatDuration = (totalSeconds: number) => {
+        const safeSeconds = Math.max(0, Math.floor(totalSeconds));
+        const hours = Math.floor(safeSeconds / 3600);
+        const minutes = Math.floor((safeSeconds % 3600) / 60);
+        const seconds = safeSeconds % 60;
+        const padded = (value: number) => String(value).padStart(2, '0');
+        return `${padded(hours)}:${padded(minutes)}:${padded(seconds)}`;
+    };
 
     const stopTracks = (stream: MediaStream | null) => {
         if (!stream) return;
@@ -258,6 +281,19 @@ const MeetingRoomPage: React.FC = () => {
         }
         chatDedupRef.current.add(key);
         setChatMessages((prev) => [...prev, message]);
+    }, []);
+
+    const handleDeleteChat = useCallback((target: MeetingRoomChatMessage) => {
+        setChatMessages((prev) =>
+            prev.filter(
+                (message) =>
+                    !(
+                        message.sentAt === target.sentAt &&
+                        message.sender === target.sender &&
+                        message.text === target.text
+                    )
+            )
+        );
     }, []);
 
         const updateOutgoingVideo = useCallback(
@@ -962,10 +998,12 @@ const MeetingRoomPage: React.FC = () => {
                 const detail = await meetingApi.getMeetingDetail(numericStudyId, numericMeetingId);
                 if (!cancelled) {
                     setMeetingTitle(detail.title || `미팅 ${numericMeetingId}`);
+                    setMeetingStartedAt(detail.startedAt ?? new Date().toISOString());
                 }
             } catch {
                 if (!cancelled) {
                     setMeetingTitle(`미팅 ${numericMeetingId}`);
+                    setMeetingStartedAt(new Date().toISOString());
                 }
             }
 
@@ -1133,33 +1171,40 @@ const MeetingRoomPage: React.FC = () => {
     return (
         <MainLayout>
             <div className="meeting-room">
-                <div className="meeting-room__header">
-                    <div>
-                        <h1>{meetingTitle || '미팅 룸'}</h1>
-                        <div className="meeting-room__status">
-                            <span>{isPresenter ? '발표자 모드' : '참가자 모드'}</span>
-                            {isRecording && <span className="meeting-room__recording">녹화 중</span>}
+                <div className="meeting-room__meta">
+                    <div className="meeting-room__meta-row">
+                        <div className="meeting-room__meta-left">
+                            <div className="meeting-room__meta-title">
+                                <h1>{meetingTitle || '미팅 룸'}</h1>
+                                <div className="meeting-room__timer">진행 시간: {formatDuration(elapsedSeconds)}</div>
+                            </div>
+                        </div>
+                        <div className="meeting-room__meta-right">
+                            <div className="meeting-room__status">
+                                <span>{isPresenter ? '발표자 모드' : '참가자 모드'}</span>
+                                {isRecording && <span className="meeting-room__recording">녹화 중</span>}
+                            </div>
+                            <button className="meeting-btn ghost" onClick={() => navigate(`/study/${numericStudyId}/meetings`)}>
+                                목록으로
+                            </button>
                         </div>
                     </div>
-                    <button className="meeting-btn ghost" onClick={() => navigate(`/study/${numericStudyId}/meetings`)}>
-                        목록으로
-                    </button>
-                </div>
 
-                <MeetingControls
-                    isPresenter={isPresenter}
-                    micEnabled={micEnabled}
-                    micDisabled={isPresenter && shareMode !== null}
-                    shareMode={shareMode}
-                    onToggleMic={handleToggleMic}
-                    onShareModeChange={handleShareModeChange}
-                    onTogglePresenter={handleTogglePresenter}
-                    onEndMeeting={handleEndMeeting}
-                    canEndMeeting={canEndMeeting}
-                    captureRemaining={remainingCaptures}
-                    captureDisabled={remainingCaptures === 0 || isCapturing}
-                    onCapture={handleCapture}
-                />
+                    <MeetingControls
+                        isPresenter={isPresenter}
+                        micEnabled={micEnabled}
+                        micDisabled={isPresenter && shareMode !== null}
+                        shareMode={shareMode}
+                        onToggleMic={handleToggleMic}
+                        onShareModeChange={handleShareModeChange}
+                        onTogglePresenter={handleTogglePresenter}
+                        onEndMeeting={handleEndMeeting}
+                        canEndMeeting={canEndMeeting}
+                        captureRemaining={remainingCaptures}
+                        captureDisabled={remainingCaptures === 0 || isCapturing}
+                        onCapture={handleCapture}
+                    />
+                </div>
 
                 <div className="meeting-room__content">
                     <div className="meeting-room__stage">
@@ -1183,7 +1228,13 @@ const MeetingRoomPage: React.FC = () => {
                             presenterId={presenterId}
                             presenterName={presenterName}
                         />
-                        <MeetingChatPanel messages={chatMessages} onSend={handleSendChat} />
+                        <MeetingChatPanel
+                            messages={chatMessages}
+                            onSend={handleSendChat}
+                            onDelete={handleDeleteChat}
+                            currentUserId={user?.id ?? null}
+                            currentSender={displayNameRef.current}
+                        />
                     </div>
                 </div>
             </div>
