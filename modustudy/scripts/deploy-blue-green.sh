@@ -206,23 +206,23 @@ switch_traffic() {
 # ===========================================
 
 upstream backend {
-    server squiz-backend-blue:8080 weight=100;
-    server squiz-backend-green:8080 weight=0 backup;
+    server squiz-backend-blue:8080;
+    server squiz-backend-green:8080 backup;
 }
 
 upstream sfu {
-    server squiz-sfu-blue:4000 weight=100;
-    server squiz-sfu-green:4000 weight=0 backup;
+    server squiz-sfu-blue:4000;
+    server squiz-sfu-green:4000 backup;
 }
 
 upstream frontend {
-    server squiz-nginx-blue:80 weight=100;
-    server squiz-nginx-green:80 weight=0 backup;
+    server squiz-nginx-blue:80;
+    server squiz-nginx-green:80 backup;
 }
 
 upstream cs-quiz-ai {
-    server squiz-cs-quiz-ai-blue:5000 weight=100;
-    server squiz-cs-quiz-ai-green:5000 weight=0 backup;
+    server squiz-cs-quiz-ai-blue:5000;
+    server squiz-cs-quiz-ai-green:5000 backup;
 }
 EOF
     else
@@ -233,23 +233,23 @@ EOF
 # ===========================================
 
 upstream backend {
-    server squiz-backend-blue:8080 weight=0 backup;
-    server squiz-backend-green:8080 weight=100;
+    server squiz-backend-blue:8080 backup;
+    server squiz-backend-green:8080;
 }
 
 upstream sfu {
-    server squiz-sfu-blue:4000 weight=0 backup;
-    server squiz-sfu-green:4000 weight=100;
+    server squiz-sfu-blue:4000 backup;
+    server squiz-sfu-green:4000;
 }
 
 upstream frontend {
-    server squiz-nginx-blue:80 weight=0 backup;
-    server squiz-nginx-green:80 weight=100;
+    server squiz-nginx-blue:80 backup;
+    server squiz-nginx-green:80;
 }
 
 upstream cs-quiz-ai {
-    server squiz-cs-quiz-ai-blue:5000 weight=0 backup;
-    server squiz-cs-quiz-ai-green:5000 weight=100;
+    server squiz-cs-quiz-ai-blue:5000 backup;
+    server squiz-cs-quiz-ai-green:5000;
 }
 EOF
     fi
