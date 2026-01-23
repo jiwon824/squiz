@@ -4,15 +4,14 @@ import '../styles/MeetingRoom.css';
 interface MeetingControlsProps {
     isPresenter: boolean;
     micEnabled: boolean;
+    micDisabled: boolean;
     shareMode: 'camera' | 'screen' | 'mixed' | null;
     canEndMeeting: boolean;
-    pipPosition: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
     captureRemaining: number;
     captureDisabled: boolean;
     onToggleMic: () => void;
     onShareModeChange: (mode: 'camera' | 'screen' | 'mixed') => void;
     onTogglePresenter: () => void;
-    onPipPositionChange: (position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right') => void;
     onEndMeeting: () => void;
     onCapture: () => void;
 }
@@ -20,13 +19,12 @@ interface MeetingControlsProps {
 const MeetingControls: React.FC<MeetingControlsProps> = ({
     isPresenter,
     micEnabled,
+    micDisabled,
     shareMode,
-    pipPosition,
     onToggleMic,
     onShareModeChange,
     onTogglePresenter,
     canEndMeeting,
-    onPipPositionChange,
     onEndMeeting,
     captureRemaining,
     captureDisabled,
@@ -35,7 +33,11 @@ const MeetingControls: React.FC<MeetingControlsProps> = ({
     return (
         <div className="meeting-controls">
             <div className="meeting-controls__group">
-                <button className={`meeting-control ${micEnabled ? 'active' : ''}`} onClick={onToggleMic}>
+                <button
+                    className={`meeting-control ${micEnabled ? 'active' : ''}`}
+                    onClick={onToggleMic}
+                    disabled={micDisabled}
+                >
                     {micEnabled ? '마이크 ON' : '마이크 OFF'}
                 </button>
                 {isPresenter && (
@@ -58,24 +60,6 @@ const MeetingControls: React.FC<MeetingControlsProps> = ({
                         >
                             화면+캠
                         </button>
-                        {shareMode === 'mixed' && (
-                            <div className="meeting-controls__pip">
-                                <span>캠 위치</span>
-                                <div className="meeting-controls__pip-buttons">
-                                    {(['top-left', 'top-right', 'bottom-left', 'bottom-right'] as const).map(
-                                        (position) => (
-                                            <button
-                                                key={position}
-                                                className={`meeting-control chip ${pipPosition === position ? 'active' : ''}`}
-                                                onClick={() => onPipPositionChange(position)}
-                                            >
-                                                {position.replace('-', ' ')}
-                                            </button>
-                                        )
-                                    )}
-                                </div>
-                            </div>
-                        )}
                     </div>
                 )}
             </div>

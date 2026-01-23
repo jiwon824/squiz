@@ -125,12 +125,11 @@ export const createSfuClient = (baseUrl: string) => {
                 return existing;
             }
             try {
-                await existing.replaceTrack({ track });
-                return existing;
-            } catch {
                 await request('closeProducer', { roomId, producerId: existing.id });
                 existing.close();
                 producers.delete(kind);
+            } catch {
+                // ignore and recreate
             }
         }
         const producer = await sendTransport.produce({ track });

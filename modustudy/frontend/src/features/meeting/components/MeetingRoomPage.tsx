@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { MainLayout } from '@/layouts/MainLayout';
 import { useAuthStore } from '@/store/authStore';
@@ -39,10 +39,19 @@ const MeetingRoomPage: React.FC = () => {
     const navigate = useNavigate();
     const { user, isLoggedIn } = useAuthStore();
 
+    const getGuestName = useCallback(() => {
+        const key = 'meeting-guest-name';
+        const stored = localStorage.getItem(key);
+        if (stored) return stored;
+        const generated = `guest-${Math.random().toString(36).slice(2, 6)}`;
+        localStorage.setItem(key, generated);
+        return generated;
+    }, []);
+
     const getDisplayName = useCallback(() => {
-        if (!isLoggedIn) return '게스트';
-        return user?.nickname || user?.name || '게스트';
-    }, [isLoggedIn, user?.nickname, user?.name]);
+        if (!isLoggedIn) return getGuestName();
+        return user?.nickname || user?.name || getGuestName();
+    }, [getGuestName, isLoggedIn, user?.nickname, user?.name]);
 
     const displayNameRef = useRef(getDisplayName());
     const selfParticipantIdRef = useRef<number | null>(null);
@@ -71,7 +80,7 @@ const MeetingRoomPage: React.FC = () => {
     const [cameraEnabled, setCameraEnabled] = useState(false);
     const [screenSharing, setScreenSharing] = useState(false);
     const [shareMode, setShareMode] = useState<ShareMode | null>(null);
-    const [pipPosition, setPipPosition] = useState<PipPosition>('bottom-right');
+    const [pipPosition] = useState<PipPosition>('bottom-right');
     const [localStream, setLocalStream] = useState<MediaStream | null>(null);
     const [remoteVideoStreams, setRemoteVideoStreams] = useState<RemoteVideoStream[]>([]);
     const [isRecording, setIsRecording] = useState(false);
@@ -85,8 +94,14 @@ const MeetingRoomPage: React.FC = () => {
     const speakingRef = useRef(false);
     const presenceRef = useRef(false);
     const recordingRef = useRef(false);
+    const recordingDisabledRef = useRef(false);
     const prevPresenterRef = useRef(false);
     const publishedVideoTrackIdRef = useRef<string | null>(null);
+    const publishedAudioTrackIdRef = useRef<string | null>(null);
+    const shareModeRef = useRef<ShareMode | null>(shareMode);
+    const screenSharingRef = useRef(screenSharing);
+    const mixedRetryRef = useRef<{ attempts: number; timer: number | null }>({ attempts: 0, timer: null });
+    const isPresenterRef = useRef(false);
 
     useEffect(() => {
         displayNameRef.current = getDisplayName();
@@ -95,6 +110,14 @@ const MeetingRoomPage: React.FC = () => {
     useEffect(() => {
         micEnabledRef.current = micEnabled;
     }, [micEnabled]);
+
+    useEffect(() => {
+        shareModeRef.current = shareMode;
+    }, [shareMode]);
+
+    useEffect(() => {
+        screenSharingRef.current = screenSharing;
+    }, [screenSharing]);
 
     const canEndMeeting = useMemo(() => {
         if (!numericMeetingId) return false;
@@ -111,6 +134,10 @@ const MeetingRoomPage: React.FC = () => {
         return false;
     }, [presenterId, presenterName]);
 
+    useEffect(() => {
+        isPresenterRef.current = isPresenter;
+    }, [isPresenter]);
+
     const maxPhotoCount = 3;
     const remainingCaptures = Math.max(0, maxPhotoCount - photoCount);
 
@@ -118,6 +145,46 @@ const MeetingRoomPage: React.FC = () => {
         if (!stream) return;
         stream.getTracks().forEach((track) => track.stop());
     };
+
+    const waitForTrackUnmute = useCallback((track: MediaStreamTrack | null, timeoutMs = 1200) => {
+        if (!track) return Promise.resolve();
+        if (track.readyState !== 'live') return Promise.resolve();
+        if (track.muted === false) return Promise.resolve();
+        return new Promise<void>((resolve) => {
+            const onUnmute = () => {
+                cleanup();
+                resolve();
+            };
+            const cleanup = () => {
+                track.removeEventListener('unmute', onUnmute);
+                window.clearTimeout(timerId);
+            };
+            const timerId = window.setTimeout(() => {
+                cleanup();
+                resolve();
+            }, timeoutMs);
+            track.addEventListener('unmute', onUnmute, { once: true });
+        });
+    }, []);
+
+    const clearMixedRetry = useCallback(() => {
+        if (mixedRetryRef.current.timer) {
+            window.clearTimeout(mixedRetryRef.current.timer);
+        }
+        mixedRetryRef.current = { attempts: 0, timer: null };
+    }, []);
+
+    const updateOutgoingAudio = useCallback(async (nextTrack: MediaStreamTrack | null) => {
+        if (!sfuClientRef.current) return;
+        if (nextTrack && nextTrack.readyState === 'live') {
+            if (publishedAudioTrackIdRef.current === nextTrack.id) return;
+            await sfuClientRef.current.produceTrack('audio', nextTrack);
+            publishedAudioTrackIdRef.current = nextTrack.id;
+        } else {
+            await sfuClientRef.current.closeProducer('audio');
+            publishedAudioTrackIdRef.current = null;
+        }
+    }, []);
 
     const updateSelfParticipant = useCallback(
         (updates: Partial<MeetingRoomParticipant>) => {
@@ -193,7 +260,7 @@ const MeetingRoomPage: React.FC = () => {
         setChatMessages((prev) => [...prev, message]);
     }, []);
 
-    const updateOutgoingVideo = useCallback(
+        const updateOutgoingVideo = useCallback(
         async (options?: {
             nextCameraStream?: MediaStream | null;
             nextScreenStream?: MediaStream | null;
@@ -213,7 +280,13 @@ const MeetingRoomPage: React.FC = () => {
             let nextStream: MediaStream | null = null;
             const cameraTrack = effectiveCameraStream?.getVideoTracks()?.[0] ?? null;
             const screenTrack = screenStream?.getVideoTracks()?.[0] ?? null;
-            const forceMixed = shareMode === 'mixed' && cameraTrack && screenTrack;
+            const wantsMixed = shareModeRef.current === 'mixed';
+            const hasLiveTracks =
+                cameraTrack &&
+                screenTrack &&
+                cameraTrack.readyState === 'live' &&
+                screenTrack.readyState === 'live';
+            let composedSuccess = false;
 
             if (
                 options?.nextPipPosition &&
@@ -229,6 +302,10 @@ const MeetingRoomPage: React.FC = () => {
             }
 
             try {
+                if (wantsMixed && hasLiveTracks) {
+                    await Promise.all([waitForTrackUnmute(screenTrack), waitForTrackUnmute(cameraTrack)]);
+                    if (token !== updateTokenRef.current) return;
+                }
                 if (
                     effectiveCameraStream &&
                     screenStream &&
@@ -250,10 +327,11 @@ const MeetingRoomPage: React.FC = () => {
                         }
                         composedStreamRef.current = composed;
                         nextStream = composed;
+                        composedSuccess = true;
                     }
                 }
 
-                if (!nextStream && !forceMixed) {
+                if (!nextStream) {
                     canvasComposer.stopComposing();
                     if (composedStreamRef.current) {
                         stopTracks(composedStreamRef.current);
@@ -267,17 +345,50 @@ const MeetingRoomPage: React.FC = () => {
                 }
             } catch (error) {
                 console.error('Failed to update composed stream', error);
-                if (!forceMixed) {
-                    canvasComposer.stopComposing();
-                    if (screenTrack && screenTrack.readyState === 'live') {
-                        nextStream = screenStream;
-                    } else if (cameraTrack && cameraTrack.readyState === 'live') {
-                        nextStream = effectiveCameraStream;
-                    }
+                canvasComposer.stopComposing();
+                if (screenTrack && screenTrack.readyState === 'live') {
+                    nextStream = screenStream;
+                } else if (cameraTrack && cameraTrack.readyState === 'live') {
+                    nextStream = effectiveCameraStream;
                 }
             }
 
             if (token !== updateTokenRef.current) return;
+            if (!wantsMixed) {
+                clearMixedRetry();
+            } else if (composedSuccess) {
+                clearMixedRetry();
+            } else if (wantsMixed && hasLiveTracks && mixedRetryRef.current.attempts < 5) {
+                mixedRetryRef.current.attempts += 1;
+                if (!mixedRetryRef.current.timer) {
+                    mixedRetryRef.current.timer = window.setTimeout(() => {
+                        mixedRetryRef.current.timer = null;
+                        updateOutgoingVideo({
+                            nextCameraStream: localCameraStreamRef.current,
+                            nextScreenStream: localScreenStreamRef.current,
+                            publish: true,
+                            cameraEnabledOverride: true,
+                        });
+                    }, 300);
+                }
+            }
+
+            if (!publish) {
+                await updateOutgoingAudio(null);
+            } else if (isPresenter && shareModeRef.current) {
+                const screenAudio = screenStream?.getAudioTracks()?.[0] ?? null;
+                const cameraAudio = effectiveCameraStream?.getAudioTracks()?.[0] ?? null;
+                let nextAudio: MediaStreamTrack | null = null;
+                if (shareModeRef.current === 'screen') {
+                    nextAudio = screenAudio;
+                } else if (shareModeRef.current === 'camera') {
+                    nextAudio = cameraAudio;
+                } else {
+                    nextAudio = screenAudio || cameraAudio;
+                }
+                await updateOutgoingAudio(nextAudio);
+            }
+
             setLocalStream(publish ? nextStream : null);
 
             if (!publish) {
@@ -289,6 +400,10 @@ const MeetingRoomPage: React.FC = () => {
             }
 
             const videoTrack = nextStream?.getVideoTracks()[0] ?? null;
+            if (videoTrack) {
+                await waitForTrackUnmute(videoTrack);
+                if (token !== updateTokenRef.current) return;
+            }
             if (sfuClientRef.current) {
                 if (videoTrack && videoTrack.readyState === 'live') {
                     if (publishedVideoTrackIdRef.current && publishedVideoTrackIdRef.current !== videoTrack.id) {
@@ -302,7 +417,15 @@ const MeetingRoomPage: React.FC = () => {
                 }
             }
         },
-        [cameraEnabled, pipPosition, shareMode]
+        [
+            cameraEnabled,
+            clearMixedRetry,
+            isPresenter,
+            pipPosition,
+            shareMode,
+            updateOutgoingAudio,
+            waitForTrackUnmute,
+        ]
     );
 
     const startMicrophone = useCallback(async () => {
@@ -358,9 +481,11 @@ const MeetingRoomPage: React.FC = () => {
             setCameraEnabled(false);
             return;
         }
+        const needsAudio = isPresenter && (shareModeRef.current === 'camera' || shareModeRef.current === 'mixed');
         if (localCameraStreamRef.current) {
             const track = localCameraStreamRef.current.getVideoTracks()?.[0];
-            if (!track || track.readyState !== 'live') {
+            const hasAudio = localCameraStreamRef.current.getAudioTracks().length > 0;
+            if (!track || track.readyState !== 'live' || (needsAudio && !hasAudio)) {
                 stopTracks(localCameraStreamRef.current);
                 localCameraStreamRef.current = null;
             }
@@ -372,7 +497,7 @@ const MeetingRoomPage: React.FC = () => {
             return;
         }
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: needsAudio });
             localCameraStreamRef.current = stream;
             const shouldPublish = publishCamera ?? (isPresenter && cameraEnabled);
             if (isPresenter && shouldPublish) {
@@ -436,43 +561,63 @@ const MeetingRoomPage: React.FC = () => {
     }, [updateSelfParticipant]);
 
     const startScreenShare = useCallback(
-        async (cameraEnabledOverride?: boolean) => {
-        if (localScreenStreamRef.current) {
-            setScreenSharing(true);
-            return;
-        }
-        try {
-            const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
-            localScreenStreamRef.current = stream;
-            setScreenSharing(true);
-            const [track] = stream.getVideoTracks();
-            if (track) {
-                track.onended = () => {
-                    setScreenSharing(false);
+        async (cameraEnabledOverride?: boolean, publishOnStart = true) => {
+            const needsAudio = shareModeRef.current === 'screen' || shareModeRef.current === 'mixed';
+            if (localScreenStreamRef.current) {
+                const videoTrack = localScreenStreamRef.current.getVideoTracks()[0];
+                const hasAudio = localScreenStreamRef.current.getAudioTracks().length > 0;
+                if (!videoTrack || videoTrack.readyState !== 'live' || (needsAudio && !hasAudio)) {
+                    stopTracks(localScreenStreamRef.current);
                     localScreenStreamRef.current = null;
-                    if (shareMode === 'mixed' || shareMode === 'screen') {
-                        setShareMode('camera');
-                        setCameraEnabled(true);
-                    }
-                    updateOutgoingVideo({ nextScreenStream: null });
-                };
+                } else {
+                    setScreenSharing(true);
+                    screenSharingRef.current = true;
+                    return;
+                }
             }
-            await updateOutgoingVideo({
-                nextScreenStream: stream,
-                cameraEnabledOverride,
-            });
-        } catch (error) {
-            console.error('Failed to start screen share', error);
-            setScreenSharing(false);
-        }
-    }, [shareMode, updateOutgoingVideo]);
+            try {
+                const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: needsAudio });
+                localScreenStreamRef.current = stream;
+                setScreenSharing(true);
+                screenSharingRef.current = true;
+                const [track] = stream.getVideoTracks();
+                if (track) {
+                    track.onended = () => {
+                        setScreenSharing(false);
+                        screenSharingRef.current = false;
+                        localScreenStreamRef.current = null;
+                        if (shareModeRef.current === 'mixed' || shareModeRef.current === 'screen') {
+                            setShareMode('camera');
+                            shareModeRef.current = 'camera';
+                            setCameraEnabled(true);
+                        }
+                        void updateOutgoingAudio(null);
+                        updateOutgoingVideo({ nextScreenStream: null });
+                    };
+                }
+                if (publishOnStart) {
+                    await updateOutgoingVideo({
+                        nextScreenStream: stream,
+                        cameraEnabledOverride,
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to start screen share', error);
+                setScreenSharing(false);
+            }
+        },
+        [updateOutgoingAudio, updateOutgoingVideo]
+    );
 
     const stopScreenShare = useCallback(async () => {
         stopTracks(localScreenStreamRef.current);
         localScreenStreamRef.current = null;
         setScreenSharing(false);
+        screenSharingRef.current = false;
+        clearMixedRetry();
+        await updateOutgoingAudio(null);
         await updateOutgoingVideo({ nextScreenStream: null });
-    }, [updateOutgoingVideo]);
+    }, [clearMixedRetry, updateOutgoingAudio, updateOutgoingVideo]);
 
     const handleToggleMic = useCallback(() => {
         if (micEnabled) {
@@ -484,29 +629,55 @@ const MeetingRoomPage: React.FC = () => {
 
     const handleShareModeChange = useCallback(
         async (mode: ShareMode) => {
-            if (!isPresenter) return;
+            if (!isPresenterRef.current) return;
+            if (micEnabled) {
+                void stopMicrophone();
+            }
+            setMicEnabled(false);
+            clearMixedRetry();
+            const prevMode = shareModeRef.current;
             canvasComposer.stopComposing();
             if (composedStreamRef.current) {
-                stopTracks(composedStreamRef.current);
                 composedStreamRef.current = null;
+                await sfuClientRef.current?.closeProducer('video');
+                publishedVideoTrackIdRef.current = null;
             }
             setShareMode(mode);
+            shareModeRef.current = mode;
             if (mode === 'camera') {
-                if (screenSharing) {
+                if (screenSharing || localScreenStreamRef.current) {
                     await stopScreenShare();
+                    stopTracks(localScreenStreamRef.current);
+                    localScreenStreamRef.current = null;
+                    setScreenSharing(false);
+                    screenSharingRef.current = false;
                 }
                 setShareMode('camera');
+                shareModeRef.current = 'camera';
                 setCameraEnabled(true);
                 await ensureCameraStream(true);
-                await updateOutgoingVideo({ publish: true, cameraEnabledOverride: true, nextScreenStream: null });
+                await updateOutgoingVideo({
+                    publish: true,
+                    cameraEnabledOverride: true,
+                    nextCameraStream: localCameraStreamRef.current,
+                    nextScreenStream: null,
+                });
                 return;
             }
             if (mode === 'screen') {
                 setShareMode('screen');
+                shareModeRef.current = 'screen';
                 setCameraEnabled(false);
+                stopTracks(localCameraStreamRef.current);
+                localCameraStreamRef.current = null;
                 await ensureCameraStream(false);
                 if (!screenSharing) {
-                    await startScreenShare(false);
+                    await startScreenShare(false, true);
+                    await updateOutgoingVideo({
+                        publish: true,
+                        cameraEnabledOverride: false,
+                        nextScreenStream: localScreenStreamRef.current,
+                    });
                 } else {
                     await updateOutgoingVideo({
                         publish: true,
@@ -518,19 +689,26 @@ const MeetingRoomPage: React.FC = () => {
             }
             // mixed
             setShareMode('mixed');
+            shareModeRef.current = 'mixed';
             setCameraEnabled(true);
-            await ensureCameraStream(true);
-            if (!screenSharing) {
-                await startScreenShare(true);
-            } else {
-                await updateOutgoingVideo({
-                    publish: true,
-                    cameraEnabledOverride: true,
-                    nextScreenStream: localScreenStreamRef.current,
-                });
+            if (prevMode !== 'mixed') {
+                stopTracks(localScreenStreamRef.current);
+                localScreenStreamRef.current = null;
+                setScreenSharing(false);
+                screenSharingRef.current = false;
+                stopTracks(localCameraStreamRef.current);
+                localCameraStreamRef.current = null;
             }
+            await ensureCameraStream(true);
+            await startScreenShare(true, false);
+            await updateOutgoingVideo({
+                publish: true,
+                cameraEnabledOverride: true,
+                nextCameraStream: localCameraStreamRef.current,
+                nextScreenStream: localScreenStreamRef.current,
+            });
             window.setTimeout(() => {
-                if (shareMode === 'mixed' && screenSharing) {
+                if (shareModeRef.current === 'mixed' && screenSharingRef.current) {
                     updateOutgoingVideo({
                         publish: true,
                         cameraEnabledOverride: true,
@@ -539,20 +717,24 @@ const MeetingRoomPage: React.FC = () => {
                 }
             }, 500);
         },
-        [ensureCameraStream, isPresenter, screenSharing, shareMode, startScreenShare, stopScreenShare, updateOutgoingVideo]
-    );
-
-    const handlePipPositionChange = useCallback(
-        (position: PipPosition) => {
-            setPipPosition(position);
-            updateOutgoingVideo({ nextPipPosition: position });
-        },
-        [updateOutgoingVideo]
+        [
+            clearMixedRetry,
+            ensureCameraStream,
+            isPresenter,
+            micEnabled,
+            screenSharing,
+            shareMode,
+            startScreenShare,
+            stopMicrophone,
+            stopScreenShare,
+            updateOutgoingVideo,
+        ]
     );
 
     const handleTogglePresenter = useCallback(() => {
         if (!roomIdRef.current || !wsClientRef.current) return;
         if (isPresenter) {
+            isPresenterRef.current = false;
             wsClientRef.current.setPresenter(roomIdRef.current, {
                 displayName: displayNameRef.current,
                 action: 'release',
@@ -567,11 +749,13 @@ const MeetingRoomPage: React.FC = () => {
                 stopTracks(composedStreamRef.current);
                 composedStreamRef.current = null;
             }
+            void updateOutgoingAudio(null);
             updateOutgoingVideo({ publish: false, cameraEnabledOverride: false, nextScreenStream: null });
             return;
         }
-        const confirmed = window.confirm('발표자가 되겠습니까? 현재 발표자는 권한이 내려집니다.');
+        const confirmed = window.confirm('발표자가 되시겠습니까? 현재 발표자는 권한을 내려야 합니다.');
         if (!confirmed) return;
+        isPresenterRef.current = true;
         wsClientRef.current.setPresenter(roomIdRef.current, {
             displayName: displayNameRef.current,
             action: 'claim',
@@ -580,7 +764,8 @@ const MeetingRoomPage: React.FC = () => {
         if (selfParticipantIdRef.current !== null) {
             setPresenterId(selfParticipantIdRef.current);
         }
-    }, [isPresenter]);
+    }, [isPresenter, updateOutgoingAudio, updateOutgoingVideo]);
+
 
     useEffect(() => {
         const wasPresenter = prevPresenterRef.current;
@@ -630,14 +815,14 @@ const MeetingRoomPage: React.FC = () => {
         if (!numericStudyId || !numericMeetingId || isCapturing || remainingCaptures <= 0) return;
         const video = videoStageRef.current?.querySelector('video');
         if (!video) {
-            window.alert('캡쳐할 화면이 없습니다.');
+            window.alert('캡처할 화면이 없습니다.');
             return;
         }
         setIsCapturing(true);
         try {
             const blob = await captureFrame(video);
             if (!blob) {
-                window.alert('캡쳐할 화면이 없습니다.');
+                window.alert('캡처할 화면이 없습니다.');
                 return;
             }
             const file = new File([blob], 'meeting-capture.png', { type: 'image/png' });
@@ -650,7 +835,7 @@ const MeetingRoomPage: React.FC = () => {
         }
     }, [isCapturing, maxPhotoCount, numericMeetingId, numericStudyId, remainingCaptures]);
 
-    const presenterLabel = presenterName ? `발표자: ${presenterName}` : '발표자';
+    const presenterLabel = presenterName ? '발표자: ' + presenterName : '발표자';
 
     const handleEndMeeting = useCallback(async () => {
         if (!numericStudyId || !numericMeetingId || !canEndMeeting) return;
@@ -732,9 +917,12 @@ const MeetingRoomPage: React.FC = () => {
                 if (prev.some((item) => item.id === payload.consumerId)) {
                     return prev;
                 }
-                const label = payload.peerId ? `참가자 (${payload.peerId.slice(0, 6)})` : '참가자';
+                const withoutSamePeer = payload.peerId
+                    ? prev.filter((item) => item.peerId !== payload.peerId)
+                    : [];
+                const label = payload.peerId ? `참가자(${payload.peerId.slice(0, 6)})` : '참가자';
                 return [
-                    ...prev,
+                    ...withoutSamePeer,
                     {
                         id: payload.consumerId,
                         stream: payload.stream,
@@ -872,7 +1060,7 @@ const MeetingRoomPage: React.FC = () => {
                 audio.srcObject = null;
             });
             remoteAudioElementsRef.current.clear();
-            canvasComposer.cleanup();
+            canvasComposer.stopComposing();
             if (joinSuccessRef.current) {
                 meetingApi.leaveMeeting(numericStudyId, numericMeetingId).catch((error) => {
                     console.error('Failed to leave meeting', error);
@@ -904,6 +1092,7 @@ const MeetingRoomPage: React.FC = () => {
     }, [numericMeetingId, numericStudyId]);
 
     useEffect(() => {
+        if (recordingDisabledRef.current) return;
         if (!localStream || recordingRef.current) return;
         const audioTracks = localMicStreamRef.current?.getAudioTracks() ?? [];
         const videoTracks = localStream.getVideoTracks();
@@ -914,6 +1103,10 @@ const MeetingRoomPage: React.FC = () => {
         const tryStart = () => {
             const mimeTypes = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
             const supported = mimeTypes.find((type) => MediaRecorder.isTypeSupported(type));
+            if (!supported) {
+                recordingDisabledRef.current = true;
+                return;
+            }
             try {
                 recorder = new MediaRecorder(combined, supported ? { mimeType: supported } : undefined);
                 recorder.start();
@@ -921,6 +1114,7 @@ const MeetingRoomPage: React.FC = () => {
                 setIsRecording(true);
             } catch (error) {
                 console.error('Failed to start MediaRecorder', error);
+                recordingDisabledRef.current = true;
             }
         };
         tryStart();
@@ -944,7 +1138,7 @@ const MeetingRoomPage: React.FC = () => {
                         <h1>{meetingTitle || '미팅 룸'}</h1>
                         <div className="meeting-room__status">
                             <span>{isPresenter ? '발표자 모드' : '참가자 모드'}</span>
-                            {isRecording && <span className="meeting-room__recording">녹음 중</span>}
+                            {isRecording && <span className="meeting-room__recording">녹화 중</span>}
                         </div>
                     </div>
                     <button className="meeting-btn ghost" onClick={() => navigate(`/study/${numericStudyId}/meetings`)}>
@@ -955,12 +1149,11 @@ const MeetingRoomPage: React.FC = () => {
                 <MeetingControls
                     isPresenter={isPresenter}
                     micEnabled={micEnabled}
+                    micDisabled={isPresenter && shareMode !== null}
                     shareMode={shareMode}
-                    pipPosition={pipPosition}
                     onToggleMic={handleToggleMic}
                     onShareModeChange={handleShareModeChange}
                     onTogglePresenter={handleTogglePresenter}
-                    onPipPositionChange={handlePipPositionChange}
                     onEndMeeting={handleEndMeeting}
                     canEndMeeting={canEndMeeting}
                     captureRemaining={remainingCaptures}
@@ -999,3 +1192,15 @@ const MeetingRoomPage: React.FC = () => {
 };
 
 export default MeetingRoomPage;
+
+
+
+
+
+
+
+
+
+
+
+
