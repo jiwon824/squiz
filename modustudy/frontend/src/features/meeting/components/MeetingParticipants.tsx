@@ -10,12 +10,12 @@ interface MeetingParticipantsProps {
 
 const MeetingParticipants: React.FC<MeetingParticipantsProps> = ({ participants, presenterId, presenterName }) => {
     return (
-        <section className="meeting-panel">
+        <section className="meeting-panel meeting-panel--participants">
             <div className="meeting-panel__header">
                 <h3>참가자</h3>
                 <span className="meeting-panel__count">{participants.length}</span>
             </div>
-            <div className="meeting-panel__body">
+            <div className="meeting-panel__body meeting-participants__list">
                 {participants.map((participant) => {
                     const isPresenter =
                         (presenterId !== null && participant.id === presenterId) ||
