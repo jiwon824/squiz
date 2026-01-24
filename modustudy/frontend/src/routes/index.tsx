@@ -19,6 +19,9 @@ const QuizGameSelection = lazy(() =>
 const CommentleQuiz = lazy(() =>
     import('../features/quiz').then(m => ({ default: m.CommentleQuiz }))
 );
+const QuizCourseList = lazy(() =>
+    import('../features/quiz').then(m => ({ default: m.QuizCourseList }))
+);
 const LoginPage = lazy(() =>
     import('../features/auth/index').then(m => ({ default: m.LoginPage }))
 );
@@ -112,6 +115,7 @@ export const AppRouter = () => {
                     <Route path="/signup" element={<SignupPage />} />
                     <Route path="/quiz" element={<QuizGameSelection />} />
                     <Route path="/quiz-commentle" element={<CommentleQuiz />} />
+                    <Route path="/quiz-practice" element={<QuizCourseList />} />
                     <Route path="/study" element={<StudyPage />} />
                     <Route path="/study/create" element={<StudyCreatePage />} />
                     <Route path="/study/:id" element={<StudyDetailPage />} />
