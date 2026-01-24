@@ -65,10 +65,13 @@ import { SectionList } from './SectionList';
  * * @property {Course} course - 화면에 표시할 코스 데이터 객체입니다.
  * @property {function} onSectionClick - 섹션을 클릭했을 때 실행되는 선택적 콜백 함수입니다.
  * 코스 ID(courseId)와 섹션 ID(sectionId)를 모두 전달받습니다.
+ * @property {function} onCardClick - 카드를 클릭했을 때 실행되는 선택적 콜백 함수입니다.
+ * 코스 ID(courseId)를 전달받습니다. 제공되면 확장 대신 네비게이션에 사용됩니다.
  */
 interface CourseCardProps {
     course: Course;
     onSectionClick?: (courseId: string, sectionId: string) => void;
+    onCardClick?: (courseId: string) => void;
 }
 
 // =============================================================================
@@ -84,7 +87,7 @@ interface CourseCardProps {
  * @param props.onSectionClick - Callback function for section click events
  * @returns JSX representing the course card UI
  */
-export const CourseCard = ({ course, onSectionClick }: CourseCardProps) => {
+export const CourseCard = ({ course, onSectionClick, onCardClick }: CourseCardProps) => {
     // =========================================================================
     // STATE - 컴포넌트 상태 관리
     // =========================================================================
@@ -184,13 +187,17 @@ export const CourseCard = ({ course, onSectionClick }: CourseCardProps) => {
                 ================================================================ */}
             <div
                 /**
-                 * 클릭하여 토글 (CLICK TO TOGGLE):
-                 * 클릭하면 isExpanded 상태를 토글(반전)합니다.
-                 * !isExpanded는 "isExpanded의 반대 상태"를 의미합니다.
-                 * - isExpanded가 false이면 true가 되어 확장됩니다.
-                 * - isExpanded가 true이면 false가 되어 축소됩니다.
+                 * 클릭 핸들러 (CLICK HANDLER):
+                 * onCardClick이 제공된 경우 상세 페이지로 이동합니다.
+                 * 그렇지 않으면 기존처럼 섹션 목록을 토글합니다.
                  */
-                onClick={() => setIsExpanded(!isExpanded)}
+                onClick={() => {
+                    if (onCardClick) {
+                        onCardClick(course.id);
+                    } else {
+                        setIsExpanded(!isExpanded);
+                    }
+                }}
                 className="cursor-pointer"  // 클릭 가능한 요소임을 나타내는 포인터 커서 표시
                 style={{ padding: 'var(--spacing-xl)' }}  // 32px padding
             >

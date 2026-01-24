@@ -184,6 +184,16 @@ export const QuizCourseList = () => {
         // navigate(`/quiz-practice/${courseId}/${sectionId}`);
     };
 
+    /**
+     * handleCardClick:
+     * 카드를 클릭했을 때 해당 코스의 상세 페이지로 네비게이션합니다.
+     * 
+     * @param courseId - 클릭된 코스의 ID
+     */
+    const handleCardClick = (courseId: string) => {
+        navigate(`/quiz-practice/${courseId}`);
+    };
+
     // =========================================================================
     // RENDER - JSX 반환 (화면에 표시될 내용)
     // =========================================================================
@@ -385,12 +395,14 @@ export const QuizCourseList = () => {
                      * - key: 리액트가 목록의 각 요소를 식별하기 위한 고유 값 (리스트 렌더링 시 필수)
                      * - course: 모든 데이터를 포함하고 있는 전체 코스 객체
                      * - onSectionClick: 섹션 클릭 시 실행될 콜백 함수
+                     * - onCardClick: 카드 클릭 시 상세 페이지로 이동
                      */}
                     {filteredCourses.map((course) => (
                         <CourseCard
                             key={course.id}
                             course={course}
                             onSectionClick={handleSectionClick}
+                            onCardClick={handleCardClick}
                         />
                     ))}
                 </div>
