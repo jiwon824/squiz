@@ -1,5 +1,6 @@
 ﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import axios from 'axios';
 import { MainLayout } from '@/layouts/MainLayout';
 import { useAuthStore } from '@/store/authStore';
 import MeetingControls from './MeetingControls';
@@ -37,6 +38,8 @@ const MeetingRoomPage: React.FC = () => {
     const numericStudyId = Number(studyId);
     const numericMeetingId = Number(meetingId);
     const navigate = useNavigate();
+    const meetingListPath =
+        Number.isFinite(numericStudyId) && numericStudyId > 0 ? `/study/${numericStudyId}/meetings` : '/study';
     const { user, isLoggedIn } = useAuthStore();
 
     const getGuestName = useCallback(() => {
@@ -88,6 +91,8 @@ const MeetingRoomPage: React.FC = () => {
     const [isRecording, setIsRecording] = useState(false);
     const [photoCount, setPhotoCount] = useState(0);
     const [isCapturing, setIsCapturing] = useState(false);
+    const [roomGuardStatus, setRoomGuardStatus] = useState<'checking' | 'ok' | 'blocked'>('checking');
+    const [roomGuardMessage, setRoomGuardMessage] = useState('회의 정보를 확인 중입니다.');
 
     const aiVideoRef = useRef<HTMLVideoElement | null>(null);
     const videoStageRef = useRef<HTMLDivElement | null>(null);
@@ -991,30 +996,50 @@ const MeetingRoomPage: React.FC = () => {
     }, []);
 
     useEffect(() => {
-        if (!numericStudyId || !numericMeetingId) return;
         let cancelled = false;
         const setup = async () => {
+            setRoomGuardStatus('checking');
+            setRoomGuardMessage('회의 정보를 확인 중입니다.');
+            if (!numericStudyId || !numericMeetingId || Number.isNaN(numericStudyId) || Number.isNaN(numericMeetingId)) {
+                setRoomGuardStatus('blocked');
+                setRoomGuardMessage('존재하지 않는 회의입니다.');
+                return;
+            }
             try {
                 const detail = await meetingApi.getMeetingDetail(numericStudyId, numericMeetingId);
-                if (!cancelled) {
-                    setMeetingTitle(detail.title || `미팅 ${numericMeetingId}`);
-                    setMeetingStartedAt(detail.startedAt ?? new Date().toISOString());
+                if (cancelled) return;
+                if (detail.status === 'ENDED' || detail.endedAt) {
+                    setRoomGuardStatus('blocked');
+                    setRoomGuardMessage('종료된 회의입니다.');
+                    return;
                 }
-            } catch {
-                if (!cancelled) {
-                    setMeetingTitle(`미팅 ${numericMeetingId}`);
-                    setMeetingStartedAt(new Date().toISOString());
+                setMeetingTitle(detail.title || `미팅 ${numericMeetingId}`);
+                setMeetingStartedAt(detail.startedAt ?? new Date().toISOString());
+            } catch (error) {
+                if (cancelled) return;
+                if (axios.isAxiosError(error) && error.response?.status === 404) {
+                    setRoomGuardStatus('blocked');
+                    setRoomGuardMessage('존재하지 않는 회의입니다.');
+                    return;
                 }
+                setMeetingTitle(`미팅 ${numericMeetingId}`);
+                setMeetingStartedAt(new Date().toISOString());
             }
 
             let joinData: MeetingJoinResponse | null = null;
             const fallbackRoomId = `meeting-${numericMeetingId}`;
+            setRoomGuardStatus('ok');
             try {
                 joinData = await meetingApi.joinMeeting(numericStudyId, numericMeetingId);
                 joinSuccessRef.current = true;
             } catch (error) {
                 console.error('Failed to join meeting', error);
                 joinSuccessRef.current = false;
+                if (!cancelled && axios.isAxiosError(error) && error.response?.status === 404) {
+                    setRoomGuardStatus('blocked');
+                    setRoomGuardMessage('존재하지 않는 회의입니다.');
+                    return;
+                }
             }
 
             const roomId = joinData?.roomToken || fallbackRoomId;
@@ -1168,6 +1193,30 @@ const MeetingRoomPage: React.FC = () => {
         };
     }, [localStream]);
 
+    if (roomGuardStatus !== 'ok') {
+        return (
+            <MainLayout>
+                <div className="meeting-room meeting-room__blocked">
+                    <div className="meeting-room__blocked-card">
+                        <h1>회의 입장이 제한되었습니다</h1>
+                        <p>{roomGuardMessage}</p>
+                        <div className="meeting-room__blocked-actions">
+                            <button
+                                className="meeting-btn primary"
+                                onClick={() => navigate(meetingListPath)}
+                            >
+                                회의 목록으로
+                            </button>
+                            <button className="meeting-btn ghost" onClick={() => navigate(-1)}>
+                                이전 화면
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </MainLayout>
+        );
+    }
+
     return (
         <MainLayout>
             <div className="meeting-room">
@@ -1184,7 +1233,7 @@ const MeetingRoomPage: React.FC = () => {
                                 <span>{isPresenter ? '발표자 모드' : '참가자 모드'}</span>
                                 {isRecording && <span className="meeting-room__recording">녹화 중</span>}
                             </div>
-                            <button className="meeting-btn ghost" onClick={() => navigate(`/study/${numericStudyId}/meetings`)}>
+                            <button className="meeting-btn ghost" onClick={() => navigate(meetingListPath)}>
                                 목록으로
                             </button>
                         </div>
