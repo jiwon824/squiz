@@ -8,18 +8,18 @@ import { OrbitControls, Text, Sphere, Line } from '@react-three/drei';
 import { useState, useRef, useMemo } from 'react';
 import * as THREE from 'three';
 
-// 색상 상수 - 6단계 구역
+// 색상 상수 - 6단계 구역 (Google Design System 기반)
 const COLORS = {
-    answer: '#22c55e',      // 초록색 - 정답 (중심)
-    user: '#3b82f6',        // 파란색 - 최신 입력
-    history: '#f59e0b',     // 주황색 - 이전 시도들
+    answer: '#34A853',      // 초록색 - 정답 (중심)
+    user: '#4285F4',        // 파란색 - 최신 입력
+    history: '#FBBC04',     // 노란색 - 이전 시도들
     // 6단계 거리 색상
-    perfect: '#22c55e',     // 95+ 정답 영역
+    perfect: '#34A853',     // 95+ 정답 영역
     veryClose: '#4ade80',   // 85-95 매우 가까움
-    close: '#60a5fa',       // 70-85 가까움
-    medium: '#a78bfa',      // 50-70 중간
-    far: '#fbbf24',         // 30-50 멀리
-    veryFar: '#f87171',     // 0-30 매우 멀리
+    close: '#4285F4',       // 70-85 가까움
+    medium: '#a855f7',      // 50-70 중간 (보라색 유지)
+    far: '#FBBC04',         // 30-50 멀리
+    veryFar: '#EA4335',     // 0-30 매우 멀리
 };
 
 /**
