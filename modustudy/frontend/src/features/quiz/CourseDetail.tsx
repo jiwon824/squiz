@@ -88,11 +88,10 @@ export const CourseDetail = () => {
     // 완료된 섹션 수 계산
     const completedCount = courseDetail.sections.filter(s => s.isPassed).length;
 
-    // 섹션 클릭 핸들러
+    // 섹션 클릭 핸들러 - 퀴즈 세션 페이지로 이동
     const handleSectionClick = (sectionNumber: number) => {
         console.log(`퀴즈 시작: 코스 ${courseId}, 섹션 ${sectionNumber}`);
-        // TODO: 실제 퀴즈 페이지로 이동
-        // navigate(`/quiz-practice/${courseId}/section/${sectionNumber}`);
+        navigate(`/quiz-practice/${courseId}/section/${sectionNumber}/session`);
     };
 
     return (
