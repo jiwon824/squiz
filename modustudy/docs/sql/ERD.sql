@@ -794,12 +794,33 @@ CREATE TABLE `study_quiz_attempt` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
     `quiz_id` BIGINT NOT NULL,
     `user_id` BIGINT NOT NULL,
+    `status` ENUM('IN_PROGRESS', 'COMPLETED', 'ABANDONED') DEFAULT 'IN_PROGRESS',
+    `started_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `last_answered_at` TIMESTAMP NULL,
+    `current_question_index` INT DEFAULT 0,
     `score` INT DEFAULT 0,
     `total_questions` INT,
     `correct_count` INT,
-    `completed_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `completed_at` TIMESTAMP,
     FOREIGN KEY (`quiz_id`) REFERENCES `study_quiz`(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`user_id`) REFERENCES `user`(`id`)
+    FOREIGN KEY (`user_id`) REFERENCES `user`(`id`),
+    INDEX `idx_quiz_attempt_user_status` (`quiz_id`, `user_id`, `status`)
+);
+
+-- 스터디 퀴즈 개별 문제 답변 기록
+CREATE TABLE `study_quiz_answer` (
+    `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
+    `attempt_id` BIGINT NOT NULL,
+    `question_id` BIGINT NOT NULL,
+    `question_index` INT NOT NULL,                   -- 문제 순서 (0부터 시작)
+    `user_answer` JSON,                              -- 사용자 답변 (객관식: ["A"], 단답형: "답")
+    `is_correct` BOOLEAN DEFAULT FALSE,
+    `time_taken_seconds` INT DEFAULT 0,              -- 문제 풀이 소요 시간
+    `answered_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (`attempt_id`) REFERENCES `study_quiz_attempt`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`question_id`) REFERENCES `study_quiz_question`(`id`) ON DELETE CASCADE,
+    UNIQUE KEY `uk_attempt_question` (`attempt_id`, `question_id`),
+    INDEX `idx_attempt_index` (`attempt_id`, `question_index`)
 );
 
 CREATE TABLE `wrong_answer_note` (
