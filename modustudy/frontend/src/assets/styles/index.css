@@ -11,6 +11,14 @@
    - 그림자 최소화: 렌더링 부담 감소
    - CSS 변수: 테마 전환 시 리플로우 최소화
    - will-change: 애니메이션 힌트 제공
+
+   ✨ Design Philosophy - Spacing & White Space:
+   1. White space is not empty: It creates structure, focus and clarity.
+   2. Avoid bleeding sections: Ensure enough space between sections so users know where to look.
+   3. Consistent spacing: Random gaps feel sloppy; a consistent system feels intentional.
+   4. Breathable text: Don't crowd text baglocks; tight paragraphs kill readability.
+   5. Vertical rhythm: Vertical spacing controls the flow, pace, and comfort of the page.
+   6. Content management: Overpacking components increases cognitive load and reduces scanability.
    ============================================ */
 
 /* ============================================
@@ -572,12 +580,18 @@ a:hover {
 }
 
 @keyframes spin {
-    from {
-        transform: rotate(0deg);
-    }
-
     to {
         transform: rotate(360deg);
+    }
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -468px 0;
+    }
+
+    100% {
+        background-position: 468px 0;
     }
 }
 
@@ -746,6 +760,31 @@ a:hover {
 
 .transition-slow {
     transition: all var(--transition-slow);
+}
+
+/* 스켈레톤 유틸리티 */
+.skeleton {
+    background: #f6f7f8;
+    background-image: linear-gradient(to right,
+            #f6f7f8 0%,
+            #edeef1 20%,
+            #f6f7f8 40%,
+            #f6f7f8 100%);
+    background-repeat: no-repeat;
+    background-size: 800px 100%;
+    display: inline-block;
+    position: relative;
+    animation: shimmer 1.5s linear infinite forwards;
+    border-radius: var(--radius-sm);
+}
+
+[data-theme="dark"] .skeleton {
+    background: #2a2d35;
+    background-image: linear-gradient(to right,
+            #2a2d35 0%,
+            #353942 20%,
+            #2a2d35 40%,
+            #2a2d35 100%);
 }
 
 /* ============================================
