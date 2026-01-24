@@ -53,24 +53,27 @@ export default {
         error: 'var(--color-error)',        // #F4A5A5
         info: 'var(--color-info)',          // #91C4C3 (secondary와 동일)
 
-        // 퀴즈 전용 색상 (하드코딩)
+        // 퀴즈 전용 색상 (점수별)
         quiz: {
-          success: '#22c55e',   // 90-100점
-          info: '#3b82f6',      // 75-89점  
-          focus: '#a855f7',     // 50-74점
-          warning: '#f59e0b',   // 25-49점
-          danger: '#ef4444',    // 0-24점
+          success: 'var(--color-google-green)',   // 90-100점
+          info: 'var(--color-google-blue)',       // 75-89점  
+          focus: '#a855f7',                       // 50-74점 (보라색 유지)
+          warning: 'var(--color-google-yellow)',  // 25-49점
+          danger: 'var(--color-google-red)',      // 0-24점
         },
 
-        // 레거시 호환 (단계적 제거 예정)
-        'study-bg': 'var(--color-bg)',
-        'study-blue': 'var(--color-primary)',
-        'study-teal': 'var(--color-secondary)',
-        'study-green': 'var(--color-accent)',
+        // 호환성 유지 (단계적 제거 예정)
+        'study-bg': 'var(--color-gray-50)',
+        'study-blue': 'var(--color-google-blue)',
+        'study-teal': 'var(--color-google-green)',
+        'study-green': 'var(--color-google-green)',
         'study-text': 'var(--color-text-primary)',
+        'study-text-dark': 'var(--color-text-primary)',
       },
       borderRadius: {
-        'google': '12px',
+        'google': '8px',      // Google Material 기본
+        'google-lg': '12px',  // 대형 카드
+        'pill': '50px',       // 버튼용 pill 형태
       },
       fontFamily: {
         'sans': ['Pretendard', 'var(--font-primary)', 'sans-serif'],

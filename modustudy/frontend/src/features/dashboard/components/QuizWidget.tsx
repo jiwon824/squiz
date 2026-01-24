@@ -1,6 +1,7 @@
 // QuizWidget.tsx - quizService와 연동
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+// @ts-ignore - JS 파일이므로 타입 무시
 import { fetchYesterdayWord, fetchDailyWord } from '../../quiz/services/quizService';
 import './QuizWidget.css';
 

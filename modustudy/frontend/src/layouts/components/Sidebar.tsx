@@ -10,7 +10,7 @@ export const Sidebar = () => {
 
     return (
         <motion.aside
-            className="h-screen bg-study-bg flex flex-col overflow-hidden"
+            className="h-screen flex flex-col overflow-hidden"
             initial={{ width: 280 }}
             animate={{ width: isSidebarOpen ? 280 : 0 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}

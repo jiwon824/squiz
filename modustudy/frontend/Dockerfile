@@ -3,6 +3,15 @@
 # ===========================================
 FROM node:20-alpine AS builder
 
+# UTF-8 인코딩 설정
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+ENV PYTHONIOENCODING=UTF-8
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+
+# Alpine에서 locale 지원 추가
+RUN apk add --no-cache icu-libs icu-data-full
+
 WORKDIR /app
 
 # 의존성 파일 복사

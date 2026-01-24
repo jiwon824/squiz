@@ -44,11 +44,12 @@ services:
       - squiz-network
 
 # ===========================================
-# Networks
+# Networks (외부 네트워크 - 미리 생성 필요)
 # ===========================================
 networks:
   squiz-network:
-    driver: bridge
+    external: true
+    name: squiz-network
 
 # ===========================================
 # Volumes

@@ -1,7 +1,8 @@
 import React, { ButtonHTMLAttributes, ReactNode } from 'react';
 import { Loader2 } from 'lucide-react';
+import { cn } from '@/shared/utils/cn';
 
-type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'google-primary' | 'google-outline' | 'google-ghost';
+type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'google-primary' | 'google-outline' | 'google-ghost' | 'back-button' | 'arrow-transparent';
 type ButtonSize = 'sm' | 'md' | 'lg' | 'xl';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -31,15 +32,18 @@ export const Button: React.FC<ButtonProps> = ({
     // 변체 스타일
     const variants: Record<ButtonVariant, string> = {
         // 프로젝트 메인 브랜드 스타일 (그라디언트)
-        primary: 'bg-gradient-to-br from-[#3b82f6] to-[#1d4ed8] text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40 hover:-translate-y-0.5 active:translate-y-0',
-        secondary: 'bg-gray-100 hover:bg-gray-200 text-gray-700',
-        outline: 'border-2 border-[#3b82f6] text-[#3b82f6] hover:bg-blue-50',
-        ghost: 'hover:bg-gray-100 text-gray-600',
-        danger: 'bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/20',
+        primary: 'bg-gradient-to-br from-blue-500 to-blue-700 text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40 hover:-translate-y-0.5 active:translate-y-0',
+        secondary: 'bg-surface-200 hover:bg-surface-300 text-on-surface',
+        outline: 'border-2 border-primary-500 text-primary-500 hover:bg-primary-50',
+        ghost: 'hover:bg-surface-200 text-on-surface-variant',
+        danger: 'bg-error-500 hover:bg-error-600 text-on-error shadow-lg shadow-error-500/20',
         // 구글 캘린더 모티브 스타일 (Material 3 컨셉)
-        'google-primary': 'bg-[#1a73e8] hover:bg-[#1765cc] text-white shadow-sm hover:shadow-md active:bg-[#1557b0]',
-        'google-outline': 'bg-white border border-[#dadce0] text-[#1a73e8] hover:bg-[#f8f9fa] hover:border-[#d2e3fc] shadow-sm',
-        'google-ghost': 'bg-transparent text-[#3c4043] hover:bg-[#f1f3f4] font-medium',
+        'google-primary': 'bg-primary-500 hover:bg-primary-600 text-on-primary shadow-sm hover:shadow-md active:bg-primary-700',
+        'google-outline': 'bg-surface-50 border border-outline text-primary-500 hover:bg-primary-50 hover:border-primary-200 shadow-sm',
+        'google-ghost': 'bg-transparent text-on-surface-variant hover:bg-surface-200 font-medium',
+        // 전용 네비게이션 버튼
+        'back-button': 'bg-transparent text-on-surface hover:bg-surface-200 font-medium',
+        'arrow-transparent': 'bg-transparent text-on-surface-variant hover:bg-surface-100 border-none shadow-none',
     };
 
     // 사이즈 스타일 (원형일 때와 아닐 때 구분)
@@ -50,11 +54,17 @@ export const Button: React.FC<ButtonProps> = ({
         xl: isCircle ? 'w-14 h-14 rounded-full p-0' : 'px-10 py-4 text-lg rounded-3xl gap-3',
     };
 
-    const widthStyle = fullWidth ? 'w-full' : '';
-
     return (
         <button
-            className={`${baseStyles} ${variants[variant]} ${sizes[size]} ${widthStyle} ${className}`}
+            className={cn(
+                baseStyles,
+                variants[variant],
+                sizes[size],
+                {
+                    'w-full': fullWidth,
+                },
+                className
+            )}
             disabled={isLoading || disabled}
             {...props}
         >

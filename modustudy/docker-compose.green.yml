@@ -54,11 +54,8 @@ services:
       - "22000-23000:20000-21000/udp"
     environment:
       - NODE_ENV=production
-      - SFU_SSL_KEY_PATH=/ssl/sfu-key.pem
-      - SFU_SSL_CERT_PATH=/ssl/sfu-cert.pem
+      - SFU_USE_HTTPS=false
       - SFU_ANNOUNCED_IP=i14d106.p.ssafy.io
-    volumes:
-      - ./ssl:/ssl:ro
     restart: unless-stopped
     networks:
       - squiz-network
@@ -83,4 +80,4 @@ services:
 networks:
   squiz-network:
     external: true
-    name: squiz_squiz-network
+    name: squiz-network

@@ -108,7 +108,395 @@ frontend/
 
 ---
 
-## 🎨 디자인 시스템
+## 🎨 중앙컨트롤 Design System 2.0
+
+### 🏗️ 구조 개요
+
+Google Material Design을 기반으로 한 체계적인 디자인 시스템입니다.
+
+```
+src/shared/design-system/
+├── tokens/             # 🎯 디자인 토큰 (색상, 간격, 타이포그래피 등)
+│   ├── colors.ts       # Google 색상 시스템
+│   ├── spacing.ts      # 8px 기반 스페이싱
+│   ├── typography.ts   # 타이포그래피 시스템
+│   ├── effects.ts      # 그림자, border-radius
+│   └── index.ts        # 토큰 통합 export
+├── primitives/         # 🧱 기본 컴포넌트
+│   └── Box.tsx         # 레이아웃 기본 컴포넌트
+├── utils/              # 🛠️ 유틸리티 함수
+│   └── cn.ts           # clsx 기반 클래스명 조합
+└── index.ts            # 메인 export
+```
+
+### 🎨 Google-Style 색상 시스템
+
+**메인 베이스 (흰색/검정색)**
+```typescript
+colors: {
+  white: '#FFFFFF',        // 메인 배경
+  black: '#202124',        // 메인 텍스트
+  gray: {
+    50: '#F8F9FA',         // 페이지 배경
+    100: '#E8EAED',        // 경계선, 구분선
+    300: '#DADCE0',        // 비활성 요소
+    500: '#5F6368',        // 보조 텍스트
+    700: '#3C4043',        // 서브 타이틀
+  }
+}
+```
+
+**Google 포인트 색상 (다채로운 액센트)**
+```typescript
+google: {
+  blue: '#4285F4',         // 주요 액션, 링크
+  red: '#EA4335',          // 오류, 경고
+  yellow: '#FBBC04',       // 알림, 주의
+  green: '#34A853',        // 성공, 완료
+}
+```
+
+### 📏 스페이싱 시스템 (8px 기반)
+
+```typescript
+spacing: {
+  xs: '0.5rem',   // 8px
+  sm: '1rem',     // 16px
+  md: '1.5rem',   // 24px
+  lg: '2rem',     // 32px
+  xl: '3rem',     // 48px
+}
+```
+
+### 🔤 타이포그래피 시스템
+
+```typescript
+textStyles: {
+  heading: {
+    h1: 'text-4xl font-bold text-black leading-tight',
+    h2: 'text-3xl font-semibold text-black leading-tight',
+    h3: 'text-2xl font-semibold text-black leading-normal',
+  },
+  body: {
+    large: 'text-lg font-normal text-gray-700 leading-relaxed',
+    default: 'text-base font-normal text-gray-700 leading-normal',
+    small: 'text-sm font-normal text-gray-500 leading-normal',
+  }
+}
+```
+
+---
+
+## 🛠️ clsx & tailwind-merge 사용법
+
+### clsx 개념
+
+`clsx`는 **조건부 클래스명을 쉽게 조합**할 수 있게 해주는 유틸리티 라이브러리입니다.
+
+**기본 사용법:**
+```javascript
+import { clsx } from 'clsx';
+
+// 기본 사용
+clsx('btn', 'btn-primary');  // "btn btn-primary"
+
+// 조건부 클래스
+clsx('btn', {
+  'btn-primary': isPrimary,
+  'btn-disabled': isDisabled,
+});
+
+// 배열과 객체 혼합
+clsx([
+  'btn',
+  {
+    'btn-primary': isPrimary,
+    'btn-secondary': !isPrimary,
+  },
+  additionalClasses
+]);
+```
+
+**실전 예제:**
+```jsx
+const Button = ({ variant, size, disabled, className }) => {
+  const classes = clsx(
+    'px-4 py-2 rounded font-medium',  // 기본 클래스
+    {
+      'bg-blue-500 text-white': variant === 'primary',
+      'bg-gray-200 text-gray-800': variant === 'secondary',
+      'opacity-50 cursor-not-allowed': disabled,
+      'px-3 py-1.5 text-sm': size === 'small',
+      'px-6 py-3 text-lg': size === 'large',
+    },
+    className  // 추가 클래스
+  );
+  
+  return <button className={classes} disabled={disabled} />;
+};
+```
+
+### tailwind-merge 개념
+
+`tailwind-merge`는 **Tailwind 클래스의 충돌을 해결**해주는 도구입니다.
+
+**문제점:**
+```javascript
+// 마지막 클래스만 적용됨 (예측하기 어려움)
+<div className="p-4 p-6" />  // p-6이 적용될까? p-4가 적용될까?
+```
+
+**해결책:**
+```javascript
+import { twMerge } from 'tailwind-merge';
+
+twMerge('p-4 p-6');  // "p-6" (나중 것이 덮어씀)
+twMerge('bg-red-500 bg-blue-500');  // "bg-blue-500"
+twMerge('px-4 py-2 p-6');  // "p-6" (더 구체적인 것이 남음)
+```
+
+### cn() 유틸리티 함수
+
+두 라이브러리를 결합한 **최적화된 유틸리티 함수**:
+
+```typescript
+// src/shared/utils/cn.ts
+import { type ClassValue, clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+```
+
+**사용 예시:**
+```jsx
+import { cn } from '@/shared/utils/cn';
+
+// 1. 기본 사용
+<div className={cn('p-4 bg-white rounded')} />
+
+// 2. 조건부 클래스
+<button 
+  className={cn(
+    'px-4 py-2 rounded font-medium',
+    {
+      'bg-google-blue text-white': variant === 'primary',
+      'bg-google-red text-white': variant === 'danger',
+      'opacity-50': disabled,
+    }
+  )} 
+/>
+
+// 3. 클래스 덮어쓰기 (tailwind-merge 효과)
+<div 
+  className={cn(
+    'p-4 bg-gray-100',  // 기본값
+    'p-6',              // p-6이 p-4를 덮어씀
+    userClassName       // 사용자 클래스가 모든 것을 덮어씀
+  )} 
+/>
+
+// 4. 디자인 시스템과 함께
+import { textStyles } from '@/shared/design-system';
+
+<h1 className={cn(textStyles.heading.h1, 'mb-4')} />
+```
+
+### 클래스 빌더 패턴
+
+복잡한 컴포넌트를 위한 **체계적인 클래스 관리**:
+
+```typescript
+// 버튼 컴포넌트 예시
+const ButtonVariants = {
+  variant: {
+    primary: 'bg-google-blue hover:bg-google-blue-dark text-white',
+    secondary: 'bg-gray-100 hover:bg-gray-200 text-gray-700',
+    outline: 'border border-google-blue text-google-blue hover:bg-google-blue-light',
+  },
+  size: {
+    sm: 'px-3 py-1.5 text-xs rounded-md',
+    md: 'px-6 py-2.5 text-sm rounded-lg',
+    lg: 'px-8 py-3.5 text-base rounded-xl',
+  }
+};
+
+const Button = ({ variant = 'primary', size = 'md', className, ...props }) => {
+  return (
+    <button
+      className={cn(
+        'inline-flex items-center justify-center font-semibold transition-colors',
+        ButtonVariants.variant[variant],
+        ButtonVariants.size[size],
+        className
+      )}
+      {...props}
+    />
+  );
+};
+```
+
+### 성능 최적화 팁
+
+1. **클래스 문자열 캐싱**
+```jsx
+const memoizedClasses = useMemo(() => 
+  cn('base-class', { 'condition-class': condition })
+, [condition]);
+```
+
+2. **정적 클래스와 동적 클래스 분리**
+```jsx
+const staticClasses = 'px-4 py-2 rounded font-medium';
+const dynamicClasses = cn({
+  'bg-blue-500': isPrimary,
+  'bg-gray-200': !isPrimary,
+});
+```
+
+---
+
+## 🚀 Design System 사용법
+
+### 1. 토큰 직접 사용
+
+```typescript
+import { colors, spacing, textStyles } from '@/shared/design-system/tokens';
+
+// CSS-in-JS에서 사용
+const styles = {
+  backgroundColor: colors.google.blue,
+  padding: spacing.md,
+  margin: spacing.lg,
+};
+
+// Tailwind 클래스로 사용
+<div className={textStyles.heading.h2} />
+```
+
+### 2. Primitive 컴포넌트 사용
+
+```jsx
+import { Box, Container } from '@/shared/design-system';
+
+// Box 컴포넌트 (디자인 토큰 기반 props)
+<Box 
+  bg="google-blue" 
+  p="md" 
+  rounded="lg"
+  shadow="md"
+>
+  Content
+</Box>
+
+// Container 컴포넌트 (페이지 래퍼)
+<Container size="xl" centered>
+  <h1>Page Title</h1>
+</Container>
+```
+
+### 3. 유틸리티 함수 활용
+
+```jsx
+import { cn, classBuilder } from '@/shared/design-system';
+
+// 클래스 조합
+<button className={cn(
+  classBuilder.button('primary', 'md'),
+  'additional-class'
+)} />
+
+// 조건부 스타일링
+<div className={cn(
+  'base-style',
+  {
+    'active-style': isActive,
+    'disabled-style': isDisabled,
+  }
+)} />
+```
+
+### 4. 컴포넌트 변형 시스템
+
+```jsx
+// 버튼 컴포넌트 예시
+const Button = ({ variant, size, className, ...props }) => {
+  const classes = cn(
+    // 기본 스타일
+    'inline-flex items-center justify-center font-semibold transition-all',
+    // 변형별 스타일
+    {
+      'bg-google-blue text-white': variant === 'primary',
+      'bg-google-green text-white': variant === 'success',
+      'border border-google-blue text-google-blue': variant === 'outline',
+    },
+    // 크기별 스타일
+    {
+      'px-3 py-1.5 text-xs': size === 'sm',
+      'px-6 py-2.5 text-sm': size === 'md',
+      'px-8 py-3.5 text-base': size === 'lg',
+    },
+    className
+  );
+  
+  return <button className={classes} {...props} />;
+};
+```
+
+---
+
+## 🎯 마이그레이션 가이드
+
+### 기존 코드 → Design System
+
+**Before (하드코딩):**
+```jsx
+<button 
+  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+  style={{ backgroundColor: '#4285F4' }}
+>
+  Click me
+</button>
+```
+
+**After (Design System):**
+```jsx
+import { Button } from '@/shared/components';
+
+<Button variant="primary" size="md">
+  Click me
+</Button>
+```
+
+**Before (CSS 클래스):**
+```css
+.custom-card {
+  background: #ffffff;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+```
+
+**After (Box 컴포넌트):**
+```jsx
+import { Box } from '@/shared/design-system';
+
+<Box 
+  bg="white" 
+  p="lg" 
+  rounded="xl" 
+  shadow="md"
+  className="custom-card"
+>
+  Card Content
+</Box>
+```
+
+---
+
+## 디자인 시스템
 
 ### 색상 팔레트
 

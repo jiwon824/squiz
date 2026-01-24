@@ -36,6 +36,15 @@ build:
 test:
   stage: test
   script:
+    # MySQL 컨테이너 실행 확인 및 자동 시작
+    - |
+      if ! docker ps | grep -q squiz-mysql; then
+        echo "MySQL 컨테이너가 없습니다. 공유 서비스 시작 중..."
+        docker network create squiz-network 2>/dev/null || true
+        (cd $DEPLOY_PATH && docker compose -p squiz-shared -f docker-compose.yml up -d)
+        echo "MySQL 준비 대기 중..."
+        sleep 30
+      fi
     - cd modustudy/backend
     - chmod +x gradlew
     # 테스트 DB 초기화 (squiz_test 사용)
@@ -84,8 +93,8 @@ build-frontend-image:
   script:
     - echo "$DOCKER_HUB_TOKEN" | docker login -u "$DOCKER_HUB_USER" --password-stdin
     - cd modustudy/frontend
-    - docker pull $FRONTEND_IMAGE:latest || true
-    - docker build --cache-from $FRONTEND_IMAGE:latest -t $FRONTEND_IMAGE:$CI_COMMIT_SHA -t $FRONTEND_IMAGE:latest .
+    # UTF-8 인코딩 문제 해결을 위해 캐시 없이 빌드
+    - docker build --no-cache -t $FRONTEND_IMAGE:$CI_COMMIT_SHA -t $FRONTEND_IMAGE:latest .
     - docker push $FRONTEND_IMAGE:$CI_COMMIT_SHA
     - docker push $FRONTEND_IMAGE:latest
   only:
