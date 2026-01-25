@@ -63,7 +63,6 @@ public class ItNews {
         this.category = category;
         this.publishedAt = publishedAt;
     }
-
     // 조회수 증가
     public void increaseViewCount() {
         this.viewCount++;
