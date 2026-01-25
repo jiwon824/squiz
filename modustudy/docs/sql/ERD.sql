@@ -829,30 +829,31 @@ CREATE TABLE `quiz_course` (
 );
 
 CREATE TABLE `quiz_course_section` (
-    `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
-    `course_id` BIGINT NOT NULL,
-    `section_number` INT NOT NULL,               -- 순서 (course_id별로 1부터 시작)
-    `name` VARCHAR(100) NOT NULL,                -- 기본 문법, 객체지향 등
+    `quiz_course_id` BIGINT NOT NULL,             -- FK + Part of composite PK
+    `section_number` INT NOT NULL,                 -- Part of composite PK (1부터 시작)
+    `name` VARCHAR(100) NOT NULL,                  -- 기본 문법, 객체지향 등
     `description` TEXT,
     `total_questions` INT DEFAULT 0,
-    `pass_score` INT DEFAULT 70,                 -- 통과 점수 (%)
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (`course_id`) REFERENCES `quiz_course`(`id`) ON DELETE CASCADE,
-    UNIQUE KEY `uk_course_section` (`course_id`, `section_number`)
+    `pass_score` INT DEFAULT 70,                   -- 통과 점수 (%)
+    `created_at` DATETIME(6) DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`quiz_course_id`, `section_number`),
+    FOREIGN KEY (`quiz_course_id`) REFERENCES `quiz_course`(`id`) ON DELETE CASCADE
 );
 
 CREATE TABLE `quiz_course_question` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
-    `section_id` BIGINT NOT NULL,
+    `quiz_course_id` BIGINT NOT NULL,              -- FK to quiz_course
+    `section_number` INT NOT NULL,                 -- Section reference
     `question_number` INT NOT NULL,
     `question_text` TEXT NOT NULL,
     `question_type` ENUM('MULTIPLE_CHOICE', 'SHORT_ANSWER', 'MULTIPLE_CHOICE_MULTIPLE') DEFAULT 'MULTIPLE_CHOICE',
     `options` JSON,
     `correct_answer` VARCHAR(500) NOT NULL,
     `explanation` TEXT,
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (`section_id`) REFERENCES `quiz_course_section`(`id`) ON DELETE CASCADE
+    `created_at` DATETIME(6) DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME(6) DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (`quiz_course_id`, `section_number`) 
+        REFERENCES `quiz_course_section`(`quiz_course_id`, `section_number`) ON DELETE CASCADE
 );
 
 -- 사용자별 코스 진행 상황
@@ -875,7 +876,8 @@ CREATE TABLE `user_course_progress` (
 CREATE TABLE `user_section_attempt` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
     `user_id` BIGINT NOT NULL,
-    `section_id` BIGINT NOT NULL,
+    `quiz_course_id` BIGINT NOT NULL,              -- FK to section (composite)
+    `section_number` INT NOT NULL,                 -- FK to section (composite)
     `status` ENUM('IN_PROGRESS', 'SUBMITTED', 'ABANDONED') DEFAULT 'IN_PROGRESS',
     `score` INT DEFAULT 0,
     `correct_count` INT DEFAULT 0,
@@ -888,8 +890,9 @@ CREATE TABLE `user_section_attempt` (
         CASE WHEN `status` = 'IN_PROGRESS' THEN '1' ELSE NULL END
     ) STORED,
     FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`section_id`) REFERENCES `quiz_course_section`(`id`) ON DELETE CASCADE,
-    UNIQUE KEY `uk_one_active_attempt` (`user_id`, `section_id`, `active_lock`)
+    FOREIGN KEY (`quiz_course_id`, `section_number`) 
+        REFERENCES `quiz_course_section`(`quiz_course_id`, `section_number`) ON DELETE CASCADE,
+    UNIQUE KEY `uk_one_active_attempt` (`user_id`, `quiz_course_id`, `section_number`, `active_lock`)
 );
 
 -- 섹션 시도 중 실시간 답안 저장
