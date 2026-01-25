@@ -94,96 +94,92 @@ const StudyCardContent: React.FC<StudyCardContentProps> = ({ study, onBookmarkTo
         <div
             onClick={() => onClick?.(study.id)}
             className={cn(
-                "group relative bg-white border border-border-light rounded-[40px] px-8 py-10 transition-all duration-700 hover:shadow-[0_30px_70px_rgba(0,0,0,0.08)] hover:-translate-y-3 cursor-pointer overflow-hidden flex flex-col min-h-[480px] h-fit",
+                "group relative bg-white border border-border-light rounded-[40px] px-8 py-10 transition-all duration-700 hover:shadow-[0_30px_70px_rgba(0,0,0,0.08)] hover:-translate-y-3 cursor-pointer overflow-hidden flex flex-col h-[480px]",
                 study.status === 'COMPLETED' && "opacity-60 grayscale-[0.6]"
             )}
         >
             {/* Background Decoration */}
             <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16 blur-2xl group-hover:bg-primary/10 transition-colors duration-700" />
 
-            {/* Header: Badges & Bookmark */}
-            <div className="flex justify-between items-start mb-10 relative z-10">
-                <div className="flex flex-wrap gap-2.5">
+            {/* Header: Topic (Left) & Status (Right) */}
+            <div className="flex justify-between items-center mb-10 relative z-10">
+                <div className="flex-1 min-w-0">
                     <span className={cn(
-                        "px-3.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-sm",
+                        "text-[10px] font-black uppercase tracking-[0.2em] border-l-4 pl-4 py-0.5 block truncate",
+                        getDifficultyColor(study.difficulty)
+                    )}>
+                        {study.topic}
+                    </span>
+                </div>
+                <div className="flex items-center gap-3 ml-4">
+                    <span className={cn(
+                        "px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider shadow-sm border whitespace-nowrap",
                         statusConfig.className
                     )}>
                         {statusConfig.text}
                     </span>
-                    <span className="px-3.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border bg-white text-text-secondary border-border-light shadow-sm">
-                        {getMeetingTypeText(study.meetingType)}
-                    </span>
+                    <button
+                        className={cn(
+                            "p-2 rounded-full transition-all hover:bg-error/5 group/bookmark",
+                            study.isBookmarked ? "text-error" : "text-text-muted hover:text-error"
+                        )}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onBookmarkToggle?.(study.id);
+                        }}
+                    >
+                        <Heart
+                            size={20}
+                            fill={study.isBookmarked ? 'currentColor' : 'none'}
+                            className="group-hover/bookmark:scale-110 transition-transform"
+                        />
+                    </button>
                 </div>
-                <button
-                    className={cn(
-                        "p-2.5 rounded-full transition-all hover:bg-error/5 group/bookmark",
-                        study.isBookmarked ? "text-error" : "text-text-muted hover:text-error"
-                    )}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onBookmarkToggle?.(study.id);
-                    }}
-                >
-                    <Heart
-                        size={22}
-                        fill={study.isBookmarked ? 'currentColor' : 'none'}
-                        className="group-hover/bookmark:scale-110 transition-transform"
-                    />
-                </button>
             </div>
 
             {/* Title & Description Container */}
             <div className="flex-1 flex flex-col min-w-0 relative z-10">
-                <div className={cn(
-                    "inline-flex self-start px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-[0.1em] border-l-4 mb-6 shadow-sm bg-background-secondary/30",
-                    getDifficultyColor(study.difficulty)
-                )}>
-                    {study.topic}
-                </div>
-
-                <h3 className="text-[28px] font-black text-text-primary mb-4 leading-[1.25] tracking-tight group-hover:text-primary transition-colors min-h-[70px] h-fit line-clamp-2">
+                <h3 className="text-[26px] font-black text-text-primary mb-3 leading-tight tracking-tight group-hover:text-primary transition-colors line-clamp-2 h-[64px]">
                     {study.name}
                 </h3>
 
-                <p className="text-[15px] text-text-secondary leading-relaxed line-clamp-2 font-medium opacity-70 mb-8 min-h-[45px] h-fit">
+                <p className="text-[14px] text-text-secondary leading-relaxed line-clamp-2 font-medium opacity-70 mb-8 h-[44px]">
                     {study.description}
                 </p>
 
-                {/* Info Items - Enhanced Spacing */}
-                <div className="grid grid-cols-2 gap-y-5 gap-x-6 mt-auto">
+                {/* Info Items - Fixed spacing above footer */}
+                <div className="grid grid-cols-2 gap-y-4 gap-x-6">
                     <div className="flex items-center gap-3 text-xs font-bold text-text-tertiary">
-                        <div className="p-1.5 bg-primary/5 rounded-lg text-primary">
+                        <div className="p-1.5 bg-primary/5 rounded-lg text-primary/70">
                             <Users size={16} />
                         </div>
-                        <span className="text-text-secondary">{study.currentMembers}/{study.maxMembers}명</span>
+                        <span className="text-text-secondary">{getMeetingTypeText(study.meetingType)} · {study.currentMembers}/{study.maxMembers}명</span>
                     </div>
                     <div className="flex items-center gap-3 text-xs font-bold text-text-tertiary overflow-hidden">
-                        <div className="p-1.5 bg-primary/5 rounded-lg text-primary">
+                        <div className="p-1.5 bg-primary/5 rounded-lg text-primary/70">
                             <Calendar size={16} />
                         </div>
                         <span className="text-text-secondary truncate">{formatDays(study.scheduleDays)}</span>
                     </div>
                     {study.region && (
                         <div className="flex items-center gap-3 text-xs font-bold text-text-tertiary overflow-hidden">
-                            <div className="p-1.5 bg-primary/5 rounded-lg text-primary">
+                            <div className="p-1.5 bg-primary/5 rounded-lg text-primary/70">
                                 <MapPin size={16} />
                             </div>
                             <span className="text-text-secondary truncate">{study.region.name}</span>
                         </div>
                     )}
-                    {study.scheduleTime && (
-                        <div className="flex items-center gap-3 text-xs font-bold text-text-tertiary">
-                            <div className="p-1.5 bg-primary/5 rounded-lg text-primary">
-                                <Clock size={16} />
-                            </div>
-                            <span className="text-text-secondary">{study.scheduleTime.substring(0, 5)}</span>
+                    <div className="flex items-center gap-3 text-xs font-bold text-text-tertiary">
+                        <div className="p-1.5 bg-primary/5 rounded-lg text-primary/70">
+                            <Clock size={16} />
                         </div>
-                    )}
+                        <span className="text-text-secondary">{study.scheduleTime ? study.scheduleTime.substring(0, 5) : '시간미정'}</span>
+                    </div>
                 </div>
             </div>
 
             {/* Leader Info - Elevated Footer */}
-            <div className="flex items-center justify-between pt-8 border-t border-border-light/40 mt-10 relative z-10">
+            <div className="flex items-center justify-between pt-8 border-t border-border-light/40 mt-auto relative z-10">
                 <div className="flex items-center gap-4">
                     <div className="relative group/avatar">
                         <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-md group-hover/avatar:blur-lg transition-all opacity-0 group-hover/avatar:opacity-100" />

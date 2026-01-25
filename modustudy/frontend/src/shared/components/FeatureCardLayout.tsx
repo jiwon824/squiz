@@ -32,7 +32,7 @@ export const FeatureCardLayout: React.FC<FeatureCardLayoutProps> = ({
         <div
             onClick={onClick}
             className={cn(
-                "group relative bg-white border border-border-light rounded-[40px] px-8 py-10 transition-all duration-700 hover:shadow-[0_30px_70px_rgba(0,0,0,0.08)] hover:-translate-y-3 cursor-pointer overflow-hidden flex flex-col min-h-[480px] h-fit",
+                "group relative bg-white border border-border-light rounded-[40px] px-8 py-10 transition-all duration-700 hover:shadow-[0_30px_70px_rgba(0,0,0,0.08)] hover:-translate-y-3 cursor-pointer overflow-hidden flex flex-col h-[480px]",
                 isCompleted && "opacity-60 grayscale-[0.6]",
                 className
             )}
@@ -52,10 +52,10 @@ export const FeatureCardLayout: React.FC<FeatureCardLayoutProps> = ({
 
             {/* Content: Title & Description */}
             <div className="flex-1 flex flex-col min-w-0 relative z-10 mb-8">
-                <h3 className="text-[28px] font-black text-text-primary mb-4 leading-[1.25] tracking-tight group-hover:text-primary transition-colors min-h-[70px] h-fit line-clamp-2">
+                <h3 className="text-[26px] font-black text-text-primary mb-4 leading-tight tracking-tight group-hover:text-primary transition-colors h-[64px] line-clamp-2">
                     {title}
                 </h3>
-                <p className="text-[15px] text-text-secondary leading-relaxed font-medium opacity-70 min-h-[45px] h-fit line-clamp-3">
+                <p className="text-[14px] text-text-secondary leading-relaxed font-medium opacity-70 h-[63px] line-clamp-3">
                     {description}
                 </p>
             </div>
