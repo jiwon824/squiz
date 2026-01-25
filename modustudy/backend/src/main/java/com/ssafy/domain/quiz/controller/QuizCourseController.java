@@ -61,6 +61,25 @@ public class QuizCourseController {
         return ApiResponse.success(quizCourseService.getCourseDetail(courseId));
     }
 
+    /**
+     * 섹션 목록 조회 (진행 상황 포함).
+     *
+     * 인증된 사용자의 진행 상황(해금 여부, 통과 여부, 최고 점수, 시도 횟수)이 포함된
+     * 섹션 목록을 반환한다.
+     *
+     * @param courseId    코스 ID
+     * @param userDetails 인증된 사용자 정보
+     * @return 진행 상황이 포함된 섹션 목록
+     */
+    @Operation(summary = "섹션 목록 조회 (진행 상황 포함)", description = "인증된 사용자의 진행 상황이 포함된 섹션 목록을 조회합니다. 인증 필요.")
+    @GetMapping("/{courseId}/sections")
+    public ApiResponse<SectionsWithProgressResponse> getSectionsWithProgress(
+            @Parameter(description = "코스 ID") @PathVariable Long courseId,
+            @AuthenticationPrincipal SsafyUserDetails userDetails) {
+        Long userId = userDetails.getUser().getId();
+        return ApiResponse.success(quizCourseService.getSectionsWithProgress(courseId, userId));
+    }
+
     // ========== 섹션 시도 API ==========
 
     /**
@@ -87,12 +106,16 @@ public class QuizCourseController {
     /**
      * 단일 답안 실시간 저장.
      *
-     * <p>사용자가 문제를 풀고 "다음" 버튼을 누를 때마다 호출되어
+     * <p>
+     * 사용자가 문제를 풀고 "다음" 버튼을 누를 때마다 호출되어
      * 해당 문제의 답안을 즉시 저장한다. 브라우저 충돌이나 네트워크
-     * 끊김 시에도 데이터 유실을 방지하는 실시간 저장 방식이다.</p>
+     * 끊김 시에도 데이터 유실을 방지하는 실시간 저장 방식이다.
+     * </p>
      *
-     * <p>동일 문제에 대해 여러 번 호출해도 마지막 답안으로 덮어쓰므로
-     * 멱등성이 보장된다.</p>
+     * <p>
+     * 동일 문제에 대해 여러 번 호출해도 마지막 답안으로 덮어쓰므로
+     * 멱등성이 보장된다.
+     * </p>
      *
      * @param courseId      코스 ID
      * @param sectionNumber 섹션 번호
