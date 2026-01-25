@@ -57,3 +57,5 @@ networks:
 volumes:
   mysql-data:
   redis-data:
+  uploads-data:
+    name: squiz-uploads

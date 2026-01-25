@@ -23,6 +23,8 @@ services:
     container_name: squiz-backend-blue
     expose:
       - "8080"
+    volumes:
+      - uploads-data:/app/uploads
     environment:
       - SPRING_PROFILES_ACTIVE=prod
       - SPRING_DATASOURCE_URL=jdbc:mysql://squiz-mysql:3306/squiz?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul
@@ -81,3 +83,8 @@ networks:
   squiz-network:
     external: true
     name: squiz-network
+
+volumes:
+  uploads-data:
+    external: true
+    name: squiz-uploads
