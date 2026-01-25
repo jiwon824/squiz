@@ -2,14 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     Heart, Star, Users, Calendar,
-    ChevronLeft, Target, Award, Shield
+    ChevronLeft, Target, Award, Shield, Clock, MapPin, Share2, MoreVertical
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { studyService, Study } from '../services/studyService';
 import StudyApplyModal from './StudyApplyModal';
 import StudyListContainer from './StudyListContainer';
 import { MainLayout } from '@/layouts/MainLayout';
-import '../styles/StudyDetailPage.css';
+import { Button, ArrowButton } from '@/shared/components';
+import { cn } from '@/shared/utils/cn';
 
 const StudyDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();

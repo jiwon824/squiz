@@ -8,3 +8,4 @@ export * from './Card';
 export * from './BackButton';
 export * from './ArrowButton';
 export * from './Skeleton';
+export * from './FeatureCardLayout';

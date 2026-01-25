@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { X, Send, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { studyService, Study } from '../services/studyService';
-import '../styles/StudyApplyModal.css';
 
 interface StudyApplyModalProps {
     study: Study;
