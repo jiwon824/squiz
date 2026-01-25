@@ -3,6 +3,8 @@ package com.ssafy.squiz.data.remote
 import com.ssafy.squiz.BuildConfig
 import com.ssafy.squiz.data.local.AuthManager
 import com.ssafy.squiz.data.remote.api.AuthApi
+import com.ssafy.squiz.data.remote.api.DMApi
+import com.ssafy.squiz.data.remote.api.FriendApi
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -88,5 +90,19 @@ object RetrofitClient {
      */
     val authApi: AuthApi by lazy {
         retrofit.create(AuthApi::class.java)
+    }
+
+    /**
+     * Friend API
+     */
+    val friendApi: FriendApi by lazy {
+        retrofit.create(FriendApi::class.java)
+    }
+
+    /**
+     * DM API
+     */
+    val dmApi: DMApi by lazy {
+        retrofit.create(DMApi::class.java)
     }
 }

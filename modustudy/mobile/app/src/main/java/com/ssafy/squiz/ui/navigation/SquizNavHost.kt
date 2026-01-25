@@ -883,8 +883,8 @@ fun SquizNavHost(
             UserProfileScreen(
                 userId = userId,
                 onBackClick = { navController.popBackStack() },
-                onDMClick = { chatId ->
-                    navController.navigate(NavRoutes.DMChat.createRoute(chatId))
+                onDMClick = { partnerId ->
+                    navController.navigate(NavRoutes.NewDM.createRoute(partnerId))
                 }
             )
         }
@@ -899,22 +899,41 @@ fun SquizNavHost(
         composable(NavRoutes.DMList.route) {
             DMListScreen(
                 onBackClick = { navController.popBackStack() },
-                onChatClick = { chatId ->
-                    navController.navigate(NavRoutes.DMChat.createRoute(chatId))
+                onChatClick = { conversationId ->
+                    navController.navigate(NavRoutes.DMChat.createRoute(conversationId))
+                },
+                onNewChatClick = {
+                    // TODO: 친구 선택 화면으로 이동
                 }
             )
         }
 
         composable(
             route = NavRoutes.DMChat.route,
-            arguments = listOf(navArgument("chatId") { type = NavType.LongType })
+            arguments = listOf(navArgument("conversationId") { type = NavType.StringType })
         ) { backStackEntry ->
-            val chatId = backStackEntry.arguments?.getLong("chatId") ?: 0L
+            val conversationId = backStackEntry.arguments?.getString("conversationId") ?: ""
             DMChatScreen(
-                chatId = chatId,
+                conversationId = conversationId,
                 onBackClick = { navController.popBackStack() },
                 onProfileClick = { userId ->
                     navController.navigate(NavRoutes.UserProfile.createRoute(userId))
+                }
+            )
+        }
+
+        composable(
+            route = NavRoutes.NewDM.route,
+            arguments = listOf(navArgument("partnerId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val partnerId = backStackEntry.arguments?.getLong("partnerId") ?: 0L
+            NewDMScreen(
+                partnerId = partnerId,
+                onBackClick = { navController.popBackStack() },
+                onConversationCreated = { conversationId ->
+                    navController.navigate(NavRoutes.DMChat.createRoute(conversationId)) {
+                        popUpTo(NavRoutes.NewDM.route) { inclusive = true }
+                    }
                 }
             )
         }

@@ -172,8 +172,11 @@ sealed class NavRoutes(val route: String) {
 
     // DM
     object DMList : NavRoutes("dm_list")
-    object DMChat : NavRoutes("dm_chat/{chatId}") {
-        fun createRoute(chatId: Long) = "dm_chat/$chatId"
+    object DMChat : NavRoutes("dm_chat/{conversationId}") {
+        fun createRoute(conversationId: String) = "dm_chat/$conversationId"
+    }
+    object NewDM : NavRoutes("new_dm/{partnerId}") {
+        fun createRoute(partnerId: Long) = "new_dm/$partnerId"
     }
 
     // AI
