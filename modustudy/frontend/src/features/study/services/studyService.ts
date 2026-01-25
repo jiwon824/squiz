@@ -31,6 +31,10 @@ export interface Study {
         leaderRating: number;
         leaderReviewCount: number;
     };
+    curriculum?: Array<{
+        week: number;
+        description: string;
+    }>;
     isBookmarked: boolean;
     createdAt: string;
 }

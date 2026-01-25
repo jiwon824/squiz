@@ -1,6 +1,6 @@
 import React from 'react';
 import { Heart, Users, MapPin, Calendar, Clock, Star } from 'lucide-react';
-import '../styles/StudyCardContent.css';
+import { cn } from '@/shared/utils/cn';
 
 interface StudyCardContentProps {
     study: {
@@ -38,87 +38,49 @@ interface StudyCardContentProps {
 }
 
 const StudyCardContent: React.FC<StudyCardContentProps> = ({ study, onBookmarkToggle, onClick }) => {
-    // 상태별 색상 클래스
-    const getStatusClass = (status: string) => {
+    // 상태별 텍스트 및 스타일
+    const getStatusConfig = (status: string) => {
         switch (status) {
             case 'RECRUITING':
-                return 'status-recruiting';
+                return { text: '모집중', className: 'bg-success/10 text-success border-success/20' };
             case 'IN_PROGRESS':
-                return 'status-in-progress';
+                return { text: '진행중', className: 'bg-primary/10 text-primary border-primary/20' };
             case 'COMPLETED':
-                return 'status-completed';
+                return { text: '완료', className: 'bg-text-tertiary/10 text-text-tertiary border-text-tertiary/20' };
             default:
-                return '';
+                return { text: status, className: 'bg-background-secondary text-text-secondary border-border-light' };
         }
     };
 
-    // 상태별 텍스트
-    const getStatusText = (status: string) => {
-        switch (status) {
-            case 'RECRUITING':
-                return '모집중';
-            case 'IN_PROGRESS':
-                return '진행중';
-            case 'COMPLETED':
-                return '완료';
-            default:
-                return status;
-        }
-    };
-
-    // 난이도별 색상 클래스
-    const getDifficultyClass = (difficulty: string) => {
+    // 난이도별 스타일 (포인트 컬러)
+    const getDifficultyColor = (difficulty: string) => {
         switch (difficulty) {
             case 'BEGINNER':
             case 'ELEMENTARY':
-                return 'difficulty-beginner';
+                return 'text-success border-success/30';
             case 'INTERMEDIATE':
-                return 'difficulty-intermediate';
+                return 'text-primary border-primary/30';
             case 'ADVANCED':
-                return 'difficulty-advanced';
+                return 'text-error border-error/30';
             default:
-                return '';
-        }
-    };
-
-    // 미팅 타입 색상 클래스
-    const getMeetingTypeClass = (meetingType: string) => {
-        switch (meetingType) {
-            case 'ONLINE':
-                return 'meeting-online';
-            case 'OFFLINE':
-                return 'meeting-offline';
-            case 'HYBRID':
-                return 'meeting-hybrid';
-            default:
-                return '';
+                return 'text-text-tertiary border-border-light';
         }
     };
 
     // 미팅 타입 텍스트
     const getMeetingTypeText = (meetingType: string) => {
         switch (meetingType) {
-            case 'ONLINE':
-                return '온라인';
-            case 'OFFLINE':
-                return '오프라인';
-            case 'HYBRID':
-                return '혼합';
-            default:
-                return meetingType;
+            case 'ONLINE': return '온라인';
+            case 'OFFLINE': return '오프라인';
+            case 'HYBRID': return '혼합';
+            default: return meetingType;
         }
     };
 
     // 요일 포맷팅
     const formatDays = (days: string) => {
         const dayMap: { [key: string]: string } = {
-            MON: '월',
-            TUE: '화',
-            WED: '수',
-            THU: '목',
-            FRI: '금',
-            SAT: '토',
-            SUN: '일',
+            MON: '월', TUE: '화', WED: '수', THU: '목', FRI: '금', SAT: '토', SUN: '일',
         };
         return days
             .split(',')
@@ -126,80 +88,125 @@ const StudyCardContent: React.FC<StudyCardContentProps> = ({ study, onBookmarkTo
             .join(', ');
     };
 
+    const statusConfig = getStatusConfig(study.status);
+
     return (
-        <div className={`study-card ${getDifficultyClass(study.difficulty)}`} onClick={() => onClick?.(study.id)}>
-            {/* 헤더 */}
-            <div className="study-card-header">
-                <div className="study-card-badges">
-                    <span className={`badge badge-meeting ${getMeetingTypeClass(study.meetingType)}`}>
-                        {getMeetingTypeText(study.meetingType)}
+        <div
+            onClick={() => onClick?.(study.id)}
+            className={cn(
+                "group relative bg-white border border-border-light rounded-[40px] px-8 py-10 transition-all duration-700 hover:shadow-[0_30px_70px_rgba(0,0,0,0.08)] hover:-translate-y-3 cursor-pointer overflow-hidden flex flex-col h-[480px]",
+                study.status === 'COMPLETED' && "opacity-60 grayscale-[0.6]"
+            )}
+        >
+            {/* Background Decoration */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16 blur-2xl group-hover:bg-primary/10 transition-colors duration-700" />
+
+            {/* Header: Topic (Left) & Status (Right) */}
+            <div className="flex justify-between items-center mb-10 relative z-10">
+                <div className="flex-1 min-w-0">
+                    <span className={cn(
+                        "text-[10px] font-black uppercase tracking-[0.2em] border-l-4 pl-4 py-0.5 block truncate",
+                        getDifficultyColor(study.difficulty)
+                    )}>
+                        {study.topic}
                     </span>
-                    <span className={`badge badge-status ${getStatusClass(study.status)}`}>
-                        {getStatusText(study.status)}
-                    </span>
-                    {study.studyType === 'LIGHTNING' && (
-                        <span className="badge badge-lightning">번개</span>
-                    )}
                 </div>
-                <button
-                    className={`bookmark-btn ${study.isBookmarked ? 'bookmarked' : ''}`}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onBookmarkToggle?.(study.id);
-                    }}
-                >
-                    <Heart size={20} fill={study.isBookmarked ? 'currentColor' : 'none'} />
-                </button>
+                <div className="flex items-center gap-3 ml-4">
+                    <span className={cn(
+                        "px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider shadow-sm border whitespace-nowrap",
+                        statusConfig.className
+                    )}>
+                        {statusConfig.text}
+                    </span>
+                    <button
+                        className={cn(
+                            "p-2 rounded-full transition-all hover:bg-error/5 group/bookmark",
+                            study.isBookmarked ? "text-error" : "text-text-muted hover:text-error"
+                        )}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onBookmarkToggle?.(study.id);
+                        }}
+                    >
+                        <Heart
+                            size={20}
+                            fill={study.isBookmarked ? 'currentColor' : 'none'}
+                            className="group-hover/bookmark:scale-110 transition-transform"
+                        />
+                    </button>
+                </div>
             </div>
 
-            {/* 제목 및 설명 */}
-            <div className="study-card-content">
-                <h3 className="study-card-title">{study.name}</h3>
-                <p className="study-card-description">{study.description}</p>
+            {/* Title & Description Container */}
+            <div className="flex-1 flex flex-col min-w-0 relative z-10">
+                <h3 className="text-[26px] font-black text-text-primary mb-3 leading-tight tracking-tight group-hover:text-primary transition-colors line-clamp-2 h-[64px]">
+                    {study.name}
+                </h3>
 
-                {/* 정보 */}
-                <div className="study-card-info">
-                    <div className="info-item">
-                        <Users size={16} />
-                        <span>{study.currentMembers}/{study.maxMembers}명</span>
+                <p className="text-[14px] text-text-secondary leading-relaxed line-clamp-2 font-medium opacity-70 mb-8 h-[44px]">
+                    {study.description}
+                </p>
+
+                {/* Info Items - Fixed spacing above footer */}
+                <div className="grid grid-cols-2 gap-y-4 gap-x-6">
+                    <div className="flex items-center gap-3 text-xs font-bold text-text-tertiary">
+                        <div className="p-1.5 bg-primary/5 rounded-lg text-primary/70">
+                            <Users size={16} />
+                        </div>
+                        <span className="text-text-secondary">{getMeetingTypeText(study.meetingType)} · {study.currentMembers}/{study.maxMembers}명</span>
                     </div>
-                    <div className="info-item">
-                        <Calendar size={16} />
-                        <span>{formatDays(study.scheduleDays)}</span>
+                    <div className="flex items-center gap-3 text-xs font-bold text-text-tertiary overflow-hidden">
+                        <div className="p-1.5 bg-primary/5 rounded-lg text-primary/70">
+                            <Calendar size={16} />
+                        </div>
+                        <span className="text-text-secondary truncate">{formatDays(study.scheduleDays)}</span>
                     </div>
                     {study.region && (
-                        <div className="info-item">
-                            <MapPin size={16} />
-                            <span>{study.region.name}</span>
+                        <div className="flex items-center gap-3 text-xs font-bold text-text-tertiary overflow-hidden">
+                            <div className="p-1.5 bg-primary/5 rounded-lg text-primary/70">
+                                <MapPin size={16} />
+                            </div>
+                            <span className="text-text-secondary truncate">{study.region.name}</span>
                         </div>
                     )}
-                    {study.scheduleTime && (
-                        <div className="info-item">
+                    <div className="flex items-center gap-3 text-xs font-bold text-text-tertiary">
+                        <div className="p-1.5 bg-primary/5 rounded-lg text-primary/70">
                             <Clock size={16} />
-                            <span>{study.scheduleTime.substring(0, 5)}</span>
                         </div>
-                    )}
+                        <span className="text-text-secondary">{study.scheduleTime ? study.scheduleTime.substring(0, 5) : '시간미정'}</span>
+                    </div>
                 </div>
             </div>
 
-            {/* 스터디장 정보 */}
-            <div className="study-card-leader">
-                <div className="leader-avatar">
-                    {study.leader.profileImage ? (
-                        <img src={study.leader.profileImage} alt={study.leader.nickname} />
-                    ) : (
-                        <div className="leader-avatar-placeholder">
-                            {study.leader.nickname.charAt(0)}
-                        </div>
-                    )}
-                </div>
-                <div className="leader-info">
-                    <span className="leader-name">{study.leader.nickname}</span>
-                    <div className="leader-rating">
-                        <Star size={14} fill="currentColor" />
-                        <span className="rating-score">{study.leader.leaderRating.toFixed(1)}</span>
-                        <span className="rating-count">({study.leader.leaderReviewCount})</span>
+            {/* Leader Info - Elevated Footer */}
+            <div className="flex items-center justify-between pt-8 border-t border-border-light/40 mt-auto relative z-10">
+                <div className="flex items-center gap-4">
+                    <div className="relative group/avatar">
+                        <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-md group-hover/avatar:blur-lg transition-all opacity-0 group-hover/avatar:opacity-100" />
+                        {study.leader.profileImage ? (
+                            <img
+                                src={study.leader.profileImage}
+                                alt={study.leader.nickname}
+                                className="w-10 h-10 rounded-2xl border-2 border-white shadow-sm object-cover relative z-10"
+                            />
+                        ) : (
+                            <div className="w-10 h-10 rounded-2xl bg-primary text-white flex items-center justify-center text-base font-black border-2 border-white shadow-sm relative z-10">
+                                {study.leader.nickname.charAt(0)}
+                            </div>
+                        )}
+                        {study.status === 'RECRUITING' && (
+                            <span className="absolute -bottom-1 -right-1 w-3 h-3 bg-success border-2 border-white rounded-full z-20 shadow-sm" />
+                        )}
                     </div>
+                    <span className="text-[15px] font-black text-text-primary tracking-tight truncate max-w-[120px]">
+                        {study.leader.nickname}
+                    </span>
+                </div>
+
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-background-secondary/40 rounded-xl border border-border-light/40 shadow-sm backdrop-blur-sm">
+                    <Star size={14} className="text-yellow-400 fill-current" />
+                    <span className="text-[12px] font-black text-text-primary">{study.leader.leaderRating.toFixed(1)}</span>
+                    <span className="text-[10px] font-bold text-text-tertiary opacity-60">({study.leader.leaderReviewCount})</span>
                 </div>
             </div>
         </div>
