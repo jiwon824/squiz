@@ -72,3 +72,32 @@ CREATE TABLE `direct_message` (
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX `idx_direct_message_conversation` (`conversation_id`)
 );
+
+-- =============================================
+-- 워크스페이스/채팅 (JPA Entity)
+-- =============================================
+
+DROP TABLE IF EXISTS `message`;
+DROP TABLE IF EXISTS `workspace`;
+
+CREATE TABLE `workspace` (
+    `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
+    `study_id` BIGINT NOT NULL UNIQUE,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX `idx_workspace_study_id` (`study_id`)
+);
+
+CREATE TABLE `message` (
+    `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
+    `workspace_id` BIGINT NOT NULL,
+    `user_id` BIGINT NOT NULL,
+    `content` TEXT NOT NULL,
+    `message_type` VARCHAR(20) NOT NULL DEFAULT 'TEXT',
+    `file_url` VARCHAR(500),
+    `is_deleted` BOOLEAN DEFAULT FALSE,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX `idx_message_workspace_id` (`workspace_id`),
+    INDEX `idx_message_user_id` (`user_id`),
+    INDEX `idx_message_created_at` (`created_at`)
+);
