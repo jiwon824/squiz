@@ -53,6 +53,15 @@ public class User extends BaseEntity {
     @Column(nullable = false)
     private Boolean isSearchable = true;
 
+    @Column(columnDefinition = "TEXT")
+    private String bio;  // 자기소개
+
+    @Column(columnDefinition = "JSON")
+    private String interests;  // 관심 분야 (JSON 배열)
+
+    @Column(columnDefinition = "JSON")
+    private String techStacks;  // 기술 스택 (JSON 배열)
+
     // ========== 스터디장 관련 ==========
 
     /**
@@ -85,6 +94,10 @@ public class User extends BaseEntity {
 
     @Column(length = 500)
     private String profileImage;  // 프로필 이미지 URL
+
+    public void updatePassword(String newPassword) {
+        this.password = newPassword;
+    }
 
     // ========== 소셜 계정 연동 ==========
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)

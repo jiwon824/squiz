@@ -2,9 +2,7 @@
    프로필 페이지 레이아웃
    ============================================ */
 .profile-page {
-    min-height: 100vh;
-    padding: 2rem;
-    background: var(--color-bg, #f8fafc);
+    width: 100%;
 }
 
 .profile-container {
@@ -12,7 +10,7 @@
     margin: 0 auto;
     display: flex;
     flex-direction: column;
-    gap: 2rem;
+    gap: 1.5rem;
 }
 
 /* ============================================
@@ -49,7 +47,7 @@
 }
 
 .profile-avatar-placeholder {
-    background: linear-gradient(135deg, #818cf8 0%, #c084fc 100%);
+    background: linear-gradient(135deg, var(--color-study-blue, #3b82f6) 0%, var(--color-study-blue-dark, #1d4ed8) 100%);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -74,8 +72,8 @@
 }
 
 .avatar-edit-btn:hover {
-    background: #818cf8;
-    border-color: #818cf8;
+    background: var(--color-study-blue, #3b82f6);
+    border-color: var(--color-study-blue, #3b82f6);
     color: white;
     transform: scale(1.1);
 }
@@ -88,7 +86,7 @@
 .profile-name {
     font-size: 2rem;
     font-weight: 800;
-    color: #1a202c;
+    color: var(--color-study-text-dark, #1a202c);
     margin-bottom: 0.75rem;
     letter-spacing: -0.02em;
 }
@@ -117,7 +115,7 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.875rem 1.5rem;
-    background: linear-gradient(135deg, #818cf8 0%, #c084fc 100%);
+    background: linear-gradient(135deg, var(--color-study-blue, #3b82f6) 0%, var(--color-study-blue-dark, #1d4ed8) 100%);
     color: white;
     border: none;
     border-radius: 16px;
@@ -125,12 +123,12 @@
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s;
-    box-shadow: 0 4px 12px rgba(129, 140, 248, 0.3);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
 .btn-edit-profile:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(129, 140, 248, 0.4);
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
 }
 
 .btn-edit-profile:active {

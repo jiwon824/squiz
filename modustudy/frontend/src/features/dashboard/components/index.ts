@@ -8,3 +8,7 @@ export { QuizWidget2 } from './QuizWidget2';
 export { CalendarExpandWidget } from './CalendarExpandWidget';
 export { default as GuestDashboard } from './GuestDashboard';
 export { default as CommentleHero } from './CommentleHero';
+
+// Calendar 컴포넌트 패키지 re-export
+export { Calendar, CalendarDay, CalendarHeader } from './Calendar';
+export type { CalendarProps, CalendarDayProps, CalendarHeaderProps, CalendarDayInfo } from './Calendar';

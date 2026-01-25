@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ssafy.domain.dm.mapper.DirectMessageMapper">
+
+    <resultMap id="MessageResultMap" type="com.ssafy.domain.dm.entity.DirectMessage">
+        <id property="id" column="id"/>
+        <result property="conversationId" column="conversation_id"/>
+        <result property="senderId" column="sender_id"/>
+        <result property="content" column="content"/>
+        <result property="isDeleted" column="is_deleted"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <result property="senderNickname" column="sender_nickname"/>
+        <result property="senderProfileImage" column="sender_profile_image"/>
+    </resultMap>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO direct_message (conversation_id, sender_id, content, is_deleted, created_at, updated_at)
+        VALUES (#{conversationId}, #{senderId}, #{content}, false, NOW(), NOW())
+    </insert>
+
+    <select id="findById" resultMap="MessageResultMap">
+        SELECT
+            m.*,
+            u.nickname as sender_nickname,
+            p.profile_image_url as sender_profile_image
+        FROM direct_message m
+        LEFT JOIN user u ON m.sender_id = u.id
+        LEFT JOIN profile p ON u.id = p.user_id
+        WHERE m.id = #{id}
+    </select>
+
+    <select id="findByConversationId" resultMap="MessageResultMap">
+        SELECT
+            m.*,
+            u.nickname as sender_nickname,
+            p.profile_image_url as sender_profile_image
+        FROM direct_message m
+        LEFT JOIN user u ON m.sender_id = u.id
+        LEFT JOIN profile p ON u.id = p.user_id
+        WHERE m.conversation_id = #{conversationId}
+        ORDER BY m.created_at DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="findLatestByConversationId" resultMap="MessageResultMap">
+        SELECT
+            m.*,
+            u.nickname as sender_nickname,
+            p.profile_image_url as sender_profile_image
+        FROM direct_message m
+        LEFT JOIN user u ON m.sender_id = u.id
+        LEFT JOIN profile p ON u.id = p.user_id
+        WHERE m.conversation_id = #{conversationId}
+          AND m.is_deleted = false
+        ORDER BY m.id DESC
+        LIMIT 1
+    </select>
+
+    <select id="countUnreadMessages" resultType="int">
+        SELECT COUNT(*)
+        FROM direct_message
+        WHERE conversation_id = #{conversationId}
+          AND is_deleted = false
+          <if test="lastReadMessageId != null">
+          AND id > #{lastReadMessageId}
+          </if>
+          <if test="lastReadMessageId == null">
+          AND 1 = 1
+          </if>
+    </select>
+
+    <update id="markDeleted">
+        UPDATE direct_message
+        SET is_deleted = true, content = '삭제된 메시지입니다.', updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <select id="countByConversationId" resultType="int">
+        SELECT COUNT(*)
+        FROM direct_message
+        WHERE conversation_id = #{conversationId}
+          AND is_deleted = false
+    </select>
+
+</mapper>

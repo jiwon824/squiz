@@ -1,5 +1,6 @@
 package com.ssafy.domain.study.controller;
 
+import org.springframework.boot.test.context.SpringBootTest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.domain.study.dto.request.ApplicationCreateRequest;
 import com.ssafy.domain.study.dto.request.ApplicationProcessRequest;
@@ -118,7 +119,6 @@ class ApplicationControllerTest {
                 .meetingType(MeetingType.ONLINE)
                 .status(Status.RECRUITING)
                 .maxMembers(10)
-                .regionId(1L)
                 .isPublic(true)
                 .startDate(LocalDate.of(2025, 2, 1))
                 .endDate(LocalDate.of(2025, 5, 1))

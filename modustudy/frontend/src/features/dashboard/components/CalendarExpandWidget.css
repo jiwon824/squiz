@@ -1,15 +1,15 @@
 /* ============================================
    Planner Page - 전체 페이지 레이아웃 (2:1 비율)
    전역 디자인 시스템 변수 적용 버전
+   캘린더 전용 CSS는 Calendar/Calendar.css로 분리됨
    ============================================ */
 
 .planner-page {
-    width: 100vw;
-    height: 100vh;
+    width: 100%;
+    min-height: 100vh;
     background: var(--color-background);
     display: flex;
     flex-direction: column;
-    overflow: hidden;
 }
 
 .planner-header {
@@ -18,9 +18,12 @@
     justify-content: space-between;
     align-items: center;
     background: var(--color-background);
-    /* 흰색 대신 페이지 배경과 통일 */
     border-bottom: none;
-    /* 심리스한 연결을 위해 테두리 제거 */
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
 }
 
 .planner-date-display {
@@ -76,7 +79,7 @@
     grid-template-columns: 2fr 1fr;
     gap: 2rem;
     padding: 2rem 3rem;
-    overflow: hidden;
+    overflow-y: auto;
 }
 
 /* 왼쪽 캘린더 영역 */
@@ -87,67 +90,9 @@
     box-shadow: var(--shadow-md);
     display: flex;
     flex-direction: column;
-    overflow-y: auto;
-}
-
-.calendar-day.large {
-    min-height: 130px;
-    cursor: pointer;
-    transition: var(--transition-fast);
-}
-
-.calendar-day.large.is-sun .day-number {
-    color: var(--color-error-light);
-}
-
-.calendar-day.large.is-sat .day-number {
-    color: var(--color-secondary-light);
-}
-
-.expanded-calendar-wrapper {
-    display: flex;
-    flex-direction: column;
-}
-
-.calendar-weekdays {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    border-bottom: 1px solid var(--color-border);
-}
-
-.weekday.large {
-    font-size: var(--font-size-xs);
-    font-weight: var(--font-weight-bold);
-    color: var(--color-text-tertiary);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    padding: 1.5rem 0;
-    text-align: center;
-}
-
-.weekday.large.is-sun {
-    color: var(--color-error-light);
-}
-
-.weekday.large.is-sat {
-    color: var(--color-secondary-light);
-}
-
-.calendar-grid.large {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-}
-
-.day-number {
-    font-size: var(--font-size-lg);
-    font-weight: 850;
-    color: var(--color-text-secondary);
-}
-
-.calendar-day.large:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-sm);
-    background: var(--color-surface-hover);
+    height: fit-content;
+    min-height: 600px;
+    overflow: hidden;
 }
 
 /* 버튼 스타일 표준화 */
@@ -169,7 +114,6 @@
     cursor: pointer;
     transition: var(--transition-fast);
     white-space: nowrap;
-    /* 글자 깨짐 방지 */
 }
 
 .planner-action-btn img,
@@ -177,7 +121,6 @@
     width: 18px;
     height: 18px;
     flex-shrink: 0;
-    /* 아이콘 크기 고정 */
 }
 
 .planner-action-btn.primary {
@@ -201,7 +144,7 @@
     border-color: var(--color-text-tertiary);
 }
 
-/* 우측 사이드바 위젯 (흑색 돌 질감) */
+/* 우측 사이드바 위젯 */
 .planner-sidebar-area {
     display: flex;
     flex-direction: column;
@@ -228,7 +171,6 @@
     color: white;
 }
 
-/* 텍스트 가독성을 위한 그림자 살짝 추가 */
 .goals-widget h3 {
     margin: 0;
     font-size: var(--font-size-xl);
@@ -236,6 +178,18 @@
     color: white;
     letter-spacing: -0.02em;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* 목표 헤더 */
+.goals-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.goal-date {
+    font-size: var(--font-size-xs);
+    opacity: 0.8;
 }
 
 /* 2. 학습 메모 - Soft Green/Mint Theme */
@@ -399,12 +353,6 @@
 }
 
 /* 메모 & 해시태그 */
-.memo-area {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-}
-
 .memo-header {
     margin-bottom: 1.5rem;
 }
@@ -468,7 +416,10 @@
     border-color: rgba(0, 0, 0, 0.1);
 }
 
-/* 일자 클릭 모달 */
+/* ============================================
+   모달 스타일
+   ============================================ */
+
 .day-select-overlay {
     position: fixed;
     top: 0;
@@ -555,6 +506,10 @@
 
 .modal-schedule-item.project .type-indicator {
     background: var(--color-accent);
+}
+
+.modal-schedule-item.mentoring .type-indicator {
+    background: var(--color-primary);
 }
 
 .item-content {
@@ -662,6 +617,10 @@
     gap: 1.25rem;
 }
 
+.flex-1 {
+    flex: 1;
+}
+
 .confirm-btn-formal {
     width: 100%;
     height: 56px;
@@ -686,40 +645,6 @@
     box-shadow: 0 6px 16px var(--color-primary-alpha-30);
 }
 
-/* 날짜 컴포넌트 내부 퀵 버튼 */
-.day-header-box {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 6px;
-}
-
-.quick-add-btn {
-    width: 20px;
-    height: 20px;
-    border-radius: 4px;
-    background: var(--color-background-secondary);
-    border: none;
-    color: var(--color-text-tertiary);
-    font-size: 14px;
-    font-weight: bold;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    opacity: 0;
-    transition: var(--transition-fast);
-}
-
-.calendar-day:hover .quick-add-btn {
-    opacity: 1;
-}
-
-.quick-add-btn:hover {
-    background: var(--color-primary);
-    color: white;
-}
-
 @keyframes modal-pop {
     from {
         opacity: 0;
@@ -734,4 +659,105 @@
 
 .animate-modal-pop {
     animation: modal-pop 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+/* ============================================
+   반응형 미디어 쿼리 (Responsive Media Queries)
+   ============================================ */
+
+/* 1200px 이하: 2컬럼 → 1컬럼 레이아웃 전환 */
+@media (max-width: 1200px) {
+    .planner-content-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .planner-sidebar-area {
+        max-width: 100%;
+    }
+}
+
+/* 768px 이하: 모바일 최적화 */
+@media (max-width: 768px) {
+
+    .planner-header {
+        padding: 1rem 1.5rem;
+        flex-direction: column;
+        gap: 1rem;
+        align-items: flex-start;
+    }
+
+    .header-left {
+        width: 100%;
+        display: flex;
+        align-items: center;
+    }
+
+    .header-right {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .year-label {
+        font-size: 10px;
+    }
+
+    .month-label {
+        font-size: var(--font-size-xl);
+    }
+
+    .planner-action-btn {
+        height: 40px;
+        padding: 0 16px;
+        font-size: 13px;
+    }
+
+    .planner-action-btn img,
+    .planner-action-btn svg {
+        width: 16px;
+        height: 16px;
+    }
+
+    .planner-content-grid {
+        padding: 1.5rem 1rem;
+        gap: 1.5rem;
+    }
+
+    .planner-calendar-area {
+        padding: 1.5rem;
+        min-height: auto;
+    }
+
+    .sidebar-widget {
+        padding: 1.5rem;
+    }
+
+    .goals-widget h3,
+    .memo-widget h3 {
+        font-size: var(--font-size-lg);
+    }
+
+    .goal-input-form-dark input {
+        padding: 12px 14px;
+        font-size: 14px;
+    }
+
+    .goal-input-form-dark button {
+        width: 42px;
+        height: 42px;
+    }
+
+    .goal-item-dark {
+        padding: 12px 14px;
+    }
+
+    .day-select-modal,
+    .schedule-modal {
+        padding: 2rem 1.5rem;
+        margin: 1rem;
+    }
+
+    .modal-header-compact h2,
+    .modal-header-formal h2 {
+        font-size: var(--font-size-lg);
+    }
 }

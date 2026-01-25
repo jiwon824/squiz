@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ssafy.domain.friend.mapper.FriendshipMapper">
+
+    <resultMap id="FriendshipResultMap" type="com.ssafy.domain.friend.entity.Friendship">
+        <id property="id" column="id"/>
+        <result property="requesterId" column="requester_id"/>
+        <result property="addresseeId" column="addressee_id"/>
+        <result property="status" column="status"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <result property="requesterNickname" column="requester_nickname"/>
+        <result property="requesterProfileImage" column="requester_profile_image"/>
+        <result property="requesterIsOnline" column="requester_is_online"/>
+        <result property="requesterLastSeenAt" column="requester_last_seen_at"/>
+        <result property="addresseeNickname" column="addressee_nickname"/>
+        <result property="addresseeProfileImage" column="addressee_profile_image"/>
+        <result property="addresseeIsOnline" column="addressee_is_online"/>
+        <result property="addresseeLastSeenAt" column="addressee_last_seen_at"/>
+    </resultMap>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO friendship (requester_id, addressee_id, status, created_at, updated_at)
+        VALUES (#{requesterId}, #{addresseeId}, #{status}, NOW(), NOW())
+    </insert>
+
+    <update id="updateStatus">
+        UPDATE friendship
+        SET status = #{status}, updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <delete id="delete">
+        DELETE FROM friendship WHERE id = #{id}
+    </delete>
+
+    <select id="findById" resultMap="FriendshipResultMap">
+        SELECT f.*,
+               r.nickname as requester_nickname,
+               rp.profile_image_url as requester_profile_image,
+               r.is_online as requester_is_online,
+               r.last_seen_at as requester_last_seen_at,
+               a.nickname as addressee_nickname,
+               ap.profile_image_url as addressee_profile_image,
+               a.is_online as addressee_is_online,
+               a.last_seen_at as addressee_last_seen_at
+        FROM friendship f
+        JOIN user r ON f.requester_id = r.id
+        LEFT JOIN profile rp ON r.id = rp.user_id
+        JOIN user a ON f.addressee_id = a.id
+        LEFT JOIN profile ap ON a.id = ap.user_id
+        WHERE f.id = #{id}
+    </select>
+
+    <select id="findByUsers" resultMap="FriendshipResultMap">
+        SELECT f.*,
+               r.nickname as requester_nickname,
+               rp.profile_image_url as requester_profile_image,
+               r.is_online as requester_is_online,
+               r.last_seen_at as requester_last_seen_at,
+               a.nickname as addressee_nickname,
+               ap.profile_image_url as addressee_profile_image,
+               a.is_online as addressee_is_online,
+               a.last_seen_at as addressee_last_seen_at
+        FROM friendship f
+        JOIN user r ON f.requester_id = r.id
+        LEFT JOIN profile rp ON r.id = rp.user_id
+        JOIN user a ON f.addressee_id = a.id
+        LEFT JOIN profile ap ON a.id = ap.user_id
+        WHERE (f.requester_id = #{userId1} AND f.addressee_id = #{userId2})
+           OR (f.requester_id = #{userId2} AND f.addressee_id = #{userId1})
+    </select>
+
+    <select id="findByRequesterAndAddressee" resultMap="FriendshipResultMap">
+        SELECT f.*,
+               r.nickname as requester_nickname,
+               rp.profile_image_url as requester_profile_image,
+               r.is_online as requester_is_online,
+               r.last_seen_at as requester_last_seen_at,
+               a.nickname as addressee_nickname,
+               ap.profile_image_url as addressee_profile_image,
+               a.is_online as addressee_is_online,
+               a.last_seen_at as addressee_last_seen_at
+        FROM friendship f
+        JOIN user r ON f.requester_id = r.id
+        LEFT JOIN profile rp ON r.id = rp.user_id
+        JOIN user a ON f.addressee_id = a.id
+        LEFT JOIN profile ap ON a.id = ap.user_id
+        WHERE f.requester_id = #{requesterId} AND f.addressee_id = #{addresseeId}
+    </select>
+
+    <select id="findReceivedRequests" resultMap="FriendshipResultMap">
+        SELECT f.*,
+               r.nickname as requester_nickname,
+               rp.profile_image_url as requester_profile_image,
+               r.is_online as requester_is_online,
+               r.last_seen_at as requester_last_seen_at,
+               a.nickname as addressee_nickname,
+               ap.profile_image_url as addressee_profile_image,
+               a.is_online as addressee_is_online,
+               a.last_seen_at as addressee_last_seen_at
+        FROM friendship f
+        JOIN user r ON f.requester_id = r.id
+        LEFT JOIN profile rp ON r.id = rp.user_id
+        JOIN user a ON f.addressee_id = a.id
+        LEFT JOIN profile ap ON a.id = ap.user_id
+        WHERE f.addressee_id = #{addresseeId} AND f.status = 'PENDING'
+        ORDER BY f.created_at DESC
+    </select>
+
+    <select id="findSentRequests" resultMap="FriendshipResultMap">
+        SELECT f.*,
+               r.nickname as requester_nickname,
+               rp.profile_image_url as requester_profile_image,
+               r.is_online as requester_is_online,
+               r.last_seen_at as requester_last_seen_at,
+               a.nickname as addressee_nickname,
+               ap.profile_image_url as addressee_profile_image,
+               a.is_online as addressee_is_online,
+               a.last_seen_at as addressee_last_seen_at
+        FROM friendship f
+        JOIN user r ON f.requester_id = r.id
+        LEFT JOIN profile rp ON r.id = rp.user_id
+        JOIN user a ON f.addressee_id = a.id
+        LEFT JOIN profile ap ON a.id = ap.user_id
+        WHERE f.requester_id = #{requesterId} AND f.status = 'PENDING'
+        ORDER BY f.created_at DESC
+    </select>
+
+    <select id="findFriends" resultMap="FriendshipResultMap">
+        SELECT f.*,
+               r.nickname as requester_nickname,
+               rp.profile_image_url as requester_profile_image,
+               r.is_online as requester_is_online,
+               r.last_seen_at as requester_last_seen_at,
+               a.nickname as addressee_nickname,
+               ap.profile_image_url as addressee_profile_image,
+               a.is_online as addressee_is_online,
+               a.last_seen_at as addressee_last_seen_at
+        FROM friendship f
+        JOIN user r ON f.requester_id = r.id
+        LEFT JOIN profile rp ON r.id = rp.user_id
+        JOIN user a ON f.addressee_id = a.id
+        LEFT JOIN profile ap ON a.id = ap.user_id
+        WHERE (f.requester_id = #{userId} OR f.addressee_id = #{userId})
+          AND f.status = 'ACCEPTED'
+        ORDER BY f.updated_at DESC
+    </select>
+
+    <select id="findByIdAndUserId" resultMap="FriendshipResultMap">
+        SELECT f.*,
+               r.nickname as requester_nickname,
+               rp.profile_image_url as requester_profile_image,
+               r.is_online as requester_is_online,
+               r.last_seen_at as requester_last_seen_at,
+               a.nickname as addressee_nickname,
+               ap.profile_image_url as addressee_profile_image,
+               a.is_online as addressee_is_online,
+               a.last_seen_at as addressee_last_seen_at
+        FROM friendship f
+        JOIN user r ON f.requester_id = r.id
+        LEFT JOIN profile rp ON r.id = rp.user_id
+        JOIN user a ON f.addressee_id = a.id
+        LEFT JOIN profile ap ON a.id = ap.user_id
+        WHERE f.id = #{friendshipId}
+          AND (f.requester_id = #{userId} OR f.addressee_id = #{userId})
+    </select>
+
+</mapper>

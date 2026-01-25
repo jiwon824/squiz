@@ -56,4 +56,8 @@ public class ApiResponse<T> {
             this.message = message;
         }
     }
+    // 성공 응답 - 데이터 없이 메시지만 (Void용)
+    public static ApiResponse<Void> success(Void data, String message) {
+        return new ApiResponse<>(true, null, null);
+    }
 }

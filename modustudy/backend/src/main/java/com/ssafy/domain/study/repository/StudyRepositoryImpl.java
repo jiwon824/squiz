@@ -6,12 +6,14 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.ssafy.domain.study.entity.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.support.PageableExecutionUtils;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
 
-import java.util.List;
+import jakarta.persistence.EntityManager;
+import java.util.*;
 
 import static com.ssafy.domain.study.entity.QStudy.study;
 
@@ -23,6 +25,7 @@ import static com.ssafy.domain.study.entity.QStudy.study;
 public class StudyRepositoryImpl implements StudyRepositoryCustom {
 
     private final JPAQueryFactory queryFactory;
+    private final EntityManager entityManager;
 
     @Override
     public Page<Study> searchStudies(StudySearchCondition condition, Pageable pageable) {

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ssafy.domain.friend.mapper.UserBlockMapper">
+
+    <resultMap id="UserBlockResultMap" type="com.ssafy.domain.friend.entity.UserBlock">
+        <id property="id" column="id"/>
+        <result property="blockerId" column="blocker_id"/>
+        <result property="blockedId" column="blocked_id"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="blockedNickname" column="blocked_nickname"/>
+        <result property="blockedProfileImage" column="blocked_profile_image"/>
+    </resultMap>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO user_block (blocker_id, blocked_id, created_at)
+        VALUES (#{blockerId}, #{blockedId}, NOW())
+    </insert>
+
+    <delete id="delete">
+        DELETE FROM user_block WHERE id = #{id}
+    </delete>
+
+    <select id="findByBlockerAndBlocked" resultMap="UserBlockResultMap">
+        SELECT ub.*,
+               u.nickname as blocked_nickname,
+               p.profile_image_url as blocked_profile_image
+        FROM user_block ub
+        JOIN user u ON ub.blocked_id = u.id
+        LEFT JOIN profile p ON u.id = p.user_id
+        WHERE ub.blocker_id = #{blockerId} AND ub.blocked_id = #{blockedId}
+    </select>
+
+    <select id="existsByBlockerAndBlocked" resultType="boolean">
+        SELECT EXISTS(
+            SELECT 1 FROM user_block
+            WHERE blocker_id = #{blockerId} AND blocked_id = #{blockedId}
+        )
+    </select>
+
+    <select id="existsAnyBlock" resultType="boolean">
+        SELECT EXISTS(
+            SELECT 1 FROM user_block
+            WHERE (blocker_id = #{userId1} AND blocked_id = #{userId2})
+               OR (blocker_id = #{userId2} AND blocked_id = #{userId1})
+        )
+    </select>
+
+    <select id="findByBlockerId" resultMap="UserBlockResultMap">
+        SELECT ub.*,
+               u.nickname as blocked_nickname,
+               p.profile_image_url as blocked_profile_image
+        FROM user_block ub
+        JOIN user u ON ub.blocked_id = u.id
+        LEFT JOIN profile p ON u.id = p.user_id
+        WHERE ub.blocker_id = #{blockerId}
+        ORDER BY ub.created_at DESC
+    </select>
+
+    <select id="findBlockerIdsByBlockedId" resultType="Long">
+        SELECT blocker_id FROM user_block WHERE blocked_id = #{blockedId}
+    </select>
+
+</mapper>

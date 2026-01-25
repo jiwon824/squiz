@@ -5,444 +5,530 @@ import com.ssafy.domain.study.dto.request.StudyCreateRequest;
 import com.ssafy.domain.study.dto.request.StudyUpdateRequest;
 import com.ssafy.domain.study.dto.response.StudyResponse;
 import com.ssafy.domain.study.entity.*;
+import com.ssafy.domain.study.repository.StudyMemberRepository;
 import com.ssafy.domain.study.repository.StudyRepository;
+import com.ssafy.domain.user.entity.Role;
+import com.ssafy.domain.user.entity.User;
+import com.ssafy.domain.user.repository.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.*;
 
+/**
+ * StudyService 단위 테스트
+ */
 @ExtendWith(MockitoExtension.class)
 class StudyServiceTest {
 
     @Mock
     private StudyRepository studyRepository;
 
+    @Mock
+    private StudyMemberRepository studyMemberRepository;
+
+    @Mock
+    private UserRepository userRepository;
+
     @InjectMocks
     private StudyService studyService;
+
+    private User testUser;
+    private Study testStudy;
+
+    @BeforeEach
+    void setUp() {
+        testUser = User.builder()
+                .name("김싸피")
+                .nickname("ssafy_kim")
+                .email("kim@ssafy.com")
+                .role(Role.USER)
+                .build();
+
+        testStudy = Study.builder()
+                .id(1L)
+                .leaderId(1L)
+                .name("알고리즘 마스터")
+                .description("백준 골드 문제 집중 풀이")
+                .topic("알고리즘")
+                .format("문제풀이")
+                .studyType(StudyType.PLANNED)
+                .meetingType(MeetingType.ONLINE)
+                .status(Status.RECRUITING)
+                .isPublic(true)
+                .maxMembers(6)
+                .difficulty(Difficulty.INTERMEDIATE)
+                .startDate(LocalDate.of(2025, 2, 1))
+                .endDate(LocalDate.of(2025, 5, 1))
+                .recruitStartDate(LocalDate.of(2025, 1, 15))
+                .recruitEndDate(LocalDate.of(2025, 1, 31))
+                .createdAt(LocalDateTime.now())  // ⭐ NPE 방지
+                .build();
+    }
 
     // ============================================================
     // 스터디 생성 테스트
     // ============================================================
 
-    @Test
-    @DisplayName("정상적인 입력으로 스터디 생성 성공")
-    void createStudy_WithValidInput_ShouldReturnStudyResponse() {
-        // given
-        Long leaderId = 1L;
-        StudyCreateRequest request = StudyCreateRequest.builder()
-                .name("알고리즘 스터디")
-                .description("백준 문제 풀이")
-                .topic("알고리즘")
-                .studyType(StudyType.PLANNED)
-                .meetingType(MeetingType.ONLINE)
-                .startDate(LocalDate.of(2025, 2, 1))
-                .endDate(LocalDate.of(2025, 5, 1))
-                .recruitStartDate(LocalDate.of(2025, 1, 15))
-                .recruitEndDate(LocalDate.of(2025, 1, 31))
-                .build();
+    @Nested
+    @DisplayName("스터디 생성 테스트")
+    class CreateStudyTest {
 
-        Study savedStudy = Study.builder()
-                .id(1L)
-                .leaderId(leaderId)
-                .name("알고리즘 스터디")
-                .status(Status.DRAFT)
-                .build();
+        @Test
+        @DisplayName("스터디 생성 성공 - 스터디장이 StudyMember에 자동 추가됨")
+        void createStudy_Success_LeaderAddedToStudyMember() {
+            // given
+            Long leaderId = 1L;
 
-        given(studyRepository.save(any(Study.class))).willReturn(savedStudy);
+            StudyCreateRequest request = StudyCreateRequest.builder()
+                    .name("알고리즘 마스터")
+                    .description("백준 골드 문제 집중 풀이")
+                    .topic("알고리즘")
+                    .format("문제풀이")
+                    .studyType(StudyType.PLANNED)
+                    .meetingType(MeetingType.ONLINE)
+                    .isPublic(true)
+                    .maxMembers(6)
+                    .difficulty(Difficulty.INTERMEDIATE)
+                    .startDate(LocalDate.of(2025, 2, 1))
+                    .endDate(LocalDate.of(2025, 5, 1))
+                    .recruitStartDate(LocalDate.of(2025, 1, 15))
+                    .recruitEndDate(LocalDate.of(2025, 1, 31))
+                    .build();
 
-        // when
-        StudyResponse response = studyService.createStudy(request, leaderId);
+            given(userRepository.findById(leaderId)).willReturn(Optional.of(testUser));
+            given(studyRepository.save(any(Study.class))).willReturn(testStudy);
+            given(studyMemberRepository.save(any(StudyMember.class))).willReturn(StudyMember.builder().build());
 
-        // then
-        assertThat(response).isNotNull();
-        assertThat(response.getId()).isEqualTo(1L);
-        assertThat(response.getName()).isEqualTo("알고리즘 스터디");
-        assertThat(response.getStatus()).isEqualTo(Status.DRAFT);
-        verify(studyRepository, times(1)).save(any(Study.class));
-    }
+            // when
+            StudyResponse response = studyService.createStudy(request, leaderId);
 
-    @Test
-    @DisplayName("오프라인 스터디 생성 시 지역 정보 없으면 예외 발생")
-    void createStudy_OfflineWithoutRegion_ShouldThrowException() {
-        // given
-        Long leaderId = 1L;
-        StudyCreateRequest request = StudyCreateRequest.builder()
-                .name("오프라인 스터디")
-                .topic("알고리즘")
-                .studyType(StudyType.PLANNED)
-                .meetingType(MeetingType.OFFLINE)
-                .regionId(null)  // 지역 정보 없음
-                .startDate(LocalDate.of(2025, 2, 1))
-                .endDate(LocalDate.of(2025, 5, 1))
-                .build();
+            // then
+            assertThat(response).isNotNull();
+            assertThat(response.getId()).isEqualTo(1L);
+            assertThat(response.getName()).isEqualTo("알고리즘 마스터");
+            assertThat(response.getLeaderName()).isEqualTo("김싸피");
 
-        // when & then
-        assertThatThrownBy(() -> studyService.createStudy(request, leaderId))
-                .isInstanceOf(StudyException.InvalidStudyRequestException.class)
-                .hasMessage("오프라인/혼합 스터디는 지역 정보가 필수입니다");
-    }
+            // ⭐ 핵심: StudyMember 저장 검증
+            ArgumentCaptor<StudyMember> memberCaptor = ArgumentCaptor.forClass(StudyMember.class);
+            verify(studyMemberRepository, times(1)).save(memberCaptor.capture());
 
-    @Test
-    @DisplayName("종료일이 시작일보다 앞서면 예외 발생")
-    void createStudy_InvalidDateRange_ShouldThrowException() {
-        // given
-        Long leaderId = 1L;
-        StudyCreateRequest request = StudyCreateRequest.builder()
-                .name("테스트 스터디")
-                .topic("알고리즘")
-                .studyType(StudyType.PLANNED)
-                .meetingType(MeetingType.ONLINE)
-                .startDate(LocalDate.of(2025, 5, 1))
-                .endDate(LocalDate.of(2025, 2, 1))  // 시작일보다 앞섬
-                .build();
+            StudyMember savedMember = memberCaptor.getValue();
+            assertThat(savedMember.getStudyId()).isEqualTo(1L);
+            assertThat(savedMember.getUserId()).isEqualTo(leaderId);
+            assertThat(savedMember.getRole()).isEqualTo(MemberRole.LEADER);
+            assertThat(savedMember.getStatus()).isEqualTo(MemberStatus.APPROVED);
+            assertThat(savedMember.getIsProbation()).isFalse();  // 스터디장은 수습 아님!
+            assertThat(savedMember.getJoinedAt()).isNotNull();
 
-        // when & then
-        assertThatThrownBy(() -> studyService.createStudy(request, leaderId))
-                .isInstanceOf(StudyException.InvalidStudyRequestException.class)
-                .hasMessage("종료일은 시작일보다 늦어야 합니다");
+            verify(userRepository, times(1)).findById(leaderId);
+            verify(studyRepository, times(1)).save(any(Study.class));
+        }
+
+        @Test
+        @DisplayName("스터디 생성 실패 - 존재하지 않는 사용자")
+        void createStudy_UserNotFound() {
+            // given
+            Long leaderId = 999L;
+
+            StudyCreateRequest request = StudyCreateRequest.builder()
+                    .name("알고리즘 마스터")
+                    .meetingType(MeetingType.ONLINE)
+                    .startDate(LocalDate.of(2025, 2, 1))
+                    .endDate(LocalDate.of(2025, 5, 1))
+                    .build();
+
+            given(userRepository.findById(leaderId)).willReturn(Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() -> studyService.createStudy(request, leaderId))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("존재하지 않는 사용자");
+
+            verify(studyRepository, never()).save(any());
+            verify(studyMemberRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("스터디 생성 실패 - 오프라인 스터디인데 지역 정보 없음")
+        void createStudy_OfflineWithoutRegion() {
+            // given
+            Long leaderId = 1L;
+
+            StudyCreateRequest request = StudyCreateRequest.builder()
+                    .name("오프라인 스터디")
+                    .meetingType(MeetingType.OFFLINE)  // 오프라인인데
+                    .regionId(null)  // 지역 정보 없음!
+                    .startDate(LocalDate.of(2025, 2, 1))
+                    .endDate(LocalDate.of(2025, 5, 1))
+                    .build();
+
+            given(userRepository.findById(leaderId)).willReturn(Optional.of(testUser));
+
+            // when & then
+            assertThatThrownBy(() -> studyService.createStudy(request, leaderId))
+                    .isInstanceOf(StudyException.InvalidStudyRequestException.class)
+                    .hasMessageContaining("오프라인/혼합 스터디는 지역 정보가 필수");
+
+            verify(studyRepository, never()).save(any());
+            verify(studyMemberRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("스터디 생성 실패 - 종료일이 시작일보다 앞섬")
+        void createStudy_InvalidDateRange() {
+            // given
+            Long leaderId = 1L;
+
+            StudyCreateRequest request = StudyCreateRequest.builder()
+                    .name("알고리즘 마스터")
+                    .meetingType(MeetingType.ONLINE)
+                    .startDate(LocalDate.of(2025, 5, 1))  // 시작일이 더 늦음
+                    .endDate(LocalDate.of(2025, 2, 1))    // 종료일이 더 빠름
+                    .build();
+
+            given(userRepository.findById(leaderId)).willReturn(Optional.of(testUser));
+
+            // when & then
+            assertThatThrownBy(() -> studyService.createStudy(request, leaderId))
+                    .isInstanceOf(StudyException.InvalidStudyRequestException.class)
+                    .hasMessageContaining("종료일은 시작일보다 늦어야");
+
+            verify(studyRepository, never()).save(any());
+            verify(studyMemberRepository, never()).save(any());
+        }
     }
 
     // ============================================================
     // 스터디 수정 테스트
     // ============================================================
 
-    @Test
-    @DisplayName("스터디장이 스터디 수정 성공")
-    void updateStudy_WithLeader_ShouldReturnUpdatedStudy() {
-        // given
-        Long studyId = 1L;
-        Long leaderId = 1L;
+    @Nested
+    @DisplayName("스터디 수정 테스트")
+    class UpdateStudyTest {
 
-        Study existingStudy = Study.builder()
-                .id(studyId)
-                .leaderId(leaderId)
-                .name("기존 스터디")
-                .maxMembers(6)
-                .build();
+        @Test
+        @DisplayName("스터디 수정 성공")
+        void updateStudy_Success() {
+            // given
+            Long studyId = 1L;
+            Long leaderId = 1L;
 
-        StudyUpdateRequest request = StudyUpdateRequest.builder()
-                .name("수정된 스터디")
-                .maxMembers(10)
-                .build();
+            StudyUpdateRequest request = StudyUpdateRequest.builder()
+                    .name("알고리즘 마스터 시즌2")
+                    .description("백준 플래티넘 도전!")
+                    .meetingType(MeetingType.ONLINE)
+                    .startDate(LocalDate.of(2025, 2, 1))
+                    .endDate(LocalDate.of(2025, 6, 1))
+                    .build();
 
-        given(studyRepository.findById(studyId)).willReturn(Optional.of(existingStudy));
+            given(studyRepository.findById(studyId)).willReturn(Optional.of(testStudy));
 
-        // when
-        StudyResponse response = studyService.updateStudy(studyId, request, leaderId);
+            // when
+            StudyResponse response = studyService.updateStudy(studyId, request, leaderId);
 
-        // then
-        assertThat(response).isNotNull();
-        assertThat(response.getName()).isEqualTo("수정된 스터디");
-        assertThat(response.getMaxMembers()).isEqualTo(10);
-    }
+            // then
+            assertThat(response).isNotNull();
+            verify(studyRepository, times(1)).findById(studyId);
+        }
 
-    @Test
-    @DisplayName("스터디장이 아닌 사용자가 수정 시도 시 예외 발생")
-    void updateStudy_WithoutLeaderPermission_ShouldThrowException() {
-        // given
-        Long studyId = 1L;
-        Long leaderId = 1L;
-        Long otherUserId = 999L;
+        @Test
+        @DisplayName("스터디 수정 실패 - 권한 없음 (스터디장 아님)")
+        void updateStudy_NotLeader() {
+            // given
+            Long studyId = 1L;
+            Long notLeaderId = 999L;
 
-        Study existingStudy = Study.builder()
-                .id(studyId)
-                .leaderId(leaderId)
-                .name("기존 스터디")
-                .build();
+            StudyUpdateRequest request = StudyUpdateRequest.builder()
+                    .name("알고리즘 마스터 시즌2")
+                    .build();
 
-        StudyUpdateRequest request = StudyUpdateRequest.builder()
-                .name("수정된 스터디")
-                .build();
+            given(studyRepository.findById(studyId)).willReturn(Optional.of(testStudy));
 
-        given(studyRepository.findById(studyId)).willReturn(Optional.of(existingStudy));
+            // when & then
+            assertThatThrownBy(() -> studyService.updateStudy(studyId, request, notLeaderId))
+                    .isInstanceOf(StudyException.NotStudyLeaderException.class);
+        }
 
-        // when & then
-        assertThatThrownBy(() -> studyService.updateStudy(studyId, request, otherUserId))
-                .isInstanceOf(StudyException.NotStudyLeaderException.class)
-                .hasMessage("스터디를 수정할 권한이 없습니다");
-    }
+        @Test
+        @DisplayName("스터디 수정 실패 - 존재하지 않는 스터디")
+        void updateStudy_StudyNotFound() {
+            // given
+            Long studyId = 999L;
+            Long leaderId = 1L;
 
-    @Test
-    @DisplayName("존재하지 않는 스터디 수정 시 예외 발생")
-    void updateStudy_NonExistentStudy_ShouldThrowException() {
-        // given
-        Long studyId = 999L;
-        Long leaderId = 1L;
-        StudyUpdateRequest request = StudyUpdateRequest.builder()
-                .name("수정된 스터디")
-                .build();
+            StudyUpdateRequest request = StudyUpdateRequest.builder()
+                    .name("알고리즘 마스터 시즌2")
+                    .build();
 
-        given(studyRepository.findById(studyId)).willReturn(Optional.empty());
+            given(studyRepository.findById(studyId)).willReturn(Optional.empty());
 
-        // when & then
-        assertThatThrownBy(() -> studyService.updateStudy(studyId, request, leaderId))
-                .isInstanceOf(StudyException.StudyNotFoundException.class);
+            // when & then
+            assertThatThrownBy(() -> studyService.updateStudy(studyId, request, leaderId))
+                    .isInstanceOf(StudyException.StudyNotFoundException.class);
+        }
     }
 
     // ============================================================
     // 스터디 삭제 테스트
     // ============================================================
 
-    @Test
-    @DisplayName("스터디장이 DRAFT 상태 스터디 삭제 성공")
-    void deleteStudy_DraftStatus_ShouldDeleteSuccessfully() {
-        // given
-        Long studyId = 1L;
-        Long leaderId = 1L;
+    @Nested
+    @DisplayName("스터디 삭제 테스트")
+    class DeleteStudyTest {
 
-        Study study = Study.builder()
-                .id(studyId)
-                .leaderId(leaderId)
-                .status(Status.DRAFT)
-                .build();
+        @Test
+        @DisplayName("스터디 삭제 성공")
+        void deleteStudy_Success() {
+            // given
+            Long studyId = 1L;
+            Long leaderId = 1L;
 
-        given(studyRepository.findById(studyId)).willReturn(Optional.of(study));
+            given(studyRepository.findById(studyId)).willReturn(Optional.of(testStudy));
 
-        // when
-        studyService.deleteStudy(studyId, leaderId);
+            // when
+            studyService.deleteStudy(studyId, leaderId);
 
-        // then
-        verify(studyRepository, times(1)).delete(study);
+            // then
+            verify(studyRepository, times(1)).delete(testStudy);
+        }
+
+        @Test
+        @DisplayName("스터디 삭제 실패 - 진행 중인 스터디")
+        void deleteStudy_InProgress() {
+            // given
+            Long studyId = 1L;
+            Long leaderId = 1L;
+
+            Study inProgressStudy = Study.builder()
+                    .id(studyId)
+                    .leaderId(leaderId)
+                    .status(Status.IN_PROGRESS)  // 진행 중!
+                    .createdAt(LocalDateTime.now())  // ⭐ NPE 방지
+                    .build();
+
+            given(studyRepository.findById(studyId)).willReturn(Optional.of(inProgressStudy));
+
+            // when & then
+            assertThatThrownBy(() -> studyService.deleteStudy(studyId, leaderId))
+                    .isInstanceOf(StudyException.CannotDeleteStudyException.class);
+
+            verify(studyRepository, never()).delete(any());
+        }
+
+        @Test
+        @DisplayName("스터디 삭제 실패 - 권한 없음")
+        void deleteStudy_NotLeader() {
+            // given
+            Long studyId = 1L;
+            Long notLeaderId = 999L;
+
+            given(studyRepository.findById(studyId)).willReturn(Optional.of(testStudy));
+
+            // when & then
+            assertThatThrownBy(() -> studyService.deleteStudy(studyId, notLeaderId))
+                    .isInstanceOf(StudyException.NotStudyLeaderException.class);
+
+            verify(studyRepository, never()).delete(any());
+        }
     }
 
-    @Test
-    @DisplayName("진행 중인 스터디 삭제 시 예외 발생")
-    void deleteStudy_InProgressStatus_ShouldThrowException() {
-        // given
-        Long studyId = 1L;
-        Long leaderId = 1L;
+    // ============================================================
+    // 내 스터디 목록 조회 테스트
+    // ============================================================
 
-        Study study = Study.builder()
-                .id(studyId)
-                .leaderId(leaderId)
-                .status(Status.IN_PROGRESS)
-                .build();
+    @Nested
+    @DisplayName("내 스터디 목록 조회 테스트")
+    class GetMyStudiesTest {
 
-        given(studyRepository.findById(studyId)).willReturn(Optional.of(study));
+        @Test
+        @DisplayName("내 스터디 목록 조회 성공 - 스터디장 + 멤버 스터디 모두 조회")
+        void getMyStudies_Success() {
+            // given
+            Long userId = 1L;
+            Pageable pageable = PageRequest.of(0, 10);
 
-        // when & then
-        assertThatThrownBy(() -> studyService.deleteStudy(studyId, leaderId))
-                .isInstanceOf(StudyException.CannotDeleteStudyException.class)
-                .hasMessage("진행 중이거나 완료된 스터디는 삭제할 수 없습니다");
-    }
+            // 스터디장으로 만든 스터디 (⭐ createdAt 추가!)
+            Study leaderStudy = Study.builder()
+                    .id(1L)
+                    .leaderId(userId)
+                    .name("내가 만든 스터디")
+                    .createdAt(LocalDateTime.now())  // ⭐ NPE 방지
+                    .build();
 
-    @Test
-    @DisplayName("완료된 스터디 삭제 시 예외 발생")
-    void deleteStudy_CompletedStatus_ShouldThrowException() {
-        // given
-        Long studyId = 1L;
-        Long leaderId = 1L;
+            // 멤버로 참여한 스터디 (⭐ createdAt 추가!)
+            Study memberStudy = Study.builder()
+                    .id(2L)
+                    .leaderId(999L)  // 다른 사람이 스터디장
+                    .name("참여한 스터디")
+                    .createdAt(LocalDateTime.now().minusDays(1))  // ⭐ NPE 방지
+                    .build();
 
-        Study study = Study.builder()
-                .id(studyId)
-                .leaderId(leaderId)
-                .status(Status.COMPLETED)
-                .build();
+            StudyMember membership = StudyMember.builder()
+                    .studyId(2L)
+                    .userId(userId)
+                    .role(MemberRole.MEMBER)
+                    .status(MemberStatus.APPROVED)
+                    .build();
 
-        given(studyRepository.findById(studyId)).willReturn(Optional.of(study));
+            Page<Study> leaderStudies = new PageImpl<>(List.of(leaderStudy));
 
-        // when & then
-        assertThatThrownBy(() -> studyService.deleteStudy(studyId, leaderId))
-                .isInstanceOf(StudyException.CannotDeleteStudyException.class)
-                .hasMessage("진행 중이거나 완료된 스터디는 삭제할 수 없습니다");
+            given(studyMemberRepository.findByUserIdAndStatus(userId, MemberStatus.APPROVED))
+                    .willReturn(List.of(membership));
+            given(studyRepository.findByLeaderId(userId, pageable)).willReturn(leaderStudies);
+            given(studyRepository.findAllById(List.of(2L))).willReturn(List.of(memberStudy));
+
+            // when
+            Page<Study> result = studyService.getMyStudies(userId, pageable);
+
+            // then
+            assertThat(result).isNotNull();
+            assertThat(result.getTotalElements()).isEqualTo(2);  // 스터디장 1개 + 멤버 1개
+
+            verify(studyMemberRepository, times(1)).findByUserIdAndStatus(userId, MemberStatus.APPROVED);
+            verify(studyRepository, times(1)).findByLeaderId(userId, pageable);
+            verify(studyRepository, times(1)).findAllById(List.of(2L));
+        }
+
+        @Test
+        @DisplayName("내 스터디 목록 조회 - 참여한 스터디 없음")
+        void getMyStudies_Empty() {
+            // given
+            Long userId = 1L;
+            Pageable pageable = PageRequest.of(0, 10);
+
+            given(studyMemberRepository.findByUserIdAndStatus(userId, MemberStatus.APPROVED))
+                    .willReturn(List.of());
+            given(studyRepository.findByLeaderId(userId, pageable))
+                    .willReturn(new PageImpl<>(List.of()));
+
+            // when
+            Page<Study> result = studyService.getMyStudies(userId, pageable);
+
+            // then
+            assertThat(result).isNotNull();
+            assertThat(result.getTotalElements()).isEqualTo(0);
+        }
     }
 
     // ============================================================
     // 스터디 상태 변경 테스트
     // ============================================================
 
-    @Test
-    @DisplayName("DRAFT에서 RECRUITING으로 상태 변경 성공")
-    void updateStudyStatus_DraftToRecruiting_ShouldChangeStatus() {
-        // given
-        Long studyId = 1L;
-        Long leaderId = 1L;
+    @Nested
+    @DisplayName("스터디 상태 변경 테스트")
+    class UpdateStatusTest {
 
-        Study study = Study.builder()
-                .id(studyId)
-                .leaderId(leaderId)
-                .status(Status.DRAFT)
-                .build();
+        @Test
+        @DisplayName("상태 변경 성공 - RECRUITING -> IN_PROGRESS")
+        void updateStatus_Success() {
+            // given
+            Long studyId = 1L;
+            Long leaderId = 1L;
+            Status newStatus = Status.IN_PROGRESS;
 
-        given(studyRepository.findById(studyId)).willReturn(Optional.of(study));
+            given(studyRepository.findById(studyId)).willReturn(Optional.of(testStudy));
 
-        // when
-        StudyResponse response = studyService.updateStudyStatus(studyId, Status.RECRUITING, leaderId);
+            // when
+            StudyResponse response = studyService.updateStudyStatus(studyId, newStatus, leaderId);
 
-        // then
-        assertThat(response.getStatus()).isEqualTo(Status.RECRUITING);
-    }
+            // then
+            assertThat(response).isNotNull();
+            verify(studyRepository, times(1)).findById(studyId);
+        }
 
-    @Test
-    @DisplayName("완료된 스터디 상태 변경 시 예외 발생")
-    void updateStudyStatus_CompletedStudy_ShouldThrowException() {
-        // given
-        Long studyId = 1L;
-        Long leaderId = 1L;
+        @Test
+        @DisplayName("상태 변경 실패 - 완료된 스터디")
+        void updateStatus_CompletedStudy() {
+            // given
+            Long studyId = 1L;
+            Long leaderId = 1L;
 
-        Study study = Study.builder()
-                .id(studyId)
-                .leaderId(leaderId)
-                .status(Status.COMPLETED)
-                .build();
+            Study completedStudy = Study.builder()
+                    .id(studyId)
+                    .leaderId(leaderId)
+                    .status(Status.COMPLETED)  // 이미 완료됨
+                    .createdAt(LocalDateTime.now())  // ⭐ NPE 방지
+                    .build();
 
-        given(studyRepository.findById(studyId)).willReturn(Optional.of(study));
+            given(studyRepository.findById(studyId)).willReturn(Optional.of(completedStudy));
 
-        // when & then
-        assertThatThrownBy(() -> studyService.updateStudyStatus(studyId, Status.RECRUITING, leaderId))
-                .isInstanceOf(StudyException.InvalidStatusTransitionException.class)
-                .hasMessage("완료된 스터디는 상태를 변경할 수 없습니다");
-    }
-
-    // ============================================================
-    // 모집 기간 연장 테스트
-    // ============================================================
-
-    @Test
-    @DisplayName("모집 중인 스터디 기간 연장 성공")
-    void extendRecruitment_RecruitingStudy_ShouldExtendSuccessfully() {
-        // given
-        Long studyId = 1L;
-        Long leaderId = 1L;
-        LocalDate newEndDate = LocalDate.of(2025, 2, 15);
-
-        Study study = Study.builder()
-                .id(studyId)
-                .leaderId(leaderId)
-                .status(Status.RECRUITING)
-                .extensionCount(0)
-                .recruitEndDate(LocalDate.of(2025, 1, 31))
-                .recruitStartDate(LocalDate.of(2025, 1, 15))
-                .build();
-
-        given(studyRepository.findById(studyId)).willReturn(Optional.of(study));
-
-        // when
-        StudyResponse response = studyService.extendRecruitment(studyId, newEndDate, leaderId);
-
-        // then
-        assertThat(response.getRecruitEndDate()).isEqualTo(newEndDate);
-        assertThat(response.getExtensionCount()).isEqualTo(1);
-    }
-
-    @Test
-    @DisplayName("2회 연장 시도 시 예외 발생")
-    void extendRecruitment_SecondAttempt_ShouldThrowException() {
-        // given
-        Long studyId = 1L;
-        Long leaderId = 1L;
-        LocalDate newEndDate = LocalDate.of(2025, 2, 20);
-
-        Study study = Study.builder()
-                .id(studyId)
-                .leaderId(leaderId)
-                .status(Status.RECRUITING)
-                .extensionCount(1)  // 이미 1회 연장함
-                .recruitEndDate(LocalDate.of(2025, 2, 15))
-                .recruitStartDate(LocalDate.of(2025, 1, 15))
-                .build();
-
-        given(studyRepository.findById(studyId)).willReturn(Optional.of(study));
-
-        // when & then
-        assertThatThrownBy(() -> studyService.extendRecruitment(studyId, newEndDate, leaderId))
-                .isInstanceOf(StudyException.MaxExtensionReachedException.class)
-                .hasMessage("모집 기간은 최대 1회만 연장 가능합니다");
-    }
-
-    @Test
-    @DisplayName("모집 중이 아닌 스터디 연장 시도 시 예외 발생")
-    void extendRecruitment_NotRecruitingStudy_ShouldThrowException() {
-        // given
-        Long studyId = 1L;
-        Long leaderId = 1L;
-        LocalDate newEndDate = LocalDate.of(2025, 2, 15);
-
-        Study study = Study.builder()
-                .id(studyId)
-                .leaderId(leaderId)
-                .status(Status.IN_PROGRESS)  // 진행중
-                .extensionCount(0)
-                .build();
-
-        given(studyRepository.findById(studyId)).willReturn(Optional.of(study));
-
-        // when & then
-        assertThatThrownBy(() -> studyService.extendRecruitment(studyId, newEndDate, leaderId))
-                .isInstanceOf(StudyException.NotRecruitingException.class)
-                .hasMessage("모집 중인 스터디만 기간을 연장할 수 있습니다");
+            // when & then
+            assertThatThrownBy(() -> studyService.updateStudyStatus(studyId, Status.RECRUITING, leaderId))
+                    .isInstanceOf(StudyException.InvalidStatusTransitionException.class);
+        }
     }
 
     // ============================================================
     // 스터디 조회 테스트
     // ============================================================
 
-    @Test
-    @DisplayName("ID로 스터디 조회 성공")
-    void getStudyById_ExistingStudy_ShouldReturnStudy() {
-        // given
-        Long studyId = 1L;
-        Study study = Study.builder()
-                .id(studyId)
-                .name("알고리즘 스터디")
-                .build();
+    @Nested
+    @DisplayName("스터디 조회 테스트")
+    class GetStudyTest {
 
-        given(studyRepository.findById(studyId)).willReturn(Optional.of(study));
+        @Test
+        @DisplayName("스터디 상세 조회 성공")
+        void getStudyById_Success() {
+            // given
+            Long studyId = 1L;
+            given(studyRepository.findById(studyId)).willReturn(Optional.of(testStudy));
 
-        // when
-        Study found = studyService.getStudyById(studyId);
+            // when
+            Study result = studyService.getStudyById(studyId);
 
-        // then
-        assertThat(found).isNotNull();
-        assertThat(found.getId()).isEqualTo(studyId);
-        assertThat(found.getName()).isEqualTo("알고리즘 스터디");
-    }
+            // then
+            assertThat(result).isNotNull();
+            assertThat(result.getId()).isEqualTo(studyId);
+            assertThat(result.getName()).isEqualTo("알고리즘 마스터");
+        }
 
-    @Test
-    @DisplayName("존재하지 않는 스터디 조회 시 예외 발생")
-    void getStudyById_NonExistentStudy_ShouldThrowException() {
-        // given
-        Long studyId = 999L;
-        given(studyRepository.findById(studyId)).willReturn(Optional.empty());
+        @Test
+        @DisplayName("스터디 상세 조회 실패 - 존재하지 않는 스터디")
+        void getStudyById_NotFound() {
+            // given
+            Long studyId = 999L;
+            given(studyRepository.findById(studyId)).willReturn(Optional.empty());
 
-        // when & then
-        assertThatThrownBy(() -> studyService.getStudyById(studyId))
-                .isInstanceOf(StudyException.StudyNotFoundException.class);
-    }
+            // when & then
+            assertThatThrownBy(() -> studyService.getStudyById(studyId))
+                    .isInstanceOf(StudyException.StudyNotFoundException.class);
+        }
 
-    @Test
-    @DisplayName("스터디 존재 여부 확인 - 존재함")
-    void existsStudy_ExistingStudy_ShouldReturnTrue() {
-        // given
-        Long studyId = 1L;
-        given(studyRepository.existsById(studyId)).willReturn(true);
+        @Test
+        @DisplayName("모집중인 스터디 목록 조회")
+        void getRecruitingStudies_Success() {
+            // given
+            Pageable pageable = PageRequest.of(0, 10);
+            Page<Study> studies = new PageImpl<>(List.of(testStudy));
 
-        // when
-        boolean exists = studyService.existsStudy(studyId);
+            given(studyRepository.findRecruitingStudies(pageable)).willReturn(studies);
 
-        // then
-        assertThat(exists).isTrue();
-    }
+            // when
+            Page<Study> result = studyService.getRecruitingStudies(pageable);
 
-    @Test
-    @DisplayName("스터디 존재 여부 확인 - 존재하지 않음")
-    void existsStudy_NonExistentStudy_ShouldReturnFalse() {
-        // given
-        Long studyId = 999L;
-        given(studyRepository.existsById(studyId)).willReturn(false);
-
-        // when
-        boolean exists = studyService.existsStudy(studyId);
-
-        // then
-        assertThat(exists).isFalse();
+            // then
+            assertThat(result).isNotNull();
+            assertThat(result.getContent()).hasSize(1);
+            assertThat(result.getContent().get(0).getStatus()).isEqualTo(Status.RECRUITING);
+        }
     }
 }

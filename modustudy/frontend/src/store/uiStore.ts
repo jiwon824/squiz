@@ -6,6 +6,7 @@ interface UIState {
     activeRightTab: 'friend' | 'dm' | null;
     toggleSidebar: () => void;
     toggleRightTab: (tab: 'friend' | 'dm') => void;
+    setActiveRightTab: (tab: 'friend' | 'dm' | null) => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -15,4 +16,5 @@ export const useUIStore = create<UIState>((set) => ({
     toggleRightTab: (tab) => set((state) => ({
         activeRightTab: state.activeRightTab === tab ? null : tab
     })),
+    setActiveRightTab: (tab) => set({ activeRightTab: tab }),
 }));

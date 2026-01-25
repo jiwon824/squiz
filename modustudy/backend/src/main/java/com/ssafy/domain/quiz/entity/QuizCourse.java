@@ -10,6 +10,8 @@ import java.util.List;
 @Entity
 @Table(name = "quiz_course")
 @Getter
+@Builder
+@AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class QuizCourse extends BaseEntity {
     /**

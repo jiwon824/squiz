@@ -22,7 +22,7 @@ public class UserDTO {
             provider = user.getSocialAccounts().stream()
                     .filter(UserSocialAccount::getIsPrimary)
                     .findFirst()
-                    .map(account -> account.getProvider().name())  // 👈 여기는 .name() 맞음
+                    .map(account -> account.getProvider().name())
                     .orElse(null);
         }
 
@@ -31,7 +31,7 @@ public class UserDTO {
                 .email(user.getEmail())
                 .nickname(user.getNickname())
                 .profileImage(user.getProfileImage())
-                .loginProvider(provider)  // 👈 이미 String이니까 .name() 제거
+                .loginProvider(provider)
                 .build();
     }
 

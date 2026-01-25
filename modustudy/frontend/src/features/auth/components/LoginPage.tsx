@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AuthLayout from './AuthLayout';
+import { PasswordResetModal } from './PasswordResetModal';
 import { authApi } from '@/api/endpoints/authApi';
 import { useAuthStore } from '@/store/authStore';
 
@@ -16,6 +17,9 @@ export const LoginPage = () => {
     const [rememberEmail, setRememberEmail] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
+
+    // 비밀번호 재설정 모달 상태
+    const [showPasswordResetModal, setShowPasswordResetModal] = useState(false);
 
     // 저장된 이메일 불러오기
     useEffect(() => {
@@ -64,6 +68,7 @@ export const LoginPage = () => {
             login({
                 id: String(data.user.id),
                 name: data.user.name,
+                nickname: data.user.nickname || undefined,
                 email: data.user.email,
                 avatar: data.user.profileImage || undefined
             });
@@ -87,7 +92,6 @@ export const LoginPage = () => {
         <AuthLayout>
             <div className="form-header">
                 <h3>로그인</h3>
-                <p>SQUIZ와 함께 스마트한 학습을 시작하세요</p>
             </div>
 
             <form className="auth-form" onSubmit={handleSubmit}>
@@ -123,7 +127,7 @@ export const LoginPage = () => {
                         name="email"
                         value={formData.email}
                         onChange={handleChange}
-                        placeholder="example@ssafy.com"
+                        placeholder="example@email.com"
                         required
                     />
                 </div>
@@ -151,7 +155,13 @@ export const LoginPage = () => {
                         />
                         <span className="text-study-text/70">아이디 기억</span>
                     </label>
-                    <a href="#" className="text-study-blue hover:underline">비밀번호 찾기</a>
+                    <button
+                        type="button"
+                        onClick={() => setShowPasswordResetModal(true)}
+                        className="text-study-blue hover:underline bg-transparent border-none cursor-pointer"
+                    >
+                        비밀번호 찾기
+                    </button>
                 </div>
 
                 <button
@@ -240,8 +250,16 @@ export const LoginPage = () => {
             </form>
 
             <p style={{ marginTop: '2rem', textAlign: 'center', fontSize: '0.9rem', color: 'var(--color-text-secondary)' }}>
-                계정이 없으신가요? <a href="/signup" className="text-study-blue font-bold hover:underline">회원가입</a>
+                계정이 없으신가요?
+                <br />
+                소셜 인증 후 회원가입 가능합니다!
             </p>
+
+            {/* 비밀번호 재설정 모달 */}
+            <PasswordResetModal
+                isOpen={showPasswordResetModal}
+                onClose={() => setShowPasswordResetModal(false)}
+            />
         </AuthLayout>
     );
 };

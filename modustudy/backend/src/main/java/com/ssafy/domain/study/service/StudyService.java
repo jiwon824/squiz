@@ -4,16 +4,22 @@ import com.ssafy.common.exception.StudyException;
 import com.ssafy.domain.study.dto.request.StudyCreateRequest;
 import com.ssafy.domain.study.dto.request.StudyUpdateRequest;
 import com.ssafy.domain.study.dto.response.StudyResponse;
-import com.ssafy.domain.study.entity.Status;
-import com.ssafy.domain.study.entity.Study;
+import com.ssafy.domain.study.entity.*;
+import com.ssafy.domain.study.repository.StudyMemberRepository;
 import com.ssafy.domain.study.repository.StudyRepository;
 import com.ssafy.domain.study.repository.StudySearchCondition;
+import com.ssafy.domain.user.entity.User;
+import com.ssafy.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -21,7 +27,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class StudyService {
 
+    private final UserRepository userRepository;
     private final StudyRepository studyRepository;
+    private final StudyMemberRepository studyMemberRepository;
 
     // ============================================================
     // 스터디 조회 API
@@ -121,18 +129,38 @@ public class StudyService {
     public StudyResponse createStudy(StudyCreateRequest request, Long leaderId) {
         log.info("스터디 생성 시작 - 스터디장: {}, 스터디명: {}", leaderId, request.getName());
 
-        // 비즈니스 검증
+        // 1. 스터디장(User) 존재 확인
+        User leader = userRepository.findById(leaderId)
+                .orElseThrow(() -> {
+                    log.error("존재하지 않는 사용자 - leaderId: {}", leaderId);
+                    return new IllegalArgumentException("존재하지 않는 사용자입니다: " + leaderId);
+                });
+
+        // 2. 비즈니스 검증
         validateStudyCreate(request);
 
-        // DTO -> Entity 변환
+        // 3. DTO -> Entity 변환
         Study study = request.toEntity(leaderId);
 
-        // 저장
+        // 4. Study 저장
         Study savedStudy = studyRepository.save(study);
 
-        log.info("스터디 생성 완료 - studyId: {}", savedStudy.getId());
+        // 5. ⭐ 스터디장을 StudyMember로 자동 추가
+        StudyMember leaderMember = StudyMember.builder()
+                .studyId(savedStudy.getId())
+                .userId(leaderId)
+                .role(MemberRole.LEADER)
+                .status(MemberStatus.APPROVED)
+                .isProbation(false)  // 스터디장은 수습 아님!
+                .joinedAt(LocalDateTime.now())
+                .build();
 
-        return StudyResponse.from(savedStudy);
+        studyMemberRepository.save(leaderMember);
+
+        log.info("스터디 생성 완료 - studyId: {}, 스터디장(userId: {})이 멤버로 추가됨",
+                savedStudy.getId(), leaderId);
+
+        return StudyResponse.from(savedStudy, leader);
     }
 
     /**
@@ -240,6 +268,44 @@ public class StudyService {
         log.info("모집 기간 연장 완료 - studyId: {}, 연장 횟수: {}", studyId, study.getExtensionCount());
 
         return StudyResponse.from(study);
+    }
+
+    /**
+     * 내가 참여 중인 스터디 목록 조회
+     * - 내가 스터디장인 스터디
+     * - 내가 승인된 멤버인 스터디
+     */
+    public Page<Study> getMyStudies(Long userId, Pageable pageable) {
+        log.info("내 스터디 목록 조회 - userId: {}", userId);
+
+        // 1. 내가 멤버인 스터디 ID 목록 조회
+        List<StudyMember> myMemberships = studyMemberRepository.findByUserIdAndStatus(userId, MemberStatus.APPROVED);
+
+        List<Long> memberStudyIds = myMemberships.stream()
+                .map(StudyMember::getStudyId)
+                .toList();
+
+        // 2. 내가 스터디장인 스터디 조회
+        Page<Study> leaderStudies = studyRepository.findByLeaderId(userId, pageable);
+
+        // 3. 멤버로 참여한 스터디 조회
+        List<Study> memberStudies = memberStudyIds.isEmpty()
+                ? Collections.emptyList()
+                : studyRepository.findAllById(memberStudyIds);
+
+        // 4. 두 목록 합치기 (중복 제거)
+        Set<Study> allStudies = new HashSet<>(leaderStudies.getContent());
+        allStudies.addAll(memberStudies);
+
+        List<Study> sortedStudies = allStudies.stream()
+                .sorted(Comparator.comparing(Study::getCreatedAt).reversed())
+                .skip(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .toList();
+
+        log.info("내 스터디 목록 조회 완료 - userId: {}, count: {}", userId, allStudies.size());
+
+        return new PageImpl<>(sortedStudies, pageable, allStudies.size());
     }
 
     // ============================================================

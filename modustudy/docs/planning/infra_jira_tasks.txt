@@ -1,56 +1,95 @@
 ################################################################################
 #                              인프라/DevOps                                    #
 ################################################################################
+# 범례: [x] 완료 | [-] 진행중 | [ ] 미완료
+################################################################################
 
 ================================================================================
 [Epic] 인프라 구축
 ================================================================================
-[INFRA] EC2 서버 초기 설정                                              | 2pt
-[INFRA] UFW 방화벽 포트 설정                                            | 1pt
-[INFRA] Docker 및 Docker Compose 설치                                   | 2pt
-[INFRA] 프로젝트 디렉토리 구조 생성                                     | 1pt
-[INFRA] SSH Config 설정                                                 | 1pt
+[x] [INFRA] EC2 서버 초기 설정                                              | 2pt
+[x] [INFRA] UFW 방화벽 포트 설정                                            | 1pt
+[x] [INFRA] Docker 및 Docker Compose 설치                                   | 2pt
+[x] [INFRA] 프로젝트 디렉토리 구조 생성                                     | 1pt
+[x] [INFRA] SSH Config 설정                                                 | 1pt
 
 ================================================================================
 [Epic] 컨테이너화
 ================================================================================
-[INFRA] Backend Dockerfile 작성                                         | 3pt
-[INFRA] Frontend Dockerfile 작성                                        | 3pt
-[INFRA] SFU Server Dockerfile 작성                                      | 3pt
-[INFRA] Recorder Server Dockerfile 작성                                 | 2pt
-[INFRA] docker-compose.yml 작성                                         | 5pt
-[INFRA] .env 환경변수 설정                                              | 1pt
+[x] [INFRA] Backend Dockerfile 작성                                         | 3pt
+[x] [INFRA] Frontend Dockerfile 작성                                        | 3pt
+[x] [INFRA] SFU Server Dockerfile 작성                                      | 3pt
+[x] [INFRA] Recorder Server Dockerfile 작성                                 | 2pt
+[x] [INFRA] docker-compose.yml 작성                                         | 5pt
+[x] [INFRA] .env 환경변수 설정                                              | 1pt
 
 ================================================================================
 [Epic] 리버스 프록시 / SSL
 ================================================================================
-[INFRA] Nginx 설정 파일 작성                                            | 3pt
-[INFRA] 리버스 프록시 라우팅 설정 (API, WebSocket, SFU)                 | 3pt
-[INFRA] Let's Encrypt SSL 인증서 발급                                   | 3pt
-[INFRA] HTTPS 적용 및 HTTP 리다이렉트 설정                              | 2pt
+[x] [INFRA] Nginx 설정 파일 작성                                            | 3pt
+[x] [INFRA] 리버스 프록시 라우팅 설정 (API, WebSocket, SFU)                 | 3pt
+[x] [INFRA] Let's Encrypt SSL 인증서 발급                                   | 3pt
+[x] [INFRA] HTTPS 적용 및 HTTP 리다이렉트 설정                              | 2pt
 
 ================================================================================
-[Epic] CI/CD 파이프라인 (Jenkins)
+[Epic] CI/CD 파이프라인 (GitLab CI/CD)
 ================================================================================
-[INFRA] Jenkinsfile 작성                                                | 5pt
-[INFRA] Jenkins Pipeline 프로젝트 생성                                  | 2pt
-[INFRA] Jenkins Credentials 등록 (GitLab Token, EC2 PEM)                | 2pt
-[INFRA] GitLab Webhook 연동 설정                                        | 2pt
-[INFRA] Gradle Toolchain 설정 (Java 21)                                 | 3pt
-[INFRA] 빌드 파이프라인 구성 (Build → Deploy)                           | 3pt
-[INFRA] EC2 자동 배포 스크립트 작성                                     | 3pt
+# ※ Jenkins → GitLab CI/CD로 변경
+[x] [INFRA] .gitlab-ci.yml 작성                                             | 5pt
+[x] [INFRA] GitLab Runner 등록 (shell executor)                             | 2pt
+[x] [INFRA] 환경변수 설정 (/etc/environment)                                | 2pt
+[x] [INFRA] Gradle Toolchain 설정 (Java 21)                                 | 3pt
+[x] [INFRA] 빌드 파이프라인 구성 (Build → Test → Deploy)                    | 3pt
+[x] [INFRA] rsync 배포 스크립트 (.env, ssl 제외 설정)                       | 3pt
+[x] [INFRA] COMPOSE_HTTP_TIMEOUT 설정 (300초)                               | 1pt
+[x] [INFRA] 무중단 배포 설정 (--force-recreate)                             | 2pt
+[x] [INFRA] Docker Compose v2 업그레이드                                    | 2pt
+
+================================================================================
+[Epic] 테스트 환경
+================================================================================
+[x] [INFRA] 테스트용 MySQL DB 생성 (squiz_test)                             | 2pt
+[x] [INFRA] 테스트 application.properties 설정                              | 2pt
+[x] [INFRA] Spring Security 테스트 설정 (@WithMockUser)                     | 1pt
+[x] [INFRA] CI 테스트 환경변수 설정 (TEST_DB_*)                             | 1pt
 
 ================================================================================
 [Epic] 데이터베이스
 ================================================================================
-[INFRA] MySQL 컨테이너 설정                                             | 2pt
-[INFRA] Redis 컨테이너 설정                                             | 2pt
-[INFRA] DB 초기화 스크립트 작성 (init.sql)                              | 3pt
-[INFRA] DB 백업 스크립트 작성                                           | 3pt
+[x] [INFRA] MySQL 컨테이너 설정                                             | 2pt
+[x] [INFRA] Redis 컨테이너 설정                                             | 2pt
+[x] [INFRA] DB 초기화 스크립트 작성 (init.sql)                              | 3pt
+[x] [INFRA] DB 백업 스크립트 작성                                           | 3pt
 
 ================================================================================
 [Epic] 모니터링 (선택)
 ================================================================================
-[INFRA] 서버 상태 모니터링 설정                                         | 5pt
-[INFRA] 컨테이너 로그 관리 설정                                         | 3pt
-[INFRA] 헬스체크 엔드포인트 구성                                        | 2pt
+[ ] [INFRA] 서버 상태 모니터링 설정                                         | 5pt
+[ ] [INFRA] 컨테이너 로그 관리 설정                                         | 3pt
+[ ] [INFRA] 헬스체크 엔드포인트 구성                                        | 2pt
+
+================================================================================
+[Epic] 문서화
+================================================================================
+[x] [INFRA] EC2 아키텍처 문서 작성 (ec2-architecture.md)                    | 2pt
+[x] [INFRA] CI/CD 트러블슈팅 문서 작성 (cicd-permission-fix.md)             | 2pt
+[x] [INFRA] 테스트 환경 가이드 작성 (test-configuration.md)                 | 2pt
+[x] [INFRA] 인프라 운영 가이드 문서화 (SSL, DB백업, 무중단배포)             | 3pt
+[x] [INFRA] Docker Compose 가이드 문서 작성                                 | 2pt
+
+================================================================================
+[Epic] 배포 환경 설정
+================================================================================
+[x] [INFRA] 운영 환경 설정 (application-prod, OAuth, SSL)                   | 5pt
+[x] [FE] 배포 환경 API 설정 (환경변수화, 개발 가이드)                       | 3pt
+
+################################################################################
+#                              진행 상황 요약                                   #
+################################################################################
+# 완료: 39개
+# 미완료: 3개
+#
+# 남은 작업:
+# 1. 모니터링 설정 (선택사항)
+#
+################################################################################

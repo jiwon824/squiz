@@ -1,8 +1,30 @@
+// Flyway CLI가 MySQL 드라이버를 사용할 수 있도록 설정
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.mysql:mysql-connector-j:8.3.0'
+        classpath 'org.flywaydb:flyway-mysql:10.8.1'
+    }
+}
+
 plugins {
     id 'java'
     id 'org.springframework.boot' version '3.2.2'
     id 'io.spring.dependency-management' version '1.1.4'
     id 'co.uzzu.dotenv.gradle' version '2.0.0'
+    id 'org.flywaydb.flyway' version '10.8.1'
+}
+
+// Flyway CLI 설정 (gradle flywayMigrate 등 명령어용)
+flyway {
+    url = System.getenv('SPRING_DATASOURCE_URL') ?: 'jdbc:mysql://localhost:3306/ssafy_web_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul'
+    user = System.getenv('SPRING_DATASOURCE_USERNAME') ?: System.getenv('DB_USERNAME') ?: 'ssafy'
+    password = System.getenv('SPRING_DATASOURCE_PASSWORD') ?: System.getenv('DB_PASSWORD') ?: 'ssafy'
+    locations = ['classpath:db/migration']
+    baselineOnMigrate = true
+    baselineVersion = '0'
 }
 
 group = 'com.ssafy'
@@ -35,6 +57,10 @@ dependencies {
 
     // Database
     runtimeOnly 'com.mysql:mysql-connector-j'
+
+    // Flyway (DB 마이그레이션)
+    implementation 'org.flywaydb:flyway-core'
+    implementation 'org.flywaydb:flyway-mysql'
 
     // MyBatis (JPA와 함께 사용 가능)
     implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.3'
@@ -71,6 +97,9 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
     testImplementation 'me.paulschwarz:spring-dotenv:4.0.0'
+
+    // 이메일 전송
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
 }
 
 tasks.named('test') {

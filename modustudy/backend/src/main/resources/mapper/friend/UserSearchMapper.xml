@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ssafy.domain.friend.mapper.UserSearchMapper">
+
+    <select id="searchByNickname" resultType="com.ssafy.domain.friend.dto.response.UserSearchResponse">
+        SELECT
+            u.id as userId,
+            u.nickname,
+            p.profile_image_url as profileImage,
+            u.is_online as isOnline,
+            'NONE' as friendStatus
+        FROM user u
+        LEFT JOIN profile p ON u.id = p.user_id
+        WHERE u.nickname LIKE CONCAT('%', #{keyword}, '%')
+          AND u.is_searchable = true
+          AND u.id != #{excludeId}
+        <if test="excludeBlockerIds != null and excludeBlockerIds.size() > 0">
+          AND u.id NOT IN
+          <foreach collection="excludeBlockerIds" item="id" open="(" separator="," close=")">
+            #{id}
+          </foreach>
+        </if>
+        ORDER BY u.nickname
+        LIMIT 20
+    </select>
+
+</mapper>

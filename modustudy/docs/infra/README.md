@@ -24,9 +24,9 @@ Squiz 프로젝트의 인프라 및 DevOps 관련 문서입니다.
 │  │                   Docker Compose                       │  │
 │  │                                                        │  │
 │  │  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐  │  │
-│  │  │  Nginx  │  │ Backend │  │   SFU   │  │Recorder │  │  │
-│  │  │  :80    │  │  :8080  │  │  :3000  │  │  :3001  │  │  │
-│  │  │+Frontend│  │ (Spring)│  │(Mediasoup)│ │         │  │  │
+│  │  │  Nginx  │  │ Backend │  │   SFU   │  │CS Quiz  │  │  │
+│  │  │  :80    │  │  :8080  │  │  :4000  │  │   AI    │  │  │
+│  │  │+Frontend│  │ (Spring)│  │(Mediasoup)│ │  :5000  │  │  │
 │  │  └─────────┘  └─────────┘  └─────────┘  └─────────┘  │  │
 │  │                                                        │  │
 │  │  ┌─────────┐  ┌─────────┐  ┌──────────────┐          │  │
@@ -74,7 +74,8 @@ GitLab Runner 실행 (EC2)
 | docker-compose.yml | `/modustudy/docker-compose.yml` | 컨테이너 오케스트레이션 |
 | Backend Dockerfile | `/modustudy/backend/Dockerfile` | Spring Boot 빌드 |
 | Frontend Dockerfile | `/modustudy/frontend/Dockerfile` | React 빌드 + Nginx |
-| SFU Dockerfile | `/modustudy/rtc_mockup/sfu-server/Dockerfile` | Mediasoup SFU 서버 |
+| SFU Dockerfile | `/modustudy/sfu-server/Dockerfile` | Mediasoup SFU 서버 |
+| CS Quiz AI Dockerfile | `/modustudy/backend/cs-quiz-ai-service/Dockerfile` | Flask AI 서비스 |
 | Nginx 설정 | `/modustudy/nginx/` | 리버스 프록시 설정 |
 | build.gradle | `/modustudy/backend/build.gradle` | Gradle Toolchain 설정 |
 
@@ -86,7 +87,7 @@ GitLab Runner 실행 (EC2)
 - [x] UFW 방화벽 포트 설정 (22, 80, 443, 40000-40100/udp)
 - [x] Docker 및 Docker Compose 설치
 - [x] 프로젝트 디렉토리 생성 (/home/ubuntu/squiz)
-- [x] Dockerfile 작성 (Backend, Frontend, SFU, Recorder)
+- [x] Dockerfile 작성 (Backend, Frontend, SFU, CS Quiz AI)
 - [x] docker-compose.yml 작성
 - [x] Nginx 설정 파일 작성
 - [x] Gradle Toolchain 설정 (Java 21 자동 다운로드)
@@ -96,14 +97,14 @@ GitLab Runner 실행 (EC2)
 - [x] SFU SSL 인증서 설정
 - [x] 첫 배포 완료
 
-### 현재 상태 (2026-01-20)
+### 현재 상태 (2026-01-22)
 
 | 컨테이너 | 상태 | 포트 |
 |---------|------|------|
 | squiz-nginx | Running | 80, 443 |
 | squiz-backend | Running | 8080 |
-| squiz-recorder | Running | 3001 |
-| squiz-sfu | Running | 3000, 40000-40100/udp |
+| squiz-cs-quiz-ai | Running | 5000 |
+| squiz-sfu | Running | 4000, 20000-22000/udp |
 | squiz-mysql | Running | 3306 |
 | squiz-redis | Running | 6379 |
 

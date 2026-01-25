@@ -100,6 +100,17 @@ CREATE TABLE `refresh_token` (
     UNIQUE KEY `uk_refresh_token` (`token`)
 );
 
+-- 비밀번호 재설정
+CREATE TABLE password_reset_token (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT NOT NULL,
+    token VARCHAR(255) NOT NULL UNIQUE,
+    expires_at DATETIME NOT NULL,
+    used BOOLEAN DEFAULT FALSE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES user(id)
+);
+
 -- =============================================
 -- 1-1. 친구/DM
 -- =============================================
@@ -109,29 +120,64 @@ CREATE TABLE `friendship` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
     `requester_id` BIGINT NOT NULL,              -- 친구 요청자
     `addressee_id` BIGINT NOT NULL,              -- 친구 요청 대상
-    `status` ENUM('PENDING', 'ACCEPTED', 'REJECTED', 'BLOCKED') DEFAULT 'PENDING',
+    `status` ENUM('PENDING', 'ACCEPTED') DEFAULT 'PENDING',
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (`requester_id`) REFERENCES `user`(`id`) ON DELETE CASCADE,
     FOREIGN KEY (`addressee_id`) REFERENCES `user`(`id`) ON DELETE CASCADE,
-    UNIQUE KEY `uk_friendship` (`requester_id`, `addressee_id`)
+    UNIQUE KEY `uk_friendship` (`requester_id`, `addressee_id`),
+    INDEX `idx_friendship_requester` (`requester_id`),
+    INDEX `idx_friendship_addressee` (`addressee_id`),
+    INDEX `idx_friendship_status` (`status`)
 );
 
--- DM (1:1 메시지)
+-- 사용자 차단
+CREATE TABLE `user_block` (
+    `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
+    `blocker_id` BIGINT NOT NULL,                -- 차단한 사용자
+    `blocked_id` BIGINT NOT NULL,                -- 차단당한 사용자
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (`blocker_id`) REFERENCES `user`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`blocked_id`) REFERENCES `user`(`id`) ON DELETE CASCADE,
+    UNIQUE KEY `uk_user_block` (`blocker_id`, `blocked_id`),
+    INDEX `idx_user_block_blocker` (`blocker_id`),
+    INDEX `idx_user_block_blocked` (`blocked_id`)
+);
+
+-- DM 대화방
+CREATE TABLE `dm_conversation` (
+    `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
+    `user1_id` BIGINT NOT NULL,                  -- 참여자 1 (ID가 작은 쪽)
+    `user2_id` BIGINT NOT NULL,                  -- 참여자 2 (ID가 큰 쪽)
+    `user1_last_read_message_id` BIGINT,         -- user1의 마지막 읽은 메시지 ID
+    `user2_last_read_message_id` BIGINT,         -- user2의 마지막 읽은 메시지 ID
+    `user1_deleted` BOOLEAN DEFAULT FALSE,       -- user1이 대화를 삭제했는지
+    `user2_deleted` BOOLEAN DEFAULT FALSE,       -- user2가 대화를 삭제했는지
+    `last_message_at` TIMESTAMP,                 -- 마지막 메시지 시간
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (`user1_id`) REFERENCES `user`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`user2_id`) REFERENCES `user`(`id`) ON DELETE CASCADE,
+    UNIQUE KEY `uk_dm_conversation_users` (`user1_id`, `user2_id`),
+    INDEX `idx_dm_conversation_user1` (`user1_id`),
+    INDEX `idx_dm_conversation_user2` (`user2_id`),
+    INDEX `idx_dm_conversation_last_message` (`last_message_at` DESC)
+);
+
+-- DM 메시지
 CREATE TABLE `direct_message` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
-    `sender_id` BIGINT NOT NULL,
-    `receiver_id` BIGINT NOT NULL,
-    `content` TEXT NOT NULL,
-    `message_type` ENUM('TEXT', 'IMAGE', 'FILE') DEFAULT 'TEXT',
-    `file_url` VARCHAR(500),
-    `is_read` BOOLEAN DEFAULT FALSE,
-    `is_deleted_by_sender` BOOLEAN DEFAULT FALSE,
-    `is_deleted_by_receiver` BOOLEAN DEFAULT FALSE,
+    `conversation_id` BIGINT NOT NULL,           -- 소속 대화방 ID
+    `sender_id` BIGINT NOT NULL,                 -- 발신자 ID
+    `content` VARCHAR(2000) NOT NULL,            -- 메시지 내용
+    `is_deleted` BOOLEAN DEFAULT FALSE,          -- 삭제 여부
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (`conversation_id`) REFERENCES `dm_conversation`(`id`) ON DELETE CASCADE,
     FOREIGN KEY (`sender_id`) REFERENCES `user`(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`receiver_id`) REFERENCES `user`(`id`) ON DELETE CASCADE
+    INDEX `idx_direct_message_conversation_created` (`conversation_id`, `created_at` DESC)
 );
+
 
 -- =============================================
 -- 2. 스터디
@@ -301,26 +347,22 @@ CREATE TABLE `study_leader_review` (
 );
 
 -- =============================================
--- 3. 채널/채팅
+-- 3. 워크스페이스/채팅
 -- =============================================
 
-CREATE TABLE `channel` (
+CREATE TABLE `workspace` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
     `study_id` BIGINT NOT NULL,
     `name` VARCHAR(100) NOT NULL,
-    `type` ENUM('TEXT', 'VOICE') NOT NULL,
-    `voice_room_type` ENUM('DISCUSSION', 'MEETING'),  -- 음성방 타입 (상시토론/미팅)
+    `type` ENUM('TEXT', 'VOICE', 'VIDEO') NOT NULL,
     `description` VARCHAR(500),
-    `is_default` BOOLEAN DEFAULT FALSE,          -- 기본 채널 여부
-    `is_temporary` BOOLEAN DEFAULT FALSE,        -- 임시 채널 여부 (인원 부족 시 논의용, 텍스트만)
-    `sort_order` INT DEFAULT 0,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (`study_id`) REFERENCES `study`(`id`) ON DELETE CASCADE
 );
 
 CREATE TABLE `message` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
-    `channel_id` BIGINT NOT NULL,
+    `workspace_id` BIGINT NOT NULL,
     `user_id` BIGINT NOT NULL,
     `content` TEXT NOT NULL,
     `message_type` ENUM('TEXT', 'IMAGE', 'FILE', 'SYSTEM') DEFAULT 'TEXT',
@@ -328,7 +370,7 @@ CREATE TABLE `message` (
     `is_deleted` BOOLEAN DEFAULT FALSE,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (`channel_id`) REFERENCES `channel`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`workspace_id`) REFERENCES `workspace`(`id`) ON DELETE CASCADE,
     FOREIGN KEY (`user_id`) REFERENCES `user`(`id`)
 );
 
@@ -610,7 +652,7 @@ CREATE TABLE `quiz_contest_chat` (
 );
 
 -- 퀴즈 코스 통계 (사용자별 카테고리 학습 현황)
-CREATE TABLE `quiz_practice_stats` (
+CREATE TABLE `quiz_course_stats` (
     `user_id` BIGINT NOT NULL,
     `category_id` BIGINT NOT NULL,
     `total_attempted` INT DEFAULT 0,
@@ -625,8 +667,8 @@ CREATE TABLE `quiz_practice_stats` (
     UNIQUE KEY `uk_user_category` (`user_id`, `category_id`)
 );
 
--- 퀴즈 코스 기록 (연습 세션별 상세 기록)
-CREATE TABLE `quiz_practice_record` (
+-- 퀴즈 코스 기록 (세션별 상세 기록)
+CREATE TABLE `quiz_course_record` (
     `id` BIGINT AUTO_INCREMENT,
     `user_id` BIGINT NOT NULL,
     `category_id` BIGINT NOT NULL,
@@ -638,20 +680,20 @@ CREATE TABLE `quiz_practice_record` (
     PRIMARY KEY (`id`, `user_id`),
     FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON DELETE CASCADE,
     FOREIGN KEY (`category_id`) REFERENCES `quiz_category`(`id`) ON DELETE CASCADE,
-    UNIQUE KEY `uk_practice_record_id` (`id`),
+    UNIQUE KEY `uk_course_record_id` (`id`),
     INDEX `idx_user_created` (`user_id`, `created_at`)
 );
 
--- 퀴즈 코스 답안 (연습에서 푼 문제별 기록)
-CREATE TABLE `quiz_practice_answer` (
-    `practice_record_id` BIGINT NOT NULL,
+-- 퀴즈 코스 답안 (푼 문제별 기록)
+CREATE TABLE `quiz_course_answer` (
+    `course_record_id` BIGINT NOT NULL,
     `question_pool_id` BIGINT NOT NULL,
     `user_answer` JSON,                           -- 사용자 선택 보기 번호 배열 (예: ["A"], ["A","C"])
     `is_correct` BOOLEAN NOT NULL,
     `time_taken_seconds` INT,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (`practice_record_id`, `question_pool_id`),
-    FOREIGN KEY (`practice_record_id`) REFERENCES `quiz_practice_record`(`id`) ON DELETE CASCADE,
+    PRIMARY KEY (`course_record_id`, `question_pool_id`),
+    FOREIGN KEY (`course_record_id`) REFERENCES `quiz_course_record`(`id`) ON DELETE CASCADE,
     FOREIGN KEY (`question_pool_id`) REFERENCES `quiz_question_pool`(`id`)
 );
 
@@ -834,6 +876,7 @@ CREATE TABLE `user_section_attempt` (
     `id` BIGINT AUTO_INCREMENT,
     `user_id` BIGINT NOT NULL,
     `section_id` BIGINT NOT NULL,
+    `status` ENUM('IN_PROGRESS', 'COMPLETED', 'ABANDONED') DEFAULT 'IN_PROGRESS', -- IN_PROGRESS: 임시저장(진행중), COMPLETED: 제출완료(수정불가), ABANDONED: 포기
     `score` INT DEFAULT 0,                       -- 점수 (%)
     `correct_count` INT DEFAULT 0,
     `total_questions` INT DEFAULT 0,

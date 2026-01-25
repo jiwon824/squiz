@@ -3,6 +3,7 @@ package com.ssafy.domain.user.service;
 import com.ssafy.domain.user.dto.request.ProfileSetupRequest;
 import com.ssafy.domain.user.dto.request.UserUpdateRequest;
 import com.ssafy.domain.user.entity.User;
+import com.ssafy.domain.user.dto.response.StatsResponse;
 
 import java.util.Optional;
 
@@ -37,6 +38,8 @@ public interface UserService {
      * 내 정보 수정
      */
     User updateUserInfo(Long userId, UserUpdateRequest request);
+
+    StatsResponse getServiceStats();
 
 
 

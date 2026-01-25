@@ -1,1 +1,59 @@
-// 공통 Modal 컴포넌트
+import React, { ReactNode } from 'react';
+import { createPortal } from 'react-dom';
+import { X } from 'lucide-react';
+
+interface ModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    title?: string;
+    children: ReactNode;
+    maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl';
+}
+
+export const Modal: React.FC<ModalProps> = ({
+    isOpen,
+    onClose,
+    title,
+    children,
+    maxWidth = 'md'
+}) => {
+    if (!isOpen) return null;
+
+    const maxWidthClasses = {
+        sm: 'max-w-sm',
+        md: 'max-w-md',
+        lg: 'max-w-lg',
+        xl: 'max-w-xl',
+        '2xl': 'max-w-2xl',
+        '3xl': 'max-w-3xl',
+    };
+
+    const modalContent = (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+            {/* Backdrop: 블러 효과와 투명도 조절 */}
+            <div
+                className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity animate-in fade-in duration-300"
+                onClick={onClose}
+            />
+
+            {/* Modal Body: 애니메이션과 그림자, 라운딩 적용 */}
+            <div className={`relative w-full ${maxWidthClasses[maxWidth]} bg-white rounded-[32px] shadow-2xl overflow-hidden p-8 animate-in fade-in zoom-in duration-300`}>
+                <div className="flex items-center justify-between mb-8">
+                    {title && <h2 className="text-2xl font-extrabold text-[#1a202c] tracking-tight">{title}</h2>}
+                    <button
+                        onClick={onClose}
+                        className="p-2.5 hover:bg-gray-100 rounded-full transition-all text-gray-400 hover:text-gray-600 hover:rotate-90 duration-300"
+                    >
+                        <X size={24} />
+                    </button>
+                </div>
+                <div className="modal-body">
+                    {children}
+                </div>
+            </div>
+        </div>
+    );
+
+    // DOM 최상단에 렌더링하여 스타일 간섭 방지
+    return createPortal(modalContent, document.body);
+};

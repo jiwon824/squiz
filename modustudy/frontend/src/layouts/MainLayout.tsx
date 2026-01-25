@@ -1,6 +1,7 @@
 // 헤더 + 사이드바 포함 기본 레이아웃
 
 import { motion } from 'framer-motion';
+import { useEffect, useState } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { RightSideBar } from './components/RightSideBar';
 import { useUIStore } from '@/store/uiStore';
@@ -13,8 +14,32 @@ interface MainLayoutProps {
 }
 
 export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
-    const { isSidebarOpen, toggleSidebar, activeRightTab } = useUIStore();
+    const { isSidebarOpen, toggleSidebar, activeRightTab, setActiveRightTab } = useUIStore();
     const { isLoggedIn, user, logout } = useAuthStore();
+    const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+
+    // 윈도우 리사이즈 감지
+    useEffect(() => {
+        const handleResize = () => setWindowWidth(window.innerWidth);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    // 반응형: 1000px 이하에서 사이드바 자동 닫기
+    useEffect(() => {
+        if (windowWidth <= 1000 && isSidebarOpen) {
+            toggleSidebar();
+        }
+    }, [windowWidth]);
+
+    // 반응형: 600px 이하에서 우측 사이드바 자동 닫기
+    useEffect(() => {
+        if (windowWidth <= 600 && activeRightTab) {
+            setActiveRightTab(null);
+        }
+    }, [windowWidth]);
+
+    const isCompactMode = windowWidth <= 600;
 
     return (
         <div className="flex flex-col h-screen bg-study-bg overflow-hidden">
@@ -34,22 +59,33 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
                     {/* 로고 영역 */}
                     <Link to="/dashboard" className="flex items-center">
-                        <SquizLogo width={120} height={40} className="scale-125 origin-left" />
+                        <SquizLogo width={120} height={40} className="scale-110 origin-left" />
                     </Link>
                 </div>
 
-                {/* 우측 인증 영역 (친구, DM 버튼 삭제됨) */}
+                {/* 우측 인증 영역 */}
                 <div className="flex items-center gap-3 pr-14 h-full">
                     <div className="w-px h-6 bg-study-blue/20 mx-1" />
 
                     {isLoggedIn ? (
                         <div className="flex items-center gap-3 ml-2">
-                            <div className="flex items-center gap-2 p-1.5 px-3 bg-white/50 rounded-full border border-study-blue/10 backdrop-blur-sm">
-                                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-study-blue to-study-blue-dark flex items-center justify-center text-white text-xs font-bold overflow-hidden">
-                                    {user?.avatar ? <img src={user.avatar} alt="P" className="w-full h-full object-cover" /> : user?.name.charAt(0)}
+                            <Link
+                                to="/profile"
+                                className="flex items-center gap-3 p-1 px-4 bg-white/60 hover:bg-white hover:shadow-md hover:-translate-y-0.5 transition-all rounded-full border border-study-blue/20 backdrop-blur-md shadow-sm group cursor-pointer no-underline active:scale-95"
+                            >
+                                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-study-blue to-study-blue-dark flex items-center justify-center text-white text-sm font-bold overflow-hidden shadow-inner ring-2 ring-white/50">
+                                    {user?.avatar ? (
+                                        <img src={user.avatar} alt="P" className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
+                                    ) : (
+                                        (user?.nickname || user?.name)?.charAt(0) || 'U'
+                                    )}
                                 </div>
-                                <span className="text-sm font-bold text-study-text-dark">{user?.name}님</span>
-                            </div>
+                                {(user?.nickname || user?.name) && (
+                                    <span className="text-base font-bold text-study-text-dark tracking-tight">
+                                        {user.nickname || user.name}님
+                                    </span>
+                                )}
+                            </Link>
                             <button
                                 onClick={logout}
                                 className="p-2 px-4 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-pill text-xs font-bold transition-all hover:scale-105 active:scale-95"
@@ -81,14 +117,14 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 >
                     {/* 페이지 콘텐츠 */}
                     <div className={`flex-1 overflow-auto pt-2 pb-6 bg-study-bg transition-all duration-300 ${isSidebarOpen ? 'pl-6' : 'pl-0'
-                        } ${activeRightTab ? 'pr-80' : 'pr-14'
+                        } ${isCompactMode ? 'pr-2' : (activeRightTab ? 'pr-80' : 'pr-14')
                         }`}>
                         {children}
                     </div>
                 </motion.main>
 
-                {/* 우측 사이드바 (아이콘바 + 패널) */}
-                <RightSideBar />
+                {/* 우측 사이드바 (600px 이하에서 숨김) */}
+                {!isCompactMode && <RightSideBar />}
             </div>
         </div>
     );

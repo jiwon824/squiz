@@ -83,7 +83,7 @@ export const PasswordInput = ({
                     </div>
                     <div className={`validation-item ${validations.hasSpecialChar ? 'valid' : 'invalid'}`}>
                         {validations.hasSpecialChar ? <Check size={14} /> : <X size={14} />}
-                        <span>특수문자 포함</span>
+                        <span>특수문자 포함 (!@#$%^&*)</span>
                     </div>
                 </div>
             )}

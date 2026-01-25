@@ -94,6 +94,7 @@ export const SignupPage = () => {
 
                 // 프로필 설정 API 호출
                 const user = await authApi.setupProfile(
+                    formData.name,
                     formData.nickname,
                     formData.password
                 );
@@ -102,6 +103,7 @@ export const SignupPage = () => {
                 login({
                     id: String(user.id),
                     name: user.name || formData.name,
+                    nickname: user.nickname || formData.nickname,
                     email: user.email,
                     avatar: user.profileImage || undefined
                 });
@@ -140,21 +142,24 @@ export const SignupPage = () => {
             </div>
 
             <form className="auth-form" onSubmit={handleSubmit}>
-                {/* 이름 (OAuth 모드에서는 숨김) */}
-                {!isOAuthMode && (
-                    <div className="input-group">
-                        <label htmlFor="name">이름</label>
-                        <input
-                            type="text"
-                            id="name"
-                            name="name"
-                            value={formData.name}
-                            onChange={handleChange}
-                            placeholder="성함을 입력해주세요"
-                            required
-                        />
-                    </div>
-                )}
+                {/* 이름 (OAuth 모드에서도 노출하여 확인/수정 가능하게 변경) */}
+                <div className="input-group">
+                    <label htmlFor="name">이름</label>
+                    <input
+                        type="text"
+                        id="name"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleChange}
+                        placeholder="성함을 입력해주세요"
+                        required
+                    />
+                    {isOAuthMode && (
+                        <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-tertiary)', marginTop: '0.4rem' }}>
+                            소셜 계정의 이름이 기본 입력되어 있습니다. 필요한 경우 수정해 주세요.
+                        </p>
+                    )}
+                </div>
 
                 {/* 이메일 (OAuth 모드에서는 readonly) */}
                 <div className="input-group">

@@ -1,15 +1,18 @@
 package com.ssafy.domain.user.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.domain.user.dto.request.ProfileSetupRequest;
 import com.ssafy.domain.user.dto.request.UserUpdateRequest;
 import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.password.PasswordEncoder;  // ← import 추가!
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.util.Optional;
+import com.ssafy.domain.user.dto.response.StatsResponse;
+import java.time.LocalDateTime;
+
 
 @Service
 @RequiredArgsConstructor
@@ -58,6 +61,16 @@ public class UserServiceImpl implements UserService {
             user.setPassword(encodedPassword);
         }
 
+        // 관심 분야 설정 (선택) ← 추가!
+        if (request.getInterests() != null && !request.getInterests().isEmpty()) {
+            user.setInterests(convertToJson(request.getInterests()));
+        }
+
+        // 기술 스택 설정 (선택) ← 추가!
+        if (request.getTechStacks() != null && !request.getTechStacks().isEmpty()) {
+            user.setTechStacks(convertToJson(request.getTechStacks()));
+        }
+
         return userRepository.save(user);
     }
 
@@ -94,5 +107,47 @@ public class UserServiceImpl implements UserService {
         user.getSocialAccounts().size();
 
         return user;
+    }
+
+    // ========== 헬퍼 메서드 ========== ← 추가!
+
+    /**
+     * List를 JSON 문자열로 변환
+     */
+    private String convertToJson(Object obj) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            return mapper.writeValueAsString(obj);
+        } catch (Exception e) {
+            return "[]";
+        }
+    }
+
+    /**
+     * 서비스 통계 조회
+     */
+    @Override
+    public StatsResponse getServiceStats() {
+        // 전체 사용자 수
+        long totalUsers = userRepository.count();
+
+        // 활성 사용자 수
+        long activeUsers = userRepository.countByIsActive(true);
+
+        // 오늘 가입자 수
+        LocalDateTime todayStart = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0);
+        long todayNewUsers = userRepository.countByCreatedAtAfter(todayStart);
+
+        // TODO: 스터디 관련 통계 (Study 도메인 구현 후 추가)
+        long totalStudies = 0L;
+        long activeStudies = 0L;
+
+        return StatsResponse.builder()
+                .totalUsers(totalUsers)
+                .activeUsers(activeUsers)
+                .todayNewUsers(todayNewUsers)
+                .totalStudies(totalStudies)
+                .activeStudies(activeStudies)
+                .build();
     }
 }

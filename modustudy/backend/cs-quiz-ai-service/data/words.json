@@ -1,0 +1,554 @@
+{
+  "words": [
+    {
+      "id": 1,
+      "answer": "알고리즘",
+      "category": "기초개념",
+      "difficulty": "easy",
+      "hints": [
+        "요리사의 레시피, 작곡가의 악보, 프로그래머의 이것",
+        "문제 해결의 청사진이자 컴퓨터에게 주는 명령어 집합",
+        "빅오 표기법으로 효율성을 측정하는 대상"
+      ]
+    },
+    {
+      "id": 2,
+      "answer": "스택",
+      "category": "자료구조",
+      "difficulty": "easy",
+      "hints": [
+        "뒤로가기 버튼의 작동 원리",
+        "후입선출, 팬케이크를 쌓는 방식",
+        "재귀 함수가 내부적으로 사용하는 메모리 구조"
+      ]
+    },
+    {
+      "id": 3,
+      "answer": "큐",
+      "category": "자료구조",
+      "difficulty": "easy",
+      "hints": [
+        "카페에서 주문한 음료를 기다리는 방식",
+        "BFS 알고리즘이 필수적으로 사용하는 것",
+        "선입선출 원칙을 따르는 대기열"
+      ]
+    },
+    {
+      "id": 4,
+      "answer": "재귀",
+      "category": "프로그래밍기법",
+      "difficulty": "medium",
+      "hints": [
+        "러시아 인형 마트료시카처럼 자신 안에 자신이 있다",
+        "탈출 조건이 없으면 스택 오버플로우가 발생",
+        "팩토리얼과 피보나치의 우아한 구현 방법"
+      ]
+    },
+    {
+      "id": 5,
+      "answer": "해시테이블",
+      "category": "자료구조",
+      "difficulty": "medium",
+      "hints": [
+        "충돌을 해결하는 것이 설계의 핵심",
+        "평균 O(1)의 마법을 부리지만 최악은 O(n)",
+        "생일 문제의 패러독스가 이것의 약점을 설명"
+      ]
+    },
+    {
+      "id": 6,
+      "answer": "트리",
+      "category": "자료구조",
+      "difficulty": "medium",
+      "hints": [
+        "루트는 하나, 리프는 여럿, 사이클은 없다",
+        "DOM 구조가 이것을 따른다",
+        "이진, AVL, 레드블랙 등 다양한 변종이 존재"
+      ]
+    },
+    {
+      "id": 7,
+      "answer": "이진탐색",
+      "category": "알고리즘",
+      "difficulty": "medium",
+      "hints": [
+        "정렬된 배열에서만 작동하는 분할정복의 대표주자",
+        "1000개 중에서 10번이면 찾는다",
+        "업다운 게임의 최적 전략"
+      ]
+    },
+    {
+      "id": 8,
+      "answer": "정렬",
+      "category": "알고리즘",
+      "difficulty": "easy",
+      "hints": [
+        "O(n²)부터 O(n log n)까지 다양한 시간복잡도",
+        "퀵의 평균은 빠르지만 최악은 느리고, 머지는 항상 안정적",
+        "이것이 끝나야 이진탐색을 시작할 수 있다"
+      ]
+    },
+    {
+      "id": 9,
+      "answer": "그래프",
+      "category": "자료구조",
+      "difficulty": "hard",
+      "hints": [
+        "정점과 간선으로 이루어진 관계의 집합",
+        "방향성 유무, 가중치 유무에 따라 네 가지 타입",
+        "DFS와 BFS의 탐험 대상"
+      ]
+    },
+    {
+      "id": 10,
+      "answer": "동적계획법",
+      "category": "알고리즘",
+      "difficulty": "hard",
+      "hints": [
+        "메모이제이션과 타뷸레이션, 두 가지 접근법",
+        "분할정복과 비슷하지만 중복 문제를 기억한다",
+        "냅색, LCS, 최단경로에서 빛을 발하는 기법"
+      ]
+    },
+    {
+      "id": 11,
+      "answer": "클래스",
+      "category": "객체지향",
+      "difficulty": "easy",
+      "hints": [
+        "속성과 메서드를 캡슐화한 설계도",
+        "new 키워드로 인스턴스를 찍어낸다",
+        "자바의 모든 것은 이것 안에 존재한다"
+      ]
+    },
+    {
+      "id": 12,
+      "answer": "상속",
+      "category": "객체지향",
+      "difficulty": "medium",
+      "hints": [
+        "is-a 관계를 코드로 표현하는 방법",
+        "다이아몬드 문제 때문에 다중은 위험하다",
+        "부모의 protected까지 물려받을 수 있다"
+      ]
+    },
+    {
+      "id": 13,
+      "answer": "다형성",
+      "category": "객체지향",
+      "difficulty": "hard",
+      "hints": [
+        "컴파일 타임과 런타임, 두 시점에서 발생",
+        "오버로딩은 정적, 오버라이딩은 동적 바인딩",
+        "같은 인터페이스, 다른 구현체"
+      ]
+    },
+    {
+      "id": 14,
+      "answer": "인터페이스",
+      "category": "객체지향",
+      "difficulty": "medium",
+      "hints": [
+        "추상 메서드의 집합, 구현은 강제하되 방법은 자유",
+        "자바 8부터 default 메서드 허용",
+        "다중 구현이 가능한 계약서"
+      ]
+    },
+    {
+      "id": 15,
+      "answer": "데이터베이스",
+      "category": "백엔드",
+      "difficulty": "easy",
+      "hints": [
+        "CRUD 연산의 대상",
+        "관계형과 비관계형으로 나뉜다",
+        "영속성 계층이 관리하는 데이터 저장소"
+      ]
+    },
+    {
+      "id": 16,
+      "answer": "정규화",
+      "category": "데이터베이스",
+      "difficulty": "hard",
+      "hints": [
+        "이상 현상을 제거하려 테이블을 분해하는 과정",
+        "제1, 제2, 제3... BCNF까지 단계적으로 진행",
+        "성능을 위해 일부러 역행하는 것을 반정규화"
+      ]
+    },
+    {
+      "id": 17,
+      "answer": "트랜잭션",
+      "category": "데이터베이스",
+      "difficulty": "medium",
+      "hints": [
+        "원자성, 일관성, 격리성, 지속성의 네 속성",
+        "COMMIT과 ROLLBACK 사이의 작업 단위",
+        "동시성 제어의 핵심 개념"
+      ]
+    },
+    {
+      "id": 18,
+      "answer": "인덱스",
+      "category": "데이터베이스",
+      "difficulty": "medium",
+      "hints": [
+        "조회는 빠르지만 삽입/수정/삭제는 느려진다",
+        "B-Tree 또는 Hash로 구현되는 검색 가속기",
+        "카디널리티가 높을수록 효과적"
+      ]
+    },
+    {
+      "id": 19,
+      "answer": "조인",
+      "category": "데이터베이스",
+      "difficulty": "medium",
+      "hints": [
+        "외래키로 연결된 테이블들의 만남",
+        "INNER는 교집합, OUTER는 한쪽 전체",
+        "N+1 문제의 주범이자 해결사"
+      ]
+    },
+    {
+      "id": 20,
+      "answer": "컴파일러",
+      "category": "시스템",
+      "difficulty": "medium",
+      "hints": [
+        "렉싱, 파싱, 의미분석, 최적화, 코드생성의 5단계",
+        "고급 언어를 저급 언어로 번역하는 번역기",
+        "실행 전에 오류를 잡아주는 검사관"
+      ]
+    },
+    {
+      "id": 21,
+      "answer": "인터프리터",
+      "category": "시스템",
+      "difficulty": "medium",
+      "hints": [
+        "한 줄 읽고 한 줄 실행하는 동시통역사",
+        "느리지만 플랫폼 독립적이고 디버깅이 쉽다",
+        "REPL 환경을 제공하는 실행 방식"
+      ]
+    },
+    {
+      "id": 22,
+      "answer": "운영체제",
+      "category": "시스템",
+      "difficulty": "easy",
+      "hints": [
+        "커널과 셸로 구성된 시스템 소프트웨어",
+        "프로세스, 메모리, 파일, I/O 관리자",
+        "응용 프로그램과 하드웨어 사이의 중재자"
+      ]
+    },
+    {
+      "id": 23,
+      "answer": "프로세스",
+      "category": "운영체제",
+      "difficulty": "medium",
+      "hints": [
+        "코드, 데이터, 힙, 스택 영역을 가진 실행 단위",
+        "PCB로 상태를 관리받는다",
+        "독립적인 메모리 공간을 할당받은 실행 중인 프로그램"
+      ]
+    },
+    {
+      "id": 24,
+      "answer": "쓰레드",
+      "category": "운영체제",
+      "difficulty": "medium",
+      "hints": [
+        "코드, 데이터, 힙은 공유하고 스택만 독립적",
+        "경량 프로세스, LWP라고도 불린다",
+        "문맥 교환 비용이 프로세스보다 저렴"
+      ]
+    },
+    {
+      "id": 25,
+      "answer": "교착상태",
+      "category": "운영체제",
+      "difficulty": "hard",
+      "hints": [
+        "상호배제, 점유대기, 비선점, 순환대기 네 조건",
+        "은행원 알고리즘으로 예방할 수 있다",
+        "자원 할당 그래프에 사이클이 생긴 상태"
+      ]
+    },
+    {
+      "id": 26,
+      "answer": "페이징",
+      "category": "운영체제",
+      "difficulty": "hard",
+      "hints": [
+        "외부 단편화는 해결하지만 내부 단편화는 발생",
+        "논리 주소를 물리 주소로 변환하는 기법",
+        "페이지 테이블과 TLB가 핵심"
+      ]
+    },
+    {
+      "id": 27,
+      "answer": "캐시",
+      "category": "시스템",
+      "difficulty": "medium",
+      "hints": [
+        "지역성의 원리를 활용한 고속 메모리",
+        "적중률이 성능을 좌우한다",
+        "L1, L2, L3로 계층화된 CPU의 비밀 창고"
+      ]
+    },
+    {
+      "id": 28,
+      "answer": "네트워크",
+      "category": "기초개념",
+      "difficulty": "easy",
+      "hints": [
+        "OSI 7계층 또는 TCP/IP 4계층",
+        "패킷을 주고받는 노드들의 연결망",
+        "프로토콜이 지배하는 통신의 세계"
+      ]
+    },
+    {
+      "id": 29,
+      "answer": "HTTP",
+      "category": "네트워크",
+      "difficulty": "easy",
+      "hints": [
+        "상태를 기억하지 않는 무상태 프로토콜",
+        "GET, POST, PUT, DELETE가 기본 동작",
+        "80번 포트에서 대기하는 웹의 언어"
+      ]
+    },
+    {
+      "id": 30,
+      "answer": "쿠키",
+      "category": "웹개발",
+      "difficulty": "easy",
+      "hints": [
+        "무상태 프로토콜에 상태를 부여하는 작은 조각",
+        "만료일과 도메인 정보를 가진 클라이언트 저장소",
+        "세션과 함께 사용자를 기억하는 방법"
+      ]
+    },
+    {
+      "id": 31,
+      "answer": "REST",
+      "category": "웹개발",
+      "difficulty": "medium",
+      "hints": [
+        "자원, URI, HTTP 메서드의 삼위일체",
+        "무상태성과 캐시 가능성이 핵심 제약",
+        "Richardson 성숙도 모델로 수준을 측정"
+      ]
+    },
+    {
+      "id": 32,
+      "answer": "JSON",
+      "category": "데이터포맷",
+      "difficulty": "easy",
+      "hints": [
+        "키-값 쌍으로 이루어진 경량 데이터 교환 형식",
+        "XML보다 가볍고 자바스크립트와 궁합이 좋다",
+        "중괄호와 대괄호로 객체와 배열을 표현"
+      ]
+    },
+    {
+      "id": 33,
+      "answer": "API",
+      "category": "웹개발",
+      "difficulty": "easy",
+      "hints": [
+        "서로 다른 소프트웨어가 대화하는 창구",
+        "기능의 명세만 공개하고 구현은 숨긴다",
+        "엔드포인트와 메서드로 정의된 계약"
+      ]
+    },
+    {
+      "id": 34,
+      "answer": "JWT",
+      "category": "보안",
+      "difficulty": "medium",
+      "hints": [
+        "헤더, 페이로드, 서명 세 부분으로 구성",
+        "점(.)으로 구분된 Base64 인코딩 문자열",
+        "서버에 세션을 저장하지 않는 토큰 기반 인증"
+      ]
+    },
+    {
+      "id": 35,
+      "answer": "CORS",
+      "category": "웹보안",
+      "difficulty": "hard",
+      "hints": [
+        "다른 출처의 리소스 접근을 제어하는 보안 메커니즘",
+        "Preflight 요청으로 안전성을 검증",
+        "Access-Control-Allow-Origin 헤더가 핵심"
+      ]
+    },
+    {
+      "id": 36,
+      "answer": "SQL인젝션",
+      "category": "보안",
+      "difficulty": "medium",
+      "hints": [
+        "입력값에 쿼리를 삽입하는 공격 기법",
+        "Prepared Statement로 막을 수 있다",
+        "싱글쿼트와 세미콜론이 공격자의 무기"
+      ]
+    },
+    {
+      "id": 37,
+      "answer": "해싱",
+      "category": "보안",
+      "difficulty": "medium",
+      "hints": [
+        "단방향 암호화, 원본으로 복호화 불가능",
+        "같은 입력은 항상 같은 출력을 보장",
+        "MD5는 위험, SHA-256이 권장"
+      ]
+    },
+    {
+      "id": 38,
+      "answer": "스프링",
+      "category": "프레임워크",
+      "difficulty": "medium",
+      "hints": [
+        "DI와 IoC로 결합도를 낮추는 자바 프레임워크",
+        "Bean과 ApplicationContext가 핵심",
+        "엔터프라이즈급 자바 애플리케이션의 사실상 표준"
+      ]
+    },
+    {
+      "id": 39,
+      "answer": "JPA",
+      "category": "프레임워크",
+      "difficulty": "medium",
+      "hints": [
+        "객체를 테이블에 자동으로 매핑하는 ORM 명세",
+        "영속성 컨텍스트가 엔티티를 관리",
+        "지연 로딩과 즉시 로딩, N+1 문제를 고민해야"
+      ]
+    },
+    {
+      "id": 40,
+      "answer": "리액트",
+      "category": "프론트엔드",
+      "difficulty": "medium",
+      "hints": [
+        "가상 DOM으로 효율적인 렌더링을 구현",
+        "컴포넌트 기반, 단방향 데이터 흐름",
+        "Hook으로 함수형 컴포넌트가 클래스를 대체"
+      ]
+    },
+    {
+      "id": 41,
+      "answer": "Promise",
+      "category": "자바스크립트",
+      "difficulty": "medium",
+      "hints": [
+        "비동기 작업의 최종 완료 또는 실패를 나타내는 객체",
+        "Pending, Fulfilled, Rejected 세 가지 상태",
+        "콜백 지옥을 해결하는 then과 catch"
+      ]
+    },
+    {
+      "id": 42,
+      "answer": "클로저",
+      "category": "자바스크립트",
+      "difficulty": "hard",
+      "hints": [
+        "외부 함수의 변수에 접근할 수 있는 내부 함수",
+        "렉시컬 스코프를 기억하는 함수",
+        "정보 은닉과 모듈 패턴의 핵심 원리"
+      ]
+    },
+    {
+      "id": 43,
+      "answer": "호이스팅",
+      "category": "자바스크립트",
+      "difficulty": "hard",
+      "hints": [
+        "선언이 스코프 최상단으로 끌어올려지는 현상",
+        "var는 undefined로 초기화, let/const는 TDZ",
+        "변수와 함수 선언이 대상이지만 할당은 아니다"
+      ]
+    },
+    {
+      "id": 44,
+      "answer": "깃",
+      "category": "협업도구",
+      "difficulty": "easy",
+      "hints": [
+        "분산 버전 관리 시스템의 사실상 표준",
+        "커밋, 브랜치, 머지가 기본 동작",
+        "리누스 토발즈가 만든 협업의 필수 도구"
+      ]
+    },
+    {
+      "id": 45,
+      "answer": "도커",
+      "category": "데브옵스",
+      "difficulty": "hard",
+      "hints": [
+        "이미지로 컨테이너를 찍어내는 가상화 플랫폼",
+        "VM보다 가볍고 빠른 격리 환경",
+        "Dockerfile로 인프라를 코드로 관리"
+      ]
+    },
+    {
+      "id": 46,
+      "answer": "CI/CD",
+      "category": "데브옵스",
+      "difficulty": "hard",
+      "hints": [
+        "지속적 통합과 지속적 배포의 합성어",
+        "자동화된 빌드, 테스트, 배포 파이프라인",
+        "Jenkins, GitHub Actions가 이것을 구현"
+      ]
+    },
+    {
+      "id": 47,
+      "answer": "리팩토링",
+      "category": "소프트웨어공학",
+      "difficulty": "medium",
+      "hints": [
+        "기능은 유지하고 구조만 개선하는 작업",
+        "코드 스멜을 제거하는 정화 과정",
+        "마틴 파울러가 체계화한 클린 코드의 실천"
+      ]
+    },
+    {
+      "id": 48,
+      "answer": "TDD",
+      "category": "소프트웨어공학",
+      "difficulty": "hard",
+      "hints": [
+        "Red-Green-Refactor 사이클을 반복",
+        "실패하는 테스트를 먼저 작성하는 개발 방법론",
+        "켄트 벡이 제안한 품질 향상 기법"
+      ]
+    },
+    {
+      "id": 49,
+      "answer": "디자인패턴",
+      "category": "소프트웨어공학",
+      "difficulty": "medium",
+      "hints": [
+        "반복되는 문제의 재사용 가능한 해결책",
+        "GoF의 23가지가 가장 유명하다",
+        "싱글톤, 팩토리, 옵저버 등이 대표적"
+      ]
+    },
+    {
+      "id": 50,
+      "answer": "싱글톤",
+      "category": "디자인패턴",
+      "difficulty": "medium",
+      "hints": [
+        "인스턴스가 단 하나만 존재하도록 보장",
+        "전역 접근점을 제공하지만 테스트가 어렵다",
+        "private 생성자와 static 메서드가 핵심"
+      ]
+    }
+  ]
+}

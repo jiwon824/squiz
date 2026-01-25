@@ -10,7 +10,9 @@ login_history             로그인이력
 user_schedule             사용자일정
 user_organization         사용자소속인증
 friendship                친구관계
-direct_message            DM(1:1메시지)
+user_block                사용자차단
+dm_conversation           DM대화방
+direct_message            DM메시지
 region                    지역
 study                     스터디
 study_template            스터디모집글템플릿
@@ -132,11 +134,17 @@ verified_at               인증일시
 last_checked_at           마지막확인일시
 requester_id              요청자ID
 addressee_id              수신자ID
+blocker_id                차단한사용자ID
+blocked_id                차단당한사용자ID
 sender_id                 발신자ID
-receiver_id               수신자ID
-is_read                   읽음여부
-is_deleted_by_sender      발신자삭제여부
-is_deleted_by_receiver    수신자삭제여부
+conversation_id           대화방ID (FK)
+user1_id                  참여자1ID (ID가작은쪽)
+user2_id                  참여자2ID (ID가큰쪽)
+user1_last_read_message_id user1마지막읽은메시지ID
+user2_last_read_message_id user2마지막읽은메시지ID
+user1_deleted             user1대화삭제여부
+user2_deleted             user2대화삭제여부
+last_message_at           마지막메시지시간
 code                      코드
 sort_order                정렬순서
 depth                     깊이(계층)
@@ -355,8 +363,6 @@ UNIVERSITY                대학교
 --- friendship.status (친구상태) ---
 PENDING                   대기중
 ACCEPTED                  수락됨
-REJECTED                  거절됨
-BLOCKED                   차단됨
 
 --- study_type (스터디유형) ---
 PLANNED                   계획형스터디

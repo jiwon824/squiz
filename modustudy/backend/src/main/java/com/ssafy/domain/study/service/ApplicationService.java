@@ -3,10 +3,9 @@ package com.ssafy.domain.study.service;
 import com.ssafy.common.exception.StudyException;
 import com.ssafy.domain.study.dto.request.ApplicationCreateRequest;
 import com.ssafy.domain.study.dto.response.ApplicationResponse;
-import com.ssafy.domain.study.entity.ApplicationStatus;
-import com.ssafy.domain.study.entity.Study;
-import com.ssafy.domain.study.entity.StudyApplication;
+import com.ssafy.domain.study.entity.*;
 import com.ssafy.domain.study.repository.StudyApplicationRepository;
+import com.ssafy.domain.study.repository.StudyMemberRepository;
 import com.ssafy.domain.study.repository.StudyRepository;
 import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.repository.UserRepository;
@@ -17,6 +16,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -26,6 +27,7 @@ public class ApplicationService {
     private final StudyApplicationRepository applicationRepository;
     private final StudyRepository studyRepository;
     private final UserRepository userRepository;
+    private final StudyMemberRepository studyMemberRepository;
 
     // ============================================================
     // 신청 생성
@@ -229,9 +231,22 @@ public class ApplicationService {
         application.approve();
         StudyApplication updated = applicationRepository.save(application);
 
-        log.info("신청 승인 완료 - applicationId: {}", applicationId);
+        // 6. ⭐ StudyMember 추가 (핵심 로직)
+        StudyMember member = StudyMember.builder()
+                .studyId(studyId)
+                .userId(application.getUserId())
+                .role(MemberRole.MEMBER)
+                .status(MemberStatus.APPROVED)
+                .joinedAt(LocalDateTime.now())
+                .isProbation(true)
+                .build();
 
-        // 6. DTO 변환
+        studyMemberRepository.save(member);
+
+        log.info("신청 승인 완료 - applicationId: {}, userId: {} 스터디 멤버로 추가됨",
+                applicationId, application.getUserId());
+
+        // 7. DTO 변환
         ApplicationResponse response = ApplicationResponse.from(updated);
         response.setStudyName(study.getName());
 

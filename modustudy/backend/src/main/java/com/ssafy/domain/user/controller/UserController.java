@@ -14,6 +14,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import com.ssafy.domain.user.dto.response.StatsResponse;
+
+
 /**
  * 사용자 API Controller
  */
@@ -77,6 +80,7 @@ public class UserController {
                 ApiResponse.success(UserDTO.from(updatedUser))
         );
     }
+
     /**
      * 로그아웃
      * POST /api/v1/auth/logout
@@ -97,5 +101,14 @@ public class UserController {
                                 .build()
                 )
         );
+    }
+    /**
+     * 서비스 통계 조회 (메인 페이지용)
+     * GET /api/v1/users/stats
+     */
+    @GetMapping("/stats")
+    public ResponseEntity<ApiResponse<StatsResponse>> getServiceStats() {
+        StatsResponse stats = userService.getServiceStats();
+        return ResponseEntity.ok(ApiResponse.success(stats));
     }
 }

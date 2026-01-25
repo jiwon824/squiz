@@ -15,10 +15,11 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.transaction.annotation.Transactional;
+
+import org.springframework.boot.test.context.SpringBootTest;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -118,8 +119,7 @@ class LeaderControllerTest {
                 .meetingType(MeetingType.ONLINE)
                 .status(Status.RECRUITING)
                 .maxMembers(10)
-                .regionId(1L)  // 지역 ID 추가 (필수)
-                .isPublic(true)  // 공개 여부 추가
+                .isPublic(true)
                 .startDate(LocalDate.of(2025, 2, 1))
                 .endDate(LocalDate.of(2025, 5, 1))
                 .recruitStartDate(LocalDate.of(2025, 1, 15))
@@ -244,8 +244,7 @@ class LeaderControllerTest {
                 .meetingType(MeetingType.ONLINE)
                 .status(Status.DRAFT)
                 .maxMembers(10)
-                .regionId(1L)  // 지역 ID 추가
-                .isPublic(true)  // 공개 여부 추가
+                .isPublic(true)
                 .startDate(LocalDate.of(2025, 3, 1))
                 .endDate(LocalDate.of(2025, 6, 1))
                 .build();

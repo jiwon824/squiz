@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ssafy.domain.dm.mapper.DmConversationMapper">
+
+    <resultMap id="ConversationResultMap" type="com.ssafy.domain.dm.entity.DmConversation">
+        <id property="id" column="id"/>
+        <result property="user1Id" column="user1_id"/>
+        <result property="user2Id" column="user2_id"/>
+        <result property="user1LastReadMessageId" column="user1_last_read_message_id"/>
+        <result property="user2LastReadMessageId" column="user2_last_read_message_id"/>
+        <result property="user1Deleted" column="user1_deleted"/>
+        <result property="user2Deleted" column="user2_deleted"/>
+        <result property="lastMessageAt" column="last_message_at"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <result property="user1Nickname" column="user1_nickname"/>
+        <result property="user1ProfileImage" column="user1_profile_image"/>
+        <result property="user1IsOnline" column="user1_is_online"/>
+        <result property="user2Nickname" column="user2_nickname"/>
+        <result property="user2ProfileImage" column="user2_profile_image"/>
+        <result property="user2IsOnline" column="user2_is_online"/>
+        <result property="lastMessageContent" column="last_message_content"/>
+        <result property="lastMessageSenderId" column="last_message_sender_id"/>
+    </resultMap>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO dm_conversation (user1_id, user2_id, user1_deleted, user2_deleted, created_at, updated_at)
+        VALUES (#{user1Id}, #{user2Id}, false, false, NOW(), NOW())
+    </insert>
+
+    <select id="findById" resultMap="ConversationResultMap">
+        SELECT
+            c.*,
+            u1.nickname as user1_nickname,
+            p1.profile_image_url as user1_profile_image,
+            u1.is_online as user1_is_online,
+            u2.nickname as user2_nickname,
+            p2.profile_image_url as user2_profile_image,
+            u2.is_online as user2_is_online,
+            lm.content as last_message_content,
+            lm.sender_id as last_message_sender_id
+        FROM dm_conversation c
+        LEFT JOIN user u1 ON c.user1_id = u1.id
+        LEFT JOIN profile p1 ON u1.id = p1.user_id
+        LEFT JOIN user u2 ON c.user2_id = u2.id
+        LEFT JOIN profile p2 ON u2.id = p2.user_id
+        LEFT JOIN (
+            SELECT dm.conversation_id, dm.content, dm.sender_id
+            FROM direct_message dm
+            INNER JOIN (
+                SELECT conversation_id, MAX(id) as max_id
+                FROM direct_message
+                WHERE is_deleted = false
+                GROUP BY conversation_id
+            ) latest ON dm.id = latest.max_id
+        ) lm ON c.id = lm.conversation_id
+        WHERE c.id = #{id}
+    </select>
+
+    <select id="findByUsers" resultMap="ConversationResultMap">
+        SELECT
+            c.*,
+            u1.nickname as user1_nickname,
+            p1.profile_image_url as user1_profile_image,
+            u1.is_online as user1_is_online,
+            u2.nickname as user2_nickname,
+            p2.profile_image_url as user2_profile_image,
+            u2.is_online as user2_is_online,
+            lm.content as last_message_content,
+            lm.sender_id as last_message_sender_id
+        FROM dm_conversation c
+        LEFT JOIN user u1 ON c.user1_id = u1.id
+        LEFT JOIN profile p1 ON u1.id = p1.user_id
+        LEFT JOIN user u2 ON c.user2_id = u2.id
+        LEFT JOIN profile p2 ON u2.id = p2.user_id
+        LEFT JOIN (
+            SELECT dm.conversation_id, dm.content, dm.sender_id
+            FROM direct_message dm
+            INNER JOIN (
+                SELECT conversation_id, MAX(id) as max_id
+                FROM direct_message
+                WHERE is_deleted = false
+                GROUP BY conversation_id
+            ) latest ON dm.id = latest.max_id
+        ) lm ON c.id = lm.conversation_id
+        WHERE (c.user1_id = #{user1Id} AND c.user2_id = #{user2Id})
+           OR (c.user1_id = #{user2Id} AND c.user2_id = #{user1Id})
+    </select>
+
+    <select id="findByUserId" resultMap="ConversationResultMap">
+        SELECT
+            c.*,
+            u1.nickname as user1_nickname,
+            p1.profile_image_url as user1_profile_image,
+            u1.is_online as user1_is_online,
+            u2.nickname as user2_nickname,
+            p2.profile_image_url as user2_profile_image,
+            u2.is_online as user2_is_online,
+            lm.content as last_message_content,
+            lm.sender_id as last_message_sender_id
+        FROM dm_conversation c
+        LEFT JOIN user u1 ON c.user1_id = u1.id
+        LEFT JOIN profile p1 ON u1.id = p1.user_id
+        LEFT JOIN user u2 ON c.user2_id = u2.id
+        LEFT JOIN profile p2 ON u2.id = p2.user_id
+        LEFT JOIN (
+            SELECT dm.conversation_id, dm.content, dm.sender_id
+            FROM direct_message dm
+            INNER JOIN (
+                SELECT conversation_id, MAX(id) as max_id
+                FROM direct_message
+                WHERE is_deleted = false
+                GROUP BY conversation_id
+            ) latest ON dm.id = latest.max_id
+        ) lm ON c.id = lm.conversation_id
+        WHERE (c.user1_id = #{userId} AND c.user1_deleted = false)
+           OR (c.user2_id = #{userId} AND c.user2_deleted = false)
+        ORDER BY c.last_message_at IS NULL, c.last_message_at DESC, c.created_at DESC
+    </select>
+
+    <update id="updateLastMessageAt">
+        UPDATE dm_conversation
+        SET last_message_at = #{lastMessageAt}, updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateUser1LastReadMessageId">
+        UPDATE dm_conversation
+        SET user1_last_read_message_id = #{messageId}, updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateUser2LastReadMessageId">
+        UPDATE dm_conversation
+        SET user2_last_read_message_id = #{messageId}, updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="markUser1Deleted">
+        UPDATE dm_conversation
+        SET user1_deleted = true, updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="markUser2Deleted">
+        UPDATE dm_conversation
+        SET user2_deleted = true, updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="restoreUser1">
+        UPDATE dm_conversation
+        SET user1_deleted = false, updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="restoreUser2">
+        UPDATE dm_conversation
+        SET user2_deleted = false, updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <select id="existsByIdAndUserId" resultType="boolean">
+        SELECT EXISTS (
+            SELECT 1 FROM dm_conversation
+            WHERE id = #{id} AND (user1_id = #{userId} OR user2_id = #{userId})
+        )
+    </select>
+
+</mapper>

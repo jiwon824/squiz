@@ -1,5 +1,6 @@
 import React from 'react';
-import { Sparkles } from 'lucide-react';
+import { Target, Users, Zap } from 'lucide-react';
+import SquizLogoSvg from '@/assets/logos/SQUIZ_LOGO.svg';
 import '../styles/AuthLayout.css';
 
 interface AuthLayoutProps {
@@ -24,25 +25,52 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, pageState = '', hideB
                     <div className="auth-visual">
                         <div className="visual-content">
                             <div className="visual-logo-wrapper">
-                                <div className="visual-logo">SQUIZ</div>
+                                <div className="logo-glow"></div>
+                                <img src={SquizLogoSvg} alt="SQUIZ" className="visual-logo-svg" />
                             </div>
-                            <h2>Manage Our Study</h2>
-                            <p className="visual-description">
-                                올인원 스터디 관리 플랫폼
-                            </p>
 
-                            <div className="feature-pills">
-                                <div className="pill">
-                                    <Sparkles size={14} />
-                                    <span>AI 회의록 자동화</span>
+                            <div className="slogan-group">
+                                <div className="primary-slogan-wrapper">
+                                    <h2 className="primary-line-1">
+                                        가장 밀도 높은 <span className="text-highlight">몰입</span>
+                                    </h2>
+                                    <h2 className="primary-line-2">
+                                        성장을 흡수하는 기쁨
+                                    </h2>
                                 </div>
-                                <div className="pill">
-                                    <Sparkles size={14} />
-                                    <span>실시간 퀴즈 대결</span>
+                                <div className="slogan-divider"></div>
+                                <p className="secondary-slogan">
+                                    Squeeze your Brain, Absorb the Growth.<br />
+                                </p>
+                            </div>
+
+                            <div className="value-cards">
+                                <div className="value-card">
+                                    <div className="value-icon-wrapper">
+                                        <Target size={20} />
+                                    </div>
+                                    <div className="value-card-content">
+                                        <h4>몰입</h4>
+                                        <span>Study Tool</span>
+                                    </div>
                                 </div>
-                                <div className="pill">
-                                    <Sparkles size={14} />
-                                    <span>학습 데이터 분석</span>
+                                <div className="value-card">
+                                    <div className="value-icon-wrapper">
+                                        <Users size={20} />
+                                    </div>
+                                    <div className="value-card-content">
+                                        <h4>협동</h4>
+                                        <span>Quiz Platform</span>
+                                    </div>
+                                </div>
+                                <div className="value-card">
+                                    <div className="value-icon-wrapper">
+                                        <Zap size={20} />
+                                    </div>
+                                    <div className="value-card-content">
+                                        <h4>편리</h4>
+                                        <span>AI Record</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>

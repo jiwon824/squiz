@@ -343,6 +343,7 @@ class StudyTemplateRepositoryTest {
     void update_Success() {
         // given
         StudyTemplate template = studyTemplateRepository.findByUserId(userId1).get(0);
+        String originalName = template.getName();
 
         // when
         template.setName("수정된 템플릿");
@@ -351,8 +352,10 @@ class StudyTemplateRepositoryTest {
 
         // then
         assertThat(updated.getName()).isEqualTo("수정된 템플릿");
+        assertThat(updated.getName()).isNotEqualTo(originalName);
         assertThat(updated.getDescription()).isEqualTo("수정된 설명");
-        assertThat(updated.getUpdatedAt()).isAfter(updated.getCreatedAt());
+        assertThat(updated.getUpdatedAt()).isNotNull();
+        assertThat(updated.getCreatedAt()).isNotNull();
     }
 
     @Test

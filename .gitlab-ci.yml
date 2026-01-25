@@ -1,6 +1,7 @@
 stages:
   - build
   - test
+  - migrate
   - deploy
 
 variables:
@@ -31,12 +32,36 @@ test:
   script:
     - cd modustudy/backend
     - chmod +x gradlew
+    # 테스트 DB 초기화
+    - source /etc/environment && docker exec squiz-mysql mysql -uroot -p${DB_ROOT_PASSWORD} -e "DROP DATABASE IF EXISTS ssafy_test_db; CREATE DATABASE ssafy_test_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; GRANT ALL PRIVILEGES ON ssafy_test_db.* TO '${DB_USERNAME}'@'%'; FLUSH PRIVILEGES;"
     - source /etc/environment && export SPRING_PROFILES_ACTIVE=test && ./gradlew test
   only:
     - master
     - main
   tags:
     - docker
+
+# ===========================================
+# Migrate Stage (DB 마이그레이션)
+# ===========================================
+migrate:
+  stage: migrate
+  script:
+    - cd modustudy/backend
+    - chmod +x gradlew
+    # 배포 전 DB 백업 (버전 포함)
+    - ssh ubuntu@localhost "cd /home/ubuntu/squiz && ./scripts/backup-db.sh manual" || true
+    # 리소스 컴파일 (classpath:db/migration 사용을 위해 필요)
+    - ./gradlew classes
+    # Flyway 마이그레이션 실행
+    - source /etc/environment && ./gradlew flywayInfo
+    - source /etc/environment && ./gradlew flywayMigrate
+  only:
+    - master
+    - main
+  tags:
+    - docker
+  allow_failure: false  # migrate 완료해야 deploy 진행
 
 # ===========================================
 # Deploy Stage (자동 배포)
@@ -46,13 +71,12 @@ deploy:
   script:
     # 프로젝트 파일 배포 경로로 복사
     - rsync -av --delete --exclude '.git' --exclude 'node_modules' --exclude '.gradle' --exclude 'build' --exclude '.env' --exclude 'ssl' --exclude 'init.sql' modustudy/ $DEPLOY_PATH/
-    # Docker Compose로 서비스 재시작
+    # Docker Compose v2로 무중단 배포
     - cd $DEPLOY_PATH
-    - docker-compose down || true
-    - docker-compose up -d --build
+    - docker compose up -d --build --force-recreate --remove-orphans
     - docker image prune -f
     # 배포 결과 확인
-    - docker-compose ps
+    - docker compose ps
   only:
     - master
     - main

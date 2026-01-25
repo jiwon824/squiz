@@ -13,6 +13,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.ssafy.domain.user.dto.request.LoginRequest;
 
+import com.ssafy.common.response.MessageResponse;
+import com.ssafy.domain.user.dto.request.PasswordResetRequest;
+import com.ssafy.domain.user.dto.request.PasswordResetConfirmRequest;
+import java.util.HashMap;
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
@@ -123,5 +129,46 @@ public class AuthController {
 
         return ResponseEntity.ok(ApiResponse.success(response));
     }
+    /**
+     * 비밀번호 재설정 요청 (이메일 전송)
+     * POST /api/v1/auth/password/reset-request
+     */
+    @PostMapping("/password/reset-request")
+    public ResponseEntity<ApiResponse<MessageResponse>> requestPasswordReset(
+            @RequestBody PasswordResetRequest request) {
 
+        oAuth2Service.requestPasswordReset(request.getEmail());
+
+        return ResponseEntity.ok(
+                ApiResponse.success("비밀번호 재설정 이메일이 전송되었습니다.")
+        );
+    }
+
+    /**
+     * 토큰 유효성 검증
+     * GET /api/v1/auth/password/reset/verify?token=xxxxx
+     */
+    @GetMapping("/password/reset/verify")
+    public ResponseEntity<ApiResponse<Boolean>> verifyResetToken(
+            @RequestParam String token) {
+
+        boolean isValid = oAuth2Service.verifyResetToken(token);
+
+        return ResponseEntity.ok(ApiResponse.success(isValid));
+    }
+
+    /**
+     * 비밀번호 재설정 실행
+     * POST /api/v1/auth/password/reset
+     */
+    @PostMapping("/password/reset")
+    public ResponseEntity<ApiResponse<MessageResponse>> resetPassword(
+            @RequestBody PasswordResetConfirmRequest request) {
+
+        oAuth2Service.resetPassword(request.getToken(), request.getNewPassword());
+
+        return ResponseEntity.ok(
+                ApiResponse.success("비밀번호가 성공적으로 변경되었습니다.")
+        );
+    }
 }
