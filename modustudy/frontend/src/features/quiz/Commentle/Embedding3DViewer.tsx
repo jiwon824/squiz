@@ -3,10 +3,11 @@
  * 정답 단어를 중심으로 사용자 입력들이 얼마나 가까운지 3D 공간에서 보여줌
  */
 
+import React, { useState, useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Text, Sphere, Line } from '@react-three/drei';
-import { useState, useRef, useMemo } from 'react';
+import { OrbitControls, Text, Line } from '@react-three/drei';
 import * as THREE from 'three';
+import { Guess } from './hooks/useCommentleGame';
 
 // 색상 상수 - 6단계 구역 (Google Design System 기반)
 const COLORS = {
@@ -25,7 +26,7 @@ const COLORS = {
 /**
  * 점수에 따른 색상 반환 (6단계)
  */
-const getColorByScore = (score) => {
+const getColorByScore = (score: number): string => {
     if (score >= 95) return COLORS.perfect;
     if (score >= 85) return COLORS.veryClose;
     if (score >= 70) return COLORS.close;
@@ -37,10 +38,14 @@ const getColorByScore = (score) => {
 /**
  * 회전하는 중심 구체 (정답)
  */
-function CenterSphere({ label }) {
-    const meshRef = useRef();
+interface CenterSphereProps {
+    label: string;
+}
 
-    useFrame((state) => {
+function CenterSphere({ label }: CenterSphereProps) {
+    const meshRef = useRef<THREE.Mesh>(null);
+
+    useFrame(() => {
         if (meshRef.current) {
             meshRef.current.rotation.y += 0.005;
         }
@@ -63,7 +68,7 @@ function CenterSphere({ label }) {
                 anchorX="center"
                 anchorY="bottom"
             >
-                🎯 정답
+                {label}
             </Text>
         </group>
     );
@@ -72,7 +77,15 @@ function CenterSphere({ label }) {
 /**
  * 사용자 입력 점
  */
-function UserPoint({ position, label, score, isLatest = false, order }) {
+interface UserPointProps {
+    position: [number, number, number];
+    label: string;
+    score: number;
+    isLatest?: boolean;
+    order: number;
+}
+
+function UserPoint({ position, label, score, isLatest = false, order }: UserPointProps) {
     const [hovered, setHovered] = useState(false);
     const color = isLatest ? COLORS.user : getColorByScore(score);
     const size = isLatest ? 0.1 : 0.07;
@@ -101,7 +114,6 @@ function UserPoint({ position, label, score, isLatest = false, order }) {
                     {`${label} (${score.toFixed(1)})`}
                 </Text>
             )}
-            {/* 순서 번호 */}
             <Text
                 position={[0, -size - 0.05, 0]}
                 fontSize={0.05}
@@ -117,7 +129,12 @@ function UserPoint({ position, label, score, isLatest = false, order }) {
 /**
  * 중심과 점을 연결하는 선
  */
-function ConnectionLine({ end, score }) {
+interface ConnectionLineProps {
+    end: [number, number, number];
+    score: number;
+}
+
+function ConnectionLine({ end, score }: ConnectionLineProps) {
     const color = getColorByScore(score);
     const points = useMemo(() => [
         new THREE.Vector3(0, 0, 0),
@@ -141,37 +158,37 @@ function ConnectionLine({ end, score }) {
 function DistanceSpheres() {
     return (
         <>
-            {/* 🎯 정답 영역 (score 95+) - 거의 정답! */}
+            {/* 🎯 정답 영역 (score 95+) */}
             <mesh>
                 <sphereGeometry args={[0.1, 32, 32]} />
                 <meshBasicMaterial color="#22c55e" transparent opacity={0.15} />
             </mesh>
 
-            {/* 🔥 매우 가까움 (score 85-95) */}
+            {/* 🔥 매우 가까움 (score 85-94) */}
             <mesh>
                 <sphereGeometry args={[0.2, 32, 32]} />
                 <meshBasicMaterial color="#4ade80" transparent opacity={0.08} wireframe />
             </mesh>
 
-            {/* 👍 가까움 (score 70-85) */}
+            {/* 👍 가까움 (score 70-84) */}
             <mesh>
                 <sphereGeometry args={[0.4, 32, 32]} />
                 <meshBasicMaterial color="#60a5fa" transparent opacity={0.06} wireframe />
             </mesh>
 
-            {/* 🤔 중간 (score 50-70) */}
+            {/* 🤔 중간 (score 50-69) */}
             <mesh>
                 <sphereGeometry args={[0.6, 32, 32]} />
                 <meshBasicMaterial color="#a78bfa" transparent opacity={0.04} wireframe />
             </mesh>
 
-            {/* ❄️ 멀리 (score 30-50) */}
+            {/* ❄️ 멀리 (score 30-49) */}
             <mesh>
                 <sphereGeometry args={[0.8, 32, 32]} />
                 <meshBasicMaterial color="#fbbf24" transparent opacity={0.03} wireframe />
             </mesh>
 
-            {/* 🌌 매우 멀리 (score 0-30) */}
+            {/* 🌌 매우 멀리 (score 0-29) */}
             <mesh>
                 <sphereGeometry args={[1, 32, 32]} />
                 <meshBasicMaterial color="#f87171" transparent opacity={0.02} wireframe />
@@ -183,48 +200,38 @@ function DistanceSpheres() {
 /**
  * 3D 씬 컴포넌트
  */
-function Scene({ guesses }) {
+interface SceneProps {
+    guesses: Guess[];
+}
+
+function Scene({ guesses }: SceneProps) {
     return (
         <>
-            {/* 조명 */}
             <ambientLight intensity={0.6} />
             <pointLight position={[10, 10, 10]} intensity={1} />
             <pointLight position={[-10, -10, -10]} intensity={0.5} />
 
-            {/* 거리 가이드 구체 */}
             <DistanceSpheres />
+            <CenterSphere label="🎯 정답" />
 
-            {/* 중심점 (정답) */}
-            <CenterSphere label="정답" />
-
-            {/* 사용자 입력들 */}
             {guesses.map((guess, index) => {
-                // 🎯 점수 구간별로 정확히 가이드 구체 반경에 배치
-                // 가이드 구체 반경: 0.1(95+), 0.2(85-94), 0.4(70-84), 0.6(50-69), 0.8(30-49), 1.0(0-29)
-                let distance;
+                let distance: number;
                 const score = guess.score;
 
                 if (score >= 95) {
-                    // 95+ : 해케르 영역 (0.1 ~ 0.2)
                     distance = 0.1 + (100 - score) / 5 * 0.1;
                 } else if (score >= 85) {
-                    // 85-94 : 매우 가까움 (0.2 ~ 0.4)
                     distance = 0.2 + (95 - score) / 10 * 0.2;
                 } else if (score >= 70) {
-                    // 70-84 : 가까움 (0.4 ~ 0.6)
                     distance = 0.4 + (85 - score) / 15 * 0.2;
                 } else if (score >= 50) {
-                    // 50-69 : 중간 (0.6 ~ 0.8)
                     distance = 0.6 + (70 - score) / 20 * 0.2;
                 } else if (score >= 30) {
-                    // 30-49 : 멀리 (0.8 ~ 1.0)
                     distance = 0.8 + (50 - score) / 20 * 0.2;
                 } else {
-                    // 0-29 : 매우 멀리 (1.0 ~ 1.2)
                     distance = 1.0 + (30 - score) / 30 * 0.2;
                 }
 
-                // 각 시도마다 다른 방향으로 배치 (황금각 사용)
                 const phi = Math.acos(1 - 2 * (index + 1) / (guesses.length + 2));
                 const theta = Math.PI * (1 + Math.sqrt(5)) * (index + 1);
 
@@ -232,7 +239,7 @@ function Scene({ guesses }) {
                 const y = distance * Math.sin(phi) * Math.sin(theta);
                 const z = distance * Math.cos(phi);
 
-                const position = [x, y, z];
+                const position: [number, number, number] = [x, y, z];
                 const isLatest = index === 0;
 
                 return (
@@ -249,7 +256,6 @@ function Scene({ guesses }) {
                 );
             })}
 
-            {/* 카메라 컨트롤 */}
             <OrbitControls
                 enablePan={true}
                 enableZoom={true}
@@ -266,7 +272,11 @@ function Scene({ guesses }) {
 /**
  * 메인 3D 시각화 컴포넌트
  */
-const Embedding3DViewer = ({ guesses = [] }) => {
+interface Embedding3DViewerProps {
+    guesses?: Guess[];
+}
+
+const Embedding3DViewer: React.FC<Embedding3DViewerProps> = ({ guesses = [] }) => {
     if (guesses.length === 0) {
         return (
             <div className="w-full h-[500px] bg-slate-900 rounded-xl flex items-center justify-center text-slate-400">
@@ -283,7 +293,6 @@ const Embedding3DViewer = ({ guesses = [] }) => {
 
     return (
         <div className="w-full">
-            {/* 3D 캔버스 */}
             <div className="w-full h-[500px] bg-slate-900 rounded-xl overflow-hidden relative">
                 <Canvas camera={{ position: [1.5, 1.5, 1.5], fov: 50 }}>
                     <Scene guesses={guesses} />
@@ -334,7 +343,7 @@ const Embedding3DViewer = ({ guesses = [] }) => {
 /**
  * 점수에 따른 메시지
  */
-function getProximityMessage(score) {
+function getProximityMessage(score: number): string {
     if (score >= 100) return "🎉 축하합니다! 정답이에요!";
     if (score >= 95) return "🎯 거의 정답이에요!";
     if (score >= 85) return "🔥 아주 가까워요!";
