@@ -46,7 +46,7 @@ export const RecruitmentCard: React.FC<RecruitmentCardProps> = ({ post, onClick,
                 )}
             </div>
 
-            {/* Bottom Row: Minimalist Author & Stats */}
+            {/* 하단 영역: 작성자 & 통계 */}
             <div className="flex items-center justify-between pt-6 border-t border-border-light/40">
                 <div className="flex items-center gap-3">
                     <div className="relative">
@@ -72,17 +72,15 @@ export const RecruitmentCard: React.FC<RecruitmentCardProps> = ({ post, onClick,
                 </div>
             </div>
 
-            {/* Status Overlay for Completed Only (Subtle) */ }
-    {
-        post.isCompleted && (
-            <div className="absolute top-6 right-6">
-                <div className="flex items-center gap-1.5 px-3 py-1 bg-white/90 backdrop-blur-sm border border-border-light rounded-full shadow-sm">
-                    <CheckCircle2 size={14} className="text-text-tertiary" />
-                    <span className="text-[10px] font-bold text-text-tertiary">CLOSED</span>
+            {/* 모집 완료 상태 오버레이 */}
+            {post.isCompleted && (
+                <div className="absolute top-6 right-6">
+                    <div className="flex items-center gap-1.5 px-3 py-1 bg-white/90 backdrop-blur-sm border border-border-light rounded-full shadow-sm">
+                        <CheckCircle2 size={14} className="text-text-tertiary" />
+                        <span className="text-[10px] font-bold text-text-tertiary">CLOSED</span>
+                    </div>
                 </div>
-            </div>
-        )
-    }
+            )}
             </>}
         />
     );
