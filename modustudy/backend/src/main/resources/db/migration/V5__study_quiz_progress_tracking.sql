@@ -5,10 +5,10 @@
 
 -- 1. study_quiz_attempt 테이블에 진행 상태 컬럼 추가
 ALTER TABLE `study_quiz_attempt`
-ADD COLUMN `status` ENUM('IN_PROGRESS', 'COMPLETED', 'ABANDONED') DEFAULT 'IN_PROGRESS' AFTER `user_id`,
-ADD COLUMN `started_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP AFTER `status`,
-ADD COLUMN `last_answered_at` TIMESTAMP NULL AFTER `started_at`,
-ADD COLUMN `current_question_index` INT DEFAULT 0 AFTER `last_answered_at`;
+ADD COLUMN `status` ENUM('IN_PROGRESS', 'COMPLETED', 'ABANDONED') DEFAULT 'IN_PROGRESS',
+ADD COLUMN `started_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ADD COLUMN `last_answered_at` TIMESTAMP NULL,
+ADD COLUMN `current_question_index` INT DEFAULT 0;
 
 -- 기존 데이터는 완료된 것으로 처리
 UPDATE `study_quiz_attempt` SET `status` = 'COMPLETED' WHERE `completed_at` IS NOT NULL;
@@ -30,4 +30,4 @@ CREATE TABLE IF NOT EXISTS `study_quiz_answer` (
 ) COMMENT '스터디 퀴즈 개별 문제 답변 기록';
 
 -- 3. 인덱스 추가 (이어풀기 조회 최적화)
-CREATE INDEX `idx_quiz_attempt_user_status` ON `study_quiz_attempt` (`quiz_id`, `user_id`, `status`);
+CREATE INDEX `idx_quiz_attempt_status` ON `study_quiz_attempt` (`quiz_id`, `status`);
