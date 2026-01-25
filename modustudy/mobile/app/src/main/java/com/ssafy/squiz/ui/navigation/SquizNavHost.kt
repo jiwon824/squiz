@@ -1,0 +1,943 @@
+package com.ssafy.squiz.ui.navigation
+
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.navigation.NavHostController
+import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
+import com.ssafy.squiz.base.SquizApplication
+import com.ssafy.squiz.ui.screens.auth.*
+import com.ssafy.squiz.ui.screens.home.*
+import com.ssafy.squiz.ui.screens.study.*
+import com.ssafy.squiz.ui.screens.mystudy.*
+import com.ssafy.squiz.ui.screens.attendance.*
+import com.ssafy.squiz.ui.screens.schedule.*
+import com.ssafy.squiz.ui.screens.quiz.*
+import com.ssafy.squiz.ui.screens.contest.*
+import com.ssafy.squiz.ui.screens.course.*
+import com.ssafy.squiz.ui.screens.daily.*
+import com.ssafy.squiz.ui.screens.mypage.*
+import com.ssafy.squiz.ui.screens.friend.*
+import com.ssafy.squiz.ui.screens.dm.*
+import com.ssafy.squiz.ui.screens.ai.*
+import com.ssafy.squiz.ui.screens.main.MainScreen
+
+@Composable
+fun SquizNavHost(
+    navController: NavHostController,
+    modifier: Modifier = Modifier
+) {
+    NavHost(
+        navController = navController,
+        startDestination = NavRoutes.Splash.route,
+        modifier = modifier
+    ) {
+        // Auth
+        composable(NavRoutes.Splash.route) {
+            SplashScreen(
+                onNavigateToLogin = {
+                    navController.navigate(NavRoutes.Login.route) {
+                        popUpTo(NavRoutes.Splash.route) { inclusive = true }
+                    }
+                },
+                onNavigateToMain = {
+                    navController.navigate(NavRoutes.Main.route) {
+                        popUpTo(NavRoutes.Splash.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        composable(NavRoutes.Login.route) {
+            // LoginViewModel 생성 (Application에서 AuthRepository 가져옴)
+            val loginViewModel = remember {
+                val app = SquizApplication.getInstance()
+                LoginViewModel(app.authRepository)
+            }
+
+            LoginScreen(
+                viewModel = loginViewModel,
+                onNavigateToMain = {
+                    navController.navigate(NavRoutes.Main.route) {
+                        popUpTo(NavRoutes.Login.route) { inclusive = true }
+                    }
+                },
+                onNavigateToAdditionalInfo = {
+                    navController.navigate(NavRoutes.AdditionalInfo.route)
+                }
+            )
+        }
+
+        composable(NavRoutes.AdditionalInfo.route) {
+            AdditionalInfoScreen(
+                onNavigateToMain = {
+                    navController.navigate(NavRoutes.Main.route) {
+                        popUpTo(NavRoutes.Login.route) { inclusive = true }
+                    }
+                },
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        // Main (with Bottom Navigation)
+        composable(NavRoutes.Main.route) {
+            MainScreen(
+                onNavigateToStudyDetail = { studyId ->
+                    navController.navigate(NavRoutes.StudyDetail.createRoute(studyId))
+                },
+                onNavigateToStudySearch = {
+                    navController.navigate(NavRoutes.StudySearch.route)
+                },
+                onNavigateToNotifications = {
+                    navController.navigate(NavRoutes.Notifications.route)
+                },
+                onNavigateToStudyHome = { studyId ->
+                    navController.navigate(NavRoutes.StudyHome.createRoute(studyId))
+                },
+                onNavigateToQuizSolve = { quizId ->
+                    navController.navigate(NavRoutes.QuizSolve.createRoute(quizId))
+                },
+                onNavigateToContestList = {
+                    navController.navigate(NavRoutes.ContestList.route)
+                },
+                onNavigateToCourseList = {
+                    navController.navigate(NavRoutes.CourseList.route)
+                },
+                onNavigateToWrongNotes = {
+                    navController.navigate(NavRoutes.WrongNotes.route)
+                },
+                onNavigateToEditProfile = {
+                    navController.navigate(NavRoutes.EditProfile.route)
+                },
+                onNavigateToFriendList = {
+                    navController.navigate(NavRoutes.FriendList.route)
+                },
+                onNavigateToDMList = {
+                    navController.navigate(NavRoutes.DMList.route)
+                },
+                onNavigateToMyActivity = {
+                    navController.navigate(NavRoutes.MyActivity.route)
+                },
+                onNavigateToBookmarkedStudies = {
+                    navController.navigate(NavRoutes.BookmarkedStudies.route)
+                },
+                onNavigateToMyApplications = {
+                    navController.navigate(NavRoutes.MyApplications.route)
+                },
+                onNavigateToStudyTemplates = {
+                    navController.navigate(NavRoutes.StudyTemplates.route)
+                },
+                onNavigateToScheduleList = {
+                    navController.navigate(NavRoutes.ScheduleList.route)
+                },
+                onNavigateToLogin = {
+                    navController.navigate(NavRoutes.Login.route) {
+                        popUpTo(NavRoutes.Main.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        // Home
+        composable(NavRoutes.Notifications.route) {
+            NotificationsScreen(onBackClick = { navController.popBackStack() })
+        }
+
+        // Study Search
+        composable(NavRoutes.StudySearch.route) {
+            StudySearchScreen(
+                onBackClick = { navController.popBackStack() },
+                onStudyClick = { studyId ->
+                    navController.navigate(NavRoutes.StudyDetail.createRoute(studyId))
+                }
+            )
+        }
+
+        composable(
+            route = NavRoutes.StudyDetail.route,
+            arguments = listOf(navArgument("studyId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val studyId = backStackEntry.arguments?.getLong("studyId") ?: 0L
+            StudyDetailScreen(
+                studyId = studyId,
+                onBackClick = { navController.popBackStack() },
+                onNavigateToComments = {
+                    navController.navigate(NavRoutes.StudyComments.createRoute(studyId))
+                }
+            )
+        }
+
+        composable(
+            route = NavRoutes.StudyComments.route,
+            arguments = listOf(navArgument("studyId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val studyId = backStackEntry.arguments?.getLong("studyId") ?: 0L
+            StudyCommentsScreen(
+                studyId = studyId,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(NavRoutes.BookmarkedStudies.route) {
+            BookmarkedStudiesScreen(
+                onBackClick = { navController.popBackStack() },
+                onStudyClick = { studyId ->
+                    navController.navigate(NavRoutes.StudyDetail.createRoute(studyId))
+                }
+            )
+        }
+
+        composable(NavRoutes.MyApplications.route) {
+            MyApplicationsScreen(
+                onBackClick = { navController.popBackStack() },
+                onStudyClick = { studyId ->
+                    navController.navigate(NavRoutes.StudyDetail.createRoute(studyId))
+                }
+            )
+        }
+
+        composable(NavRoutes.StudyTemplates.route) {
+            StudyTemplatesScreen(
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        // My Studies - Study Home
+        composable(
+            route = NavRoutes.StudyHome.route,
+            arguments = listOf(navArgument("studyId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val studyId = backStackEntry.arguments?.getLong("studyId") ?: 0L
+            StudyHomeScreen(
+                studyId = studyId,
+                onBackClick = { navController.popBackStack() },
+                onNavigateToChannelList = {
+                    navController.navigate(NavRoutes.ChannelList.createRoute(studyId))
+                },
+                onNavigateToMaterials = {
+                    navController.navigate(NavRoutes.Materials.createRoute(studyId))
+                },
+                onNavigateToCurriculum = {
+                    navController.navigate(NavRoutes.Curriculum.createRoute(studyId))
+                },
+                onNavigateToProgressStatus = {
+                    navController.navigate(NavRoutes.ProgressStatus.createRoute(studyId))
+                },
+                onNavigateToTeamDashboard = {
+                    navController.navigate(NavRoutes.TeamDashboard.createRoute(studyId))
+                },
+                onNavigateToApplicationManagement = {
+                    navController.navigate(NavRoutes.ApplicationManagement.createRoute(studyId))
+                },
+                onNavigateToAttendanceCalendar = {
+                    navController.navigate(NavRoutes.AttendanceCalendar.createRoute(studyId))
+                },
+                onNavigateToDailyReport = {
+                    navController.navigate(NavRoutes.DailyReport.createRoute(studyId))
+                },
+                onNavigateToRetrospectiveList = {
+                    navController.navigate(NavRoutes.RetrospectiveList.createRoute(studyId))
+                },
+                onNavigateToAIChatbot = {
+                    navController.navigate(NavRoutes.AIChatbot.createRoute(studyId))
+                },
+                onNavigateToExtendRecruitment = {
+                    navController.navigate(NavRoutes.ExtendRecruitment.createRoute(studyId))
+                },
+                onNavigateToTempChannel = {
+                    navController.navigate(NavRoutes.TempChannel.createRoute(studyId))
+                },
+                onNavigateToConvertToOfficial = {
+                    navController.navigate(NavRoutes.ConvertToOfficial.createRoute(studyId))
+                }
+            )
+        }
+
+        composable(
+            route = NavRoutes.ChannelList.route,
+            arguments = listOf(navArgument("studyId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val studyId = backStackEntry.arguments?.getLong("studyId") ?: 0L
+            ChannelListScreen(
+                studyId = studyId,
+                onBackClick = { navController.popBackStack() },
+                onChannelClick = { channelId ->
+                    navController.navigate(NavRoutes.Chat.createRoute(channelId))
+                }
+            )
+        }
+
+        composable(
+            route = NavRoutes.Chat.route,
+            arguments = listOf(navArgument("channelId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val channelId = backStackEntry.arguments?.getLong("channelId") ?: 0L
+            ChatScreen(
+                channelId = channelId,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = NavRoutes.Materials.route,
+            arguments = listOf(navArgument("studyId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val studyId = backStackEntry.arguments?.getLong("studyId") ?: 0L
+            MaterialsScreen(
+                studyId = studyId,
+                onBackClick = { navController.popBackStack() },
+                onMaterialClick = { materialId ->
+                    navController.navigate(NavRoutes.MaterialDetail.createRoute(materialId))
+                },
+                onUploadClick = {
+                    navController.navigate(NavRoutes.MaterialUpload.createRoute(studyId))
+                }
+            )
+        }
+
+        composable(
+            route = NavRoutes.MaterialDetail.route,
+            arguments = listOf(navArgument("materialId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val materialId = backStackEntry.arguments?.getLong("materialId") ?: 0L
+            MaterialDetailScreen(
+                materialId = materialId,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = NavRoutes.MaterialUpload.route,
+            arguments = listOf(navArgument("studyId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val studyId = backStackEntry.arguments?.getLong("studyId") ?: 0L
+            MaterialUploadScreen(
+                studyId = studyId,
+                onBackClick = { navController.popBackStack() },
+                onUploadSuccess = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = NavRoutes.Curriculum.route,
+            arguments = listOf(navArgument("studyId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val studyId = backStackEntry.arguments?.getLong("studyId") ?: 0L
+            CurriculumScreen(
+                studyId = studyId,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = NavRoutes.ProgressStatus.route,
+            arguments = listOf(navArgument("studyId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val studyId = backStackEntry.arguments?.getLong("studyId") ?: 0L
+            ProgressStatusScreen(
+                studyId = studyId,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = NavRoutes.TeamDashboard.route,
+            arguments = listOf(navArgument("studyId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val studyId = backStackEntry.arguments?.getLong("studyId") ?: 0L
+            TeamDashboardScreen(
+                studyId = studyId,
+                onBackClick = { navController.popBackStack() },
+                onMemberClick = { userId ->
+                    navController.navigate(NavRoutes.UserProfile.createRoute(userId))
+                }
+            )
+        }
+
+        composable(
+            route = NavRoutes.ApplicationManagement.route,
+            arguments = listOf(navArgument("studyId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val studyId = backStackEntry.arguments?.getLong("studyId") ?: 0L
+            ApplicationManagementScreen(
+                studyId = studyId,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = NavRoutes.ExtendRecruitment.route,
+            arguments = listOf(navArgument("studyId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val studyId = backStackEntry.arguments?.getLong("studyId") ?: 0L
+            ExtendRecruitmentScreen(
+                studyId = studyId,
+                onBackClick = { navController.popBackStack() },
+                onSuccess = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = NavRoutes.TempChannel.route,
+            arguments = listOf(navArgument("studyId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val studyId = backStackEntry.arguments?.getLong("studyId") ?: 0L
+            TempChannelScreen(
+                studyId = studyId,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = NavRoutes.ConvertToOfficial.route,
+            arguments = listOf(navArgument("studyId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val studyId = backStackEntry.arguments?.getLong("studyId") ?: 0L
+            ConvertToOfficialScreen(
+                studyId = studyId,
+                onBackClick = { navController.popBackStack() },
+                onSuccess = { navController.popBackStack() }
+            )
+        }
+
+        // BLE Attendance
+        composable(
+            route = NavRoutes.AttendanceMember.route,
+            arguments = listOf(navArgument("sessionId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val sessionId = backStackEntry.arguments?.getLong("sessionId") ?: 0L
+            AttendanceMemberScreen(
+                sessionId = sessionId,
+                onBackClick = { navController.popBackStack() },
+                onSuccess = {
+                    navController.navigate(NavRoutes.AttendanceSuccess.route) {
+                        popUpTo(NavRoutes.AttendanceMember.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        composable(
+            route = NavRoutes.AttendanceLeader.route,
+            arguments = listOf(navArgument("sessionId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val sessionId = backStackEntry.arguments?.getLong("sessionId") ?: 0L
+            AttendanceLeaderScreen(
+                sessionId = sessionId,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(NavRoutes.AttendanceSuccess.route) {
+            AttendanceSuccessScreen(
+                onConfirm = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = NavRoutes.SelfAttendance.route,
+            arguments = listOf(navArgument("sessionId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val sessionId = backStackEntry.arguments?.getLong("sessionId") ?: 0L
+            SelfAttendanceScreen(
+                sessionId = sessionId,
+                onBackClick = { navController.popBackStack() },
+                onSuccess = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = NavRoutes.AttendanceCalendar.route,
+            arguments = listOf(navArgument("studyId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val studyId = backStackEntry.arguments?.getLong("studyId") ?: 0L
+            AttendanceCalendarScreen(
+                studyId = studyId,
+                onBackClick = { navController.popBackStack() },
+                onSessionClick = { sessionId ->
+                    navController.navigate(NavRoutes.SessionMemo.createRoute(sessionId))
+                }
+            )
+        }
+
+        composable(
+            route = NavRoutes.SessionMemo.route,
+            arguments = listOf(navArgument("sessionId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val sessionId = backStackEntry.arguments?.getLong("sessionId") ?: 0L
+            SessionMemoScreen(
+                sessionId = sessionId,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        // Schedule
+        composable(NavRoutes.ScheduleList.route) {
+            ScheduleListScreen(
+                onBackClick = { navController.popBackStack() },
+                onSessionClick = { sessionId ->
+                    navController.navigate(NavRoutes.ScheduleDetail.createRoute(sessionId))
+                },
+                onCalendarClick = {
+                    navController.navigate(NavRoutes.ScheduleCalendar.route)
+                },
+                onGoogleSyncClick = {
+                    navController.navigate(NavRoutes.GoogleCalendarSync.route)
+                }
+            )
+        }
+
+        composable(NavRoutes.ScheduleCalendar.route) {
+            ScheduleCalendarScreen(
+                onBackClick = { navController.popBackStack() },
+                onSessionClick = { sessionId ->
+                    navController.navigate(NavRoutes.ScheduleDetail.createRoute(sessionId))
+                }
+            )
+        }
+
+        composable(
+            route = NavRoutes.ScheduleDetail.route,
+            arguments = listOf(navArgument("sessionId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val sessionId = backStackEntry.arguments?.getLong("sessionId") ?: 0L
+            ScheduleDetailScreen(
+                sessionId = sessionId,
+                onBackClick = { navController.popBackStack() },
+                onAttendanceClick = { isLeader ->
+                    if (isLeader) {
+                        navController.navigate(NavRoutes.AttendanceLeader.createRoute(sessionId))
+                    } else {
+                        navController.navigate(NavRoutes.AttendanceMember.createRoute(sessionId))
+                    }
+                }
+            )
+        }
+
+        composable(NavRoutes.GoogleCalendarSync.route) {
+            GoogleCalendarSyncScreen(
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        // Quiz
+        composable(
+            route = NavRoutes.QuizSolve.route,
+            arguments = listOf(navArgument("quizId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val quizId = backStackEntry.arguments?.getLong("quizId") ?: 0L
+            QuizSolveScreen(
+                quizId = quizId,
+                onBackClick = { navController.popBackStack() },
+                onComplete = { attemptId ->
+                    navController.navigate(NavRoutes.QuizResult.createRoute(attemptId)) {
+                        popUpTo(NavRoutes.QuizSolve.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        composable(
+            route = NavRoutes.QuizResult.route,
+            arguments = listOf(navArgument("attemptId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val attemptId = backStackEntry.arguments?.getLong("attemptId") ?: 0L
+            QuizResultScreen(
+                attemptId = attemptId,
+                onBackClick = { navController.popBackStack() },
+                onRetry = { quizId ->
+                    navController.navigate(NavRoutes.QuizSolve.createRoute(quizId)) {
+                        popUpTo(NavRoutes.QuizResult.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        composable(NavRoutes.WrongNotes.route) {
+            WrongNotesScreen(
+                onBackClick = { navController.popBackStack() },
+                onNoteClick = { noteId ->
+                    navController.navigate(NavRoutes.WrongNoteReview.createRoute(noteId))
+                }
+            )
+        }
+
+        composable(
+            route = NavRoutes.WrongNoteReview.route,
+            arguments = listOf(navArgument("noteId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val noteId = backStackEntry.arguments?.getLong("noteId") ?: 0L
+            WrongNoteReviewScreen(
+                noteId = noteId,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        // Quiz Contest
+        composable(NavRoutes.ContestList.route) {
+            ContestListScreen(
+                onBackClick = { navController.popBackStack() },
+                onContestClick = { contestId ->
+                    navController.navigate(NavRoutes.ContestWaiting.createRoute(contestId))
+                },
+                onHistoryClick = {
+                    navController.navigate(NavRoutes.ContestHistory.route)
+                },
+                onMyRecordsClick = {
+                    navController.navigate(NavRoutes.MyContestRecords.route)
+                }
+            )
+        }
+
+        composable(
+            route = NavRoutes.ContestWaiting.route,
+            arguments = listOf(navArgument("contestId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val contestId = backStackEntry.arguments?.getLong("contestId") ?: 0L
+            ContestWaitingScreen(
+                contestId = contestId,
+                onBackClick = { navController.popBackStack() },
+                onStart = {
+                    navController.navigate(NavRoutes.ContestPlay.createRoute(contestId)) {
+                        popUpTo(NavRoutes.ContestWaiting.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        composable(
+            route = NavRoutes.ContestPlay.route,
+            arguments = listOf(navArgument("contestId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val contestId = backStackEntry.arguments?.getLong("contestId") ?: 0L
+            ContestPlayScreen(
+                contestId = contestId,
+                onComplete = {
+                    navController.navigate(NavRoutes.ContestResult.createRoute(contestId)) {
+                        popUpTo(NavRoutes.ContestPlay.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        composable(
+            route = NavRoutes.ContestResult.route,
+            arguments = listOf(navArgument("contestId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val contestId = backStackEntry.arguments?.getLong("contestId") ?: 0L
+            ContestResultScreen(
+                contestId = contestId,
+                onBackClick = { navController.popBackStack() },
+                onDetailClick = {
+                    navController.navigate(NavRoutes.ContestResultDetail.createRoute(contestId))
+                }
+            )
+        }
+
+        composable(NavRoutes.ContestHistory.route) {
+            ContestHistoryScreen(
+                onBackClick = { navController.popBackStack() },
+                onContestClick = { contestId ->
+                    navController.navigate(NavRoutes.ContestResultDetail.createRoute(contestId))
+                }
+            )
+        }
+
+        composable(
+            route = NavRoutes.ContestResultDetail.route,
+            arguments = listOf(navArgument("contestId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val contestId = backStackEntry.arguments?.getLong("contestId") ?: 0L
+            ContestResultDetailScreen(
+                contestId = contestId,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(NavRoutes.MyContestRecords.route) {
+            MyContestRecordsScreen(
+                onBackClick = { navController.popBackStack() },
+                onContestClick = { contestId ->
+                    navController.navigate(NavRoutes.ContestResultDetail.createRoute(contestId))
+                }
+            )
+        }
+
+        // Quiz Course
+        composable(NavRoutes.CourseList.route) {
+            CourseListScreen(
+                onBackClick = { navController.popBackStack() },
+                onCourseClick = { courseId ->
+                    navController.navigate(NavRoutes.CourseDetail.createRoute(courseId))
+                },
+                onMyProgressClick = {
+                    navController.navigate(NavRoutes.MyCourseProgress.route)
+                }
+            )
+        }
+
+        composable(
+            route = NavRoutes.CourseDetail.route,
+            arguments = listOf(navArgument("courseId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val courseId = backStackEntry.arguments?.getLong("courseId") ?: 0L
+            CourseDetailScreen(
+                courseId = courseId,
+                onBackClick = { navController.popBackStack() },
+                onSectionClick = { sectionId ->
+                    navController.navigate(NavRoutes.SectionSolve.createRoute(sectionId))
+                }
+            )
+        }
+
+        composable(
+            route = NavRoutes.SectionSolve.route,
+            arguments = listOf(navArgument("sectionId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val sectionId = backStackEntry.arguments?.getLong("sectionId") ?: 0L
+            SectionSolveScreen(
+                sectionId = sectionId,
+                onBackClick = { navController.popBackStack() },
+                onComplete = { attemptId ->
+                    navController.navigate(NavRoutes.SectionResult.createRoute(attemptId)) {
+                        popUpTo(NavRoutes.SectionSolve.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        composable(
+            route = NavRoutes.SectionResult.route,
+            arguments = listOf(navArgument("attemptId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val attemptId = backStackEntry.arguments?.getLong("attemptId") ?: 0L
+            SectionResultScreen(
+                attemptId = attemptId,
+                onBackClick = { navController.popBackStack() },
+                onNextSection = { sectionId ->
+                    navController.navigate(NavRoutes.SectionSolve.createRoute(sectionId)) {
+                        popUpTo(NavRoutes.SectionResult.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        composable(NavRoutes.MyCourseProgress.route) {
+            MyCourseProgressScreen(
+                onBackClick = { navController.popBackStack() },
+                onCourseClick = { courseId ->
+                    navController.navigate(NavRoutes.CourseDetail.createRoute(courseId))
+                }
+            )
+        }
+
+        // Daily & Retrospective
+        composable(
+            route = NavRoutes.DailyReport.route,
+            arguments = listOf(navArgument("studyId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val studyId = backStackEntry.arguments?.getLong("studyId") ?: 0L
+            DailyReportScreen(
+                studyId = studyId,
+                onBackClick = { navController.popBackStack() },
+                onHistoryClick = {
+                    navController.navigate(NavRoutes.DailyHistory.createRoute(studyId))
+                }
+            )
+        }
+
+        composable(
+            route = NavRoutes.DailyHistory.route,
+            arguments = listOf(navArgument("studyId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val studyId = backStackEntry.arguments?.getLong("studyId") ?: 0L
+            DailyHistoryScreen(
+                studyId = studyId,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = NavRoutes.RetrospectiveList.route,
+            arguments = listOf(navArgument("studyId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val studyId = backStackEntry.arguments?.getLong("studyId") ?: 0L
+            RetrospectiveListScreen(
+                studyId = studyId,
+                onBackClick = { navController.popBackStack() },
+                onWriteClick = {
+                    navController.navigate(NavRoutes.RetrospectiveWrite.createRoute(studyId))
+                }
+            )
+        }
+
+        composable(
+            route = NavRoutes.RetrospectiveWrite.route,
+            arguments = listOf(navArgument("studyId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val studyId = backStackEntry.arguments?.getLong("studyId") ?: 0L
+            RetrospectiveWriteScreen(
+                studyId = studyId,
+                onBackClick = { navController.popBackStack() },
+                onSuccess = { navController.popBackStack() }
+            )
+        }
+
+        // My Page
+        composable(NavRoutes.EditProfile.route) {
+            EditProfileScreen(
+                onBackClick = { navController.popBackStack() },
+                onSaveSuccess = { navController.popBackStack() }
+            )
+        }
+
+        composable(NavRoutes.NotificationSettings.route) {
+            NotificationSettingsScreen(
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(NavRoutes.MyActivity.route) {
+            MyActivityScreen(
+                onBackClick = { navController.popBackStack() },
+                onGrassClick = {
+                    navController.navigate(NavRoutes.GrassGraph.route)
+                },
+                onDateClick = { date ->
+                    navController.navigate(NavRoutes.ActivityDetail.createRoute(date))
+                }
+            )
+        }
+
+        composable(NavRoutes.GrassGraph.route) {
+            GrassGraphScreen(
+                onBackClick = { navController.popBackStack() },
+                onDateClick = { date ->
+                    navController.navigate(NavRoutes.ActivityDetail.createRoute(date))
+                }
+            )
+        }
+
+        composable(
+            route = NavRoutes.ActivityDetail.route,
+            arguments = listOf(navArgument("date") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val date = backStackEntry.arguments?.getString("date") ?: ""
+            ActivityDetailScreen(
+                date = date,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(NavRoutes.PrivacySettings.route) {
+            PrivacySettingsScreen(
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        // Friends
+        composable(NavRoutes.FriendList.route) {
+            FriendListScreen(
+                onBackClick = { navController.popBackStack() },
+                onFriendClick = { userId ->
+                    navController.navigate(NavRoutes.UserProfile.createRoute(userId))
+                },
+                onSearchClick = {
+                    navController.navigate(NavRoutes.FriendSearch.route)
+                },
+                onRequestsClick = {
+                    navController.navigate(NavRoutes.FriendRequests.route)
+                },
+                onBlockedClick = {
+                    navController.navigate(NavRoutes.BlockedUsers.route)
+                }
+            )
+        }
+
+        composable(NavRoutes.FriendSearch.route) {
+            FriendSearchScreen(
+                onBackClick = { navController.popBackStack() },
+                onUserClick = { userId ->
+                    navController.navigate(NavRoutes.UserProfile.createRoute(userId))
+                }
+            )
+        }
+
+        composable(NavRoutes.FriendRequests.route) {
+            FriendRequestsScreen(
+                onBackClick = { navController.popBackStack() },
+                onUserClick = { userId ->
+                    navController.navigate(NavRoutes.UserProfile.createRoute(userId))
+                }
+            )
+        }
+
+        composable(
+            route = NavRoutes.UserProfile.route,
+            arguments = listOf(navArgument("userId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getLong("userId") ?: 0L
+            UserProfileScreen(
+                userId = userId,
+                onBackClick = { navController.popBackStack() },
+                onDMClick = { chatId ->
+                    navController.navigate(NavRoutes.DMChat.createRoute(chatId))
+                }
+            )
+        }
+
+        composable(NavRoutes.BlockedUsers.route) {
+            BlockedUsersScreen(
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        // DM
+        composable(NavRoutes.DMList.route) {
+            DMListScreen(
+                onBackClick = { navController.popBackStack() },
+                onChatClick = { chatId ->
+                    navController.navigate(NavRoutes.DMChat.createRoute(chatId))
+                }
+            )
+        }
+
+        composable(
+            route = NavRoutes.DMChat.route,
+            arguments = listOf(navArgument("chatId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val chatId = backStackEntry.arguments?.getLong("chatId") ?: 0L
+            DMChatScreen(
+                chatId = chatId,
+                onBackClick = { navController.popBackStack() },
+                onProfileClick = { userId ->
+                    navController.navigate(NavRoutes.UserProfile.createRoute(userId))
+                }
+            )
+        }
+
+        // AI
+        composable(
+            route = NavRoutes.AIChatbot.route,
+            arguments = listOf(navArgument("studyId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val studyId = backStackEntry.arguments?.getLong("studyId") ?: 0L
+            AIChatbotScreen(
+                studyId = studyId,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(NavRoutes.AIRecommendation.route) {
+            AIRecommendationScreen(
+                onBackClick = { navController.popBackStack() },
+                onStudyClick = { studyId ->
+                    navController.navigate(NavRoutes.StudyDetail.createRoute(studyId))
+                }
+            )
+        }
+    }
+}
