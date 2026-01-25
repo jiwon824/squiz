@@ -1,8 +1,7 @@
 import React from 'react';
 import { RecruitmentPost } from '../types';
 import { Users, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { cn } from '@/shared/utils/cn';
-import { Button } from '@/shared/components';
+import { Button, FeatureCardLayout } from '@/shared/components';
 
 interface RecruitmentCardProps {
     post: RecruitmentPost;
@@ -11,46 +10,33 @@ interface RecruitmentCardProps {
 }
 
 export const RecruitmentCard: React.FC<RecruitmentCardProps> = ({ post, onClick, onReport }) => {
-
     return (
-        <div
+        <FeatureCardLayout
             onClick={() => onClick(post.id)}
-            className={cn(
-                "group relative bg-white border border-border-light rounded-[32px] p-8 transition-all duration-500 hover:shadow-[0_20px_50px_rgba(0,0,0,0.06)] hover:-translate-y-2 cursor-pointer overflow-hidden flex flex-col h-full",
-                post.isCompleted && "opacity-60 grayscale-[0.5]"
-            )}
-        >
-            {/* Top Row: Category & Report */}
-            <div className="flex justify-between items-center mb-8">
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60 border-l-2 border-primary/30 pl-3">
+            isCompleted={post.isCompleted}
+            headerLeft={
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60 border-l-4 border-primary/30 pl-4 py-0.5">
                     {post.category}
                 </span>
+            }
+            headerRight={
                 <Button
                     variant="google-ghost"
                     size="sm"
                     isCircle
                     onClick={(e) => onReport(e, post.id)}
-                    className="text-text-muted opacity-0 group-hover:opacity-100 transition-opacity hover:text-error hover:bg-error/5"
+                    className="text-text-muted opacity-0 group-hover:opacity-100 transition-all hover:text-error hover:bg-error/5 hover:scale-110"
                 >
-                    <AlertCircle size={16} />
+                    <AlertCircle size={18} />
                 </Button>
-            </div>
-
-            {/* Title */}
-            <h3 className="text-2xl font-black text-text-primary mb-6 leading-[1.3] tracking-tight group-hover:text-primary transition-colors line-clamp-2">
-                {post.title}
-            </h3>
-
-            {/* Content Preview - Simplified */}
-            <p className="text-[15px] text-text-secondary leading-relaxed mb-8 line-clamp-2 font-medium opacity-80">
-                {post.content}
-            </p>
-
-            {/* Tags - Minimalist */}
-            <div className="flex flex-wrap gap-2 mb-10 mt-auto">
-                {post.tags.slice(0, 2).map((tag, i) => (
-                    <span key={i} className="px-3 py-1 bg-background-secondary/50 text-[11px] font-bold text-text-tertiary rounded-full border border-border-light/50">
-                        {tag}
+            }
+            title={post.title}
+            description={post.content}
+            body={<>
+                <div className="flex flex-wrap gap-2.5 mb-10">
+                    {post.tags.slice(0, 3).map((tag, i) => (
+                        <span key={i} className="px-3.5 py-1.5 bg-background-secondary/50 text-[11px] font-bold text-text-tertiary rounded-xl border border-border-light/50 shadow-sm backdrop-blur-sm">
+                            #{tag}
                     </span>
                 ))}
                 {post.tags.length > 2 && (
@@ -60,7 +46,7 @@ export const RecruitmentCard: React.FC<RecruitmentCardProps> = ({ post, onClick,
                 )}
             </div>
 
-            {/* Bottom Row: Minimalist Author & Stats */}
+            {/* 하단 영역: 작성자 & 통계 */}
             <div className="flex items-center justify-between pt-6 border-t border-border-light/40">
                 <div className="flex items-center gap-3">
                     <div className="relative">
@@ -86,7 +72,7 @@ export const RecruitmentCard: React.FC<RecruitmentCardProps> = ({ post, onClick,
                 </div>
             </div>
 
-            {/* Status Overlay for Completed Only (Subtle) */}
+            {/* 모집 완료 상태 오버레이 */}
             {post.isCompleted && (
                 <div className="absolute top-6 right-6">
                     <div className="flex items-center gap-1.5 px-3 py-1 bg-white/90 backdrop-blur-sm border border-border-light rounded-full shadow-sm">
@@ -95,6 +81,7 @@ export const RecruitmentCard: React.FC<RecruitmentCardProps> = ({ post, onClick,
                     </div>
                 </div>
             )}
-        </div>
+            </>}
+        />
     );
 };

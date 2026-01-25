@@ -39,7 +39,7 @@ export const Modal: React.FC<ModalProps> = ({
 
             {/* Modal Body: 애니메이션과 그림자, 라운딩 적용 */}
             <div className={cn(
-                'relative w-full bg-surface-50 rounded-[32px] shadow-2xl overflow-hidden p-8 animate-in fade-in zoom-in duration-300',
+                'relative w-full bg-white rounded-[32px] shadow-2xl overflow-hidden p-8 animate-in fade-in zoom-in duration-300',
                 maxWidthClasses[maxWidth]
             )}>
                 <div className="flex items-center justify-between mb-8">

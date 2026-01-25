@@ -1,10 +1,11 @@
 import React, { Suspense, lazy } from 'react';
 import { Box, Loader2 } from 'lucide-react';
+import { Guess } from '../hooks/useCommentleGame';
 
-const Embedding3DViewer = lazy(() => import('../Embedding3DViewer'));
+const Embedding3DViewer = lazy(() => import('../Embedding3DViewer.tsx')) as React.ComponentType<{ guesses: Guess[] }>;
 
 interface Commentle3DViewProps {
-    guesses: any[];
+    guesses: Guess[];
 }
 
 export const Commentle3DView: React.FC<Commentle3DViewProps> = ({ guesses }) => {
