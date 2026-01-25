@@ -49,6 +49,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/my/**").permitAll()
                         .requestMatchers("/api/v1/study-templates/**").permitAll()
                         .requestMatchers("/api/v1/study/**").permitAll()
+                        // 퀴즈 코스
+                        .requestMatchers("/api/v1/quiz-courses/**").permitAll()
                         // 나머지는 인증 필요
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
