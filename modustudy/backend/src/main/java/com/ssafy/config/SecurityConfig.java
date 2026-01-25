@@ -42,7 +42,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers("/api/v1/users").permitAll()
 //                        // News API - 테스트용 (나중에 인증 적용 가능)
-                        .requestMatchers("/api/news/**").permitAll()
+                        .requestMatchers("/api/news/**", "/api/test/news/**").permitAll()
                         // Temporary: allow meeting APIs without auth for local testing
                         .requestMatchers("/api/v1/studies/*/meetings/**").permitAll()
                         // Study - TODO: 나중에 인증 적용 필요
