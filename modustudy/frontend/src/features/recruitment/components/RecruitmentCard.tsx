@@ -32,7 +32,7 @@ export const RecruitmentCard: React.FC<RecruitmentCardProps> = ({ post, onClick,
             }
             title={post.title}
             description={post.content}
-            body={
+            body={<>
                 <div className="flex flex-wrap gap-2.5 mb-10">
                     {post.tags.slice(0, 3).map((tag, i) => (
                         <span key={i} className="px-3.5 py-1.5 bg-background-secondary/50 text-[11px] font-bold text-text-tertiary rounded-xl border border-border-light/50 shadow-sm backdrop-blur-sm">
@@ -83,6 +83,7 @@ export const RecruitmentCard: React.FC<RecruitmentCardProps> = ({ post, onClick,
             </div>
         )
     }
-        </div >
+            </>}
+        />
     );
 };
