@@ -58,6 +58,9 @@ dependencies {
     // Database
     runtimeOnly 'com.mysql:mysql-connector-j'
 
+    // Redis
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
     // Flyway (DB 마이그레이션)
     implementation 'org.flywaydb:flyway-core'
     implementation 'org.flywaydb:flyway-mysql'
@@ -100,11 +103,24 @@ dependencies {
 
     // 이메일 전송
     implementation 'org.springframework.boot:spring-boot-starter-mail'
+
+    // Jsoup (HTML 크롤링)
+    implementation 'org.jsoup:jsoup:1.17.2'
+
+    // Quartz 스케줄러
+    implementation 'org.springframework.boot:spring-boot-starter-quartz'
 }
 
 tasks.named('test') {
     useJUnitPlatform()
     systemProperty 'spring.profiles.active', System.getenv('SPRING_PROFILES_ACTIVE') ?: 'test'
+
+    // Java 21 + Mockito ByteBuddy 호환성을 위한 JVM 옵션
+    jvmArgs = [
+        '--add-opens', 'java.base/java.lang=ALL-UNNAMED',
+        '--add-opens', 'java.base/java.lang.reflect=ALL-UNNAMED',
+        '--add-opens', 'java.base/java.util=ALL-UNNAMED'
+    ]
 }
 
 // QueryDSL 설정

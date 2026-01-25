@@ -1,6 +1,27 @@
 /* Commentle.css */
 
 /* ========================================
+   Hint Chips & Fancy Elements
+   ======================================== */
+.hint-chip-fancy {
+    background: white;
+    padding: 10px 18px;
+    border-radius: 14px;
+    border: 1px solid #e2e8f0;
+    font-size: 0.95rem;
+    color: #475569;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.hint-chip-fancy:hover {
+    border-color: #fde68a;
+    background: #fffdf5;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(251, 188, 4, 0.1);
+}
+
+/* ========================================
    1:1 레이아웃 구성 (좌: 게임 / 우: 3D)
    ======================================== */
 .commentle-layout {

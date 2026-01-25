@@ -1,0 +1,23 @@
+# Qwen3 Meeting Summarizer Training
+# SSAFY L40S 46GB GPU
+
+# Core
+torch>=2.1.0
+transformers>=4.40.0
+datasets>=2.18.0
+accelerate>=0.27.0
+
+# LoRA / QLoRA
+peft>=0.10.0
+bitsandbytes>=0.43.0
+
+# Utilities
+tqdm
+sentencepiece
+protobuf
+
+# Optional: Monitoring
+# wandb
+
+# Data generation (OpenAI)
+openai>=1.0.0

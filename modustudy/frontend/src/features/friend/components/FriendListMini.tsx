@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Users, Search, UserPlus, Check, X, Loader2 } from 'lucide-react';
 import { useFriendStore } from '../store/friendStore';
 import { useDMStore } from '@/features/dm/store/dmStore';
+import { useUIStore } from '@/store/uiStore';
 
 const FriendListMini: React.FC = () => {
     const {
@@ -18,7 +19,8 @@ const FriendListMini: React.FC = () => {
         clearSearch
     } = useFriendStore();
 
-    const { fetchConversations } = useDMStore();
+    const { startConversationWith, fetchConversations } = useDMStore();
+    const { setActiveRightTab } = useUIStore();
 
     const [searchQuery, setSearchQuery] = useState('');
     const [showSearch, setShowSearch] = useState(false);
@@ -42,10 +44,17 @@ const FriendListMini: React.FC = () => {
     }, [searchQuery, searchUsers, clearSearch]);
 
     // 친구 클릭 시 DM 시작
-    const handleFriendClick = (friendId: number) => {
+    const handleFriendClick = (friend: { friendId: number; nickname: string; profileImage: string | null }) => {
+        // 대화 목록 새로고침
         fetchConversations();
-        // TODO: 해당 친구와의 대화방 열기
-        console.log('친구 클릭:', friendId);
+        // DM 시작 (기존 대화가 있으면 열고, 없으면 새 대화 모드)
+        startConversationWith({
+            id: friend.friendId,
+            nickname: friend.nickname,
+            profileImage: friend.profileImage
+        });
+        // DM 탭으로 전환
+        setActiveRightTab('dm');
     };
 
     // 상태별 색상
@@ -166,7 +175,7 @@ const FriendListMini: React.FC = () => {
                         {friends.map(friend => (
                             <div
                                 key={friend.id}
-                                onClick={() => handleFriendClick(friend.friendId)}
+                                onClick={() => handleFriendClick({ friendId: friend.friendId, nickname: friend.nickname, profileImage: friend.profileImage })}
                                 className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
                             >
                                 <div className="relative">

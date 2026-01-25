@@ -32,6 +32,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Swagger
                         .requestMatchers("/swagger-ui/**", "/api-docs/**", "/swagger-resources/**").permitAll()
+                        // Actuator (헬스체크)
+                        .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/ws/**").permitAll()
                         // SFU config for WebRTC clients
                         .requestMatchers("/api/v1/sfu/**").permitAll()
@@ -40,11 +42,12 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers("/api/v1/users").permitAll()
 //                        // News API - 테스트용 (나중에 인증 적용 가능)
-                        .requestMatchers("/api/news/**").permitAll()
+                        .requestMatchers("/api/news/**", "/api/test/news/**").permitAll()
                         // Temporary: allow meeting APIs without auth for local testing
                         .requestMatchers("/api/v1/studies/*/meetings/**").permitAll()
                         // Study - TODO: 나중에 인증 적용 필요
                         .requestMatchers("/api/v1/study/my").permitAll()
+                        .requestMatchers("/api/v1/my/**").permitAll()
                         .requestMatchers("/api/v1/study-templates/**").permitAll()
                         .requestMatchers("/api/v1/study/**").permitAll()
                         // 나머지는 인증 필요
@@ -59,6 +62,12 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(Arrays.asList(
                 "http://localhost:3000",
+                "https://localhost:3000",
+                "http://localhost:3001",
+                "https://localhost:3001",
+                "http://192.168.100.90:3000",
+                "https://192.168.100.90:3000",
+                "https://modustudy.local:3000",
                 "http://localhost:3001",
                 "http://localhost:5173",
                 "https://i14d106.p.ssafy.io"

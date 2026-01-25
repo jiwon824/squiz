@@ -1,6 +1,7 @@
-package com.ssafy.squiz.integration.api;
+package com.ssafy.domain.meeting;
 
 import com.ssafy.common.auth.SsafyUserDetails;
+import com.ssafy.config.SfuProperties;
 import com.ssafy.domain.meeting.dto.request.MeetingActionItemRequest;
 import com.ssafy.domain.meeting.dto.request.MeetingKeywordUpdateRequest;
 import com.ssafy.domain.meeting.dto.request.MeetingRecordingRequest;
@@ -88,6 +89,9 @@ class MeetingApiTest {
     @MockBean
     private MeetingService meetingService;
 
+    @MockBean
+    private SfuProperties sfuProperties;
+
     @Test
     @DisplayName("미팅 목록 조회: 필터 포함")
     void listMeetings_withFilters() throws Exception {
@@ -125,6 +129,41 @@ class MeetingApiTest {
                 .andExpect(jsonPath("$.status").value(200))
                 .andExpect(jsonPath("$.content[0].id").value(1))
                 .andExpect(jsonPath("$.content[0].meetingType").value("WEEKLY"));
+    }
+
+    @Test
+    @DisplayName("SFU 설정 조회")
+    void sfuConfigEndpoint() throws Exception {
+        // given
+        SfuProperties.IceServer iceServer = new SfuProperties.IceServer();
+        iceServer.setUrls("stun:stun.l.google.com:19302");
+        iceServer.setUsername("user");
+        iceServer.setCredential("pass");
+        when(sfuProperties.getBaseUrl()).thenReturn("https://sfu.local");
+        when(sfuProperties.getIceServers()).thenReturn(List.of(iceServer));
+
+        // when & then
+        mockMvc.perform(get("/api/v1/sfu/config"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.baseUrl").value("https://sfu.local"))
+                .andExpect(jsonPath("$.iceServers[0].urls").value("stun:stun.l.google.com:19302"))
+                .andExpect(jsonPath("$.iceServers[0].username").value("user"))
+                .andExpect(jsonPath("$.iceServers[0].credential").value("pass"));
+    }
+
+    @Test
+    @DisplayName("사진 선택")
+    void selectPhotoEndpoint() throws Exception {
+        // given
+        MeetingPhotoResponse selected = new MeetingPhotoResponse(3L, "meeting/2/photo-3.png",
+                LocalDateTime.of(2025, 1, 15, 20, 12), true);
+        when(meetingService.selectPhoto(1L, 2L, 3L)).thenReturn(selected);
+
+        // when & then
+        mockMvc.perform(put("/api/v1/studies/1/meetings/2/photos/3/select"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.id").value(3))
+                .andExpect(jsonPath("$.data.isSelected").value(true));
     }
 
     @Test

@@ -1,6 +1,7 @@
 import React, { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
+import { cn } from '@/shared/utils/cn';
 
 interface ModalProps {
     isOpen: boolean;
@@ -37,12 +38,15 @@ export const Modal: React.FC<ModalProps> = ({
             />
 
             {/* Modal Body: 애니메이션과 그림자, 라운딩 적용 */}
-            <div className={`relative w-full ${maxWidthClasses[maxWidth]} bg-white rounded-[32px] shadow-2xl overflow-hidden p-8 animate-in fade-in zoom-in duration-300`}>
+            <div className={cn(
+                'relative w-full bg-surface-50 rounded-[32px] shadow-2xl overflow-hidden p-8 animate-in fade-in zoom-in duration-300',
+                maxWidthClasses[maxWidth]
+            )}>
                 <div className="flex items-center justify-between mb-8">
-                    {title && <h2 className="text-2xl font-extrabold text-[#1a202c] tracking-tight">{title}</h2>}
+                    {title && <h2 className="text-2xl font-extrabold text-on-surface tracking-tight">{title}</h2>}
                     <button
                         onClick={onClose}
-                        className="p-2.5 hover:bg-gray-100 rounded-full transition-all text-gray-400 hover:text-gray-600 hover:rotate-90 duration-300"
+                        className="p-2.5 hover:bg-surface-200 rounded-full transition-all text-on-surface-variant hover:text-on-surface hover:rotate-90 duration-300"
                     >
                         <X size={24} />
                     </button>

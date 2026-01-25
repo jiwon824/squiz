@@ -71,6 +71,15 @@ public class MeetingRoomStateService {
         return info;
     }
 
+    public PresenterInfo releasePresenterByDisplayName(String roomId, String displayName) {
+        PresenterInfo info = presenters.get(roomId);
+        if (info != null && info.displayName.equals(displayName)) {
+            presenters.remove(roomId);
+            return null;
+        }
+        return info;
+    }
+
     public PresenterUpdate clearPresenterBySession(String sessionId) {
         for (Map.Entry<String, PresenterInfo> entry : presenters.entrySet()) {
             PresenterInfo info = entry.getValue();
@@ -92,6 +101,15 @@ public class MeetingRoomStateService {
             return null;
         }
         session.participant.isSpeaking = speaking;
+        return session.participant;
+    }
+
+    public Participant updatePresence(String roomId, String sessionId, boolean present) {
+        RoomSession session = sessions.get(sessionId);
+        if (session == null || !session.roomId.equals(roomId)) {
+            return null;
+        }
+        session.participant.isPresent = present;
         return session.participant;
     }
 
@@ -169,6 +187,7 @@ public class MeetingRoomStateService {
         private final String sessionId;
         private volatile boolean active = true;
         private volatile boolean isSpeaking = false;
+        private volatile boolean isPresent = false;
 
         public Participant(Long id, String displayName, String sessionId) {
             this.id = id;
@@ -177,7 +196,7 @@ public class MeetingRoomStateService {
         }
 
         public MeetingRoomParticipantDto toDto() {
-            return new MeetingRoomParticipantDto(id, displayName, active, isSpeaking);
+            return new MeetingRoomParticipantDto(id, displayName, active, isSpeaking, isPresent);
         }
     }
 

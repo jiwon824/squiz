@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface MeetingParticipantRepository extends JpaRepository<MeetingParticipant, Long> {
-    Optional<MeetingParticipant> findByMeetingIdAndUserId(Long meetingId, Long userId);
+    Optional<MeetingParticipant> findTopByMeetingIdAndUserIdOrderByJoinedAtDesc(Long meetingId, Long userId);
 
     List<MeetingParticipant> findByMeetingId(Long meetingId);
 

@@ -1,83 +1,109 @@
 package com.ssafy.domain.news.controller;
 
+import com.ssafy.domain.news.dto.response.NewsResponse;
+import com.ssafy.domain.news.entity.ItNews;
+import com.ssafy.domain.news.repository.ItNewsRepository;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.*;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.util.UriComponentsBuilder;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
 @RequestMapping("/api/news")
+@RequiredArgsConstructor
 public class NewsController {
 
-    @Value("${naver.api.client-id}")
-    private String clientId;
-
-    @Value("${naver.api.client-secret}")
-    private String clientSecret;
-
-    @Value("${naver.api.news-url}")
-    private String newsApiUrl;
+    private final ItNewsRepository itNewsRepository;
 
     /**
-     * 네이버 뉴스 API 테스트
-     * GET /api/news/test?keyword=Spring Boot
+     * 최신 뉴스 목록 조회 (20개)
      */
-    @GetMapping("/test")
-    public ResponseEntity<String> testNaverNews(
-            @RequestParam(defaultValue = "Spring Boot") String keyword
-    ) {
-        try {
-            // 환경변수 확인 로그
-            log.info("=== 네이버 뉴스 API 테스트 시작 ===");
-            log.info("Client ID 앞 4자리: {}", clientId.substring(0, Math.min(4, clientId.length())));
-            log.info("검색 키워드: {}", keyword);
+    @GetMapping
+    public ResponseEntity<List<NewsResponse>> getLatestNews() {
+        log.info("최신 뉴스 목록 조회");
 
-            // 1. 키워드 인코딩
-            String encodedKeyword = URLEncoder.encode(keyword, StandardCharsets.UTF_8);
+        List<ItNews> newsList = itNewsRepository.findTop20ByIsActiveTrueOrderByPublishedAtDesc();
 
-            // 2. URL 생성
-            String url = UriComponentsBuilder.fromHttpUrl(newsApiUrl)
-                    .queryParam("query", encodedKeyword)
-                    .queryParam("display", 5)  // 5개만 조회
-                    .queryParam("start", 1)
-                    .queryParam("sort", "date")  // 최신순
-                    .build(false)
-                    .toUriString();
+        List<NewsResponse> response = newsList.stream()
+                .map(NewsResponse::from)
+                .collect(Collectors.toList());
 
-            log.info("API 호출 URL: {}", url);
+        return ResponseEntity.ok(response);
+    }
 
-            // 3. 헤더 설정
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("X-Naver-Client-Id", clientId);
-            headers.set("X-Naver-Client-Secret", clientSecret);
+    /**
+     * 뉴스 상세 조회 (조회수 증가)
+     */
+    @GetMapping("/{newsId}")
+    public ResponseEntity<NewsResponse> getNewsDetail(@PathVariable Long newsId) {
+        log.info("뉴스 상세 조회: {}", newsId);
 
-            HttpEntity<String> entity = new HttpEntity<>(headers);
+        ItNews news = itNewsRepository.findById(newsId)
+                .orElseThrow(() -> new IllegalArgumentException("뉴스를 찾을 수 없습니다."));
 
-            // 4. API 호출
-            RestTemplate restTemplate = new RestTemplate();
-            ResponseEntity<String> response = restTemplate.exchange(
-                    url,
-                    HttpMethod.GET,
-                    entity,
-                    String.class
-            );
+        // 조회수 증가
+        news.increaseViewCount();
+        itNewsRepository.save(news);
 
-            log.info("응답 상태: {}", response.getStatusCode());
-            log.info("=== 네이버 뉴스 API 테스트 성공 ===");
+        return ResponseEntity.ok(NewsResponse.from(news));
+    }
 
-            return ResponseEntity.ok(response.getBody());
+    /**
+     * 카테고리별 뉴스 조회
+     */
+    @GetMapping("/category/{category}")
+    public ResponseEntity<List<NewsResponse>> getNewsByCategory(@PathVariable String category) {
+        log.info("카테고리별 뉴스 조회: {}", category);
 
-        } catch (Exception e) {
-            log.error("=== 네이버 뉴스 API 테스트 실패 ===");
-            log.error("에러 메시지: {}", e.getMessage(), e);
-            return ResponseEntity.internalServerError()
-                    .body("API 호출 실패: " + e.getMessage());
-        }
+        List<ItNews> newsList = itNewsRepository
+                .findByCategoryAndIsActiveTrueOrderByPublishedAtDesc(category);
+
+        List<NewsResponse> response = newsList.stream()
+                .map(NewsResponse::from)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 인기 뉴스 조회 (조회수 높은 순 10개)
+     */
+    @GetMapping("/popular")
+    public ResponseEntity<List<NewsResponse>> getPopularNews() {
+        log.info("인기 뉴스 조회");
+
+        PageRequest pageRequest = PageRequest.of(0, 10,
+                Sort.by(Sort.Direction.DESC, "viewCount"));
+
+        List<ItNews> newsList = itNewsRepository.findAll(pageRequest).getContent();
+
+        List<NewsResponse> response = newsList.stream()
+                .map(NewsResponse::from)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 뉴스 검색 (제목 기준)
+     */
+    @GetMapping("/search")
+    public ResponseEntity<List<NewsResponse>> searchNews(@RequestParam String keyword) {
+        log.info("뉴스 검색: {}", keyword);
+
+        List<ItNews> newsList = itNewsRepository
+                .findByTitleContainingAndIsActiveTrueOrderByPublishedAtDesc(keyword);
+
+        List<NewsResponse> response = newsList.stream()
+                .map(NewsResponse::from)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(response);
     }
 }
