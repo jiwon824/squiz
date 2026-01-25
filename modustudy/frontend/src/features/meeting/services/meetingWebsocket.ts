@@ -11,6 +11,7 @@ export interface MeetingWebsocketClient {
     sendChat: (roomId: string, payload: MeetingRoomChatMessage) => void;
     setPresenter: (roomId: string, payload: { displayName: string; action?: 'claim' | 'release' }) => void;
     setSpeaking: (roomId: string, payload: { speaking: boolean }) => void;
+    setPresence: (roomId: string, payload: { present: boolean }) => void;
     isConnected: () => boolean;
 }
 
@@ -102,6 +103,14 @@ export const createMeetingWebsocket = (baseUrl?: string): MeetingWebsocketClient
         });
     };
 
+    const setPresence = (roomId: string, payload: { present: boolean }) => {
+        if (!client) return;
+        client.publish({
+            destination: `/app/rooms/${roomId}/presence`,
+            body: JSON.stringify(payload),
+        });
+    };
+
     return {
         connect,
         disconnect,
@@ -111,6 +120,7 @@ export const createMeetingWebsocket = (baseUrl?: string): MeetingWebsocketClient
         sendChat,
         setPresenter,
         setSpeaking,
+        setPresence,
         isConnected: () => Boolean(client && client.connected),
     };
 };

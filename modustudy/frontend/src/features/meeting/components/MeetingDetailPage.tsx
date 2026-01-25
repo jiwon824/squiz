@@ -8,6 +8,7 @@ import {
     MeetingAudioRecordingResponse,
     MeetingChatMessageResponse,
     MeetingDetailResponse,
+    MeetingPhotoResponse,
     MeetingRecordingResponse,
     MeetingSttFileResponse,
     MeetingSttSummaryResponse,
@@ -30,6 +31,18 @@ const MeetingDetailPage: React.FC = () => {
     const [sttFile, setSttFile] = useState<MeetingSttFileResponse | null>(null);
     const [summaryFile, setSummaryFile] = useState<MeetingSttSummaryResponse | null>(null);
     const [chatMessages, setChatMessages] = useState<MeetingChatMessageResponse[]>([]);
+    const [photos, setPhotos] = useState<MeetingPhotoResponse[]>([]);
+    const [selectingPhotoId, setSelectingPhotoId] = useState<number | null>(null);
+    const selectedPhotoId = photos.find((photo) => photo.isSelected)?.id ?? null;
+    const canSelectPhotos = detail?.status === 'ENDED';
+    const apiBaseUrl = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+    const resolveImageUrl = (url: string) => {
+        if (!url) return url;
+        if (url.startsWith('http://') || url.startsWith('https://')) return url;
+        if (!apiBaseUrl) return url;
+        if (url.startsWith('/')) return `${apiBaseUrl}${url}`;
+        return `${apiBaseUrl}/${url}`;
+    };
 
     useEffect(() => {
         if (!numericStudyId || !numericMeetingId) return;
@@ -55,6 +68,9 @@ const MeetingDetailPage: React.FC = () => {
                 .catch(() => null);
             if (stt) setSttFile(stt);
             if (summary) setSummaryFile(summary);
+
+            const photoList = await meetingApi.getPhotos(numericStudyId, numericMeetingId).catch(() => []);
+            setPhotos(photoList);
         };
         load();
     }, [numericStudyId, numericMeetingId]);
@@ -73,6 +89,10 @@ const MeetingDetailPage: React.FC = () => {
 
     const handleExport = async (format: 'MARKDOWN' | 'PDF') => {
         if (!numericStudyId || !numericMeetingId) return;
+        if (photos.length > 0 && !selectedPhotoId) {
+            window.alert('회의 사진을 선택해 주세요.');
+            return;
+        }
         const blob = await meetingApi.exportMeeting(numericStudyId, numericMeetingId, format);
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -80,6 +100,24 @@ const MeetingDetailPage: React.FC = () => {
         link.download = `meeting-${numericMeetingId}.${format === 'MARKDOWN' ? 'md' : 'pdf'}`;
         link.click();
         URL.revokeObjectURL(url);
+    };
+
+    const handleSelectPhoto = async (photoId: number) => {
+        if (!numericStudyId || !numericMeetingId || selectingPhotoId !== null || !canSelectPhotos) return;
+        setSelectingPhotoId(photoId);
+        try {
+            const selected = await meetingApi.selectPhoto(numericStudyId, numericMeetingId, photoId);
+            setPhotos((prev) =>
+                prev.map((photo) => ({
+                    ...photo,
+                    isSelected: photo.id === selected.id,
+                }))
+            );
+        } catch (error) {
+            console.error('Failed to select meeting photo', error);
+        } finally {
+            setSelectingPhotoId(null);
+        }
     };
 
     return (
@@ -122,6 +160,41 @@ const MeetingDetailPage: React.FC = () => {
                     sttFile={sttFile}
                     summaryFile={summaryFile}
                 />
+
+                <section className="meeting-detail-card">
+                    <div className="meeting-detail-card__header">
+                        <h3>회의 사진</h3>
+                        {selectedPhotoId ? <span className="meeting-status-chip">선택됨</span> : null}
+                    </div>
+                    <div className="meeting-detail-card__body">
+                        {!canSelectPhotos && (
+                            <p className="meeting-detail-empty">미팅 종료 후 사진을 선택할 수 있습니다.</p>
+                        )}
+                        {canSelectPhotos && photos.length === 0 && (
+                            <p className="meeting-detail-empty">캡쳐된 회의 사진이 없습니다.</p>
+                        )}
+                        {canSelectPhotos && photos.length > 0 && (
+                            <div className="meeting-photo-grid">
+                                {photos.map((photo) => (
+                                    <button
+                                        key={photo.id}
+                                        type="button"
+                                        className={`meeting-photo-card ${photo.isSelected ? 'selected' : ''}`}
+                                        onClick={() => handleSelectPhoto(photo.id)}
+                                        disabled={selectingPhotoId === photo.id}
+                                        title={photo.isSelected ? '선택된 사진' : '이 사진을 선택'}
+                                    >
+                                        <img src={resolveImageUrl(photo.imageUrl)} alt="회의 사진" />
+                                        <div className="meeting-photo-card__footer">
+                                            <span>{new Date(photo.capturedAt).toLocaleTimeString()}</span>
+                                            <span>{photo.isSelected ? '선택됨' : '선택'}</span>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </section>
 
                 <section className="meeting-detail-card">
                     <div className="meeting-detail-card__header">

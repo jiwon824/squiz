@@ -1,8 +1,8 @@
 // quizService.js - CS 퀴즈 AI API 연동
 // AI 서비스 API를 호출하여 유사도 계산 및 문제 데이터를 가져옵니다.
 
-// 🔧 AI 서비스 Base URL (환경변수 또는 기본값)
-const AI_SERVICE_URL = import.meta.env.VITE_AI_SERVICE_URL || 'http://localhost:5000';
+// 🔧 AI 서비스 Base URL (환경변수 또는 기본값 - 운영환경에서는 상대경로 사용)
+const AI_SERVICE_URL = import.meta.env.VITE_AI_SERVICE_URL || '';
 
 // 🎯 현재 문제 ID 저장 (세션 중 유지)
 let currentWordId = null;
@@ -197,7 +197,7 @@ export const fetchLeaderboard = async (date = null, limit = 10) => {
 
         const url = `${AI_SERVICE_URL}/api/leaderboard?${params.toString()}`;
         console.log('🏆 리더보드 조회 URL:', url);
-        
+
         const response = await fetch(url);
         console.log('🏆 리더보드 응답 상태:', response.status);
 

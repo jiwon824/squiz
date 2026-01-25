@@ -3,6 +3,15 @@
 # ===========================================
 FROM node:20-alpine AS builder
 
+# UTF-8 인코딩 설정
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+ENV PYTHONIOENCODING=UTF-8
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+
+# Alpine에서 locale 지원 추가
+RUN apk add --no-cache icu-libs icu-data-full
+
 WORKDIR /app
 
 # 의존성 파일 복사
@@ -25,8 +34,8 @@ FROM nginx:alpine
 # 빌드된 파일 복사
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Nginx 설정 (필요시)
-# COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Nginx 설정 (SPA 라우팅)
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
 

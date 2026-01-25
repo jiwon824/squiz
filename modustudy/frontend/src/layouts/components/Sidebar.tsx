@@ -2,15 +2,14 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useUIStore } from '@/store/uiStore';
-import { QuizIcon, StudyIcon, DashboardIcon, CalendarIcon, RecruitmentIcon } from '@/shared/components/icons/SidebarIcons';
-
+import { QuizIcon, StudyIcon, DashboardIcon, CalendarIcon, RecruitmentIcon, SettingIcon } from '@/shared/components/icons/SidebarIcons';
 export const Sidebar = () => {
     const { isSidebarOpen } = useUIStore();
     const location = useLocation();
 
     return (
         <motion.aside
-            className="h-screen bg-study-bg flex flex-col overflow-hidden"
+            className="h-screen flex flex-col overflow-hidden"
             initial={{ width: 280 }}
             animate={{ width: isSidebarOpen ? 280 : 0 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
@@ -64,6 +63,15 @@ export const Sidebar = () => {
                     isOpen={isSidebarOpen}
                     path="/calendar-expand"
                     isActive={location.pathname === '/calendar-expand'}
+                />
+
+                {/*설정*/}
+                <SidebarItem
+                    icon={<SettingIcon />}
+                    label="설정"
+                    isOpen={isSidebarOpen}
+                    path="/setting"
+                    isActive={location.pathname === '/setting'}
                 />
             </nav>
         </motion.aside>
