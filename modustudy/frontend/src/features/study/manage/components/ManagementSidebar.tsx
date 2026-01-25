@@ -1,41 +1,52 @@
 import React from 'react';
-import { Users, UserCheck, ClipboardCheck, ArrowLeft } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Users, UserCheck, ClipboardCheck, LayoutDashboard, FileWarning } from 'lucide-react';
+import type { ManageTab } from '../StudyManagementPage';
 
 interface ManagementSidebarProps {
     studyId: number;
-    activeTab: 'applicants' | 'members' | 'attendance';
-    setActiveTab: (tab: 'applicants' | 'members' | 'attendance') => void;
+    activeTab: ManageTab;
+    setActiveTab: (tab: ManageTab) => void;
 }
 
 const ManagementSidebar: React.FC<ManagementSidebarProps> = ({ studyId, activeTab, setActiveTab }) => {
-    const navigate = useNavigate();
-
-    const menuItems = [
-        { id: 'applicants', label: '신청자 관리', icon: <UserCheck size={20} /> },
-        { id: 'members', label: '멤버 관리', icon: <Users size={20} /> },
-        { id: 'attendance', label: '출석 관리', icon: <ClipboardCheck size={20} /> },
+    const menuItems: { id: ManageTab; label: string; icon: React.ReactNode; badge?: number }[] = [
+        { id: 'dashboard', label: '팀 대시보드', icon: <LayoutDashboard size={18} /> },
+        { id: 'applicants', label: '지원자 관리', icon: <UserCheck size={18} />, badge: 3 },
+        { id: 'members', label: '멤버 관리', icon: <Users size={18} /> },
+        { id: 'attendance', label: '출석 관리', icon: <ClipboardCheck size={18} /> },
+        { id: 'excuse', label: '소명 관리', icon: <FileWarning size={18} />, badge: 2 },
     ];
 
     return (
-        <aside className="management-sidebar">
-            <button className="btn-back-to-study" onClick={() => navigate(`/study/${studyId}`)}>
-                <ArrowLeft size={18} />
-                <span>스터디로 돌아가기</span>
-            </button>
-
-            <div className="sidebar-menu">
-                {menuItems.map((item) => (
-                    <button
-                        key={item.id}
-                        className={`menu-item ${activeTab === item.id ? 'active' : ''}`}
-                        onClick={() => setActiveTab(item.id as any)}
-                    >
-                        {item.icon}
-                        <span>{item.label}</span>
-                    </button>
-                ))}
-            </div>
+        <aside className="w-56 flex-shrink-0">
+            <nav className="bg-surface rounded-3xl border border-border-light p-3 shadow-sm sticky top-6">
+                <ul className="space-y-1">
+                    {menuItems.map((item) => (
+                        <li key={item.id}>
+                            <button
+                                onClick={() => setActiveTab(item.id)}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all
+                                    ${activeTab === item.id 
+                                        ? 'bg-primary text-white shadow-md' 
+                                        : 'text-text-secondary hover:bg-background-secondary hover:text-text-primary'
+                                    }`}
+                            >
+                                {item.icon}
+                                <span className="flex-1 text-left">{item.label}</span>
+                                {item.badge && item.badge > 0 && (
+                                    <span className={`px-2 py-0.5 text-xs font-bold rounded-full
+                                        ${activeTab === item.id 
+                                            ? 'bg-white/20 text-white' 
+                                            : 'bg-error/10 text-error'
+                                        }`}>
+                                        {item.badge}
+                                    </span>
+                                )}
+                            </button>
+                        </li>
+                    ))}
+                </ul>
+            </nav>
         </aside>
     );
 };
