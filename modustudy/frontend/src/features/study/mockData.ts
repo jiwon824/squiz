@@ -93,6 +93,13 @@ export const mockStudies = [
             leaderRating: 4.5,
             leaderReviewCount: 10
         },
+        curriculum: [
+            { week: 1, description: '백준 골드 티어 달성을 위한 입문 문제 풀이 (탐색, 그리디)' },
+            { week: 2, description: '동적 계획법(DP) 기초 및 핵심 유형 마스터' },
+            { week: 3, description: '그래프 탐색 심화 (BFS, DFS 응용 및 최단 경로)' },
+            { week: 4, description: '자료구조 활용 (스택, 큐, 트리, 힙)' },
+            { week: 5, description: '실전 모의고사 및 코드 리뷰 집중 주간' }
+        ],
         isBookmarked: false,
         createdAt: '2025-01-15T10:00:00.000Z'
     },
@@ -621,6 +628,136 @@ export const mockMembers: StudyMember[] = [
 // 유틸리티 함수들
 export const getStudyById = (id: number) => {
     return mockStudies.find(study => study.id === id);
+};
+
+// 리더 리뷰 인터페이스
+export interface LeaderReview {
+    id: number;
+    leaderId: number;
+    reviewerId: number;
+    reviewerNickname: string;
+    reviewerProfileImage: string | null;
+    studyId: number;
+    studyName: string;
+    rating: number;
+    comment: string;
+    createdAt: string;
+}
+
+// 리더별 리뷰 Mock 데이터
+export const mockLeaderReviews: LeaderReview[] = [
+    // 리더 1 (ssafy_kim) 리뷰들 - 평균 4.5
+    {
+        id: 1,
+        leaderId: 1,
+        reviewerId: 2,
+        reviewerNickname: 'ssafy_lee',
+        reviewerProfileImage: null,
+        studyId: 1,
+        studyName: '알고리즘 마스터',
+        rating: 5,
+        comment: '정말 체계적으로 스터디를 운영해주셔서 실력이 많이 늘었습니다. 질문에도 친절하게 답변해주시고 최고의 리더예요!',
+        createdAt: '2025-01-10T10:00:00.000Z'
+    },
+    {
+        id: 2,
+        leaderId: 1,
+        reviewerId: 3,
+        reviewerNickname: 'ssafy_park',
+        reviewerProfileImage: null,
+        studyId: 1,
+        studyName: '알고리즘 마스터',
+        rating: 4,
+        comment: '꼼꼼하게 피드백해주시고 동기부여도 많이 해주셨습니다. 다만 가끔 일정 조율이 어려웠어요.',
+        createdAt: '2025-01-08T14:30:00.000Z'
+    },
+    {
+        id: 3,
+        leaderId: 1,
+        reviewerId: 4,
+        reviewerNickname: 'ssafy_choi',
+        reviewerProfileImage: null,
+        studyId: 1,
+        studyName: '알고리즘 마스터',
+        rating: 5,
+        comment: '매주 과제 피드백이 정말 도움이 많이 됐어요. 덕분에 골드 티어 달성했습니다!',
+        createdAt: '2025-01-05T09:15:00.000Z'
+    },
+    {
+        id: 4,
+        leaderId: 1,
+        reviewerId: 5,
+        reviewerNickname: 'ssafy_jung',
+        reviewerProfileImage: null,
+        studyId: 1,
+        studyName: '알고리즘 마스터',
+        rating: 4,
+        comment: '전체적으로 만족스러운 스터디였습니다. 리더님이 열정적이세요.',
+        createdAt: '2025-01-03T16:45:00.000Z'
+    },
+    // 리더 2 (ssafy_lee) 리뷰들 - 평균 4.8
+    {
+        id: 5,
+        leaderId: 2,
+        reviewerId: 1,
+        reviewerNickname: 'ssafy_kim',
+        reviewerProfileImage: null,
+        studyId: 2,
+        studyName: 'CS 기초 완성반',
+        rating: 5,
+        comment: '운영체제, 네트워크 개념을 정말 쉽게 설명해주셨어요. 면접 준비에 큰 도움이 됐습니다.',
+        createdAt: '2025-01-12T11:00:00.000Z'
+    },
+    {
+        id: 6,
+        leaderId: 2,
+        reviewerId: 3,
+        reviewerNickname: 'ssafy_park',
+        reviewerProfileImage: null,
+        studyId: 2,
+        studyName: 'CS 기초 완성반',
+        rating: 5,
+        comment: '자료도 잘 준비해오시고 질문에도 성심성의껏 답해주셨습니다. 강추!',
+        createdAt: '2025-01-11T08:20:00.000Z'
+    },
+    // 리더 3 (ssafy_park) 리뷰들 - 평균 4.3
+    {
+        id: 7,
+        leaderId: 3,
+        reviewerId: 1,
+        reviewerNickname: 'ssafy_kim',
+        reviewerProfileImage: null,
+        studyId: 5,
+        studyName: 'React 프로젝트',
+        rating: 4,
+        comment: '실무에서 쓰이는 패턴들을 많이 배웠습니다. 코드 리뷰가 특히 좋았어요.',
+        createdAt: '2025-01-09T13:00:00.000Z'
+    },
+    {
+        id: 8,
+        leaderId: 3,
+        reviewerId: 2,
+        reviewerNickname: 'ssafy_lee',
+        reviewerProfileImage: null,
+        studyId: 5,
+        studyName: 'React 프로젝트',
+        rating: 5,
+        comment: '프론트엔드 개발에 자신감이 생겼습니다. 감사합니다!',
+        createdAt: '2025-01-07T17:30:00.000Z'
+    }
+];
+
+// 리더 ID로 리뷰 목록 조회
+export const getReviewsByLeaderId = (leaderId: number): LeaderReview[] => {
+    return mockLeaderReviews.filter(review => review.leaderId === leaderId);
+};
+
+// 리더 평균 평점 계산
+export const getLeaderAverageRating = (leaderId: number): number => {
+    const reviews = getReviewsByLeaderId(leaderId);
+    if (reviews.length === 0) return 0;
+    const sum = reviews.reduce((acc, review) => acc + review.rating, 0);
+    return sum / reviews.length;
 };
 
 export const getStudiesByStatus = (status: string) => {
