@@ -32,7 +32,7 @@ export const StartPage = () => {
             alignItems: 'center',
             justifyContent: 'center',
             height: '100vh',
-            backgroundColor: '#ffffff',
+            backgroundColor: '#F8F9FA',
             overflow: 'hidden' // 애니메이션 시 스크롤 방지
         }}>
             <style>

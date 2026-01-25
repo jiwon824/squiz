@@ -35,13 +35,16 @@ public class DmWebSocketController {
     private final DirectMessageService directMessageService;
     private final DmSessionService dmSessionService;
     private final SimpMessagingTemplate messagingTemplate;
+    private final DmRedisPublisher dmRedisPublisher;
 
     public DmWebSocketController(DirectMessageService directMessageService,
                                   DmSessionService dmSessionService,
-                                  SimpMessagingTemplate messagingTemplate) {
+                                  SimpMessagingTemplate messagingTemplate,
+                                  DmRedisPublisher dmRedisPublisher) {
         this.directMessageService = directMessageService;
         this.dmSessionService = dmSessionService;
         this.messagingTemplate = messagingTemplate;
+        this.dmRedisPublisher = dmRedisPublisher;
     }
 
     /**
@@ -144,17 +147,11 @@ public class DmWebSocketController {
     }
 
     /**
-     * 특정 사용자에게 메시지 전송
+     * 특정 사용자에게 메시지 전송 (Redis Pub/Sub 통해 모든 서버에 전달)
      */
     private void sendToUser(Long userId, String destination, Object payload) {
-        for (String sessionId : dmSessionService.getSessionIds(userId)) {
-            messagingTemplate.convertAndSendToUser(
-                    sessionId,
-                    destination,
-                    payload,
-                    createHeaders(sessionId)
-            );
-        }
+        // Redis를 통해 발행 - 모든 서버의 해당 사용자 세션에 전달됨
+        dmRedisPublisher.publishToUser(userId, destination, payload);
     }
 
     /**
@@ -164,14 +161,5 @@ public class DmWebSocketController {
         DmWebSocketEvent errorEvent = new DmWebSocketEvent();
         errorEvent.setType(null);  // ERROR type 추가 가능
         sendToUser(userId, "/queue/dm/errors", errorMessage);
-    }
-
-    private org.springframework.messaging.MessageHeaders createHeaders(String sessionId) {
-        org.springframework.messaging.simp.SimpMessageHeaderAccessor accessor =
-                org.springframework.messaging.simp.SimpMessageHeaderAccessor.create(
-                        org.springframework.messaging.simp.SimpMessageType.MESSAGE);
-        accessor.setSessionId(sessionId);
-        accessor.setLeaveMutable(true);
-        return accessor.getMessageHeaders();
     }
 }

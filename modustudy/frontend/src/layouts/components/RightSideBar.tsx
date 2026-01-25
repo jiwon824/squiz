@@ -45,7 +45,7 @@ export const RightSideBar: React.FC = () => {
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: 20 }}
                         transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-                        className="w-72 bg-study-bg pointer-events-auto"
+                        className="w-72 pointer-events-auto"
                     >
                         {activeRightTab === 'friend' && <FriendListMini />}
                         {activeRightTab === 'dm' && <DMListMini />}
@@ -54,7 +54,9 @@ export const RightSideBar: React.FC = () => {
             </AnimatePresence>
 
             {/* 고정 아이콘 바 (구글 캘린더 스타일) */}
-            <div className="w-14 h-full bg-study-bg flex flex-col items-center py-4 gap-4 pointer-events-auto">
+            <div
+                className="w-14 h-full flex flex-col items-center py-4 gap-4 pointer-events-auto"
+            >
                 <button
                     onClick={() => toggleRightTab('friend')}
                     className={`icon-bar-btn p-2.5 rounded-full transition-all hover:bg-study-blue/10 group ${activeRightTab === 'friend' ? 'bg-study-blue/15 text-study-blue' : 'text-gray-400'

@@ -162,6 +162,14 @@ io.on('connection', (socket) => {
       const room = await getOrCreateRoom(roomId);
       const peer = getPeer(room, socket.id);
       const transport = peer.transports.get(transportId);
+      if (kind === 'video') {
+        const existingVideoProducer = Array.from(peer.producers.values()).find((item) => item.kind === 'video');
+        if (existingVideoProducer) {
+          existingVideoProducer.close();
+          peer.producers.delete(existingVideoProducer.id);
+          socket.to(roomId).emit('producerClosed', { producerId: existingVideoProducer.id, peerId: socket.id });
+        }
+      }
       const producer = await transport.produce({ kind, rtpParameters });
       peer.producers.set(producer.id, producer);
 

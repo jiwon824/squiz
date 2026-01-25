@@ -84,6 +84,9 @@ public class MeetingRoomWebSocketController {
         MeetingRoomEvent event = new MeetingRoomEvent(MeetingRoomEvent.Type.PRESENTER, roomId);
         if ("release".equalsIgnoreCase(action)) {
             MeetingRoomStateService.PresenterInfo info = roomStateService.releasePresenter(roomId, sessionId);
+            if (info != null && request.getDisplayName() != null) {
+                info = roomStateService.releasePresenterByDisplayName(roomId, request.getDisplayName());
+            }
             if (info != null) {
                 event.setPresenterName(info.getDisplayName());
                 event.setPresenterId(info.getParticipantId());
@@ -109,6 +112,21 @@ public class MeetingRoomWebSocketController {
             return;
         }
         MeetingRoomEvent event = new MeetingRoomEvent(MeetingRoomEvent.Type.SPEAKING, roomId);
+        event.setParticipant(participant.toDto());
+        messagingTemplate.convertAndSend("/topic/rooms/" + roomId + "/events", event);
+    }
+
+    @MessageMapping("/rooms/{roomId}/presence")
+    public void updatePresence(@DestinationVariable String roomId,
+                               @Valid MeetingRoomPresenceRequest request,
+                               SimpMessageHeaderAccessor headerAccessor) {
+        String sessionId = headerAccessor.getSessionId();
+        MeetingRoomStateService.Participant participant =
+                roomStateService.updatePresence(roomId, sessionId, Boolean.TRUE.equals(request.getPresent()));
+        if (participant == null) {
+            return;
+        }
+        MeetingRoomEvent event = new MeetingRoomEvent(MeetingRoomEvent.Type.PRESENCE, roomId);
         event.setParticipant(participant.toDto());
         messagingTemplate.convertAndSend("/topic/rooms/" + roomId + "/events", event);
     }

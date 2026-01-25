@@ -794,12 +794,33 @@ CREATE TABLE `study_quiz_attempt` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
     `quiz_id` BIGINT NOT NULL,
     `user_id` BIGINT NOT NULL,
+    `status` ENUM('IN_PROGRESS', 'COMPLETED', 'ABANDONED') DEFAULT 'IN_PROGRESS',
+    `started_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `last_answered_at` TIMESTAMP NULL,
+    `current_question_index` INT DEFAULT 0,
     `score` INT DEFAULT 0,
     `total_questions` INT,
     `correct_count` INT,
-    `completed_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `completed_at` TIMESTAMP,
     FOREIGN KEY (`quiz_id`) REFERENCES `study_quiz`(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`user_id`) REFERENCES `user`(`id`)
+    FOREIGN KEY (`user_id`) REFERENCES `user`(`id`),
+    INDEX `idx_quiz_attempt_user_status` (`quiz_id`, `user_id`, `status`)
+);
+
+-- 스터디 퀴즈 개별 문제 답변 기록
+CREATE TABLE `study_quiz_answer` (
+    `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
+    `attempt_id` BIGINT NOT NULL,
+    `question_id` BIGINT NOT NULL,
+    `question_index` INT NOT NULL,                   -- 문제 순서 (0부터 시작)
+    `user_answer` JSON,                              -- 사용자 답변 (객관식: ["A"], 단답형: "답")
+    `is_correct` BOOLEAN DEFAULT FALSE,
+    `time_taken_seconds` INT DEFAULT 0,              -- 문제 풀이 소요 시간
+    `answered_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (`attempt_id`) REFERENCES `study_quiz_attempt`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`question_id`) REFERENCES `study_quiz_question`(`id`) ON DELETE CASCADE,
+    UNIQUE KEY `uk_attempt_question` (`attempt_id`, `question_id`),
+    INDEX `idx_attempt_index` (`attempt_id`, `question_index`)
 );
 
 CREATE TABLE `wrong_answer_note` (
@@ -829,6 +850,7 @@ CREATE TABLE `quiz_course` (
 );
 
 CREATE TABLE `quiz_course_section` (
+    `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
     `course_id` BIGINT NOT NULL,
     `section_number` INT NOT NULL,               -- 순서 (course_id별로 1부터 시작)
     `name` VARCHAR(100) NOT NULL,                -- 기본 문법, 객체지향 등
@@ -837,21 +859,20 @@ CREATE TABLE `quiz_course_section` (
     `pass_score` INT DEFAULT 70,                 -- 통과 점수 (%)
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (`course_id`, `section_number`),
-    FOREIGN KEY (`course_id`) REFERENCES `quiz_course`(`id`) ON DELETE CASCADE
+    FOREIGN KEY (`course_id`) REFERENCES `quiz_course`(`id`) ON DELETE CASCADE,
+    UNIQUE KEY `uk_course_section` (`course_id`, `section_number`)
 );
 
 CREATE TABLE `quiz_course_question` (
-    `id` BIGINT AUTO_INCREMENT,
+    `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
     `section_id` BIGINT NOT NULL,
     `question_number` INT NOT NULL,
     `question_text` TEXT NOT NULL,
     `question_type` ENUM('MULTIPLE_CHOICE', 'SHORT_ANSWER', 'MULTIPLE_CHOICE_MULTIPLE') DEFAULT 'MULTIPLE_CHOICE',
-    `options` JSON,                              -- 객관식 보기
+    `options` JSON,
     `correct_answer` VARCHAR(500) NOT NULL,
     `explanation` TEXT,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (`id`, `section_id`),
     FOREIGN KEY (`section_id`) REFERENCES `quiz_course_section`(`id`) ON DELETE CASCADE
 );
 
@@ -873,18 +894,34 @@ CREATE TABLE `user_course_progress` (
 
 -- 사용자별 섹션 시도 기록
 CREATE TABLE `user_section_attempt` (
-    `id` BIGINT AUTO_INCREMENT,
+    `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
     `user_id` BIGINT NOT NULL,
     `section_id` BIGINT NOT NULL,
-    `status` ENUM('IN_PROGRESS', 'COMPLETED', 'ABANDONED') DEFAULT 'IN_PROGRESS', -- IN_PROGRESS: 임시저장(진행중), COMPLETED: 제출완료(수정불가), ABANDONED: 포기
-    `score` INT DEFAULT 0,                       -- 점수 (%)
+    `status` ENUM('IN_PROGRESS', 'SUBMITTED', 'ABANDONED') DEFAULT 'IN_PROGRESS',
+    `score` INT DEFAULT 0,
     `correct_count` INT DEFAULT 0,
     `total_questions` INT DEFAULT 0,
-    `is_passed` BOOLEAN DEFAULT FALSE,           -- 통과 여부
-    `attempted_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (`id`, `section_id`),
+    `is_passed` BOOLEAN DEFAULT FALSE,
+    `passed_at` TIMESTAMP NULL,
+    `started_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `submitted_at` TIMESTAMP NULL,
+    `active_lock` CHAR(1) GENERATED ALWAYS AS (
+        CASE WHEN `status` = 'IN_PROGRESS' THEN '1' ELSE NULL END
+    ) STORED,
     FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`section_id`) REFERENCES `quiz_course_section`(`id`) ON DELETE CASCADE
+    FOREIGN KEY (`section_id`) REFERENCES `quiz_course_section`(`id`) ON DELETE CASCADE,
+    UNIQUE KEY `uk_one_active_attempt` (`user_id`, `section_id`, `active_lock`)
+);
+
+-- 섹션 시도 중 실시간 답안 저장
+CREATE TABLE `user_section_attempt_answer` (
+    `attempt_id` BIGINT NOT NULL,
+    `question_id` BIGINT NOT NULL,
+    `user_answer` JSON,
+    `saved_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`attempt_id`, `question_id`),
+    FOREIGN KEY (`attempt_id`) REFERENCES `user_section_attempt`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`question_id`) REFERENCES `quiz_course_question`(`id`)
 );
 
 -- =============================================

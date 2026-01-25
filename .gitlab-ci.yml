@@ -1,6 +1,7 @@
 stages:
   - build
   - test
+  - build-images
   - migrate
   - deploy
 
@@ -8,9 +9,14 @@ variables:
   GRADLE_OPTS: "-Dorg.gradle.daemon=false"
   DEPLOY_PATH: "/home/ubuntu/squiz"
   COMPOSE_HTTP_TIMEOUT: "300"
+  # Docker Hub 이미지 경로
+  BACKEND_IMAGE: "$DOCKER_HUB_USER/squiz-backend"
+  FRONTEND_IMAGE: "$DOCKER_HUB_USER/squiz-frontend"
+  SFU_IMAGE: "$DOCKER_HUB_USER/squiz-sfu"
+  AI_IMAGE: "$DOCKER_HUB_USER/squiz-cs-quiz-ai"
 
 # ===========================================
-# Build Stage
+# Build Stage (JAR 빌드)
 # ===========================================
 build:
   stage: build
@@ -30,14 +36,114 @@ build:
 test:
   stage: test
   script:
+    # MySQL 컨테이너 실행 확인 및 자동 시작
+    - |
+      if ! docker ps | grep -q squiz-mysql; then
+        echo "MySQL 컨테이너가 없습니다. 공유 서비스 시작 중..."
+        docker network create squiz-network 2>/dev/null || true
+        (cd $DEPLOY_PATH && docker compose -p squiz-shared -f docker-compose.yml up -d)
+        echo "MySQL 준비 대기 중..."
+        sleep 30
+      fi
     - cd modustudy/backend
     - chmod +x gradlew
-    # 테스트 DB 초기화
-    - source /etc/environment && docker exec squiz-mysql mysql -uroot -p${DB_ROOT_PASSWORD} -e "DROP DATABASE IF EXISTS ssafy_test_db; CREATE DATABASE ssafy_test_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; GRANT ALL PRIVILEGES ON ssafy_test_db.* TO '${DB_USERNAME}'@'%'; FLUSH PRIVILEGES;"
-    - source /etc/environment && export SPRING_PROFILES_ACTIVE=test && ./gradlew test
+    # 테스트 DB 초기화 (squiz_test 사용)
+    - source /etc/environment && docker exec squiz-mysql mysql -uroot -p${DB_ROOT_PASSWORD} -e "DROP DATABASE IF EXISTS squiz_test; CREATE DATABASE squiz_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; GRANT ALL PRIVILEGES ON squiz_test.* TO '${DB_USERNAME}'@'%'; FLUSH PRIVILEGES;"
+    # 테스트 실행 - 운영 DB 연결 방지를 위해 SPRING_DATASOURCE_URL을 테스트 DB로 명시적 오버라이드
+    - |
+      source /etc/environment
+      export SPRING_DATASOURCE_URL="jdbc:mysql://localhost:3306/squiz_test?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true&useSSL=false"
+      export SPRING_PROFILES_ACTIVE=test
+      echo "테스트 DB URL: $SPRING_DATASOURCE_URL"
+      ./gradlew test
   only:
     - master
     - main
+  tags:
+    - docker
+
+# ===========================================
+# Build Images Stage (Docker 이미지 빌드 & Push)
+# 첫 배포 후에는 changes 조건을 다시 활성화하여 변경된 이미지만 빌드
+# ===========================================
+
+# Backend 이미지 빌드
+build-backend-image:
+  stage: build-images
+  script:
+    - echo "$DOCKER_HUB_TOKEN" | docker login -u "$DOCKER_HUB_USER" --password-stdin
+    - cd modustudy/backend
+    - docker pull $BACKEND_IMAGE:latest || true
+    - docker build --cache-from $BACKEND_IMAGE:latest -t $BACKEND_IMAGE:$CI_COMMIT_SHA -t $BACKEND_IMAGE:latest .
+    - docker push $BACKEND_IMAGE:$CI_COMMIT_SHA
+    - docker push $BACKEND_IMAGE:latest
+  only:
+    refs:
+      - master
+      - main
+    # 첫 배포 완료 후 아래 changes 조건 활성화
+    # changes:
+    #   - modustudy/backend/**/*
+  tags:
+    - docker
+
+# Frontend 이미지 빌드
+build-frontend-image:
+  stage: build-images
+  script:
+    - echo "$DOCKER_HUB_TOKEN" | docker login -u "$DOCKER_HUB_USER" --password-stdin
+    - cd modustudy/frontend
+    # UTF-8 인코딩 문제 해결을 위해 캐시 없이 빌드
+    - docker build --no-cache -t $FRONTEND_IMAGE:$CI_COMMIT_SHA -t $FRONTEND_IMAGE:latest .
+    - docker push $FRONTEND_IMAGE:$CI_COMMIT_SHA
+    - docker push $FRONTEND_IMAGE:latest
+  only:
+    refs:
+      - master
+      - main
+    # 첫 배포 완료 후 아래 changes 조건 활성화
+    # changes:
+    #   - modustudy/frontend/**/*
+  tags:
+    - docker
+
+# SFU 서버 이미지 빌드
+build-sfu-image:
+  stage: build-images
+  script:
+    - echo "$DOCKER_HUB_TOKEN" | docker login -u "$DOCKER_HUB_USER" --password-stdin
+    - cd modustudy/sfu-server
+    - docker pull $SFU_IMAGE:latest || true
+    - docker build --cache-from $SFU_IMAGE:latest -t $SFU_IMAGE:$CI_COMMIT_SHA -t $SFU_IMAGE:latest .
+    - docker push $SFU_IMAGE:$CI_COMMIT_SHA
+    - docker push $SFU_IMAGE:latest
+  only:
+    refs:
+      - master
+      - main
+    # 첫 배포 완료 후 아래 changes 조건 활성화
+    # changes:
+    #   - modustudy/sfu-server/**/*
+  tags:
+    - docker
+
+# CS Quiz AI 이미지 빌드
+build-ai-image:
+  stage: build-images
+  script:
+    - echo "$DOCKER_HUB_TOKEN" | docker login -u "$DOCKER_HUB_USER" --password-stdin
+    - cd modustudy/backend/cs-quiz-ai-service
+    - docker pull $AI_IMAGE:latest || true
+    - docker build --cache-from $AI_IMAGE:latest -t $AI_IMAGE:$CI_COMMIT_SHA -t $AI_IMAGE:latest .
+    - docker push $AI_IMAGE:$CI_COMMIT_SHA
+    - docker push $AI_IMAGE:latest
+  only:
+    refs:
+      - master
+      - main
+    # 첫 배포 완료 후 아래 changes 조건 활성화
+    # changes:
+    #   - modustudy/backend/cs-quiz-ai-service/**/*
   tags:
     - docker
 
@@ -50,7 +156,7 @@ migrate:
     - cd modustudy/backend
     - chmod +x gradlew
     # 배포 전 DB 백업 (버전 포함)
-    - ssh ubuntu@localhost "cd /home/ubuntu/squiz && ./scripts/backup-db.sh manual" || true
+    - sudo /usr/bin/bash /home/ubuntu/squiz/scripts/backup-db.sh manual
     # 리소스 컴파일 (classpath:db/migration 사용을 위해 필요)
     - ./gradlew classes
     # Flyway 마이그레이션 실행
@@ -61,22 +167,38 @@ migrate:
     - main
   tags:
     - docker
-  allow_failure: false  # migrate 완료해야 deploy 진행
+  allow_failure: false
 
 # ===========================================
-# Deploy Stage (자동 배포)
+# Deploy Stage (Blue/Green 무중단 배포)
 # ===========================================
 deploy:
   stage: deploy
   script:
+    # Docker Hub 로그인
+    - echo "$DOCKER_HUB_TOKEN" | docker login -u "$DOCKER_HUB_USER" --password-stdin
+
     # 프로젝트 파일 배포 경로로 복사
-    - rsync -av --delete --exclude '.git' --exclude 'node_modules' --exclude '.gradle' --exclude 'build' --exclude '.env' --exclude 'ssl' --exclude 'init.sql' modustudy/ $DEPLOY_PATH/
-    # Docker Compose v2로 무중단 배포
-    - cd $DEPLOY_PATH
-    - docker compose up -d --build --force-recreate --remove-orphans
+    - rsync -av --delete --exclude 'backups' --exclude 'logs' --exclude '.git' --exclude 'node_modules' --exclude '.gradle' --exclude 'build' --exclude '.env' --exclude 'ssl' --exclude 'init.sql' --exclude '.deploy-state' modustudy/ $DEPLOY_PATH/
+
+    # 배포 스크립트 실행 권한 부여
+    - chmod +x $DEPLOY_PATH/scripts/*.sh
+
+    # Blue/Green 배포 상태 확인
+    - |
+      if [ -f "$DEPLOY_PATH/.deploy-state" ]; then
+        echo "Blue/Green 배포 실행..."
+        $DEPLOY_PATH/scripts/deploy-blue-green.sh deploy
+      else
+        echo "첫 배포 - 초기 설정 실행..."
+        $DEPLOY_PATH/scripts/deploy-blue-green.sh init
+      fi
+
+    # 배포 상태 확인
+    - $DEPLOY_PATH/scripts/deploy-blue-green.sh status
+
+    # 이미지 정리
     - docker image prune -f
-    # 배포 결과 확인
-    - docker compose ps
   only:
     - master
     - main
