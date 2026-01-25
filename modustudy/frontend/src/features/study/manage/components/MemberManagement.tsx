@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { studyService } from '../../services/studyService';
 import { StudyMember } from '../../mockData';
-import { UserMinus, User, CheckCircle2 } from 'lucide-react';
+import { UserMinus, Users, CheckCircle2, Search, TrendingUp, Crown, Shield } from 'lucide-react';
 import RoleBadge from '@/shared/components/RoleBadge';
 
 interface MemberManagementProps {
@@ -11,6 +11,7 @@ interface MemberManagementProps {
 
 const MemberManagement: React.FC<MemberManagementProps> = ({ studyId, maxMembers }) => {
     const [members, setMembers] = useState<StudyMember[]>([]);
+    const [searchQuery, setSearchQuery] = useState('');
 
     useEffect(() => {
         loadMembers();
@@ -32,79 +33,133 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ studyId, maxMembers
 
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
-        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`;
+        return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
+    };
+
+    const filteredMembers = members.filter(member =>
+        member.nickname.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    const getAttendanceColor = (rate: number) => {
+        if (rate >= 90) return 'text-success';
+        if (rate >= 70) return 'text-warning';
+        return 'text-error';
+    };
+
+    const getRoleIcon = (role: string) => {
+        if (role === 'LEADER') return <Crown size={14} className="text-warning" />;
+        if (role === 'MANAGER') return <Shield size={14} className="text-info" />;
+        return null;
     };
 
     if (members.length === 0) {
         return (
-            <div className="empty-state">
-                <User size={48} />
-                <p>현재 스터디에 참여 중인 멤버가 없습니다.</p>
+            <div className="text-center py-12 bg-background-secondary rounded-2xl">
+                <Users size={48} className="mx-auto text-text-muted mb-4" />
+                <p className="text-text-secondary">현재 스터디에 참여 중인 멤버가 없습니다</p>
             </div>
         );
     }
 
     return (
-        <div className="member-management">
-            <div className="section-header">
-                <h3>스터디 멤버 ({members.length})</h3>
-                <span className="info-badge">
-                    <CheckCircle2 size={14} />
-                    참여 정원 준수 중 ({members.length}/{maxMembers})
-                </span>
+        <div className="space-y-6">
+            {/* 헤더 */}
+            <div className="flex items-center justify-between">
+                <div>
+                    <h2 className="text-xl font-bold text-text-primary">멤버 관리</h2>
+                    <p className="text-sm text-text-secondary mt-1">스터디원을 관리하고 출석률을 확인하세요</p>
+                </div>
+                <div className="flex items-center gap-2 px-4 py-2 bg-success/10 text-success rounded-xl">
+                    <CheckCircle2 size={16} />
+                    <span className="text-sm font-medium">{members.length}/{maxMembers}명</span>
+                </div>
             </div>
 
-            <div className="member-table-container">
-                <table className="member-table">
-                    <thead>
-                        <tr>
-                            <th>닉네임</th>
-                            <th>역할</th>
-                            <th>가입일</th>
-                            <th>출석률</th>
-                            <th>관리</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {members.map((member) => (
-                            <tr key={member.id} className="member-row">
-                                <td>
-                                    <div className="member-info">
-                                        <div className="member-avatar">{member.nickname.charAt(0)}</div>
-                                        <span className="member-nickname">{member.nickname}</span>
-                                    </div>
-                                </td>
-                                <td>
-                                    <RoleBadge role={member.role} />
-                                </td>
-                                <td className="text-secondary">{formatDate(member.joinedAt)}</td>
-                                <td>
-                                    <div className="attendance-indicator">
-                                        <div className="progress-bar-bg">
-                                            <div
-                                                className="progress-bar-fill"
-                                                style={{ width: `${member.attendanceRate}%` }}
-                                            ></div>
-                                        </div>
-                                        <span className="attendance-text">{member.attendanceRate}%</span>
-                                    </div>
-                                </td>
-                                <td>
-                                    {member.role !== 'LEADER' && (
-                                        <button
-                                            className="btn-icon-danger"
-                                            onClick={() => handleExpel(member.userId, member.nickname)}
-                                            title="강퇴하기"
-                                        >
-                                            <UserMinus size={18} />
-                                        </button>
-                                    )}
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+            {/* 검색 */}
+            <div className="relative">
+                <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-tertiary" />
+                <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="멤버 검색..."
+                    className="w-full pl-11 pr-4 py-3 bg-background-secondary border border-border-light rounded-xl text-sm outline-none focus:border-primary transition-colors"
+                />
             </div>
+
+            {/* 멤버 그리드 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {filteredMembers.map((member) => (
+                    <div 
+                        key={member.id}
+                        className="bg-background-secondary rounded-2xl p-5 border border-border-light hover:shadow-md transition-all group"
+                    >
+                        <div className="flex items-start gap-4">
+                            {/* 아바타 */}
+                            <div className="relative">
+                                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-xl">
+                                    {member.nickname.charAt(0)}
+                                </div>
+                                {getRoleIcon(member.role) && (
+                                    <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-surface border-2 border-background-secondary flex items-center justify-center">
+                                        {getRoleIcon(member.role)}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* 정보 */}
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <span className="font-bold text-text-primary">{member.nickname}</span>
+                                    <RoleBadge role={member.role} />
+                                </div>
+                                <div className="text-xs text-text-tertiary mb-3">
+                                    {formatDate(member.joinedAt)} 가입
+                                </div>
+
+                                {/* 출석률 바 */}
+                                <div className="space-y-1">
+                                    <div className="flex items-center justify-between text-xs">
+                                        <span className="text-text-tertiary flex items-center gap-1">
+                                            <TrendingUp size={12} />
+                                            출석률
+                                        </span>
+                                        <span className={`font-bold ${getAttendanceColor(member.attendanceRate)}`}>
+                                            {member.attendanceRate}%
+                                        </span>
+                                    </div>
+                                    <div className="h-2 bg-border-light rounded-full overflow-hidden">
+                                        <div 
+                                            className={`h-full rounded-full transition-all ${
+                                                member.attendanceRate >= 90 ? 'bg-success' :
+                                                member.attendanceRate >= 70 ? 'bg-warning' : 'bg-error'
+                                            }`}
+                                            style={{ width: `${member.attendanceRate}%` }}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 강퇴 버튼 */}
+                            {member.role !== 'LEADER' && (
+                                <button
+                                    onClick={() => handleExpel(member.userId, member.nickname)}
+                                    className="opacity-0 group-hover:opacity-100 w-9 h-9 rounded-xl bg-error/10 text-error flex items-center justify-center hover:bg-error/20 transition-all"
+                                    title="강퇴하기"
+                                >
+                                    <UserMinus size={16} />
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {filteredMembers.length === 0 && searchQuery && (
+                <div className="text-center py-8 text-text-secondary">
+                    '{searchQuery}' 검색 결과가 없습니다
+                </div>
+            )}
         </div>
     );
 };
