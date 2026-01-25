@@ -46,8 +46,8 @@ const StudyDetailPage = lazy(() =>
 const StudyManagementPage = lazy(() =>
     import('../features/study').then(m => ({ default: m.StudyManagementPage }))
 );
-const TestSidebarPage = lazy(() =>
-    import('../features/test/TestSidebarPage').then(m => ({ default: m.TestSidebarPage }))
+const SettingPage = lazy(() =>
+    import('../features/setting/SettingPage').then(m => ({ default: m.SettingPage }))
 );
 const ProfilePage = lazy(() =>
     import('@/features/profile/components/ProfilePage').then(module => ({ default: module.ProfilePage }))
@@ -128,6 +128,7 @@ export const AppRouter = () => {
                     <Route path="/study/:studyId/meetings/:meetingId" element={<MeetingDetailPage />} />
                     <Route path="/study/:studyId/meetings/:meetingId/room" element={<MeetingRoomPage />} />
                     <Route path="/recruitment" element={<RecruitmentPage />} />
+                    <Route path="/setting" element={<SettingPage />} />
                     <Route path="/profile" element={
                         <Suspense fallback={<ProfileSkeleton />}>
                             <ProfilePage />

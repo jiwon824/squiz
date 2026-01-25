@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Send, Loader2 } from 'lucide-react';
 
 interface CommentleInputSectionProps {
@@ -8,6 +8,14 @@ interface CommentleInputSectionProps {
 
 export const CommentleInputSection: React.FC<CommentleInputSectionProps> = ({ onGuess, loading }) => {
     const [word, setWord] = useState('');
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    // 컴포넌트 마운트 시 및 로딩 완료 후 자동 포커스
+    useEffect(() => {
+        if (!loading) {
+            inputRef.current?.focus();
+        }
+    }, [loading]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -22,6 +30,7 @@ export const CommentleInputSection: React.FC<CommentleInputSectionProps> = ({ on
             <h3 className="text-sm font-bold text-text-tertiary uppercase tracking-widest mb-4">단어 제출</h3>
             <form onSubmit={handleSubmit} className="relative">
                 <input
+                    ref={inputRef}
                     type="text"
                     value={word}
                     onChange={(e) => setWord(e.target.value)}
@@ -38,7 +47,7 @@ export const CommentleInputSection: React.FC<CommentleInputSectionProps> = ({ on
                 </button>
             </form>
             <p className="mt-3 text-xs text-text-tertiary">
-                TIP: 유사도 점수가 높을수록 정답에 가까운 단어입니다.
+                TIP: 한/영 대소문자 및 띄어쓰기 구분 없이 정답이 인정되며, 의미나 맥락이 유사할수록 점수가 높습니다.
             </p>
         </section>
     );
