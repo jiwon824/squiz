@@ -65,12 +65,21 @@ const mapApiCourseToUiCourse = (apiCourse: CourseListItem): Course => {
         'DATA_STRUCTURE': 'DataStructure',
     };
 
-    const category = categoryMap[apiCourse.code.toUpperCase()] || 'OS';
+    const category = categoryMap[apiCourse.code?.toUpperCase()] || 'OS';
+
+    // courseId 추출: 'courseId' 필드를 우선 사용하고, 없으면 'id' 필드를 확인
+    // 타입 단언을 사용하여 API 응답이 다른 필드명을 사용할 경우도 처리
+    const rawCourseId = apiCourse.courseId ?? (apiCourse as unknown as { id?: number | string }).id;
+
+    // courseId가 없는 경우 경고 로그 출력 (디버깅용)
+    if (rawCourseId === undefined || rawCourseId === null) {
+        console.warn('[mapApiCourseToUiCourse] courseId가 없습니다. API 응답:', apiCourse);
+    }
 
     return {
-        id: String(apiCourse.courseId),
-        title: apiCourse.name,
-        description: apiCourse.description,
+        id: String(rawCourseId ?? ''),
+        title: apiCourse.name ?? '',
+        description: apiCourse.description ?? '',
         category: category,
         // 섹션 정보는 상세 페이지에서 로드하므로 빈 배열로 초기화
         sections: [],
@@ -146,6 +155,11 @@ export const QuizCourseList = () => {
     };
 
     const handleCardClick = (courseId: string) => {
+        // courseId가 유효하지 않은 경우 네비게이션 방지
+        if (!courseId || courseId === 'undefined' || courseId === 'null') {
+            console.error('[handleCardClick] 유효하지 않은 courseId:', courseId);
+            return;
+        }
         navigate(`/quiz-practice/${courseId}`);
     };
 
