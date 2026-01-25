@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
-import { X, Send, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Send, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { studyService, Study } from '../services/studyService';
-import '../styles/StudyApplyModal.css';
+import { Modal, Button } from '@/shared/components';
 
 interface StudyApplyModalProps {
     study: Study;
+    isOpen: boolean;
     onClose: () => void;
 }
 
-const StudyApplyModal: React.FC<StudyApplyModalProps> = ({ study, onClose }) => {
+const StudyApplyModal: React.FC<StudyApplyModalProps> = ({ study, isOpen, onClose }) => {
     const [message, setMessage] = useState('');
     const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
     const [statusMessage, setStatusMessage] = useState('');
@@ -35,82 +36,85 @@ const StudyApplyModal: React.FC<StudyApplyModalProps> = ({ study, onClose }) => 
     };
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="apply-modal-content animate-pop" onClick={e => e.stopPropagation()}>
-                <header className="modal-header">
-                    <h3>스터디 참여 신청</h3>
-                    <button className="btn-close" onClick={onClose}>
-                        <X size={20} />
-                    </button>
-                </header>
-
+        <Modal isOpen={isOpen} onClose={onClose} title="스터디 참여 신청" maxWidth="md">
+            <div className="space-y-6">
                 {status === 'idle' && (
-                    <form className="apply-form" onSubmit={handleSubmit}>
-                        <div className="study-info-brief">
-                            <span className="label">신청 스터디</span>
-                            <span className="value">{study.name}</span>
+                    <form className="space-y-8" onSubmit={handleSubmit}>
+                        <div className="bg-background-secondary/50 p-6 rounded-2xl border border-border-light/40">
+                            <span className="text-[10px] font-black text-text-tertiary uppercase tracking-[0.2em] block mb-2">신청 스터디</span>
+                            <span className="text-lg font-black text-text-primary tracking-tight">{study.name}</span>
                         </div>
 
-                        <div className="input-group">
-                            <label htmlFor="apply-message">스터디장에게 한마디</label>
+                        <div className="space-y-3">
+                            <label htmlFor="apply-message" className="text-sm font-bold text-text-secondary">스터디장에게 한마디</label>
                             <textarea
                                 id="apply-message"
+                                className="w-full h-40 p-5 rounded-2xl border border-border-light bg-white focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all outline-none resize-none text-base font-medium leading-relaxed"
                                 placeholder="자기소개나 참여 동기를 자유롭게 작성해 주세요!"
                                 value={message}
                                 onChange={(e) => setMessage(e.target.value)}
                                 autoFocus
                                 required
                             />
-                            <p className="helper-text">신청 메시지는 스터디장이 승인 여부를 결정할 때 참고하게 됩니다.</p>
+                            <p className="text-xs font-medium text-text-tertiary opacity-70">신청 메시지는 스터디장이 승인 여부를 결정할 때 참고하게 됩니다.</p>
                         </div>
 
-                        <div className="modal-actions">
-                            <button type="button" className="btn-secondary" onClick={onClose}>
+                        <div className="flex gap-3 pt-2">
+                            <Button type="button" variant="google-outline" fullWidth onClick={onClose} className="h-14 font-black">
                                 취소
-                            </button>
-                            <button type="submit" className="btn-primary">
-                                <Send size={18} />
+                            </Button>
+                            <Button 
+                                type="submit" 
+                                variant="primary" 
+                                fullWidth 
+                                className="h-14 font-black shadow-lg shadow-primary/20"
+                                leftIcon={<Send size={18} />}
+                            >
                                 <span>신청하기</span>
-                            </button>
+                            </Button>
                         </div>
                     </form>
                 )}
 
                 {status === 'loading' && (
-                    <div className="status-container loading">
-                        <Loader2 className="spinner" size={48} />
-                        <p>신청 정보를 전송하고 있습니다...</p>
+                    <div className="py-20 flex flex-col items-center justify-center gap-6">
+                        <Loader2 className="w-12 h-12 text-primary animate-spin" />
+                        <p className="text-lg font-bold text-text-secondary">신청 정보를 전송하고 있습니다...</p>
                     </div>
                 )}
 
                 {status === 'success' && (
-                    <div className="status-container success">
-                        <CheckCircle size={64} className="icon" />
-                        <h2>Success!</h2>
-                        <p>{statusMessage}</p>
-                        <button className="btn-confirm" onClick={onClose}>
+                    <div className="py-10 flex flex-col items-center justify-center text-center">
+                        <div className="w-20 h-20 bg-success/10 rounded-full flex items-center justify-center mb-8">
+                            <CheckCircle size={40} className="text-success" />
+                        </div>
+                        <h2 className="text-2xl font-black text-text-primary mb-4">신청 완료!</h2>
+                        <p className="text-text-secondary font-medium mb-10 leading-relaxed px-6">{statusMessage}</p>
+                        <Button variant="primary" fullWidth size="lg" onClick={onClose} className="h-14 font-black max-w-[200px]">
                             확인
-                        </button>
+                        </Button>
                     </div>
                 )}
 
                 {status === 'error' && (
-                    <div className="status-container error">
-                        <AlertCircle size={64} className="icon" />
-                        <h2>Oh no!</h2>
-                        <p>{statusMessage}</p>
-                        <div className="error-actions">
-                            <button className="btn-secondary" onClick={() => setStatus('idle')}>
+                    <div className="py-10 flex flex-col items-center justify-center text-center">
+                        <div className="w-20 h-20 bg-error/10 rounded-full flex items-center justify-center mb-8">
+                            <AlertCircle size={40} className="text-error" />
+                        </div>
+                        <h2 className="text-2xl font-black text-text-primary mb-4">신청 실패</h2>
+                        <p className="text-text-secondary font-medium mb-10 leading-relaxed px-6">{statusMessage}</p>
+                        <div className="flex gap-3 w-full max-w-[320px]">
+                            <Button variant="google-outline" fullWidth onClick={() => setStatus('idle')} className="h-14 font-black">
                                 다시 시도
-                            </button>
-                            <button className="btn-confirm" onClick={onClose}>
+                            </Button>
+                            <Button variant="primary" fullWidth onClick={onClose} className="h-14 font-black">
                                 닫기
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 )}
             </div>
-        </div>
+        </Modal>
     );
 };
 
