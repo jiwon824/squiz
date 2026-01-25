@@ -29,32 +29,58 @@ export const CommentleHeader: React.FC<CommentleHeaderProps> = ({ onInfoClick })
                     <Info size={20} />
                 </button>
 
-                {/* Tooltip */}
-                <div className="absolute top-12 right-0 w-72 p-4 bg-white rounded-2xl shadow-xl border border-border-light opacity-0 invisible translate-y-[-10px] group-hover/info:opacity-100 group-hover/info:visible group-hover/info:translate-y-0 transition-all z-[60]">
-                    <h4 className="font-bold text-text-primary mb-2">🎯 점수 산정 방식</h4>
-                    <p className="text-sm text-text-secondary leading-relaxed mb-3">
-                        AI가 정답 단어와 입력 단어의 <strong>의미적 유사도</strong>를 분석합니다.
+                {/* 엔진 정보 및 점수 산정 툴팁 */}
+                <div className="absolute top-12 right-0 w-80 p-5 bg-white rounded-2xl shadow-xl border border-border-light opacity-0 invisible translate-y-[-10px] group-hover/info:opacity-100 group-hover/info:visible group-hover/info:translate-y-0 transition-all z-[60]">
+                    <h4 className="font-black text-text-primary mb-2 flex items-center gap-2">
+                        <span className="w-1.5 h-4 bg-primary rounded-full"></span>
+                        AI 시맨틱 엔진 로직
+                    </h4>
+                    <p className="text-[11px] text-text-secondary leading-relaxed mb-4 bg-background-secondary/50 p-2.5 rounded-xl border border-border-light/50">
+                        <strong>S-ROBERTA 임베딩</strong> 분석을 통해 단어의 의미적 좌표를 생성하고, 정답 단어와의 <strong>코사인 유사도</strong>를 측정하는 하이브리드 산정 방식입니다.
                     </p>
+
                     <ul className="space-y-2">
-                        <li className="flex items-center gap-2 text-xs text-text-secondary">
-                            <span className="w-2.5 h-2.5 rounded-full bg-[#22c55e]"></span>
-                            <strong>90~100:</strong> 정답!
+                        <li className="flex items-center justify-between text-xs text-text-secondary">
+                            <div className="flex items-center gap-2">
+                                <span className="w-2.5 h-2.5 rounded-full bg-[#34A853]"></span>
+                                <span className="font-bold">95~100</span>
+                            </div>
+                            <span className="text-[10px] font-bold text-[#34A853] uppercase">Perfect (Correct)</span>
                         </li>
-                        <li className="flex items-center gap-2 text-xs text-text-secondary">
-                            <span className="w-2.5 h-2.5 rounded-full bg-[#3b82f6]"></span>
-                            <strong>75~89:</strong> 아주 가까움
+                        <li className="flex items-center justify-between text-xs text-text-secondary">
+                            <div className="flex items-center gap-2">
+                                <span className="w-2.5 h-2.5 rounded-full bg-[#4ade80]"></span>
+                                <span className="font-bold">85~94</span>
+                            </div>
+                            <span className="text-[10px] font-bold text-[#4ade80] uppercase">Very Close</span>
                         </li>
-                        <li className="flex items-center gap-2 text-xs text-text-secondary">
-                            <span className="w-2.5 h-2.5 rounded-full bg-[#a855f7]"></span>
-                            <strong>50~74:</strong> 좋은 방향
+                        <li className="flex items-center justify-between text-xs text-text-secondary">
+                            <div className="flex items-center gap-2">
+                                <span className="w-2.5 h-2.5 rounded-full bg-[#4285F4]"></span>
+                                <span className="font-bold">70~84</span>
+                            </div>
+                            <span className="text-[10px] font-bold text-[#4285F4] uppercase">Close</span>
                         </li>
-                        <li className="flex items-center gap-2 text-xs text-text-secondary">
-                            <span className="w-2.5 h-2.5 rounded-full bg-[#f59e0b]"></span>
-                            <strong>25~49:</strong> 보통
+                        <li className="flex items-center justify-between text-xs text-text-secondary">
+                            <div className="flex items-center gap-2">
+                                <span className="w-2.5 h-2.5 rounded-full bg-[#a855f7]"></span>
+                                <span className="font-bold">50~69</span>
+                            </div>
+                            <span className="text-[10px] font-bold text-[#a855f7] uppercase">Medium</span>
                         </li>
-                        <li className="flex items-center gap-2 text-xs text-text-secondary">
-                            <span className="w-2.5 h-2.5 rounded-full bg-[#ef4444]"></span>
-                            <strong>0~24:</strong> 멀어요
+                        <li className="flex items-center justify-between text-xs text-text-secondary">
+                            <div className="flex items-center gap-2">
+                                <span className="w-2.5 h-2.5 rounded-full bg-[#FBBC04]"></span>
+                                <span className="font-bold">30~49</span>
+                            </div>
+                            <span className="text-[10px] font-bold text-[#FBBC04] uppercase">Far</span>
+                        </li>
+                        <li className="flex items-center justify-between text-xs text-text-secondary">
+                            <div className="flex items-center gap-2">
+                                <span className="w-2.5 h-2.5 rounded-full bg-[#EA4335]"></span>
+                                <span className="font-bold">0~29</span>
+                            </div>
+                            <span className="text-[10px] font-bold text-[#EA4335] uppercase">Very Far</span>
                         </li>
                     </ul>
                 </div>

@@ -7,13 +7,14 @@ interface CommentleProblemCardProps {
     attemptCount: number;
 }
 
+/* 코멘틀 퀴즈 문제 정보 카드 컴포넌트*/
 export const CommentleProblemCard: React.FC<CommentleProblemCardProps> = ({ problem, attemptCount }) => {
     return (
         <div className="bg-gradient-to-br from-surface to-white border border-border-light rounded-3xl p-8 shadow-sm mb-8 relative overflow-hidden">
-            {/* Background Decorative Element */}
+            {/* 배경 장식 요소 */}
             <div className="absolute -top-12 -right-12 w-48 h-48 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
 
-            {/* Header Area */}
+            {/* 헤더 영역: 카테고리, 난이도, 시도 횟수 */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
                 <div className="flex flex-wrap gap-4">
                     {/* Category Chip */}

@@ -180,27 +180,19 @@
 [Story] SC-144-F 미팅 결과 탭 UI 구현                                        | 3pt
 [Story] SC-144-B 미팅 요약/전문 API 구현                                      | 5pt
 
-[Story] AI-001 vLLM 추론 서버 구축 (Qwen2.5-7B)                             | 8pt
+[Story] AI-001 llama-cpp-python 추론 서버 구축 (Qwen3-8B GGUF)              | 8pt
 [Story] AI-002 Whisper STT 파이프라인 구축                                   | 8pt
-[Story] AI-003 Milvus Vector DB 구축                                    | 5pt
+[Story] AI-003 ChromaDB Vector DB 구축                                     | 5pt
 [Story] AI-004 RAG 파이프라인 구축 (bge-m3 + LangChain)                      | 8pt
 
-[Story] AI-010 Whisper 한국어 도메인 파인튜닝                                   | 13pt
-[Story] AI-011 Qwen2.5 요약 LoRA 파인튜닝                                   | 13pt
-[Story] AI-012 KoELECTRA 분류기 파인튜닝 (어제/오늘/블로커)                         | 8pt
-[Story] AI-013 KoELECTRA 감정 분석 파인튜닝                                   | 8pt
+[Story] AI-011 Qwen3-8B 요약 LoRA 파인튜닝                                   | 13pt
 
 [Story] AI-020 미팅 STT 변환 API 구현                                       | 5pt
-[Story] AI-021 화자 분리 API (pyannote)                                   | 8pt
 [Story] AI-022 미팅 요약 생성 API 구현                                        | 5pt
 [Story] AI-023 액션 아이템 추출 API 구현                                       | 5pt
-[Story] AI-024 데일리 자동 분류 API 구현                                       | 5pt
-[Story] AI-025 데일리 리포트 생성 API 구현                                      | 5pt
-[Story] AI-026 회고 초안 생성 API (RAG)                                     | 8pt
-[Story] AI-027 패턴 분석 API (RAG)                                        | 8pt
-[Story] AI-028 보고서 자동 생성 API 구현                                       | 5pt
 [Story] AI-029 퀴즈 생성 API 구현                                           | 5pt
-[Story] AI-030 스터디 추천 엔진                                              | 8pt
+[Story] AI-030 스터디 추천 엔진                                        | 8pt
+[Story] AI-031 스터디 추천용 합성 데이터 생성                            | 3pt
 
 ================================================================================
 [Epic] 어드민
