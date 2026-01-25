@@ -90,30 +90,30 @@ body {
     --color-accent: var(--color-google-yellow);
     --color-bg: var(--color-gray-50);
 
-    /* ===== Primary 색상 변형 ===== */
-    --color-primary-light: #9BB5CA;
-    --color-primary-dark: #6A8AA3;
-    --color-primary-alpha-10: rgba(128, 161, 186, 0.1);
-    --color-primary-alpha-20: rgba(128, 161, 186, 0.2);
-    --color-primary-alpha-30: rgba(128, 161, 186, 0.3);
+    /* ===== Primary 색상 변형 (Google Blue 기반) ===== */
+    --color-primary-light: #7BAAF7;
+    --color-primary-dark: #1A73E8;
+    --color-primary-alpha-10: rgba(66, 133, 244, 0.1);
+    --color-primary-alpha-20: rgba(66, 133, 244, 0.2);
+    --color-primary-alpha-30: rgba(66, 133, 244, 0.3);
 
-    /* ===== Secondary 색상 변형 ===== */
-    --color-secondary-light: #A8D4D3;
-    --color-secondary-dark: #7AB3B2;
-    --color-secondary-alpha-10: rgba(145, 196, 195, 0.1);
-    --color-secondary-alpha-20: rgba(145, 196, 195, 0.2);
-    --color-secondary-alpha-30: rgba(145, 196, 195, 0.3);
+    /* ===== Secondary 색상 변형 (Google Green 기반) ===== */
+    --color-secondary-light: #81C995;
+    --color-secondary-dark: #1E8E3E;
+    --color-secondary-alpha-10: rgba(52, 168, 83, 0.1);
+    --color-secondary-alpha-20: rgba(52, 168, 83, 0.2);
+    --color-secondary-alpha-30: rgba(52, 168, 83, 0.3);
 
-    /* ===== Accent 색상 변형 ===== */
-    --color-accent-light: #C7E8CE;
-    --color-accent-dark: #9FD1A9;
-    --color-accent-alpha-10: rgba(180, 222, 189, 0.1);
-    --color-accent-alpha-20: rgba(180, 222, 189, 0.2);
-    --color-accent-alpha-30: rgba(180, 222, 189, 0.3);
+    /* ===== Accent 색상 변형 (Google Yellow 기반) ===== */
+    --color-accent-light: #FDE293;
+    --color-accent-dark: #F9AB00;
+    --color-accent-alpha-10: rgba(251, 188, 4, 0.1);
+    --color-accent-alpha-20: rgba(251, 188, 4, 0.2);
+    --color-accent-alpha-30: rgba(251, 188, 4, 0.3);
 
     /* ===== 배경 및 표면 색상 ===== */
     --color-background: var(--color-bg);
-    --color-background-secondary: #FFF9E6;
+    --color-background-secondary: #F1F3F4;
     --color-background-tertiary: #FFFBF0;
     --color-surface: #FFFFFF;
     --color-surface-hover: #FFFEF8;
@@ -598,6 +598,31 @@ a:hover {
 /* ============================================
    9. 유틸리티 클래스
    ============================================ */
+
+/* 텍스트 줄바꿈 방지 및 줄임 (Line Clamp) */
+.line-clamp-1 {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    line-clamp: 1;
+    overflow: hidden;
+}
+
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    line-clamp: 2;
+    overflow: hidden;
+}
+
+.line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    line-clamp: 3;
+    overflow: hidden;
+}
 
 /* 텍스트 유틸리티 */
 .text-primary {
