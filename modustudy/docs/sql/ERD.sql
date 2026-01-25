@@ -353,9 +353,6 @@ CREATE TABLE `study_leader_review` (
 CREATE TABLE `workspace` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
     `study_id` BIGINT NOT NULL,
-    `name` VARCHAR(100) NOT NULL,
-    `type` ENUM('TEXT', 'VOICE', 'VIDEO') NOT NULL,
-    `description` VARCHAR(500),
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (`study_id`) REFERENCES `study`(`id`) ON DELETE CASCADE
 );
@@ -382,22 +379,23 @@ CREATE TABLE `meeting` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
     `study_id` BIGINT NOT NULL,
     `session_id` BIGINT,                         -- 연결된 스터디 세션
-    `channel_id` BIGINT,                         -- 음성 채널
+    `workspace_id` BIGINT,                         -- 음성 채널
     `title` VARCHAR(200),
     `started_at` TIMESTAMP,
     `ended_at` TIMESTAMP,
     `duration_seconds` INT,
     `participant_count` INT DEFAULT 0,
     `status` ENUM('WAITING', 'IN_PROGRESS', 'ENDED') DEFAULT 'WAITING',
-    `recording_status`	ENUM('WAITING', 'RECORDING', 'READY', 'FAILED')  ENUM('PENDING', 'PROCESSING', 'DONE', 'FAILED') DEFAULT 'PENDING',
+    `recording_status`	ENUM('WAITING', 'RECORDING', 'READY', 'FAILED'),  -- 녹화 상태
+    `processing_status` ENUM('PENDING', 'PROCESSING', 'DONE', 'FAILED') DEFAULT 'PENDING', -- 녹화 처리 상태
 	`stt_status`	ENUM('PENDING', 'PROCESSING', 'DONE', 'FAILED') DEFAULT 'PENDING',
 	`summary_status`	ENUM('PENDING', 'PROCESSING', 'DONE', 'FAILED') DEFAULT 'PENDING',
 	`auto_share_summary`	BOOLEAN DEFAULT FALSE,
-	`share_channel_id`	BIGINT	NULL,
+	`share_workspace_id`	BIGINT	NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (`study_id`) REFERENCES `study`(`id`) ON DELETE CASCADE,
     FOREIGN KEY (`session_id`) REFERENCES `study_session`(`id`),
-    FOREIGN KEY (`channel_id`) REFERENCES `channel`(`id`)
+    FOREIGN KEY (`workspace_id`) REFERENCES `workspace`(`id`)
 );
 
 CREATE TABLE `meeting_participant` (
