@@ -22,6 +22,6 @@ import java.util.Objects;
 @EqualsAndHashCode
 public class QuizCourseSectionId implements Serializable {
 
-    private Integer sectionNumber;
     private Long quizCourseId;
+    private Integer sectionNumber;
 }

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Squiz</string>
+
+    <!-- Common -->
+    <string name="loading">로딩 중...</string>
+    <string name="error">오류가 발생했습니다</string>
+    <string name="retry">다시 시도</string>
+    <string name="confirm">확인</string>
+    <string name="cancel">취소</string>
+    <string name="save">저장</string>
+    <string name="delete">삭제</string>
+    <string name="edit">수정</string>
+    <string name="search">검색</string>
+    <string name="empty_list">목록이 없습니다</string>
+
+    <!-- Auth -->
+    <string name="login">로그인</string>
+    <string name="logout">로그아웃</string>
+    <string name="login_with_kakao">카카오로 로그인</string>
+    <string name="login_with_naver">네이버로 로그인</string>
+    <string name="login_with_google">Google로 로그인</string>
+
+    <!-- Navigation -->
+    <string name="nav_home">홈</string>
+    <string name="nav_study">스터디</string>
+    <string name="nav_quiz">퀴즈</string>
+    <string name="nav_my">마이</string>
+
+    <!-- Study -->
+    <string name="study_search">스터디 탐색</string>
+    <string name="study_my">내 스터디</string>
+    <string name="study_create">스터디 만들기</string>
+    <string name="study_join">가입 신청</string>
+    <string name="study_bookmark">찜하기</string>
+
+    <!-- Attendance -->
+    <string name="attendance">출석</string>
+    <string name="attendance_check">출석 체크</string>
+    <string name="attendance_success">출석 완료!</string>
+
+    <!-- Quiz -->
+    <string name="quiz_today">오늘의 퀴즈</string>
+    <string name="quiz_wrong_notes">오답 노트</string>
+    <string name="quiz_contest">퀴즈 대회</string>
+    <string name="quiz_course">퀴즈 코스</string>
+</resources>

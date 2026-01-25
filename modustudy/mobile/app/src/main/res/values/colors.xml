@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Primary Brand Colors - Modern Purple/Blue -->
+    <color name="primary">#6C5CE7</color>
+    <color name="primary_variant">#5849C2</color>
+    <color name="primary_light">#A29BFE</color>
+
+    <!-- Secondary Colors - Teal Accent -->
+    <color name="secondary">#00CEC9</color>
+    <color name="secondary_variant">#00A8A3</color>
+    <color name="secondary_light">#81ECEC</color>
+
+    <!-- Background Colors -->
+    <color name="background">#FAFAFA</color>
+    <color name="background_dark">#121212</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="surface_dark">#1E1E1E</color>
+
+    <!-- Text Colors -->
+    <color name="on_primary">#FFFFFF</color>
+    <color name="on_secondary">#000000</color>
+    <color name="on_background">#2D3436</color>
+    <color name="on_background_secondary">#636E72</color>
+    <color name="on_surface">#2D3436</color>
+
+    <!-- Status Colors -->
+    <color name="success">#00B894</color>
+    <color name="warning">#FDCB6E</color>
+    <color name="error">#E17055</color>
+    <color name="info">#74B9FF</color>
+
+    <!-- Study Status Colors -->
+    <color name="status_recruiting">#00B894</color>
+    <color name="status_in_progress">#6C5CE7</color>
+    <color name="status_completed">#636E72</color>
+    <color name="status_pending">#FDCB6E</color>
+
+    <!-- Attendance Colors -->
+    <color name="attendance_present">#00B894</color>
+    <color name="attendance_late">#FDCB6E</color>
+    <color name="attendance_absent">#E17055</color>
+    <color name="attendance_excused">#74B9FF</color>
+
+    <!-- Grass (Activity) Colors -->
+    <color name="grass_level_0">#EBEDF0</color>
+    <color name="grass_level_1">#C6E48B</color>
+    <color name="grass_level_2">#7BC96F</color>
+    <color name="grass_level_3">#239A3B</color>
+    <color name="grass_level_4">#196127</color>
+
+    <!-- Social Login Colors -->
+    <color name="kakao_yellow">#FEE500</color>
+    <color name="naver_green">#03C75A</color>
+    <color name="google_white">#FFFFFF</color>
+
+    <!-- Gradient Colors -->
+    <color name="gradient_start">#6C5CE7</color>
+    <color name="gradient_end">#00CEC9</color>
+</resources>

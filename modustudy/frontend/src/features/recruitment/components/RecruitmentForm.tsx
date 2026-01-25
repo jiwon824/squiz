@@ -73,29 +73,36 @@ export const RecruitmentForm: React.FC<RecruitmentFormProps> = ({ initialData, o
             </header>
 
             <form onSubmit={handleSubmit} className="bg-white border border-border-light rounded-[32px] p-10 shadow-sm space-y-8">
-                {/* Category Selection */}
+                {/* 카테고리 선택 */}
                 <div className="space-y-3">
                     <label className="text-sm font-black text-text-tertiary uppercase tracking-widest">카테고리</label>
                     <div className="flex gap-4">
-                        {['study', 'project', 'mentoring'].map((cat) => (
-                            <button
-                                key={cat}
-                                type="button"
-                                onClick={() => setFormData({ ...formData, category: cat as any })}
-                                className={cn(
-                                    "flex-1 px-4 py-3 rounded-2xl text-sm font-bold border transition-all",
-                                    formData.category === cat
-                                        ? "bg-primary/5 border-primary text-primary shadow-sm"
-                                        : "bg-background-secondary/50 border-transparent text-text-secondary hover:border-border-light"
-                                )}
-                            >
-                                {cat.toUpperCase()}
-                            </button>
-                        ))}
+                        {[
+                            { value: 'study', label: '스터디' },
+                            { value: 'project', label: '프로젝트' },
+                            { value: 'mentoring', label: '멘토링' },
+                        ].map((cat) => {
+                            const isSelected = formData.category === cat.value;
+                            return (
+                                <button
+                                    key={cat.value}
+                                    type="button"
+                                    onClick={() => setFormData(prev => ({ ...prev, category: cat.value as any }))}
+                                    className={cn(
+                                        "flex-1 px-4 py-3 rounded-2xl text-sm font-bold border-2 transition-all cursor-pointer",
+                                        isSelected
+                                            ? "bg-primary text-white border-primary shadow-lg scale-105"
+                                            : "bg-gray-100 border-gray-200 text-gray-600 hover:bg-gray-200 hover:border-gray-300"
+                                    )}
+                                >
+                                    {cat.label}
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
 
-                {/* Title */}
+                {/* 제목 */}
                 <div className="space-y-3">
                     <label className="text-sm font-black text-text-tertiary uppercase tracking-widest">제목</label>
                     <input
@@ -108,7 +115,7 @@ export const RecruitmentForm: React.FC<RecruitmentFormProps> = ({ initialData, o
                     />
                 </div>
 
-                {/* Member Count */}
+                {/* 모집 인원 */}
                 <div className="space-y-3">
                     <label className="text-sm font-black text-text-tertiary uppercase tracking-widest">모집 인원 (최대)</label>
                     <div className="flex items-center gap-4">
@@ -126,7 +133,7 @@ export const RecruitmentForm: React.FC<RecruitmentFormProps> = ({ initialData, o
                     </div>
                 </div>
 
-                {/* Tags */}
+                {/* 태그 */}
                 <div className="space-y-3">
                     <label className="text-sm font-black text-text-tertiary uppercase tracking-widest">기술 스택 / 태그</label>
                     <div className="relative">
@@ -141,7 +148,7 @@ export const RecruitmentForm: React.FC<RecruitmentFormProps> = ({ initialData, o
                     </div>
                 </div>
 
-                {/* Content */}
+                {/* 내용 */}
                 <div className="space-y-3">
                     <label className="text-sm font-black text-text-tertiary uppercase tracking-widest">모집 상세 내용</label>
                     <textarea
@@ -154,7 +161,7 @@ export const RecruitmentForm: React.FC<RecruitmentFormProps> = ({ initialData, o
                     />
                 </div>
 
-                {/* Submit Buttons */}
+                {/* 제출 버튼 */}
                 <div className="flex gap-4 pt-6">
                     <Button
                         type="button"
