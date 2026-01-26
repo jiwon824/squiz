@@ -153,7 +153,7 @@ public class GoogleCalendarController {
         String webhookUrl = "https://i14d106.p.ssafy.io/api/v1/calendar/webhook";
         CalendarWatch watch = googleCalendarService.registerWatch(userId, webhookUrl);
 
-        return ResponseEntity.ok(ApiResponse.success(watch, "Watch가 등록되었습니다."));
+        return ResponseEntity.ok(ApiResponse.success(watch));
     }
 
     @DeleteMapping("/watch")
