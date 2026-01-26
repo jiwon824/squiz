@@ -109,6 +109,10 @@ dependencies {
 
     // Quartz 스케줄러
     implementation 'org.springframework.boot:spring-boot-starter-quartz'
+
+    // Google Calendar API
+    implementation 'com.google.apis:google-api-services-calendar:v3-rev20231123-2.0.0'
+    implementation 'com.google.auth:google-auth-library-oauth2-http:1.20.0'
 }
 
 tasks.named('test') {
