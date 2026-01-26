@@ -353,9 +353,6 @@ CREATE TABLE `study_leader_review` (
 CREATE TABLE `workspace` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
     `study_id` BIGINT NOT NULL,
-    `name` VARCHAR(100) NOT NULL,
-    `type` ENUM('TEXT', 'VOICE', 'VIDEO') NOT NULL,
-    `description` VARCHAR(500),
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (`study_id`) REFERENCES `study`(`id`) ON DELETE CASCADE
 );
@@ -382,22 +379,23 @@ CREATE TABLE `meeting` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
     `study_id` BIGINT NOT NULL,
     `session_id` BIGINT,                         -- 연결된 스터디 세션
-    `channel_id` BIGINT,                         -- 음성 채널
+    `workspace_id` BIGINT,                         -- 음성 채널
     `title` VARCHAR(200),
     `started_at` TIMESTAMP,
     `ended_at` TIMESTAMP,
     `duration_seconds` INT,
     `participant_count` INT DEFAULT 0,
     `status` ENUM('WAITING', 'IN_PROGRESS', 'ENDED') DEFAULT 'WAITING',
-    `recording_status`	ENUM('WAITING', 'RECORDING', 'READY', 'FAILED')  ENUM('PENDING', 'PROCESSING', 'DONE', 'FAILED') DEFAULT 'PENDING',
+    `recording_status`	ENUM('WAITING', 'RECORDING', 'READY', 'FAILED'),  -- 녹화 상태
+    `processing_status` ENUM('PENDING', 'PROCESSING', 'DONE', 'FAILED') DEFAULT 'PENDING', -- 녹화 처리 상태
 	`stt_status`	ENUM('PENDING', 'PROCESSING', 'DONE', 'FAILED') DEFAULT 'PENDING',
 	`summary_status`	ENUM('PENDING', 'PROCESSING', 'DONE', 'FAILED') DEFAULT 'PENDING',
 	`auto_share_summary`	BOOLEAN DEFAULT FALSE,
-	`share_channel_id`	BIGINT	NULL,
+	`share_workspace_id`	BIGINT	NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (`study_id`) REFERENCES `study`(`id`) ON DELETE CASCADE,
     FOREIGN KEY (`session_id`) REFERENCES `study_session`(`id`),
-    FOREIGN KEY (`channel_id`) REFERENCES `channel`(`id`)
+    FOREIGN KEY (`workspace_id`) REFERENCES `workspace`(`id`)
 );
 
 CREATE TABLE `meeting_participant` (
@@ -794,12 +792,33 @@ CREATE TABLE `study_quiz_attempt` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
     `quiz_id` BIGINT NOT NULL,
     `user_id` BIGINT NOT NULL,
+    `status` ENUM('IN_PROGRESS', 'COMPLETED', 'ABANDONED') DEFAULT 'IN_PROGRESS',
+    `started_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `last_answered_at` TIMESTAMP NULL,
+    `current_question_index` INT DEFAULT 0,
     `score` INT DEFAULT 0,
     `total_questions` INT,
     `correct_count` INT,
-    `completed_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `completed_at` TIMESTAMP,
     FOREIGN KEY (`quiz_id`) REFERENCES `study_quiz`(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`user_id`) REFERENCES `user`(`id`)
+    FOREIGN KEY (`user_id`) REFERENCES `user`(`id`),
+    INDEX `idx_quiz_attempt_user_status` (`quiz_id`, `user_id`, `status`)
+);
+
+-- 스터디 퀴즈 개별 문제 답변 기록
+CREATE TABLE `study_quiz_answer` (
+    `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
+    `attempt_id` BIGINT NOT NULL,
+    `question_id` BIGINT NOT NULL,
+    `question_index` INT NOT NULL,                   -- 문제 순서 (0부터 시작)
+    `user_answer` JSON,                              -- 사용자 답변 (객관식: ["A"], 단답형: "답")
+    `is_correct` BOOLEAN DEFAULT FALSE,
+    `time_taken_seconds` INT DEFAULT 0,              -- 문제 풀이 소요 시간
+    `answered_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (`attempt_id`) REFERENCES `study_quiz_attempt`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`question_id`) REFERENCES `study_quiz_question`(`id`) ON DELETE CASCADE,
+    UNIQUE KEY `uk_attempt_question` (`attempt_id`, `question_id`),
+    INDEX `idx_attempt_index` (`attempt_id`, `question_index`)
 );
 
 CREATE TABLE `wrong_answer_note` (

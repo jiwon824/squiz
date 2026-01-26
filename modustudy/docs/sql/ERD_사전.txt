@@ -50,6 +50,7 @@ quiz_practice_answer      퀴즈코스답안
 study_quiz                스터디퀴즈
 study_quiz_question       스터디퀴즈문제
 study_quiz_attempt        스터디퀴즈시도
+study_quiz_answer         스터디퀴즈답변
 wrong_answer_note         오답노트
 quiz_course               퀴즈코스
 quiz_course_section       퀴즈코스섹션
@@ -241,6 +242,7 @@ time_spent_seconds        소요시간(초)
 practice_record_id        연습기록ID
 time_taken_seconds        답변소요시간(초)
 last_answer_time          마지막답변시간
+last_answered_at          마지막답변일시
 participant_id            참가자ID
 total_score               총점
 correct_count             정답수
@@ -478,6 +480,11 @@ STUDY                     스터디대회
 ACTIVE                    활성
 DISABLED                  비활성
 
+--- study_quiz_attempt.status (퀴즈시도상태) ---
+IN_PROGRESS               진행중
+COMPLETED                 완료
+ABANDONED                 중단
+
 --- activity_type (활동유형) ---
 STUDY_ATTENDANCE          스터디출석
 QUIZ_CONTEST              퀴즈대회참여
@@ -587,6 +594,8 @@ is_solved                 해결여부
 guess_count               추측횟수
 solved_at                 해결일시
 attempt_id                시도ID (FK)
+question_index            문제순서
+current_question_index    현재문제순서
 guess_number              추측순번
 guessed_word              추측단어
 similarity                유사도

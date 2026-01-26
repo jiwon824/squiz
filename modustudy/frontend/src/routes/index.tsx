@@ -1,18 +1,16 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { LoadingFallback } from '../components';
+import { Skeleton } from '../shared/components';
 
 // 즉시 로드: 랜딩 및 핵심 페이지
 import { StartPage } from '../features/start/StartPage';
-import { Dashboard, CalendarExpandWidget } from '../features/dashboard';
+import { Dashboard, CalendarExpandWidget, DashboardSkeleton } from '../features/dashboard';
+import { CalendarTestPage } from '../features/calendar/components/CalendarTestPage';
 import { authApi } from '@/api/endpoints/authApi';
 import { useAuthStore } from '@/store/authStore';
 import ReuseTest from '../features/reuseTest';
 
 // Lazy 로드: 나머지 페이지들
-const CommentlePage = lazy(() =>
-    import('../features/commentle/CommentlePage').then(m => ({ default: m.CommentlePage }))
-);
 const QuizGameSelection = lazy(() =>
     import('../features/quiz').then(m => ({ default: m.QuizGameSelection }))
 );
@@ -46,8 +44,8 @@ const StudyDetailPage = lazy(() =>
 const StudyManagementPage = lazy(() =>
     import('../features/study').then(m => ({ default: m.StudyManagementPage }))
 );
-const TestSidebarPage = lazy(() =>
-    import('../features/test/TestSidebarPage').then(m => ({ default: m.TestSidebarPage }))
+const SettingPage = lazy(() =>
+    import('../features/setting/SettingPage').then(m => ({ default: m.SettingPage }))
 );
 const ProfilePage = lazy(() =>
     import('@/features/profile/components/ProfilePage').then(module => ({ default: module.ProfilePage }))
@@ -60,6 +58,10 @@ const MeetingDetailPage = lazy(() =>
 );
 const MeetingRoomPage = lazy(() =>
     import('../features/meeting').then(m => ({ default: m.MeetingRoomPage }))
+);
+
+const ProfileSkeleton = lazy(() =>
+    import('@/features/profile/components/ProfileSkeleton').then(module => ({ default: module.ProfileSkeleton }))
 );
 
 export const AppRouter = () => {
@@ -95,20 +97,23 @@ export const AppRouter = () => {
 
     return (
         <BrowserRouter>
-            <Suspense fallback={<LoadingFallback />}>
+            <Suspense fallback={<div className="p-6"><Skeleton variant="rect" height="100vh" /></div>}>
                 <Routes>
                     {/* 즉시 로드 페이지 */}
                     <Route path="/" element={<StartPage />} />
                     <Route path="/startpage" element={<StartPage />} />
-                    <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/dashboard" element={
+                        <Suspense fallback={<DashboardSkeleton />}>
+                            <Dashboard />
+                        </Suspense>
+                    } />
                     <Route path="/calendar-expand" element={<CalendarExpandWidget />} />
+                    <Route path="/test-calendar" element={<CalendarTestPage />} />
                     <Route path="/reuse-test" element={<ReuseTest />} />
 
                     {/* Lazy 로드 페이지 */}
-                    <Route path="/commentle" element={<CommentlePage />} />
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/login/callback" element={<LoginCallbackPage />} />
-                    <Route path="/password/reset" element={<PasswordResetPage />} />
                     <Route path="/signup" element={<SignupPage />} />
                     <Route path="/quiz" element={<QuizGameSelection />} />
                     <Route path="/quiz-commentle" element={<CommentleQuiz />} />
@@ -120,7 +125,12 @@ export const AppRouter = () => {
                     <Route path="/study/:studyId/meetings/:meetingId" element={<MeetingDetailPage />} />
                     <Route path="/study/:studyId/meetings/:meetingId/room" element={<MeetingRoomPage />} />
                     <Route path="/recruitment" element={<RecruitmentPage />} />
-                    <Route path="/profile" element={<ProfilePage />} />
+                    <Route path="/setting" element={<SettingPage />} />
+                    <Route path="/profile" element={
+                        <Suspense fallback={<ProfileSkeleton />}>
+                            <ProfilePage />
+                        </Suspense>
+                    } />
                 </Routes>
             </Suspense>
         </BrowserRouter>

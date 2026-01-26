@@ -1,2 +1,2 @@
 export { QuizGameSelection } from './QuizGameSelection';
-export { default as CommentleQuiz } from './Commentle/CommentleQuiz.jsx';
+export { CommentleQuizPage as CommentleQuiz } from './Commentle/CommentleQuizPage';

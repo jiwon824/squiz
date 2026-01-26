@@ -1,0 +1,16 @@
+{
+  "name": "squiz-monitor",
+  "version": "1.0.0",
+  "description": "Lightweight server monitoring service",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "dockerode": "^4.0.2",
+    "systeminformation": "^5.22.0",
+    "cors": "^2.8.5"
+  }
+}

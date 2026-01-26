@@ -43,6 +43,23 @@ services:
     networks:
       - squiz-network
 
+  # ===========================================
+  # Monitor Server (서버 모니터링)
+  # ===========================================
+  monitor:
+    build: ./monitor-server
+    container_name: squiz-monitor
+    expose:
+      - "9090"
+    environment:
+      - PORT=9090
+      - MONITOR_API_KEY=${MONITOR_API_KEY:-squiz-monitor-secret}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+    networks:
+      - squiz-network
+
 # ===========================================
 # Networks (외부 네트워크 - 미리 생성 필요)
 # ===========================================
@@ -57,3 +74,5 @@ networks:
 volumes:
   mysql-data:
   redis-data:
+  uploads-data:
+    name: squiz-uploads

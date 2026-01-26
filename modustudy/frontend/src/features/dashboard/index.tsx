@@ -2,8 +2,8 @@ import { ActivitySection, StatsSection, FeedsSection, QuizWidget, QuizWidget2, C
 import './styles/Dashboard.css';
 import { MainLayout } from '@/layouts/MainLayout';
 import { useAuthStore } from '@/store/authStore';
-
-export { CalendarExpandWidget };
+import { DashboardSkeleton } from './components/DashboardSkeleton';
+export { CalendarExpandWidget, DashboardSkeleton };
 
 const UserDashboard = () => (
     <div className="dashboard-grid">

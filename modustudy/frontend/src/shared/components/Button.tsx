@@ -47,12 +47,19 @@ export const Button: React.FC<ButtonProps> = ({
     };
 
     // 사이즈 스타일 (원형일 때와 아닐 때 구분)
+    // - 모바일: 14-16px (text-sm/text-base)
+    // - 태블릿: 14-17px (text-sm/text-base+)
+    // - 데스크탑: 15-20px (text-base/text-xl)
     const sizes: Record<ButtonSize, string> = {
-        sm: isCircle ? 'w-8 h-8 rounded-full p-0' : 'px-3 py-1.5 text-xs rounded-lg gap-1.5',
-        md: isCircle ? 'w-10 h-10 rounded-full p-0' : 'px-6 py-2.5 text-sm rounded-xl gap-2',
-        lg: isCircle ? 'w-12 h-12 rounded-full p-0' : 'px-8 py-3.5 text-base rounded-2xl gap-2.5',
-        xl: isCircle ? 'w-14 h-14 rounded-full p-0' : 'px-10 py-4 text-lg rounded-3xl gap-3',
+        sm: isCircle ? 'w-8 h-8 rounded-full p-0' : 'text-sm md:text-sm lg:text-[15px] rounded-lg gap-1.5',
+        md: isCircle ? 'w-10 h-10 rounded-full p-0' : 'text-sm md:text-[15px] lg:text-[17px] rounded-xl gap-2',
+        lg: isCircle ? 'w-12 h-12 rounded-full p-0' : 'text-base md:text-[16px] lg:text-[18px] rounded-2xl gap-2.5',
+        xl: isCircle ? 'w-14 h-14 rounded-full p-0' : 'text-base md:text-[17px] lg:text-[20px] rounded-3xl gap-3',
     };
+
+    // 패딩 규칙 (아이콘 포함 시 12:20, 글자만 있을 시 20:20)
+    const hasIcon = !!leftIcon || !!rightIcon || isLoading;
+    const paddingStyles = isCircle ? '' : (hasIcon ? 'pl-[12px] pr-[20px]' : 'px-[20px]');
 
     return (
         <button
@@ -60,6 +67,7 @@ export const Button: React.FC<ButtonProps> = ({
                 baseStyles,
                 variants[variant],
                 sizes[size],
+                paddingStyles,
                 {
                     'w-full': fullWidth,
                 },
