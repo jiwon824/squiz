@@ -15,16 +15,23 @@ const DMListMini: React.FC = () => {
         fetchUnreadCount,
         setCurrentConversation,
         sendMessage,
-        clearPendingDM
+        clearPendingDM,
+        connectWebSocket,
+        disconnectWebSocket
     } = useDMStore();
 
     const [messageInput, setMessageInput] = useState('');
 
-    // 초기 데이터 로드
+    // 초기 데이터 로드 + WebSocket 연결
     useEffect(() => {
         fetchConversations();
         fetchUnreadCount();
-    }, [fetchConversations, fetchUnreadCount]);
+        connectWebSocket();
+
+        return () => {
+            disconnectWebSocket();
+        };
+    }, [fetchConversations, fetchUnreadCount, connectWebSocket, disconnectWebSocket]);
 
     // 메시지 전송
     const handleSendMessage = async () => {

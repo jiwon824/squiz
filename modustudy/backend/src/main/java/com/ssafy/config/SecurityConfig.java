@@ -44,7 +44,7 @@ public class SecurityConfig {
                         // 인증 없이 접근 가능
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers("/api/v1/users").permitAll()
-                        // // News API - 테스트용 (나중에 인증 적용 가능)
+                        // News API - 테스트용 (나중에 인증 적용 가능)
                         .requestMatchers("/api/news/**", "/api/test/news/**").permitAll()
                         // Temporary: allow meeting APIs without auth for local testing
                         .requestMatchers("/api/v1/studies/*/meetings/**").permitAll()
@@ -54,6 +54,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/study/**").permitAll()
                         .requestMatchers("/api/v1/workspaces/**").permitAll()
                         .requestMatchers("/api/v1/studies/**").permitAll()
+                        // 퀴즈 코스
+                        .requestMatchers("/api/v1/quiz-courses/**").permitAll()
+                        // 데일리
+                        .requestMatchers("/api/v1/dailies/**").permitAll()
                         // 퀴즈 코스 (base path and wildcard)
                         .requestMatchers("/api/v1/quiz-courses", "/api/v1/quiz-courses/**").permitAll()
                         // 나머지는 인증 필요

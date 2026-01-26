@@ -45,8 +45,14 @@ const RecruitmentPage = lazy(() =>
 const StudyPage = lazy(() =>
     import('../features/study').then(m => ({ default: m.StudyPage }))
 );
+const StudyTypeSelectPage = lazy(() =>
+    import('../features/study').then(m => ({ default: m.StudyTypeSelectPage }))
+);
 const StudyCreatePage = lazy(() =>
     import('../features/study').then(m => ({ default: m.StudyCreatePage }))
+);
+const LightningStudyCreatePage = lazy(() =>
+    import('../features/study').then(m => ({ default: m.LightningStudyCreatePage }))
 );
 const StudyDetailPage = lazy(() =>
     import('../features/study').then(m => ({ default: m.StudyDetailPage }))
@@ -72,6 +78,9 @@ const MeetingRoomPage = lazy(() =>
 
 const ProfileSkeleton = lazy(() =>
     import('@/features/profile/components/ProfileSkeleton').then(module => ({ default: module.ProfileSkeleton }))
+);
+const AdminDashboardPage = lazy(() =>
+    import('../features/admin').then(m => ({ default: m.AdminDashboardPage }))
 );
 
 export const AppRouter = () => {
@@ -151,5 +160,35 @@ export const AppRouter = () => {
                 } />
             </Routes>
         </Suspense>
+                    {/* Lazy 로드 페이지 */}
+                    <Route path="/login" element={<LoginPage />} />
+                    <Route path="/login/callback" element={<LoginCallbackPage />} />
+                    <Route path="/password/reset" element={<PasswordResetPage />} />
+                    <Route path="/signup" element={<SignupPage />} />
+                    <Route path="/quiz" element={<QuizGameSelection />} />
+                    <Route path="/quiz-commentle" element={<CommentleQuiz />} />
+                    <Route path="/quiz-practice" element={<QuizCourseList />} />
+                    <Route path="/quiz-practice/:courseId" element={<CourseDetail />} />
+                    <Route path="/quiz-practice/:courseId/section/:sectionId/session" element={<QuizSessionPage />} />
+                    <Route path="/study" element={<StudyPage />} />
+                    <Route path="/study/create" element={<StudyTypeSelectPage />} />
+                    <Route path="/study/create/planned" element={<StudyCreatePage />} />
+                    <Route path="/study/create/lightning" element={<LightningStudyCreatePage />} />
+                    <Route path="/study/:id" element={<StudyDetailPage />} />
+                    <Route path="/study/manage/:id" element={<StudyManagementPage />} />
+                    <Route path="/study/:studyId/meetings" element={<MeetingHistoryPage />} />
+                    <Route path="/study/:studyId/meetings/:meetingId" element={<MeetingDetailPage />} />
+                    <Route path="/study/:studyId/meetings/:meetingId/room" element={<MeetingRoomPage />} />
+                    <Route path="/recruitment" element={<RecruitmentPage />} />
+                    <Route path="/setting" element={<SettingPage />} />
+                    <Route path="/profile" element={
+                        <Suspense fallback={<ProfileSkeleton />}>
+                            <ProfilePage />
+                        </Suspense>
+                    } />
+                    <Route path="/admin" element={<AdminDashboardPage />} />
+                </Routes>
+            </Suspense>
+        </BrowserRouter>
     );
 };
