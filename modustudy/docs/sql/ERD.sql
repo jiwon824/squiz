@@ -1430,7 +1430,6 @@ CREATE TABLE `news_bookmark` (
     FOREIGN KEY (`news_id`) REFERENCES `it_news`(`id`) ON DELETE CASCADE,
     UNIQUE KEY `uk_user_news` (`user_id`, `news_id`)
 );
-
 -- ===== Quartz Scheduler 테이블 생성 =====
 
 DROP TABLE IF EXISTS QRTZ_FIRED_TRIGGERS;

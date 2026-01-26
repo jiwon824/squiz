@@ -23,7 +23,6 @@ public class NewsScrapingJob implements Job {
         log.info("========================================");
 
         try {
-            // Google News IT 뉴스 크롤링 (작동 확인됨!)
             newsScraperService.scrapeGoogleNewsIT();
 
             log.info("========================================");

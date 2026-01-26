@@ -9,11 +9,14 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -25,15 +28,82 @@ public class NewsScraperService {
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36";
 
     /**
-     * Google News IT 뉴스 RSS (차단 없음!)
+     * Google News IT 뉴스 크롤링 (여러 키워드)
      */
-    @Transactional
     public void scrapeGoogleNewsIT() {
-        log.info("=== Google News IT 뉴스 크롤링 시작 ===");
+        log.info("========================================");
+        log.info("Google News IT 뉴스 크롤링 시작");
+        log.info("========================================");
 
+        // 다양한 IT 키워드 목록
+        List<String> keywords = Arrays.asList(
+                "IT+기술",
+                "인공지능+AI",
+                "빅데이터",
+                "클라우드+컴퓨팅",
+                "사이버보안",
+                "소프트웨어+개발",
+                "프론트엔드+개발",
+                "백엔드+개발",
+                "DevOps",
+                "머신러닝",
+                "블록체인",
+                "코딩테스트",
+                "개발자+채용",
+                "스타트업+기술",
+                "자바스크립트",
+                "파이썬+프로그래밍",
+                "쿠버네티스+Docker",
+                "데이터사이언스",
+                "모바일+앱개발",
+                "웹개발"
+        );
+
+        int totalSaved = 0;
+        int successCount = 0;
+        int failCount = 0;
+
+        for (String keyword : keywords) {
+            try {
+                int saved = scrapeByKeywordWithTransaction(keyword);
+                totalSaved += saved;
+                successCount++;
+
+                log.info("[{}] 키워드로 {}개 뉴스 저장", keyword, saved);
+
+                // 서버 부하 방지를 위한 대기 (1초)
+                Thread.sleep(1000);
+
+            } catch (Exception e) {
+                failCount++;
+                log.error("키워드 [{}] 크롤링 실패", keyword, e);
+            }
+        }
+
+        log.info("========================================");
+        log.info("크롤링 완료 - 성공: {}/{}, 실패: {}", successCount, keywords.size(), failCount);
+        log.info("총 {}개의 새로운 뉴스 저장", totalSaved);
+        log.info("========================================");
+    }
+
+    /**
+     * 트랜잭션 래퍼 메서드
+     * 각 키워드별로 독립적인 트랜잭션 생성
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public int scrapeByKeywordWithTransaction(String keyword) {
+        return scrapeByKeyword(keyword);
+    }
+
+    /**
+     * 특정 키워드로 Google News 크롤링
+     */
+    private int scrapeByKeyword(String keyword) {
         try {
-            // Google News IT 검색 RSS
-            String url = "https://news.google.com/rss/search?q=IT+OR+인공지능+OR+개발자+OR+프로그래밍&hl=ko&gl=KR&ceid=KR:ko";
+            String url = String.format(
+                    "https://news.google.com/rss/search?q=%s&hl=ko&gl=KR&ceid=KR:ko",
+                    keyword
+            );
 
             Document doc = Jsoup.connect(url)
                     .userAgent(USER_AGENT)
@@ -41,12 +111,7 @@ public class NewsScraperService {
                     .parser(org.jsoup.parser.Parser.xmlParser())
                     .get();
 
-            log.info("Google News RSS 접속 성공");
-
             Elements items = doc.select("item");
-
-            log.info("찾은 뉴스 개수: {}", items.size());
-
             int savedCount = 0;
 
             for (Element item : items) {
@@ -61,9 +126,10 @@ public class NewsScraperService {
                     if (linkElement == null) continue;
                     String link = linkElement.text();
 
-                    // 중복 체크
+                    // 중복 체크 - 이제 트랜잭션 안에서 정상 작동!
+                    // 중복 체크 부분
                     if (itNewsRepository.existsBySourceUrl(link)) {
-                        log.debug("이미 존재: {}", title);
+                        log.info("🔴 중복 뉴스 발견! URL: {}", link);
                         continue;
                     }
 
@@ -94,7 +160,7 @@ public class NewsScraperService {
                         }
                     }
 
-                    // 출처 추출 (Google News는 여러 언론사 통합)
+                    // 출처 추출
                     String sourceName = "Google News";
                     Element sourceElement = item.selectFirst("source");
                     if (sourceElement != null) {
@@ -114,10 +180,8 @@ public class NewsScraperService {
                     itNewsRepository.save(news);
                     savedCount++;
 
-                    log.info("뉴스 저장 [{}]: {}", savedCount, title);
-
-                    // 10개 저장
-                    if (savedCount >= 10) {
+                    // 키워드당 최대 5개씩만 저장
+                    if (savedCount >= 5) {
                         break;
                     }
 
@@ -126,130 +190,12 @@ public class NewsScraperService {
                 }
             }
 
-            log.info("=== Google News 크롤링 완료: {}개 저장 ===", savedCount);
+            return savedCount;
 
         } catch (Exception e) {
-            log.error("Google News RSS 크롤링 실패", e);
-            throw new RuntimeException("뉴스 크롤링 중 오류 발생", e);
+            log.error("키워드 [{}] RSS 크롤링 실패", keyword, e);
+            return 0; // 예외 발생 시 0 반환 (throw 하지 않음)
         }
     }
 
-    /**
-     * 한겨레 IT 뉴스 RSS (국내 언론사, 차단 없음)
-     */
-    @Transactional
-    public void scrapeHankyorehIT() {
-        log.info("=== 한겨레 IT 뉴스 크롤링 시작 ===");
-
-        try {
-            String url = "https://www.hani.co.kr/rss/";
-
-            Document doc = Jsoup.connect(url)
-                    .userAgent(USER_AGENT)
-                    .timeout(10000)
-                    .parser(org.jsoup.parser.Parser.xmlParser())
-                    .get();
-
-            log.info("한겨레 RSS 접속 성공");
-
-            Elements items = doc.select("item");
-
-            log.info("찾은 뉴스 개수: {}", items.size());
-
-            int savedCount = 0;
-
-            for (Element item : items) {
-                try {
-                    String title = item.selectFirst("title").text();
-                    String link = item.selectFirst("link").text();
-
-                    // IT 관련 키워드 필터링
-                    if (!isITRelated(title)) {
-                        continue;
-                    }
-
-                    if (itNewsRepository.existsBySourceUrl(link)) {
-                        continue;
-                    }
-
-                    Element descElement = item.selectFirst("description");
-                    String description = descElement != null ? descElement.text() : "";
-
-                    if (description.contains("<")) {
-                        description = Jsoup.parse(description).text();
-                    }
-
-                    if (description.length() > 500) {
-                        description = description.substring(0, 497) + "...";
-                    }
-
-                    ItNews news = ItNews.builder()
-                            .title(title)
-                            .summary(description)
-                            .sourceUrl(link)
-                            .sourceName("한겨레")
-                            .category("IT")
-                            .publishedAt(LocalDateTime.now())
-                            .build();
-
-                    itNewsRepository.save(news);
-                    savedCount++;
-
-                    log.info("뉴스 저장 [{}]: {}", savedCount, title);
-
-                    if (savedCount >= 5) {
-                        break;
-                    }
-
-                } catch (Exception e) {
-                    log.error("뉴스 처리 에러", e);
-                }
-            }
-
-            log.info("=== 한겨레 크롤링 완료: {}개 저장 ===", savedCount);
-
-        } catch (Exception e) {
-            log.error("한겨레 RSS 크롤링 실패", e);
-        }
-    }
-
-    /**
-     * IT 관련 키워드 체크
-     */
-    private boolean isITRelated(String title) {
-        String[] keywords = {
-                "IT", "AI", "인공지능", "개발", "프로그래밍", "소프트웨어",
-                "앱", "데이터", "클라우드", "보안", "해킹", "스타트업",
-                "테크", "기술", "디지털", "컴퓨터", "코딩", "웹"
-        };
-
-        for (String keyword : keywords) {
-            if (title.contains(keyword)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * 다중 RSS 크롤링
-     */
-    @Transactional
-    public void scrapeAllNews() {
-        log.info("=== 전체 뉴스 크롤링 시작 ===");
-
-        try {
-            scrapeGoogleNewsIT();
-        } catch (Exception e) {
-            log.error("Google News 크롤링 실패", e);
-        }
-
-        try {
-            scrapeHankyorehIT();
-        } catch (Exception e) {
-            log.error("한겨레 크롤링 실패", e);
-        }
-
-        log.info("=== 전체 뉴스 크롤링 완료 ===");
-    }
 }

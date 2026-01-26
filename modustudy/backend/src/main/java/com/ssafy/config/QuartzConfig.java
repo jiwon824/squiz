@@ -8,9 +8,6 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class QuartzConfig {
 
-    /**
-     * 뉴스 크롤링 Job 정의
-     */
     @Bean
     public JobDetail newsScrapingJobDetail() {
         return JobBuilder.newJob(NewsScrapingJob.class)
@@ -20,19 +17,12 @@ public class QuartzConfig {
                 .build();
     }
 
-    /**
-     * 뉴스 크롤링 Trigger - 매일 오전 6시 실행
-     */
     @Bean
-    public Trigger newsScrapingTrigger() {
+    public CronTrigger newsScrapingTrigger() {
         return TriggerBuilder.newTrigger()
                 .forJob(newsScrapingJobDetail())
-                .withIdentity("newsScrapingTrigger", "news-triggers")
-                .withDescription("매일 오전 6시 뉴스 크롤링")
-                .withSchedule(
-                        CronScheduleBuilder.cronSchedule("0 0 6 * * ?")
-                                .inTimeZone(java.util.TimeZone.getTimeZone("Asia/Seoul"))
-                )
+                .withIdentity("newsScrapingTrigger")
+                .withSchedule(CronScheduleBuilder.cronSchedule("0 0 * * * ?"))  // 10분마다 (개발용)
                 .build();
     }
 }

@@ -1,8 +1,8 @@
 package com.ssafy.domain.news.controller;
 
+import com.ssafy.common.auth.SsafyUserDetails;  // ← 추가
 import com.ssafy.domain.news.dto.response.NewsResponse;
 import com.ssafy.domain.news.service.NewsBookmarkService;
-import com.ssafy.domain.user.entity.User;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -21,13 +21,15 @@ public class NewsBookmarkController {
 
     private final NewsBookmarkService newsBookmarkService;
 
+    // ==================== 원래 API (JWT 인증 필요) ====================
+
     @Operation(summary = "북마크 추가", description = "뉴스를 북마크에 추가합니다.")
     @PostMapping("/{newsId}/bookmark")
     public ResponseEntity<Map<String, String>> addBookmark(
             @PathVariable Long newsId,
-            @AuthenticationPrincipal User user
+            @AuthenticationPrincipal SsafyUserDetails userDetails  // ← 수정
     ) {
-        newsBookmarkService.addBookmark(user.getId(), newsId);
+        newsBookmarkService.addBookmark(userDetails.getUser().getId(), newsId);
         return ResponseEntity.ok(Map.of("message", "북마크가 추가되었습니다."));
     }
 
@@ -35,18 +37,18 @@ public class NewsBookmarkController {
     @DeleteMapping("/{newsId}/bookmark")
     public ResponseEntity<Map<String, String>> removeBookmark(
             @PathVariable Long newsId,
-            @AuthenticationPrincipal User user
+            @AuthenticationPrincipal SsafyUserDetails userDetails  // ← 수정
     ) {
-        newsBookmarkService.removeBookmark(user.getId(), newsId);
+        newsBookmarkService.removeBookmark(userDetails.getUser().getId(), newsId);
         return ResponseEntity.ok(Map.of("message", "북마크가 삭제되었습니다."));
     }
 
     @Operation(summary = "내 북마크 목록", description = "내가 북마크한 뉴스 목록을 조회합니다.")
     @GetMapping("/bookmarks")
     public ResponseEntity<List<NewsResponse>> getMyBookmarks(
-            @AuthenticationPrincipal User user
+            @AuthenticationPrincipal SsafyUserDetails userDetails  // ← 수정
     ) {
-        List<NewsResponse> bookmarks = newsBookmarkService.getMyBookmarks(user.getId());
+        List<NewsResponse> bookmarks = newsBookmarkService.getMyBookmarks(userDetails.getUser().getId());
         return ResponseEntity.ok(bookmarks);
     }
 
@@ -54,9 +56,9 @@ public class NewsBookmarkController {
     @GetMapping("/{newsId}/bookmark/check")
     public ResponseEntity<Map<String, Boolean>> checkBookmark(
             @PathVariable Long newsId,
-            @AuthenticationPrincipal User user
+            @AuthenticationPrincipal SsafyUserDetails userDetails  // ← 수정
     ) {
-        boolean isBookmarked = newsBookmarkService.isBookmarked(user.getId(), newsId);
+        boolean isBookmarked = newsBookmarkService.isBookmarked(userDetails.getUser().getId(), newsId);
         return ResponseEntity.ok(Map.of("isBookmarked", isBookmarked));
     }
 }
