@@ -24,6 +24,8 @@ export default defineConfig({
                 target: 'http://localhost:8080',
                 changeOrigin: true,
                 secure: false,
+                // 도메인 변환: 서버가 8080 포트용으로 발행한 쿠키를 Vite가 중간에서 가로채 modustudy.local용으로 이름을 바꿔줌
+                cookieDomainRewrite: 'modustudy.local',
             }
         },
         https: (() => {
