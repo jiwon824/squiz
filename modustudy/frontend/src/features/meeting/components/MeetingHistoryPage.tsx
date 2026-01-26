@@ -20,6 +20,10 @@ const MeetingHistoryPage: React.FC = () => {
     const [endDate, setEndDate] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [showStartModal, setShowStartModal] = useState(false);
+    const [page, setPage] = useState(0);
+    const [totalPages, setTotalPages] = useState(1);
+    const pageSize = 10;
+    const pageGroupSize = 5;
 
     const fetchMeetings = useCallback(async () => {
         if (!numericStudyId) return;
@@ -29,19 +33,15 @@ const MeetingHistoryPage: React.FC = () => {
                 meetingType: meetingType === 'ALL' ? undefined : meetingType,
                 startDate: startDate || undefined,
                 endDate: endDate || undefined,
-                page: 0,
-                size: 20,
+                page,
+                size: pageSize,
             });
-            const sorted = [...response.content].sort((a, b) => {
-                const aTime = a.startedAt ? new Date(a.startedAt).getTime() : 0;
-                const bTime = b.startedAt ? new Date(b.startedAt).getTime() : 0;
-                return bTime - aTime;
-            });
-            setMeetings(sorted);
+            setMeetings(response.content);
+            setTotalPages(Math.max(1, response.totalPages || 1));
         } finally {
             setIsLoading(false);
         }
-    }, [numericStudyId, meetingType, startDate, endDate]);
+    }, [numericStudyId, meetingType, startDate, endDate, page]);
 
     useEffect(() => {
         fetchMeetings();
@@ -80,16 +80,45 @@ const MeetingHistoryPage: React.FC = () => {
                 </div>
 
                 <div className="meeting-history__filters">
-                    <select value={meetingType} onChange={(event) => setMeetingType(event.target.value as MeetingType | 'ALL')}>
+                    <select
+                        value={meetingType}
+                        onChange={(event) => {
+                            setMeetingType(event.target.value as MeetingType | 'ALL');
+                            setPage(0);
+                        }}
+                    >
                         <option value="ALL">전체 유형</option>
                         <option value="DAILY">데일리 스탠드업</option>
                         <option value="WEEKLY">주간 회고</option>
                         <option value="FREE">자유 회의</option>
                         <option value="OTHER">기타</option>
                     </select>
-                    <input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} />
-                    <input type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} />
-                    <button className="meeting-btn ghost" onClick={fetchMeetings}>
+                    <input
+                        type="date"
+                        value={startDate}
+                        onChange={(event) => {
+                            setStartDate(event.target.value);
+                            setPage(0);
+                        }}
+                    />
+                    <input
+                        type="date"
+                        value={endDate}
+                        onChange={(event) => {
+                            setEndDate(event.target.value);
+                            setPage(0);
+                        }}
+                    />
+                    <button
+                        className="meeting-btn ghost"
+                        onClick={() => {
+                            if (page !== 0) {
+                                setPage(0);
+                                return;
+                            }
+                            fetchMeetings();
+                        }}
+                    >
                         필터 적용
                     </button>
                 </div>
@@ -139,6 +168,40 @@ const MeetingHistoryPage: React.FC = () => {
                             </div>
                         ))}
                         {meetings.length === 0 && <p className="meeting-history__empty">미팅 기록이 없습니다.</p>}
+                    </div>
+                )}
+                {totalPages > 1 && (
+                    <div className="meeting-history__pagination">
+                        <button
+                            className="meeting-page-btn meeting-page-btn--nav"
+                            onClick={() => setPage((prev) => Math.max(0, prev - 1))}
+                            disabled={page === 0}
+                        >
+                            이전
+                        </button>
+                        {Array.from({ length: Math.min(pageGroupSize, totalPages) }, (_, offset) => {
+                            const groupStart = Math.floor(page / pageGroupSize) * pageGroupSize;
+                            const index = groupStart + offset;
+                            if (index >= totalPages) return null;
+                            const displayPage = index + 1;
+                            return (
+                                <button
+                                    key={displayPage}
+                                    className={`meeting-page-btn ${page === index ? 'active' : ''}`}
+                                    onClick={() => setPage(index)}
+                                    disabled={page === index}
+                                >
+                                    {displayPage}
+                                </button>
+                            );
+                        })}
+                        <button
+                            className="meeting-page-btn meeting-page-btn--nav"
+                            onClick={() => setPage((prev) => Math.min(totalPages - 1, prev + 1))}
+                            disabled={page >= totalPages - 1}
+                        >
+                            다음
+                        </button>
                     </div>
                 )}
             </div>

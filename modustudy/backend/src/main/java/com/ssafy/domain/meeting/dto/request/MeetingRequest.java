@@ -6,9 +6,9 @@ import jakarta.validation.constraints.Size;
 public record MeetingRequest(
         @Size(max = 200) String title,
         Long sessionId,
-        Long channelId,
+        Long workspaceId,
         MeetingType meetingType,
         Boolean autoShareSummary,
-        Long shareChannelId
+        Long shareWorkspaceId
 ) {
 }

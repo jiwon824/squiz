@@ -13,7 +13,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"title\": \"test meeting\",\n  \"sessionId\": 1,\n  \"channelId\": 1,\n  \"meetingType\": \"ONLINE\",\n  \"autoShareSummary\": false,\n  \"shareChannelId\": null\n}"
+          "raw": "{\n  \"title\": \"test meeting\",\n  \"sessionId\": 1,\n  \"workspaceId\": 1,\n  \"meetingType\": \"ONLINE\",\n  \"autoShareSummary\": false,\n  \"shareWorkspaceId\": null\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/api/v1/studies/{{studyId}}/meetings",
