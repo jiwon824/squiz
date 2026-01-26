@@ -1,5 +1,5 @@
 import api from '../axios';
-import { UnifiedSchedule, ScheduleStatus } from '@/features/calendar/types';
+import { ScheduleStatus } from '@/features/calendar/types';
 
 /**
  * 개인 일정 API 응답 타입
@@ -16,6 +16,9 @@ interface PersonalScheduleDTO {
     location?: string;
     isOnline: boolean;
     color?: string;
+    googleEventId?: string;
+    isSyncedWithGoogle?: boolean;
+    lastSyncedAt?: string;
     createdAt: string;
     updatedAt: string;
 }
@@ -69,19 +72,20 @@ interface CreatePersonalScheduleRequest {
     location?: string;
     isOnline?: boolean;
     color?: string;
+    syncToGoogle?: boolean; // Google Calendar 동기화 여부 (생성/수정 시)
 }
 
 /**
  * 개인 일정 수정 요청
  */
-interface UpdatePersonalScheduleRequest extends Partial<CreatePersonalScheduleRequest> {}
+interface UpdatePersonalScheduleRequest extends Partial<CreatePersonalScheduleRequest> { }
 
 /**
  * 캘린더 API
  */
 export const calendarApi = {
     // ==================== 개인 일정 ====================
-    
+
     /**
      * 개인 일정 목록 조회
      * GET /api/v1/users/me/schedules?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
@@ -201,13 +205,13 @@ export const calendarApi = {
      * GET /api/v1/calendar/google/status
      */
     getGoogleCalendarStatus: async () => {
-        const response = await api.get<{ 
-            success: boolean; 
-            data: { 
+        const response = await api.get<{
+            success: boolean;
+            data: {
                 connected: boolean;
                 email?: string;
                 lastSyncAt?: string;
-            } 
+            }
         }>(
             '/api/v1/calendar/google/status',
             {
@@ -257,12 +261,12 @@ export const calendarApi = {
      * POST /api/v1/calendar/google/sync
      */
     syncGoogleCalendar: async (startDate: string, endDate: string) => {
-        const response = await api.post<{ 
-            success: boolean; 
-            data: { 
+        const response = await api.post<{
+            success: boolean;
+            data: {
                 events: GoogleCalendarEventDTO[];
                 syncedAt: string;
-            } 
+            }
         }>(
             '/api/v1/calendar/google/sync',
             { startDate, endDate },
@@ -294,8 +298,8 @@ export const calendarApi = {
      * GET /api/v1/calendar/all?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
      */
     getAllSchedules: async (startDate: string, endDate: string) => {
-        const response = await api.get<{ 
-            success: boolean; 
+        const response = await api.get<{
+            success: boolean;
             data: {
                 personal: PersonalScheduleDTO[];
                 studySessions: StudySessionDTO[];
@@ -314,9 +318,9 @@ export const calendarApi = {
     }
 };
 
-export type { 
-    PersonalScheduleDTO, 
-    StudySessionDTO, 
+export type {
+    PersonalScheduleDTO,
+    StudySessionDTO,
     GoogleCalendarEventDTO,
     CreatePersonalScheduleRequest,
     UpdatePersonalScheduleRequest
