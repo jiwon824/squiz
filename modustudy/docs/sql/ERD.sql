@@ -1446,7 +1446,7 @@ CREATE TABLE `it_news` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
     `title` VARCHAR(300) NOT NULL,
     `summary` TEXT,
-    `source_url` VARCHAR(500) NOT NULL,
+    `source_url` VARCHAR(2000) NOT NULL UNIQUE,
     `source_name` VARCHAR(100),                  -- 출처 (velog, tistory, medium 등)
     `thumbnail_url` VARCHAR(500),
     `category` VARCHAR(50),                      -- 분류 (AI/백엔드/프론트엔드/DevOps 등)
