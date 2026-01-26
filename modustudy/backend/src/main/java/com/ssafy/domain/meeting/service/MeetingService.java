@@ -202,6 +202,7 @@ public class MeetingService {
         meeting.end(endedAt, participantCount);
         meeting.updateSummaryStatus(SummaryStatus.PROCESSING);
         completeSfuRecording(meeting);
+        finalizeIndividualVoiceRecordings(meetingId, participants);
         return new MeetingEndResponse(meeting.getDurationSeconds(), meeting.getParticipantCount(),
                 meeting.getSummaryStatus().name());
     }
@@ -241,6 +242,7 @@ public class MeetingService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "NOT_IN_MEETING"));
         participant.leave(LocalDateTime.now());
         meeting.updateParticipantCount(meetingParticipantRepository.countByMeetingId(meetingId));
+        concatVoiceSegmentsIfExists(meetingId, userId);
     }
 
     @Transactional(readOnly = true)
@@ -561,6 +563,111 @@ public class MeetingService {
         );
         cleanupVoiceSegments(segmentsDir, concatFile);
         return toAudioRecordingResponse(saved);
+    }
+
+    private void finalizeIndividualVoiceRecordings(Long meetingId, List<MeetingParticipant> participants) {
+        var userIds = new java.util.HashSet<Long>();
+        if (participants != null) {
+            participants.stream()
+                    .map(MeetingParticipant::getUserId)
+                    .filter(Objects::nonNull)
+                    .forEach(userIds::add);
+        }
+        if (userIds.isEmpty()) {
+            userIds.addAll(findVoiceSegmentUserIds(meetingId));
+        }
+        userIds.forEach((userId) -> {
+            try {
+                concatVoiceSegmentsIfExists(meetingId, userId);
+            } catch (Exception e) {
+                log.warn("Failed to finalize voice segments. meetingId={} userId={} error={}",
+                        meetingId, userId, e.toString());
+            }
+        });
+    }
+
+    private void concatVoiceSegmentsIfExists(Long meetingId, Long userId) {
+        Path segmentsDir = localFileStorageService.resolveMeetingVoiceSegmentsDir(meetingId, userId);
+        if (!Files.exists(segmentsDir)) {
+            return;
+        }
+        List<Path> segments;
+        try {
+            segments = Files.list(segmentsDir)
+                    .filter(Files::isRegularFile)
+                    .sorted()
+                    .toList();
+        } catch (IOException e) {
+            log.warn("Voice segment read failed. meetingId={} userId={} error={}", meetingId, userId, e.toString());
+            return;
+        }
+        if (segments.isEmpty()) {
+            return;
+        }
+        Path voiceDir = localFileStorageService.resolveMeetingVoiceDir(meetingId);
+        try {
+            Files.createDirectories(voiceDir);
+        } catch (IOException e) {
+            log.warn("Voice dir create failed. meetingId={} userId={} error={}", meetingId, userId, e.toString());
+            return;
+        }
+        Path concatFile = voiceDir.resolve("segments-" + userId + ".txt").normalize();
+        try {
+            String contents = segments.stream()
+                    .map(path -> "file '" + path.toAbsolutePath().toString().replace("\\", "/") + "'")
+                    .reduce((a, b) -> a + "\n" + b)
+                    .orElse("");
+            Files.writeString(concatFile, contents);
+        } catch (IOException e) {
+            log.warn("Voice concat list failed. meetingId={} userId={} error={}", meetingId, userId, e.toString());
+            return;
+        }
+        Path outputPath = localFileStorageService.resolveMeetingVoiceFile(meetingId, buildIndividualVoiceFilename(userId));
+        try {
+            runFfmpegConcat(concatFile, outputPath);
+        } catch (ResponseStatusException e) {
+            log.warn("Voice concat ffmpeg failed. meetingId={} userId={} error={}", meetingId, userId, e.toString());
+            return;
+        }
+        Long fileSize;
+        try {
+            fileSize = Files.size(outputPath);
+        } catch (IOException e) {
+            fileSize = null;
+        }
+        saveOrUpdateAudioRecording(
+                meetingId,
+                userId,
+                MeetingAudioTrackType.INDIVIDUAL,
+                localFileStorageService.buildMeetingVoiceUrl(meetingId, buildIndividualVoiceFilename(userId)),
+                "webm",
+                fileSize
+        );
+        cleanupVoiceSegments(segmentsDir, concatFile);
+    }
+
+    private List<Long> findVoiceSegmentUserIds(Long meetingId) {
+        Path segmentsRoot = localFileStorageService.resolveMeetingVoiceDir(meetingId).resolve("segments");
+        if (!Files.exists(segmentsRoot)) {
+            return List.of();
+        }
+        try {
+            return Files.list(segmentsRoot)
+                    .filter(Files::isDirectory)
+                    .map(path -> path.getFileName().toString())
+                    .map(name -> {
+                        try {
+                            return Long.parseLong(name);
+                        } catch (NumberFormatException e) {
+                            return null;
+                        }
+                    })
+                    .filter(Objects::nonNull)
+                    .toList();
+        } catch (IOException e) {
+            log.warn("Voice segment user scan failed. meetingId={} error={}", meetingId, e.toString());
+            return List.of();
+        }
     }
 
     @Transactional

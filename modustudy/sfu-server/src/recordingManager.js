@@ -445,7 +445,7 @@ const logConsumerStats = async (label, consumer, transport, roomId, producerId) 
   }
 };
 
-const waitForConsumerPackets = async (consumer, timeoutMs, pollMs) => {
+const waitForConsumerPackets = async (consumer, transport, timeoutMs, pollMs) => {
   if (!consumer || consumer.closed) return false;
   const deadline = Date.now() + timeoutMs;
   const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -464,6 +464,19 @@ const waitForConsumerPackets = async (consumer, timeoutMs, pollMs) => {
       }
     } catch {
       // ignore stats failures
+    }
+    if (transport && typeof transport.getStats === 'function') {
+      try {
+        const stats = await transport.getStats();
+        const report = Array.from(stats.values())[0] || {};
+        const packets = report.packetsSent ?? report.packetCount ?? report.packets ?? 0;
+        const bytes = report.bytesSent ?? report.byteCount ?? report.bytes ?? 0;
+        if (Number(packets) > 0 || Number(bytes) > 0) {
+          return true;
+        }
+      } catch {
+        // ignore transport stats failures
+      }
     }
     await delay(pollMs);
   }
@@ -598,6 +611,7 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
       let videoConsumerInfo = null;
       let videoConsumerRef = null;
       const audioConsumerInfos = [];
+      const audioEntries = [];
 
       if (videoProducerId) {
         const producer = findProducer(room, videoProducerId);
@@ -666,7 +680,11 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
           await consumer.resume();
           consumers.push(consumer);
           transports.push(transport);
-          audioConsumerInfos.push({ port, rtpParameters: consumer.rtpParameters, producerId: producer.id });
+          audioEntries.push({
+            consumer,
+            transport,
+            info: { port, rtpParameters: consumer.rtpParameters, producerId: producer.id }
+          });
           // eslint-disable-next-line no-console
           console.log('[recording] audio transport connected', {
             roomId,
@@ -684,6 +702,40 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
             // ignore
           }
         }
+      }
+
+      if (audioEntries.length > 0) {
+        const readyEntries = [];
+        for (const entry of audioEntries) {
+          const ready = await waitForConsumerPackets(
+            entry.consumer,
+            entry.transport,
+            RECORDING_VIDEO_READY_TIMEOUT_MS,
+            RECORDING_VIDEO_READY_POLL_MS
+          );
+          if (ready) {
+            readyEntries.push(entry);
+          } else {
+            // eslint-disable-next-line no-console
+            console.warn('[recording] audio packets not ready; dropping', {
+              roomId,
+              producerId: entry.info.producerId
+            });
+            try {
+              entry.consumer.close();
+            } catch {
+              // ignore
+            }
+            try {
+              entry.transport.close();
+            } catch {
+              // ignore
+            }
+          }
+        }
+        readyEntries.forEach((entry) => {
+          audioConsumerInfos.push(entry.info);
+        });
       }
 
       let sdpContent = null;
@@ -741,6 +793,7 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
           if (videoConsumerInfo && videoConsumerRef) {
             const ready = await waitForConsumerPackets(
               videoConsumerRef,
+              transports[0],
               RECORDING_VIDEO_READY_TIMEOUT_MS,
               RECORDING_VIDEO_READY_POLL_MS
             );

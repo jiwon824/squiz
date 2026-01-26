@@ -20,10 +20,10 @@ export default defineConfig({
         open: true,
         proxy: {
             '/api': {
-                target: 'http://localhost:5000',
+                target: 'https://modustudy.local:8080',
                 changeOrigin: true,
                 secure: false,
-            }
+            },
         },
         https: (() => {
             const certPath = process.env.VITE_HTTPS_CERT
