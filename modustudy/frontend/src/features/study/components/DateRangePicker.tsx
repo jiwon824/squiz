@@ -6,13 +6,14 @@ import { Button } from '@/shared/components/Button';
 interface DateRangePickerProps {
     startDate: string | null;
     endDate: string | null;
+    minDate?: string | null;
     onRangeChange: (start: string | null, end: string | null) => void;
 }
 
 /**
  * 스터디 기간 선택용 미니 캘린더
  */
-export const DateRangePicker = ({ startDate, endDate, onRangeChange }: DateRangePickerProps) => {
+export const DateRangePicker = ({ startDate, endDate, minDate, onRangeChange }: DateRangePickerProps) => {
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [hoveredDate, setHoveredDate] = useState<string | null>(null);
 
@@ -71,6 +72,9 @@ export const DateRangePicker = ({ startDate, endDate, onRangeChange }: DateRange
     }, [currentMonth]);
 
     const handleDateClick = (dateStr: string) => {
+        // 비활성화된 날짜 클릭 무시
+        if (minDate && dateStr < minDate) return;
+
         if (!startDate || (startDate && endDate)) {
             // 첫 클릭 또는 리셋
             onRangeChange(dateStr, null);
@@ -140,6 +144,7 @@ export const DateRangePicker = ({ startDate, endDate, onRangeChange }: DateRange
             {/* 날짜 그리드 */}
             <div className="grid grid-cols-7 gap-0.5">
                 {calendarDays.map(({ date, day, isCurrentMonth }) => {
+                    const isDisabled = minDate && date < minDate;
                     const inRange = isInRange(date);
                     const isStartDate = isStart(date);
                     const isEndDate = isEnd(date);
@@ -151,22 +156,24 @@ export const DateRangePicker = ({ startDate, endDate, onRangeChange }: DateRange
                         <button
                             key={date}
                             type="button"
-                            onClick={() => handleDateClick(date)}
-                            onMouseEnter={() => setHoveredDate(date)}
+                            onClick={() => !isDisabled && handleDateClick(date)}
+                            onMouseEnter={() => !isDisabled && setHoveredDate(date)}
                             onMouseLeave={() => setHoveredDate(null)}
+                            disabled={isDisabled || false}
                             className={cn(
                                 "relative h-9 text-sm font-medium transition-all",
-                                !isCurrentMonth && "text-gray-300",
-                                isCurrentMonth && !inRange && "text-gray-700 hover:bg-gray-100 rounded-lg",
-                                isCurrentMonth && dayOfWeek === 0 && !inRange && "text-red-400",
-                                isCurrentMonth && dayOfWeek === 6 && !inRange && "text-blue-400",
+                                isDisabled && "text-gray-200 cursor-not-allowed",
+                                !isDisabled && !isCurrentMonth && "text-gray-300",
+                                !isDisabled && isCurrentMonth && !inRange && "text-gray-700 hover:bg-gray-100 rounded-lg",
+                                !isDisabled && isCurrentMonth && dayOfWeek === 0 && !inRange && "text-red-400",
+                                !isDisabled && isCurrentMonth && dayOfWeek === 6 && !inRange && "text-blue-400",
                                 // 범위 중간 날짜들 - 연한 배경색 (primary-100 사용)
-                                isCurrentMonth && isMiddleRange && "bg-primary-100 text-primary",
+                                !isDisabled && isCurrentMonth && isMiddleRange && "bg-primary-100 text-primary",
                                 // 시작일/종료일 - 진한 배경색
-                                isStartDate && "bg-primary text-white font-bold rounded-l-lg",
-                                isEndDate && "bg-primary text-white font-bold rounded-r-lg",
-                                isStartDate && isEndDate && "rounded-lg",
-                                isToday && !inRange && "ring-2 ring-primary/30 ring-inset rounded-lg"
+                                !isDisabled && isStartDate && "bg-primary text-white font-bold rounded-l-lg",
+                                !isDisabled && isEndDate && "bg-primary text-white font-bold rounded-r-lg",
+                                !isDisabled && isStartDate && isEndDate && "rounded-lg",
+                                !isDisabled && isToday && !inRange && "ring-2 ring-primary/30 ring-inset rounded-lg"
                             )}
                         >
                             {day}
