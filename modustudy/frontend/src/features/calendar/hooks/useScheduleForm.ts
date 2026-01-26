@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useCalendarStore } from '../services/calendarStore';
 import { UnifiedSchedule } from '../types';
-import { formatDate, getTodayString } from '../utils';
+import { getTodayString } from '../utils';
 import { CreatePersonalScheduleRequest, UpdatePersonalScheduleRequest } from '@/api/endpoints/calendarApi';
 import { useUIStore } from '@/store/uiStore';
 

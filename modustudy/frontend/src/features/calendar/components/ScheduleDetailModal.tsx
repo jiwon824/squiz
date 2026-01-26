@@ -1,7 +1,7 @@
 import { Modal, Button } from '@/shared/components';
 import { UnifiedSchedule } from '../types';
 import { useDeleteSchedule } from '../hooks';
-import { X, MapPin, Clock, Calendar as CalendarIcon, Edit2, Trash2 } from 'lucide-react';
+import { MapPin, Clock, Calendar as CalendarIcon, Edit2, Trash2 } from 'lucide-react';
 
 interface ScheduleDetailModalProps {
     isOpen: boolean;
@@ -68,28 +68,20 @@ export const ScheduleDetailModal = ({
         <Modal isOpen={isOpen} onClose={onClose} maxWidth="lg">
             <div className="p-6">
                 {/* 헤더 */}
-                <div className="flex items-start justify-between mb-6">
-                    <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                            <span className={`text-xs font-semibold px-3 py-1 rounded-full ${getSourceColor(schedule.source)}`}>
-                                {getSourceLabel(schedule.source)}
+                <div className="mb-6">
+                    <div className="flex items-center gap-2 mb-2">
+                        <span className={`text-xs font-semibold px-3 py-1 rounded-full ${getSourceColor(schedule.source)}`}>
+                            {getSourceLabel(schedule.source)}
+                        </span>
+                        {schedule.status && (
+                            <span className="text-xs font-semibold px-3 py-1 rounded-full bg-gray-100 text-gray-700">
+                                {schedule.status}
                             </span>
-                            {schedule.status && (
-                                <span className="text-xs font-semibold px-3 py-1 rounded-full bg-gray-100 text-gray-700">
-                                    {schedule.status}
-                                </span>
-                            )}
-                        </div>
-                        <h2 className="text-2xl font-bold text-gray-900">
-                            {schedule.title}
-                        </h2>
+                        )}
                     </div>
-                    <button
-                        onClick={onClose}
-                        className="text-gray-400 hover:text-gray-600 transition-colors"
-                    >
-                        <X size={24} />
-                    </button>
+                    <h2 className="text-2xl font-bold text-gray-900">
+                        {schedule.title}
+                    </h2>
                 </div>
 
                 {/* 내용 */}
@@ -161,27 +153,35 @@ export const ScheduleDetailModal = ({
                     </div>
                 </div>
 
-                {/* 버튼 (개인 일정만) */}
-                {isPersonalSchedule && (
-                    <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t">
-                        <Button
-                            variant="outline"
-                            onClick={handleDeleteClick}
-                            isLoading={deleting}
-                            leftIcon={<Trash2 size={18} />}
-                            className="text-red-600 border-red-300 hover:bg-red-50"
-                        >
-                            삭제
-                        </Button>
-                        <Button
-                            variant="primary"
-                            onClick={handleEditClick}
-                            leftIcon={<Edit2 size={18} />}
-                        >
-                            수정
-                        </Button>
-                    </div>
-                )}
+                {/* 버튼 */}
+                <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t">
+                    <Button
+                        variant="outline"
+                        onClick={onClose}
+                    >
+                        닫기
+                    </Button>
+                    {isPersonalSchedule && (
+                        <>
+                            <Button
+                                variant="outline"
+                                onClick={handleDeleteClick}
+                                isLoading={deleting}
+                                leftIcon={<Trash2 size={18} />}
+                                className="text-red-600 border-red-300 hover:bg-red-50"
+                            >
+                                삭제
+                            </Button>
+                            <Button
+                                variant="primary"
+                                onClick={handleEditClick}
+                                leftIcon={<Edit2 size={18} />}
+                            >
+                                수정
+                            </Button>
+                        </>
+                    )}
+                </div>
             </div>
         </Modal>
     );

@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { Modal, Button, Input } from '@/shared/components';
 import { UnifiedSchedule } from '../types';
 import { useScheduleForm } from '../hooks';
-import { X } from 'lucide-react';
 
 interface ScheduleModalProps {
     isOpen: boolean;
@@ -58,16 +57,10 @@ export const ScheduleModal = ({ isOpen, onClose, schedule, initialDate }: Schedu
         <Modal isOpen={isOpen} onClose={handleClose} maxWidth="2xl">
             <div className="p-6">
                 {/* 헤더 */}
-                <div className="flex items-center justify-between mb-6">
+                <div className="mb-6">
                     <h2 className="text-2xl font-bold text-gray-900">
                         {isEditMode ? '일정 수정' : '일정 추가'}
                     </h2>
-                    <button
-                        onClick={handleClose}
-                        className="text-gray-400 hover:text-gray-600 transition-colors"
-                    >
-                        <X size={24} />
-                    </button>
                 </div>
 
                 {/* 폼 */}

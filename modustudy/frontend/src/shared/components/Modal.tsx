@@ -42,15 +42,18 @@ export const Modal: React.FC<ModalProps> = ({
                 'relative w-full bg-white rounded-[32px] shadow-2xl overflow-hidden p-8 animate-in fade-in zoom-in duration-300',
                 maxWidthClasses[maxWidth]
             )}>
-                <div className="flex items-center justify-between mb-8">
-                    {title && <h2 className="text-2xl font-extrabold text-on-surface tracking-tight">{title}</h2>}
-                    <button
-                        onClick={onClose}
-                        className="p-2.5 hover:bg-surface-200 rounded-full transition-all text-on-surface-variant hover:text-on-surface hover:rotate-90 duration-300"
-                    >
-                        <X size={24} />
-                    </button>
-                </div>
+                {/* 헤더: title이 있을 때만 표시 (showCloseButton으로 강제 표시 가능) */}
+                {title && (
+                    <div className="flex items-center justify-between mb-8">
+                        <h2 className="text-2xl font-extrabold text-on-surface tracking-tight">{title}</h2>
+                        <button
+                            onClick={onClose}
+                            className="p-2.5 hover:bg-surface-200 rounded-full transition-all text-on-surface-variant hover:text-on-surface hover:rotate-90 duration-300 ml-auto"
+                        >
+                            <X size={24} />
+                        </button>
+                    </div>
+                )}
                 <div className="modal-body">
                     {children}
                 </div>

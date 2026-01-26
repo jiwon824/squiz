@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { scheduleStore } from '../services/scheduleStore';
 import { Calendar } from './Calendar';
+import { BackButton } from '@/shared/components';
 import './CalendarExpandWidget.css';
 import './ActivitySection.css';
 
@@ -74,11 +75,10 @@ export const CalendarExpandWidget = () => {
             {/* 페이지 헤더 */}
             <header className="planner-header">
                 <div className="header-left">
-                    <button className="back-btn-transparent" onClick={() => navigate(-1)} title="대시보드로 돌아가기">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M19 12H5M12 19l-7-7 7-7" />
-                        </svg>
-                    </button>
+                    <BackButton 
+                        variant="icon-only" 
+                        onClick={() => navigate(-1)} 
+                    />
                     <div className="planner-date-display">
                         <span className="year-label">{currentDate.getFullYear()}</span>
                         <span className="month-label">{currentDate.getMonth() + 1}월</span>

@@ -1,7 +1,11 @@
 import { useState } from 'react';
 import { MainLayout } from '@/layouts/MainLayout';
 import { Calendar } from './Calendar';
+import { ScheduleModal } from './ScheduleModal';
+import { ScheduleDetailModal } from './ScheduleDetailModal';
+import { DateScheduleListModal } from './DateScheduleListModal';
 import { UnifiedSchedule } from '../types';
+import { Button } from '@/shared/components';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 /**
@@ -9,7 +13,15 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
  */
 export const CalendarTestPage = () => {
     const [currentDate, setCurrentDate] = useState(new Date());
-    const [selectedEvent, setSelectedEvent] = useState<UnifiedSchedule | null>(null);
+
+    // 모달 상태
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+    const [isDateListModalOpen, setIsDateListModalOpen] = useState(false);
+
+    // 선택된 데이터
+    const [selectedSchedule, setSelectedSchedule] = useState<UnifiedSchedule | null>(null);
+    const [selectedDate, setSelectedDate] = useState<string | undefined>(undefined);
 
     // Mock 데이터
     const mockSchedules: UnifiedSchedule[] = [
@@ -73,21 +85,42 @@ export const CalendarTestPage = () => {
         setCurrentDate(new Date());
     };
 
-    // 날짜 클릭
+    // 날짜 클릭 (날짜별 일정 리스트 모달)
     const handleDateClick = (date: string) => {
-        console.log('날짜 클릭:', date);
-        alert(`날짜 클릭: ${date}`);
+        setSelectedDate(date);
+        setIsDateListModalOpen(true);
     };
 
-    // 빠른 추가
+    // 빠른 추가 (+ 버튼 클릭)
     const handleQuickAdd = (date: string) => {
-        console.log('빠른 추가:', date);
-        alert(`${date}에 일정 추가`);
+        setSelectedDate(date);
+        setSelectedSchedule(null);
+        setIsAddModalOpen(true);
     };
 
-    // 일정 클릭
+    // 일정 클릭 (상세 모달)
     const handleEventClick = (schedule: UnifiedSchedule) => {
-        setSelectedEvent(schedule);
+        setSelectedSchedule(schedule);
+        setIsDetailModalOpen(true);
+    };
+
+    // 상세 모달에서 수정 버튼 클릭
+    const handleEditFromDetail = (schedule: UnifiedSchedule) => {
+        setSelectedSchedule(schedule);
+        setIsDetailModalOpen(false);
+        setIsAddModalOpen(true);
+    };
+
+    // 일정 추가 모달 닫기
+    const handleAddModalClose = () => {
+        setIsAddModalOpen(false);
+        setSelectedSchedule(null);
+        setSelectedDate(undefined);
+    };
+
+    // 해당 날짜의 일정 필터링
+    const getSchedulesForDate = (date: string) => {
+        return mockSchedules.filter(s => s.startDate === date);
     };
 
     return (
@@ -107,28 +140,29 @@ export const CalendarTestPage = () => {
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 mb-6">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                            <button
+                            <Button
+                                variant="primary"
+                                size="sm"
                                 onClick={handleToday}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
                             >
                                 오늘
-                            </button>
+                            </Button>
                             <div className="flex items-center gap-2">
-                                <button
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
                                     onClick={handlePrevMonth}
-                                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                                >
-                                    <ChevronLeft size={20} />
-                                </button>
+                                    leftIcon={<ChevronLeft size={20} />}
+                                />
                                 <span className="text-xl font-bold text-gray-900 min-w-[200px] text-center">
                                     {currentDate.getFullYear()}년 {currentDate.getMonth() + 1}월
                                 </span>
-                                <button
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
                                     onClick={handleNextMonth}
-                                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                                >
-                                    <ChevronRight size={20} />
-                                </button>
+                                    leftIcon={<ChevronRight size={20} />}
+                                />
                             </div>
                         </div>
 
@@ -161,37 +195,6 @@ export const CalendarTestPage = () => {
                     />
                 </div>
 
-                {/* 선택된 일정 정보 */}
-                {selectedEvent && (
-                    <div className="mt-6 bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-                        <div className="flex items-start justify-between mb-4">
-                            <h3 className="text-lg font-bold text-gray-900">
-                                선택된 일정
-                            </h3>
-                            <button
-                                onClick={() => setSelectedEvent(null)}
-                                className="text-gray-400 hover:text-gray-600"
-                            >
-                                ✕
-                            </button>
-                        </div>
-                        <div className="space-y-2">
-                            <p><strong>제목:</strong> {selectedEvent.title}</p>
-                            <p><strong>날짜:</strong> {selectedEvent.startDate}</p>
-                            {selectedEvent.startTime && (
-                                <p><strong>시간:</strong> {selectedEvent.startTime}</p>
-                            )}
-                            {selectedEvent.description && (
-                                <p><strong>설명:</strong> {selectedEvent.description}</p>
-                            )}
-                            <p><strong>소스:</strong> {selectedEvent.source}</p>
-                            {selectedEvent.location && (
-                                <p><strong>장소:</strong> {selectedEvent.location}</p>
-                            )}
-                        </div>
-                    </div>
-                )}
-
                 {/* Mock 데이터 표시 */}
                 <div className="mt-6 bg-gray-50 rounded-2xl p-6">
                     <h3 className="text-sm font-bold text-gray-700 mb-3">
@@ -201,13 +204,13 @@ export const CalendarTestPage = () => {
                         {mockSchedules.map(schedule => (
                             <div
                                 key={schedule.id}
-                                className="bg-white rounded-lg p-3 border border-gray-200"
+                                className="bg-white rounded-lg p-3 border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors"
+                                onClick={() => handleEventClick(schedule)}
                             >
                                 <div className="flex items-start gap-2">
-                                    <div className={`w-2 h-2 rounded-full mt-1.5 ${
-                                        schedule.source === 'personal' ? 'bg-blue-500' :
-                                        schedule.source === 'study' ? 'bg-green-500' : 'bg-red-500'
-                                    }`}></div>
+                                    <div className={`w-2 h-2 rounded-full mt-1.5 ${schedule.source === 'personal' ? 'bg-blue-500' :
+                                            schedule.source === 'study' ? 'bg-green-500' : 'bg-red-500'
+                                        }`}></div>
                                     <div>
                                         <p className="font-medium text-sm">{schedule.title}</p>
                                         <p className="text-xs text-gray-500">{schedule.startDate}</p>
@@ -218,6 +221,40 @@ export const CalendarTestPage = () => {
                     </div>
                 </div>
             </div>
+
+            {/* 일정 추가/편집 모달 */}
+            <ScheduleModal
+                isOpen={isAddModalOpen}
+                onClose={handleAddModalClose}
+                schedule={selectedSchedule}
+                initialDate={selectedDate}
+            />
+
+            {/* 일정 상세 모달 */}
+            <ScheduleDetailModal
+                isOpen={isDetailModalOpen}
+                onClose={() => setIsDetailModalOpen(false)}
+                schedule={selectedSchedule}
+                onEdit={handleEditFromDetail}
+            />
+
+            {/* 날짜별 일정 리스트 모달 */}
+            <DateScheduleListModal
+                isOpen={isDateListModalOpen}
+                onClose={() => setIsDateListModalOpen(false)}
+                date={selectedDate || new Date().toISOString().split('T')[0]}
+                schedules={selectedDate ? getSchedulesForDate(selectedDate) : []}
+                onScheduleClick={(schedule) => {
+                    setIsDateListModalOpen(false);
+                    setSelectedSchedule(schedule);
+                    setIsDetailModalOpen(true);
+                }}
+                onAddClick={() => {
+                    setIsDateListModalOpen(false);
+                    setSelectedSchedule(null);
+                    setIsAddModalOpen(true);
+                }}
+            />
         </MainLayout>
     );
 };

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { MessageSquare, Send, ArrowLeft, Loader2 } from 'lucide-react';
+import { MessageSquare, Send, Loader2 } from 'lucide-react';
 import { useDMStore } from '../store/dmStore';
+import { BackButton } from '@/shared/components';
 
 const DMListMini: React.FC = () => {
     const {
@@ -71,12 +72,10 @@ const DMListMini: React.FC = () => {
             <div className="p-4 h-full flex flex-col">
                 {/* 채팅 헤더 */}
                 <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-100">
-                    <button
+                    <BackButton
+                        variant="icon-only"
                         onClick={() => clearPendingDM()}
-                        className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-                    >
-                        <ArrowLeft size={18} />
-                    </button>
+                    />
                     <div className="w-8 h-8 rounded-full bg-study-blue/10 flex items-center justify-center font-bold text-xs text-study-blue">
                         {pendingDMUser.nickname.charAt(0)}
                     </div>
@@ -124,12 +123,10 @@ const DMListMini: React.FC = () => {
             <div className="p-4 h-full flex flex-col">
                 {/* 채팅 헤더 */}
                 <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-100">
-                    <button
+                    <BackButton
+                        variant="icon-only"
                         onClick={() => setCurrentConversation(null)}
-                        className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-                    >
-                        <ArrowLeft size={18} />
-                    </button>
+                    />
                     <div className="w-8 h-8 rounded-full bg-study-blue/10 flex items-center justify-center font-bold text-xs text-study-blue">
                         {currentConversation?.participantNickname.charAt(0)}
                     </div>

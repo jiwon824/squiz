@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Calendar, ScheduleModal, ScheduleDetailModal, GoogleCalendarSync } from '@/features/calendar/components';
+import { Calendar, ScheduleModal, ScheduleDetailModal, GoogleCalendarSync, DateScheduleListModal } from '@/features/calendar/components';
 import { useCalendarData } from '@/features/calendar/hooks';
 import { UnifiedSchedule } from '@/features/calendar/types';
 import { Button } from '@/shared/components';
@@ -18,6 +18,7 @@ export const CalendarPage = () => {
     // 모달 상태
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+    const [isDateListModalOpen, setIsDateListModalOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
     // 선택된 일정
@@ -43,8 +44,14 @@ export const CalendarPage = () => {
         setIsDetailModalOpen(true);
     };
 
-    // 날짜 클릭 핸들러 (Quick Add)
+    // 날짜 클릭 핸들러 (날짜별 일정 리스트 모달)
     const handleDateClick = (date: string) => {
+        setSelectedDate(date);
+        setIsDateListModalOpen(true);
+    };
+
+    // Quick Add 핸들러 (+ 버튼)
+    const handleQuickAdd = (date: string) => {
         setSelectedDate(date);
         setSelectedSchedule(null);
         setIsAddModalOpen(true);
@@ -125,28 +132,29 @@ export const CalendarPage = () => {
                             {/* 캘린더 헤더 (월 변경) */}
                             <div className="flex items-center justify-between p-4 border-b">
                                 <div className="flex items-center gap-2">
-                                    <button
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
                                         onClick={handlePrevMonth}
-                                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                                    >
-                                        <ChevronLeft size={20} />
-                                    </button>
-                                    <button
+                                        leftIcon={<ChevronLeft size={20} />}
+                                    />
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
                                         onClick={handleNextMonth}
-                                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                                    >
-                                        <ChevronRight size={20} />
-                                    </button>
+                                        leftIcon={<ChevronRight size={20} />}
+                                    />
                                 </div>
                                 <h2 className="text-lg font-bold text-gray-900">
                                     {currentDate.getFullYear()}년 {currentDate.getMonth() + 1}월
                                 </h2>
-                                <button
+                                <Button
+                                    variant="google-ghost"
+                                    size="sm"
                                     onClick={handleToday}
-                                    className="px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                 >
                                     오늘
-                                </button>
+                                </Button>
                             </div>
 
                             <Calendar
@@ -154,6 +162,7 @@ export const CalendarPage = () => {
                                 schedules={schedules}
                                 onEventClick={handleScheduleClick}
                                 onDateClick={handleDateClick}
+                                onQuickAdd={handleQuickAdd}
                                 loading={loading}
                             />
                         </div>
@@ -182,6 +191,18 @@ export const CalendarPage = () => {
                 onClose={handleDetailModalClose}
                 schedule={selectedSchedule}
                 onEdit={handleEditFromDetail}
+            />
+
+            {/* 날짜별 일정 리스트 모달 */}
+            <DateScheduleListModal
+                isOpen={isDateListModalOpen}
+                onClose={() => setIsDateListModalOpen(false)}
+                date={selectedDate || new Date().toISOString().split('T')[0]}
+                schedules={schedules.filter(s => s.startDate === selectedDate)}
+                onScheduleClick={handleScheduleClick}
+                onAddClick={() => {
+                    setIsAddModalOpen(true);
+                }}
             />
         </div>
     );

@@ -7,14 +7,14 @@ import { formatDate } from '../utils';
  * Google Calendar 연동 훅
  */
 export const useGoogleCalendar = () => {
-    const { 
-        googleConnected, 
-        googleEmail, 
+    const {
+        googleConnected,
+        googleEmail,
         googleLastSyncAt,
-        connectGoogle, 
-        disconnectGoogle, 
+        connectGoogle,
+        disconnectGoogle,
         syncGoogle,
-        checkGoogleStatus 
+        checkGoogleStatus
     } = useCalendarStore();
     const { showToast } = useUIStore();
 
@@ -32,13 +32,13 @@ export const useGoogleCalendar = () => {
         setConnecting(true);
         try {
             const authUrl = await connectGoogle();
-            
+
             // 새 창으로 OAuth 페이지 열기
             const width = 600;
             const height = 700;
             const left = window.screen.width / 2 - width / 2;
             const top = window.screen.height / 2 - height / 2;
-            
+
             const popup = window.open(
                 authUrl,
                 'Google Calendar 연동',
@@ -88,7 +88,7 @@ export const useGoogleCalendar = () => {
             const month = currentDate.getMonth();
             const startDate = formatDate(new Date(year, month, 1));
             const endDate = formatDate(new Date(year, month + 1, 0));
-            
+
             await syncGoogle(startDate, endDate);
             showToast('Google Calendar 동기화가 완료되었습니다.', 'success');
         } catch (error: any) {
