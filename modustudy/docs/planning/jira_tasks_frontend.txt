@@ -1,0 +1,638 @@
+################################################################################
+#                              웹 프론트엔드 (React/TypeScript)                   #
+################################################################################
+# 범례: [x] 완료 | [-] 진행중 | [ ] 미완료
+################################################################################
+
+================================================================================
+[Epic] 프로젝트 설정
+================================================================================
+[x] [FE] Vite + React + TypeScript 프로젝트 초기화                             | 2pt
+[x] [FE] ESLint/Prettier 설정                                                  | 1pt
+[x] [FE] 디렉토리 구조 설계 (features 기반)                                    | 2pt
+[x] [FE] 환경변수 설정 (.env)                                                  | 1pt
+[x] [FE] API 기본 설정 (axios 인터셉터)                                        | 2pt
+
+================================================================================
+[Epic] 인증 (Auth)
+================================================================================
+# 페이지 컴포넌트
+[x] [FE] LoginPage 컴포넌트 작성                                               | 3pt
+[x] [FE] SignupPage 컴포넌트 작성                                              | 3pt
+[x] [FE] LoginCallbackPage 컴포넌트 작성 (OAuth)                               | 3pt
+[x] [FE] PasswordResetPage 컴포넌트 작성                                       | 2pt
+[x] [FE] AdditionalInfoPage 컴포넌트 작성 (OAuth 추가정보)                     | 2pt
+
+# UI 컴포넌트
+[x] [FE] AuthLayout 컴포넌트 작성                                              | 2pt
+[x] [FE] PasswordInput 컴포넌트 작성                                           | 1pt
+[x] [FE] PasswordResetModal 컴포넌트 작성                                      | 2pt
+[x] [FE] ProfileImageSelector 컴포넌트 작성                                    | 2pt
+
+# API 연동
+[x] [FE] authApi 작성 (로그인, OAuth, 토큰 관리)                               | 3pt
+[x] [FE] Kakao OAuth 연동                                                      | 2pt
+[x] [FE] Naver OAuth 연동                                                      | 2pt
+[x] [FE] Google OAuth 연동                                                     | 2pt
+
+# 상태 관리
+[x] [FE] authStore 작성 (Zustand)                                              | 3pt
+[x] [FE] PrivateRoute 작성                                                     | 2pt
+[x] [FE] PublicRoute 작성                                                      | 1pt
+
+================================================================================
+[Epic] 대시보드 (Dashboard)
+================================================================================
+# 페이지 컴포넌트
+[x] [FE] Dashboard 메인 페이지 작성                                            | 3pt
+[x] [FE] GuestDashboard 컴포넌트 작성                                          | 2pt
+[x] [FE] UserDashboard 컴포넌트 작성                                           | 2pt
+
+# UI 컴포넌트
+[x] [FE] ActivitySection 컴포넌트 작성                                         | 3pt
+[x] [FE] StatsSection 컴포넌트 작성                                            | 2pt
+[x] [FE] FeedsSection 컴포넌트 작성                                            | 2pt
+[x] [FE] QuizWidget 컴포넌트 작성                                              | 2pt
+[x] [FE] QuizWidget2 컴포넌트 작성                                             | 2pt
+[x] [FE] CalendarExpandWidget 컴포넌트 작성                                    | 3pt
+[x] [FE] Calendar 컴포넌트 작성                                                | 3pt
+[x] [FE] CalendarDay 컴포넌트 작성                                             | 1pt
+[x] [FE] CalendarHeader 컴포넌트 작성                                          | 1pt
+[x] [FE] NewsWidget 컴포넌트 작성                                              | 2pt
+[x] [FE] TrendingWidget 컴포넌트 작성                                          | 2pt
+[x] [FE] DashboardSkeleton 컴포넌트 작성                                       | 2pt
+
+# 스타일
+[x] [FE] Dashboard.css 작성                                                    | 2pt
+
+================================================================================
+[Epic] 스터디 (Study)
+================================================================================
+# 페이지 컴포넌트
+[x] [FE] StudyPage 컴포넌트 작성 (목록)                                        | 3pt
+[x] [FE] StudyCreatePage 컴포넌트 작성                                         | 5pt
+[x] [FE] StudyDetailPage 컴포넌트 작성                                         | 5pt
+[x] [FE] StudyManagementPage 컴포넌트 작성                                     | 5pt
+
+# UI 컴포넌트
+[x] [FE] StudyFilter 컴포넌트 작성                                             | 2pt
+[x] [FE] StudyListContainer 컴포넌트 작성                                      | 3pt
+[x] [FE] StudyCardContent 컴포넌트 작성                                        | 2pt
+[x] [FE] StudyApplyModal 컴포넌트 작성                                         | 3pt
+[x] [FE] StudyReportModal 컴포넌트 작성                                        | 2pt
+[x] [FE] LeaderReviewModal 컴포넌트 작성                                       | 2pt
+
+# 스터디 관리 컴포넌트
+[x] [FE] ManagementSidebar 컴포넌트 작성                                       | 2pt
+[x] [FE] TeamDashboard 컴포넌트 작성                                           | 3pt
+[x] [FE] ApplicantManagement 컴포넌트 작성                                     | 3pt
+[x] [FE] MemberManagement 컴포넌트 작성                                        | 3pt
+[x] [FE] AttendanceManagement 컴포넌트 작성                                    | 3pt
+[x] [FE] ExcuseManagement 컴포넌트 작성                                        | 2pt
+
+# API/Service 연동
+[x] [FE] studyService 작성                                                     | 3pt
+[x] [FE] studyApi 작성                                                         | 2pt
+
+================================================================================
+[Epic] 프로필 (Profile)
+================================================================================
+# 페이지 컴포넌트
+[x] [FE] ProfilePage 컴포넌트 작성                                             | 3pt
+
+# UI 컴포넌트
+[x] [FE] ProfileHeader 컴포넌트 작성                                           | 2pt
+[x] [FE] EditProfileModal 컴포넌트 작성                                        | 3pt
+[x] [FE] LegoActivityGraph 컴포넌트 작성                                       | 3pt
+[x] [FE] StudyMylist 컴포넌트 작성                                             | 2pt
+[x] [FE] ProfileSkeleton 컴포넌트 작성                                         | 1pt
+
+# API 연동
+[x] [FE] userApi 작성                                                          | 2pt
+
+================================================================================
+[Epic] 화상 회의 (Meeting)
+================================================================================
+# 페이지 컴포넌트
+[x] [FE] MeetingRoomPage 컴포넌트 작성                                         | 5pt
+[x] [FE] MeetingHistoryPage 컴포넌트 작성                                      | 3pt
+[x] [FE] MeetingDetailPage 컴포넌트 작성                                       | 3pt
+
+# UI 컴포넌트
+[x] [FE] MeetingVideoStage 컴포넌트 작성                                       | 5pt
+[x] [FE] MeetingControls 컴포넌트 작성                                         | 3pt
+[x] [FE] MeetingParticipants 컴포넌트 작성                                     | 2pt
+[x] [FE] MeetingChatPanel 컴포넌트 작성                                        | 3pt
+[x] [FE] MeetingStartModal 컴포넌트 작성                                       | 2pt
+[x] [FE] MeetingRecordingPanel 컴포넌트 작성                                   | 3pt
+[x] [FE] MeetingSummaryPanel 컴포넌트 작성                                     | 3pt
+[x] [FE] MeetingActionItems 컴포넌트 작성                                      | 2pt
+
+# Service/WebRTC 연동
+[x] [FE] meetingApi 작성                                                       | 3pt
+[x] [FE] sfuClient 작성 (mediasoup-client)                                     | 8pt
+[x] [FE] meetingWebsocket 작성                                                 | 5pt
+[x] [FE] canvasComposer 작성                                                   | 5pt
+[x] [FE] audioDetection 작성                                                   | 2pt
+[x] [FE] aiDetection 작성                                                      | 3pt
+
+================================================================================
+[Epic] 퀴즈/코멘들 (Quiz/Comendle)
+================================================================================
+# 페이지 컴포넌트
+[x] [FE] QuizPage 컴포넌트 작성                                                | 3pt
+[x] [FE] QuizGameSelection 컴포넌트 작성                                       | 2pt
+[x] [FE] CommentleQuizPage 컴포넌트 작성                                       | 5pt
+[x] [FE] CommentlePage 컴포넌트 작성                                           | 3pt
+
+# UI 컴포넌트
+[x] [FE] CommentleHeader 컴포넌트 작성                                         | 1pt
+[x] [FE] CommentleProblemCard 컴포넌트 작성                                    | 2pt
+[x] [FE] CommentleInputSection 컴포넌트 작성                                   | 2pt
+[x] [FE] CommentleHistory 컴포넌트 작성                                        | 2pt
+[x] [FE] CommentleStatsBoard 컴포넌트 작성                                     | 2pt
+[x] [FE] CommentleSkeleton 컴포넌트 작성                                       | 1pt
+
+# API 연동
+[x] [FE] aiApi 작성                                                            | 2pt
+
+================================================================================
+[Epic] 친구 (Friend) - 미완료
+================================================================================
+# 페이지 컴포넌트
+[ ] [FE] FriendPage 컴포넌트 작성                                              | 3pt
+
+# UI 컴포넌트
+[x] [FE] FriendListMini 컴포넌트 작성                                          | 2pt
+[ ] [FE] FriendSearchModal 컴포넌트 작성                                       | 2pt
+[ ] [FE] FriendRequestList 컴포넌트 작성                                       | 2pt
+[ ] [FE] BlockedUserList 컴포넌트 작성                                         | 2pt
+
+# API 연동
+[x] [FE] friendApi 작성                                                        | 3pt
+
+================================================================================
+[Epic] 다이렉트 메시지 (DM) - 미완료
+================================================================================
+# 페이지 컴포넌트
+[ ] [FE] DMPage 컴포넌트 작성                                                  | 3pt
+
+# UI 컴포넌트
+[x] [FE] DMListMini 컴포넌트 작성                                              | 2pt
+[ ] [FE] DMConversationList 컴포넌트 작성                                      | 3pt
+[ ] [FE] DMChatWindow 컴포넌트 작성                                            | 5pt
+[ ] [FE] DMMessageBubble 컴포넌트 작성                                         | 2pt
+
+# API/WebSocket 연동
+[x] [FE] dmApi 작성                                                            | 3pt
+[x] [FE] dmWebSocketService 작성                                               | 5pt
+[x] [FE] dmWebSocketTypes 작성                                                 | 1pt
+
+================================================================================
+[Epic] 모집 게시판 (Recruitment)
+================================================================================
+# 페이지 컴포넌트
+[x] [FE] RecruitmentPage 컴포넌트 작성                                         | 3pt
+
+# UI 컴포넌트
+[x] [FE] RecruitmentList 컴포넌트 작성                                         | 3pt
+[x] [FE] RecruitmentReportModal 컴포넌트 작성                                  | 2pt
+
+# API 연동
+[ ] [FE] recruitmentApi 작성                                                   | 2pt
+
+================================================================================
+[Epic] 설정 (Setting)
+================================================================================
+# 페이지 컴포넌트
+[x] [FE] SettingPage 컴포넌트 작성                                             | 3pt
+
+# UI 컴포넌트
+[ ] [FE] SettingSection 컴포넌트 작성                                          | 2pt
+[ ] [FE] NotificationSetting 컴포넌트 작성                                     | 2pt
+[ ] [FE] PrivacySetting 컴포넌트 작성                                          | 2pt
+
+================================================================================
+[Epic] 레이아웃/공통
+================================================================================
+# 레이아웃 컴포넌트
+[x] [FE] MainLayout 컴포넌트 작성                                              | 3pt
+[x] [FE] WorkspaceLayout 컴포넌트 작성                                         | 3pt
+[x] [FE] Sidebar 컴포넌트 작성                                                 | 3pt
+[x] [FE] RightSideBar 컴포넌트 작성                                            | 2pt
+
+# 공통 UI 컴포넌트
+[x] [FE] Button 컴포넌트 작성                                                  | 1pt
+[x] [FE] Input 컴포넌트 작성                                                   | 1pt
+[x] [FE] Card 컴포넌트 작성                                                    | 1pt
+[x] [FE] Spinner 컴포넌트 작성                                                 | 1pt
+[x] [FE] BackButton 컴포넌트 작성                                              | 1pt
+[x] [FE] ArrowButton 컴포넌트 작성                                             | 1pt
+[x] [FE] RoleBadge 컴포넌트 작성                                               | 1pt
+[x] [FE] SquizLogo 컴포넌트 작성                                               | 1pt
+[x] [FE] SquizLogoNew 컴포넌트 작성                                            | 1pt
+[x] [FE] Box (Design System) 작성                                              | 2pt
+
+# 상태 관리
+[x] [FE] uiStore 작성                                                          | 2pt
+[x] [FE] workspaceStore 작성                                                   | 2pt
+
+# 라우팅
+[x] [FE] SquizNavHost (라우터) 작성                                            | 3pt
+
+================================================================================
+[Epic] 출석 관리 (Attendance) - 미완료
+================================================================================
+# 페이지 컴포넌트
+[ ] [FE] AttendancePage 컴포넌트 작성                                          | 3pt
+
+# UI 컴포넌트
+[ ] [FE] AttendanceCalendar 컴포넌트 작성                                      | 3pt
+[ ] [FE] AttendanceStats 컴포넌트 작성                                         | 2pt
+[ ] [FE] SessionMemoCard 컴포넌트 작성                                         | 2pt
+
+# API 연동
+[ ] [FE] attendanceApi 작성                                                    | 2pt
+
+================================================================================
+[Epic] 게시판 (Board) - 미완료
+================================================================================
+# 페이지 컴포넌트
+[ ] [FE] BoardPage 컴포넌트 작성                                               | 3pt
+[ ] [FE] BoardDetailPage 컴포넌트 작성                                         | 3pt
+[ ] [FE] BoardCreatePage 컴포넌트 작성                                         | 3pt
+
+# UI 컴포넌트
+[ ] [FE] BoardList 컴포넌트 작성                                               | 2pt
+[ ] [FE] BoardCard 컴포넌트 작성                                               | 2pt
+[ ] [FE] BoardCommentSection 컴포넌트 작성                                     | 3pt
+[ ] [FE] BoardEditor 컴포넌트 작성                                             | 5pt
+
+# API 연동
+[ ] [FE] boardApi 작성                                                         | 2pt
+
+================================================================================
+[Epic] 게이미피케이션 (Gamification) - 미완료
+================================================================================
+# 페이지 컴포넌트
+[ ] [FE] GamificationPage 컴포넌트 작성                                        | 3pt
+
+# UI 컴포넌트
+[ ] [FE] BadgeGrid 컴포넌트 작성                                               | 2pt
+[ ] [FE] StreakDisplay 컴포넌트 작성                                           | 2pt
+[ ] [FE] LeaderboardWidget 컴포넌트 작성                                       | 3pt
+[ ] [FE] XPProgressBar 컴포넌트 작성                                           | 2pt
+
+# API 연동
+[ ] [FE] gamificationApi 작성                                                  | 2pt
+
+================================================================================
+[Epic] 일일 학습 (Daily) - 미완료
+================================================================================
+# 페이지 컴포넌트
+[ ] [FE] DailyPage 컴포넌트 작성                                               | 3pt
+
+# UI 컴포넌트
+[ ] [FE] DailyGoalSetting 컴포넌트 작성                                        | 2pt
+[ ] [FE] DailyProgressTracker 컴포넌트 작성                                    | 3pt
+[ ] [FE] DailyLogList 컴포넌트 작성                                            | 2pt
+
+# API 연동
+[ ] [FE] dailyApi 작성                                                         | 2pt
+
+================================================================================
+[Epic] 자료실 (Material) - 미완료
+================================================================================
+# 페이지 컴포넌트
+[ ] [FE] MaterialPage 컴포넌트 작성                                            | 3pt
+
+# UI 컴포넌트
+[ ] [FE] MaterialList 컴포넌트 작성                                            | 2pt
+[ ] [FE] MaterialUploader 컴포넌트 작성                                        | 3pt
+[ ] [FE] FolderTree 컴포넌트 작성                                              | 3pt
+[ ] [FE] FilePreview 컴포넌트 작성                                             | 3pt
+
+# API 연동
+[ ] [FE] materialApi 작성                                                      | 2pt
+
+================================================================================
+[Epic] 회고 (Retrospect) - 미완료
+================================================================================
+# 페이지 컴포넌트
+[ ] [FE] RetrospectPage 컴포넌트 작성                                          | 3pt
+
+# UI 컴포넌트
+[ ] [FE] RetrospectEditor 컴포넌트 작성                                        | 3pt
+[ ] [FE] RetrospectList 컴포넌트 작성                                          | 2pt
+[ ] [FE] RetrospectCard 컴포넌트 작성                                          | 2pt
+
+# API 연동
+[ ] [FE] retrospectApi 작성                                                    | 2pt
+
+================================================================================
+[Epic] 알림 (Notification) - 미완료
+================================================================================
+# UI 컴포넌트
+[ ] [FE] NotificationDropdown 컴포넌트 작성                                    | 3pt
+[ ] [FE] NotificationItem 컴포넌트 작성                                        | 2pt
+[ ] [FE] NotificationBadge 컴포넌트 작성                                       | 1pt
+
+# API 연동
+[ ] [FE] notificationApi 작성                                                  | 2pt
+
+================================================================================
+[Epic] 뉴스 피드 (News) - 미완료
+================================================================================
+# 페이지 컴포넌트
+[ ] [FE] NewsPage 컴포넌트 작성                                                | 3pt
+
+# UI 컴포넌트
+[ ] [FE] NewsList 컴포넌트 작성                                                | 2pt
+[ ] [FE] NewsCard 컴포넌트 작성                                                | 2pt
+
+# API 연동
+[ ] [FE] newsApi 작성                                                          | 2pt
+
+================================================================================
+[Epic] 관리자 (Admin) - 미완료
+================================================================================
+# 페이지 컴포넌트
+[ ] [FE] AdminDashboard 컴포넌트 작성                                          | 5pt
+
+# UI 컴포넌트
+[ ] [FE] UserManagement 컴포넌트 작성                                          | 3pt
+[ ] [FE] ReportManagement 컴포넌트 작성                                        | 3pt
+[ ] [FE] SystemStats 컴포넌트 작성                                             | 3pt
+
+# API 연동
+[ ] [FE] adminApi 작성                                                         | 3pt
+
+
+################################################################################
+#                              모바일 (Kotlin/Jetpack Compose)                   #
+################################################################################
+
+================================================================================
+[Epic] 프로젝트 설정
+================================================================================
+[x] [MB] Android 프로젝트 초기화 (Kotlin, Compose)                             | 2pt
+[x] [MB] Gradle 의존성 설정                                                    | 2pt
+[x] [MB] 테마/색상 설정 (Theme.kt, Color.kt)                                   | 2pt
+[x] [MB] 타이포그래피 설정 (Type.kt)                                           | 1pt
+
+================================================================================
+[Epic] 네트워크/데이터
+================================================================================
+# Retrofit/API 설정
+[x] [MB] RetrofitClient 설정                                                   | 3pt
+[x] [MB] AuthApi 인터페이스 작성                                               | 2pt
+[ ] [MB] StudyApi 인터페이스 작성                                              | 2pt
+[ ] [MB] QuizApi 인터페이스 작성                                               | 2pt
+[ ] [MB] DMApi 인터페이스 작성                                                 | 2pt
+[ ] [MB] FriendApi 인터페이스 작성                                             | 2pt
+
+# Repository 작성
+[x] [MB] AuthRepository 작성                                                   | 3pt
+[ ] [MB] StudyRepository 작성                                                  | 3pt
+[ ] [MB] QuizRepository 작성                                                   | 3pt
+
+# 로컬 저장소
+[x] [MB] AuthManager 작성 (토큰 관리)                                          | 2pt
+[x] [MB] SharedPreferencesUtil 작성                                            | 2pt
+[ ] [MB] DataStore 설정                                                        | 2pt
+
+# 데이터 모델
+[x] [MB] AuthModels 작성 (LoginRequest, LoginResponse 등)                      | 2pt
+[ ] [MB] StudyModels 작성                                                      | 2pt
+[ ] [MB] QuizModels 작성                                                       | 2pt
+
+================================================================================
+[Epic] 네비게이션
+================================================================================
+[x] [MB] NavRoutes 정의                                                        | 2pt
+[x] [MB] SquizNavHost 작성                                                     | 3pt
+[x] [MB] BottomNavItem 정의                                                    | 1pt
+
+================================================================================
+[Epic] 인증 (Auth)
+================================================================================
+# Screen 작성
+[x] [MB] SplashScreen 작성                                                     | 2pt
+[x] [MB] LoginScreen 작성                                                      | 3pt
+[x] [MB] AdditionalInfoScreen 작성                                             | 3pt
+
+# ViewModel 작성
+[x] [MB] LoginViewModel 작성                                                   | 3pt
+
+# Google OAuth
+[x] [MB] Google Sign-In 연동                                                   | 5pt
+
+================================================================================
+[Epic] 메인/홈 (Home)
+================================================================================
+# Screen 작성
+[x] [MB] MainScreen 작성 (Bottom Nav)                                          | 3pt
+[x] [MB] HomeScreen 작성                                                       | 3pt
+[x] [MB] NotificationsScreen 작성                                              | 2pt
+
+# ViewModel 작성
+[ ] [MB] HomeViewModel 작성                                                    | 3pt
+
+================================================================================
+[Epic] 스터디 (Study)
+================================================================================
+# Screen 작성
+[x] [MB] StudySearchScreen 작성                                                | 3pt
+[x] [MB] StudyDetailScreen 작성                                                | 3pt
+[x] [MB] MyStudiesScreen 작성                                                  | 3pt
+[x] [MB] StudyHomeScreen 작성                                                  | 3pt
+[x] [MB] BookmarkedStudiesScreen 작성                                          | 2pt
+[x] [MB] MyApplicationsScreen 작성                                             | 2pt
+[x] [MB] StudyCommentsScreen 작성                                              | 2pt
+[x] [MB] StudyTemplatesScreen 작성                                             | 2pt
+
+# ViewModel 작성
+[ ] [MB] StudySearchViewModel 작성                                             | 3pt
+[ ] [MB] StudyDetailViewModel 작성                                             | 3pt
+[ ] [MB] MyStudiesViewModel 작성                                               | 3pt
+
+# API 연동
+[ ] [MB] 스터디 목록 API 연동                                                  | 3pt
+[ ] [MB] 스터디 상세 API 연동                                                  | 2pt
+[ ] [MB] 스터디 지원 API 연동                                                  | 2pt
+
+================================================================================
+[Epic] 스터디 내부 (MyStudy)
+================================================================================
+# Screen 작성
+[x] [MB] ChannelListScreen 작성                                                | 3pt
+[x] [MB] ChatScreen 작성                                                       | 5pt
+[x] [MB] MaterialsScreen 작성                                                  | 3pt
+[x] [MB] OtherScreens 작성                                                     | 2pt
+
+# ViewModel 작성
+[ ] [MB] ChatViewModel 작성                                                    | 5pt
+
+# WebSocket 연동
+[ ] [MB] 채팅 WebSocket 연동                                                   | 5pt
+
+================================================================================
+[Epic] 퀴즈 (Quiz) - 미완료
+================================================================================
+# Screen 작성
+[-] [MB] QuizScreens 작성 (stub)                                               | 5pt
+
+# ViewModel 작성
+[ ] [MB] QuizViewModel 작성                                                    | 3pt
+
+# API 연동
+[ ] [MB] 퀴즈 코스 API 연동                                                    | 3pt
+[ ] [MB] 코멘들 API 연동                                                       | 3pt
+
+================================================================================
+[Epic] 친구 (Friend) - 미완료
+================================================================================
+# Screen 작성
+[-] [MB] FriendScreens 작성 (stub)                                             | 3pt
+
+# ViewModel 작성
+[ ] [MB] FriendViewModel 작성                                                  | 3pt
+
+# API 연동
+[ ] [MB] 친구 목록 API 연동                                                    | 2pt
+[ ] [MB] 친구 요청 API 연동                                                    | 2pt
+
+================================================================================
+[Epic] DM (Direct Message) - 미완료
+================================================================================
+# Screen 작성
+[-] [MB] DMScreens 작성 (stub)                                                 | 3pt
+
+# ViewModel 작성
+[ ] [MB] DMViewModel 작성                                                      | 3pt
+
+# WebSocket 연동
+[ ] [MB] DM WebSocket 연동                                                     | 5pt
+
+================================================================================
+[Epic] 일정 (Schedule) - 미완료
+================================================================================
+# Screen 작성
+[-] [MB] ScheduleScreens 작성 (stub)                                           | 3pt
+
+# ViewModel 작성
+[ ] [MB] ScheduleViewModel 작성                                                | 3pt
+
+================================================================================
+[Epic] 출석 (Attendance) - 미완료
+================================================================================
+# Screen 작성
+[-] [MB] AttendanceScreens 작성 (stub)                                         | 3pt
+
+# ViewModel 작성
+[ ] [MB] AttendanceViewModel 작성                                              | 3pt
+
+================================================================================
+[Epic] 일일 학습 (Daily) - 미완료
+================================================================================
+# Screen 작성
+[-] [MB] DailyScreens 작성 (stub)                                              | 3pt
+
+# ViewModel 작성
+[ ] [MB] DailyViewModel 작성                                                   | 3pt
+
+================================================================================
+[Epic] AI 기능 - 미완료
+================================================================================
+# Screen 작성
+[-] [MB] AIScreens 작성 (stub)                                                 | 3pt
+
+# API 연동
+[ ] [MB] AI 퀴즈 생성 API 연동                                                 | 3pt
+
+================================================================================
+[Epic] 대회 (Contest) - 미완료
+================================================================================
+# Screen 작성
+[-] [MB] ContestScreens 작성 (stub)                                            | 3pt
+
+# ViewModel 작성
+[ ] [MB] ContestViewModel 작성                                                 | 3pt
+
+================================================================================
+[Epic] 코스 (Course) - 미완료
+================================================================================
+# Screen 작성
+[-] [MB] CourseScreens 작성 (stub)                                             | 3pt
+
+# ViewModel 작성
+[ ] [MB] CourseViewModel 작성                                                  | 3pt
+
+================================================================================
+[Epic] 마이페이지 (MyPage) - 미완료
+================================================================================
+# Screen 작성
+[-] [MB] MyPageScreens 작성 (stub)                                             | 3pt
+
+# ViewModel 작성
+[ ] [MB] MyPageViewModel 작성                                                  | 3pt
+
+# API 연동
+[ ] [MB] 프로필 조회/수정 API 연동                                             | 2pt
+
+================================================================================
+[Epic] 공통 컴포넌트
+================================================================================
+[x] [MB] CommonComponents 작성                                                 | 3pt
+[ ] [MB] LoadingIndicator 작성                                                 | 1pt
+[ ] [MB] ErrorDialog 작성                                                      | 1pt
+[ ] [MB] CustomTopBar 작성                                                     | 2pt
+
+
+################################################################################
+#                              진행 상황 요약                                     #
+################################################################################
+
+# ==================== 웹 프론트엔드 ====================
+# 완료: 약 75%
+# 진행중: 약 5%
+# 미완료: 약 20%
+#
+# 완전 구현된 기능:
+# - 인증 (Auth) - 로그인, OAuth, 비밀번호 재설정
+# - 대시보드 (Dashboard) - 위젯들, 캘린더
+# - 스터디 (Study) - 목록, 생성, 상세, 관리
+# - 프로필 (Profile) - 조회, 수정, 활동 그래프
+# - 화상 회의 (Meeting) - WebRTC/SFU, 채팅, 녹화
+# - 퀴즈/코멘들 (Quiz/Comendle)
+# - 모집 게시판 (Recruitment)
+# - 레이아웃/공통 컴포넌트
+#
+# 부분 구현 (API만 완료):
+# - 친구 (Friend) - API 완료, UI 미완료
+# - DM (Direct Message) - API/WebSocket 완료, UI 미완료
+#
+# 미완료:
+# - 출석 관리, 게시판, 게이미피케이션
+# - 일일 학습, 자료실, 회고
+# - 알림, 뉴스 피드, 관리자
+
+# ==================== 모바일 ====================
+# 완료: 약 40%
+# 진행중: 약 15% (stub 상태)
+# 미완료: 약 45%
+#
+# 완전 구현된 기능:
+# - 인증 (Auth) - 로그인, Google OAuth
+# - 메인/홈 (Home) - 홈화면, Bottom Nav
+# - 네비게이션 구조
+#
+# 부분 구현 (Screen만 존재):
+# - 스터디 (Study) - Screen 완료, ViewModel/API 미연동
+# - 스터디 내부 (MyStudy) - Screen 완료, ViewModel/WebSocket 미연동
+#
+# Stub 상태 (스켈레톤만):
+# - 퀴즈, 친구, DM, 일정, 출석
+# - 일일 학습, AI, 대회, 코스, 마이페이지
+#
+################################################################################

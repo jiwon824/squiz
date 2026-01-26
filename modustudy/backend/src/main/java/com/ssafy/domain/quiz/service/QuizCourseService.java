@@ -8,6 +8,7 @@ import com.ssafy.common.exception.SectionLockedException;
 import com.ssafy.domain.gamification.entity.Badge;
 import com.ssafy.domain.gamification.repository.BadgeRepository;
 import com.ssafy.domain.quiz.dto.response.BadgeInfo;
+import com.ssafy.domain.quiz.dto.response.MyProgressDto;
 import com.ssafy.domain.quiz.dto.response.OptionItem;
 import com.ssafy.domain.quiz.dto.response.QuestionItem;
 import com.ssafy.domain.quiz.dto.response.QuizCourseDetailResponse;
@@ -15,12 +16,16 @@ import com.ssafy.domain.quiz.dto.response.QuizCourseListItem;
 import com.ssafy.domain.quiz.dto.response.QuizCourseListResponse;
 import com.ssafy.domain.quiz.dto.response.SectionQuestionsResponse;
 import com.ssafy.domain.quiz.dto.response.SectionSummary;
+import com.ssafy.domain.quiz.dto.response.SectionWithProgressDto;
+import com.ssafy.domain.quiz.dto.response.SectionsWithProgressResponse;
 import com.ssafy.domain.quiz.entity.QuizCourse;
 import com.ssafy.domain.quiz.entity.QuizCourseQuestion;
 import com.ssafy.domain.quiz.entity.QuizCourseSection;
+import com.ssafy.domain.quiz.entity.UserSectionAttempt;
 import com.ssafy.domain.quiz.repository.QuizCourseRepository;
 import com.ssafy.domain.quiz.repository.QuizCourseSectionRepository;
 import com.ssafy.domain.quiz.repository.UserCourseProgressRepository;
+import com.ssafy.domain.quiz.repository.UserSectionAttemptRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -44,6 +49,7 @@ import java.util.stream.Collectors;
  * - 활성 코스 목록 조회
  * - 코스에 연결된 배지 코드로 배지 이름 조합
  * - 섹션 문제 조회 (잠금 상태 확인)
+ * - 섹션 목록 조회 (진행 상황 포함)
  *
  */
 @Slf4j
@@ -55,6 +61,7 @@ public class QuizCourseService {
     private final QuizCourseRepository quizCourseRepository;
     private final QuizCourseSectionRepository quizCourseSectionRepository;
     private final UserCourseProgressRepository userCourseProgressRepository;
+    private final UserSectionAttemptRepository userSectionAttemptRepository;
     private final BadgeRepository badgeRepository;
     private final ObjectMapper objectMapper;
 
@@ -151,6 +158,147 @@ public class QuizCourseService {
                 section.getDescription(),
                 section.getTotalQuestions(),
                 section.getPassScore());
+    }
+
+    /**
+     * 섹션 목록과 사용자 진행 상황을 조회한다.
+     *
+     * <p>
+     * 인증된 사용자의 섹션별 시도 기록을 조회하여 해금 상태, 통과 여부,
+     * 최고 점수, 시도 횟수를 포함한 응답을 반환한다.
+     * </p>
+     *
+     * <h3>해금 규칙</h3>
+     * <ul>
+     * <li>섹션 1: 항상 해금</li>
+     * <li>섹션 N (N > 1): 이전 섹션(N-1)을 통과한 경우 해금</li>
+     * </ul>
+     *
+     * @param courseId 코스 ID
+     * @param userId   사용자 ID
+     * @return 진행 상황이 포함된 섹션 목록 응답
+     * @throws NotFoundException 코스를 찾을 수 없는 경우
+     */
+    public SectionsWithProgressResponse getSectionsWithProgress(Long courseId, Long userId) {
+        // 1. 코스 + 섹션 조회 (fetch join)
+        QuizCourse course = quizCourseRepository.findByIdWithSections(courseId)
+                .orElseThrow(NotFoundException::course);
+
+        // 비활성 코스는 공개하지 않음
+        if (!Boolean.TRUE.equals(course.getIsActive())) {
+            throw NotFoundException.course();
+        }
+
+        List<QuizCourseSection> sections = course.getSections();
+
+        // 2. 사용자의 제출된 시도 기록 조회
+        List<UserSectionAttempt> attempts = userSectionAttemptRepository
+                .findCompletedAttemptsByUserIdAndCourseId(userId, courseId);
+
+        // 3. 섹션별 시도 요약 정보 구성 (Map 기반 O(n) 조회)
+        Map<Integer, SectionAttemptSummary> summaryMap = buildAttemptSummaryMap(attempts);
+
+        // 4. 섹션 DTO 목록 생성 (해금 로직 적용)
+        List<SectionWithProgressDto> sectionDtos = buildSectionWithProgressDtos(sections, summaryMap);
+
+        // 5. 전체 진행 상황 계산
+        MyProgressDto myProgress = buildMyProgress(sectionDtos);
+
+        return new SectionsWithProgressResponse(
+                courseId,
+                course.getName(),
+                myProgress,
+                sectionDtos);
+    }
+
+    /**
+     * 섹션별 시도 요약 정보를 Map으로 구성한다.
+     * 동일 섹션에 여러 시도가 있을 경우 최고 점수와 통과 여부를 집계한다.
+     */
+    private Map<Integer, SectionAttemptSummary> buildAttemptSummaryMap(List<UserSectionAttempt> attempts) {
+        Map<Integer, SectionAttemptSummary> map = new java.util.HashMap<>();
+
+        for (UserSectionAttempt attempt : attempts) {
+            Integer sectionNumber = attempt.getSection().getSectionNumber();
+            SectionAttemptSummary existing = map.get(sectionNumber);
+
+            if (existing == null) {
+                map.put(sectionNumber, new SectionAttemptSummary(
+                        attempt.getScore(),
+                        Boolean.TRUE.equals(attempt.getIsPassed()),
+                        1));
+            } else {
+                // 최고 점수 갱신 및 통과 여부 OR 연산
+                map.put(sectionNumber, new SectionAttemptSummary(
+                        Math.max(existing.bestScore(), attempt.getScore() != null ? attempt.getScore() : 0),
+                        existing.isPassed() || Boolean.TRUE.equals(attempt.getIsPassed()),
+                        existing.attemptCount() + 1));
+            }
+        }
+
+        return map;
+    }
+
+    /**
+     * 섹션 DTO 목록을 생성한다 (해금 로직 적용).
+     * 규칙: 이전 섹션을 통과해야 다음 섹션이 해금됨.
+     */
+    private List<SectionWithProgressDto> buildSectionWithProgressDtos(
+            List<QuizCourseSection> sections,
+            Map<Integer, SectionAttemptSummary> summaryMap) {
+
+        List<SectionWithProgressDto> result = new java.util.ArrayList<>();
+        boolean previousPassed = true; // 첫 번째 섹션은 항상 해금
+
+        for (QuizCourseSection section : sections) {
+            SectionAttemptSummary summary = summaryMap.get(section.getSectionNumber());
+
+            boolean isUnlocked = previousPassed;
+            boolean isPassed = summary != null && summary.isPassed();
+            Integer bestScore = summary != null ? summary.bestScore() : null;
+            int attemptCount = summary != null ? summary.attemptCount() : 0;
+
+            result.add(new SectionWithProgressDto(
+                    section.getSectionNumber(),
+                    section.getName(),
+                    section.getTotalQuestions(),
+                    section.getPassScore(),
+                    isUnlocked,
+                    isPassed,
+                    bestScore,
+                    attemptCount));
+
+            // 다음 섹션 해금 조건: 현재 섹션 통과
+            previousPassed = isPassed;
+        }
+
+        return result;
+    }
+
+    /**
+     * 전체 진행 상황을 계산한다.
+     */
+    private MyProgressDto buildMyProgress(List<SectionWithProgressDto> sections) {
+        int completedSections = (int) sections.stream()
+                .filter(SectionWithProgressDto::isPassed)
+                .count();
+
+        // 현재 진행 중인 섹션: 해금되었지만 통과하지 않은 첫 번째 섹션
+        int currentSection = sections.stream()
+                .filter(s -> s.isUnlocked() && !s.isPassed())
+                .map(SectionWithProgressDto::sectionNumber)
+                .findFirst()
+                .orElse(sections.isEmpty() ? 1 : sections.size()); // 모두 완료 시 마지막 섹션
+
+        boolean isCompleted = !sections.isEmpty() && completedSections == sections.size();
+
+        return new MyProgressDto(currentSection, completedSections, isCompleted);
+    }
+
+    /**
+     * 섹션별 시도 요약 정보를 담는 내부 record.
+     */
+    private record SectionAttemptSummary(Integer bestScore, boolean isPassed, int attemptCount) {
     }
 
     /**

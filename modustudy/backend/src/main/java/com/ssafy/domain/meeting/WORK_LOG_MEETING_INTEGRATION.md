@@ -229,10 +229,10 @@ Content-Type: application/json
 {
   "title": "2회차 스터디",
   "sessionId": 2,
-  "channelId": 3,
+  "workspaceId": 3,
   "meetingType": "DAILY",
   "autoShareSummary": true,
-  "shareChannelId": 12
+  "shareWorkspaceId": 12
 }
 ```
 

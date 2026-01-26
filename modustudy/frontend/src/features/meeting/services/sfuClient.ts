@@ -97,8 +97,11 @@ export const createSfuClient = (baseUrl: string) => {
                 .then(() => callback())
                 .catch(errback);
         });
-        transport.on('produce', ({ kind, rtpParameters }, callback, errback) => {
-            request('produce', { roomId, transportId: transport.id, kind, rtpParameters })
+        transport.on('connectionstatechange', (state) => {
+            console.log('[sfu] send transport state', state);
+        });
+        transport.on('produce', ({ kind, rtpParameters, appData }, callback, errback) => {
+            request('produce', { roomId, transportId: transport.id, kind, rtpParameters, appData })
                 .then(({ producerId }) => callback({ id: producerId }))
                 .catch(errback);
         });
@@ -113,10 +116,17 @@ export const createSfuClient = (baseUrl: string) => {
                 .then(() => callback())
                 .catch(errback);
         });
+        transport.on('connectionstatechange', (state) => {
+            console.log('[sfu] recv transport state', state);
+        });
         return transport;
     };
 
-    const produceTrack = async (kind: 'audio' | 'video', track: MediaStreamTrack | null) => {
+    const produceTrack = async (
+        kind: 'audio' | 'video',
+        track: MediaStreamTrack | null,
+        appData?: Record<string, unknown>
+    ) => {
         if (!sendTransport || !track) return null;
         if (track.readyState === 'ended') return null;
         if (producers.has(kind)) {
@@ -132,7 +142,7 @@ export const createSfuClient = (baseUrl: string) => {
                 // ignore and recreate
             }
         }
-        const producer = await sendTransport.produce({ track });
+        const producer = await sendTransport.produce({ track, appData });
         producers.set(kind, producer);
         return producer;
     };

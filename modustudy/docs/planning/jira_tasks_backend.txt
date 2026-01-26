@@ -1,0 +1,565 @@
+################################################################################
+#                              웹 백엔드 (Spring Boot)                           #
+################################################################################
+# 범례: [x] 완료 | [-] 진행중 | [ ] 미완료
+################################################################################
+
+================================================================================
+[Epic] 인증/사용자 (Auth/User)
+================================================================================
+# Entity 작성
+[x] [BE] User Entity 작성                                                      | 3pt
+[x] [BE] RefreshToken Entity 작성                                              | 2pt
+[x] [BE] UserRole Enum 작성                                                    | 1pt
+[x] [BE] ProfileImage Enum 작성                                                | 1pt
+
+# Repository 작성
+[x] [BE] UserRepository 작성                                                   | 2pt
+[x] [BE] RefreshTokenRepository 작성                                           | 2pt
+
+# Service 작성
+[x] [BE] AuthService 작성 (로그인/로그아웃/토큰관리)                           | 5pt
+[x] [BE] UserService 작성 (사용자 CRUD)                                        | 3pt
+[x] [BE] OAuth2Service 작성 (소셜 로그인)                                      | 5pt
+[x] [BE] PasswordResetService 작성 (비밀번호 재설정)                           | 3pt
+
+# Controller 작성
+[x] [BE] AuthController 작성                                                   | 3pt
+[x] [BE] UserController 작성                                                   | 3pt
+
+# DTO 작성
+[x] [BE] LoginRequest/Response DTO 작성                                        | 1pt
+[x] [BE] OAuth2CallbackRequest DTO 작성                                        | 1pt
+[x] [BE] UserDTO 작성                                                          | 1pt
+[x] [BE] ProfileSetupRequest DTO 작성                                          | 1pt
+
+# Security 설정
+[x] [BE] JWT 토큰 Provider 작성                                                | 3pt
+[x] [BE] JwtAuthenticationFilter 작성                                          | 3pt
+[x] [BE] SecurityConfig 작성                                                   | 3pt
+[x] [BE] OAuth2 설정 (Kakao/Naver/Google)                                      | 5pt
+
+================================================================================
+[Epic] 스터디 (Study)
+================================================================================
+# Entity 작성
+[x] [BE] Study Entity 작성                                                     | 3pt
+[x] [BE] StudyMember Entity 작성                                               | 2pt
+[x] [BE] StudyCategory Enum 작성                                               | 1pt
+[x] [BE] StudyRole Enum 작성                                                   | 1pt
+[x] [BE] StudyStatus Enum 작성                                                 | 1pt
+[x] [BE] MemberStatus Enum 작성                                                | 1pt
+[x] [BE] StudyBookmark Entity 작성                                             | 2pt
+[x] [BE] StudyComment Entity 작성                                              | 2pt
+[x] [BE] StudyReport Entity 작성                                               | 2pt
+
+# Repository 작성
+[x] [BE] StudyRepository 작성                                                  | 2pt
+[x] [BE] StudyMemberRepository 작성                                            | 2pt
+[x] [BE] StudyBookmarkRepository 작성                                          | 2pt
+[x] [BE] StudyCommentRepository 작성                                           | 2pt
+[x] [BE] StudyReportRepository 작성                                            | 2pt
+
+# Service 작성
+[x] [BE] StudyService 작성 (스터디 CRUD)                                       | 5pt
+[x] [BE] StudyMemberService 작성 (멤버 관리)                                   | 3pt
+[x] [BE] StudyBookmarkService 작성                                             | 2pt
+[x] [BE] StudyCommentService 작성                                              | 2pt
+[x] [BE] StudyReportService 작성                                               | 2pt
+
+# Controller 작성
+[x] [BE] StudyController 작성                                                  | 3pt
+[x] [BE] StudyBookmarkController 작성                                          | 2pt
+[x] [BE] StudyCommentController 작성                                           | 2pt
+[x] [BE] ReportController 작성                                                 | 2pt
+
+# DTO 작성
+[x] [BE] StudyCreateRequest DTO 작성                                           | 1pt
+[x] [BE] StudyResponse DTO 작성                                                | 1pt
+[x] [BE] StudyDetailResponse DTO 작성                                          | 1pt
+[x] [BE] StudyMemberDTO 작성                                                   | 1pt
+
+================================================================================
+[Epic] 스터디 지원/템플릿 (Application/Template)
+================================================================================
+# Entity 작성
+[x] [BE] Application Entity 작성                                               | 2pt
+[x] [BE] ApplicationStatus Enum 작성                                           | 1pt
+[x] [BE] StudyTemplate Entity 작성                                             | 2pt
+
+# Repository 작성
+[x] [BE] ApplicationRepository 작성                                            | 2pt
+[x] [BE] StudyTemplateRepository 작성                                          | 2pt
+
+# Service 작성
+[x] [BE] ApplicationService 작성                                               | 3pt
+[x] [BE] StudyTemplateService 작성                                             | 2pt
+
+# Controller 작성
+[x] [BE] ApplicationController 작성                                            | 2pt
+[x] [BE] StudyTemplateController 작성                                          | 2pt
+
+# DTO 작성
+[x] [BE] ApplicationRequest DTO 작성                                           | 1pt
+[x] [BE] ApplicationResponse DTO 작성                                          | 1pt
+[x] [BE] StudyTemplateDTO 작성                                                 | 1pt
+
+================================================================================
+[Epic] 친구 (Friend)
+================================================================================
+# Entity 작성
+[x] [BE] Friendship Entity 작성                                                | 2pt
+[x] [BE] FriendRequest Entity 작성                                             | 2pt
+[x] [BE] BlockedUser Entity 작성                                               | 2pt
+[x] [BE] FriendStatus Enum 작성                                                | 1pt
+
+# Repository 작성
+[x] [BE] FriendshipRepository 작성                                             | 2pt
+[x] [BE] FriendRequestRepository 작성                                          | 2pt
+[x] [BE] BlockedUserRepository 작성                                            | 2pt
+
+# Service 작성
+[x] [BE] FriendService 작성                                                    | 5pt
+[x] [BE] BlockService 작성                                                     | 2pt
+
+# Controller 작성
+[x] [BE] FriendController 작성                                                 | 3pt
+
+# DTO 작성
+[x] [BE] FriendResponse DTO 작성                                               | 1pt
+[x] [BE] FriendRequestDTO 작성                                                 | 1pt
+[x] [BE] UserSearchResponse DTO 작성                                           | 1pt
+
+================================================================================
+[Epic] 다이렉트 메시지 (DM)
+================================================================================
+# Entity 작성
+[x] [BE] DmConversation Entity 작성                                            | 2pt
+[x] [BE] DirectMessage Entity 작성                                             | 2pt
+
+# Repository 작성
+[x] [BE] DmConversationRepository 작성                                         | 2pt
+[x] [BE] DirectMessageRepository 작성                                          | 2pt
+
+# Service 작성
+[x] [BE] DirectMessageService 작성                                             | 5pt
+
+# Controller 작성
+[x] [BE] DirectMessageController 작성                                          | 3pt
+
+# WebSocket 작성
+[x] [BE] DmWebSocketHandler 작성                                               | 5pt
+[x] [BE] DmWebSocketConfig 작성                                                | 2pt
+
+# DTO 작성
+[x] [BE] ConversationResponse DTO 작성                                         | 1pt
+[x] [BE] DirectMessageResponse DTO 작성                                        | 1pt
+[x] [BE] SendMessageRequest DTO 작성                                           | 1pt
+
+================================================================================
+[Epic] 스터디 채팅 (Message)
+================================================================================
+# Entity 작성
+[x] [BE] Message Entity 작성                                                   | 2pt
+[x] [BE] Channel Entity 작성                                                   | 2pt
+[x] [BE] ChannelType Enum 작성                                                 | 1pt
+
+# Repository 작성
+[x] [BE] MessageRepository 작성                                                | 2pt
+[x] [BE] ChannelRepository 작성                                                | 2pt
+
+# Service 작성
+[x] [BE] MessageService 작성                                                   | 5pt
+[x] [BE] ChannelService 작성                                                   | 3pt
+
+# Controller 작성
+[x] [BE] MessageController 작성                                                | 3pt
+
+# WebSocket 작성
+[x] [BE] ChatWebSocketHandler 작성                                             | 5pt
+[x] [BE] WebSocketConfig 작성                                                  | 2pt
+
+# DTO 작성
+[x] [BE] MessageDTO 작성                                                       | 1pt
+[x] [BE] ChannelDTO 작성                                                       | 1pt
+
+================================================================================
+[Epic] 화상 회의 (Meeting)
+================================================================================
+# Entity 작성
+[x] [BE] Meeting Entity 작성                                                   | 2pt
+[x] [BE] MeetingParticipant Entity 작성                                        | 2pt
+[x] [BE] MeetingRecording Entity 작성                                          | 2pt
+[x] [BE] MeetingSummary Entity 작성                                            | 2pt
+[x] [BE] ActionItem Entity 작성                                                | 2pt
+[x] [BE] MeetingStatus Enum 작성                                               | 1pt
+
+# Repository 작성
+[x] [BE] MeetingRepository 작성                                                | 2pt
+[x] [BE] MeetingParticipantRepository 작성                                     | 2pt
+[x] [BE] MeetingRecordingRepository 작성                                       | 2pt
+[x] [BE] MeetingSummaryRepository 작성                                         | 2pt
+[x] [BE] ActionItemRepository 작성                                             | 2pt
+
+# Service 작성
+[x] [BE] MeetingService 작성                                                   | 5pt
+[x] [BE] MeetingRecordingService 작성                                          | 3pt
+[x] [BE] MeetingSummaryService 작성                                            | 3pt
+
+# Controller 작성
+[x] [BE] MeetingController 작성                                                | 3pt
+
+# DTO 작성
+[x] [BE] MeetingDTO 작성                                                       | 1pt
+[x] [BE] MeetingParticipantDTO 작성                                            | 1pt
+[x] [BE] MeetingRecordingDTO 작성                                              | 1pt
+[x] [BE] ActionItemDTO 작성                                                    | 1pt
+
+================================================================================
+[Epic] 퀴즈 코스 (Quiz Course)
+================================================================================
+# Entity 작성
+[x] [BE] QuizCourse Entity 작성                                                | 2pt
+[x] [BE] QuizCourseProgress Entity 작성                                        | 2pt
+[x] [BE] CourseNode Entity 작성                                                | 2pt
+[x] [BE] NodeType Enum 작성                                                    | 1pt
+
+# Repository 작성
+[x] [BE] QuizCourseRepository 작성                                             | 2pt
+[x] [BE] QuizCourseProgressRepository 작성                                     | 2pt
+[x] [BE] CourseNodeRepository 작성                                             | 2pt
+
+# Service 작성
+[x] [BE] QuizCourseService 작성                                                | 5pt
+[x] [BE] QuizProgressService 작성                                              | 3pt
+
+# Controller 작성
+[x] [BE] QuizCourseController 작성                                             | 3pt
+
+# DTO 작성
+[x] [BE] QuizCourseDTO 작성                                                    | 1pt
+[x] [BE] CourseProgressDTO 작성                                                | 1pt
+[x] [BE] CourseNodeDTO 작성                                                    | 1pt
+
+================================================================================
+[Epic] 코멘들 (Comendle)
+================================================================================
+# Entity 작성
+[x] [BE] ComendleProblem Entity 작성                                           | 2pt
+[x] [BE] ComendleAttempt Entity 작성                                           | 2pt
+[x] [BE] ComendleStats Entity 작성                                             | 2pt
+
+# Repository 작성
+[x] [BE] ComendleProblemRepository 작성                                        | 2pt
+[x] [BE] ComendleAttemptRepository 작성                                        | 2pt
+[x] [BE] ComendleStatsRepository 작성                                          | 2pt
+
+# Service 작성
+[x] [BE] ComendleService 작성                                                  | 5pt
+
+# Controller 작성
+[x] [BE] ComendleController 작성                                               | 3pt
+
+# DTO 작성
+[x] [BE] ComendleProblemDTO 작성                                               | 1pt
+[x] [BE] ComendleAttemptDTO 작성                                               | 1pt
+[x] [BE] ComendleStatsDTO 작성                                                 | 1pt
+
+================================================================================
+[Epic] 출석 관리 (Attendance) - 미완료
+================================================================================
+# Entity 작성
+[x] [BE] Attendance Entity 작성                                                | 2pt
+[x] [BE] AttendanceSession Entity 작성                                         | 2pt
+[x] [BE] SessionMemo Entity 작성                                               | 2pt
+[x] [BE] AttendanceStatus Enum 작성                                            | 1pt
+
+# Repository 작성
+[x] [BE] AttendanceRepository 작성                                             | 2pt
+[x] [BE] AttendanceSessionRepository 작성                                      | 2pt
+[x] [BE] SessionMemoRepository 작성                                            | 2pt
+
+# Service 작성
+[ ] [BE] AttendanceService 비즈니스 로직 구현                                  | 5pt
+
+# Controller 작성
+[-] [BE] AttendanceController 구현 (stub 상태)                                 | 3pt
+
+# DTO 작성
+[ ] [BE] AttendanceDTO 작성                                                    | 1pt
+[ ] [BE] AttendanceSessionDTO 작성                                             | 1pt
+
+================================================================================
+[Epic] 게시판 (Board) - 미완료
+================================================================================
+# Entity 작성
+[x] [BE] BoardPost Entity 작성                                                 | 2pt
+[x] [BE] BoardComment Entity 작성                                              | 2pt
+[x] [BE] BoardLike Entity 작성                                                 | 2pt
+
+# Repository 작성
+[x] [BE] BoardPostRepository 작성                                              | 2pt
+[x] [BE] BoardCommentRepository 작성                                           | 2pt
+[x] [BE] BoardLikeRepository 작성                                              | 2pt
+
+# Service 작성
+[ ] [BE] BoardService 비즈니스 로직 구현                                       | 5pt
+
+# Controller 작성
+[-] [BE] BoardController 구현 (stub 상태)                                      | 3pt
+
+# DTO 작성
+[ ] [BE] BoardPostDTO 작성                                                     | 1pt
+[ ] [BE] BoardCommentDTO 작성                                                  | 1pt
+
+================================================================================
+[Epic] 게이미피케이션 (Gamification) - 미완료
+================================================================================
+# Entity 작성
+[x] [BE] UserActivity Entity 작성                                              | 2pt
+[x] [BE] UserStats Entity 작성                                                 | 2pt
+[x] [BE] Badge Entity 작성                                                     | 2pt
+[x] [BE] UserBadge Entity 작성                                                 | 2pt
+[x] [BE] Streak Entity 작성                                                    | 2pt
+
+# Repository 작성
+[x] [BE] UserActivityRepository 작성                                           | 2pt
+[x] [BE] UserStatsRepository 작성                                              | 2pt
+[x] [BE] BadgeRepository 작성                                                  | 2pt
+[x] [BE] UserBadgeRepository 작성                                              | 2pt
+[x] [BE] StreakRepository 작성                                                 | 2pt
+
+# Service 작성
+[ ] [BE] GamificationService 비즈니스 로직 구현                                | 5pt
+[ ] [BE] BadgeService 구현                                                     | 3pt
+[ ] [BE] StreakService 구현                                                    | 3pt
+
+# Controller 작성
+[-] [BE] GamificationController 구현 (stub 상태)                               | 3pt
+
+# DTO 작성
+[ ] [BE] UserStatsDTO 작성                                                     | 1pt
+[ ] [BE] BadgeDTO 작성                                                         | 1pt
+[ ] [BE] ActivityDTO 작성                                                      | 1pt
+
+================================================================================
+[Epic] 일일 학습 (Daily) - 미완료
+================================================================================
+# Entity 작성
+[x] [BE] DailyStudyLog Entity 작성                                             | 2pt
+[x] [BE] DailyGoal Entity 작성                                                 | 2pt
+
+# Repository 작성
+[x] [BE] DailyStudyLogRepository 작성                                          | 2pt
+[x] [BE] DailyGoalRepository 작성                                              | 2pt
+
+# Service 작성
+[ ] [BE] DailyService 비즈니스 로직 구현                                       | 5pt
+
+# Controller 작성
+[-] [BE] DailyController 구현 (stub 상태)                                      | 3pt
+
+# DTO 작성
+[ ] [BE] DailyStudyLogDTO 작성                                                 | 1pt
+[ ] [BE] DailyGoalDTO 작성                                                     | 1pt
+
+================================================================================
+[Epic] 자료실 (Material) - 미완료
+================================================================================
+# Entity 작성
+[x] [BE] Material Entity 작성                                                  | 2pt
+[x] [BE] MaterialFolder Entity 작성                                            | 2pt
+
+# Repository 작성
+[x] [BE] MaterialRepository 작성                                               | 2pt
+[x] [BE] MaterialFolderRepository 작성                                         | 2pt
+
+# Service 작성
+[ ] [BE] MaterialService 비즈니스 로직 구현                                    | 5pt
+[ ] [BE] FileUploadService 구현                                                | 3pt
+
+# Controller 작성
+[-] [BE] MaterialController 구현 (stub 상태)                                   | 3pt
+
+# DTO 작성
+[ ] [BE] MaterialDTO 작성                                                      | 1pt
+[ ] [BE] MaterialFolderDTO 작성                                                | 1pt
+
+================================================================================
+[Epic] 회고 (Retrospect) - 미완료
+================================================================================
+# Entity 작성
+[x] [BE] Retrospect Entity 작성                                                | 2pt
+
+# Repository 작성
+[x] [BE] RetrospectRepository 작성                                             | 2pt
+
+# Service 작성
+[ ] [BE] RetrospectService 비즈니스 로직 구현                                  | 3pt
+
+# Controller 작성
+[-] [BE] RetrospectController 구현 (stub 상태)                                 | 2pt
+
+# DTO 작성
+[ ] [BE] RetrospectDTO 작성                                                    | 1pt
+
+================================================================================
+[Epic] 알림 (Notification) - 미완료
+================================================================================
+# Entity 작성
+[x] [BE] Notification Entity 작성                                              | 2pt
+[x] [BE] NotificationType Enum 작성                                            | 1pt
+
+# Repository 작성
+[x] [BE] NotificationRepository 작성                                           | 2pt
+
+# Service 작성
+[ ] [BE] NotificationService 비즈니스 로직 구현                                | 5pt
+[ ] [BE] FCM/Push 알림 서비스 구현                                             | 5pt
+
+# Controller 작성
+[-] [BE] NotificationController 구현 (stub 상태)                               | 3pt
+
+# DTO 작성
+[ ] [BE] NotificationDTO 작성                                                  | 1pt
+
+================================================================================
+[Epic] 뉴스 피드 (News) - 미완료
+================================================================================
+# Entity 작성
+[x] [BE] News Entity 작성                                                      | 2pt
+
+# Repository 작성
+[x] [BE] NewsRepository 작성                                                   | 2pt
+
+# Service 작성
+[ ] [BE] NewsService 비즈니스 로직 구현                                        | 3pt
+[ ] [BE] News Scraping/API 연동                                                | 5pt
+
+# Controller 작성
+[-] [BE] NewsController 구현 (stub 상태)                                       | 2pt
+
+# DTO 작성
+[ ] [BE] NewsDTO 작성                                                          | 1pt
+
+================================================================================
+[Epic] 모집 게시판 (Recruitment) - 미완료
+================================================================================
+# Entity 작성
+[x] [BE] Recruitment Entity 작성 (Study에서 관리)                              | 2pt
+
+# Service 작성
+[ ] [BE] RecruitmentService 비즈니스 로직 구현                                 | 3pt
+
+# Controller 작성
+[-] [BE] RecruitmentController 구현 (stub 상태)                                | 2pt
+
+# DTO 작성
+[ ] [BE] RecruitmentDTO 작성                                                   | 1pt
+
+================================================================================
+[Epic] 퀴즈 대회 (Quiz Contest) - 미완료
+================================================================================
+# Entity 작성
+[x] [BE] QuizContest Entity 작성                                               | 2pt
+[x] [BE] ContestParticipant Entity 작성                                        | 2pt
+[x] [BE] ContestQuestion Entity 작성                                           | 2pt
+
+# Repository 작성
+[x] [BE] QuizContestRepository 작성                                            | 2pt
+[x] [BE] ContestParticipantRepository 작성                                     | 2pt
+[x] [BE] ContestQuestionRepository 작성                                        | 2pt
+
+# Service 작성
+[ ] [BE] QuizContestService 비즈니스 로직 구현                                 | 5pt
+[ ] [BE] ContestRankingService 구현                                            | 3pt
+
+# Controller 작성
+[-] [BE] QuizController 구현 (stub 상태)                                       | 3pt
+
+# WebSocket 작성
+[ ] [BE] ContestWebSocketHandler 작성                                          | 5pt
+
+# DTO 작성
+[ ] [BE] QuizContestDTO 작성                                                   | 1pt
+[ ] [BE] ContestResultDTO 작성                                                 | 1pt
+
+================================================================================
+[Epic] CS Quiz AI (Flask)
+================================================================================
+[x] [BE] Flask 서버 설정                                                       | 2pt
+[x] [BE] Gemini API 연동                                                       | 3pt
+[x] [BE] 퀴즈 생성 엔드포인트 구현                                             | 3pt
+[x] [BE] 회의록 요약 엔드포인트 구현                                           | 3pt
+[x] [BE] 오답 해설 엔드포인트 구현                                             | 3pt
+
+================================================================================
+[Epic] SFU 서버 (Node.js/mediasoup)
+================================================================================
+[x] [BE] mediasoup Worker 설정                                                 | 3pt
+[x] [BE] Router/Transport 관리                                                 | 5pt
+[x] [BE] Producer/Consumer 관리                                                | 5pt
+[x] [BE] 시그널링 서버 (WebSocket)                                             | 5pt
+[x] [BE] Room 관리 로직                                                        | 3pt
+
+================================================================================
+[Epic] 녹화 서버 (Recorder)
+================================================================================
+[x] [BE] FFmpeg 연동                                                           | 3pt
+[x] [BE] 미디어 스트림 수집                                                    | 5pt
+[x] [BE] 녹화 파일 저장                                                        | 3pt
+[x] [BE] S3 업로드 연동                                                        | 3pt
+
+================================================================================
+[Epic] 관리자 (Admin) - 미완료
+================================================================================
+# Entity 작성
+[ ] [BE] AdminLog Entity 작성 (관리자 활동 로그)                               | 2pt
+
+# Service 작성
+[ ] [BE] AdminService 작성 (사용자 관리)                                       | 5pt
+[ ] [BE] ReportManagementService 작성 (신고 처리)                              | 3pt
+[ ] [BE] SystemStatsService 작성 (통계)                                        | 3pt
+
+# Controller 작성
+[ ] [BE] AdminController 작성                                                  | 3pt
+
+# DTO 작성
+[ ] [BE] AdminUserDTO 작성                                                     | 1pt
+[ ] [BE] ReportManagementDTO 작성                                              | 1pt
+[ ] [BE] SystemStatsDTO 작성                                                   | 1pt
+
+################################################################################
+#                              진행 상황 요약                                     #
+################################################################################
+# 완료: 약 85%
+# 진행중: 약 5% (stub 상태 Controller들)
+# 미완료: 약 10%
+#
+# 완전 구현된 기능:
+# - 인증/사용자 (Auth/User)
+# - 스터디 (Study) - CRUD, 멤버, 북마크, 댓글, 신고
+# - 스터디 지원/템플릿 (Application/Template)
+# - 친구 (Friend) - 친구 추가/삭제, 요청, 차단
+# - 다이렉트 메시지 (DM) - WebSocket 포함
+# - 스터디 채팅 (Message) - WebSocket 포함
+# - 화상 회의 (Meeting) - SFU, 녹화 서버 포함
+# - 퀴즈 코스 (Quiz Course)
+# - 코멘들 (Comendle)
+# - CS Quiz AI (Flask)
+# - SFU 서버, 녹화 서버
+#
+# 미완료 기능 (Entity/Repository만 존재, Service/Controller stub):
+# - 출석 관리 (Attendance)
+# - 게시판 (Board)
+# - 게이미피케이션 (Gamification)
+# - 일일 학습 (Daily)
+# - 자료실 (Material)
+# - 회고 (Retrospect)
+# - 알림 (Notification)
+# - 뉴스 피드 (News)
+# - 모집 게시판 (Recruitment)
+# - 퀴즈 대회 (Quiz Contest)
+# - 관리자 (Admin)
+#
+################################################################################

@@ -6,7 +6,6 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.ssafy.domain.study.entity.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.support.PageableExecutionUtils;
 import org.springframework.stereotype.Repository;
@@ -33,12 +32,15 @@ public class StudyRepositoryImpl implements StudyRepositoryCustom {
         // 검색 쿼리
         List<Study> content = queryFactory
                 .selectFrom(study)
+                .leftJoin(study.topic).fetchJoin()      // Topic N+1 방지
+                .leftJoin(study.format).fetchJoin()     // Format N+1 방지
                 .where(
                         isNotDraft(),
                         isPublicEq(condition.getIsPublic()),
                         keywordContains(condition.getKeyword()),
-                        topicEq(condition.getTopic()),
-                        formatEq(condition.getFormat()),
+                        topicIdEq(condition.getTopicId()),
+                        parentTopicIdEq(condition.getParentTopicId()),
+                        formatIdEq(condition.getFormatId()),
                         studyTypeEq(condition.getStudyType()),
                         meetingTypeEq(condition.getMeetingType()),
                         statusEq(condition.getStatus()),
@@ -61,8 +63,9 @@ public class StudyRepositoryImpl implements StudyRepositoryCustom {
                         isNotDraft(),
                         isPublicEq(condition.getIsPublic()),
                         keywordContains(condition.getKeyword()),
-                        topicEq(condition.getTopic()),
-                        formatEq(condition.getFormat()),
+                        topicIdEq(condition.getTopicId()),
+                        parentTopicIdEq(condition.getParentTopicId()),
+                        formatIdEq(condition.getFormatId()),
                         studyTypeEq(condition.getStudyType()),
                         meetingTypeEq(condition.getMeetingType()),
                         statusEq(condition.getStatus()),
@@ -93,28 +96,41 @@ public class StudyRepositoryImpl implements StudyRepositoryCustom {
     }
 
     /**
-     * 키워드 검색 (이름 + 설명)
+     * 키워드 검색 (이름 + 설명 + 주제명)
      */
     private BooleanExpression keywordContains(String keyword) {
         if (!StringUtils.hasText(keyword)) {
             return null;
         }
         return study.name.containsIgnoreCase(keyword)
-                .or(study.description.containsIgnoreCase(keyword));
+                .or(study.description.containsIgnoreCase(keyword))
+                .or(study.topic.name.containsIgnoreCase(keyword));  // 주제명도 검색
     }
 
     /**
-     * 주제 필터
+     * 주제 ID 필터 (소분류)
      */
-    private BooleanExpression topicEq(String topic) {
-        return StringUtils.hasText(topic) ? study.topic.eq(topic) : null;
+    private BooleanExpression topicIdEq(Long topicId) {
+        return topicId != null ? study.topic.id.eq(topicId) : null;
     }
 
     /**
-     * 진행 포맷 필터
+     * 대분류 ID 필터 (해당 대분류의 모든 소분류 포함)
      */
-    private BooleanExpression formatEq(String format) {
-        return StringUtils.hasText(format) ? study.format.eq(format) : null;
+    private BooleanExpression parentTopicIdEq(Long parentTopicId) {
+        if (parentTopicId == null) {
+            return null;
+        }
+        // 대분류 자체이거나, parent가 해당 대분류인 경우
+        return study.topic.id.eq(parentTopicId)
+                .or(study.topic.parent.id.eq(parentTopicId));
+    }
+
+    /**
+     * 형식 ID 필터
+     */
+    private BooleanExpression formatIdEq(Long formatId) {
+        return formatId != null ? study.format.id.eq(formatId) : null;
     }
 
     /**

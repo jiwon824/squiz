@@ -25,7 +25,6 @@ public class Study {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // 외래 키 (추후 추가)
     @Column(name = "leader_id", nullable = false)
     private Long leaderId;
 
@@ -35,11 +34,15 @@ public class Study {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(nullable = false, length = 50)
-    private String topic;
+    // ========== 카테고리 변경: String → 연관관계 ==========
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "topic_id", nullable = false)
+    private Topic topic;
 
-    @Column(length = 50)
-    private String format;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "format_id")
+    private Format format;
+    // ====================================================
 
     @Enumerated(EnumType.STRING)
     @Column(name = "study_type", nullable = false)
@@ -50,7 +53,6 @@ public class Study {
     @Builder.Default
     private MeetingType meetingType = MeetingType.ONLINE;
 
-    // 외래 키 (추후 추가)
     @Column(name = "region_id")
     private Long regionId;
 
@@ -134,13 +136,29 @@ public class Study {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    // 비즈니스 로직
+    // ========== 편의 메서드 ==========
+
+    /**
+     * 주제명 반환 (null 안전)
+     */
+    public String getTopicName() {
+        return topic != null ? topic.getName() : null;
+    }
+
+    /**
+     * 형식명 반환 (null 안전)
+     */
+    public String getFormatName() {
+        return format != null ? format.getName() : null;
+    }
+
+    // ========== 비즈니스 로직 ==========
+
     public void updateStatus(Status newStatus) {
         this.status = newStatus;
     }
 
     public void extendRecruitment(LocalDate newEndDate) {
-        // extensionCount가 null이면 0으로 초기화
         if (this.extensionCount == null) {
             this.extensionCount = 0;
         }

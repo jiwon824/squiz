@@ -5,19 +5,27 @@ import { Skeleton } from '../shared/components';
 // 즉시 로드: 랜딩 및 핵심 페이지
 import { StartPage } from '../features/start/StartPage';
 import { Dashboard, CalendarExpandWidget, DashboardSkeleton } from '../features/dashboard';
+import { CalendarTestPage } from '../features/calendar/components/CalendarTestPage';
+import { CalendarPage } from '../features/calendar/components/CalendarPage';
 import { authApi } from '@/api/endpoints/authApi';
 import { useAuthStore } from '@/store/authStore';
 import ReuseTest from '../features/reuseTest';
 
 // Lazy 로드: 나머지 페이지들
-const CommentlePage = lazy(() =>
-    import('../features/commentle/CommentlePage').then(m => ({ default: m.CommentlePage }))
-);
 const QuizGameSelection = lazy(() =>
     import('../features/quiz').then(m => ({ default: m.QuizGameSelection }))
 );
 const CommentleQuiz = lazy(() =>
     import('../features/quiz').then(m => ({ default: m.CommentleQuiz }))
+);
+const QuizCourseList = lazy(() =>
+    import('../features/quiz').then(m => ({ default: m.QuizCourseList }))
+);
+const CourseDetail = lazy(() =>
+    import('../features/quiz').then(m => ({ default: m.CourseDetail }))
+);
+const QuizSessionPage = lazy(() =>
+    import('../features/quiz').then(m => ({ default: m.QuizSession }))
 );
 const LoginPage = lazy(() =>
     import('../features/auth/index').then(m => ({ default: m.LoginPage }))
@@ -110,16 +118,20 @@ export const AppRouter = () => {
                         </Suspense>
                     } />
                     <Route path="/calendar-expand" element={<CalendarExpandWidget />} />
+                    <Route path="/calendar" element={<CalendarPage />} />
+                    <Route path="/test-calendar" element={<CalendarTestPage />} />
                     <Route path="/reuse-test" element={<ReuseTest />} />
 
                     {/* Lazy 로드 페이지 */}
-                    <Route path="/commentle" element={<CommentlePage />} />
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/login/callback" element={<LoginCallbackPage />} />
                     <Route path="/password/reset" element={<PasswordResetPage />} />
                     <Route path="/signup" element={<SignupPage />} />
                     <Route path="/quiz" element={<QuizGameSelection />} />
                     <Route path="/quiz-commentle" element={<CommentleQuiz />} />
+                    <Route path="/quiz-practice" element={<QuizCourseList />} />
+                    <Route path="/quiz-practice/:courseId" element={<CourseDetail />} />
+                    <Route path="/quiz-practice/:courseId/section/:sectionId/session" element={<QuizSessionPage />} />
                     <Route path="/study" element={<StudyPage />} />
                     <Route path="/study/create" element={<StudyCreatePage />} />
                     <Route path="/study/:id" element={<StudyDetailPage />} />

@@ -15,8 +15,8 @@ public class Meeting extends BaseEntity {
     @Column(name = "session_id")
     private Long sessionId;
 
-    @Column(name = "channel_id")
-    private Long channelId;
+    @Column(name = "workspace_id")
+    private Long workspaceId;
 
     @Column(name = "title", length = 200)
     private String title;
@@ -56,18 +56,18 @@ public class Meeting extends BaseEntity {
     @Column(name = "auto_share_summary", nullable = false)
     private Boolean autoShareSummary;
 
-    @Column(name = "share_channel_id")
-    private Long shareChannelId;
+    @Column(name = "share_workspace_id")
+    private Long shareWorkspaceId;
 
     @Builder
-    private Meeting(Long studyId, Long sessionId, Long channelId, String title, MeetingType meetingType,
+    private Meeting(Long studyId, Long sessionId, Long workspaceId, String title, MeetingType meetingType,
                     java.time.LocalDateTime startedAt, java.time.LocalDateTime endedAt,
                     Integer durationSeconds, Integer participantCount, MeetingStatus status,
                     RecordingStatus recordingStatus, SttStatus sttStatus, SummaryStatus summaryStatus,
-                    Boolean autoShareSummary, Long shareChannelId) {
+                    Boolean autoShareSummary, Long shareWorkspaceId) {
         this.studyId = studyId;
         this.sessionId = sessionId;
-        this.channelId = channelId;
+        this.workspaceId = workspaceId;
         this.title = title;
         this.meetingType = meetingType;
         this.startedAt = startedAt;
@@ -79,15 +79,15 @@ public class Meeting extends BaseEntity {
         this.sttStatus = sttStatus;
         this.summaryStatus = summaryStatus;
         this.autoShareSummary = autoShareSummary;
-        this.shareChannelId = shareChannelId;
+        this.shareWorkspaceId = shareWorkspaceId;
     }
 
-    public static Meeting start(Long studyId, Long sessionId, Long channelId, String title, MeetingType meetingType,
-                                boolean autoShareSummary, Long shareChannelId, java.time.LocalDateTime startedAt) {
+    public static Meeting start(Long studyId, Long sessionId, Long workspaceId, String title, MeetingType meetingType,
+                                boolean autoShareSummary, Long shareWorkspaceId, java.time.LocalDateTime startedAt) {
         return Meeting.builder()
                 .studyId(studyId)
                 .sessionId(sessionId)
-                .channelId(channelId)
+                .workspaceId(workspaceId)
                 .title(title)
                 .meetingType(meetingType)
                 .startedAt(startedAt)
@@ -97,7 +97,7 @@ public class Meeting extends BaseEntity {
                 .sttStatus(SttStatus.PENDING)
                 .summaryStatus(SummaryStatus.PENDING)
                 .autoShareSummary(autoShareSummary)
-                .shareChannelId(shareChannelId)
+                .shareWorkspaceId(shareWorkspaceId)
                 .build();
     }
 
@@ -126,8 +126,8 @@ public class Meeting extends BaseEntity {
         this.summaryStatus = summaryStatus;
     }
 
-    public void updateShareOption(boolean autoShareSummary, Long shareChannelId) {
+    public void updateShareOption(boolean autoShareSummary, Long shareWorkspaceId) {
         this.autoShareSummary = autoShareSummary;
-        this.shareChannelId = shareChannelId;
+        this.shareWorkspaceId = shareWorkspaceId;
     }
 }
