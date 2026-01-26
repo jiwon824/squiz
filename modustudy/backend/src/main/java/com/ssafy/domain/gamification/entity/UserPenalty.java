@@ -24,9 +24,10 @@ public class UserPenalty {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "penalty_id", nullable = false)
-    private Penalty penalty;
+    // ⭐ 변경: Penalty 엔티티 대신 Enum 사용
+    @Enumerated(EnumType.STRING)
+    @Column(name = "penalty_type", nullable = false, length = 50)
+    private PenaltyType penaltyType;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "study_id")
@@ -50,15 +51,15 @@ public class UserPenalty {
     }
 
     @Builder
-    public UserPenalty(User user, Penalty penalty, Study study) {
+    public UserPenalty(User user, PenaltyType penaltyType, Study study) {
         this.user = user;
-        this.penalty = penalty;
+        this.penaltyType = penaltyType;
         this.study = study;
         this.isActive = true;
         this.removalProgress = 0;
     }
 
-    public void removeProgress() {
+    public void increaseProgress() {
         this.removalProgress++;
     }
 

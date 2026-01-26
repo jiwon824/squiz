@@ -3,6 +3,7 @@ package com.ssafy.domain.gamification.service;
 import com.ssafy.domain.gamification.dto.response.*;
 import com.ssafy.domain.gamification.entity.*;
 import com.ssafy.domain.gamification.repository.*;
+import com.ssafy.domain.gamification.entity.PenaltyType;
 import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,9 +42,6 @@ class GamificationServiceTest {
 
     @Mock
     private UserBadgeRepository userBadgeRepository;
-
-    @Mock
-    private PenaltyRepository penaltyRepository;
 
     @Mock
     private UserPenaltyRepository userPenaltyRepository;
@@ -192,22 +190,46 @@ class GamificationServiceTest {
     }
 
     @Test
-    @DisplayName("패널티 목록 조회 - 성공")
+    @DisplayName("패널티 목록 조회 - 활성 패널티 있음")
     void getPenalties_Success() {
         // given
+        UserPenalty activePenalty = UserPenalty.builder()
+                .user(testUser)
+                .penaltyType(PenaltyType.THREE_DAY_QUIT)  // ⭐ Enum 사용
+                .study(null)
+                .build();
+
+        UserPenalty removedPenalty = UserPenalty.builder()
+                .user(testUser)
+                .penaltyType(PenaltyType.LATE_KING)  // ⭐ Enum 사용
+                .study(null)
+                .build();
+        removedPenalty.remove();  // 해소된 패널티로 설정
+
         given(userPenaltyRepository.findByUserIdAndIsActiveWithDetails(1L, true))
-                .willReturn(new ArrayList<>());
+                .willReturn(List.of(activePenalty));
         given(userPenaltyRepository.findByUserIdAndIsActiveWithDetails(1L, false))
-                .willReturn(new ArrayList<>());
+                .willReturn(List.of(removedPenalty));
 
         // when
         PenaltyListResponse response = gamificationService.getPenalties(1L);
 
         // then
         assertThat(response).isNotNull();
-        assertThat(response.getTotalActive()).isEqualTo(0);
-        assertThat(response.getTotalRemoved()).isEqualTo(0);
-        assertThat(response.getActivePenalties()).isEmpty();
-        assertThat(response.getRemovedPenalties()).isEmpty();
+        assertThat(response.getTotalActive()).isEqualTo(1);
+        assertThat(response.getTotalRemoved()).isEqualTo(1);
+        assertThat(response.getActivePenalties()).hasSize(1);
+        assertThat(response.getRemovedPenalties()).hasSize(1);
+
+        // 활성 패널티 검증
+        PenaltyListResponse.PenaltyInfo activeInfo = response.getActivePenalties().get(0);
+        assertThat(activeInfo.getPenaltyType()).isEqualTo("THREE_DAY_QUIT");
+        assertThat(activeInfo.getName()).isEqualTo("작심삼일");
+        assertThat(activeInfo.getIsActive()).isTrue();
+
+        // 해소된 패널티 검증
+        PenaltyListResponse.RemovedPenalty removedInfo = response.getRemovedPenalties().get(0);
+        assertThat(removedInfo.getPenaltyType()).isEqualTo("LATE_KING");
+        assertThat(removedInfo.getName()).isEqualTo("지각왕");
     }
 }
