@@ -131,9 +131,9 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 >
                     {/* 페이지 콘텐츠 */}
                     <div
-                        className={`flex-1 overflow-auto ${shouldHideHeader ? 'pt-0' : 'pt-2'} pb-6 bg-study-bg transition-all duration-300 ${
-                            isSidebarOpen ? 'pl-6' : 'pl-0'
-                        } ${isCompactMode ? 'pr-2' : activeRightTab ? 'pr-80' : 'pr-14'}`}
+                        id="main-content-scroll"
+                        className={`flex-1 overflow-auto ${shouldHideHeader ? 'pt-0' : 'pt-2'} pb-6 bg-study-bg transition-all duration-300 ${isSidebarOpen ? 'pl-6' : 'pl-0'
+                            } ${isCompactMode ? 'pr-2' : activeRightTab ? 'pr-80' : 'pr-14'}`}
                     >
                         {children}
                     </div>
