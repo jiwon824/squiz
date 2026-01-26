@@ -10,6 +10,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fullcalendar/daygrid": "^6.1.20",
+    "@fullcalendar/interaction": "^6.1.20",
+    "@fullcalendar/react": "^6.1.20",
+    "@fullcalendar/timegrid": "^6.1.20",
     "@lottiefiles/dotlottie-react": "^0.17.13",
     "@react-three/drei": "^9.122.0",
     "@react-three/fiber": "^8.18.0",
@@ -27,12 +31,12 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.22.0",
+    "recharts": "^2.15.2",
     "socket.io-client": "^4.7.5",
     "sockjs-client": "^1.6.1",
     "tailwind-merge": "^3.4.0",
     "three": "^0.182.0",
-    "zustand": "^5.0.10",
-    "recharts": "^2.15.2"
+    "zustand": "^5.0.10"
   },
   "devDependencies": {
     "@types/react": "^18.2.55",

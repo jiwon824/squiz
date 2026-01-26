@@ -37,19 +37,19 @@ interface CalendarState {
     createSchedule: (request: CreatePersonalScheduleRequest) => Promise<void>;
     updateSchedule: (id: number, request: UpdatePersonalScheduleRequest) => Promise<void>;
     deleteSchedule: (id: number) => Promise<void>;
-    
+
     setActiveFilters: (filters: ScheduleSource[]) => void;
     setSelectedDate: (date: string | null) => void;
-    
+
     addGoal: (text: string) => void;
     toggleGoal: (id: number) => void;
     removeGoal: (id: number) => void;
-    
+
     addTag: (text: string) => void;
     removeTag: (id: number) => void;
-    
+
     updateMemo: (memo: string) => void;
-    
+
     connectGoogle: () => Promise<string>;
     disconnectGoogle: () => Promise<void>;
     syncGoogle: (startDate: string, endDate: string) => Promise<void>;
@@ -85,9 +85,9 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
             const schedules = await calendarService.getAllSchedules(startDate, endDate);
             set({ schedules, loading: false });
         } catch (error: any) {
-            set({ 
+            set({
                 error: error.message || '일정 조회에 실패했습니다.',
-                loading: false 
+                loading: false
             });
             console.error('일정 조회 실패:', error);
         }
@@ -97,21 +97,41 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
      * 개인 일정 생성
      */
     createSchedule: async (request: CreatePersonalScheduleRequest) => {
-        set({ loading: true, error: null });
+        const previousSchedules = get().schedules;
+
+        // 가상 ID 생성 (임시)
+        const tempId = `temp-${Date.now()}`;
+        const newSchedule: UnifiedSchedule = {
+            id: tempId,
+            title: request.title,
+            description: request.description,
+            startDate: request.startDate,
+            startTime: request.startTime,
+            endDate: request.endDate,
+            endTime: request.endTime,
+            location: request.location,
+            isOnline: request.isOnline ?? false,
+            source: 'personal',
+            color: request.color,
+            isSyncedWithGoogle: request.syncToGoogle
+        };
+
+        // UI 즉시 업데이트 (Optimistic)
+        set(state => ({
+            schedules: [...state.schedules, newSchedule],
+        }));
+
         try {
-            const newSchedule = await calendarService.createPersonalSchedule(request);
-            
-            // Optimistic Update
+            const savedSchedule = await calendarService.createPersonalSchedule(request);
+
+            // 실제 데이터로 교체
             set(state => ({
-                schedules: [...state.schedules, newSchedule],
-                loading: false
+                schedules: state.schedules.map(s => s.id === tempId ? savedSchedule : s)
             }));
         } catch (error: any) {
-            set({ 
-                error: error.message || '일정 생성에 실패했습니다.',
-                loading: false 
-            });
-            console.error('일정 생성 실패:', error);
+            // 실패 시 롤백
+            set({ schedules: previousSchedules });
+            console.error('일정 생성 실패 (롤백됨):', error);
             throw error;
         }
     },
@@ -119,24 +139,27 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
     /**
      * 개인 일정 수정
      */
-    updateSchedule: async (id: number, request: UpdatePersonalScheduleRequest) => {
-        set({ loading: true, error: null });
+    updateSchedule: async (id: number | string, request: UpdatePersonalScheduleRequest) => {
+        const previousSchedules = get().schedules;
+
+        // UI 즉시 업데이트 (Optimistic)
+        set(state => ({
+            schedules: state.schedules.map(s =>
+                s.id === id ? { ...s, ...request } : s
+            ),
+        }));
+
         try {
-            const updatedSchedule = await calendarService.updatePersonalSchedule(id, request);
-            
-            // Optimistic Update
+            const updatedSchedule = await calendarService.updatePersonalSchedule(id as number, request);
+
+            // 실제 데이터로 확정
             set(state => ({
-                schedules: state.schedules.map(s => 
-                    s.id === id ? updatedSchedule : s
-                ),
-                loading: false
+                schedules: state.schedules.map(s => s.id === id ? updatedSchedule : s)
             }));
         } catch (error: any) {
-            set({ 
-                error: error.message || '일정 수정에 실패했습니다.',
-                loading: false 
-            });
-            console.error('일정 수정 실패:', error);
+            // 실패 시 롤백
+            set({ schedules: previousSchedules });
+            console.error('일정 수정 실패 (롤백됨):', error);
             throw error;
         }
     },
@@ -144,22 +167,20 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
     /**
      * 개인 일정 삭제
      */
-    deleteSchedule: async (id: number) => {
-        set({ loading: true, error: null });
+    deleteSchedule: async (id: number | string) => {
+        const previousSchedules = get().schedules;
+
+        // UI 즉시 업데이트 (Optimistic)
+        set(state => ({
+            schedules: state.schedules.filter(s => s.id !== id),
+        }));
+
         try {
-            await calendarService.deletePersonalSchedule(id);
-            
-            // Optimistic Update
-            set(state => ({
-                schedules: state.schedules.filter(s => s.id !== id),
-                loading: false
-            }));
+            await calendarService.deletePersonalSchedule(id as number);
         } catch (error: any) {
-            set({ 
-                error: error.message || '일정 삭제에 실패했습니다.',
-                loading: false 
-            });
-            console.error('일정 삭제 실패:', error);
+            // 실패 시 롤백
+            set({ schedules: previousSchedules });
+            console.error('일정 삭제 실패 (롤백됨):', error);
             throw error;
         }
     },
@@ -193,7 +214,7 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
 
     toggleGoal: (id: number) => {
         set(state => ({
-            goals: state.goals.map(g => 
+            goals: state.goals.map(g =>
                 g.id === id ? { ...g, completed: !g.completed } : g
             )
         }));
@@ -252,7 +273,7 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
     disconnectGoogle: async () => {
         try {
             await calendarService.disconnectGoogleCalendar();
-            set({ 
+            set({
                 googleConnected: false,
                 googleEmail: null,
                 googleLastSyncAt: null,
@@ -269,7 +290,7 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
         set({ loading: true });
         try {
             const googleSchedules = await calendarService.syncGoogleCalendar(startDate, endDate);
-            
+
             set(state => ({
                 schedules: [
                     ...state.schedules.filter(s => s.source !== 'google'),
@@ -279,9 +300,9 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
                 loading: false
             }));
         } catch (error: any) {
-            set({ 
+            set({
                 error: error.message || 'Google Calendar 동기화에 실패했습니다.',
-                loading: false 
+                loading: false
             });
             console.error('Google 동기화 실패:', error);
             throw error;
@@ -308,7 +329,7 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
 export const useFilteredSchedules = () => {
     const schedules = useCalendarStore(state => state.schedules);
     const activeFilters = useCalendarStore(state => state.activeFilters);
-    
+
     return schedules.filter(schedule => activeFilters.includes(schedule.source));
 };
 
