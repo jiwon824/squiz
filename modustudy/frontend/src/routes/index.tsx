@@ -6,6 +6,7 @@ import { Skeleton } from '../shared/components';
 import { StartPage } from '../features/start/StartPage';
 import { Dashboard, CalendarExpandWidget, DashboardSkeleton } from '../features/dashboard';
 import { CalendarTestPage } from '../features/calendar/components/CalendarTestPage';
+import { CalendarPage } from '../features/calendar/components/CalendarPage';
 import { authApi } from '@/api/endpoints/authApi';
 import { useAuthStore } from '@/store/authStore';
 import ReuseTest from '../features/reuseTest';
@@ -117,12 +118,14 @@ export const AppRouter = () => {
                         </Suspense>
                     } />
                     <Route path="/calendar-expand" element={<CalendarExpandWidget />} />
+                    <Route path="/calendar" element={<CalendarPage />} />
                     <Route path="/test-calendar" element={<CalendarTestPage />} />
                     <Route path="/reuse-test" element={<ReuseTest />} />
 
                     {/* Lazy 로드 페이지 */}
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/login/callback" element={<LoginCallbackPage />} />
+                    <Route path="/password/reset" element={<PasswordResetPage />} />
                     <Route path="/signup" element={<SignupPage />} />
                     <Route path="/quiz" element={<QuizGameSelection />} />
                     <Route path="/quiz-commentle" element={<CommentleQuiz />} />

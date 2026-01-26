@@ -13,7 +13,7 @@ export const CalendarHeader = ({ weekDays }: CalendarHeaderProps) => {
                 <div
                     key={day}
                     className={`
-                        text-xs font-bold uppercase tracking-wider py-6 text-center
+                        text-[10px] md:text-xs font-bold uppercase tracking-wider py-3 md:py-6 text-center
                         ${idx === 0 ? 'text-red-500' : idx === 6 ? 'text-blue-500' : 'text-gray-600'}
                     `}
                 >
