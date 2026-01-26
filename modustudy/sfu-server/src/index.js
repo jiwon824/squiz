@@ -174,7 +174,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('produce', async ({ roomId, transportId, kind, rtpParameters }, callback) => {
+  socket.on('produce', async ({ roomId, transportId, kind, rtpParameters, appData }, callback) => {
     try {
       const room = await getOrCreateRoom(roomId);
       const peer = getPeer(room, socket.id);
@@ -187,8 +187,13 @@ io.on('connection', (socket) => {
           socket.to(roomId).emit('producerClosed', { producerId: existingVideoProducer.producer.id, peerId: socket.id });
         }
       }
-      const producer = await transport.produce({ kind, rtpParameters });
-      peer.producers.set(producer.id, { producer, kind, createdAt: Date.now() });
+      const producer = await transport.produce({ kind, rtpParameters, appData });
+      peer.producers.set(producer.id, {
+        producer,
+        kind,
+        createdAt: Date.now(),
+        appData: appData || null
+      });
 
       producer.on('transportclose', () => {
         producer.close();

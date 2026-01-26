@@ -439,6 +439,24 @@ const MeetingRoomPage: React.FC = () => {
             }
 
             const videoTrack = nextStream?.getVideoTracks()[0] ?? null;
+            const nextVideoSource = (() => {
+                if (shareModeRef.current === 'mixed' && composedSuccess) {
+                    return 'mixed';
+                }
+                if (nextStream && screenStream && nextStream === screenStream) {
+                    return 'screen';
+                }
+                if (nextStream && effectiveCameraStream && nextStream === effectiveCameraStream) {
+                    return 'camera';
+                }
+                if (shareModeRef.current === 'screen') {
+                    return 'screen';
+                }
+                if (shareModeRef.current === 'camera') {
+                    return 'camera';
+                }
+                return undefined;
+            })();
             if (videoTrack) {
                 await waitForTrackUnmute(videoTrack);
                 if (token !== updateTokenRef.current) return;
@@ -448,7 +466,11 @@ const MeetingRoomPage: React.FC = () => {
                     if (publishedVideoTrackIdRef.current && publishedVideoTrackIdRef.current !== videoTrack.id) {
                         await sfuClientRef.current.closeProducer('video');
                     }
-                    await sfuClientRef.current.produceTrack('video', videoTrack);
+                    await sfuClientRef.current.produceTrack(
+                        'video',
+                        videoTrack,
+                        nextVideoSource ? { source: nextVideoSource } : undefined
+                    );
                     publishedVideoTrackIdRef.current = videoTrack.id;
                 } else {
                     await sfuClientRef.current.closeProducer('video');

@@ -7,12 +7,18 @@ const RTP_IP = process.env.RECORDING_RTP_IP || '127.0.0.1';
 const KEEP_RECORDING_SEGMENTS =
   String(process.env.RECORDING_KEEP_SEGMENTS || '').toLowerCase() === 'true'
   || process.env.RECORDING_KEEP_SEGMENTS === '1';
+const RECORDING_OVERLAP_MS = Number(process.env.RECORDING_OVERLAP_MS || 0);
+const RECORDING_REFRESH_INTERVAL_MS = Number(process.env.RECORDING_REFRESH_INTERVAL_MS || 0);
+const RECORDING_VIDEO_READY_TIMEOUT_MS = Number(process.env.RECORDING_VIDEO_READY_TIMEOUT_MS || 1200);
+const RECORDING_VIDEO_READY_POLL_MS = Number(process.env.RECORDING_VIDEO_READY_POLL_MS || 150);
 const reservedPorts = new Set();
 const RECORDING_RTP_PORT_MIN = Number(process.env.RECORDING_RTP_PORT_MIN || 45000);
 const RECORDING_RTP_PORT_MAX = Number(process.env.RECORDING_RTP_PORT_MAX || 47000);
 let recordingPortCursor = RECORDING_RTP_PORT_MIN % 2 === 0
   ? RECORDING_RTP_PORT_MIN
   : RECORDING_RTP_PORT_MIN + 1;
+const RECORDING_SWITCH_RETRY_MS = Number(process.env.RECORDING_SWITCH_RETRY_MS || 300);
+const RECORDING_SWITCH_MAX_RETRIES = Number(process.env.RECORDING_SWITCH_MAX_RETRIES || 8);
 
 const getFreeUdpPort = () =>
   new Promise((resolve, reject) => {
@@ -206,6 +212,33 @@ const createFallbackSegment = (ffmpegPath, outputPath, width, height, fps, video
       '-f', 'lavfi', '-i', `color=c=black:s=${width}x${height}:r=${fps}`,
       '-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=48000',
       '-t', '1',
+      '-c:v', 'libvpx', '-b:v', `${videoBitrateKbps}k`, '-r', String(fps), '-g', String(fps * 2),
+      '-c:a', 'libopus', '-b:a', `${audioBitrateKbps}k`,
+      '-f', 'webm',
+      outputPath,
+    ];
+    const proc = spawn(ffmpegPath, args, { stdio: ['ignore', 'ignore', 'ignore'] });
+    proc.on('exit', () => resolve());
+    proc.on('error', () => resolve());
+  });
+
+const createGapSegment = (
+  ffmpegPath,
+  outputPath,
+  width,
+  height,
+  fps,
+  durationSeconds,
+  videoBitrateKbps,
+  audioBitrateKbps
+) =>
+  new Promise((resolve) => {
+    const safeDuration = Math.max(0.1, durationSeconds);
+    const args = [
+      '-y',
+      '-f', 'lavfi', '-i', `color=c=black:s=${width}x${height}:r=${fps}`,
+      '-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=48000',
+      '-t', safeDuration.toFixed(3),
       '-c:v', 'libvpx', '-b:v', `${videoBitrateKbps}k`, '-r', String(fps), '-g', String(fps * 2),
       '-c:a', 'libopus', '-b:a', `${audioBitrateKbps}k`,
       '-f', 'webm',
@@ -412,6 +445,31 @@ const logConsumerStats = async (label, consumer, transport, roomId, producerId) 
   }
 };
 
+const waitForConsumerPackets = async (consumer, timeoutMs, pollMs) => {
+  if (!consumer || consumer.closed) return false;
+  const deadline = Date.now() + timeoutMs;
+  const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  while (Date.now() < deadline) {
+    try {
+      const stats = await consumer.getStats();
+      const report = Array.from(stats.values())[0] || {};
+      const packets =
+        report.packetsReceived
+        ?? report.packetCount
+        ?? report.packets
+        ?? report.packetsSent
+        ?? 0;
+      if (Number(packets) > 0) {
+        return true;
+      }
+    } catch {
+      // ignore stats failures
+    }
+    await delay(pollMs);
+  }
+  return false;
+};
+
 const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
   const recordings = new Map();
 
@@ -427,15 +485,22 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
 
   const pickPresenterVideo = (room) => {
     let selected = null;
+    let selectedMixed = null;
     room.peers.forEach((peer) => {
       peer.producers.forEach((entry) => {
         if (entry.kind !== 'video') return;
         if (!selected || entry.createdAt > selected.createdAt) {
           selected = entry;
         }
+        if (entry.appData && entry.appData.source === 'mixed') {
+          if (!selectedMixed || entry.createdAt > selectedMixed.createdAt) {
+            selectedMixed = entry;
+          }
+        }
       });
     });
-    return selected ? selected.producer.id : null;
+    const chosen = selectedMixed || selected;
+    return chosen ? chosen.producer.id : null;
   };
 
   const listAudioProducers = (room) => {
@@ -462,10 +527,14 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
     return found;
   };
 
-  const stopSegment = async (state) => {
-    if (!state.currentSegment) return;
-    const segment = state.currentSegment;
-    state.currentSegment = null;
+  const stopSegment = async (state, segmentOverride = null) => {
+    const segment = segmentOverride || state.currentSegment;
+    if (!segment) return;
+    if (segment.stopping) return;
+    segment.stopping = true;
+    if (!segmentOverride || segment === state.currentSegment) {
+      state.currentSegment = null;
+    }
     if (segment.ffmpeg) {
       segment.ffmpeg.kill('SIGINT');
       await waitForExit(segment.ffmpeg);
@@ -527,6 +596,7 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
       const consumers = [];
       const transports = [];
       let videoConsumerInfo = null;
+      let videoConsumerRef = null;
       const audioConsumerInfos = [];
 
       if (videoProducerId) {
@@ -551,6 +621,7 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
             setTimeout(() => requestKeyFrame(consumer), 300);
             setTimeout(() => requestKeyFrame(consumer), 900);
             consumers.push(consumer);
+            videoConsumerRef = consumer;
             transports.push(transport);
             videoConsumerInfo = { port, rtpParameters: consumer.rtpParameters, producerId: producer.id };
             // eslint-disable-next-line no-console
@@ -666,11 +737,50 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
           delay(400).then(() => false),
         ]);
 
-      if (!exitedEarly) {
-        if (!state.firstVideoAt && videoConsumerInfo) {
-          state.firstVideoAt = Date.now();
-        }
-        state.currentSegment = {
+        if (!exitedEarly) {
+          if (videoConsumerInfo && videoConsumerRef) {
+            const ready = await waitForConsumerPackets(
+              videoConsumerRef,
+              RECORDING_VIDEO_READY_TIMEOUT_MS,
+              RECORDING_VIDEO_READY_POLL_MS
+            );
+            if (!ready) {
+              try {
+                proc.kill('SIGINT');
+              } catch {
+                // ignore
+              }
+              await waitForExit(proc);
+              consumers.forEach((consumer) => {
+                try {
+                  consumer.close();
+                } catch {
+                  // ignore
+                }
+              });
+              transports.forEach((transport) => {
+                try {
+                  transport.close();
+                } catch {
+                  // ignore
+                }
+              });
+              releaseUdpPorts(Array.from(usedPorts));
+              if (!KEEP_RECORDING_SEGMENTS) {
+                try {
+                  if (sdpContent) fs.rmSync(sdpPath, { force: true });
+                  fs.rmSync(segmentPath, { force: true });
+                } catch {
+                  // ignore
+                }
+              }
+              return null;
+            }
+          }
+          if (!state.firstVideoAt && videoConsumerInfo) {
+            state.firstVideoAt = Date.now();
+          }
+        const nextSegment = {
           ffmpeg: proc,
           consumers,
           transports,
@@ -680,9 +790,11 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
           videoProducerId,
           startedAt: Date.now(),
           key: `${videoProducerId || 'blank'}|${audioProducerIds.join(',')}`,
+          stopping: false,
         };
+        state.currentSegment = nextSegment;
         state.segments.push(segmentPath);
-        return;
+        return nextSegment;
       }
 
       const stderrText = getStderr();
@@ -728,13 +840,13 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
         } catch {
           // ignore
         }
-        return;
+        return null;
       }
       await delay(150);
     }
   };
 
-    const refreshRecording = async (roomId) => {
+  const refreshRecording = async (roomId) => {
       const state = recordings.get(roomId);
       if (!state) return;
       const room = rooms.get(roomId);
@@ -743,13 +855,78 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
       const nextVideo = pickPresenterVideo(room);
       const nextAudio = listAudioProducers(room);
       const nextKey = `${nextVideo || 'blank'}|${nextAudio.join(',')}`;
+      const scheduleRetry = () => {
+        if (!state.switchRetry) {
+          state.switchRetry = { key: nextKey, attempts: 0, timer: null };
+        }
+        if (state.switchRetry.key !== nextKey) {
+          state.switchRetry.key = nextKey;
+          state.switchRetry.attempts = 0;
+        }
+        if (state.switchRetry.timer) return;
+        if (state.switchRetry.attempts >= RECORDING_SWITCH_MAX_RETRIES) return;
+        state.switchRetry.attempts += 1;
+        state.switchRetry.timer = setTimeout(() => {
+          state.switchRetry.timer = null;
+          enqueue(roomId, () => refreshRecording(roomId));
+        }, RECORDING_SWITCH_RETRY_MS);
+      };
+
       if (!state.currentSegment) {
-        await startSegment(roomId, nextVideo, nextAudio);
+        const started = await startSegment(roomId, nextVideo, nextAudio);
+        if (!started) {
+          scheduleRetry();
+        } else if (state.switchRetry) {
+          state.switchRetry.key = null;
+          state.switchRetry.attempts = 0;
+        }
+        state.pendingGapStartedAt = null;
         return;
       }
       if (state.currentSegment.key !== nextKey) {
         await stopSegment(state);
-        await startSegment(roomId, nextVideo, nextAudio);
+        if (!state.pendingGapStartedAt) {
+          state.pendingGapStartedAt = Date.now();
+        }
+        const nextSegment = await startSegment(roomId, nextVideo, nextAudio);
+        if (!nextSegment) {
+          scheduleRetry();
+          return;
+        }
+        if (state.switchRetry) {
+          state.switchRetry.key = null;
+          state.switchRetry.attempts = 0;
+        }
+        if (state.pendingGapStartedAt) {
+          const gapMs = Math.max(0, Date.now() - state.pendingGapStartedAt);
+          state.pendingGapStartedAt = null;
+          if (gapMs >= 120) {
+            const gapIndex = state.segments.lastIndexOf(nextSegment.segmentPath);
+            const gapPath = path.join(
+              state.segmentsDir,
+              `gap-${Date.now()}-${Math.random().toString(36).slice(2, 6)}.webm`
+            );
+            try {
+              await createGapSegment(
+                config.ffmpegPath,
+                gapPath,
+                config.recordingWidth,
+                config.recordingHeight,
+                config.recordingFps,
+                gapMs / 1000,
+                config.recordingVideoBitrate,
+                config.recordingAudioBitrate
+              );
+              if (gapIndex === -1) {
+                state.segments.push(gapPath);
+              } else {
+                state.segments.splice(gapIndex, 0, gapPath);
+              }
+            } catch {
+              // ignore gap failures
+            }
+          }
+        }
       }
     };
 
@@ -781,9 +958,17 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
       startedAt: Date.now(),
       firstVideoAt: null,
       queue: Promise.resolve(),
+      switchRetry: { key: null, attempts: 0, timer: null },
+      refreshTimer: null,
+      pendingGapStartedAt: null,
     };
     recordings.set(roomId, state);
     await refreshRecording(roomId);
+    if (RECORDING_REFRESH_INTERVAL_MS > 0) {
+      state.refreshTimer = setInterval(() => {
+        enqueue(roomId, () => refreshRecording(roomId));
+      }, RECORDING_REFRESH_INTERVAL_MS);
+    }
     return { status: 'started' };
   };
 
@@ -854,6 +1039,14 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
       await stopSegment(state);
     });
     try {
+      if (state.refreshTimer) {
+        clearInterval(state.refreshTimer);
+        state.refreshTimer = null;
+      }
+      if (state.switchRetry?.timer) {
+        clearTimeout(state.switchRetry.timer);
+        state.switchRetry.timer = null;
+      }
       const outputPath = await concatSegments(state);
       recordings.delete(roomId);
       if (!outputPath) {
