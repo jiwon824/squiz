@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { Button, Input, Modal, Card, BackButton, ArrowButton } from '@/shared/components';
+import { Button, Input, Modal, Card, BackButton, ArrowButton, DatePicker, TimePicker } from '@/shared/components';
 import { X, Heart, Users, Star, Clock, Award, Check, Calendar, ChevronRight } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 
 const ReuseTest = () => {
     const [isOpened, setIsOpened] = useState(false);
+    const [selectedDate, setSelectedDate] = useState('');
+    const [selectedTime, setSelectedTime] = useState('');
 
     return (
         <div className="p-10 bg-[#f8f9fa] min-h-screen space-y-12">
@@ -413,7 +415,46 @@ const ReuseTest = () => {
                 </div>
             </section>
 
-            {/* 5. 모달 테스트 */}
+            {/* 5. Pickers & Inputs */}
+            <section className="space-y-6">
+                <h2 className="text-xl font-bold border-b pb-2 flex items-center gap-2">
+                    <div className="w-1.5 h-6 bg-study-blue rounded-full" />
+                    Pickers & Custom Inputs
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <Card variant="outline" className="p-8 space-y-6">
+                        <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest">Date Picker (Single)</h3>
+                        <div className="space-y-4">
+                            <DatePicker
+                                value={selectedDate}
+                                onChange={setSelectedDate}
+                                placeholder="학습 시작일을 선택하세요"
+                            />
+                            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                                <p className="text-xs font-bold text-gray-400 mb-1 uppercase">Selected Date</p>
+                                <p className="text-sm font-black text-study-blue">{selectedDate || '선택된 날짜 없음'}</p>
+                            </div>
+                        </div>
+                    </Card>
+
+                    <Card variant="outline" className="p-8 space-y-6">
+                        <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest">Time Picker (5-min Step)</h3>
+                        <div className="space-y-4">
+                            <TimePicker
+                                value={selectedTime}
+                                onChange={setSelectedTime}
+                                placeholder="모임 시간을 선택하세요"
+                            />
+                            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                                <p className="text-xs font-bold text-gray-400 mb-1 uppercase">Selected Time</p>
+                                <p className="text-sm font-black text-study-blue">{selectedTime || '선택된 시간 없음'}</p>
+                            </div>
+                        </div>
+                    </Card>
+                </div>
+            </section>
+
+            {/* 6. 모달 테스트 */}
             <section className="space-y-6 pb-20">
                 <h2 className="text-xl font-bold border-b pb-2 flex items-center gap-2">
                     <div className="w-1.5 h-6 bg-purple-500 rounded-full" />

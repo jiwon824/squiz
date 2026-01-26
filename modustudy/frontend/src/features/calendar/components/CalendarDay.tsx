@@ -72,7 +72,8 @@ export const CalendarDay = ({
                     {schedules.slice(0, 3).map(schedule => (
                         <div
                             key={schedule.id}
-                            className={`${getScheduleColor(schedule.source)} text-white text-xs px-2 py-1 rounded cursor-pointer hover:opacity-80 transition-opacity`}
+                            className={`text-white text-xs px-2 py-1 rounded cursor-pointer hover:opacity-80 transition-opacity ${!schedule.color ? getScheduleColor(schedule.source) : ''}`}
+                            style={schedule.color ? { backgroundColor: schedule.color } : {}}
                             onClick={(e) => handleEventClick(e, schedule.id)}
                             title={schedule.title}
                         >
@@ -96,7 +97,8 @@ export const CalendarDay = ({
                     {schedules.slice(0, 4).map(schedule => (
                         <div
                             key={schedule.id}
-                            className={`w-1.5 h-1.5 rounded-full ${getScheduleColor(schedule.source)}`}
+                            className={`w-1.5 h-1.5 rounded-full ${!schedule.color ? getScheduleColor(schedule.source) : ''}`}
+                            style={schedule.color ? { backgroundColor: schedule.color } : {}}
                         ></div>
                     ))}
                     {schedules.length > 4 && (
