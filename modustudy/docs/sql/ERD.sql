@@ -206,8 +206,8 @@ CREATE TABLE `study` (
     `leader_id` BIGINT NOT NULL,
     `name` VARCHAR(100) NOT NULL,
     `description` TEXT,
-    `topic` VARCHAR(50) NOT NULL,                -- 알고리즘/CS/자격증/프로젝트 등
-    `format` VARCHAR(50),                        -- 문제풀이/독서/강의수강/프로젝트
+    `topic_id` BIGINT NOT NULL,               -- 알고리즘/CS/자격증/프로젝트 등
+    `format_id` BIGINT,                       -- 문제풀이/독서/강의수강/프로젝트
     `study_type` ENUM('PLANNED', 'LIGHTNING') NOT NULL,  -- 계획/번개
     `meeting_type` ENUM('ONLINE', 'OFFLINE', 'HYBRID') DEFAULT 'ONLINE',  -- 진행 방식
     `region_id` BIGINT,                          -- 오프라인/혼합 시 지역
@@ -235,7 +235,9 @@ CREATE TABLE `study` (
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (`leader_id`) REFERENCES `user`(`id`),
-    FOREIGN KEY (`region_id`) REFERENCES `region`(`id`)
+    FOREIGN KEY (`region_id`) REFERENCES `region`(`id`),
+    FOREIGN KEY (`topic_id`) REFERENCES `topic`(`id`),
+    FOREIGN KEY (`format_id`) REFERENCES `format`(`id`)
 );
 
 -- 스터디 모집글 템플릿 (사용자 저장용)
