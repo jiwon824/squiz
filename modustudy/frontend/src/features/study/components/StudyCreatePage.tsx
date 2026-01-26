@@ -1,15 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Info, Calendar, Plus, Trash2, BookOpen, MapPin, AlertCircle, Clock, Users, Target, Shield } from 'lucide-react';
 import { MainLayout } from '@/layouts/MainLayout';
 import { Button } from '@/shared/components/Button';
 import { Input } from '@/shared/components/Input';
+import { Select } from '@/shared/components/Select';
 import { cn } from '@/shared/utils/cn';
 import { DateRangePicker } from './DateRangePicker';
+import { DatePicker } from './DatePicker';
+import { TimePicker } from './TimePicker';
 
 interface CurriculumItem {
     session: number;
     description: string;
+    type?: 'ONLINE' | 'OFFLINE';
+    date?: string;
 }
 
 // 시/도 데이터
@@ -52,13 +57,19 @@ const TOPIC_SUBTOPICS: Record<string, string[]> = {
 
 const StudyCreatePage: React.FC = () => {
     const navigate = useNavigate();
+
+    // 오늘 날짜 계산 (YYYY-MM-DD)
+    const today = new Date();
+    const formattedToday = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
     const [formData, setFormData] = useState({
         // 기본 정보
         name: '',
-        description: '',
+        intro: '', // 한줄 소개 (썸네일용)
+        description: '', // 상세 설명
         topic: '알고리즘/코딩테스트',
         subTopic: '', // 세부주제
-        format: '문제풀이', // 스터디 형식
+        format: '문제 풀이', // 스터디 형식
         difficulty: 'BEGINNER',
         meetingType: 'ONLINE',
         maxMembers: 4,
@@ -80,7 +91,7 @@ const StudyCreatePage: React.FC = () => {
         penaltyPolicy: 'NORMAL',                 // 패널티 정책
 
         // 추가 정보
-        goal: '',                                // 스터디 목표
+        goal: '',                                // 최종 스터디 목표
         textbook: '',                            // 교재/자료
         prerequisites: '',                       // 선행 조건
         processDetail: '',                       // 진행 방식 상세
@@ -90,6 +101,85 @@ const StudyCreatePage: React.FC = () => {
         hasCurriculum: false,
         curriculum: [{ session: 1, description: '' }] as CurriculumItem[]
     });
+
+    // Save/Load form data from localStorage
+    useEffect(() => {
+        const savedData = localStorage.getItem('studyCreateFormData');
+        if (savedData) {
+            if (window.confirm('작성 중이던 스터디 개설 정보가 있습니다. 불러오시겠습니까?')) {
+                try {
+                    setFormData(JSON.parse(savedData));
+                } catch (e) {
+                    console.error('Failed to parse saved study form data', e);
+                }
+            }
+        }
+    }, []);
+
+    useEffect(() => {
+        localStorage.setItem('studyCreateFormData', JSON.stringify(formData));
+    }, [formData]);
+
+    // Navigation Logic
+    const [activeSection, setActiveSection] = useState('basic-info');
+    const sections = [
+        { id: 'basic-info', label: '기본 정보' },
+        { id: 'schedule-info', label: '일정 및 모집' },
+        { id: 'curriculum-info', label: '커리큘럼' },
+        { id: 'additional-info', label: '추가 정보' },
+        { id: 'rule-info', label: '스터디 규칙' },
+    ];
+
+    const scrollToSection = (id: string) => {
+        const element = document.getElementById(id);
+        const container = document.getElementById('main-content-scroll');
+        if (element && container) {
+            const offset = 24; // 여유 공간
+            const elementRect = element.getBoundingClientRect().top;
+            const containerRect = container.getBoundingClientRect().top;
+            const offsetPosition = elementRect - containerRect + container.scrollTop - offset;
+
+            container.scrollTo({
+                top: offsetPosition,
+                behavior: 'smooth'
+            });
+        }
+    };
+
+    useEffect(() => {
+        const container = document.getElementById('main-content-scroll');
+
+        const handleScroll = () => {
+            if (!container) return;
+
+            const scrollPosition = container.scrollTop + 100; // 트리거 포인트 조정
+
+            for (const section of sections) {
+                const element = document.getElementById(section.id);
+                if (element) {
+                    const elementRect = element.getBoundingClientRect().top;
+                    const containerRect = container.getBoundingClientRect().top;
+                    const relativeTop = elementRect - containerRect + container.scrollTop;
+                    const height = element.offsetHeight;
+
+                    if (scrollPosition >= relativeTop && scrollPosition < relativeTop + height) {
+                        setActiveSection(section.id);
+                    }
+                }
+            }
+        };
+
+        if (container) {
+            container.addEventListener('scroll', handleScroll);
+            handleScroll(); // 초기 상태 설정
+        }
+
+        return () => {
+            if (container) {
+                container.removeEventListener('scroll', handleScroll);
+            }
+        };
+    }, []);
 
     // 요일 토글 핸들러
     const handleDayToggle = (day: string) => {
@@ -126,16 +216,21 @@ const StudyCreatePage: React.FC = () => {
         setFormData(prev => ({ ...prev, recruitStartDate: start, recruitEndDate: end }));
     };
 
-    const handleCurriculumChange = (index: number, value: string) => {
+    const handleCurriculumChange = (index: number, field: keyof CurriculumItem, value: string) => {
         const newCurriculum = [...formData.curriculum];
-        newCurriculum[index].description = value;
+        newCurriculum[index] = { ...newCurriculum[index], [field]: value };
         setFormData(prev => ({ ...prev, curriculum: newCurriculum }));
     };
 
     const addSession = () => {
         setFormData(prev => ({
             ...prev,
-            curriculum: [...prev.curriculum, { session: prev.curriculum.length + 1, description: '' }]
+            curriculum: [...prev.curriculum, {
+                session: prev.curriculum.length + 1,
+                description: '',
+                type: 'ONLINE',
+                date: ''
+            }]
         }));
     };
 
@@ -149,32 +244,30 @@ const StudyCreatePage: React.FC = () => {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         console.log('Form submitted:', formData);
+        localStorage.removeItem('studyCreateFormData');
         alert('스터디가 생성되었습니다! (모의)');
         navigate('/study');
     };
 
     // 스타일 정의
     const styles = {
-        container: "max-w-4xl mx-auto px-4 py-8",
-        header: "mb-8",
+        container: "max-w-6xl mx-auto px-4 py-8",
+        header: "max-w-4xl mb-8",
         card: "bg-white rounded-2xl border border-gray-200 shadow-sm p-6 md:p-8",
         section: "space-y-4",
         sectionTitle: "flex items-center gap-2 text-lg font-bold text-gray-800",
         sectionIcon: "text-primary",
         label: "block text-sm font-semibold text-gray-700 mb-1.5",
-        selectWrapper: "relative",
-        select: "w-full p-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none appearance-none text-gray-800",
-        selectIcon: "absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400",
         textarea: "w-full p-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none min-h-[120px] resize-none text-base text-gray-800",
         toggleGroup: "flex gap-2 p-1 bg-gray-100 rounded-xl",
         toggleBtn: (active: boolean) => cn(
             "flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all text-center",
             active ? "bg-white text-primary shadow-sm" : "text-gray-500 hover:text-gray-700"
         ),
-        curriculumItem: "flex gap-3 items-start",
+        curriculumItem: "flex gap-3 items-center",
         curriculumBadge: "shrink-0 w-14 h-11 flex items-center justify-center bg-primary/10 text-primary text-sm font-bold rounded-xl",
-        deleteBtn: "shrink-0 p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all",
-        footer: "flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-100",
+        deleteBtn: "shrink-0 p-0 h-11 w-11 flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all",
+        footer: "flex flex-col sm:flex-row sm:justify-end gap-3 pt-6 border-t border-gray-100",
     };
 
     return (
@@ -198,602 +291,577 @@ const StudyCreatePage: React.FC = () => {
                     </p>
                 </header>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    {/* 기본 정보 카드 */}
-                    <div className={styles.card}>
-                        <div className={styles.section}>
-                            <h2 className={styles.sectionTitle}>
-                                <Info size={20} className={styles.sectionIcon} />
-                                기본 정보
-                            </h2>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                                <div className="md:col-span-2">
-                                    <Input
-                                        label="스터디 이름"
-                                        name="name"
-                                        placeholder="모두가 이해하기 쉬운 이름을 지어주세요"
-                                        required
-                                        value={formData.name}
-                                        onChange={handleChange}
-                                    />
-                                </div>
-
-                                <div className="md:col-span-2">
-                                    <label className={styles.label}>스터디 설명</label>
-                                    <textarea
-                                        name="description"
-                                        className={styles.textarea}
-                                        placeholder="스터디의 목표와 진행 방식에 대해 자세히 적어주세요"
-                                        required
-                                        value={formData.description}
-                                        onChange={handleChange}
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className={styles.label}>주제</label>
-                                    <div className={styles.selectWrapper}>
-                                        <select
-                                            name="topic"
-                                            className={styles.select}
-                                            value={formData.topic}
-                                            onChange={(e) => handleTopicChange(e.target.value)}
-                                        >
-                                            <option value="알고리즘/코딩테스트">알고리즘/코딩테스트</option>
-                                            <option value="CS 기초">CS 기초</option>
-                                            <option value="프론트엔드">프론트엔드</option>
-                                            <option value="백엔드">백엔드</option>
-                                            <option value="인프라/DevOps">인프라/DevOps</option>
-                                            <option value="AI/ML">AI/ML</option>
-                                            <option value="모바일">모바일</option>
-                                            <option value="자격증">자격증</option>
-                                            <option value="취업 준비">취업 준비</option>
-                                            <option value="프로젝트">프로젝트</option>
-                                        </select>
-                                        <ChevronLeft size={16} className={cn(styles.selectIcon, "-rotate-90")} />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className={styles.label}>세부 주제</label>
-                                    <div className={styles.selectWrapper}>
-                                        <select
-                                            name="subTopic"
-                                            className={styles.select}
-                                            value={formData.subTopic}
-                                            onChange={handleChange}
-                                        >
-                                            <option value="">세부 주제 선택 (선택사항)</option>
-                                            {TOPIC_SUBTOPICS[formData.topic]?.map((sub) => (
-                                                <option key={sub} value={sub}>{sub}</option>
-                                            ))}
-                                        </select>
-                                        <ChevronLeft size={16} className={cn(styles.selectIcon, "-rotate-90")} />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className={styles.label}>최대 인원</label>
-                                    <div className="flex items-center justify-center gap-2">
-                                        <button
-                                            type="button"
-                                            onClick={() => setFormData(prev => ({ ...prev, maxMembers: Math.max(2, prev.maxMembers - 1) }))}
-                                            className="w-10 h-10 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-600 font-bold transition-all"
-                                        >
-                                            −
-                                        </button>
-                                        <div className="flex-1 text-center py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-bold text-gray-800">
-                                            {formData.maxMembers}명
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => setFormData(prev => ({ ...prev, maxMembers: Math.min(50, prev.maxMembers + 1) }))}
-                                            className="w-10 h-10 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-600 font-bold transition-all"
-                                        >
-                                            +
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className={styles.label}>총 스터디 횟수</label>
-                                    <div className="flex items-center justify-center gap-2">
-                                        <button
-                                            type="button"
-                                            onClick={() => setFormData(prev => ({ ...prev, totalSessions: Math.max(1, prev.totalSessions - 1) }))}
-                                            className="w-10 h-10 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-600 font-bold transition-all"
-                                        >
-                                            −
-                                        </button>
-                                        <div className="flex-1 text-center py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-bold text-gray-800">
-                                            {formData.totalSessions}회
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => setFormData(prev => ({ ...prev, totalSessions: Math.min(100, prev.totalSessions + 1) }))}
-                                            className="w-10 h-10 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-600 font-bold transition-all"
-                                        >
-                                            +
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className={styles.label}>권장 난이도</label>
-                                    <div className={styles.toggleGroup}>
-                                        {['BEGINNER', 'INTERMEDIATE', 'ADVANCED'].map((level) => (
-                                            <button
-                                                key={level}
-                                                type="button"
-                                                className={styles.toggleBtn(formData.difficulty === level)}
-                                                onClick={() => handleOptionToggle('difficulty', level)}
-                                            >
-                                                {level === 'BEGINNER' && '입문'}
-                                                {level === 'INTERMEDIATE' && '중급'}
-                                                {level === 'ADVANCED' && '고급'}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className={styles.label}>진행 방식</label>
-                                    <div className={styles.toggleGroup}>
-                                        {['ONLINE', 'OFFLINE', 'HYBRID'].map((type) => (
-                                            <button
-                                                key={type}
-                                                type="button"
-                                                className={styles.toggleBtn(formData.meetingType === type)}
-                                                onClick={() => handleOptionToggle('meetingType', type)}
-                                            >
-                                                {type === 'ONLINE' && '온라인'}
-                                                {type === 'OFFLINE' && '오프라인'}
-                                                {type === 'HYBRID' && '혼합'}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* 오프라인 위치 선택 */}
-                            {(formData.meetingType === 'OFFLINE' || formData.meetingType === 'HYBRID') && (
-                                <div className="mt-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <MapPin size={18} className="text-primary" />
-                                        <span className="font-semibold text-gray-800">오프라인 모임 장소</span>
-                                    </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                        <div>
-                                            <label className={styles.label}>시/도</label>
-                                            <div className={styles.selectWrapper}>
-                                                <select
-                                                    name="city"
-                                                    className={styles.select}
-                                                    value={formData.city}
-                                                    onChange={(e) => handleCityChange(e.target.value)}
-                                                >
-                                                    <option value="">시/도 선택</option>
-                                                    {CITIES.map((city) => (
-                                                        <option key={city} value={city}>{city}</option>
-                                                    ))}
-                                                </select>
-                                                <ChevronLeft size={16} className={cn(styles.selectIcon, "-rotate-90")} />
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className={styles.label}>구/군</label>
-                                            <div className={styles.selectWrapper}>
-                                                <select
-                                                    name="district"
-                                                    className={styles.select}
-                                                    value={formData.district}
-                                                    onChange={handleChange}
-                                                    disabled={!formData.city}
-                                                >
-                                                    <option value="">구/군 선택</option>
-                                                    {formData.city && DISTRICTS[formData.city]?.map((district) => (
-                                                        <option key={district} value={district}>{district}</option>
-                                                    ))}
-                                                </select>
-                                                <ChevronLeft size={16} className={cn(styles.selectIcon, "-rotate-90")} />
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* 일정 및 모집 카드 */}
-                    <div className={styles.card}>
-                        <div className={styles.section}>
-                            <h2 className={styles.sectionTitle}>
-                                <Clock size={20} className={styles.sectionIcon} />
-                                일정 및 모집
-                            </h2>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                                {/* 정기 모임 요일 */}
-                                <div className="md:col-span-2">
-                                    <label className={styles.label}>정기 모임 요일</label>
-                                    <div className="flex gap-2 flex-wrap">
-                                        {[
-                                            { key: 'MON', label: '월' },
-                                            { key: 'TUE', label: '화' },
-                                            { key: 'WED', label: '수' },
-                                            { key: 'THU', label: '목' },
-                                            { key: 'FRI', label: '금' },
-                                            { key: 'SAT', label: '토' },
-                                            { key: 'SUN', label: '일' }
-                                        ].map(({ key, label }) => (
-                                            <button
-                                                key={key}
-                                                type="button"
-                                                onClick={() => handleDayToggle(key)}
-                                                className={cn(
-                                                    "w-11 h-11 rounded-xl font-semibold transition-all",
-                                                    formData.scheduleDays.includes(key)
-                                                        ? "bg-primary text-white"
-                                                        : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                                                )}
-                                            >
-                                                {label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* 정기 모임 시간 */}
-                                <div>
-                                    <label className={styles.label}>정기 모임 시간</label>
-                                    <Input
-                                        type="time"
-                                        name="scheduleTime"
-                                        value={formData.scheduleTime}
-                                        onChange={handleChange}
-                                    />
-                                </div>
-
-                                {/* 스터디 타입 */}
-                                <div>
-                                    <label className={styles.label}>스터디 타입</label>
-                                    <div className={styles.toggleGroup}>
-                                        {['PLANNED', 'LIGHTNING'].map((type) => (
-                                            <button
-                                                key={type}
-                                                type="button"
-                                                className={styles.toggleBtn(formData.studyType === type)}
-                                                onClick={() => handleOptionToggle('studyType', type)}
-                                            >
-                                                {type === 'PLANNED' && '계획형'}
-                                                {type === 'LIGHTNING' && '번개형'}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* 스터디 형식 */}
-                                <div>
-                                    <label className={styles.label}>스터디 형식</label>
-                                    <div className={styles.selectWrapper}>
-                                        <select
-                                            name="format"
-                                            className={styles.select}
-                                            value={formData.format}
-                                            onChange={handleChange}
-                                        >
-                                            <option value="문제풀이">문제풀이</option>
-                                            <option value="독서">독서</option>
-                                            <option value="프로젝트">프로젝트</option>
-                                            <option value="강의">강의</option>
-                                            <option value="토론">토론</option>
-                                            <option value="코드리뷰">코드리뷰</option>
-                                            <option value="기타">기타</option>
-                                        </select>
-                                        <ChevronLeft size={16} className={cn(styles.selectIcon, "-rotate-90")} />
-                                    </div>
-                                </div>
-
-                                {/* 공개 여부 */}
-                                <div>
-                                    <label className={styles.label}>공개 여부</label>
-                                    <div className={styles.toggleGroup}>
-                                        <button
-                                            type="button"
-                                            className={styles.toggleBtn(formData.isPublic === true)}
-                                            onClick={() => handleOptionToggle('isPublic', true)}
-                                        >
-                                            공개
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className={styles.toggleBtn(formData.isPublic === false)}
-                                            onClick={() => handleOptionToggle('isPublic', false)}
-                                        >
-                                            비공개
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* 모집 기간 */}
-                            <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
-                                <div className="flex items-center gap-2 mb-3">
-                                    <Users size={18} className="text-blue-600" />
-                                    <span className="font-semibold text-blue-800">모집 기간</span>
-                                </div>
-                                <p className="text-sm text-blue-600 mb-3">스터디 멤버 모집 시작일과 종료일을 설정하세요.</p>
-                                <DateRangePicker
-                                    startDate={formData.recruitStartDate}
-                                    endDate={formData.recruitEndDate}
-                                    onRangeChange={handleRecruitDateRangeChange}
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* 커리큘럼 등록 여부 카드 */}
-                    <div className={styles.card}>
-                        <div className={styles.section}>
-                            <h2 className={styles.sectionTitle}>
-                                <BookOpen size={20} className={styles.sectionIcon} />
-                                커리큘럼 설정
-                            </h2>
-                            <p className="text-sm text-gray-500 mt-1">
-                                미리 커리큘럼을 등록하시겠습니까?
-                            </p>
-
-                            <div className="mt-4">
-                                <div className={styles.toggleGroup}>
-                                    <button
-                                        type="button"
-                                        className={styles.toggleBtn(formData.hasCurriculum === true)}
-                                        onClick={() => handleOptionToggle('hasCurriculum', true)}
-                                    >
-                                        예, 등록할게요
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className={styles.toggleBtn(formData.hasCurriculum === false)}
-                                        onClick={() => handleOptionToggle('hasCurriculum', false)}
-                                    >
-                                        아니오, 나중에 할게요
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* 아니오 선택 시 안내 메시지 */}
-                            {!formData.hasCurriculum && (
-                                <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
-                                    <div className="flex items-start gap-3">
-                                        <AlertCircle size={20} className="text-amber-500 shrink-0 mt-0.5" />
-                                        <div>
-                                            <p className="font-semibold text-amber-800">일정 등록 안내</p>
-                                            <p className="text-sm text-amber-700 mt-1">
-                                                스터디가 확정되면 <strong>출석 체크</strong>를 위해 반드시 일정을 등록해주셔야 합니다.
-                                                스터디 상세 페이지에서 언제든지 일정을 추가할 수 있습니다.
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* 커리큘럼 등록 선택 시에만 표시 */}
-                    {formData.hasCurriculum && (
-                        <>
-                            {/* 스터디 기간 카드 */}
-                            <div className={styles.card}>
+                <form onSubmit={handleSubmit}>
+                    <div className="flex flex-col lg:flex-row gap-8 items-start relative">
+                        <div className="flex-1 min-w-0 space-y-6">
+                            {/* 기본 정보 카드 */}
+                            <div id="basic-info" className={styles.card}>
                                 <div className={styles.section}>
                                     <h2 className={styles.sectionTitle}>
-                                        <Calendar size={20} className={styles.sectionIcon} />
-                                        스터디 기간
+                                        <Info size={20} className={styles.sectionIcon} />
+                                        기본 정보
                                     </h2>
-                                    <p className="text-sm text-gray-500 mt-1">
-                                        스터디 시작일과 종료일을 선택해주세요. 날짜를 두 번 클릭하여 범위를 지정합니다.
-                                    </p>
 
-                                    <div className="mt-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                        <div className="md:col-span-2">
+                                            <Input
+                                                label="스터디 이름"
+                                                name="name"
+                                                placeholder="모두가 이해하기 쉬운 이름을 지어주세요"
+                                                required
+                                                value={formData.name}
+                                                onChange={handleChange}
+                                            />
+                                        </div>
+
+                                        <div className="md:col-span-2">
+                                            <Input
+                                                label="한줄 소개 (썸네일용)"
+                                                name="intro"
+                                                placeholder="스터디를 한 문장으로 소개해 주세요"
+                                                required
+                                                value={formData.intro}
+                                                onChange={handleChange}
+                                            />
+                                        </div>
+
+                                        <div className="md:col-span-2">
+                                            <label className={styles.label}>상세 설명</label>
+                                            <textarea
+                                                name="description"
+                                                className={styles.textarea}
+                                                placeholder="스터디의 목표와 진행 방식에 대해 자세히 적어주세요"
+                                                required
+                                                value={formData.description}
+                                                onChange={handleChange}
+                                            />
+                                        </div>
+
+                                        {/* 스터디 형식 */}
+                                        <div className="md:col-span-2">
+                                            <label className={styles.label}>스터디 형식</label>
+                                            <div className="grid grid-cols-4 gap-2">
+                                                {['문제 풀이', '독서/책 스터디', '강의 수강', '프로젝트', '모의 면접', '코드 리뷰', '발표/세미나', '토론'].map((format) => (
+                                                    <button
+                                                        key={format}
+                                                        type="button"
+                                                        onClick={() => handleOptionToggle('format', format)}
+                                                        className={cn(
+                                                            "py-2.5 px-3 rounded-xl text-center transition-all border-2 text-sm font-medium",
+                                                            formData.format === format
+                                                                ? "border-primary bg-primary/10 text-primary"
+                                                                : "border-gray-200 bg-gray-50 text-gray-600 hover:border-gray-300"
+                                                        )}
+                                                    >
+                                                        {format}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <Select
+                                                label="주제"
+                                                value={formData.topic}
+                                                onChange={handleTopicChange}
+                                                options={[
+                                                    '알고리즘/코딩테스트', 'CS 기초', '프론트엔드', '백엔드',
+                                                    '인프라/DevOps', 'AI/ML', '모바일', '자격증',
+                                                    '취업 준비', '프로젝트'
+                                                ]}
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <Select
+                                                label="세부 주제"
+                                                value={formData.subTopic}
+                                                onChange={(val) => setFormData(prev => ({ ...prev, subTopic: val }))}
+                                                options={TOPIC_SUBTOPICS[formData.topic] || []}
+                                                placeholder="세부 주제 선택 (선택사항)"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className={styles.label}>최대 인원</label>
+                                            <div className="flex items-center justify-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setFormData(prev => ({ ...prev, maxMembers: Math.max(2, prev.maxMembers - 1) }))}
+                                                    className="w-10 h-10 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-600 font-bold transition-all"
+                                                >
+                                                    −
+                                                </button>
+                                                <input
+                                                    type="number"
+                                                    value={formData.maxMembers || ''}
+                                                    onChange={(e) => {
+                                                        const val = parseInt(e.target.value);
+                                                        if (isNaN(val)) {
+                                                            setFormData(prev => ({ ...prev, maxMembers: 0 }));
+                                                        } else {
+                                                            setFormData(prev => ({ ...prev, maxMembers: Math.min(50, val) }));
+                                                        }
+                                                    }}
+                                                    onBlur={() => setFormData(prev => ({ ...prev, maxMembers: Math.max(2, prev.maxMembers) }))}
+                                                    className="flex-1 text-center py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setFormData(prev => ({ ...prev, maxMembers: Math.min(50, prev.maxMembers + 1) }))}
+                                                    className="w-10 h-10 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-600 font-bold transition-all"
+                                                >
+                                                    +
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className={styles.label}>총 스터디 횟수</label>
+                                            <div className="flex items-center justify-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setFormData(prev => ({ ...prev, totalSessions: Math.max(1, prev.totalSessions - 1) }))}
+                                                    className="w-10 h-10 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-600 font-bold transition-all"
+                                                >
+                                                    −
+                                                </button>
+                                                <input
+                                                    type="number"
+                                                    value={formData.totalSessions || ''}
+                                                    onChange={(e) => {
+                                                        const val = parseInt(e.target.value);
+                                                        if (isNaN(val)) {
+                                                            setFormData(prev => ({ ...prev, totalSessions: 0 }));
+                                                        } else {
+                                                            setFormData(prev => ({ ...prev, totalSessions: Math.min(100, val) }));
+                                                        }
+                                                    }}
+                                                    onBlur={() => setFormData(prev => ({ ...prev, totalSessions: Math.max(1, prev.totalSessions) }))}
+                                                    className="flex-1 text-center py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setFormData(prev => ({ ...prev, totalSessions: Math.min(100, prev.totalSessions + 1) }))}
+                                                    className="w-10 h-10 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-600 font-bold transition-all"
+                                                >
+                                                    +
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className={styles.label}>권장 난이도</label>
+                                            <div className={styles.toggleGroup}>
+                                                {['BEGINNER', 'INTERMEDIATE', 'ADVANCED'].map((level) => (
+                                                    <button
+                                                        key={level}
+                                                        type="button"
+                                                        className={styles.toggleBtn(formData.difficulty === level)}
+                                                        onClick={() => handleOptionToggle('difficulty', level)}
+                                                    >
+                                                        {level === 'BEGINNER' && '입문'}
+                                                        {level === 'INTERMEDIATE' && '중급'}
+                                                        {level === 'ADVANCED' && '고급'}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className={styles.label}>진행 방식</label>
+                                            <div className={styles.toggleGroup}>
+                                                {['ONLINE', 'OFFLINE', 'HYBRID'].map((type) => (
+                                                    <button
+                                                        key={type}
+                                                        type="button"
+                                                        className={styles.toggleBtn(formData.meetingType === type)}
+                                                        onClick={() => handleOptionToggle('meetingType', type)}
+                                                    >
+                                                        {type === 'ONLINE' && '온라인'}
+                                                        {type === 'OFFLINE' && '오프라인'}
+                                                        {type === 'HYBRID' && '혼합'}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* 오프라인 위치 선택 */}
+                                    {(formData.meetingType === 'OFFLINE' || formData.meetingType === 'HYBRID') && (
+                                        <div className="mt-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                                            <div className="flex items-center gap-2 mb-3">
+                                                <MapPin size={18} className="text-primary" />
+                                                <span className="font-semibold text-gray-800">오프라인 모임 장소</span>
+                                            </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                <div>
+                                                    <Select
+                                                        label="시/도"
+                                                        value={formData.city}
+                                                        onChange={handleCityChange}
+                                                        options={CITIES}
+                                                        placeholder="시/도 선택"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <Select
+                                                        label="구/군"
+                                                        value={formData.district}
+                                                        onChange={(val) => setFormData(prev => ({ ...prev, district: val }))}
+                                                        options={formData.city ? DISTRICTS[formData.city] || [] : []}
+                                                        placeholder="구/군 선택"
+                                                        disabled={!formData.city}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* 일정 및 모집 카드 */}
+                            <div id="schedule-info" className={styles.card}>
+                                <div className={styles.section}>
+                                    <h2 className={styles.sectionTitle}>
+                                        <Clock size={20} className={styles.sectionIcon} />
+                                        일정 및 모집
+                                    </h2>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                        {/* 모임 시간 */}
+                                        <div>
+                                            <label className={styles.label}>모임 시간</label>
+                                            <TimePicker
+                                                value={formData.scheduleTime}
+                                                onChange={(val) => setFormData(prev => ({ ...prev, scheduleTime: val }))}
+                                            />
+                                        </div>
+
+                                        {/* 공개 여부 */}
+                                        <div>
+                                            <label className={styles.label}>공개 여부</label>
+                                            <div className={styles.toggleGroup}>
+                                                <button
+                                                    type="button"
+                                                    className={styles.toggleBtn(formData.isPublic === true)}
+                                                    onClick={() => handleOptionToggle('isPublic', true)}
+                                                >
+                                                    공개
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className={styles.toggleBtn(formData.isPublic === false)}
+                                                    onClick={() => handleOptionToggle('isPublic', false)}
+                                                >
+                                                    비공개
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* 모집 기간 */}
+                                    <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <Users size={18} className="text-blue-600" />
+                                            <span className="font-semibold text-blue-800">모집 기간</span>
+                                        </div>
+                                        <p className="text-sm text-blue-600 mb-3">스터디 멤버 모집 시작일과 종료일을 설정하세요.</p>
                                         <DateRangePicker
-                                            startDate={formData.startDate}
-                                            endDate={formData.endDate}
-                                            onRangeChange={handleDateRangeChange}
+                                            startDate={formData.recruitStartDate}
+                                            endDate={formData.recruitEndDate}
+                                            minDate={formattedToday}
+                                            onRangeChange={handleRecruitDateRangeChange}
                                         />
                                     </div>
                                 </div>
                             </div>
 
-                            {/* 커리큘럼 카드 */}
-                            <div className={styles.card}>
+                            {/* 커리큘럼 등록 여부 카드 */}
+                            <div id="curriculum-info" className={styles.card}>
                                 <div className={styles.section}>
                                     <h2 className={styles.sectionTitle}>
                                         <BookOpen size={20} className={styles.sectionIcon} />
-                                        커리큘럼 계획
+                                        커리큘럼 설정
                                     </h2>
                                     <p className="text-sm text-gray-500 mt-1">
-                                        회차별 학습 목표를 설정하면 참여자들이 스터디 방향을 파악하는 데 도움이 됩니다.
+                                        미리 커리큘럼을 등록하시겠습니까?
                                     </p>
 
-                                    <div className="space-y-3 mt-4">
-                                        {formData.curriculum.map((item, index) => (
-                                            <div key={index} className={styles.curriculumItem}>
-                                                <div className={styles.curriculumBadge}>
-                                                    {item.session}회차
-                                                </div>
-                                                <div className="flex-1">
-                                                    <Input
-                                                        placeholder={`${item.session}회차 학습 목표나 주제를 입력하세요`}
-                                                        value={item.description}
-                                                        onChange={(e) => handleCurriculumChange(index, e.target.value)}
-                                                    />
-                                                </div>
-                                                {formData.curriculum.length > 1 && (
-                                                    <button
-                                                        type="button"
-                                                        className={styles.deleteBtn}
-                                                        onClick={() => removeSession(index)}
-                                                    >
-                                                        <Trash2 size={18} />
-                                                    </button>
-                                                )}
-                                            </div>
-                                        ))}
-
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            onClick={addSession}
-                                            fullWidth
-                                            leftIcon={<Plus size={18} />}
-                                            className="border-dashed mt-2"
-                                        >
-                                            회차 추가하기
-                                        </Button>
-                                    </div>
-                                </div>
-                            </div>
-                        </>
-                    )}
-
-                    {/* 추가 정보 카드 */}
-                    <div className={styles.card}>
-                        <div className={styles.section}>
-                            <h2 className={styles.sectionTitle}>
-                                <Target size={20} className={styles.sectionIcon} />
-                                추가 정보
-                            </h2>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                                <div className="md:col-span-2">
-                                    <Input
-                                        label="스터디 목표"
-                                        name="goal"
-                                        placeholder="예: 골드 티어 달성, 토이 프로젝트 완성"
-                                        value={formData.goal}
-                                        onChange={handleChange}
-                                    />
-                                </div>
-
-                                <div>
-                                    <Input
-                                        label="교재/자료 (선택)"
-                                        name="textbook"
-                                        placeholder="예: 백준 온라인 저지, Do It! 알고리즘"
-                                        value={formData.textbook}
-                                        onChange={handleChange}
-                                    />
-                                </div>
-
-                                <div className="md:col-span-2">
-                                    <label className={styles.label}>진행 방식 상세 (선택)</label>
-                                    <textarea
-                                        name="processDetail"
-                                        className={styles.textarea}
-                                        placeholder="예: 매주 월/수/금 19:00-21:00, 문제 풀이 후 코드 리뷰 진행"
-                                        value={formData.processDetail}
-                                        onChange={handleChange}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-
-
-                    {/* 스터디 규칙 카드 */}
-                    <div className={styles.card}>
-                        <div className={styles.section}>
-                            <h2 className={styles.sectionTitle}>
-                                <Shield size={20} className={styles.sectionIcon} />
-                                스터디 규칙
-                            </h2>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                                {/* 패널티 정책 */}
-                                <div className="md:col-span-2">
-                                    <label className={styles.label}>패널티 정책</label>
-                                    <div className="grid grid-cols-5 gap-2">
-                                        {[
-                                            { key: 'STRICT', label: '엄격', desc: '결석 시 강퇴' },
-                                            { key: 'NORMAL', label: '보통', desc: '경고 후 조치' },
-                                            { key: 'LENIENT', label: '관대', desc: '유연하게 운영' },
-                                            { key: 'RATIO', label: '비율', desc: '출석률 기반' },
-                                            { key: 'NONE', label: '없음', desc: '자율 참여' }
-                                        ].map(({ key, label, desc }) => (
+                                    <div className="mt-4">
+                                        <div className={styles.toggleGroup}>
                                             <button
-                                                key={key}
                                                 type="button"
-                                                onClick={() => handleOptionToggle('penaltyPolicy', key)}
-                                                className={cn(
-                                                    "p-3 rounded-xl text-center transition-all border-2",
-                                                    formData.penaltyPolicy === key
-                                                        ? "border-primary bg-primary/10 text-primary"
-                                                        : "border-gray-200 bg-gray-50 text-gray-600 hover:border-gray-300"
-                                                )}
+                                                className={styles.toggleBtn(formData.hasCurriculum === true)}
+                                                onClick={() => handleOptionToggle('hasCurriculum', true)}
                                             >
-                                                <div className="font-bold text-sm">{label}</div>
-                                                <div className="text-xs mt-1 opacity-70">{desc}</div>
+                                                예, 등록할게요
                                             </button>
-                                        ))}
+                                            <button
+                                                type="button"
+                                                className={styles.toggleBtn(formData.hasCurriculum === false)}
+                                                onClick={() => handleOptionToggle('hasCurriculum', false)}
+                                            >
+                                                아니오, 나중에 할게요
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
 
-                                {/* 대상 소속 */}
-                                <div>
-                                    <label className={styles.label}>대상 소속 (선택)</label>
-                                    <div className={styles.selectWrapper}>
-                                        <select
-                                            name="targetOrgType"
-                                            className={styles.select}
-                                            value={formData.targetOrgType}
-                                            onChange={handleChange}
-                                        >
-                                            <option value="">제한 없음</option>
-                                            <option value="SSAFY">SSAFY</option>
-                                            <option value="NBC">내일배움캠프</option>
-                                            <option value="WTC">우아한테크코스</option>
-                                            <option value="KRAFTON">크래프톤 정글</option>
-                                            <option value="OTHER">기타</option>
-                                        </select>
-                                        <ChevronLeft size={16} className={cn(styles.selectIcon, "-rotate-90")} />
-                                    </div>
-                                </div>
-
-                                {/* 선행 조건 */}
-                                <div>
-                                    <Input
-                                        label="선행 조건 (선택)"
-                                        name="prerequisites"
-                                        placeholder="예: Python 기초 필수"
-                                        value={formData.prerequisites}
-                                        onChange={handleChange}
-                                    />
+                                    {/* 아니오 선택 시 안내 메시지 */}
+                                    {!formData.hasCurriculum && (
+                                        <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                                            <div className="flex items-start gap-3">
+                                                <AlertCircle size={20} className="text-amber-500 shrink-0 mt-0.5" />
+                                                <div>
+                                                    <p className="font-semibold text-amber-800">일정 등록 안내</p>
+                                                    <p className="text-sm text-amber-700 mt-1">
+                                                        스터디가 확정되면 <strong>출석 체크</strong>를 위해 반드시 일정을 등록해주셔야 합니다.
+                                                        스터디 상세 페이지에서 언제든지 일정을 추가할 수 있습니다.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
-                        </div>
-                    </div>
 
-                    {/* 하단 버튼 */}
-                    <div className={styles.footer}>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="lg"
-                            className="flex-1 sm:flex-none sm:min-w-[120px]"
-                            onClick={() => navigate(-1)}
-                        >
-                            취소
-                        </Button>
-                        <Button
-                            type="submit"
-                            variant="primary"
-                            size="lg"
-                            className="flex-1 sm:flex-none sm:min-w-[200px] shadow-lg shadow-primary/20"
-                        >
-                            스터디 개설하기
-                        </Button>
+                            {/* 커리큘럼 등록 선택 시에만 표시 */}
+                            {formData.hasCurriculum && (
+                                <>
+                                    {/* 스터디 기간 카드 */}
+                                    <div className={styles.card}>
+                                        <div className={styles.section}>
+                                            <h2 className={styles.sectionTitle}>
+                                                <Calendar size={20} className={styles.sectionIcon} />
+                                                스터디 기간
+                                            </h2>
+                                            <p className="text-sm text-gray-500 mt-1">
+                                                스터디 시작일과 종료일을 선택해주세요. 날짜를 두 번 클릭하여 범위를 지정합니다.
+                                            </p>
+
+                                            <div className="mt-4">
+                                                <DateRangePicker
+                                                    startDate={formData.startDate}
+                                                    endDate={formData.endDate}
+                                                    minDate={formData.recruitEndDate}
+                                                    onRangeChange={handleDateRangeChange}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* 커리큘럼 카드 */}
+                                    <div className={styles.card}>
+                                        <div className={styles.section}>
+                                            <h2 className={styles.sectionTitle}>
+                                                <BookOpen size={20} className={styles.sectionIcon} />
+                                                커리큘럼 계획
+                                            </h2>
+                                            <p className="text-sm text-gray-500 mt-1">
+                                                회차별 학습 목표를 설정하면 참여자들이 스터디 방향을 파악하는 데 도움이 됩니다.
+                                            </p>
+
+                                            <div className="space-y-3 mt-4">
+                                                {formData.curriculum.map((item, index) => (
+                                                    <div key={index} className={styles.curriculumItem}>
+                                                        <div className={styles.curriculumBadge}>
+                                                            {item.session}회차
+                                                        </div>
+                                                        <div className="shrink-0 w-40">
+                                                            <DatePicker
+                                                                value={item.date || ''}
+                                                                min={formData.startDate || undefined}
+                                                                max={formData.endDate || undefined}
+                                                                onChange={(date) => handleCurriculumChange(index, 'date', date)}
+                                                                placeholder="날짜 선택"
+                                                            />
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <Input
+                                                                className="py-2.5 h-11"
+                                                                placeholder="학습 목표나 주제를 입력하세요"
+                                                                value={item.description}
+                                                                onChange={(e) => handleCurriculumChange(index, 'description', e.target.value)}
+                                                            />
+                                                        </div>
+                                                        {/* 혼합 방식일 때 온라인/오프라인 선택 */}
+                                                        {formData.meetingType === 'HYBRID' && (
+                                                            <div className="shrink-0 w-32">
+                                                                <Select
+                                                                    value={item.type || 'ONLINE'}
+                                                                    onChange={(val) => handleCurriculumChange(index, 'type', val)}
+                                                                    options={[
+                                                                        { value: 'ONLINE', label: '온라인' },
+                                                                        { value: 'OFFLINE', label: '오프라인' }
+                                                                    ]}
+                                                                    className="mb-0"
+                                                                    buttonClassName="h-11 py-0 px-3 text-sm"
+                                                                />
+                                                            </div>
+                                                        )}
+                                                        {formData.curriculum.length > 1 && (
+                                                            <button
+                                                                type="button"
+                                                                className={styles.deleteBtn}
+                                                                onClick={() => removeSession(index)}
+                                                            >
+                                                                <Trash2 size={18} />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                ))}
+
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    onClick={addSession}
+                                                    fullWidth
+                                                    leftIcon={<Plus size={18} />}
+                                                    className="border-dashed mt-2"
+                                                >
+                                                    회차 추가하기
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+
+                            {/* 추가 정보 카드 */}
+                            <div id="additional-info" className={styles.card}>
+                                <div className={styles.section}>
+                                    <h2 className={styles.sectionTitle}>
+                                        <Target size={20} className={styles.sectionIcon} />
+                                        추가 정보(선택)
+                                    </h2>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                        <div className="md:col-span-2">
+                                            <Input
+                                                label="최종 스터디 목표"
+                                                name="goal"
+                                                placeholder="예: 골드 티어 달성, 토이 프로젝트 완성"
+                                                value={formData.goal}
+                                                onChange={handleChange}
+                                            />
+                                        </div>
+
+                                        <div className="md:col-span-2">
+                                            <Input
+                                                label="교재/자료"
+                                                name="textbook"
+                                                placeholder="예: 백준 온라인 저지, Do It! 알고리즘"
+                                                value={formData.textbook}
+                                                onChange={handleChange}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+
+
+                            {/* 스터디 규칙 카드 */}
+                            <div id="rule-info" className={styles.card}>
+                                <div className={styles.section}>
+                                    <h2 className={styles.sectionTitle}>
+                                        <Shield size={20} className={styles.sectionIcon} />
+                                        스터디 규칙
+                                    </h2>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                        {/* 패널티 정책 */}
+                                        <div className="md:col-span-2">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <label className={cn(styles.label, "mb-0")}>패널티 정책</label>
+                                                <div className="flex flex-col items-end gap-1">
+                                                    <span className="text-xs text-red-500 font-medium">*남은 회차 모두 출석해도 참여율이 50% 미만이면 강제 탈퇴됩니다.</span>
+                                                    <span className="text-xs text-red-500 font-medium">*3회 지각시 1회 결석으로 처리됩니다.</span>
+                                                </div>
+                                            </div>
+                                            <div className="grid grid-cols-3 gap-2">
+                                                {[
+                                                    { key: 'STRICT', label: '엄격', desc: '1회 결석 시 강퇴', activeClass: 'border-red-600 bg-red-100 text-red-800' },
+                                                    { key: 'NORMAL', label: '보통', desc: '경고 후 조치', activeClass: 'border-red-300 bg-red-50 text-red-600' },
+                                                    { key: 'NONE', label: '없음', desc: '자율 참여', activeClass: 'border-gray-300 bg-gray-50 text-gray-500' }
+                                                ].map(({ key, label, desc, activeClass }) => (
+                                                    <button
+                                                        key={key}
+                                                        type="button"
+                                                        onClick={() => handleOptionToggle('penaltyPolicy', key)}
+                                                        className={cn(
+                                                            "p-3 rounded-xl text-center transition-all border-2",
+                                                            formData.penaltyPolicy === key
+                                                                ? activeClass
+                                                                : "border-gray-200 bg-gray-50 text-gray-600 hover:border-gray-300"
+                                                        )}
+                                                    >
+                                                        <div className="font-bold text-sm">{label}</div>
+                                                        <div className="text-xs mt-1 opacity-70">{desc}</div>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* 선행 조건 */}
+                                        <div className="md:col-span-2">
+                                            <Input
+                                                label="선행 조건 (선택)"
+                                                name="prerequisites"
+                                                placeholder="예: Python 기초 필수"
+                                                value={formData.prerequisites}
+                                                onChange={handleChange}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 하단 버튼 */}
+                            <div className={styles.footer}>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="lg"
+                                    className="flex-1 sm:flex-none sm:min-w-[120px]"
+                                    onClick={() => navigate(-1)}
+                                >
+                                    취소
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    variant="primary"
+                                    size="lg"
+                                    className="flex-1 sm:flex-none sm:min-w-[200px] shadow-lg shadow-primary/20"
+                                >
+                                    스터디 개설하기
+                                </Button>
+                            </div>
+                        </div>
+
+                        {/* 우측 네비게이션 */}
+                        <aside className="hidden lg:block w-48 shrink-0 sticky top-24">
+                            <div className="space-y-1">
+                                <div className="px-3 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                    목차
+                                </div>
+                                {sections.map(section => (
+                                    <button
+                                        key={section.id}
+                                        type="button"
+                                        onClick={() => scrollToSection(section.id)}
+                                        className={cn(
+                                            "w-full text-left px-3 py-2 text-sm rounded-lg transition-all",
+                                            activeSection === section.id
+                                                ? "bg-primary/5 text-primary font-bold"
+                                                : "text-gray-500 hover:text-gray-900 hover:bg-gray-100"
+                                        )}
+                                    >
+                                        {section.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </aside>
                     </div>
                 </form>
             </div>

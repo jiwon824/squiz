@@ -45,8 +45,14 @@ const RecruitmentPage = lazy(() =>
 const StudyPage = lazy(() =>
     import('../features/study').then(m => ({ default: m.StudyPage }))
 );
+const StudyTypeSelectPage = lazy(() =>
+    import('../features/study').then(m => ({ default: m.StudyTypeSelectPage }))
+);
 const StudyCreatePage = lazy(() =>
     import('../features/study').then(m => ({ default: m.StudyCreatePage }))
+);
+const LightningStudyCreatePage = lazy(() =>
+    import('../features/study').then(m => ({ default: m.LightningStudyCreatePage }))
 );
 const StudyDetailPage = lazy(() =>
     import('../features/study').then(m => ({ default: m.StudyDetailPage }))
@@ -72,6 +78,9 @@ const MeetingRoomPage = lazy(() =>
 
 const ProfileSkeleton = lazy(() =>
     import('@/features/profile/components/ProfileSkeleton').then(module => ({ default: module.ProfileSkeleton }))
+);
+const AdminDashboardPage = lazy(() =>
+    import('../features/admin').then(m => ({ default: m.AdminDashboardPage }))
 );
 
 export const AppRouter = () => {
@@ -133,7 +142,9 @@ export const AppRouter = () => {
                     <Route path="/quiz-practice/:courseId" element={<CourseDetail />} />
                     <Route path="/quiz-practice/:courseId/section/:sectionId/session" element={<QuizSessionPage />} />
                     <Route path="/study" element={<StudyPage />} />
-                    <Route path="/study/create" element={<StudyCreatePage />} />
+                    <Route path="/study/create" element={<StudyTypeSelectPage />} />
+                    <Route path="/study/create/planned" element={<StudyCreatePage />} />
+                    <Route path="/study/create/lightning" element={<LightningStudyCreatePage />} />
                     <Route path="/study/:id" element={<StudyDetailPage />} />
                     <Route path="/study/manage/:id" element={<StudyManagementPage />} />
                     <Route path="/study/:studyId/meetings" element={<MeetingHistoryPage />} />
@@ -146,6 +157,7 @@ export const AppRouter = () => {
                             <ProfilePage />
                         </Suspense>
                     } />
+                    <Route path="/admin" element={<AdminDashboardPage />} />
                 </Routes>
             </Suspense>
         </BrowserRouter>
