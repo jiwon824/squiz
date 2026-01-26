@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
  * 호출 경로:
  * - Web/Mobile 코스 목록 화면(SC-190, M-080)에서 GET /api/v1/quiz-courses
  */
+@Slf4j
 @Tag(name = "Quiz Course", description = "퀴즈 코스 API")
 @RestController
 @RequestMapping("/api/v1/quiz-courses")
@@ -43,7 +45,10 @@ public class QuizCourseController {
     @Operation(summary = "코스 목록 조회", description = "활성화된 코스 목록을 조회합니다.")
     @GetMapping
     public ApiResponse<QuizCourseListResponse> getCourseList() {
-        return ApiResponse.success(quizCourseService.getCourseList());
+        QuizCourseListResponse response = quizCourseService.getCourseList();
+        log.info("[QuizCourseController] Fetched {} courses", response.courses().size());
+        response.courses().forEach(course -> log.info("[QuizCourseController] Course: {}", course));
+        return ApiResponse.success(response);
     }
 
     /**

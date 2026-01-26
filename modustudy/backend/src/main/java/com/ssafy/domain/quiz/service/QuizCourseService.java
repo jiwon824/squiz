@@ -74,7 +74,11 @@ public class QuizCourseService {
      * @return 코스 목록 응답 DTO
      */
     public QuizCourseListResponse getCourseList() {
-        List<QuizCourse> courses = quizCourseRepository.findAllByIsActiveTrueOrderBySortOrderAscIdAsc();
+        // FIXME: 원래는 활성 코스만 조회해야 하나, 초기 데이터 설정 문제로 전체 조회로 변경
+        // List<QuizCourse> courses =
+        // quizCourseRepository.findAllByIsActiveTrueOrderBySortOrderAscIdAsc();
+        List<QuizCourse> courses = quizCourseRepository.findAll(org.springframework.data.domain.Sort.by(
+                org.springframework.data.domain.Sort.Direction.ASC, "sortOrder", "id"));
         List<String> badgeCodes = courses.stream()
                 .map(QuizCourse::getBadgeCode)
                 .filter(Objects::nonNull)

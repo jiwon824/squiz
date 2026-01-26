@@ -15,12 +15,13 @@ export default defineConfig({
         },
     },
     server: {
+        allowedHosts: ['modustudy.local'],
         host: '0.0.0.0',
         port: 3000,
         open: true,
         proxy: {
             '/api': {
-                target: 'http://localhost:5000',
+                target: 'http://localhost:8080',
                 changeOrigin: true,
                 secure: false,
             }
