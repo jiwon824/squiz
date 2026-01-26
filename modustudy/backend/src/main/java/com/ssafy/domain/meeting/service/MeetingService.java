@@ -93,6 +93,10 @@ public class MeetingService {
     private final RestTemplate restTemplate;
     @Value("${meeting.pdf.font-path:}")
     private String pdfFontPath;
+    @Value("${app.ffmpeg.path:ffmpeg}")
+    private String ffmpegPath;
+
+    private static final String MIXED_VOICE_FILENAME = "meetingvoice.webm";
 
     @Transactional(readOnly = true)
     public Page<MeetingListItemResponse> listMeetings(Long studyId, MeetingType meetingType,
@@ -311,6 +315,28 @@ public class MeetingService {
     }
 
     @Transactional(readOnly = true)
+    public List<MeetingAudioRecordingResponse> getAudioRecordingsForUser(Long studyId, Long meetingId, Long userId) {
+        getMeetingOrThrow(studyId, meetingId);
+        List<MeetingAudioRecording> mixed = meetingAudioRecordingRepository
+                .findByMeetingIdAndTrackTypeOrderByCreatedAtAsc(meetingId, MeetingAudioTrackType.MIXED);
+        List<MeetingAudioRecording> individual = meetingAudioRecordingRepository
+                .findByMeetingIdAndTrackTypeAndUserIdOrderByCreatedAtAsc(
+                        meetingId, MeetingAudioTrackType.INDIVIDUAL, userId);
+        return java.util.stream.Stream.concat(mixed.stream(), individual.stream())
+                .sorted((a, b) -> a.getCreatedAt().compareTo(b.getCreatedAt()))
+                .map(recording -> new MeetingAudioRecordingResponse(
+                        recording.getId(),
+                        recording.getMeetingId(),
+                        recording.getUserId(),
+                        recording.getTrackType(),
+                        recording.getRecordingUrl(),
+                        recording.getFormat(),
+                        recording.getFileSize(),
+                        recording.getCreatedAt()))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public List<MeetingPhotoResponse> getPhotos(Long studyId, Long meetingId) {
         getMeetingOrThrow(studyId, meetingId);
         return meetingPhotoRepository.findByMeetingIdOrderByCapturedAtDesc(meetingId).stream()
@@ -451,27 +477,90 @@ public class MeetingService {
         if (trackType == MeetingAudioTrackType.MIXED && userId != null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "USER_ID_NOT_ALLOWED");
         }
-        boolean mixed = trackType == MeetingAudioTrackType.MIXED;
-        String recordingUrl = localFileStorageService.saveMeetingRecordingAudio(
-                meetingId, userId, mixed, audio);
+        String filename = trackType == MeetingAudioTrackType.MIXED
+                ? MIXED_VOICE_FILENAME
+                : buildIndividualVoiceFilename(userId);
+        String recordingUrl = localFileStorageService.saveMeetingVoiceFinal(meetingId, filename, audio);
         String format = extractFileExtension(audio.getOriginalFilename());
-        MeetingAudioRecording saved = meetingAudioRecordingRepository.save(MeetingAudioRecording.builder()
-                .meetingId(meetingId)
-                .userId(userId)
-                .trackType(trackType)
-                .recordingUrl(recordingUrl)
-                .format(format)
-                .fileSize(audio.getSize())
-                .build());
-        return new MeetingAudioRecordingResponse(
-                saved.getId(),
-                saved.getMeetingId(),
-                saved.getUserId(),
-                saved.getTrackType(),
-                saved.getRecordingUrl(),
-                saved.getFormat(),
-                saved.getFileSize(),
-                saved.getCreatedAt());
+        MeetingAudioRecording saved = saveOrUpdateAudioRecording(
+                meetingId,
+                userId,
+                trackType,
+                recordingUrl,
+                format == null ? "webm" : format,
+                audio.getSize()
+        );
+        return toAudioRecordingResponse(saved);
+    }
+
+    @Transactional
+    public void uploadRecordingAudioSegment(Long studyId, Long meetingId, Long userId, MultipartFile audio) {
+        getMeetingOrThrow(studyId, meetingId);
+        if (audio == null || audio.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "AUDIO_REQUIRED");
+        }
+        if (userId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "USER_ID_REQUIRED");
+        }
+        localFileStorageService.saveMeetingVoiceSegment(meetingId, userId, audio);
+    }
+
+    @Transactional
+    public MeetingAudioRecordingResponse concatRecordingAudioSegments(Long studyId, Long meetingId, Long userId) {
+        getMeetingOrThrow(studyId, meetingId);
+        if (userId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "USER_ID_REQUIRED");
+        }
+        Path segmentsDir = localFileStorageService.resolveMeetingVoiceSegmentsDir(meetingId, userId);
+        if (!Files.exists(segmentsDir)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "NO_AUDIO_SEGMENTS");
+        }
+        List<Path> segments;
+        try {
+            segments = Files.list(segmentsDir)
+                    .filter(Files::isRegularFile)
+                    .sorted()
+                    .toList();
+        } catch (IOException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "AUDIO_SEGMENT_READ_FAILED");
+        }
+        if (segments.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "NO_AUDIO_SEGMENTS");
+        }
+        Path voiceDir = localFileStorageService.resolveMeetingVoiceDir(meetingId);
+        try {
+            Files.createDirectories(voiceDir);
+        } catch (IOException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "VOICE_DIR_CREATE_FAILED");
+        }
+        Path concatFile = voiceDir.resolve("segments-" + userId + ".txt").normalize();
+        try {
+            String contents = segments.stream()
+                    .map(path -> "file '" + path.toAbsolutePath().toString().replace("\\", "/") + "'")
+                    .reduce((a, b) -> a + "\n" + b)
+                    .orElse("");
+            Files.writeString(concatFile, contents);
+        } catch (IOException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "AUDIO_CONCAT_LIST_FAILED");
+        }
+        Path outputPath = localFileStorageService.resolveMeetingVoiceFile(meetingId, buildIndividualVoiceFilename(userId));
+        runFfmpegConcat(concatFile, outputPath);
+        Long fileSize;
+        try {
+            fileSize = Files.size(outputPath);
+        } catch (IOException e) {
+            fileSize = null;
+        }
+        MeetingAudioRecording saved = saveOrUpdateAudioRecording(
+                meetingId,
+                userId,
+                MeetingAudioTrackType.INDIVIDUAL,
+                localFileStorageService.buildMeetingVoiceUrl(meetingId, buildIndividualVoiceFilename(userId)),
+                "webm",
+                fileSize
+        );
+        cleanupVoiceSegments(segmentsDir, concatFile);
+        return toAudioRecordingResponse(saved);
     }
 
     @Transactional
@@ -872,10 +961,49 @@ public class MeetingService {
                     RecordingStatus.READY
             );
             upsertRecording(meeting.getStudyId(), meeting.getId(), request);
+            extractMixedVoiceFromRecording(meeting.getId(), recordingUrl);
         } catch (Exception e) {
             log.warn("SFU recording stop failed. meetingId={} controlUrl={} error={}", meeting.getId(), controlUrl, e.toString());
             meeting.updateRecordingStatus(RecordingStatus.FAILED);
         }
+    }
+
+    private void extractMixedVoiceFromRecording(Long meetingId, String recordingUrl) {
+        Path inputPath = localFileStorageService.resolveUploadedPath(recordingUrl);
+        if (inputPath == null || !Files.exists(inputPath)) {
+            log.warn("Mixed voice extract skipped: recording not found. meetingId={} url={}", meetingId, recordingUrl);
+            return;
+        }
+        Path outputPath = localFileStorageService.resolveMeetingVoiceFile(meetingId, MIXED_VOICE_FILENAME);
+        List<String> args = List.of(
+                ffmpegPath,
+                "-y",
+                "-i",
+                inputPath.toAbsolutePath().toString(),
+                "-vn",
+                "-c:a",
+                "libopus",
+                "-b:a",
+                "64k",
+                outputPath.toAbsolutePath().toString()
+        );
+        runFfmpeg(args, "mixed-voice-extract", meetingId);
+        Long fileSize;
+        try {
+            fileSize = Files.size(outputPath);
+        } catch (IOException e) {
+            fileSize = null;
+        }
+        String recordingUrlResolved = localFileStorageService.buildMeetingVoiceUrl(meetingId, MIXED_VOICE_FILENAME);
+        MeetingAudioRecording saved = saveOrUpdateAudioRecording(
+                meetingId,
+                null,
+                MeetingAudioTrackType.MIXED,
+                recordingUrlResolved,
+                "webm",
+                fileSize
+        );
+        log.info("Mixed voice extracted. meetingId={} recordingId={}", meetingId, saved.getId());
     }
 
     private String resolveSfuControlUrl() {
@@ -908,6 +1036,106 @@ public class MeetingService {
         Path relative = basePath.relativize(resolved);
         String normalized = relative.toString().replace("\\", "/");
         return "/uploads/" + normalized;
+    }
+
+    private String buildIndividualVoiceFilename(Long userId) {
+        return userId + "voice.webm";
+    }
+
+    private MeetingAudioRecording saveOrUpdateAudioRecording(Long meetingId,
+                                                             Long userId,
+                                                             MeetingAudioTrackType trackType,
+                                                             String recordingUrl,
+                                                             String format,
+                                                             Long fileSize) {
+        MeetingAudioRecording existing = userId == null
+                ? meetingAudioRecordingRepository
+                        .findTopByMeetingIdAndTrackTypeAndUserIdIsNullOrderByCreatedAtDesc(meetingId, trackType)
+                        .orElse(null)
+                : meetingAudioRecordingRepository
+                        .findTopByMeetingIdAndTrackTypeAndUserIdOrderByCreatedAtDesc(meetingId, trackType, userId)
+                        .orElse(null);
+        if (existing != null) {
+            existing.updateRecording(recordingUrl, format, fileSize);
+            return meetingAudioRecordingRepository.save(existing);
+        }
+        return meetingAudioRecordingRepository.save(MeetingAudioRecording.builder()
+                .meetingId(meetingId)
+                .userId(userId)
+                .trackType(trackType)
+                .recordingUrl(recordingUrl)
+                .format(format)
+                .fileSize(fileSize)
+                .build());
+    }
+
+    private MeetingAudioRecordingResponse toAudioRecordingResponse(MeetingAudioRecording saved) {
+        return new MeetingAudioRecordingResponse(
+                saved.getId(),
+                saved.getMeetingId(),
+                saved.getUserId(),
+                saved.getTrackType(),
+                saved.getRecordingUrl(),
+                saved.getFormat(),
+                saved.getFileSize(),
+                saved.getCreatedAt());
+    }
+
+    private void runFfmpegConcat(Path concatFile, Path outputPath) {
+        List<String> args = List.of(
+                ffmpegPath,
+                "-y",
+                "-f",
+                "concat",
+                "-safe",
+                "0",
+                "-i",
+                concatFile.toAbsolutePath().toString(),
+                "-c",
+                "copy",
+                outputPath.toAbsolutePath().toString()
+        );
+        runFfmpeg(args, "voice-concat", null);
+    }
+
+    private void runFfmpeg(List<String> args, String label, Long meetingId) {
+        try {
+            ProcessBuilder builder = new ProcessBuilder(args);
+            builder.redirectErrorStream(true);
+            Process process = builder.start();
+            String output = new String(process.getInputStream().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+            int exit = process.waitFor();
+            if (exit != 0) {
+                log.warn("FFmpeg failed. label={} meetingId={} exit={} output={}", label, meetingId, exit, output.trim());
+                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "FFMPEG_FAILED");
+            }
+        } catch (IOException | InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("FFmpeg error. label={} meetingId={} error={}", label, meetingId, e.toString());
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "FFMPEG_FAILED");
+        }
+    }
+
+    private void cleanupVoiceSegments(Path segmentsDir, Path concatFile) {
+        try {
+            if (Files.exists(concatFile)) {
+                Files.deleteIfExists(concatFile);
+            }
+            if (!Files.exists(segmentsDir)) {
+                return;
+            }
+            try (var stream = Files.list(segmentsDir)) {
+                stream.forEach(path -> {
+                    try {
+                        Files.deleteIfExists(path);
+                    } catch (IOException ignored) {
+                        // ignore
+                    }
+                });
+            }
+        } catch (IOException ignored) {
+            // ignore cleanup failures
+        }
     }
 
     private BaseFont resolvePdfBaseFont() throws IOException, DocumentException {

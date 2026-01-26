@@ -73,6 +73,10 @@ const MeetingRoomPage: React.FC = () => {
     const aiDetectionCleanupRef = useRef<(() => void) | null>(null);
     const chatDedupRef = useRef<Set<string>>(new Set());
     const remoteAudioElementsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
+    const voiceRecorderRef = useRef<MediaRecorder | null>(null);
+    const voiceStopResolverRef = useRef<(() => void) | null>(null);
+    const voiceUploadChainRef = useRef<Promise<void>>(Promise.resolve());
+    const voiceFinalizeRequestedRef = useRef(false);
 
     const [meetingTitle, setMeetingTitle] = useState('');
     const [meetingStartedAt, setMeetingStartedAt] = useState<string | null>(null);
@@ -489,6 +493,72 @@ const MeetingRoomPage: React.FC = () => {
         ]
     );
 
+    const startVoiceRecording = useCallback(
+        (stream: MediaStream) => {
+            if (!numericStudyId || !numericMeetingId) return;
+            if (!isLoggedIn) return;
+            if (voiceRecorderRef.current) return;
+            if (typeof MediaRecorder === 'undefined') return;
+            const supportedType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+                ? 'audio/webm;codecs=opus'
+                : 'audio/webm';
+            const recorder = new MediaRecorder(stream, { mimeType: supportedType });
+            const chunks: BlobPart[] = [];
+            recorder.ondataavailable = (event) => {
+                if (event.data && event.data.size > 0) {
+                    chunks.push(event.data);
+                }
+            };
+            recorder.onstop = () => {
+                const blob = new Blob(chunks, { type: supportedType });
+                if (blob.size > 0) {
+                    voiceUploadChainRef.current = voiceUploadChainRef.current
+                        .then(() => meetingApi.uploadRecordingAudioSegment(numericStudyId, numericMeetingId, blob))
+                        .catch((error) => {
+                            console.error('Failed to upload voice segment', error);
+                        });
+                }
+                if (voiceStopResolverRef.current) {
+                    voiceStopResolverRef.current();
+                    voiceStopResolverRef.current = null;
+                }
+            };
+            recorder.start();
+            voiceRecorderRef.current = recorder;
+        },
+        [isLoggedIn, numericMeetingId, numericStudyId]
+    );
+
+    const stopVoiceRecording = useCallback(async () => {
+        const recorder = voiceRecorderRef.current;
+        if (!recorder) return;
+        if (recorder.state === 'inactive') {
+            voiceRecorderRef.current = null;
+            return;
+        }
+        const stopPromise = new Promise<void>((resolve) => {
+            voiceStopResolverRef.current = resolve;
+        });
+        recorder.stop();
+        voiceRecorderRef.current = null;
+        await stopPromise;
+        await voiceUploadChainRef.current;
+    }, []);
+
+    const finalizeVoiceRecording = useCallback(async () => {
+        if (!numericStudyId || !numericMeetingId) return;
+        if (!isLoggedIn) return;
+        if (voiceFinalizeRequestedRef.current) return;
+        voiceFinalizeRequestedRef.current = true;
+        try {
+            await stopVoiceRecording();
+            await voiceUploadChainRef.current;
+            await meetingApi.concatRecordingAudio(numericStudyId, numericMeetingId);
+        } catch (error) {
+            console.error('Failed to finalize voice recording', error);
+        }
+    }, [isLoggedIn, numericMeetingId, numericStudyId, stopVoiceRecording]);
+
     const startMicrophone = useCallback(async () => {
         if (!navigator.mediaDevices?.getUserMedia) {
             setMicEnabled(false);
@@ -502,6 +572,7 @@ const MeetingRoomPage: React.FC = () => {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
             localMicStreamRef.current = stream;
             setMicEnabled(true);
+            startVoiceRecording(stream);
             if (sfuClientRef.current) {
                 await sfuClientRef.current.produceTrack('audio', stream.getAudioTracks()[0] ?? null);
             }
@@ -519,9 +590,10 @@ const MeetingRoomPage: React.FC = () => {
             console.error('Failed to access microphone', error);
             setMicEnabled(false);
         }
-    }, [updateSelfParticipant]);
+    }, [startVoiceRecording, updateSelfParticipant]);
 
     const stopMicrophone = useCallback(async () => {
+        await stopVoiceRecording();
         audioDetection.stopDetection();
         audioDetectionActiveRef.current = false;
         speakingRef.current = false;
@@ -535,7 +607,7 @@ const MeetingRoomPage: React.FC = () => {
         if (sfuClientRef.current) {
             await sfuClientRef.current.closeProducer('audio');
         }
-    }, [updateSelfParticipant]);
+    }, [stopVoiceRecording, updateSelfParticipant]);
 
     const ensureCameraStream = useCallback(async (publishCamera?: boolean) => {
         if (!navigator.mediaDevices?.getUserMedia) {
@@ -918,6 +990,7 @@ const MeetingRoomPage: React.FC = () => {
         const confirmed = window.confirm('미팅을 종료하시겠습니까?');
         if (!confirmed) return;
         try {
+            await finalizeVoiceRecording();
             await meetingApi.endMeeting(numericStudyId, numericMeetingId);
         } catch (error) {
             console.error('Failed to end meeting', error);
@@ -925,7 +998,7 @@ const MeetingRoomPage: React.FC = () => {
             stopCameraHardware();
             navigate(`/study/${numericStudyId}/meetings/${numericMeetingId}`);
         }
-    }, [numericStudyId, numericMeetingId, canEndMeeting, navigate, stopCameraHardware]);
+    }, [numericStudyId, numericMeetingId, canEndMeeting, navigate, stopCameraHardware, finalizeVoiceRecording]);
 
     const handleRoomEvent = useCallback(
         (event: MeetingRoomEvent) => {
@@ -1134,6 +1207,7 @@ const MeetingRoomPage: React.FC = () => {
 
         return () => {
             cancelled = true;
+            void finalizeVoiceRecording();
             wsUnsubscribeRef.current.forEach((unsubscribe) => unsubscribe());
             wsUnsubscribeRef.current = [];
             if (wsClientRef.current) {
@@ -1174,6 +1248,7 @@ const MeetingRoomPage: React.FC = () => {
         handlePeerLeft,
         handleProducerClosed,
         handleRoomEvent,
+        finalizeVoiceRecording,
         startMicrophone,
     ]);
 

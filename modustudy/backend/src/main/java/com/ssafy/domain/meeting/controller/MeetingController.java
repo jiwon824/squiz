@@ -169,11 +169,44 @@ public class MeetingController {
             @PathVariable Long meetingId,
             @RequestParam("trackType") com.ssafy.domain.meeting.entity.MeetingAudioTrackType trackType,
             @RequestParam(value = "userId", required = false) Long userId,
+            @AuthenticationPrincipal SsafyUserDetails userDetails,
             @RequestPart("audio") MultipartFile audio
     ) {
+        if (trackType == com.ssafy.domain.meeting.entity.MeetingAudioTrackType.INDIVIDUAL) {
+            Long authUserId = userDetails == null ? null : userDetails.getUser().getId();
+            userId = requireUserId(authUserId);
+        } else {
+            userId = null;
+        }
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(
                         meetingService.uploadRecordingAudio(studyId, meetingId, trackType, userId, audio)));
+    }
+
+    @PostMapping("/{meetingId}/recording/audio/segment")
+    @Operation(summary = "Meeting recording audio segment upload", description = "Upload individual audio segment.")
+    public ResponseEntity<ApiResponse<MessageResponse>> uploadRecordingAudioSegment(
+            @PathVariable Long studyId,
+            @PathVariable Long meetingId,
+            @AuthenticationPrincipal SsafyUserDetails userDetails,
+            @RequestPart("audio") MultipartFile audio
+    ) {
+        Long userId = userDetails == null ? null : userDetails.getUser().getId();
+        meetingService.uploadRecordingAudioSegment(studyId, meetingId, requireUserId(userId), audio);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Audio segment uploaded"));
+    }
+
+    @PostMapping("/{meetingId}/recording/audio/concat")
+    @Operation(summary = "Meeting recording audio concat", description = "Concat individual audio segments.")
+    public ResponseEntity<ApiResponse<MeetingAudioRecordingResponse>> concatRecordingAudio(
+            @PathVariable Long studyId,
+            @PathVariable Long meetingId,
+            @AuthenticationPrincipal SsafyUserDetails userDetails
+    ) {
+        Long userId = userDetails == null ? null : userDetails.getUser().getId();
+        return ResponseEntity.ok(ApiResponse.success(
+                meetingService.concatRecordingAudioSegments(studyId, meetingId, requireUserId(userId))));
     }
 
     @GetMapping("/{meetingId}/recording/audio")
@@ -183,10 +216,25 @@ public class MeetingController {
             @PathVariable Long meetingId,
             @RequestParam(value = "trackType", required = false)
             com.ssafy.domain.meeting.entity.MeetingAudioTrackType trackType,
-            @RequestParam(value = "userId", required = false) Long userId
+            @RequestParam(value = "userId", required = false) Long userId,
+            @AuthenticationPrincipal SsafyUserDetails userDetails
     ) {
+        Long authUserId = userDetails == null ? null : userDetails.getUser().getId();
+        if (trackType == com.ssafy.domain.meeting.entity.MeetingAudioTrackType.INDIVIDUAL) {
+            return ResponseEntity.ok(ApiResponse.success(
+                    meetingService.getAudioRecordings(studyId, meetingId, trackType, requireUserId(authUserId))));
+        }
+        if (trackType == com.ssafy.domain.meeting.entity.MeetingAudioTrackType.MIXED) {
+            return ResponseEntity.ok(ApiResponse.success(
+                    meetingService.getAudioRecordings(studyId, meetingId, trackType, null)));
+        }
+        if (authUserId != null) {
+            return ResponseEntity.ok(ApiResponse.success(
+                    meetingService.getAudioRecordingsForUser(studyId, meetingId, authUserId)));
+        }
         return ResponseEntity.ok(ApiResponse.success(
-                meetingService.getAudioRecordings(studyId, meetingId, trackType, userId)));
+                meetingService.getAudioRecordings(studyId, meetingId,
+                        com.ssafy.domain.meeting.entity.MeetingAudioTrackType.MIXED, null)));
     }
 
     @PostMapping("/{meetingId}/stt/file")
