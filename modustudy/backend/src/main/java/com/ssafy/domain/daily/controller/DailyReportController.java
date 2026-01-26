@@ -79,7 +79,7 @@ public class DailyReportController {
     }
 
     /**
-     * 데일리 리포트 단건 삭제
+     * 데일리 리포트 단건 삭제 (스터디장만 가능)
      */
     @DeleteMapping("/{reportId}")
     public ResponseEntity<Void> deleteReport(
@@ -89,7 +89,7 @@ public class DailyReportController {
 
         log.info("API 호출 - 데일리 리포트 삭제: studyId={}, reportId={}, userId={}", studyId, reportId, userId);
 
-        dailyReportService.deleteReport(reportId);
+        dailyReportService.deleteReport(studyId, reportId, userId);
 
         log.info("API 응답 - 데일리 리포트 삭제 완료: reportId={}", reportId);
 
@@ -97,7 +97,7 @@ public class DailyReportController {
     }
 
     /**
-     * 스터디별 데일리 리포트 전체 삭제
+     * 스터디별 데일리 리포트 전체 삭제 (스터디장만 가능)
      */
     @DeleteMapping
     public ResponseEntity<Void> deleteAllReports(
@@ -106,7 +106,7 @@ public class DailyReportController {
 
         log.info("API 호출 - 데일리 리포트 전체 삭제: studyId={}, userId={}", studyId, userId);
 
-        dailyReportService.deleteReportsByStudyId(studyId);
+        dailyReportService.deleteReportsByStudyId(studyId, userId);
 
         log.info("API 응답 - 데일리 리포트 전체 삭제 완료: studyId={}", studyId);
 

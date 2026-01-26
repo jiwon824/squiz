@@ -1,9 +1,15 @@
 package com.ssafy.domain.daily.service;
 
 import com.ssafy.common.exception.NotFoundException;
+import com.ssafy.common.exception.StudyException;
 import com.ssafy.domain.daily.dto.response.DailyReportResponse;
 import com.ssafy.domain.daily.entity.DailyReport;
 import com.ssafy.domain.daily.repository.DailyReportRepository;
+import com.ssafy.domain.study.entity.MeetingType;
+import com.ssafy.domain.study.entity.Status;
+import com.ssafy.domain.study.entity.Study;
+import com.ssafy.domain.study.entity.StudyType;
+import com.ssafy.domain.study.repository.StudyRepository;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -29,17 +35,42 @@ class DailyReportServiceTest {
     private DailyReportRepository dailyReportRepository;
 
     @Autowired
+    private StudyRepository studyRepository;
+
+    @Autowired
     private EntityManager entityManager;
 
+    private Study study;
     private Long studyId;
+    private Long leaderId;
     private DailyReport report1;
     private DailyReport report2;
     private DailyReport report3;
 
     @BeforeEach
     void setUp() {
-        studyId = 1L;
+        leaderId = 100L;
 
+        // 스터디 생성 (필수 필드 모두 포함)
+        study = studyRepository.save(Study.builder()
+                .leaderId(leaderId)
+                .name("테스트 스터디")
+                .topic("Java")
+                .studyType(StudyType.PLANNED)
+                .meetingType(MeetingType.ONLINE)
+                .status(Status.DRAFT)
+                .maxMembers(10)
+                .startDate(LocalDate.of(2025, 2, 1))
+                .endDate(LocalDate.of(2025, 5, 1))
+                .recruitStartDate(LocalDate.of(2025, 1, 15))
+                .recruitEndDate(LocalDate.of(2025, 1, 31))
+                .extensionCount(0)
+                .build());
+        studyRepository.flush();
+
+        studyId = study.getId();
+
+        // 데일리 리포트 생성
         report1 = dailyReportRepository.save(DailyReport.builder()
                 .studyId(studyId)
                 .reportDate(LocalDate.of(2025, 1, 20))
@@ -151,13 +182,13 @@ class DailyReportServiceTest {
     }
 
     @Test
-    @DisplayName("리포트 단건 삭제 성공")
+    @DisplayName("스터디장이 리포트 단건 삭제 성공")
     void deleteReport_Success() {
         // given
         Long reportId = report1.getId();
 
         // when
-        dailyReportService.deleteReport(reportId);
+        dailyReportService.deleteReport(studyId, reportId, leaderId);
         entityManager.flush();
         entityManager.clear();
 
@@ -167,19 +198,39 @@ class DailyReportServiceTest {
     }
 
     @Test
+    @DisplayName("스터디장이 아닌 사용자가 삭제 시 예외 발생")
+    void deleteReport_NotLeader() {
+        // given
+        Long otherUserId = 999L;
+
+        // when & then
+        assertThatThrownBy(() -> dailyReportService.deleteReport(studyId, report1.getId(), otherUserId))
+                .isInstanceOf(StudyException.NotStudyLeaderException.class)
+                .hasMessageContaining("권한이 없습니다");
+    }
+
+    @Test
     @DisplayName("존재하지 않는 리포트 삭제 시 예외 발생")
     void deleteReport_NotFound() {
         // when & then
-        assertThatThrownBy(() -> dailyReportService.deleteReport(999L))
+        assertThatThrownBy(() -> dailyReportService.deleteReport(studyId, 999L, leaderId))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("데일리 리포트를 찾을 수 없습니다");
     }
 
     @Test
-    @DisplayName("스터디별 리포트 전체 삭제 성공")
+    @DisplayName("존재하지 않는 스터디에서 삭제 시 예외 발생")
+    void deleteReport_StudyNotFound() {
+        // when & then
+        assertThatThrownBy(() -> dailyReportService.deleteReport(999L, report1.getId(), leaderId))
+                .isInstanceOf(StudyException.StudyNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("스터디장이 리포트 전체 삭제 성공")
     void deleteReportsByStudyId_Success() {
         // when
-        dailyReportService.deleteReportsByStudyId(studyId);
+        dailyReportService.deleteReportsByStudyId(studyId, leaderId);
         entityManager.flush();
         entityManager.clear();
 
@@ -189,24 +240,51 @@ class DailyReportServiceTest {
     }
 
     @Test
+    @DisplayName("스터디장이 아닌 사용자가 전체 삭제 시 예외 발생")
+    void deleteReportsByStudyId_NotLeader() {
+        // given
+        Long otherUserId = 999L;
+
+        // when & then
+        assertThatThrownBy(() -> dailyReportService.deleteReportsByStudyId(studyId, otherUserId))
+                .isInstanceOf(StudyException.NotStudyLeaderException.class)
+                .hasMessageContaining("권한이 없습니다");
+    }
+
+    @Test
     @DisplayName("다른 스터디 리포트는 삭제되지 않음")
     void deleteReportsByStudyId_OnlyTargetStudy() {
         // given
-        Long otherStudyId = 2L;
+        Study otherStudy = studyRepository.save(Study.builder()
+                .leaderId(200L)
+                .name("다른 스터디")
+                .topic("Python")
+                .studyType(StudyType.PLANNED)
+                .meetingType(MeetingType.ONLINE)
+                .status(Status.DRAFT)
+                .maxMembers(10)
+                .startDate(LocalDate.of(2025, 2, 1))
+                .endDate(LocalDate.of(2025, 5, 1))
+                .recruitStartDate(LocalDate.of(2025, 1, 15))
+                .recruitEndDate(LocalDate.of(2025, 1, 31))
+                .extensionCount(0)
+                .build());
+        studyRepository.flush();
+
         dailyReportRepository.save(DailyReport.builder()
-                .studyId(otherStudyId)
+                .studyId(otherStudy.getId())
                 .reportDate(LocalDate.of(2025, 1, 20))
                 .summary("다른 스터디 리포트")
                 .build());
         dailyReportRepository.flush();
 
         // when
-        dailyReportService.deleteReportsByStudyId(studyId);
+        dailyReportService.deleteReportsByStudyId(studyId, leaderId);
         entityManager.flush();
         entityManager.clear();
 
         // then
-        List<DailyReportResponse> remainingReports = dailyReportService.getReportsByStudyId(otherStudyId);
+        List<DailyReportResponse> remainingReports = dailyReportService.getReportsByStudyId(otherStudy.getId());
         assertThat(remainingReports).hasSize(1);
     }
 }

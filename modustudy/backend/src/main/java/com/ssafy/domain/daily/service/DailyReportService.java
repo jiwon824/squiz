@@ -1,10 +1,14 @@
 package com.ssafy.domain.daily.service;
 
 import com.ssafy.common.exception.NotFoundException;
+import com.ssafy.common.exception.StudyException;
 import com.ssafy.domain.daily.dto.response.DailyReportResponse;
 import com.ssafy.domain.daily.entity.DailyReport;
 import com.ssafy.domain.daily.repository.DailyReportRepository;
+import com.ssafy.domain.study.entity.Study;
+import com.ssafy.domain.study.repository.StudyRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,9 +19,11 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+@Slf4j
 public class DailyReportService {
 
     private final DailyReportRepository dailyReportRepository;
+    private final StudyRepository studyRepository;
 
     // 스터디별 데일리 리포트 목록 조회 (최신순)
     public List<DailyReportResponse> getReportsByStudyId(Long studyId) {
@@ -49,18 +55,42 @@ public class DailyReportService {
                 .toList();
     }
 
-    // 리포트 단건 삭제
+    // 리포트 단건 삭제 (스터디장만 가능)
     @Transactional
-    public void deleteReport(Long reportId) {
+    public void deleteReport(Long studyId, Long reportId, Long userId) {
+        log.info("데일리 리포트 삭제 시작 - studyId: {}, reportId: {}, userId: {}", studyId, reportId, userId);
+
+        // 스터디장 권한 검증
+        validateStudyLeader(studyId, userId);
+
         if (!dailyReportRepository.existsById(reportId)) {
             throw new NotFoundException("DAILY_REPORT_NOT_FOUND", "데일리 리포트를 찾을 수 없습니다.");
         }
         dailyReportRepository.deleteById(reportId);
+
+        log.info("데일리 리포트 삭제 완료 - reportId: {}", reportId);
     }
 
-    // 스터디별 리포트 전체 삭제
+    // 스터디별 리포트 전체 삭제 (스터디장만 가능)
     @Transactional
-    public void deleteReportsByStudyId(Long studyId) {
+    public void deleteReportsByStudyId(Long studyId, Long userId) {
+        log.info("데일리 리포트 전체 삭제 시작 - studyId: {}, userId: {}", studyId, userId);
+
+        // 스터디장 권한 검증
+        validateStudyLeader(studyId, userId);
+
         dailyReportRepository.deleteByStudyId(studyId);
+
+        log.info("데일리 리포트 전체 삭제 완료 - studyId: {}", studyId);
+    }
+
+    // 스터디장 권한 검증
+    private void validateStudyLeader(Long studyId, Long userId) {
+        Study study = studyRepository.findById(studyId)
+                .orElseThrow(() -> new StudyException.StudyNotFoundException(studyId));
+
+        if (!study.getLeaderId().equals(userId)) {
+            throw new StudyException.NotStudyLeaderException("데일리 리포트를 삭제할 권한이 없습니다.");
+        }
     }
 }

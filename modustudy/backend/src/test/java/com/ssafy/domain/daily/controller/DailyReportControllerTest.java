@@ -2,6 +2,11 @@ package com.ssafy.domain.daily.controller;
 
 import com.ssafy.domain.daily.entity.DailyReport;
 import com.ssafy.domain.daily.repository.DailyReportRepository;
+import com.ssafy.domain.study.entity.MeetingType;
+import com.ssafy.domain.study.entity.Status;
+import com.ssafy.domain.study.entity.Study;
+import com.ssafy.domain.study.entity.StudyType;
+import com.ssafy.domain.study.repository.StudyRepository;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -30,16 +35,40 @@ class DailyReportControllerTest {
     private DailyReportRepository dailyReportRepository;
 
     @Autowired
+    private StudyRepository studyRepository;
+
+    @Autowired
     private EntityManager entityManager;
 
+    private Study study;
     private Long studyId;
+    private Long leaderId;
     private DailyReport report1;
     private DailyReport report2;
     private DailyReport report3;
 
     @BeforeEach
     void setUp() {
-        studyId = 1L;
+        leaderId = 100L;
+
+        // 스터디 생성 (필수 필드 모두 포함)
+        study = studyRepository.save(Study.builder()
+                .leaderId(leaderId)
+                .name("테스트 스터디")
+                .topic("Java")
+                .studyType(StudyType.PLANNED)
+                .meetingType(MeetingType.ONLINE)
+                .status(Status.DRAFT)
+                .maxMembers(10)
+                .startDate(LocalDate.of(2025, 2, 1))
+                .endDate(LocalDate.of(2025, 5, 1))
+                .recruitStartDate(LocalDate.of(2025, 1, 15))
+                .recruitEndDate(LocalDate.of(2025, 1, 31))
+                .extensionCount(0)
+                .build());
+        studyRepository.flush();
+
+        studyId = study.getId();
 
         report1 = dailyReportRepository.save(DailyReport.builder()
                 .studyId(studyId)
@@ -109,38 +138,58 @@ class DailyReportControllerTest {
     }
 
     @Test
-    @DisplayName("데일리 리포트 단건 삭제 성공")
+    @DisplayName("스터디장이 데일리 리포트 단건 삭제 성공")
     void deleteReport_Success() throws Exception {
         Long reportId = report1.getId();
 
         mockMvc.perform(delete("/api/v1/studies/{studyId}/daily-reports/{reportId}", studyId, reportId)
-                        .header("User-Id", 100L))
+                        .header("User-Id", leaderId))
                 .andDo(print())
                 .andExpect(status().isNoContent());
 
         entityManager.flush();
         entityManager.clear();
 
-        // 삭제 확인
         mockMvc.perform(get("/api/v1/studies/{studyId}/daily-reports/{reportId}", studyId, reportId))
                 .andExpect(status().isNotFound());
     }
 
     @Test
-    @DisplayName("스터디별 데일리 리포트 전체 삭제 성공")
+    @DisplayName("스터디장이 아닌 사용자가 삭제 시 403 반환")
+    void deleteReport_Forbidden() throws Exception {
+        Long otherUserId = 999L;
+
+        mockMvc.perform(delete("/api/v1/studies/{studyId}/daily-reports/{reportId}", studyId, report1.getId())
+                        .header("User-Id", otherUserId))
+                .andDo(print())
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("스터디장이 데일리 리포트 전체 삭제 성공")
     void deleteAllReports_Success() throws Exception {
         mockMvc.perform(delete("/api/v1/studies/{studyId}/daily-reports", studyId)
-                        .header("User-Id", 100L))
+                        .header("User-Id", leaderId))
                 .andDo(print())
                 .andExpect(status().isNoContent());
 
         entityManager.flush();
         entityManager.clear();
 
-        // 전체 삭제 확인
         mockMvc.perform(get("/api/v1/studies/{studyId}/daily-reports", studyId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    @DisplayName("스터디장이 아닌 사용자가 전체 삭제 시 403 반환")
+    void deleteAllReports_Forbidden() throws Exception {
+        Long otherUserId = 999L;
+
+        mockMvc.perform(delete("/api/v1/studies/{studyId}/daily-reports", studyId)
+                        .header("User-Id", otherUserId))
+                .andDo(print())
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -155,6 +204,15 @@ class DailyReportControllerTest {
     @DisplayName("존재하지 않는 날짜 리포트 조회 시 404 반환")
     void getReportByDate_NotFound() throws Exception {
         mockMvc.perform(get("/api/v1/studies/{studyId}/daily-reports/date/{reportDate}", studyId, "2025-01-30"))
+                .andDo(print())
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 스터디에서 삭제 시 404 반환")
+    void deleteReport_StudyNotFound() throws Exception {
+        mockMvc.perform(delete("/api/v1/studies/{studyId}/daily-reports/{reportId}", 999L, report1.getId())
+                        .header("User-Id", leaderId))
                 .andDo(print())
                 .andExpect(status().isNotFound());
     }
