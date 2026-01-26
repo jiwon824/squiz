@@ -1,8 +1,9 @@
 package com.ssafy.domain.study.workspace.controller;
 
-import com.ssafy.domain.study.entity.Study;
-import com.ssafy.domain.study.entity.StudyType;
+import com.ssafy.domain.study.entity.*;
+import com.ssafy.domain.study.repository.FormatRepository;
 import com.ssafy.domain.study.repository.StudyRepository;
+import com.ssafy.domain.study.repository.TopicRepository;
 import com.ssafy.domain.study.workspace.entity.Workspace;
 import com.ssafy.domain.study.workspace.repository.WorkspaceRepository;
 import com.ssafy.domain.user.entity.Role;
@@ -17,17 +18,21 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+/**
+ * WorkspaceController 통합 테스트
+ */
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
-@DisplayName("WorkspaceController 테스트")
+@WithMockUser(username = "testuser", roles = {"USER"})
 class WorkspaceControllerTest {
 
     @Autowired
@@ -43,16 +48,38 @@ class WorkspaceControllerTest {
     private UserRepository userRepository;
 
     @Autowired
+    private TopicRepository topicRepository;
+
+    @Autowired
+    private FormatRepository formatRepository;
+
+    @Autowired
     private EntityManager entityManager;
 
     private User user;
-    private Study study;
-    private Study studyWithWorkspace;
+    private Study study1;
+    private Study study2;
     private Workspace workspace;
+    private Topic topic;
+    private Format format;
 
     @BeforeEach
     void setUp() {
-        // 1. User 생성
+        // 1. Topic 생성
+        topic = topicRepository.save(Topic.builder()
+                .name("알고리즘")
+                .sortOrder(1)
+                .build());
+        topicRepository.flush();
+
+        // 2. Format 생성
+        format = formatRepository.save(Format.builder()
+                .name("문제 풀이")
+                .sortOrder(1)
+                .build());
+        formatRepository.flush();
+
+        // 3. User 생성
         user = userRepository.save(User.builder()
                 .userId("testuser")
                 .email("test@test.com")
@@ -69,185 +96,180 @@ class WorkspaceControllerTest {
                 .build());
         userRepository.flush();
 
-        // 2. Study 생성 (워크스페이스 없음)
-        study = studyRepository.save(Study.builder()
+        // 4. Study 생성
+        study1 = studyRepository.save(Study.builder()
                 .leaderId(user.getId())
-                .name("테스트 스터디")
-                .topic("Java")
+                .name("알고리즘 스터디")
+                .topic(topic)
+                .format(format)
                 .studyType(StudyType.PLANNED)
                 .build());
         studyRepository.flush();
 
-        // 3. Study 생성 (워크스페이스 있음)
-        studyWithWorkspace = studyRepository.save(Study.builder()
+        study2 = studyRepository.save(Study.builder()
                 .leaderId(user.getId())
-                .name("워크스페이스 있는 스터디")
-                .topic("Spring")
+                .name("CS 스터디")
+                .topic(topic)
+                .format(format)
                 .studyType(StudyType.PLANNED)
                 .build());
         studyRepository.flush();
 
-        // 4. Workspace 생성
-        workspace = workspaceRepository.save(Workspace.create(studyWithWorkspace.getId()));
+        // 5. Workspace 생성 (study1만)
+        workspace = workspaceRepository.save(Workspace.create(study1.getId()));
         workspaceRepository.flush();
     }
 
     @Nested
-    @DisplayName("워크스페이스 생성 API")
+    @DisplayName("워크스페이스 생성")
     class CreateWorkspace {
 
         @Test
-        @DisplayName("워크스페이스 생성 성공 - 201 Created")
+        @DisplayName("성공 - 워크스페이스 생성")
         void createWorkspace_Success() throws Exception {
-            mockMvc.perform(post("/api/v1/workspaces/study/{studyId}", study.getId())
+            // when & then
+            mockMvc.perform(post("/api/v1/workspaces/study/{studyId}", study2.getId())
                             .header("User-Id", user.getId())
                             .contentType(MediaType.APPLICATION_JSON))
-                    .andDo(print())
                     .andExpect(status().isCreated())
                     .andExpect(jsonPath("$.id").exists())
-                    .andExpect(jsonPath("$.studyId").value(study.getId()))
+                    .andExpect(jsonPath("$.studyId").value(study2.getId()))
                     .andExpect(jsonPath("$.createdAt").exists());
         }
 
         @Test
-        @DisplayName("이미 워크스페이스가 존재하면 400 에러")
+        @DisplayName("실패 - 이미 워크스페이스가 존재")
         void createWorkspace_AlreadyExists() throws Exception {
-            mockMvc.perform(post("/api/v1/workspaces/study/{studyId}", studyWithWorkspace.getId())
+            // when & then
+            mockMvc.perform(post("/api/v1/workspaces/study/{studyId}", study1.getId())
                             .header("User-Id", user.getId())
                             .contentType(MediaType.APPLICATION_JSON))
-                    .andDo(print())
-                    .andExpect(status().isBadRequest());
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.message").value(containsString("이미")));
         }
     }
 
     @Nested
-    @DisplayName("워크스페이스 조회 API")
+    @DisplayName("워크스페이스 조회")
     class GetWorkspace {
 
         @Test
-        @DisplayName("ID로 워크스페이스 조회 성공 - 200 OK")
+        @DisplayName("성공 - ID로 조회")
         void getWorkspace_Success() throws Exception {
-            mockMvc.perform(get("/api/v1/workspaces/{workspaceId}", workspace.getId())
-                            .contentType(MediaType.APPLICATION_JSON))
-                    .andDo(print())
+            // when & then
+            mockMvc.perform(get("/api/v1/workspaces/{workspaceId}", workspace.getId()))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.id").value(workspace.getId()))
-                    .andExpect(jsonPath("$.studyId").value(studyWithWorkspace.getId()));
+                    .andExpect(jsonPath("$.studyId").value(study1.getId()));
         }
 
         @Test
-        @DisplayName("존재하지 않는 워크스페이스 조회 시 400 에러")
+        @DisplayName("실패 - 존재하지 않는 워크스페이스")
         void getWorkspace_NotFound() throws Exception {
-            mockMvc.perform(get("/api/v1/workspaces/{workspaceId}", 999999L)
-                            .contentType(MediaType.APPLICATION_JSON))
-                    .andDo(print())
-                    .andExpect(status().isBadRequest());
+            // when & then
+            mockMvc.perform(get("/api/v1/workspaces/{workspaceId}", 99999L))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.message").value(containsString("찾을 수 없습니다")));
         }
 
         @Test
-        @DisplayName("스터디 ID로 워크스페이스 조회 성공 - 200 OK")
+        @DisplayName("성공 - 스터디 ID로 조회")
         void getWorkspaceByStudyId_Success() throws Exception {
-            mockMvc.perform(get("/api/v1/workspaces/study/{studyId}", studyWithWorkspace.getId())
-                            .contentType(MediaType.APPLICATION_JSON))
-                    .andDo(print())
+            // when & then
+            mockMvc.perform(get("/api/v1/workspaces/study/{studyId}", study1.getId()))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.id").value(workspace.getId()))
-                    .andExpect(jsonPath("$.studyId").value(studyWithWorkspace.getId()));
+                    .andExpect(jsonPath("$.studyId").value(study1.getId()));
         }
 
         @Test
-        @DisplayName("워크스페이스가 없는 스터디 조회 시 400 에러")
+        @DisplayName("실패 - 존재하지 않는 스터디")
         void getWorkspaceByStudyId_NotFound() throws Exception {
-            mockMvc.perform(get("/api/v1/workspaces/study/{studyId}", study.getId())
-                            .contentType(MediaType.APPLICATION_JSON))
-                    .andDo(print())
-                    .andExpect(status().isBadRequest());
+            // when & then
+            mockMvc.perform(get("/api/v1/workspaces/study/{studyId}", 99999L))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.message").value(containsString("찾을 수 없습니다")));
         }
     }
 
     @Nested
-    @DisplayName("워크스페이스 존재 여부 확인 API")
+    @DisplayName("워크스페이스 존재 여부 확인")
     class ExistsWorkspace {
 
         @Test
-        @DisplayName("워크스페이스가 존재하면 true 반환")
+        @DisplayName("성공 - 존재하는 경우")
         void existsWorkspace_True() throws Exception {
-            mockMvc.perform(get("/api/v1/workspaces/study/{studyId}/exists", studyWithWorkspace.getId())
-                            .contentType(MediaType.APPLICATION_JSON))
-                    .andDo(print())
+            // when & then
+            mockMvc.perform(get("/api/v1/workspaces/study/{studyId}/exists", study1.getId()))
                     .andExpect(status().isOk())
                     .andExpect(content().string("true"));
         }
 
         @Test
-        @DisplayName("워크스페이스가 없으면 false 반환")
+        @DisplayName("성공 - 존재하지 않는 경우")
         void existsWorkspace_False() throws Exception {
-            mockMvc.perform(get("/api/v1/workspaces/study/{studyId}/exists", study.getId())
-                            .contentType(MediaType.APPLICATION_JSON))
-                    .andDo(print())
+            // when & then
+            mockMvc.perform(get("/api/v1/workspaces/study/{studyId}/exists", study2.getId()))
                     .andExpect(status().isOk())
                     .andExpect(content().string("false"));
         }
     }
 
     @Nested
-    @DisplayName("워크스페이스 삭제 API")
+    @DisplayName("워크스페이스 삭제")
     class DeleteWorkspace {
 
         @Test
-        @DisplayName("워크스페이스 삭제 성공 - 204 No Content")
+        @DisplayName("성공 - ID로 삭제")
         void deleteWorkspace_Success() throws Exception {
-            // given - 삭제용 워크스페이스 생성
-            Study deleteStudy = studyRepository.save(Study.builder()
-                    .leaderId(user.getId())
-                    .name("삭제용 스터디")
-                    .topic("Delete")
-                    .studyType(StudyType.PLANNED)
-                    .build());
-            studyRepository.flush();
-
-            Workspace deleteWorkspace = workspaceRepository.save(Workspace.create(deleteStudy.getId()));
-            workspaceRepository.flush();
-
             // when & then
-            mockMvc.perform(delete("/api/v1/workspaces/{workspaceId}", deleteWorkspace.getId())
-                            .header("User-Id", user.getId())
-                            .contentType(MediaType.APPLICATION_JSON))
-                    .andDo(print())
+            mockMvc.perform(delete("/api/v1/workspaces/{workspaceId}", workspace.getId())
+                            .header("User-Id", user.getId()))
                     .andExpect(status().isNoContent());
-        }
 
-        @Test
-        @DisplayName("존재하지 않는 워크스페이스 삭제 시 400 에러")
-        void deleteWorkspace_NotFound() throws Exception {
-            mockMvc.perform(delete("/api/v1/workspaces/{workspaceId}", 999999L)
-                            .header("User-Id", user.getId())
-                            .contentType(MediaType.APPLICATION_JSON))
-                    .andDo(print())
+            // 삭제 확인
+            entityManager.flush();
+            entityManager.clear();
+
+            mockMvc.perform(get("/api/v1/workspaces/{workspaceId}", workspace.getId()))
                     .andExpect(status().isBadRequest());
         }
 
         @Test
-        @DisplayName("스터디 ID로 워크스페이스 삭제 성공 - 204 No Content")
-        void deleteWorkspaceByStudyId_Success() throws Exception {
-            // given - 삭제용 워크스페이스 생성
-            Study deleteStudy = studyRepository.save(Study.builder()
-                    .leaderId(user.getId())
-                    .name("삭제용 스터디2")
-                    .topic("Delete2")
-                    .studyType(StudyType.PLANNED)
-                    .build());
-            studyRepository.flush();
-
-            Workspace deleteWorkspace = workspaceRepository.save(Workspace.create(deleteStudy.getId()));
-            workspaceRepository.flush();
-
+        @DisplayName("실패 - 존재하지 않는 워크스페이스")
+        void deleteWorkspace_NotFound() throws Exception {
             // when & then
-            mockMvc.perform(delete("/api/v1/workspaces/study/{studyId}", deleteStudy.getId())
-                            .header("User-Id", user.getId())
-                            .contentType(MediaType.APPLICATION_JSON))
-                    .andDo(print())
+            mockMvc.perform(delete("/api/v1/workspaces/{workspaceId}", 99999L)
+                            .header("User-Id", user.getId()))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.message").value(containsString("찾을 수 없습니다")));
+        }
+
+        @Test
+        @DisplayName("성공 - 스터디 ID로 삭제")
+        void deleteWorkspaceByStudyId_Success() throws Exception {
+            // when & then
+            mockMvc.perform(delete("/api/v1/workspaces/study/{studyId}", study1.getId())
+                            .header("User-Id", user.getId()))
                     .andExpect(status().isNoContent());
+
+            // 삭제 확인
+            entityManager.flush();
+            entityManager.clear();
+
+            mockMvc.perform(get("/api/v1/workspaces/study/{studyId}/exists", study1.getId()))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string("false"));
+        }
+
+        @Test
+        @DisplayName("실패 - 존재하지 않는 스터디")
+        void deleteWorkspaceByStudyId_NotFound() throws Exception {
+            // when & then
+            mockMvc.perform(delete("/api/v1/workspaces/study/{studyId}", 99999L)
+                            .header("User-Id", user.getId()))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.message").value(containsString("찾을 수 없습니다")));
         }
     }
 }

@@ -1,13 +1,12 @@
 package com.ssafy.domain.study.service;
 
+import com.ssafy.common.exception.NotFoundException;
 import com.ssafy.common.exception.StudyException;
 import com.ssafy.domain.study.dto.request.StudyCreateRequest;
 import com.ssafy.domain.study.dto.request.StudyUpdateRequest;
 import com.ssafy.domain.study.dto.response.StudyResponse;
 import com.ssafy.domain.study.entity.*;
-import com.ssafy.domain.study.repository.StudyMemberRepository;
-import com.ssafy.domain.study.repository.StudyRepository;
-import com.ssafy.domain.study.repository.StudySearchCondition;
+import com.ssafy.domain.study.repository.*;
 import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +29,8 @@ public class StudyService {
     private final UserRepository userRepository;
     private final StudyRepository studyRepository;
     private final StudyMemberRepository studyMemberRepository;
+    private final TopicRepository topicRepository;      // 추가
+    private final FormatRepository formatRepository;    // 추가
 
     // ============================================================
     // 스터디 조회 API
@@ -59,9 +60,9 @@ public class StudyService {
      * 스터디 검색/필터링 (동적 쿼리)
      */
     public Page<Study> searchStudies(StudySearchCondition condition, Pageable pageable) {
-        log.info("스터디 검색 - 조건: keyword={}, topic={}, status={}, meetingType={}",
+        log.info("스터디 검색 - 조건: keyword={}, topicId={}, status={}, meetingType={}",
                 condition.getKeyword(),
-                condition.getTopic(),
+                condition.getTopicId(),
                 condition.getStatus(),
                 condition.getMeetingType());
 
@@ -133,32 +134,49 @@ public class StudyService {
         User leader = userRepository.findById(leaderId)
                 .orElseThrow(() -> {
                     log.error("존재하지 않는 사용자 - leaderId: {}", leaderId);
-                    return new IllegalArgumentException("존재하지 않는 사용자입니다: " + leaderId);
+                    return NotFoundException.user();
                 });
 
-        // 2. 비즈니스 검증
+        // 2. Topic 조회 (필수)
+        Topic topic = topicRepository.findById(request.getTopicId())
+                .orElseThrow(() -> {
+                    log.error("존재하지 않는 주제 - topicId: {}", request.getTopicId());
+                    return new StudyException.InvalidStudyRequestException("존재하지 않는 주제입니다: " + request.getTopicId());
+                });
+
+        // 3. Format 조회 (선택)
+        Format format = null;
+        if (request.getFormatId() != null) {
+            format = formatRepository.findById(request.getFormatId())
+                    .orElseThrow(() -> {
+                        log.error("존재하지 않는 형식 - formatId: {}", request.getFormatId());
+                        return new StudyException.InvalidStudyRequestException("존재하지 않는 형식입니다: " + request.getFormatId());
+                    });
+        }
+
+        // 4. 비즈니스 검증
         validateStudyCreate(request);
 
-        // 3. DTO -> Entity 변환
-        Study study = request.toEntity(leaderId);
+        // 5. DTO -> Entity 변환 (Topic, Format 전달)
+        Study study = request.toEntity(leaderId, topic, format);
 
-        // 4. Study 저장
+        // 6. Study 저장
         Study savedStudy = studyRepository.save(study);
 
-        // 5. ⭐ 스터디장을 StudyMember로 자동 추가
+        // 7. 스터디장을 StudyMember로 자동 추가
         StudyMember leaderMember = StudyMember.builder()
                 .studyId(savedStudy.getId())
                 .userId(leaderId)
                 .role(MemberRole.LEADER)
                 .status(MemberStatus.APPROVED)
-                .isProbation(false)  // 스터디장은 수습 아님!
+                .isProbation(false)
                 .joinedAt(LocalDateTime.now())
                 .build();
 
         studyMemberRepository.save(leaderMember);
 
-        log.info("스터디 생성 완료 - studyId: {}, 스터디장(userId: {})이 멤버로 추가됨",
-                savedStudy.getId(), leaderId);
+        log.info("스터디 생성 완료 - studyId: {}, topicId: {}, formatId: {}",
+                savedStudy.getId(), topic.getId(), format != null ? format.getId() : null);
 
         return StudyResponse.from(savedStudy, leader);
     }
@@ -180,7 +198,21 @@ public class StudyService {
 
         validateStudyUpdate(request);
 
-        request.updateEntity(study);
+        // Topic 조회 (요청에 있는 경우만)
+        Topic topic = null;
+        if (request.getTopicId() != null) {
+            topic = topicRepository.findById(request.getTopicId())
+                    .orElseThrow(() -> new StudyException.InvalidStudyRequestException("존재하지 않는 주제입니다: " + request.getTopicId()));
+        }
+
+        // Format 조회 (요청에 있는 경우만)
+        Format format = null;
+        if (request.getFormatId() != null) {
+            format = formatRepository.findById(request.getFormatId())
+                    .orElseThrow(() -> new StudyException.InvalidStudyRequestException("존재하지 않는 형식입니다: " + request.getFormatId()));
+        }
+
+        request.updateEntity(study, topic, format);
 
         log.info("스터디 수정 완료 - studyId: {}", studyId);
 
@@ -194,7 +226,6 @@ public class StudyService {
     public void deleteStudy(Long studyId, Long leaderId) {
         log.info("스터디 삭제 시작 - studyId: {}, 요청자: {}", studyId, leaderId);
 
-        // 스터디 조회
         Study study = studyRepository.findById(studyId)
                 .orElseThrow(() -> new StudyException.StudyNotFoundException(studyId));
 
@@ -220,7 +251,6 @@ public class StudyService {
     public StudyResponse updateStudyStatus(Long studyId, Status newStatus, Long leaderId) {
         log.info("스터디 상태 변경 - studyId: {}, 새 상태: {}", studyId, newStatus);
 
-        // 스터디 조회
         Study study = studyRepository.findById(studyId)
                 .orElseThrow(() -> new StudyException.StudyNotFoundException(studyId));
 
@@ -248,7 +278,6 @@ public class StudyService {
     public StudyResponse extendRecruitment(Long studyId, java.time.LocalDate newEndDate, Long leaderId) {
         log.info("모집 기간 연장 - studyId: {}, 새 종료일: {}", studyId, newEndDate);
 
-        // 스터디 조회
         Study study = studyRepository.findById(studyId)
                 .orElseThrow(() -> new StudyException.StudyNotFoundException(studyId));
 
@@ -272,8 +301,6 @@ public class StudyService {
 
     /**
      * 내가 참여 중인 스터디 목록 조회
-     * - 내가 스터디장인 스터디
-     * - 내가 승인된 멤버인 스터디
      */
     public Page<Study> getMyStudies(Long userId, Pageable pageable) {
         log.info("내 스터디 목록 조회 - userId: {}", userId);
@@ -312,56 +339,39 @@ public class StudyService {
     // Private 검증 메서드
     // ============================================================
 
-    /**
-     * 스터디 생성 검증
-     */
     private void validateStudyCreate(StudyCreateRequest request) {
-        // 오프라인/혼합 스터디는 지역 필수
         if (!request.isValidLocation()) {
             throw new StudyException.InvalidStudyRequestException("오프라인/혼합 스터디는 지역 정보가 필수입니다");
         }
 
-        // 날짜 범위 검증
         if (!request.isValidDateRange()) {
             throw new StudyException.InvalidStudyRequestException("종료일은 시작일보다 늦어야 합니다");
         }
 
-        // 모집 기간 검증
         if (!request.isValidRecruitmentPeriod()) {
             throw new StudyException.InvalidStudyRequestException("모집 종료일은 스터디 시작일보다 앞서야 합니다");
         }
     }
 
-    /**
-     * 스터디 수정 검증
-     */
     private void validateStudyUpdate(StudyUpdateRequest request) {
-        // 오프라인/혼합 스터디는 지역 필수
         if (!request.isValidLocation()) {
             throw new StudyException.InvalidStudyRequestException("오프라인/혼합 스터디는 지역 정보가 필수입니다");
         }
 
-        // 날짜 범위 검증
         if (!request.isValidDateRange()) {
             throw new StudyException.InvalidStudyRequestException("종료일은 시작일보다 늦어야 합니다");
         }
     }
 
-    /**
-     * 상태 전환 검증
-     */
     private void validateStatusTransition(Status currentStatus, Status newStatus) {
-        // 완료된 스터디는 상태 변경 불가
         if (currentStatus == Status.COMPLETED) {
             throw new StudyException.InvalidStatusTransitionException("완료된 스터디는 상태를 변경할 수 없습니다");
         }
 
-        // 취소된 스터디는 상태 변경 불가
         if (currentStatus == Status.CANCELLED) {
             throw new StudyException.InvalidStatusTransitionException("취소된 스터디는 상태를 변경할 수 없습니다");
         }
 
-        // 진행 중인 스터디는 완료나 취소만 가능
         if (currentStatus == Status.IN_PROGRESS) {
             if (newStatus != Status.COMPLETED && newStatus != Status.CANCELLED) {
                 throw new StudyException.InvalidStatusTransitionException("진행 중인 스터디는 완료나 취소만 가능합니다");

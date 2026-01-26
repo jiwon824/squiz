@@ -5,6 +5,8 @@ import com.ssafy.domain.study.dto.response.StudyBookmarkResponse;
 import com.ssafy.domain.study.entity.*;
 import com.ssafy.domain.study.repository.StudyBookmarkRepository;
 import com.ssafy.domain.study.repository.StudyRepository;
+import com.ssafy.domain.study.repository.TopicRepository;
+import com.ssafy.domain.study.repository.FormatRepository;
 import com.ssafy.domain.user.entity.Role;
 import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.repository.UserRepository;
@@ -43,6 +45,12 @@ class StudyBookmarkServiceTest {
     private UserRepository userRepository;
 
     @Autowired
+    private TopicRepository topicRepository;
+
+    @Autowired
+    private FormatRepository formatRepository;
+
+    @Autowired
     private EntityManager entityManager;
 
     private User user1;
@@ -51,10 +59,36 @@ class StudyBookmarkServiceTest {
     private Study study2;
     private Study study3;
     private StudyBookmark bookmark1;
+    private Topic topic1;
+    private Topic topic2;
+    private Topic topic3;
+    private Format format;
 
     @BeforeEach
     void setUp() {
-        // 1. User 생성
+        // 1. Topic 생성
+        topic1 = topicRepository.save(Topic.builder()
+                .name("알고리즘")
+                .sortOrder(1)
+                .build());
+        topic2 = topicRepository.save(Topic.builder()
+                .name("CS")
+                .sortOrder(2)
+                .build());
+        topic3 = topicRepository.save(Topic.builder()
+                .name("백엔드")
+                .sortOrder(3)
+                .build());
+        topicRepository.flush();
+
+        // 2. Format 생성
+        format = formatRepository.save(Format.builder()
+                .name("문제 풀이")
+                .sortOrder(1)
+                .build());
+        formatRepository.flush();
+
+        // 3. User 생성
         user1 = userRepository.save(User.builder()
                 .userId("testuser1")
                 .email("test1@test.com")
@@ -87,12 +121,13 @@ class StudyBookmarkServiceTest {
                 .build());
         userRepository.flush();
 
-        // 2. Study 생성
+        // 4. Study 생성
         study1 = studyRepository.save(Study.builder()
                 .leaderId(user1.getId())
                 .name("알고리즘 스터디")
                 .description("백준 문제 풀이")
-                .topic("알고리즘")
+                .topic(topic1)
+                .format(format)
                 .studyType(StudyType.PLANNED)
                 .meetingType(MeetingType.ONLINE)
                 .status(Status.RECRUITING)
@@ -109,7 +144,8 @@ class StudyBookmarkServiceTest {
                 .leaderId(user1.getId())
                 .name("CS 스터디")
                 .description("운영체제 학습")
-                .topic("CS")
+                .topic(topic2)
+                .format(format)
                 .studyType(StudyType.PLANNED)
                 .meetingType(MeetingType.ONLINE)
                 .status(Status.RECRUITING)
@@ -126,7 +162,8 @@ class StudyBookmarkServiceTest {
                 .leaderId(user2.getId())
                 .name("스프링 스터디")
                 .description("스프링 부트 학습")
-                .topic("백엔드")
+                .topic(topic3)
+                .format(format)
                 .studyType(StudyType.PLANNED)
                 .meetingType(MeetingType.ONLINE)
                 .status(Status.RECRUITING)
@@ -139,7 +176,7 @@ class StudyBookmarkServiceTest {
                 .build());
         studyRepository.flush();
 
-        // 3. Bookmark 생성 - User1이 Study1을 북마크
+        // 5. Bookmark 생성 - User1이 Study1을 북마크
         bookmark1 = bookmarkRepository.save(StudyBookmark.create(user1.getId(), study1.getId()));
         bookmarkRepository.flush();
     }
@@ -257,7 +294,8 @@ class StudyBookmarkServiceTest {
         StudyBookmarkResponse bookmark = response.getContent().get(0);
         assertThat(bookmark.getStudyId()).isEqualTo(study1.getId());
         assertThat(bookmark.getStudyName()).isEqualTo("알고리즘 스터디");
-        assertThat(bookmark.getStudyTopic()).isEqualTo("알고리즘");
+        assertThat(bookmark.getTopic()).isNotNull();
+        assertThat(bookmark.getTopic().getName()).isEqualTo("알고리즘");
         assertThat(bookmark.getStudyStatus()).isEqualTo("RECRUITING");
         assertThat(bookmark.getMeetingType()).isEqualTo("ONLINE");
     }

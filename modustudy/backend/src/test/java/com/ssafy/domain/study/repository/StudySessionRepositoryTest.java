@@ -35,14 +35,36 @@ class StudySessionRepositoryTest {
     private UserRepository userRepository;
 
     @Autowired
+    private TopicRepository topicRepository;
+
+    @Autowired
+    private FormatRepository formatRepository;
+
+    @Autowired
     private EntityManager entityManager;
 
     private User user;
     private Study study;
+    private Topic topic;
+    private Format format;
 
     @BeforeEach
     void setUp() {
-        // 1. User 엔티티 생성 (부모)
+        // 1. Topic 생성
+        topic = topicRepository.save(Topic.builder()
+                .name("Java")
+                .sortOrder(1)
+                .build());
+        topicRepository.flush();
+
+        // 2. Format 생성
+        format = formatRepository.save(Format.builder()
+                .name("코드 리뷰")
+                .sortOrder(1)
+                .build());
+        formatRepository.flush();
+
+        // 3. User 엔티티 생성
         user = userRepository.save(User.builder()
                 .userId("testuser")
                 .email("test@test.com")
@@ -59,11 +81,12 @@ class StudySessionRepositoryTest {
                 .build());
         userRepository.flush();
 
-        // 2. Study 엔티티 생성 (부모)
+        // 4. Study 엔티티 생성
         study = studyRepository.save(Study.builder()
                 .leaderId(user.getId())
                 .name("테스트 스터디")
-                .topic("Java")
+                .topic(topic)
+                .format(format)
                 .studyType(StudyType.PLANNED)
                 .build());
         studyRepository.flush();
@@ -349,10 +372,17 @@ class StudySessionRepositoryTest {
     @DisplayName("다른 스터디의 세션은 조회되지 않음")
     void findByStudyId_IsolationTest() {
         // given - 다른 스터디 생성
+        Topic anotherTopic = topicRepository.save(Topic.builder()
+                .name("Python")
+                .sortOrder(2)
+                .build());
+        topicRepository.flush();
+
         Study anotherStudy = studyRepository.save(Study.builder()
                 .leaderId(user.getId())
                 .name("다른 스터디")
-                .topic("Python")
+                .topic(anotherTopic)
+                .format(format)
                 .studyType(StudyType.PLANNED)
                 .build());
         studyRepository.flush();

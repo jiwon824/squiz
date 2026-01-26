@@ -21,11 +21,11 @@ public class StudyUpdateRequest {
     @Size(max = 1000, message = "설명은 1000자 이내여야 합니다")
     private String description;
 
-    @Size(max = 50, message = "주제는 50자 이내여야 합니다")
-    private String topic;
+    // ========== 카테고리 변경: String → Long(ID) ==========
+    private Long topicId;
 
-    @Size(max = 50, message = "형식은 50자 이내여야 합니다")
-    private String format;
+    private Long formatId;
+    // ====================================================
 
     private StudyType studyType;
 
@@ -84,8 +84,9 @@ public class StudyUpdateRequest {
     /**
      * 기존 Study 엔티티에 변경사항 적용
      * null이 아닌 필드만 업데이트
+     * ⚠️ Topic, Format은 Service에서 조회 후 별도 설정해야 함
      */
-    public void updateEntity(Study study) {
+    public void updateEntity(Study study, Topic topic, Format format) {
         if (name != null) study.setName(name);
         if (description != null) study.setDescription(description);
         if (topic != null) study.setTopic(topic);

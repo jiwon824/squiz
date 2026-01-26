@@ -1,8 +1,9 @@
 package com.ssafy.domain.study.workspace.repository;
 
-import com.ssafy.domain.study.entity.Study;
-import com.ssafy.domain.study.entity.StudyType;
+import com.ssafy.domain.study.entity.*;
+import com.ssafy.domain.study.repository.FormatRepository;
 import com.ssafy.domain.study.repository.StudyRepository;
+import com.ssafy.domain.study.repository.TopicRepository;
 import com.ssafy.domain.study.workspace.entity.Workspace;
 import com.ssafy.domain.user.entity.Role;
 import com.ssafy.domain.user.entity.User;
@@ -20,9 +21,11 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * WorkspaceRepository 통합 테스트
+ */
 @SpringBootTest
 @Transactional
-@DisplayName("WorkspaceRepository 테스트")
 class WorkspaceRepositoryTest {
 
     @Autowired
@@ -35,15 +38,38 @@ class WorkspaceRepositoryTest {
     private UserRepository userRepository;
 
     @Autowired
+    private TopicRepository topicRepository;
+
+    @Autowired
+    private FormatRepository formatRepository;
+
+    @Autowired
     private EntityManager entityManager;
 
     private User user;
-    private Study study;
+    private Study study1;
+    private Study study2;
     private Workspace workspace;
+    private Topic topic;
+    private Format format;
 
     @BeforeEach
     void setUp() {
-        // 1. User 생성
+        // 1. Topic 생성
+        topic = topicRepository.save(Topic.builder()
+                .name("알고리즘")
+                .sortOrder(1)
+                .build());
+        topicRepository.flush();
+
+        // 2. Format 생성
+        format = formatRepository.save(Format.builder()
+                .name("문제 풀이")
+                .sortOrder(1)
+                .build());
+        formatRepository.flush();
+
+        // 3. User 생성
         user = userRepository.save(User.builder()
                 .userId("testuser")
                 .email("test@test.com")
@@ -60,17 +86,27 @@ class WorkspaceRepositoryTest {
                 .build());
         userRepository.flush();
 
-        // 2. Study 생성
-        study = studyRepository.save(Study.builder()
+        // 4. Study 생성
+        study1 = studyRepository.save(Study.builder()
                 .leaderId(user.getId())
-                .name("테스트 스터디")
-                .topic("Java")
+                .name("알고리즘 스터디")
+                .topic(topic)
+                .format(format)
                 .studyType(StudyType.PLANNED)
                 .build());
         studyRepository.flush();
 
-        // 3. Workspace 생성
-        workspace = workspaceRepository.save(Workspace.create(study.getId()));
+        study2 = studyRepository.save(Study.builder()
+                .leaderId(user.getId())
+                .name("CS 스터디")
+                .topic(topic)
+                .format(format)
+                .studyType(StudyType.PLANNED)
+                .build());
+        studyRepository.flush();
+
+        // 5. Workspace 생성
+        workspace = workspaceRepository.save(Workspace.create(study1.getId()));
         workspaceRepository.flush();
     }
 
@@ -79,46 +115,31 @@ class WorkspaceRepositoryTest {
     class CreateWorkspace {
 
         @Test
-        @DisplayName("워크스페이스 생성 성공")
+        @DisplayName("성공 - 워크스페이스 생성")
         void createWorkspace_Success() {
             // given
-            Study newStudy = studyRepository.save(Study.builder()
-                    .leaderId(user.getId())
-                    .name("새로운 스터디")
-                    .topic("Spring")
-                    .studyType(StudyType.PLANNED)
-                    .build());
-            studyRepository.flush();
+            Workspace newWorkspace = Workspace.create(study2.getId());
 
             // when
-            Workspace newWorkspace = workspaceRepository.save(Workspace.create(newStudy.getId()));
+            Workspace saved = workspaceRepository.save(newWorkspace);
             workspaceRepository.flush();
 
             // then
-            assertThat(newWorkspace.getId()).isNotNull();
-            assertThat(newWorkspace.getStudyId()).isEqualTo(newStudy.getId());
-            assertThat(newWorkspace.getCreatedAt()).isNotNull();
+            assertThat(saved.getId()).isNotNull();
+            assertThat(saved.getStudyId()).isEqualTo(study2.getId());
+            assertThat(saved.getCreatedAt()).isNotNull();
         }
 
         @Test
-        @DisplayName("정적 팩토리 메서드로 워크스페이스 생성")
+        @DisplayName("성공 - 정적 팩토리 메서드로 생성")
         void createWorkspace_WithFactoryMethod() {
-            // given
-            Study newStudy = studyRepository.save(Study.builder()
-                    .leaderId(user.getId())
-                    .name("팩토리 메서드 테스트")
-                    .topic("Kotlin")
-                    .studyType(StudyType.PLANNED)
-                    .build());
-            studyRepository.flush();
-
             // when
-            Workspace newWorkspace = Workspace.create(newStudy.getId());
-            Workspace savedWorkspace = workspaceRepository.save(newWorkspace);
+            Workspace created = Workspace.create(study2.getId());
+            Workspace saved = workspaceRepository.save(created);
             workspaceRepository.flush();
 
             // then
-            assertThat(savedWorkspace.getStudyId()).isEqualTo(newStudy.getId());
+            assertThat(saved.getStudyId()).isEqualTo(study2.getId());
         }
     }
 
@@ -127,21 +148,21 @@ class WorkspaceRepositoryTest {
     class FindWorkspace {
 
         @Test
-        @DisplayName("ID로 워크스페이스 조회 성공")
+        @DisplayName("성공 - ID로 조회")
         void findById_Success() {
             // when
             Optional<Workspace> found = workspaceRepository.findById(workspace.getId());
 
             // then
             assertThat(found).isPresent();
-            assertThat(found.get().getStudyId()).isEqualTo(study.getId());
+            assertThat(found.get().getStudyId()).isEqualTo(study1.getId());
         }
 
         @Test
-        @DisplayName("스터디 ID로 워크스페이스 조회 성공")
+        @DisplayName("성공 - 스터디 ID로 조회")
         void findByStudyId_Success() {
             // when
-            Optional<Workspace> found = workspaceRepository.findByStudyId(study.getId());
+            Optional<Workspace> found = workspaceRepository.findByStudyId(study1.getId());
 
             // then
             assertThat(found).isPresent();
@@ -149,10 +170,10 @@ class WorkspaceRepositoryTest {
         }
 
         @Test
-        @DisplayName("존재하지 않는 스터디 ID로 조회 시 빈 Optional 반환")
+        @DisplayName("실패 - 존재하지 않는 스터디 ID")
         void findByStudyId_NotFound() {
             // when
-            Optional<Workspace> found = workspaceRepository.findByStudyId(999999L);
+            Optional<Workspace> found = workspaceRepository.findByStudyId(99999L);
 
             // then
             assertThat(found).isEmpty();
@@ -164,20 +185,20 @@ class WorkspaceRepositoryTest {
     class ExistsWorkspace {
 
         @Test
-        @DisplayName("스터디 ID로 존재 여부 확인 - 존재하는 경우")
+        @DisplayName("성공 - 존재하는 경우")
         void existsByStudyId_True() {
             // when
-            boolean exists = workspaceRepository.existsByStudyId(study.getId());
+            boolean exists = workspaceRepository.existsByStudyId(study1.getId());
 
             // then
             assertThat(exists).isTrue();
         }
 
         @Test
-        @DisplayName("스터디 ID로 존재 여부 확인 - 존재하지 않는 경우")
+        @DisplayName("성공 - 존재하지 않는 경우")
         void existsByStudyId_False() {
             // when
-            boolean exists = workspaceRepository.existsByStudyId(999999L);
+            boolean exists = workspaceRepository.existsByStudyId(study2.getId());
 
             // then
             assertThat(exists).isFalse();
@@ -189,21 +210,10 @@ class WorkspaceRepositoryTest {
     class DeleteWorkspace {
 
         @Test
-        @DisplayName("ID로 워크스페이스 삭제 성공")
+        @DisplayName("성공 - ID로 삭제")
         void deleteById_Success() {
-            // given - 삭제 테스트용 새로운 Study와 Workspace 생성
-            Study deleteStudy = studyRepository.save(Study.builder()
-                    .leaderId(user.getId())
-                    .name("삭제용 스터디")
-                    .topic("Delete")
-                    .studyType(StudyType.PLANNED)
-                    .build());
-            studyRepository.flush();
-
-            Workspace deleteWorkspace = workspaceRepository.save(Workspace.create(deleteStudy.getId()));
-            workspaceRepository.flush();
-
-            Long workspaceId = deleteWorkspace.getId();
+            // given
+            Long workspaceId = workspace.getId();
 
             // when
             workspaceRepository.deleteById(workspaceId);
@@ -216,21 +226,10 @@ class WorkspaceRepositoryTest {
         }
 
         @Test
-        @DisplayName("스터디 ID로 워크스페이스 삭제 성공")
+        @DisplayName("성공 - 스터디 ID로 삭제")
         void deleteByStudyId_Success() {
-            // given - 삭제 테스트용 새로운 Study와 Workspace 생성
-            Study deleteStudy = studyRepository.save(Study.builder()
-                    .leaderId(user.getId())
-                    .name("삭제용 스터디2")
-                    .topic("Delete2")
-                    .studyType(StudyType.PLANNED)
-                    .build());
-            studyRepository.flush();
-
-            Workspace deleteWorkspace = workspaceRepository.save(Workspace.create(deleteStudy.getId()));
-            workspaceRepository.flush();
-
-            Long studyId = deleteStudy.getId();
+            // given
+            Long studyId = study1.getId();
 
             // when
             workspaceRepository.deleteByStudyId(studyId);
@@ -238,8 +237,8 @@ class WorkspaceRepositoryTest {
             entityManager.clear();
 
             // then
-            Optional<Workspace> found = workspaceRepository.findByStudyId(studyId);
-            assertThat(found).isEmpty();
+            boolean exists = workspaceRepository.existsByStudyId(studyId);
+            assertThat(exists).isFalse();
         }
     }
 }

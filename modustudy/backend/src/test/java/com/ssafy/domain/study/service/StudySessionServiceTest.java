@@ -8,6 +8,8 @@ import com.ssafy.domain.study.dto.response.StudySessionResponse;
 import com.ssafy.domain.study.entity.*;
 import com.ssafy.domain.study.repository.StudyRepository;
 import com.ssafy.domain.study.repository.StudySessionRepository;
+import com.ssafy.domain.study.repository.TopicRepository;
+import com.ssafy.domain.study.repository.FormatRepository;
 import com.ssafy.domain.user.entity.Role;
 import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.repository.UserRepository;
@@ -46,15 +48,37 @@ class StudySessionServiceTest {
     private UserRepository userRepository;
 
     @Autowired
+    private TopicRepository topicRepository;
+
+    @Autowired
+    private FormatRepository formatRepository;
+
+    @Autowired
     private EntityManager entityManager;
 
     private User leader;
     private User otherUser;
     private Study study;
+    private Topic topic;
+    private Format format;
 
     @BeforeEach
     void setUp() {
-        // 1. 스터디장 생성
+        // 1. Topic 생성
+        topic = topicRepository.save(Topic.builder()
+                .name("Java")
+                .sortOrder(1)
+                .build());
+        topicRepository.flush();
+
+        // 2. Format 생성
+        format = formatRepository.save(Format.builder()
+                .name("코드 리뷰")
+                .sortOrder(1)
+                .build());
+        formatRepository.flush();
+
+        // 3. 스터디장 생성
         leader = userRepository.save(User.builder()
                 .userId("leader")
                 .email("leader@test.com")
@@ -71,7 +95,7 @@ class StudySessionServiceTest {
                 .build());
         userRepository.flush();
 
-        // 2. 다른 사용자 생성
+        // 4. 다른 사용자 생성
         otherUser = userRepository.save(User.builder()
                 .userId("other")
                 .email("other@test.com")
@@ -88,11 +112,12 @@ class StudySessionServiceTest {
                 .build());
         userRepository.flush();
 
-        // 3. 스터디 생성
+        // 5. 스터디 생성
         study = studyRepository.save(Study.builder()
                 .leaderId(leader.getId())
                 .name("테스트 스터디")
-                .topic("Java")
+                .topic(topic)
+                .format(format)
                 .studyType(StudyType.PLANNED)
                 .build());
         studyRepository.flush();
@@ -237,10 +262,17 @@ class StudySessionServiceTest {
         @DisplayName("실패 - 다른 스터디의 세션 조회")
         void getSession_WrongStudy_ThrowsException() {
             // given
+            Topic anotherTopic = topicRepository.save(Topic.builder()
+                    .name("Python")
+                    .sortOrder(2)
+                    .build());
+            topicRepository.flush();
+
             Study anotherStudy = studyRepository.save(Study.builder()
                     .leaderId(leader.getId())
                     .name("다른 스터디")
-                    .topic("Python")
+                    .topic(anotherTopic)
+                    .format(format)
                     .studyType(StudyType.PLANNED)
                     .build());
             studyRepository.flush();
