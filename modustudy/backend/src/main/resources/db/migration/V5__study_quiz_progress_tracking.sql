@@ -3,15 +3,87 @@
 -- - 이어풀기 / 처음부터 다시풀기 지원
 -- =============================================
 
--- 1. study_quiz_attempt 테이블에 진행 상태 컬럼 추가
-ALTER TABLE `study_quiz_attempt`
-ADD COLUMN `status` ENUM('IN_PROGRESS', 'COMPLETED', 'ABANDONED') DEFAULT 'IN_PROGRESS',
-ADD COLUMN `started_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-ADD COLUMN `last_answered_at` TIMESTAMP NULL,
-ADD COLUMN `current_question_index` INT DEFAULT 0;
+-- 1. study_quiz_attempt 테이블에 진행 상태 컬럼 추가 (컬럼이 없을 때만)
+SET @has_status := (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'study_quiz_attempt'
+      AND COLUMN_NAME = 'status'
+);
+SET @sql := IF(
+    @has_status = 0,
+    'ALTER TABLE `study_quiz_attempt` ADD COLUMN `status` ENUM(''IN_PROGRESS'', ''COMPLETED'', ''ABANDONED'') DEFAULT ''IN_PROGRESS''',
+    'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @has_started_at := (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'study_quiz_attempt'
+      AND COLUMN_NAME = 'started_at'
+);
+SET @sql := IF(
+    @has_started_at = 0,
+    'ALTER TABLE `study_quiz_attempt` ADD COLUMN `started_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP',
+    'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @has_last_answered_at := (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'study_quiz_attempt'
+      AND COLUMN_NAME = 'last_answered_at'
+);
+SET @sql := IF(
+    @has_last_answered_at = 0,
+    'ALTER TABLE `study_quiz_attempt` ADD COLUMN `last_answered_at` TIMESTAMP NULL',
+    'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @has_current_question_index := (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'study_quiz_attempt'
+      AND COLUMN_NAME = 'current_question_index'
+);
+SET @sql := IF(
+    @has_current_question_index = 0,
+    'ALTER TABLE `study_quiz_attempt` ADD COLUMN `current_question_index` INT DEFAULT 0',
+    'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- 기존 데이터는 완료된 것으로 처리
-UPDATE `study_quiz_attempt` SET `status` = 'COMPLETED' WHERE `completed_at` IS NOT NULL;
+SET @has_completed_at := (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'study_quiz_attempt'
+      AND COLUMN_NAME = 'completed_at'
+);
+SET @sql := IF(
+    @has_completed_at > 0,
+    'UPDATE `study_quiz_attempt` SET `status` = ''COMPLETED'' WHERE `completed_at` IS NOT NULL',
+    'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- 2. 스터디 퀴즈 개별 답변 기록 테이블 생성
 CREATE TABLE IF NOT EXISTS `study_quiz_answer` (

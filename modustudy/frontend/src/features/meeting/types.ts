@@ -34,7 +34,7 @@ export interface MeetingSessionResponse {
     title: string;
 }
 
-export interface MeetingChannelResponse {
+export interface MeetingWorkspaceResponse {
     id: number;
     name: string;
 }
@@ -80,7 +80,7 @@ export interface MeetingDetailResponse {
     id: number;
     title: string;
     session: MeetingSessionResponse | null;
-    channel: MeetingChannelResponse | null;
+    workspace: MeetingWorkspaceResponse | null;
     meetingType: MeetingType;
     startedAt: string | null;
     endedAt: string | null;
@@ -90,7 +90,7 @@ export interface MeetingDetailResponse {
     sttStatus: SttStatus | null;
     summaryStatus: SummaryStatus | null;
     autoShareSummary: boolean | null;
-    shareChannelId: number | null;
+    shareWorkspaceId: number | null;
     participants: MeetingParticipantResponse[];
     keywords: string[];
     summary: MeetingSummaryResponse | null;
@@ -249,10 +249,10 @@ export interface MeetingRoomEvent {
 export interface MeetingRequestPayload {
     title: string;
     sessionId?: number | null;
-    channelId?: number | null;
+    workspaceId?: number | null;
     meetingType: MeetingType;
     autoShareSummary?: boolean;
-    shareChannelId?: number | null;
+    shareWorkspaceId?: number | null;
 }
 
 export interface MeetingActionItemRequest {

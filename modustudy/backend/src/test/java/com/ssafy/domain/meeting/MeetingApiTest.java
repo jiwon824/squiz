@@ -11,7 +11,7 @@ import com.ssafy.domain.meeting.dto.response.MeetingActionItemResponse;
 import com.ssafy.domain.meeting.dto.response.MeetingAudioRecordingResponse;
 import com.ssafy.domain.meeting.dto.response.MeetingChatMessagePageResponse;
 import com.ssafy.domain.meeting.dto.response.MeetingChatMessageResponse;
-import com.ssafy.domain.meeting.dto.response.MeetingChannelResponse;
+import com.ssafy.domain.meeting.dto.response.MeetingWorkspaceResponse;
 import com.ssafy.domain.meeting.dto.response.MeetingDetailResponse;
 import com.ssafy.domain.meeting.dto.response.MeetingEndResponse;
 import com.ssafy.domain.meeting.dto.response.MeetingJoinResponse;
@@ -182,7 +182,7 @@ class MeetingApiTest {
                 1L,
                 "title",
                 new MeetingSessionResponse(10L, 1, "session"),
-                new MeetingChannelResponse(2L, "voice"),
+                new MeetingWorkspaceResponse(2L, "voice"),
                 "DAILY",
                 LocalDateTime.of(2025, 1, 15, 19, 0),
                 LocalDateTime.of(2025, 1, 15, 20, 30),

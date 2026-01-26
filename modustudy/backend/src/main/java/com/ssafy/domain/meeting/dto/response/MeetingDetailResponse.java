@@ -7,7 +7,7 @@ public record MeetingDetailResponse(
         Long id,
         String title,
         MeetingSessionResponse session,
-        MeetingChannelResponse channel,
+        MeetingWorkspaceResponse workspace,
         String meetingType,
         LocalDateTime startedAt,
         LocalDateTime endedAt,
@@ -17,7 +17,7 @@ public record MeetingDetailResponse(
         String sttStatus,
         String summaryStatus,
         Boolean autoShareSummary,
-        Long shareChannelId,
+        Long shareWorkspaceId,
         List<MeetingParticipantResponse> participants,
         List<String> keywords,
         MeetingSummaryResponse summary
