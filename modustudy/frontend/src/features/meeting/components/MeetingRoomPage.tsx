@@ -1266,7 +1266,7 @@ const MeetingRoomPage: React.FC = () => {
             .catch(() => setPhotoCount(0));
     }, [numericMeetingId, numericStudyId]);
 
-    if (roomGuardStatus !== 'ok') {
+    if (roomGuardStatus === 'blocked') {
         return (
             <MainLayout>
                 <div className="meeting-room meeting-room__blocked">
@@ -1284,6 +1284,17 @@ const MeetingRoomPage: React.FC = () => {
                                 이전 화면
                             </button>
                         </div>
+                    </div>
+                </div>
+            </MainLayout>
+        );
+    }
+    if (roomGuardStatus === 'checking') {
+        return (
+            <MainLayout>
+                <div className="meeting-room meeting-room__blocked">
+                    <div className="meeting-room__blocked-card">
+                        <p>{roomGuardMessage}</p>
                     </div>
                 </div>
             </MainLayout>
