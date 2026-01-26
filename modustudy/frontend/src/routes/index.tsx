@@ -79,6 +79,9 @@ const MeetingRoomPage = lazy(() =>
 const ProfileSkeleton = lazy(() =>
     import('@/features/profile/components/ProfileSkeleton').then(module => ({ default: module.ProfileSkeleton }))
 );
+const AdminDashboardPage = lazy(() =>
+    import('../features/admin').then(m => ({ default: m.AdminDashboardPage }))
+);
 
 export const AppRouter = () => {
     const { login, logout, setInitialized } = useAuthStore();
@@ -154,6 +157,7 @@ export const AppRouter = () => {
                             <ProfilePage />
                         </Suspense>
                     } />
+                    <Route path="/admin" element={<AdminDashboardPage />} />
                 </Routes>
             </Suspense>
         </BrowserRouter>

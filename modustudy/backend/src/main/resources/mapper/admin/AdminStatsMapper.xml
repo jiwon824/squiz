@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ssafy.domain.admin.mapper.AdminStatsMapper">
+
+    <!-- 총 회원 수 -->
+    <select id="countTotalUsers" resultType="int">
+        SELECT COUNT(*) FROM user
+    </select>
+
+    <!-- 활성 스터디 수 (테이블 없으면 0) -->
+    <select id="countActiveStudies" resultType="int">
+        SELECT 0
+    </select>
+
+    <!-- 오늘 가입자 수 -->
+    <select id="countTodaySignups" resultType="int">
+        SELECT COUNT(*) FROM user
+        WHERE DATE(created_at) = CURDATE()
+    </select>
+
+    <!-- 미처리 신고 수 -->
+    <select id="countPendingReports" resultType="int">
+        SELECT 0
+    </select>
+
+    <!-- 일별 회원 가입 추이 -->
+    <select id="getUserSignupStats" resultType="com.ssafy.domain.admin.dto.UserSignupStatsDto">
+        SELECT
+            DATE(created_at) as date,
+            COUNT(*) as count
+        FROM user
+        WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL #{days} DAY)
+        GROUP BY DATE(created_at)
+        ORDER BY date ASC
+    </select>
+
+    <!-- 스터디 상태별 통계 (빈 결과) -->
+    <select id="getStudyStatusStats" resultType="com.ssafy.domain.admin.dto.StudyStatusStatsDto">
+        SELECT 'NONE' as status, 0 as count WHERE 1=0
+    </select>
+
+    <!-- 로그인 방식별 통계 -->
+    <select id="getLoginMethodStats" resultType="com.ssafy.domain.admin.dto.LoginMethodStatsDto">
+        SELECT
+            COALESCE(provider, 'EMAIL') as method,
+            COUNT(DISTINCT user_id) as count
+        FROM user_social_account
+        GROUP BY provider
+    </select>
+
+    <!-- 일별 퀴즈 시도 통계 (빈 결과) -->
+    <select id="getDailyQuizAttempts" resultType="com.ssafy.domain.admin.dto.QuizStatsDto$DailyQuizAttemptDto">
+        SELECT CURDATE() as date, 0 as count WHERE 1=0
+    </select>
+
+    <!-- 코스별 참여자 통계 (빈 결과) -->
+    <select id="getCourseParticipation" resultType="com.ssafy.domain.admin.dto.QuizStatsDto$CourseParticipationDto">
+        SELECT 'NONE' as courseName, 0 as participantCount WHERE 1=0
+    </select>
+
+    <!-- 최근 가입 회원 -->
+    <select id="getRecentUsers" resultType="com.ssafy.domain.admin.dto.RecentUserDto">
+        SELECT
+            u.id,
+            u.nickname,
+            u.email,
+            COALESCE(usa.provider, 'EMAIL') as loginMethod,
+            u.created_at as createdAt
+        FROM user u
+        LEFT JOIN user_social_account usa ON u.id = usa.user_id
+        ORDER BY u.created_at DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 인기 스터디 TOP N (빈 결과) -->
+    <select id="getPopularStudies" resultType="com.ssafy.domain.admin.dto.PopularStudyDto">
+        SELECT 0 as id, 'NONE' as name, 'NONE' as topicName, 0 as memberCount, 'NONE' as status WHERE 1=0
+    </select>
+
+</mapper>
