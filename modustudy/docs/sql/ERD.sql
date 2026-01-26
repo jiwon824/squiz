@@ -358,7 +358,7 @@ CREATE TABLE `format` (
 CREATE TABLE `topic` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
     `name` VARCHAR(50) NOT NULL,
-    `parent_id` BIGINT NULL,                     -- 대분류는 NULL, 소분류는 대분류 ID
+    `parent_id` BIGINT NULL,
     `icon` VARCHAR(50),
     `sort_order` INT DEFAULT 0,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
