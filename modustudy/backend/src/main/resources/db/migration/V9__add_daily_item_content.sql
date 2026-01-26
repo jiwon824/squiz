@@ -3,17 +3,12 @@
 -- =============================================
 -- Fix: production DB missing content column
 
--- Check if column exists before adding (MySQL doesn't support IF NOT EXISTS for columns)
--- This will fail silently if column already exists
-SET @exist := (SELECT COUNT(*) FROM information_schema.columns
-               WHERE table_schema = DATABASE()
-               AND table_name = 'daily_item'
-               AND column_name = 'content');
+-- Add content column (TEXT cannot have default value in MySQL)
+-- First add as nullable, then update existing rows, then make NOT NULL
+ALTER TABLE `daily_item` ADD COLUMN `content` TEXT NULL;
 
-SET @query := IF(@exist = 0,
-    'ALTER TABLE `daily_item` ADD COLUMN `content` TEXT NOT NULL DEFAULT ""',
-    'SELECT "content column already exists"');
+-- Update any existing rows with empty content
+UPDATE `daily_item` SET `content` = '' WHERE `content` IS NULL;
 
-PREPARE stmt FROM @query;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
+-- Make column NOT NULL
+ALTER TABLE `daily_item` MODIFY COLUMN `content` TEXT NOT NULL;
