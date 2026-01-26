@@ -5,7 +5,7 @@ import { CalendarHeader } from './CalendarHeader';
 import { CalendarDay } from './CalendarDay';
 
 /**
- * 재사용 가능한 캘린더 메인 컴포넌트
+ * 재사용 가능한 캘린더 메인 컴포넌트 (SQUIZ 고유 디자인 복구)
  * - 월간/주간 뷰 지원
  * - 반응형 (모바일 자동 주간 뷰)
  */
@@ -33,8 +33,8 @@ export const Calendar = ({
     // 모바일(768px 이하) 또는 weekly 모드일 경우 주간 뷰
     const isMobile = windowWidth <= 768;
     const shouldShowWeekly = viewMode === 'weekly' || isMobile;
-    const calendarDays = shouldShowWeekly 
-        ? getWeeklyDays(allCalendarDays, currentDate) 
+    const calendarDays = shouldShowWeekly
+        ? getWeeklyDays(allCalendarDays, currentDate)
         : allCalendarDays;
 
     const todayStr = getTodayString();
@@ -42,7 +42,7 @@ export const Calendar = ({
     if (loading) {
         return (
             <div className={`flex items-center justify-center min-h-[500px] ${className}`}>
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
             </div>
         );
     }

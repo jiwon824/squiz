@@ -32,6 +32,8 @@ export interface UnifiedSchedule {
     studyId?: number; // 스터디 세션인 경우
     sessionNumber?: number; // 스터디 세션 회차
     googleEventId?: string; // Google Calendar ID
+    isSyncedWithGoogle?: boolean; // Google Calendar 동기화 여부
+    lastSyncedAt?: string; // 마지막 동기화 시간
     color?: string; // UI 표시용 색상
     createdAt?: string;
     updatedAt?: string;
