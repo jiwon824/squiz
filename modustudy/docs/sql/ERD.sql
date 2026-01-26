@@ -186,11 +186,22 @@ CREATE TABLE `direct_message` (
 -- 지역 테이블
 CREATE TABLE `region` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
-    `code` VARCHAR(20) NOT NULL UNIQUE,          -- SEOUL, BUSAN 등
-    `name` VARCHAR(50) NOT NULL,                 -- 서울, 부산 등
+    `parent_id` BIGINT NULL,
+    `code` VARCHAR(20) NOT NULL UNIQUE,
+    `name` VARCHAR(50) NOT NULL,
+    `level` TINYINT NOT NULL DEFAULT 1,
+    `full_name` VARCHAR(100) NULL,
     `sort_order` INT DEFAULT 0,
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+    `is_active` BOOLEAN DEFAULT TRUE,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    CONSTRAINT `fk_region_parent` FOREIGN KEY (`parent_id`) REFERENCES `region`(`id`) ON DELETE CASCADE,
+    INDEX `idx_region_parent` (`parent_id`),
+    INDEX `idx_region_level` (`level`),
+    INDEX `idx_region_code` (`code`),
+    INDEX `idx_region_active` (`is_active`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 지역 초기 데이터
 -- INSERT INTO region (code, name, sort_order) VALUES
@@ -1435,7 +1446,7 @@ CREATE TABLE `it_news` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
     `title` VARCHAR(300) NOT NULL,
     `summary` TEXT,
-    `source_url` VARCHAR(500) NOT NULL,
+    `source_url` VARCHAR(2000) NOT NULL UNIQUE,
     `source_name` VARCHAR(100),                  -- 출처 (velog, tistory, medium 등)
     `thumbnail_url` VARCHAR(500),
     `category` VARCHAR(50),                      -- 분류 (AI/백엔드/프론트엔드/DevOps 등)
