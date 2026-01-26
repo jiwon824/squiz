@@ -39,9 +39,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/sfu/**").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
                         // 인증 없이 접근 가능
-                        .requestMatchers("/api/v1/auth/**").permitAll()  // 👈 이미 있는 이 줄이면 충분!
-                        // .requestMatchers("/api/oauth2/**").permitAll()  // 👈 이 줄은 삭제
+                        .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers("/api/v1/users").permitAll()
+//                        // News API - 테스트용 (나중에 인증 적용 가능)
+                        .requestMatchers("/api/news/**", "/api/test/news/**").permitAll()
                         // Temporary: allow meeting APIs without auth for local testing
                         .requestMatchers("/api/v1/studies/*/meetings/**").permitAll()
                         // Study - TODO: 나중에 인증 적용 필요
