@@ -253,4 +253,105 @@
     .filter-panel {
         padding: var(--spacing-md);
     }
+
+    .filter-topics-grid {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* ============================================
+   주제 필터 (대분류 + 세부 카테고리)
+   ============================================ */
+
+.filter-section-topic {
+    grid-column: 1 / -1;
+    /* 전체 너비 사용 */
+}
+
+.filter-topics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: var(--spacing-sm);
+}
+
+.filter-topic-group {
+    background-color: var(--color-background-secondary, #f8f9fa);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.filter-topic-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background-color: var(--color-white);
+}
+
+.filter-option-main {
+    flex: 1;
+}
+
+.filter-option-main span {
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-primary);
+}
+
+.topic-expand-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: var(--spacing-xs);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-tertiary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast);
+}
+
+.topic-expand-btn:hover {
+    background-color: var(--color-primary-alpha-10);
+    color: var(--color-primary);
+}
+
+.filter-subtopics {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    padding-left: var(--spacing-lg);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    background-color: var(--color-background-tertiary, #f1f3f5);
+    border-top: 1px solid var(--color-border);
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.filter-option-sub {
+    padding: 4px var(--spacing-xs);
+}
+
+.filter-option-sub span {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+}
+
+.filter-option-sub:hover {
+    background-color: var(--color-primary-alpha-10);
+    border-radius: var(--radius-sm);
+}
+
+/* 태블릿 반응형 */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .filter-topics-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+/* 데스크톱 반응형 */
+@media (min-width: 1025px) {
+    .filter-topics-grid {
+        grid-template-columns: repeat(5, 1fr);
+    }
 }

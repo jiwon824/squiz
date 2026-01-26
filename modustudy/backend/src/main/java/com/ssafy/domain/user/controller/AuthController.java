@@ -25,6 +25,16 @@ import java.util.Map;
 public class AuthController {
 
     private final OAuth2Service oAuth2Service;
+    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+
+    /**
+     * [임시] 비밀번호 해시 생성 - 나중에 삭제
+     * GET /api/v1/auth/hash?password=password123
+     */
+    @GetMapping("/hash")
+    public ResponseEntity<String> generateHash(@RequestParam String password) {
+        return ResponseEntity.ok(passwordEncoder.encode(password));
+    }
 
     /**
      * 1. 소셜 로그인 URL 요청
