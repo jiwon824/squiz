@@ -2,6 +2,7 @@ package com.ssafy.domain.gamification.dto.response;
 
 import lombok.Builder;
 import lombok.Getter;
+import lombok.Setter;
 
 import java.util.List;
 
@@ -15,6 +16,7 @@ public class StudyRankingResponse {
     @Getter
     @Builder
     public static class RankingInfo {
+        @Setter
         private Integer rank;
         private UserInfo user;
         private Integer activityDays;

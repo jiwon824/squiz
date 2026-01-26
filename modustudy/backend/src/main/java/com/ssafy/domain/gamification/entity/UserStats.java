@@ -30,6 +30,9 @@ public class UserStats {
     @Column(name = "level_name", length = 50)
     private String levelName = "새싹";
 
+    @Column(name = "total_experience")
+    private Integer totalExperience = 0;
+
     @Column(name = "total_activity_days")
     private Integer totalActivityDays = 0;
 
@@ -78,8 +81,13 @@ public class UserStats {
         this.user = user;
         this.level = 1;
         this.levelName = "새싹";
+        this.totalExperience = 0;
         this.totalActivityDays = 0;
         this.currentStreak = 0;
         this.maxStreak = 0;
+    }
+
+    public void addExperience(int exp) {
+        this.totalExperience += exp;
     }
 }

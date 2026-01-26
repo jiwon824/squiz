@@ -33,6 +33,9 @@ public class DailyContribution {
     @Column(name = "contribution_date", nullable = false)
     private LocalDate contributionDate;
 
+    @Column(name = "activity_count")
+    private Integer activityCount = 0;
+
     @Column(name = "has_activity")
     private Boolean hasActivity = true;
 
@@ -45,9 +48,14 @@ public class DailyContribution {
     }
 
     @Builder
-    public DailyContribution(User user, LocalDate contributionDate) {
+    public DailyContribution(User user, LocalDate contributionDate, Integer activityCount) {
         this.user = user;
         this.contributionDate = contributionDate;
+        this.activityCount = activityCount != null ? activityCount : 0;
         this.hasActivity = true;
+    }
+
+    public void incrementCount() {
+        this.activityCount++;
     }
 }

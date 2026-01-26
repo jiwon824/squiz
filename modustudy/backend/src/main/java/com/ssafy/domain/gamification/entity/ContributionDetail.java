@@ -57,6 +57,8 @@ public class ContributionDetail {
 
     public enum ActivityType {
         STUDY_ATTENDANCE,
-        QUIZ_CONTEST
+        QUIZ_SOLVED,
+        MATERIAL_UPLOAD,
+        RETROSPECT_WRITTEN
     }
 }

@@ -14,7 +14,6 @@ public interface UserPenaltyRepository extends JpaRepository<UserPenalty, Long> 
     List<UserPenalty> findByUserIdAndIsActiveFalse(Long userId);
 
     @Query("SELECT up FROM UserPenalty up " +
-            "JOIN FETCH up.penalty " +
             "LEFT JOIN FETCH up.study " +
             "WHERE up.user.id = :userId AND up.isActive = :isActive " +
             "ORDER BY up.grantedAt DESC")

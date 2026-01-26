@@ -9,6 +9,10 @@ import com.ssafy.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.ssafy.domain.study.entity.MemberStatus;
+import com.ssafy.domain.study.repository.StudyMemberRepository;
+import java.util.Objects;
+import java.util.Collections;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -27,6 +31,7 @@ public class GamificationService {
     private final UserBadgeRepository userBadgeRepository;
     private final UserPenaltyRepository userPenaltyRepository;
     private final UserRepository userRepository;
+    private final StudyMemberRepository studyMemberRepository;
 
     // 레벨 설정 (임시로 하드코딩, 나중에 LevelConfig 테이블에서 가져오기)
     private static final Map<Integer, String> LEVEL_NAMES = Map.of(
@@ -352,52 +357,77 @@ public class GamificationService {
      * 스터디 내 랭킹 조회
      */
     public StudyRankingResponse getStudyRanking(Long userId, Long studyId) {
-        // TODO: StudyMember 엔티티로 스터디 멤버 목록 조회
-        // 일단 임시로 빈 리스트 반환
+        // 1. 스터디의 활성 멤버 조회
+        List<StudyMember> members = studyMemberRepository.findByStudyIdAndStatus(
+                studyId,
+                MemberStatus.ACTIVE
+        );
 
-        List<StudyRankingResponse.RankingInfo> rankings = new ArrayList<>();
-        // 실제 구현 예시 (StudyMember가 있다고 가정)
-        /*
-        List<StudyMember> members = studyMemberRepository.findByStudyId(studyId);
-
-        List<StudyRankingResponse.RankingInfo> rankings = members.stream()
-            .map(member -> {
-                UserStats stats = userStatsRepository.findByUserId(member.getUser().getId())
-                    .orElse(null);
-
-                // 출석률 계산 (임시로 100%)
-                double attendanceRate = 100.0;
-
-                return StudyRankingResponse.RankingInfo.builder()
-                    .rank(0) // 정렬 후 설정
-                    .user(StudyRankingResponse.UserInfo.builder()
-                        .id(member.getUser().getId())
-                        .nickname(member.getUser().getNickname())
-                        .profileImage(member.getUser().getProfileImage())
-                        .level(stats != null ? stats.getLevel() : 1)
-                        .levelName(stats != null ? stats.getLevelName() : "새싹")
-                        .build())
-                    .activityDays(stats != null ? stats.getTotalActivityDays() : 0)
-                    .attendanceRate(attendanceRate)
-                    .isMe(member.getUser().getId().equals(userId))
+        if (members.isEmpty()) {
+            return StudyRankingResponse.builder()
+                    .rankings(Collections.emptyList())
+                    .myRank(null)
+                    .totalMembers(0)
                     .build();
-            })
-            .sorted((a, b) -> {
-                // 활동일 수로 정렬
-                int compare = b.getActivityDays().compareTo(a.getActivityDays());
-                if (compare == 0) {
-                    // 출석률로 정렬
-                    return b.getAttendanceRate().compareTo(a.getAttendanceRate());
-                }
-                return compare;
-            })
-            .collect(Collectors.toList());
-
-        // 순위 설정
-        for (int i = 0; i < rankings.size(); i++) {
-            rankings.get(i).rank = i + 1;
         }
-        */
+
+        // 2. 각 멤버의 통계 정보 조회 및 랭킹 생성
+        List<StudyRankingResponse.RankingInfo> rankings = members.stream()
+                .map(member -> {
+                    // 사용자 정보 조회
+                    User user = userRepository.findById(member.getUserId())
+                            .orElse(null);
+                    if (user == null) {
+                        return null;
+                    }
+
+                    // 통계 정보 조회
+                    UserStats stats = userStatsRepository.findByUserId(member.getUserId())
+                            .orElse(null);
+
+                    // 출석률 계산 (임시로 활동일 기반)
+                    int activityDays = stats != null ? stats.getTotalActivityDays() : 0;
+                    double attendanceRate = activityDays > 0 ? (activityDays * 10.0) : 0.0;
+                    attendanceRate = Math.min(attendanceRate, 100.0);
+
+                    return StudyRankingResponse.RankingInfo.builder()
+                            .rank(0) // 정렬 후 설정
+                            .user(StudyRankingResponse.UserInfo.builder()
+                                    .id(user.getId())
+                                    .nickname(user.getNickname())
+                                    .profileImage(user.getProfileImage())
+                                    .level(stats != null ? stats.getLevel() : 1)
+                                    .levelName(stats != null ? stats.getLevelName() : "새싹")
+                                    .build())
+                            .totalExperience(stats != null ? stats.getTotalExperience() : 0)
+                            .activityDays(activityDays)
+                            .attendanceRate(attendanceRate)
+                            .isMe(user.getId().equals(userId))
+                            .build();
+                })
+                .filter(Objects::nonNull)
+                .sorted((a, b) -> {
+                    // 1차: 경험치로 정렬
+                    int expCompare = b.getTotalExperience().compareTo(a.getTotalExperience());
+                    if (expCompare != 0) {
+                        return expCompare;
+                    }
+                    // 2차: 활동일수로 정렬
+                    int activityCompare = b.getActivityDays().compareTo(a.getActivityDays());
+                    if (activityCompare != 0) {
+                        return activityCompare;
+                    }
+                    // 3차: 출석률로 정렬
+                    return b.getAttendanceRate().compareTo(a.getAttendanceRate());
+                })
+                .collect(Collectors.toList());
+
+        // 3. 순위 설정
+        for (int i = 0; i < rankings.size(); i++) {
+            rankings.get(i).setRank(i + 1);
+        }
+
+        // 4. 내 순위 찾기
         Integer myRank = rankings.stream()
                 .filter(StudyRankingResponse.RankingInfo::getIsMe)
                 .findFirst()
