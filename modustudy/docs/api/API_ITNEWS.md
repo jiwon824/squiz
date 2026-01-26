@@ -104,50 +104,183 @@ http://localhost:8080/api
 
 ## 뉴스 조회 API
 
-### 1. 뉴스 목록 조회
+### 1. 최신 뉴스 목록 조회
 
 **GET** `/news`
 
-#### Request Parameters
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| page | Integer | No | 0 | 페이지 번호 (0부터 시작) |
-| size | Integer | No | 20 | 페이지 크기 |
+최신 뉴스 20개를 발행일 기준 내림차순으로 조회합니다.
 
 #### Response
 ```json
+[
+  {
+    "id": 1,
+    "title": "AI 기술의 최신 동향",
+    "summary": "인공지능 기술이 급속도로 발전하고 있습니다...",
+    "sourceUrl": "https://news.google.com/...",
+    "sourceName": "테크뉴스",
+    "thumbnailUrl": null,
+    "category": "IT",
+    "publishedAt": "2026-01-26T10:00:00",
+    "viewCount": 0
+  }
+]
+```
+
+#### Example
+```bash
+GET /api/news
+```
+
+---
+
+### 2. 뉴스 상세 조회
+
+**GET** `/news/{newsId}`
+
+뉴스 상세 정보를 조회하며, **조회수가 자동으로 1 증가**합니다.
+
+#### Path Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| newsId | Long | 뉴스 ID |
+
+#### Response - Success (200)
+```json
 {
-  "content": [
-    {
-      "id": 1,
-      "title": "AI 기술의 최신 동향",
-      "summary": "인공지능 기술이 급속도로 발전하고 있습니다...",
-      "sourceUrl": "https://news.google.com/...",
-      "sourceName": "테크뉴스",
-      "thumbnailUrl": null,
-      "category": "IT",
-      "publishedAt": "2026-01-26T10:00:00",
-      "viewCount": 0
-    }
-  ],
-  "pageable": {
-    "pageNumber": 0,
-    "pageSize": 20
-  },
-  "totalElements": 150,
-  "totalPages": 8,
-  "last": false,
-  "first": true
+  "id": 1,
+  "title": "AI 기술의 최신 동향",
+  "summary": "인공지능 기술이 급속도로 발전하고 있습니다...",
+  "sourceUrl": "https://news.google.com/...",
+  "sourceName": "테크뉴스",
+  "thumbnailUrl": null,
+  "category": "IT",
+  "publishedAt": "2026-01-26T10:00:00",
+  "viewCount": 1
+}
+```
+
+#### Response - Error (404)
+```json
+{
+  "message": "뉴스를 찾을 수 없습니다."
 }
 ```
 
 #### Example
 ```bash
-# 첫 페이지 조회 (기본값)
-GET /api/news
+GET /api/news/1
+```
 
-# 2페이지 조회 (페이지 크기 10)
-GET /api/news?page=1&size=10
+---
+
+### 3. 인기 뉴스 조회
+
+**GET** `/news/popular`
+
+조회수가 높은 순으로 정렬된 인기 뉴스 10개를 조회합니다.
+
+#### Response
+```json
+[
+  {
+    "id": 5,
+    "title": "ChatGPT 업데이트 소식",
+    "summary": "OpenAI가 새로운 기능을...",
+    "sourceUrl": "https://news.google.com/...",
+    "sourceName": "AI타임스",
+    "thumbnailUrl": null,
+    "category": "IT",
+    "publishedAt": "2026-01-25T15:00:00",
+    "viewCount": 1523
+  },
+  {
+    "id": 12,
+    "title": "클라우드 서비스 시장 분석",
+    "summary": "클라우드 컴퓨팅 시장이...",
+    "sourceUrl": "https://news.google.com/...",
+    "sourceName": "IT조선",
+    "thumbnailUrl": null,
+    "category": "IT",
+    "publishedAt": "2026-01-25T14:30:00",
+    "viewCount": 987
+  }
+]
+```
+
+#### Example
+```bash
+GET /api/news/popular
+```
+
+---
+
+### 4. 카테고리별 뉴스 조회
+
+**GET** `/news/category/{category}`
+
+특정 카테고리의 뉴스를 최신순으로 조회합니다.
+
+#### Path Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| category | String | 카테고리명 (예: "IT") |
+
+#### Response
+```json
+[
+  {
+    "id": 1,
+    "title": "AI 기술의 최신 동향",
+    "summary": "인공지능 기술이 급속도로...",
+    "sourceUrl": "https://news.google.com/...",
+    "sourceName": "테크뉴스",
+    "thumbnailUrl": null,
+    "category": "IT",
+    "publishedAt": "2026-01-26T10:00:00",
+    "viewCount": 0
+  }
+]
+```
+
+#### Example
+```bash
+GET /api/news/category/IT
+```
+
+---
+
+### 5. 뉴스 검색
+
+**GET** `/news/search`
+
+제목에 키워드가 포함된 뉴스를 검색합니다.
+
+#### Request Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| keyword | String | Yes | 검색 키워드 |
+
+#### Response
+```json
+[
+  {
+    "id": 3,
+    "title": "AI 챗봇 기술 발전",
+    "summary": "AI 기반 챗봇이...",
+    "sourceUrl": "https://news.google.com/...",
+    "sourceName": "테크뉴스",
+    "thumbnailUrl": null,
+    "category": "IT",
+    "publishedAt": "2026-01-26T09:00:00",
+    "viewCount": 5
+  }
+]
+```
+
+#### Example
+```bash
+GET /api/news/search?keyword=AI
 ```
 
 ---
@@ -344,18 +477,56 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 ### 프론트엔드 통합 예시 (React)
 
-#### 1. 뉴스 목록 조회
+#### 1. 최신 뉴스 목록 조회
 ```javascript
-const fetchNews = async (page = 0, size = 20) => {
+const fetchLatestNews = async () => {
+  const response = await fetch('http://localhost:8080/api/news');
+  const data = await response.json();
+  return data; // 배열 형태로 반환
+};
+```
+
+#### 2. 뉴스 상세 조회 (조회수 증가)
+```javascript
+const fetchNewsDetail = async (newsId) => {
+  const response = await fetch(`http://localhost:8080/api/news/${newsId}`);
+  const data = await response.json();
+  return data;
+};
+```
+
+#### 3. 인기 뉴스 조회
+```javascript
+const fetchPopularNews = async () => {
+  const response = await fetch('http://localhost:8080/api/news/popular');
+  const data = await response.json();
+  return data;
+};
+```
+
+#### 4. 카테고리별 뉴스 조회
+```javascript
+const fetchNewsByCategory = async (category) => {
   const response = await fetch(
-    `http://localhost:8080/api/news?page=${page}&size=${size}`
+    `http://localhost:8080/api/news/category/${category}`
   );
   const data = await response.json();
   return data;
 };
 ```
 
-#### 2. 북마크 추가
+#### 5. 뉴스 검색
+```javascript
+const searchNews = async (keyword) => {
+  const response = await fetch(
+    `http://localhost:8080/api/news/search?keyword=${encodeURIComponent(keyword)}`
+  );
+  const data = await response.json();
+  return data;
+};
+```
+
+#### 6. 북마크 추가
 ```javascript
 const addBookmark = async (newsId, token) => {
   const response = await fetch(
@@ -522,13 +693,19 @@ com.ssafy.domain.news
 
 ## 📝 변경 이력
 
+### v1.1.0 (2026-01-26)
+- ✅ 뉴스 상세 조회 API (조회수 자동 증가)
+- ✅ 인기 뉴스 조회 API (조회수 높은 순 10개)
+- ✅ 카테고리별 뉴스 조회 API
+- ✅ 뉴스 검색 API (제목 기반)
+- ✅ 컨트롤러 테스트 코드 작성 (NewsControllerTest)
+
 ### v1.0.0 (2026-01-26)
 - ✅ Google News IT 뉴스 크롤링 기능 구현
-- ✅ 뉴스 목록 조회 API (페이징)
+- ✅ 뉴스 목록 조회 API (최신순 20개)
 - ✅ 북마크 CRUD API
 - ✅ Quartz 스케줄러 설정 (1시간마다)
 - ✅ 테스트 코드 작성 (NewsScraperServiceTest, NewsBookmarkServiceTest)
-
 ---
 
 ## 📌 참고사항

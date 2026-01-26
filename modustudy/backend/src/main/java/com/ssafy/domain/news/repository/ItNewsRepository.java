@@ -1,6 +1,8 @@
 package com.ssafy.domain.news.repository;
 
 import com.ssafy.domain.news.entity.ItNews;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -20,4 +22,9 @@ public interface ItNewsRepository extends JpaRepository<ItNews, Long> {
 
     // 제목 검색
     List<ItNews> findByTitleContainingAndIsActiveTrueOrderByPublishedAtDesc(String keyword);
+
+    Page<ItNews> findAllByOrderByPublishedAtDesc(Pageable pageable);
+
+    // 추가: 조회수 많은 순으로 정렬
+    Page<ItNews> findAllByOrderByViewCountDescPublishedAtDesc(Pageable pageable);
 }
