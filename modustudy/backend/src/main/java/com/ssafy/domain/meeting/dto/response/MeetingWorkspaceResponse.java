@@ -1,6 +1,6 @@
 package com.ssafy.domain.meeting.dto.response;
 
-public record MeetingChannelResponse(
+public record MeetingWorkspaceResponse(
         Long id,
         String name
 ) {

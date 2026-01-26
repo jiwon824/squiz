@@ -3,10 +3,10 @@ import { MeetingRequestPayload, MeetingType } from '../types';
 import '../styles/MeetingShared.css';
 
 const meetingTypeOptions: { label: string; value: MeetingType }[] = [
-    { label: 'ë°ì¼ë¦¬ ìŠ¤íƒ ë“œì—…', value: 'DAILY' },
-    { label: 'ì£¼ê°„ íšŒê³ ', value: 'WEEKLY' },
-    { label: 'ììœ  íšŒì˜', value: 'FREE' },
-    { label: 'ê¸°íƒ€', value: 'OTHER' },
+    { label: '?°ì¼ë¦??¤íƒ ?œì—…', value: 'DAILY' },
+    { label: 'ì£¼ê°„ ?Œê³ ', value: 'WEEKLY' },
+    { label: '?ìœ  ?Œì˜', value: 'FREE' },
+    { label: 'ê¸°í?', value: 'OTHER' },
 ];
 
 interface MeetingStartModalProps {
@@ -20,14 +20,14 @@ const MeetingStartModal: React.FC<MeetingStartModalProps> = ({ open, initialTitl
     const [title, setTitle] = useState(initialTitle ?? '');
     const [meetingType, setMeetingType] = useState<MeetingType>('DAILY');
     const [autoShareSummary, setAutoShareSummary] = useState(true);
-    const [shareChannelId, setShareChannelId] = useState<string>('');
+    const [shareWorkspaceId, setShareWorkspaceId] = useState<string>('');
 
     useEffect(() => {
         if (open) {
             setTitle(initialTitle ?? '');
             setMeetingType('DAILY');
             setAutoShareSummary(true);
-            setShareChannelId('');
+            setShareWorkspaceId('');
         }
     }, [open, initialTitle]);
 
@@ -35,10 +35,10 @@ const MeetingStartModal: React.FC<MeetingStartModalProps> = ({ open, initialTitl
 
     const handleSubmit = () => {
         onStart({
-            title: title.trim() || 'ìƒˆ ë¯¸íŒ…',
+            title: title.trim() || '??ë¯¸íŒ…',
             meetingType,
             autoShareSummary,
-            shareChannelId: shareChannelId ? Number(shareChannelId) : null,
+            shareWorkspaceId: shareWorkspaceId ? Number(shareWorkspaceId) : null,
         });
     };
 
@@ -46,25 +46,25 @@ const MeetingStartModal: React.FC<MeetingStartModalProps> = ({ open, initialTitl
         <div className="meeting-modal-backdrop" role="dialog" aria-modal="true">
             <div className="meeting-modal">
                 <div className="meeting-modal__header">
-                    <h2>ë¯¸íŒ… ì‹œì‘</h2>
-                    <button className="meeting-modal__close" onClick={onClose} aria-label="ë‹«ê¸°">
-                        âœ•
+                    <h2>ë¯¸íŒ… ?œì‘</h2>
+                    <button className="meeting-modal__close" onClick={onClose} aria-label="?«ê¸°">
+                        ??
                     </button>
                 </div>
                 <div className="meeting-modal__body">
                     <label className="meeting-modal__label">
-                        ì œëª©
+                        °øÀ¯ ¿öÅ©½ºÆäÀÌ½º ID (¼±ÅÃ)
                         <input
                             type="text"
                             className="meeting-modal__input"
                             value={title}
                             onChange={(event) => setTitle(event.target.value)}
-                            placeholder="ë¯¸íŒ… ì œëª©ì„ ì…ë ¥í•˜ì„¸ìš”"
+                            placeholder="ë¯¸íŒ… ?œëª©???…ë ¥?˜ì„¸??
                         />
                     </label>
 
                     <div className="meeting-modal__label">
-                        ìœ í˜•
+                        ? í˜•
                         <div className="meeting-modal__options">
                             {meetingTypeOptions.map((option) => (
                                 <button
@@ -85,17 +85,17 @@ const MeetingStartModal: React.FC<MeetingStartModalProps> = ({ open, initialTitl
                             checked={autoShareSummary}
                             onChange={(event) => setAutoShareSummary(event.target.checked)}
                         />
-                        ìš”ì•½ì„ í…ìŠ¤íŠ¸ ì±„ë„ì— ìë™ ê³µìœ 
+                        ?”ì•½???ìŠ¤??ì±„ë„???ë™ ê³µìœ 
                     </label>
 
                     <label className="meeting-modal__label">
-                        ê³µìœ  ì±„ë„ ID (ì„ íƒ)
+                        °øÀ¯ ¿öÅ©½ºÆäÀÌ½º ID (¼±ÅÃ)
                         <input
                             type="number"
                             className="meeting-modal__input"
-                            value={shareChannelId}
-                            onChange={(event) => setShareChannelId(event.target.value)}
-                            placeholder="ì˜ˆ: 1001"
+                            value={shareWorkspaceId}
+                            onChange={(event) => setShareWorkspaceId(event.target.value)}
+                            placeholder="?? 1001"
                         />
                     </label>
                 </div>
@@ -104,7 +104,7 @@ const MeetingStartModal: React.FC<MeetingStartModalProps> = ({ open, initialTitl
                         ì·¨ì†Œ
                     </button>
                     <button className="meeting-btn primary" onClick={handleSubmit} type="button">
-                        ì‹œì‘í•˜ê¸°
+                        ?œì‘?˜ê¸°
                     </button>
                 </div>
             </div>
@@ -113,3 +113,4 @@ const MeetingStartModal: React.FC<MeetingStartModalProps> = ({ open, initialTitl
 };
 
 export default MeetingStartModal;
+

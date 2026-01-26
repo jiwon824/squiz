@@ -437,6 +437,37 @@
     flex-wrap: wrap;
 }
 
+.meeting-room__blocked {
+    align-items: center;
+    justify-content: center;
+}
+
+.meeting-room__blocked-card {
+    max-width: 520px;
+    width: 100%;
+    background: var(--color-surface);
+    border-radius: var(--radius-xl);
+    padding: 2rem 1.8rem;
+    box-shadow: var(--shadow-sm);
+    text-align: center;
+}
+
+.meeting-room__blocked-card h1 {
+    margin-bottom: 0.6rem;
+}
+
+.meeting-room__blocked-card p {
+    color: var(--color-text-secondary);
+}
+
+.meeting-room__blocked-actions {
+    margin-top: 1.4rem;
+    display: flex;
+    gap: 0.8rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
 @media (max-width: 960px) {
     .meeting-room__content {
         grid-template-columns: 1fr;
