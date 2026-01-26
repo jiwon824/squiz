@@ -2,11 +2,10 @@ package com.ssafy.domain.daily.controller;
 
 import com.ssafy.domain.daily.entity.DailyReport;
 import com.ssafy.domain.daily.repository.DailyReportRepository;
-import com.ssafy.domain.study.entity.MeetingType;
-import com.ssafy.domain.study.entity.Status;
-import com.ssafy.domain.study.entity.Study;
-import com.ssafy.domain.study.entity.StudyType;
+import com.ssafy.domain.study.entity.*;
+import com.ssafy.domain.study.repository.FormatRepository;
 import com.ssafy.domain.study.repository.StudyRepository;
+import com.ssafy.domain.study.repository.TopicRepository;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -38,6 +37,12 @@ class DailyReportControllerTest {
     private StudyRepository studyRepository;
 
     @Autowired
+    private TopicRepository topicRepository;
+
+    @Autowired
+    private FormatRepository formatRepository;
+
+    @Autowired
     private EntityManager entityManager;
 
     private Study study;
@@ -46,16 +51,33 @@ class DailyReportControllerTest {
     private DailyReport report1;
     private DailyReport report2;
     private DailyReport report3;
+    private Topic topic;
+    private Format format;
 
     @BeforeEach
     void setUp() {
         leaderId = 100L;
 
-        // 스터디 생성 (필수 필드 모두 포함)
+        // 1. Topic 생성
+        topic = topicRepository.save(Topic.builder()
+                .name("Java")
+                .sortOrder(1)
+                .build());
+        topicRepository.flush();
+
+        // 2. Format 생성
+        format = formatRepository.save(Format.builder()
+                .name("문제 풀이")
+                .sortOrder(1)
+                .build());
+        formatRepository.flush();
+
+        // 3. 스터디 생성 (필수 필드 모두 포함)
         study = studyRepository.save(Study.builder()
                 .leaderId(leaderId)
                 .name("테스트 스터디")
-                .topic("Java")
+                .topic(topic)
+                .format(format)
                 .studyType(StudyType.PLANNED)
                 .meetingType(MeetingType.ONLINE)
                 .status(Status.DRAFT)

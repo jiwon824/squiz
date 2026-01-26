@@ -1,32 +1,29 @@
 package com.ssafy.domain.study.controller;
 
-import com.ssafy.domain.study.entity.LeaderReview;
-import com.ssafy.domain.study.entity.Study;
-import com.ssafy.domain.study.entity.StudyType;
-import com.ssafy.domain.study.entity.MeetingType;
-import com.ssafy.domain.study.entity.Status;
+import com.ssafy.domain.study.entity.*;
+import com.ssafy.domain.study.repository.FormatRepository;
 import com.ssafy.domain.study.repository.LeaderReviewRepository;
 import com.ssafy.domain.study.repository.StudyRepository;
-import com.ssafy.domain.user.entity.User;
+import com.ssafy.domain.study.repository.TopicRepository;
 import com.ssafy.domain.user.entity.Role;
+import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.transaction.annotation.Transactional;
-
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import static org.hamcrest.Matchers.*;
 
 /**
  * LeaderController 통합 테스트
@@ -49,13 +46,35 @@ class LeaderControllerTest {
     @Autowired
     private LeaderReviewRepository leaderReviewRepository;
 
+    @Autowired
+    private TopicRepository topicRepository;
+
+    @Autowired
+    private FormatRepository formatRepository;
+
     private User leader;
     private User reviewer1;
     private User reviewer2;
     private Study testStudy;
+    private Topic topic;
+    private Format format;
 
     @BeforeEach
     void setUp() {
+        // Topic 생성
+        topic = topicRepository.save(Topic.builder()
+                .name("알고리즘")
+                .sortOrder(1)
+                .build());
+        topicRepository.flush();
+
+        // Format 생성
+        format = formatRepository.save(Format.builder()
+                .name("문제 풀이")
+                .sortOrder(1)
+                .build());
+        formatRepository.flush();
+
         // 스터디장 생성
         leader = User.builder()
                 .userId("leader123")
@@ -109,12 +128,15 @@ class LeaderControllerTest {
                 .build();
         reviewer2 = userRepository.save(reviewer2);
 
+        userRepository.flush();
+
         // 테스트 스터디 생성
         testStudy = Study.builder()
                 .leaderId(leader.getId())
                 .name("알고리즘 스터디")
                 .description("알고리즘 문제 풀이")
-                .topic("알고리즘")
+                .topic(topic)
+                .format(format)
                 .studyType(StudyType.PLANNED)
                 .meetingType(MeetingType.ONLINE)
                 .status(Status.RECRUITING)
@@ -127,6 +149,7 @@ class LeaderControllerTest {
                 .extensionCount(0)
                 .build();
         testStudy = studyRepository.save(testStudy);
+        studyRepository.flush();
 
         // 리뷰 데이터 생성
         LeaderReview review1 = LeaderReview.builder()
@@ -146,6 +169,7 @@ class LeaderControllerTest {
                 .comment("체계적인 진행이 좋았습니다.")
                 .build();
         leaderReviewRepository.save(review2);
+        leaderReviewRepository.flush();
     }
 
     // ============================================================
@@ -234,12 +258,14 @@ class LeaderControllerTest {
                 .leaderReviewCount(0)
                 .build();
         newLeader = userRepository.save(newLeader);
+        userRepository.flush();
 
         // 리뷰 없는 새 스터디 생성
         Study newStudy = Study.builder()
-                .leaderId(newLeader.getId())  // 새로운 리더!
+                .leaderId(newLeader.getId())
                 .name("새로운 스터디")
-                .topic("백엔드")
+                .topic(topic)
+                .format(format)
                 .studyType(StudyType.PLANNED)
                 .meetingType(MeetingType.ONLINE)
                 .status(Status.DRAFT)
@@ -249,6 +275,7 @@ class LeaderControllerTest {
                 .endDate(LocalDate.of(2025, 6, 1))
                 .build();
         newStudy = studyRepository.save(newStudy);
+        studyRepository.flush();
 
         // when & then
         mockMvc.perform(get("/api/v1/study/{studyId}/leader/reviews", newStudy.getId()))

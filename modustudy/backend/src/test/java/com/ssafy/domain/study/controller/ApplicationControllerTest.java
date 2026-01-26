@@ -1,12 +1,13 @@
 package com.ssafy.domain.study.controller;
 
-import org.springframework.boot.test.context.SpringBootTest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.domain.study.dto.request.ApplicationCreateRequest;
 import com.ssafy.domain.study.dto.request.ApplicationProcessRequest;
 import com.ssafy.domain.study.entity.*;
+import com.ssafy.domain.study.repository.FormatRepository;
 import com.ssafy.domain.study.repository.StudyApplicationRepository;
 import com.ssafy.domain.study.repository.StudyRepository;
+import com.ssafy.domain.study.repository.TopicRepository;
 import com.ssafy.domain.user.entity.Role;
 import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.repository.UserRepository;
@@ -17,8 +18,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -51,13 +52,35 @@ class ApplicationControllerTest {
     @Autowired
     private StudyApplicationRepository applicationRepository;
 
+    @Autowired
+    private TopicRepository topicRepository;
+
+    @Autowired
+    private FormatRepository formatRepository;
+
     private User leader;
     private User applicant1;
     private User applicant2;
     private Study testStudy;
+    private Topic topic;
+    private Format format;
 
     @BeforeEach
     void setUp() {
+        // Topic 생성
+        topic = topicRepository.save(Topic.builder()
+                .name("알고리즘")
+                .sortOrder(1)
+                .build());
+        topicRepository.flush();
+
+        // Format 생성
+        format = formatRepository.save(Format.builder()
+                .name("문제 풀이")
+                .sortOrder(1)
+                .build());
+        formatRepository.flush();
+
         // 스터디장 생성
         leader = User.builder()
                 .userId("leader123")
@@ -109,12 +132,15 @@ class ApplicationControllerTest {
                 .build();
         applicant2 = userRepository.save(applicant2);
 
+        userRepository.flush();
+
         // 테스트 스터디 생성
         testStudy = Study.builder()
                 .leaderId(leader.getId())
                 .name("알고리즘 스터디")
                 .description("알고리즘 문제 풀이")
-                .topic("알고리즘")
+                .topic(topic)
+                .format(format)
                 .studyType(StudyType.PLANNED)
                 .meetingType(MeetingType.ONLINE)
                 .status(Status.RECRUITING)
@@ -127,6 +153,7 @@ class ApplicationControllerTest {
                 .extensionCount(0)
                 .build();
         testStudy = studyRepository.save(testStudy);
+        studyRepository.flush();
     }
 
     // ============================================================
@@ -183,10 +210,10 @@ class ApplicationControllerTest {
                 .status(ApplicationStatus.PENDING)
                 .build();
         applicationRepository.save(existingApp);
-        applicationRepository.flush();  // 👈 추가! 즉시 DB 반영
+        applicationRepository.flush();
 
         ApplicationCreateRequest request = ApplicationCreateRequest.builder()
-                .message("다시 신청합니다!다시신청합니다")  // 👈 10자 이상으로 수정
+                .message("다시 신청합니다!다시신청합니다")
                 .build();
 
         // when & then
@@ -238,6 +265,7 @@ class ApplicationControllerTest {
                 .status(ApplicationStatus.PENDING)
                 .build();
         applicationRepository.save(app2);
+        applicationRepository.flush();
 
         // when & then
         mockMvc.perform(get("/api/v1/study/{studyId}/applications", testStudy.getId()))
@@ -268,6 +296,7 @@ class ApplicationControllerTest {
                 .build();
         approved.approve();
         applicationRepository.save(approved);
+        applicationRepository.flush();
 
         // when & then - PENDING만 조회
         mockMvc.perform(get("/api/v1/study/{studyId}/applications", testStudy.getId())
@@ -288,6 +317,7 @@ class ApplicationControllerTest {
                 .status(ApplicationStatus.PENDING)
                 .build();
         applicationRepository.save(app1);
+        applicationRepository.flush();
 
         // when & then
         mockMvc.perform(get("/api/v1/user/{userId}/applications", applicant1.getId()))
@@ -308,6 +338,7 @@ class ApplicationControllerTest {
                 .status(ApplicationStatus.PENDING)
                 .build();
         applicationRepository.save(app);
+        applicationRepository.flush();
 
         // when & then
         mockMvc.perform(get("/api/v1/my/applications")
@@ -328,6 +359,7 @@ class ApplicationControllerTest {
                 .status(ApplicationStatus.PENDING)
                 .build();
         StudyApplication saved = applicationRepository.save(app);
+        applicationRepository.flush();
 
         // when & then
         mockMvc.perform(get("/api/v1/applications/{applicationId}", saved.getId()))
@@ -352,6 +384,7 @@ class ApplicationControllerTest {
                 .status(ApplicationStatus.PENDING)
                 .build();
         StudyApplication saved = applicationRepository.save(app);
+        applicationRepository.flush();
 
         // when & then
         mockMvc.perform(patch("/api/v1/study/{studyId}/applications/{applicationId}/approve",
@@ -374,6 +407,7 @@ class ApplicationControllerTest {
                 .status(ApplicationStatus.PENDING)
                 .build();
         StudyApplication saved = applicationRepository.save(app);
+        applicationRepository.flush();
 
         // when & then - 스터디장이 아닌 사람이 승인 시도
         mockMvc.perform(patch("/api/v1/study/{studyId}/applications/{applicationId}/approve",
@@ -395,6 +429,7 @@ class ApplicationControllerTest {
                 .build();
         app.approve();
         StudyApplication saved = applicationRepository.save(app);
+        applicationRepository.flush();
 
         // when & then
         mockMvc.perform(patch("/api/v1/study/{studyId}/applications/{applicationId}/approve",
@@ -419,6 +454,7 @@ class ApplicationControllerTest {
                 .status(ApplicationStatus.PENDING)
                 .build();
         StudyApplication saved = applicationRepository.save(app);
+        applicationRepository.flush();
 
         ApplicationProcessRequest request = ApplicationProcessRequest.builder()
                 .rejectedReason("정원 초과")
@@ -448,6 +484,7 @@ class ApplicationControllerTest {
                 .status(ApplicationStatus.PENDING)
                 .build();
         StudyApplication saved = applicationRepository.save(app);
+        applicationRepository.flush();
 
         ApplicationProcessRequest request = ApplicationProcessRequest.builder()
                 .rejectedReason("정원 초과")

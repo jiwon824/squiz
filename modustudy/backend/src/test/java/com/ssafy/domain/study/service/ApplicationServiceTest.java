@@ -10,6 +10,7 @@ import com.ssafy.domain.study.repository.StudyRepository;
 import com.ssafy.domain.user.entity.Role;
 import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.repository.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,6 +21,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 import java.util.Optional;
@@ -57,6 +59,27 @@ class ApplicationServiceTest {
     @InjectMocks
     private ApplicationService applicationService;
 
+    // 테스트용 Topic과 Format 객체
+    private Topic testTopic;
+    private Format testFormat;
+
+    @BeforeEach
+    void setUp() {
+        // Mock 테스트에서 사용할 Topic 객체 생성
+        testTopic = Topic.builder()
+                .name("알고리즘")
+                .sortOrder(1)
+                .build();
+        ReflectionTestUtils.setField(testTopic, "id", 1L);
+
+        // Mock 테스트에서 사용할 Format 객체 생성
+        testFormat = Format.builder()
+                .name("문제 풀이")
+                .sortOrder(1)
+                .build();
+        ReflectionTestUtils.setField(testFormat, "id", 1L);
+    }
+
     // ============================================================
     // 1. 신청 생성 테스트
     // ============================================================
@@ -72,14 +95,15 @@ class ApplicationServiceTest {
                 .build();
 
         Study study = Study.builder()
-                .id(studyId)
                 .leaderId(2L)
                 .name("알고리즘 스터디")
-                .topic("알고리즘")
+                .topic(testTopic)
+                .format(testFormat)
                 .studyType(StudyType.PLANNED)
                 .meetingType(MeetingType.ONLINE)
                 .status(Status.RECRUITING)
                 .build();
+        ReflectionTestUtils.setField(study, "id", studyId);
 
         User user = User.builder()
                 .name("김싸피")
@@ -89,12 +113,12 @@ class ApplicationServiceTest {
                 .build();
 
         StudyApplication savedApplication = StudyApplication.builder()
-                .id(1L)
                 .studyId(studyId)
                 .userId(userId)
                 .message(request.getMessage())
                 .status(ApplicationStatus.PENDING)
                 .build();
+        ReflectionTestUtils.setField(savedApplication, "id", 1L);
 
         given(studyRepository.findById(studyId)).willReturn(Optional.of(study));
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
@@ -152,9 +176,11 @@ class ApplicationServiceTest {
                 .build();
 
         Study study = Study.builder()
-                .id(studyId)
                 .leaderId(2L)
+                .topic(testTopic)
+                .format(testFormat)
                 .build();
+        ReflectionTestUtils.setField(study, "id", studyId);
 
         given(studyRepository.findById(studyId)).willReturn(Optional.of(study));
         given(userRepository.findById(userId)).willReturn(Optional.empty());
@@ -180,9 +206,11 @@ class ApplicationServiceTest {
                 .build();
 
         Study study = Study.builder()
-                .id(studyId)
                 .leaderId(2L)
+                .topic(testTopic)
+                .format(testFormat)
                 .build();
+        ReflectionTestUtils.setField(study, "id", studyId);
 
         User user = User.builder().build();
 
@@ -210,9 +238,11 @@ class ApplicationServiceTest {
                 .build();
 
         Study study = Study.builder()
-                .id(studyId)
                 .leaderId(userId)  // 본인이 스터디장!
+                .topic(testTopic)
+                .format(testFormat)
                 .build();
+        ReflectionTestUtils.setField(study, "id", studyId);
 
         User user = User.builder().build();
 
@@ -240,9 +270,11 @@ class ApplicationServiceTest {
         Pageable pageable = PageRequest.of(0, 10);
 
         Study study = Study.builder()
-                .id(studyId)
                 .name("알고리즘 스터디")
+                .topic(testTopic)
+                .format(testFormat)
                 .build();
+        ReflectionTestUtils.setField(study, "id", studyId);
 
         User user1 = User.builder()
                 .name("김싸피")
@@ -257,20 +289,20 @@ class ApplicationServiceTest {
                 .build();
 
         StudyApplication app1 = StudyApplication.builder()
-                .id(1L)
                 .studyId(studyId)
                 .userId(10L)
                 .message("신청합니다!")
                 .status(ApplicationStatus.PENDING)
                 .build();
+        ReflectionTestUtils.setField(app1, "id", 1L);
 
         StudyApplication app2 = StudyApplication.builder()
-                .id(2L)
                 .studyId(studyId)
                 .userId(11L)
                 .message("참여하고 싶습니다!")
                 .status(ApplicationStatus.PENDING)
                 .build();
+        ReflectionTestUtils.setField(app2, "id", 2L);
 
         Page<StudyApplication> applicationPage = new PageImpl<>(List.of(app1, app2));
 
@@ -303,16 +335,18 @@ class ApplicationServiceTest {
         Pageable pageable = PageRequest.of(0, 10);
 
         Study study = Study.builder()
-                .id(studyId)
                 .name("알고리즘 스터디")
+                .topic(testTopic)
+                .format(testFormat)
                 .build();
+        ReflectionTestUtils.setField(study, "id", studyId);
 
         StudyApplication app1 = StudyApplication.builder()
-                .id(1L)
                 .studyId(studyId)
                 .userId(10L)
                 .status(ApplicationStatus.PENDING)
                 .build();
+        ReflectionTestUtils.setField(app1, "id", 1L);
 
         Page<StudyApplication> applicationPage = new PageImpl<>(List.of(app1));
 
@@ -365,29 +399,39 @@ class ApplicationServiceTest {
                 .email("kim@ssafy.com")
                 .build();
 
-        Study study1 = Study.builder()
-                .id(1L)
-                .name("알고리즘 스터디")
+        Topic csTopic = Topic.builder()
+                .name("CS")
+                .sortOrder(2)
                 .build();
+        ReflectionTestUtils.setField(csTopic, "id", 2L);
+
+        Study study1 = Study.builder()
+                .name("알고리즘 스터디")
+                .topic(testTopic)
+                .format(testFormat)
+                .build();
+        ReflectionTestUtils.setField(study1, "id", 1L);
 
         Study study2 = Study.builder()
-                .id(2L)
                 .name("CS 스터디")
+                .topic(csTopic)
+                .format(testFormat)
                 .build();
+        ReflectionTestUtils.setField(study2, "id", 2L);
 
         StudyApplication app1 = StudyApplication.builder()
-                .id(1L)
                 .studyId(1L)
                 .userId(userId)
                 .status(ApplicationStatus.PENDING)
                 .build();
+        ReflectionTestUtils.setField(app1, "id", 1L);
 
         StudyApplication app2 = StudyApplication.builder()
-                .id(2L)
                 .studyId(2L)
                 .userId(userId)
                 .status(ApplicationStatus.APPROVED)
                 .build();
+        ReflectionTestUtils.setField(app2, "id", 2L);
 
         Page<StudyApplication> applicationPage = new PageImpl<>(List.of(app1, app2));
 
@@ -424,18 +468,24 @@ class ApplicationServiceTest {
                 .build();
 
         StudyApplication app1 = StudyApplication.builder()
-                .id(1L)
                 .studyId(1L)
                 .userId(userId)
                 .status(ApplicationStatus.APPROVED)
                 .build();
+        ReflectionTestUtils.setField(app1, "id", 1L);
 
         Page<StudyApplication> applicationPage = new PageImpl<>(List.of(app1));
+
+        Study study = Study.builder()
+                .topic(testTopic)
+                .format(testFormat)
+                .build();
+        ReflectionTestUtils.setField(study, "id", 1L);
 
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
         given(applicationRepository.findByUserIdAndStatus(userId, status, pageable))
                 .willReturn(applicationPage);
-        given(studyRepository.findById(1L)).willReturn(Optional.of(Study.builder().build()));
+        given(studyRepository.findById(1L)).willReturn(Optional.of(study));
 
         // when
         Page<ApplicationResponse> response = applicationService.getApplicationByUser(userId, status, pageable);
@@ -476,9 +526,11 @@ class ApplicationServiceTest {
         Long applicationId = 1L;
 
         Study study = Study.builder()
-                .id(1L)
                 .name("알고리즘 스터디")
+                .topic(testTopic)
+                .format(testFormat)
                 .build();
+        ReflectionTestUtils.setField(study, "id", 1L);
 
         User user = User.builder()
                 .name("김싸피")
@@ -487,12 +539,12 @@ class ApplicationServiceTest {
                 .build();
 
         StudyApplication application = StudyApplication.builder()
-                .id(applicationId)
                 .studyId(1L)
                 .userId(10L)
                 .message("열심히 하겠습니다!")
                 .status(ApplicationStatus.PENDING)
                 .build();
+        ReflectionTestUtils.setField(application, "id", applicationId);
 
         given(applicationRepository.findById(applicationId)).willReturn(Optional.of(application));
         given(studyRepository.findById(1L)).willReturn(Optional.of(study));
@@ -543,17 +595,19 @@ class ApplicationServiceTest {
         Long applicantUserId = 10L;
 
         Study study = Study.builder()
-                .id(studyId)
                 .leaderId(leaderId)
                 .name("알고리즘 스터디")
+                .topic(testTopic)
+                .format(testFormat)
                 .build();
+        ReflectionTestUtils.setField(study, "id", studyId);
 
         StudyApplication application = StudyApplication.builder()
-                .id(applicationId)
                 .studyId(studyId)
                 .userId(applicantUserId)
                 .status(ApplicationStatus.PENDING)
                 .build();
+        ReflectionTestUtils.setField(application, "id", applicationId);
 
         User user = User.builder()
                 .name("김싸피")
@@ -591,9 +645,11 @@ class ApplicationServiceTest {
         Long notLeaderId = 999L;
 
         Study study = Study.builder()
-                .id(studyId)
                 .leaderId(leaderId)
+                .topic(testTopic)
+                .format(testFormat)
                 .build();
+        ReflectionTestUtils.setField(study, "id", studyId);
 
         given(studyRepository.findById(studyId)).willReturn(Optional.of(study));
 
@@ -615,9 +671,11 @@ class ApplicationServiceTest {
         Long leaderId = 2L;
 
         Study study = Study.builder()
-                .id(studyId)
                 .leaderId(leaderId)
+                .topic(testTopic)
+                .format(testFormat)
                 .build();
+        ReflectionTestUtils.setField(study, "id", studyId);
 
         given(studyRepository.findById(studyId)).willReturn(Optional.of(study));
         given(applicationRepository.findById(applicationId)).willReturn(Optional.empty());
@@ -640,16 +698,18 @@ class ApplicationServiceTest {
         Long leaderId = 2L;
 
         Study study = Study.builder()
-                .id(studyId)
                 .leaderId(leaderId)
+                .topic(testTopic)
+                .format(testFormat)
                 .build();
+        ReflectionTestUtils.setField(study, "id", studyId);
 
         StudyApplication application = StudyApplication.builder()
-                .id(applicationId)
                 .studyId(999L)  // 다른 스터디의 신청!
                 .userId(10L)
                 .status(ApplicationStatus.PENDING)
                 .build();
+        ReflectionTestUtils.setField(application, "id", applicationId);
 
         given(studyRepository.findById(studyId)).willReturn(Optional.of(study));
         given(applicationRepository.findById(applicationId)).willReturn(Optional.of(application));
@@ -672,16 +732,18 @@ class ApplicationServiceTest {
         Long leaderId = 2L;
 
         Study study = Study.builder()
-                .id(studyId)
                 .leaderId(leaderId)
+                .topic(testTopic)
+                .format(testFormat)
                 .build();
+        ReflectionTestUtils.setField(study, "id", studyId);
 
         StudyApplication application = StudyApplication.builder()
-                .id(applicationId)
                 .studyId(studyId)
                 .userId(10L)
                 .status(ApplicationStatus.APPROVED)  // 이미 승인됨!
                 .build();
+        ReflectionTestUtils.setField(application, "id", applicationId);
 
         given(studyRepository.findById(studyId)).willReturn(Optional.of(study));
         given(applicationRepository.findById(applicationId)).willReturn(Optional.of(application));
@@ -709,17 +771,19 @@ class ApplicationServiceTest {
         String reason = "정원 초과";
 
         Study study = Study.builder()
-                .id(studyId)
                 .leaderId(leaderId)
                 .name("알고리즘 스터디")
+                .topic(testTopic)
+                .format(testFormat)
                 .build();
+        ReflectionTestUtils.setField(study, "id", studyId);
 
         StudyApplication application = StudyApplication.builder()
-                .id(applicationId)
                 .studyId(studyId)
                 .userId(10L)
                 .status(ApplicationStatus.PENDING)
                 .build();
+        ReflectionTestUtils.setField(application, "id", applicationId);
 
         User user = User.builder()
                 .name("김싸피")
@@ -757,9 +821,11 @@ class ApplicationServiceTest {
         String reason = "정원 초과";
 
         Study study = Study.builder()
-                .id(studyId)
                 .leaderId(leaderId)
+                .topic(testTopic)
+                .format(testFormat)
                 .build();
+        ReflectionTestUtils.setField(study, "id", studyId);
 
         given(studyRepository.findById(studyId)).willReturn(Optional.of(study));
 
@@ -781,9 +847,11 @@ class ApplicationServiceTest {
         String reason = "정원 초과";
 
         Study study = Study.builder()
-                .id(studyId)
                 .leaderId(leaderId)
+                .topic(testTopic)
+                .format(testFormat)
                 .build();
+        ReflectionTestUtils.setField(study, "id", studyId);
 
         given(studyRepository.findById(studyId)).willReturn(Optional.of(study));
         given(applicationRepository.findById(applicationId)).willReturn(Optional.empty());
@@ -806,16 +874,18 @@ class ApplicationServiceTest {
         String reason = "정원 초과";
 
         Study study = Study.builder()
-                .id(studyId)
                 .leaderId(leaderId)
+                .topic(testTopic)
+                .format(testFormat)
                 .build();
+        ReflectionTestUtils.setField(study, "id", studyId);
 
         StudyApplication application = StudyApplication.builder()
-                .id(applicationId)
                 .studyId(999L)  // 다른 스터디의 신청!
                 .userId(10L)
                 .status(ApplicationStatus.PENDING)
                 .build();
+        ReflectionTestUtils.setField(application, "id", applicationId);
 
         given(studyRepository.findById(studyId)).willReturn(Optional.of(study));
         given(applicationRepository.findById(applicationId)).willReturn(Optional.of(application));
@@ -838,16 +908,18 @@ class ApplicationServiceTest {
         String reason = "정원 초과";
 
         Study study = Study.builder()
-                .id(studyId)
                 .leaderId(leaderId)
+                .topic(testTopic)
+                .format(testFormat)
                 .build();
+        ReflectionTestUtils.setField(study, "id", studyId);
 
         StudyApplication application = StudyApplication.builder()
-                .id(applicationId)
                 .studyId(studyId)
                 .userId(10L)
                 .status(ApplicationStatus.REJECTED)  // 이미 거절됨!
                 .build();
+        ReflectionTestUtils.setField(application, "id", applicationId);
 
         given(studyRepository.findById(studyId)).willReturn(Optional.of(study));
         given(applicationRepository.findById(applicationId)).willReturn(Optional.of(application));
