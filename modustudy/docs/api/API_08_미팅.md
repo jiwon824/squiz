@@ -87,7 +87,7 @@ Authorization: Bearer {accessToken}
       "sessionNumber": 1,
       "title": "OT 및 환경설정"
     },
-    "channel": {
+    "workspace": {
       "id": 3,
       "name": "스터디룸"
     },
@@ -130,7 +130,7 @@ Content-Type: application/json
 {
   "title": "2회차 스터디",
   "sessionId": 2,
-  "channelId": 3
+  "workspaceId": 3
 }
 ```
 

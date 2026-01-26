@@ -148,7 +148,7 @@ public class MeetingService {
                 meeting.getId(),
                 meeting.getTitle(),
                 meeting.getSessionId() == null ? null : new MeetingSessionResponse(meeting.getSessionId(), null, null),
-                meeting.getChannelId() == null ? null : new MeetingChannelResponse(meeting.getChannelId(), null),
+                meeting.getWorkspaceId() == null ? null : new MeetingWorkspaceResponse(meeting.getWorkspaceId(), null),
                 (meeting.getMeetingType() == null ? MeetingType.OTHER : meeting.getMeetingType()).name(),
                 meeting.getStartedAt(),
                 meeting.getEndedAt(),
@@ -158,7 +158,7 @@ public class MeetingService {
                 meeting.getSttStatus().name(),
                 summaryStatus.name(),
                 meeting.getAutoShareSummary(),
-                meeting.getShareChannelId(),
+                meeting.getShareWorkspaceId(),
                 participants,
                 summary == null ? List.of() : parseKeywords(summary.getKeywordsJson()),
                 summaryResponse
@@ -172,8 +172,8 @@ public class MeetingService {
         }
         MeetingType meetingType = request.meetingType() == null ? MeetingType.OTHER : request.meetingType();
         boolean autoShareSummary = Boolean.TRUE.equals(request.autoShareSummary());
-        Meeting meeting = Meeting.start(studyId, request.sessionId(), request.channelId(),
-                request.title(), meetingType, autoShareSummary, request.shareChannelId(), LocalDateTime.now());
+        Meeting meeting = Meeting.start(studyId, request.sessionId(), request.workspaceId(),
+                request.title(), meetingType, autoShareSummary, request.shareWorkspaceId(), LocalDateTime.now());
         Meeting saved = meetingRepository.save(meeting);
         triggerSfuRecordingStart(saved);
         return new MeetingResponse(saved.getId(), saved.getTitle(), buildRoomToken(saved), saved.getStatus().name(),
