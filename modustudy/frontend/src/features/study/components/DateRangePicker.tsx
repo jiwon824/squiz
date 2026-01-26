@@ -1,0 +1,198 @@
+import { useState, useMemo } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { cn } from '@/shared/utils/cn';
+import { Button } from '@/shared/components/Button';
+
+interface DateRangePickerProps {
+    startDate: string | null;
+    endDate: string | null;
+    onRangeChange: (start: string | null, end: string | null) => void;
+}
+
+/**
+ * 스터디 기간 선택용 미니 캘린더
+ */
+export const DateRangePicker = ({ startDate, endDate, onRangeChange }: DateRangePickerProps) => {
+    const [currentMonth, setCurrentMonth] = useState(new Date());
+    const [hoveredDate, setHoveredDate] = useState<string | null>(null);
+
+    const weekDays = ['일', '월', '화', '수', '목', '금', '토'];
+
+    const formatDate = (date: Date): string => {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    };
+
+    // 해당 월의 날짜 계산
+    const calendarDays = useMemo(() => {
+        const year = currentMonth.getFullYear();
+        const month = currentMonth.getMonth();
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        const days: { date: string; day: number; isCurrentMonth: boolean }[] = [];
+
+        // 이전 달 날짜
+        const firstDayIndex = firstDay.getDay();
+        for (let i = firstDayIndex; i > 0; i--) {
+            const d = new Date(year, month, 1 - i);
+            days.push({
+                date: formatDate(d),
+                day: d.getDate(),
+                isCurrentMonth: false
+            });
+        }
+
+        // 현재 달 날짜
+        for (let d = 1; d <= lastDay.getDate(); d++) {
+            const date = new Date(year, month, d);
+            days.push({
+                date: formatDate(date),
+                day: d,
+                isCurrentMonth: true
+            });
+        }
+
+        // 다음 달 날짜 (7의 배수로 채움)
+        const remaining = 7 - (days.length % 7);
+        if (remaining < 7) {
+            for (let i = 1; i <= remaining; i++) {
+                const d = new Date(year, month + 1, i);
+                days.push({
+                    date: formatDate(d),
+                    day: d.getDate(),
+                    isCurrentMonth: false
+                });
+            }
+        }
+
+        return days;
+    }, [currentMonth]);
+
+    const handleDateClick = (dateStr: string) => {
+        if (!startDate || (startDate && endDate)) {
+            // 첫 클릭 또는 리셋
+            onRangeChange(dateStr, null);
+        } else {
+            // 두 번째 클릭
+            if (dateStr < startDate) {
+                onRangeChange(dateStr, startDate);
+            } else {
+                onRangeChange(startDate, dateStr);
+            }
+        }
+    };
+
+    const isInRange = (dateStr: string) => {
+        if (!startDate) return false;
+        const effectiveEnd = endDate || hoveredDate;
+        if (!effectiveEnd) return dateStr === startDate;
+
+        const start = startDate < effectiveEnd ? startDate : effectiveEnd;
+        const end = startDate < effectiveEnd ? effectiveEnd : startDate;
+        return dateStr >= start && dateStr <= end;
+    };
+
+    const isStart = (dateStr: string) => dateStr === startDate;
+    const isEnd = (dateStr: string) => dateStr === endDate;
+
+    const prevMonth = () => {
+        setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));
+    };
+
+    const nextMonth = () => {
+        setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
+    };
+
+    const today = formatDate(new Date());
+
+    return (
+        <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
+            {/* 헤더 */}
+            <div className="flex items-center justify-between mb-4">
+                <Button variant="ghost" size="sm" onClick={prevMonth}>
+                    <ChevronLeft size={18} />
+                </Button>
+                <span className="font-bold text-gray-800">
+                    {currentMonth.getFullYear()}년 {currentMonth.getMonth() + 1}월
+                </span>
+                <Button variant="ghost" size="sm" onClick={nextMonth}>
+                    <ChevronRight size={18} />
+                </Button>
+            </div>
+
+            {/* 요일 헤더 */}
+            <div className="grid grid-cols-7 mb-2">
+                {weekDays.map((day, idx) => (
+                    <div
+                        key={day}
+                        className={cn(
+                            "text-center text-xs font-bold py-2",
+                            idx === 0 ? "text-red-400" : idx === 6 ? "text-blue-400" : "text-gray-400"
+                        )}
+                    >
+                        {day}
+                    </div>
+                ))}
+            </div>
+
+            {/* 날짜 그리드 */}
+            <div className="grid grid-cols-7 gap-0.5">
+                {calendarDays.map(({ date, day, isCurrentMonth }) => {
+                    const inRange = isInRange(date);
+                    const isStartDate = isStart(date);
+                    const isEndDate = isEnd(date);
+                    const isToday = date === today;
+                    const dayOfWeek = new Date(date).getDay();
+                    const isMiddleRange = inRange && !isStartDate && !isEndDate;
+
+                    return (
+                        <button
+                            key={date}
+                            type="button"
+                            onClick={() => handleDateClick(date)}
+                            onMouseEnter={() => setHoveredDate(date)}
+                            onMouseLeave={() => setHoveredDate(null)}
+                            className={cn(
+                                "relative h-9 text-sm font-medium transition-all",
+                                !isCurrentMonth && "text-gray-300",
+                                isCurrentMonth && !inRange && "text-gray-700 hover:bg-gray-100 rounded-lg",
+                                isCurrentMonth && dayOfWeek === 0 && !inRange && "text-red-400",
+                                isCurrentMonth && dayOfWeek === 6 && !inRange && "text-blue-400",
+                                // 범위 중간 날짜들 - 연한 배경색 (primary-100 사용)
+                                isCurrentMonth && isMiddleRange && "bg-primary-100 text-primary",
+                                // 시작일/종료일 - 진한 배경색
+                                isStartDate && "bg-primary text-white font-bold rounded-l-lg",
+                                isEndDate && "bg-primary text-white font-bold rounded-r-lg",
+                                isStartDate && isEndDate && "rounded-lg",
+                                isToday && !inRange && "ring-2 ring-primary/30 ring-inset rounded-lg"
+                            )}
+                        >
+                            {day}
+                        </button>
+                    );
+                })}
+            </div>
+
+            {/* 선택된 범위 표시 */}
+            <div className="mt-4 pt-3 border-t border-gray-100">
+                <div className="flex items-center justify-center gap-6 text-sm">
+                    <div className="flex items-center gap-2">
+                        <span className="text-gray-500">시작일</span>
+                        <span className={cn("font-bold px-3 py-1 rounded-lg", startDate ? "bg-primary/10 text-primary" : "bg-gray-100 text-gray-300")}>
+                            {startDate || '선택하세요'}
+                        </span>
+                    </div>
+                    <span className="text-gray-300 text-lg">→</span>
+                    <div className="flex items-center gap-2">
+                        <span className="text-gray-500">종료일</span>
+                        <span className={cn("font-bold px-3 py-1 rounded-lg", endDate ? "bg-primary/10 text-primary" : "bg-gray-100 text-gray-300")}>
+                            {endDate || '선택하세요'}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
