@@ -62,7 +62,7 @@ public class StudySessionService {
         log.info("세션 생성 완료 - studyId: {}, sessionNumber: {}", studyId, nextSessionNumber);
 
         // 스터디 멤버들의 Google Calendar에 이벤트 자동 추가
-        syncSessionToMemberCalendars(saved, study.getTitle());
+        syncSessionToMemberCalendars(saved, study.getName());
 
         return StudySessionResponse.from(saved);
     }
@@ -154,7 +154,7 @@ public class StudySessionService {
         log.info("세션 수정 완료 - sessionId: {}", sessionId);
 
         // Google Calendar 이벤트도 업데이트
-        updateSessionInMemberCalendars(session, study.getTitle());
+        updateSessionInMemberCalendars(session, study.getName());
 
         return StudySessionResponse.from(session);
     }
@@ -288,7 +288,7 @@ public class StudySessionService {
         try {
             // 활성 스터디 멤버 조회
             List<StudyMember> activeMembers = studyMemberRepository
-                    .findByStudyIdAndStatus(session.getStudyId(), MemberStatus.ACTIVE);
+                    .findByStudyIdAndStatus(session.getStudyId(), MemberStatus.APPROVED);
 
             for (StudyMember member : activeMembers) {
                 try {
@@ -322,7 +322,7 @@ public class StudySessionService {
     private void updateSessionInMemberCalendars(StudySession session, String studyTitle) {
         try {
             List<StudyMember> activeMembers = studyMemberRepository
-                    .findByStudyIdAndStatus(session.getStudyId(), MemberStatus.ACTIVE);
+                    .findByStudyIdAndStatus(session.getStudyId(), MemberStatus.APPROVED);
 
             for (StudyMember member : activeMembers) {
                 try {
