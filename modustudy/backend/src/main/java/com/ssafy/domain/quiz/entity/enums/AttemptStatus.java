@@ -17,7 +17,7 @@ public enum AttemptStatus {
      * 완료 - 사용자가 답안을 제출하고 채점이 완료된 상태.
      * 더 이상 수정 불가.
      */
-    COMPLETED,
+    SUBMITTED,
 
     /**
      * 포기 - 사용자가 시도를 중도 포기한 상태.
