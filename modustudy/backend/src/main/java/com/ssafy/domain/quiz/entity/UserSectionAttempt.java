@@ -19,7 +19,9 @@ import java.util.List;
  * 사용자가 섹션을 풀 때마다 기록되며, 점수와 통과 여부를 저장한다.
  * 한 섹션에 대해 여러 번 시도할 수 있다.
  *
- * DDL 참조: docs/sql/ERD.sql - user_section_attempt
+ * FK: (quiz_course_id, section_number) references quiz_course_section
+ * 
+ * DDL: docs/sql/ERD.sql - user_section_attempt
  */
 @Entity
 @Table(name = "user_section_attempt", indexes = {
@@ -37,17 +39,17 @@ public class UserSectionAttempt extends BaseEntity {
     private User user;
 
     /**
-     * 시도한 섹션 (복합 FK: section_number + quiz_course_id).
+     * 시도한 섹션 (복합 FK: quiz_course_id + section_number).
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumns({
-            @JoinColumn(name = "section_number", referencedColumnName = "section_number", nullable = false),
-            @JoinColumn(name = "quiz_course_id", referencedColumnName = "quiz_course_id", nullable = false)
+            @JoinColumn(name = "quiz_course_id", referencedColumnName = "quiz_course_id", nullable = false),
+            @JoinColumn(name = "section_number", referencedColumnName = "section_number", nullable = false)
     })
     private QuizCourseSection section;
 
     /**
-     * 시도 상태(시도 중/완료 됨 /포기)
+     * 시도 상태 (IN_PROGRESS, SUBMITTED, ABANDONED).
      */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -60,7 +62,7 @@ public class UserSectionAttempt extends BaseEntity {
     private Integer score = 0;
 
     /**
-     * 맞힌 문제 수.
+     * 정답 개수.
      */
     @Column(name = "correct_count")
     private Integer correctCount = 0;
@@ -116,7 +118,7 @@ public class UserSectionAttempt extends BaseEntity {
         this.correctCount = correctCount;
         this.score = totalQuestions > 0 ? (correctCount * 100) / totalQuestions : 0;
         this.isPassed = this.score >= passScore;
-        this.status = AttemptStatus.COMPLETED;
+        this.status = AttemptStatus.SUBMITTED;
         this.completedAt = LocalDateTime.now();
     }
 

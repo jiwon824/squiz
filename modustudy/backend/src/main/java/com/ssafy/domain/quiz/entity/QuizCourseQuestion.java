@@ -3,8 +3,6 @@ package com.ssafy.domain.quiz.entity;
 import com.ssafy.common.entity.BaseEntity;
 import com.ssafy.domain.quiz.entity.enums.QuestionType;
 import jakarta.persistence.*;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
 import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -15,7 +13,9 @@ import org.hibernate.type.SqlTypes;
  * 코스 섹션 내 개별 문제를 나타낸다.
  * 객관식/단답형 유형을 지원하며, 객관식의 경우 options에 보기를 JSON 형태로 저장한다.
  *
- * DDL 참조: docs/sql/ERD.sql - quiz_course_question
+ * FK: (quiz_course_id, section_number) references quiz_course_section
+ * 
+ * DDL: docs/sql/ERD.sql - quiz_course_question
  */
 @Entity
 @Table(name = "quiz_course_question")
@@ -26,17 +26,17 @@ import org.hibernate.type.SqlTypes;
 public class QuizCourseQuestion extends BaseEntity {
 
     /**
-     * 소속 섹션 (복합 FK: section_number + quiz_course_id).
+     * 소속 섹션 (복합 FK: quiz_course_id + section_number).
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumns({
-        @JoinColumn(name = "section_number", referencedColumnName = "section_number", nullable = false),
-        @JoinColumn(name = "quiz_course_id", referencedColumnName = "quiz_course_id", nullable = false)
+            @JoinColumn(name = "quiz_course_id", referencedColumnName = "quiz_course_id", nullable = false),
+            @JoinColumn(name = "section_number", referencedColumnName = "section_number", nullable = false)
     })
     private QuizCourseSection section;
 
     /**
-     * 문제 순서 번호.
+     * 문제 순서 번호(섹션 내)
      */
     @Column(name = "question_number", nullable = false)
     private Integer questionNumber;
@@ -48,30 +48,29 @@ public class QuizCourseQuestion extends BaseEntity {
     private String questionText;
 
     /**
-     * 문제 유형 (MULTIPLE_CHOICE: 객관식, SHORT_ANSWER: 단답형).
+     * 문제 유형 (MULTIPLE_CHOICE, SHORT_ANSWER, MULTIPLE_CHOICE_MULTIPLE).
      */
     @Enumerated(EnumType.STRING)
     @Column(name = "question_type")
+    @Builder.Default
     private QuestionType questionType = QuestionType.MULTIPLE_CHOICE;
 
     /**
-     * 객관식 보기 목록 (JSON 형태).
-     * 예: [{"id": "A", "text": "int"}, {"id": "B", "text": "integer"}]
+     * 객관식 문제의 경우, 보기를 JSON 형태로 저장
+     * Example: [{"id": "A", "text": "int"}, {"id": "B", "text": "integer"}]
      */
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "json")
     private String options;
 
     /**
-     * 정답.
-     * 객관식: "A", "B" 등 보기 ID
-     * 단답형: 정답 텍스트
+     * Correct answer.
      */
     @Column(name = "correct_answer", nullable = false, length = 500)
     private String correctAnswer;
 
     /**
-     * 문제 해설.
+     * Explanation for the question.
      */
     @Column(columnDefinition = "TEXT")
     private String explanation;
