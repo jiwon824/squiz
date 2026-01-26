@@ -17,13 +17,14 @@ import java.util.Map;
 public class StudyResponse {
 
     private Long id;
-    private Long leaderId;
-    private String leaderName;
-    private String leaderNickname;
     private String name;
     private String description;
-    private String topic;
-    private String format;
+
+    // ========== 카테고리 정보 ==========
+    private TopicInfo topic;
+    private FormatInfo format;
+    // ==================================
+
     private StudyType studyType;
     private MeetingType meetingType;
     private Long regionId;
@@ -51,59 +52,107 @@ public class StudyResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    /**
-     * Entity를 DTO로 변환 (기본)
-     */
-    public static StudyResponse from(Study study) {
-        return StudyResponse.builder()
-                .id(study.getId())
-                .leaderId(study.getLeaderId())
-                .name(study.getName())
-                .description(study.getDescription())
-                .topic(study.getTopic())
-                .format(study.getFormat())
-                .studyType(study.getStudyType())
-                .meetingType(study.getMeetingType())
-                .regionId(study.getRegionId())
-                .locationDetail(study.getLocationDetail())
-                .scheduleSummary(study.getScheduleSummary())
-                .scheduleDays(study.getScheduleDays())
-                .scheduleTime(study.getScheduleTime())
-                .maxMembers(study.getMaxMembers())
-                .isPublic(study.getIsPublic())
-                .status(study.getStatus())
-                .penaltyPolicy(study.getPenaltyPolicy())
-                .startDate(study.getStartDate())
-                .endDate(study.getEndDate())
-                .totalSessions(study.getTotalSessions())
-                .recruitStartDate(study.getRecruitStartDate())
-                .recruitEndDate(study.getRecruitEndDate())
-                .extensionCount(study.getExtensionCount())
-                .textbook(study.getTextbook())
-                .goal(study.getGoal())
-                .difficulty(study.getDifficulty())
-                .prerequisites(study.getPrerequisites())
-                .processDetail(study.getProcessDetail())
-                .targetOrgType(study.getTargetOrgType())
-                .targetOrgCriteria(study.getTargetOrgCriteria())
-                .createdAt(study.getCreatedAt())
-                .updatedAt(study.getUpdatedAt())
-                .build();
+    // 스터디장 정보
+    private LeaderInfo leader;
+
+    // ========== 내부 DTO 클래스 ==========
+
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class TopicInfo {
+        private Long id;
+        private String name;
+        private String icon;
+        private ParentTopicInfo parent;  // 대분류 정보
+
+        public static TopicInfo from(Topic topic) {
+            if (topic == null) return null;
+
+            return TopicInfo.builder()
+                    .id(topic.getId())
+                    .name(topic.getName())
+                    .icon(topic.getIcon())
+                    .parent(topic.getParent() != null ? ParentTopicInfo.from(topic.getParent()) : null)
+                    .build();
+        }
     }
 
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class ParentTopicInfo {
+        private Long id;
+        private String name;
+        private String icon;
+
+        public static ParentTopicInfo from(Topic topic) {
+            if (topic == null) return null;
+
+            return ParentTopicInfo.builder()
+                    .id(topic.getId())
+                    .name(topic.getName())
+                    .icon(topic.getIcon())
+                    .build();
+        }
+    }
+
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class FormatInfo {
+        private Long id;
+        private String name;
+        private String description;
+        private String icon;
+
+        public static FormatInfo from(Format format) {
+            if (format == null) return null;
+
+            return FormatInfo.builder()
+                    .id(format.getId())
+                    .name(format.getName())
+                    .description(format.getDescription())
+                    .icon(format.getIcon())
+                    .build();
+        }
+    }
+
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class LeaderInfo {
+        private Long id;
+        private String nickname;
+        private String profileImage;
+
+        public static LeaderInfo from(User user) {
+            if (user == null) return null;
+
+            return LeaderInfo.builder()
+                    .id(user.getId())
+                    .nickname(user.getNickname())
+                    .profileImage(user.getProfileImage())
+                    .build();
+        }
+    }
+
+    // ========== 변환 메서드 ==========
+
     /**
-     * Entity를 DTO로 변환 (스터디장 정보 포함)
+     * Study Entity → Response (스터디장 정보 포함)
      */
     public static StudyResponse from(Study study, User leader) {
         return StudyResponse.builder()
                 .id(study.getId())
-                .leaderId(study.getLeaderId())
-                .leaderName(leader.getName())          // ⭐ 스터디장 이름
-                .leaderNickname(leader.getNickname())  // ⭐ 스터디장 닉네임
                 .name(study.getName())
                 .description(study.getDescription())
-                .topic(study.getTopic())
-                .format(study.getFormat())
+                .topic(TopicInfo.from(study.getTopic()))
+                .format(FormatInfo.from(study.getFormat()))
                 .studyType(study.getStudyType())
                 .meetingType(study.getMeetingType())
                 .regionId(study.getRegionId())
@@ -130,6 +179,14 @@ public class StudyResponse {
                 .targetOrgCriteria(study.getTargetOrgCriteria())
                 .createdAt(study.getCreatedAt())
                 .updatedAt(study.getUpdatedAt())
+                .leader(LeaderInfo.from(leader))
                 .build();
+    }
+
+    /**
+     * Study Entity → Response (스터디장 정보 없이)
+     */
+    public static StudyResponse from(Study study) {
+        return from(study, null);
     }
 }

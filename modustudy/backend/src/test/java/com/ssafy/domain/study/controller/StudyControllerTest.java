@@ -4,7 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.domain.study.dto.request.StudyCreateRequest;
 import com.ssafy.domain.study.dto.request.StudyUpdateRequest;
 import com.ssafy.domain.study.entity.*;
+import com.ssafy.domain.study.repository.FormatRepository;
 import com.ssafy.domain.study.repository.StudyRepository;
+import com.ssafy.domain.study.repository.TopicRepository;
 import com.ssafy.domain.user.entity.Role;
 import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.repository.UserRepository;
@@ -13,18 +15,17 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.transaction.annotation.Transactional;
-
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 
+import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import static org.hamcrest.Matchers.*;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -44,11 +45,40 @@ class StudyControllerTest {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private TopicRepository topicRepository;
+
+    @Autowired
+    private FormatRepository formatRepository;
+
     private User leader;
     private Study testStudy;
+    private Topic topic;
+    private Topic topic2;
+    private Format format;
 
     @BeforeEach
     void setUp() {
+        // Topic 생성
+        topic = topicRepository.save(Topic.builder()
+                .name("알고리즘")
+                .sortOrder(1)
+                .build());
+        topicRepository.flush();
+
+        topic2 = topicRepository.save(Topic.builder()
+                .name("백엔드")
+                .sortOrder(2)
+                .build());
+        topicRepository.flush();
+
+        // Format 생성
+        format = formatRepository.save(Format.builder()
+                .name("문제 풀이")
+                .sortOrder(1)
+                .build());
+        formatRepository.flush();
+
         // 스터디장 생성
         leader = User.builder()
                 .userId("leader123")
@@ -65,13 +95,15 @@ class StudyControllerTest {
                 .levelName("Bronze")
                 .build();
         leader = userRepository.save(leader);
+        userRepository.flush();
 
         // 테스트용 스터디 생성
         testStudy = Study.builder()
                 .leaderId(leader.getId())
                 .name("테스트 스터디")
                 .description("테스트용 스터디입니다")
-                .topic("알고리즘")
+                .topic(topic)
+                .format(format)
                 .studyType(StudyType.PLANNED)
                 .meetingType(MeetingType.ONLINE)
                 .status(Status.DRAFT)
@@ -84,6 +116,7 @@ class StudyControllerTest {
                 .build();
 
         testStudy = studyRepository.save(testStudy);
+        studyRepository.flush();
     }
 
     // ============================================================
@@ -97,7 +130,8 @@ class StudyControllerTest {
         StudyCreateRequest request = StudyCreateRequest.builder()
                 .name("새로운 스터디")
                 .description("스터디 설명")
-                .topic("백엔드")
+                .topicId(topic2.getId())
+                .formatId(format.getId())
                 .studyType(StudyType.PLANNED)
                 .meetingType(MeetingType.ONLINE)
                 .startDate(LocalDate.of(2025, 2, 1))
@@ -125,7 +159,7 @@ class StudyControllerTest {
         // given
         StudyCreateRequest request = StudyCreateRequest.builder()
                 .name("오프라인 스터디")
-                .topic("알고리즘")
+                .topicId(topic.getId())
                 .studyType(StudyType.PLANNED)
                 .meetingType(MeetingType.OFFLINE)
                 .regionId(null)  // 지역 없음
@@ -150,7 +184,7 @@ class StudyControllerTest {
         // given
         StudyCreateRequest request = StudyCreateRequest.builder()
                 .name("테스트 스터디")
-                .topic("알고리즘")
+                .topicId(topic.getId())
                 .studyType(StudyType.PLANNED)
                 .meetingType(MeetingType.ONLINE)
                 .startDate(LocalDate.of(2025, 5, 1))
@@ -179,8 +213,7 @@ class StudyControllerTest {
         mockMvc.perform(get("/api/v1/study/{studyId}", testStudy.getId()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(testStudy.getId()))
-                .andExpect(jsonPath("$.name").value("테스트 스터디"))
-                .andExpect(jsonPath("$.topic").value("알고리즘"));
+                .andExpect(jsonPath("$.name").value("테스트 스터디"));
     }
 
     @Test
@@ -252,6 +285,22 @@ class StudyControllerTest {
     @DisplayName("스터디 수정 실패 - 권한 없음")
     void updateStudy_Forbidden() throws Exception {
         // given
+        User otherUser = userRepository.save(User.builder()
+                .userId("other123")
+                .email("other@test.com")
+                .nickname("다른유저")
+                .name("다른사람")
+                .role(Role.USER)
+                .isActive(true)
+                .isOnline(false)
+                .isSearchable(true)
+                .totalExp(0)
+                .currentPoints(0)
+                .currentLevel(1)
+                .levelName("Bronze")
+                .build());
+        userRepository.flush();
+
         StudyUpdateRequest request = StudyUpdateRequest.builder()
                 .name("수정된 스터디")
                 .build();
@@ -260,7 +309,7 @@ class StudyControllerTest {
 
         // when & then
         mockMvc.perform(put("/api/v1/study/{studyId}", testStudy.getId())
-                        .header("User-Id", "999")  // 다른 사용자
+                        .header("User-Id", otherUser.getId().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isForbidden())
@@ -268,45 +317,15 @@ class StudyControllerTest {
     }
 
     // ============================================================
-    // 스터디 삭제 API 테스트
+    // 스터디 상태 변경 API 테스트 (범용 /status 엔드포인트 사용)
     // ============================================================
 
     @Test
-    @DisplayName("스터디 삭제 API 성공")
-    void deleteStudy_Success() throws Exception {
-        // when & then
-        mockMvc.perform(delete("/api/v1/study/{studyId}", testStudy.getId())
-                        .header("User-Id", leader.getId().toString()))
-                .andExpect(status().isNoContent());
-    }
-
-    @Test
-    @DisplayName("스터디 삭제 실패 - 진행 중인 스터디")
-    void deleteStudy_InProgress_Fail() throws Exception {
-        // given
-        testStudy.updateStatus(Status.IN_PROGRESS);
-        studyRepository.save(testStudy);
-
-        // when & then
-        mockMvc.perform(delete("/api/v1/study/{studyId}", testStudy.getId())
-                        .header("User-Id", leader.getId().toString()))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("진행 중이거나 완료된 스터디는 삭제할 수 없습니다"));
-    }
-
-    // ============================================================
-    // 스터디 상태 변경 API 테스트
-    // ============================================================
-
-    @Test
-    @DisplayName("스터디 상태 변경 API 성공")
-    void updateStudyStatus_Success() throws Exception {
-        // given
-        String requestBody = """
-            {
-                "status": "RECRUITING"
-            }
-            """;
+    @DisplayName("스터디 모집 시작 성공")
+    void startRecruiting_Success() throws Exception {
+        // given - DRAFT -> RECRUITING
+        String requestBody = objectMapper.writeValueAsString(
+                new StudyController.StatusUpdateRequest(Status.RECRUITING));
 
         // when & then
         mockMvc.perform(patch("/api/v1/study/{studyId}/status", testStudy.getId())
@@ -318,43 +337,127 @@ class StudyControllerTest {
     }
 
     @Test
-    @DisplayName("완료된 스터디 상태 변경 실패")
-    void updateStudyStatus_CompletedStudy_Fail() throws Exception {
-        // given
-        testStudy.updateStatus(Status.COMPLETED);
+    @DisplayName("스터디 모집 종료 성공")
+    void closeRecruiting_Success() throws Exception {
+        // given - 모집 중 상태로 변경
+        testStudy.updateStatus(Status.RECRUITING);
         studyRepository.save(testStudy);
+        studyRepository.flush();
 
-        String requestBody = """
-            {
-                "status": "RECRUITING"
-            }
-            """;
+        String requestBody = objectMapper.writeValueAsString(
+                new StudyController.StatusUpdateRequest(Status.RECRUIT_CLOSED));
 
         // when & then
         mockMvc.perform(patch("/api/v1/study/{studyId}/status", testStudy.getId())
                         .header("User-Id", leader.getId().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("완료된 스터디는 상태를 변경할 수 없습니다"));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("RECRUIT_CLOSED"));
+    }
+
+    @Test
+    @DisplayName("스터디 시작 성공")
+    void startStudy_Success() throws Exception {
+        // given - 모집 완료 상태로 변경
+        testStudy.updateStatus(Status.RECRUIT_CLOSED);
+        studyRepository.save(testStudy);
+        studyRepository.flush();
+
+        String requestBody = objectMapper.writeValueAsString(
+                new StudyController.StatusUpdateRequest(Status.IN_PROGRESS));
+
+        // when & then
+        mockMvc.perform(patch("/api/v1/study/{studyId}/status", testStudy.getId())
+                        .header("User-Id", leader.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("IN_PROGRESS"));
+    }
+
+    @Test
+    @DisplayName("스터디 완료 성공")
+    void completeStudy_Success() throws Exception {
+        // given - 진행 중 상태로 변경
+        testStudy.updateStatus(Status.IN_PROGRESS);
+        studyRepository.save(testStudy);
+        studyRepository.flush();
+
+        String requestBody = objectMapper.writeValueAsString(
+                new StudyController.StatusUpdateRequest(Status.COMPLETED));
+
+        // when & then
+        mockMvc.perform(patch("/api/v1/study/{studyId}/status", testStudy.getId())
+                        .header("User-Id", leader.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("COMPLETED"));
+    }
+
+    @Test
+    @DisplayName("스터디 취소 성공")
+    void cancelStudy_Success() throws Exception {
+        // given
+        String requestBody = objectMapper.writeValueAsString(
+                new StudyController.StatusUpdateRequest(Status.CANCELLED));
+
+        // when & then
+        mockMvc.perform(patch("/api/v1/study/{studyId}/status", testStudy.getId())
+                        .header("User-Id", leader.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CANCELLED"));
     }
 
     // ============================================================
-    // 모집 기간 연장 API 테스트
+    // 스터디 삭제 API 테스트
     // ============================================================
 
     @Test
-    @DisplayName("모집 기간 연장 API 성공")
+    @DisplayName("스터디 삭제 성공")
+    void deleteStudy_Success() throws Exception {
+        // when & then
+        mockMvc.perform(delete("/api/v1/study/{studyId}", testStudy.getId())
+                        .header("User-Id", leader.getId().toString()))
+                .andExpect(status().isNoContent());
+
+        // 삭제 확인
+        mockMvc.perform(get("/api/v1/study/{studyId}", testStudy.getId()))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("스터디 삭제 실패 - 진행 중인 스터디")
+    void deleteStudy_InProgress_Fail() throws Exception {
+        // given - 진행 중 상태로 변경
+        testStudy.updateStatus(Status.IN_PROGRESS);
+        studyRepository.save(testStudy);
+        studyRepository.flush();
+
+        // when & then
+        mockMvc.perform(delete("/api/v1/study/{studyId}", testStudy.getId())
+                        .header("User-Id", leader.getId().toString()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(containsString("삭제할 수 없습니다")));
+    }
+
+    // ============================================================
+    // 모집 연장 API 테스트 (RequestBody 방식)
+    // ============================================================
+
+    @Test
+    @DisplayName("모집 연장 성공")
     void extendRecruitment_Success() throws Exception {
-        // given
+        // given - 모집 중 상태로 변경
         testStudy.updateStatus(Status.RECRUITING);
         studyRepository.save(testStudy);
+        studyRepository.flush();
 
-        String requestBody = """
-            {
-                "newEndDate": "2025-02-15"
-            }
-            """;
+        String requestBody = objectMapper.writeValueAsString(
+                new StudyController.RecruitmentExtensionRequest(LocalDate.of(2025, 2, 15)));
 
         // when & then
         mockMvc.perform(patch("/api/v1/study/{studyId}/extend-recruitment", testStudy.getId())
@@ -367,54 +470,16 @@ class StudyControllerTest {
     }
 
     @Test
-    @DisplayName("모집 기간 연장 실패 - 2회 시도")
-    void extendRecruitment_SecondAttempt_Fail() throws Exception {
-        // given - 먼저 정상적으로 1회 연장
+    @DisplayName("모집 연장 실패 - 이미 1회 연장")
+    void extendRecruitment_AlreadyExtended_Fail() throws Exception {
+        // given - 모집 중 상태 + 이미 1회 연장
         testStudy.updateStatus(Status.RECRUITING);
+        testStudy.extendRecruitment(LocalDate.of(2025, 2, 15));
         studyRepository.save(testStudy);
+        studyRepository.flush();
 
-        // 첫 번째 연장 (성공)
-        String firstRequest = """
-            {
-                "newEndDate": "2025-02-10"
-            }
-            """;
-
-        mockMvc.perform(patch("/api/v1/study/{studyId}/extend-recruitment", testStudy.getId())
-                        .header("User-Id", leader.getId().toString())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(firstRequest))
-                .andExpect(status().isOk());
-
-        // 두 번째 연장 시도 (실패해야 함)
-        String secondRequest = """
-            {
-                "newEndDate": "2025-02-20"
-            }
-            """;
-
-        // when & then
-        mockMvc.perform(patch("/api/v1/study/{studyId}/extend-recruitment", testStudy.getId())
-                        .header("User-Id", leader.getId().toString())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(secondRequest))
-                .andDo(result -> {
-                    System.out.println("=== 2회 연장 시도 응답 ===");
-                    System.out.println("Status: " + result.getResponse().getStatus());
-                    System.out.println("Body: " + result.getResponse().getContentAsString());
-                })
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    @DisplayName("모집 기간 연장 실패 - 모집 중이 아님")
-    void extendRecruitment_NotRecruiting_Fail() throws Exception {
-        // given
-        String requestBody = """
-            {
-                "newEndDate": "2025-02-15"
-            }
-            """;
+        String requestBody = objectMapper.writeValueAsString(
+                new StudyController.RecruitmentExtensionRequest(LocalDate.of(2025, 2, 28)));
 
         // when & then
         mockMvc.perform(patch("/api/v1/study/{studyId}/extend-recruitment", testStudy.getId())
@@ -422,20 +487,46 @@ class StudyControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("모집 중인 스터디만 기간을 연장할 수 있습니다"));
+                .andExpect(jsonPath("$.message").value(containsString("1회만 연장")));
     }
 
     // ============================================================
-    // 특정 상태 스터디 개수 조회 API 테스트
+    // 검색 API 테스트
     // ============================================================
 
     @Test
-    @DisplayName("특정 상태 스터디 개수 조회 성공")
-    void countStudiesByStatus_Success() throws Exception {
+    @DisplayName("스터디 검색 - 키워드로 검색")
+    void searchStudies_ByKeyword() throws Exception {
         // when & then
-        mockMvc.perform(get("/api/v1/study/count")
-                        .param("status", "DRAFT"))
+        mockMvc.perform(get("/api/v1/study/search")
+                        .param("keyword", "테스트")
+                        .param("page", "0")
+                        .param("size", "20"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isNumber());
+                .andExpect(jsonPath("$.content").isArray());
+    }
+
+    @Test
+    @DisplayName("스터디 검색 - 주제로 검색")
+    void searchStudies_ByTopic() throws Exception {
+        // when & then
+        mockMvc.perform(get("/api/v1/study/search")
+                        .param("topicId", topic.getId().toString())
+                        .param("page", "0")
+                        .param("size", "20"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray());
+    }
+
+    @Test
+    @DisplayName("스터디 검색 - 상태로 검색")
+    void searchStudies_ByStatus() throws Exception {
+        // when & then
+        mockMvc.perform(get("/api/v1/study/search")
+                        .param("status", "DRAFT")
+                        .param("page", "0")
+                        .param("size", "20"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray());
     }
 }

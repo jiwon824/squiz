@@ -1,8 +1,10 @@
 package com.ssafy.domain.study.controller;
 
 import com.ssafy.domain.study.entity.*;
+import com.ssafy.domain.study.repository.FormatRepository;
 import com.ssafy.domain.study.repository.StudyBookmarkRepository;
 import com.ssafy.domain.study.repository.StudyRepository;
+import com.ssafy.domain.study.repository.TopicRepository;
 import com.ssafy.domain.user.entity.Role;
 import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.repository.UserRepository;
@@ -45,6 +47,12 @@ class StudyBookmarkControllerTest {
     private StudyBookmarkRepository bookmarkRepository;
 
     @Autowired
+    private TopicRepository topicRepository;
+
+    @Autowired
+    private FormatRepository formatRepository;
+
+    @Autowired
     private EntityManager entityManager;
 
     private User user1;
@@ -53,9 +61,32 @@ class StudyBookmarkControllerTest {
     private Study study2;
     private Study study3;
     private StudyBookmark bookmark1;
+    private Topic topic;
+    private Topic topic2;
+    private Format format;
 
     @BeforeEach
     void setUp() {
+        // Topic 생성
+        topic = topicRepository.save(Topic.builder()
+                .name("알고리즘")
+                .sortOrder(1)
+                .build());
+        topicRepository.flush();
+
+        topic2 = topicRepository.save(Topic.builder()
+                .name("CS")
+                .sortOrder(2)
+                .build());
+        topicRepository.flush();
+
+        // Format 생성
+        format = formatRepository.save(Format.builder()
+                .name("문제 풀이")
+                .sortOrder(1)
+                .build());
+        formatRepository.flush();
+
         // 1. User 생성
         user1 = userRepository.save(User.builder()
                 .userId("testuser1")
@@ -94,7 +125,8 @@ class StudyBookmarkControllerTest {
                 .leaderId(user1.getId())
                 .name("알고리즘 스터디")
                 .description("백준 문제 풀이")
-                .topic("알고리즘")
+                .topic(topic)
+                .format(format)
                 .studyType(StudyType.PLANNED)
                 .meetingType(MeetingType.ONLINE)
                 .status(Status.RECRUITING)
@@ -113,7 +145,8 @@ class StudyBookmarkControllerTest {
                 .leaderId(user1.getId())
                 .name("CS 스터디")
                 .description("운영체제 학습")
-                .topic("CS")
+                .topic(topic2)
+                .format(format)
                 .studyType(StudyType.PLANNED)
                 .meetingType(MeetingType.ONLINE)
                 .status(Status.RECRUITING)
@@ -132,7 +165,8 @@ class StudyBookmarkControllerTest {
                 .leaderId(user2.getId())
                 .name("스프링 스터디")
                 .description("스프링 부트 학습")
-                .topic("백엔드")
+                .topic(topic)
+                .format(format)
                 .studyType(StudyType.PLANNED)
                 .meetingType(MeetingType.ONLINE)
                 .status(Status.RECRUITING)

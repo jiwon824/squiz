@@ -8,8 +8,10 @@
 - [1. 스터디 조회 API](#1-스터디-조회-api)
 - [2. 스터디 CRUD API](#2-스터디-crud-api)
 - [3. 스터디 댓글 API](#3-스터디-댓글-api)
-- [4. 에러 코드](#4-에러-코드)
-- [5. Enum 값 정리](#5-enum-값-정리)
+- [4. 주제(Topic) API](#4-주제topic-api)
+- [5. 형식(Format) API](#5-형식format-api)
+- [6. 에러 코드](#6-에러-코드)
+- [7. Enum 값 정리](#7-enum-값-정리)
 
 ---
 
@@ -28,12 +30,13 @@
 |---------|------|------|--------|------|
 | page | Integer | N | 0 | 페이지 번호 (0부터 시작) |
 | size | Integer | N | 20 | 페이지당 항목 수 |
-| topic | String | N | - | 주제 필터 (예: 알고리즘, CS, 백엔드) |
-| format | String | N | - | 형식 필터 (예: 문제풀이, 독서, 프로젝트) |
+| topicId | Long | N | - | 주제 ID (소분류) |
+| parentTopicId | Long | N | - | 대분류 주제 ID |
+| formatId | Long | N | - | 형식 ID |
 | studyType | Enum | N | - | PLANNED/LIGHTNING |
 | meetingType | Enum | N | - | ONLINE/OFFLINE/HYBRID |
 | status | Enum | N | - | RECRUITING/IN_PROGRESS 등 |
-| keyword | String | N | - | 검색어 (스터디명/설명) |
+| keyword | String | N | - | 검색어 (스터디명/설명/주제명) |
 | regionId | Long | N | - | 지역 ID (오프라인 필터) |
 | scheduleDays | String | N | - | 요일 필터 (쉼표 구분: MON,WED,FRI) |
 | difficulty | Enum | N | - | 난이도 (BEGINNER, INTERMEDIATE 등) |
@@ -42,7 +45,7 @@
 
 **Request Example:**
 ```
-GET /api/v1/study?page=0&size=20&topic=알고리즘&meetingType=ONLINE&status=RECRUITING&sort=createdAt,desc
+GET /api/v1/study?page=0&size=20&topicId=11&meetingType=ONLINE&status=RECRUITING&sort=createdAt,desc
 ```
 
 **Response:**
@@ -53,8 +56,19 @@ GET /api/v1/study?page=0&size=20&topic=알고리즘&meetingType=ONLINE&status=RE
       "id": 1,
       "name": "알고리즘 마스터",
       "description": "백준 골드 문제 집중 풀이 스터디입니다",
-      "topic": "알고리즘",
-      "format": "문제풀이",
+      "topic": {
+        "id": 11,
+        "name": "백준",
+        "icon": "baekjoon-icon",
+        "sortOrder": 1
+      },
+      "format": {
+        "id": 1,
+        "name": "문제 풀이",
+        "description": "알고리즘 문제를 함께 풀어요",
+        "icon": "problem-solving-icon",
+        "sortOrder": 1
+      },
       "studyType": "PLANNED",
       "meetingType": "ONLINE",
       "status": "RECRUITING",
@@ -146,8 +160,10 @@ GET /api/v1/study/my?page=0&size=20
 **Query Parameters:**
 | 파라미터 | 타입 | 필수 | 설명 |
 |---------|------|------|------|
-| keyword | String | N | 스터디명/설명에서 검색할 키워드 |
-| topic | String | N | 주제 (예: 알고리즘, CS, 백엔드) |
+| keyword | String | N | 스터디명/설명/주제명에서 검색할 키워드 |
+| topicId | Long | N | 주제 ID (소분류) |
+| parentTopicId | Long | N | 대분류 주제 ID (해당 대분류의 모든 소분류 포함) |
+| formatId | Long | N | 형식 ID |
 | meetingType | Enum | N | 미팅 타입 (ONLINE, OFFLINE, HYBRID) |
 | difficulty | Enum | N | 난이도 (BEGINNER, ELEMENTARY, INTERMEDIATE, ADVANCED) |
 | regionId | Long | N | 지역 ID |
@@ -160,14 +176,17 @@ GET /api/v1/study/my?page=0&size=20
 # 키워드로 검색
 GET /api/v1/study/search?keyword=알고리즘&page=0&size=20
 
-# 오프라인 스터디만 필터링
-GET /api/v1/study/search?meetingType=OFFLINE&page=0&size=20
+# 대분류로 검색 (알고리즘/코딩테스트 대분류의 모든 소분류)
+GET /api/v1/study/search?parentTopicId=1&page=0&size=20
 
-# 초급 난이도 스터디 검색
-GET /api/v1/study/search?difficulty=BEGINNER&page=0&size=20
+# 소분류로 검색 (백준만)
+GET /api/v1/study/search?topicId=11&page=0&size=20
+
+# 형식으로 검색 (문제 풀이)
+GET /api/v1/study/search?formatId=1&page=0&size=20
 
 # 복합 조건 검색
-GET /api/v1/study/search?keyword=자바&meetingType=OFFLINE&difficulty=BEGINNER&page=0&size=20
+GET /api/v1/study/search?keyword=자바&topicId=11&formatId=1&meetingType=OFFLINE&page=0&size=20
 ```
 
 **Response:** (1.1과 동일한 형식)
@@ -256,8 +275,19 @@ GET /api/v1/study/1
   "leaderId": 1,
   "name": "알고리즘 마스터",
   "description": "백준 골드 문제 집중 풀이 스터디입니다",
-  "topic": "알고리즘",
-  "format": "문제풀이",
+  "topic": {
+    "id": 11,
+    "name": "백준",
+    "icon": "baekjoon-icon",
+    "sortOrder": 1
+  },
+  "format": {
+    "id": 1,
+    "name": "문제 풀이",
+    "description": "알고리즘 문제를 함께 풀어요",
+    "icon": "problem-solving-icon",
+    "sortOrder": 1
+  },
   "studyType": "PLANNED",
   "meetingType": "ONLINE",
   "regionId": null,
@@ -356,8 +386,8 @@ User-Id: 1  (임시 인증 방식, 추후 JWT로 변경 예정)
 {
   "name": "알고리즘 스터디",
   "description": "매주 백준 문제를 풀고 코드 리뷰를 진행합니다.",
-  "topic": "알고리즘",
-  "format": "문제풀이",
+  "topicId": 11,
+  "formatId": 1,
   "studyType": "PLANNED",
   "meetingType": "OFFLINE",
   "maxMembers": 6,
@@ -384,11 +414,14 @@ User-Id: 1  (임시 인증 방식, 추후 JWT로 변경 예정)
 
 **Required Fields:**
 - `name` - 스터디명 (최대 100자)
-- `topic` - 주제 (최대 50자)
+- `topicId` - 주제 ID (Topic 테이블 참조)
 - `studyType` - 스터디 타입 (PLANNED, LIGHTNING)
 - `meetingType` - 미팅 타입 (ONLINE, OFFLINE, HYBRID)
 - `startDate` - 시작일
 - `endDate` - 종료일
+
+**Optional Fields:**
+- `formatId` - 형식 ID (Format 테이블 참조)
 
 **Response:** (201 Created)
 ```json
@@ -397,8 +430,19 @@ User-Id: 1  (임시 인증 방식, 추후 JWT로 변경 예정)
   "leaderId": 1,
   "name": "알고리즘 스터디",
   "description": "매주 백준 문제를 풀고 코드 리뷰를 진행합니다.",
-  "topic": "알고리즘",
-  "format": "문제풀이",
+  "topic": {
+    "id": 11,
+    "name": "백준",
+    "icon": "baekjoon-icon",
+    "sortOrder": 1
+  },
+  "format": {
+    "id": 1,
+    "name": "문제 풀이",
+    "description": "알고리즘 문제를 함께 풀어요",
+    "icon": "problem-solving-icon",
+    "sortOrder": 1
+  },
   "studyType": "PLANNED",
   "meetingType": "OFFLINE",
   "status": "DRAFT",
@@ -417,7 +461,7 @@ User-Id: 1  (임시 인증 방식, 추후 JWT로 변경 예정)
 
 **Endpoint:** `PUT /api/v1/study/{studyId}`
 
-**설명:** 기존 스터디 정보를 수정합니다. (스터디장만 가능)
+**설명:** 스터디 정보를 수정합니다. (스터디장만 가능)
 
 **인증:** 필요
 
@@ -432,26 +476,18 @@ Content-Type: application/json
 User-Id: 1  (임시 인증 방식, 추후 JWT로 변경 예정)
 ```
 
-**Request Body:** (수정할 필드만 포함)
+**Request Body:** (변경하고 싶은 필드만 전송)
 ```json
 {
-  "name": "스프링 부트 심화 프로젝트",
-  "maxMembers": 10,
-  "description": "Spring Boot 심화 내용 추가"
+  "name": "수정된 알고리즘 스터디",
+  "description": "수정된 설명입니다.",
+  "topicId": 12,
+  "formatId": 2,
+  "maxMembers": 8
 }
 ```
 
-**Response:** (200 OK)
-```json
-{
-  "id": 9,
-  "leaderId": 1,
-  "name": "스프링 부트 심화 프로젝트",
-  "maxMembers": 10,
-  "description": "Spring Boot 심화 내용 추가",
-  "updatedAt": "2025-01-19T11:00:00"
-}
-```
+**Response:** (1.7 응답과 동일한 형식)
 
 **Error Response:** (403 Forbidden)
 ```json
@@ -811,11 +847,369 @@ user-id: 1
 
 ---
 
-## 4. 에러 코드
+## 4. 주제(Topic) API
+
+스터디 주제를 관리하는 API입니다. 대분류(알고리즘, CS 등)와 소분류(백준, 운영체제 등) 계층 구조를 지원합니다.
+
+### Base URL: `/api/v1/topics`
+
+---
+
+### 4.1 전체 주제 목록 조회 (계층 구조)
+
+**Endpoint:** `GET /api/v1/topics`
+
+**설명:** 모든 주제를 대분류-소분류 계층 구조로 조회합니다.
+
+**인증:** 불필요
+
+**Request Example:**
+```
+GET /api/v1/topics
+```
+
+**Response:**
+```json
+[
+  {
+    "id": 1,
+    "name": "알고리즘/코딩테스트",
+    "icon": "code",
+    "sortOrder": 1,
+    "children": [
+      {
+        "id": 11,
+        "name": "백준",
+        "icon": null,
+        "sortOrder": 1,
+        "children": null
+      },
+      {
+        "id": 12,
+        "name": "프로그래머스",
+        "icon": null,
+        "sortOrder": 2,
+        "children": null
+      },
+      {
+        "id": 13,
+        "name": "리트코드",
+        "icon": null,
+        "sortOrder": 3,
+        "children": null
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "name": "CS 기초",
+    "icon": "cpu",
+    "sortOrder": 2,
+    "children": [
+      {
+        "id": 21,
+        "name": "운영체제",
+        "icon": null,
+        "sortOrder": 1,
+        "children": null
+      },
+      {
+        "id": 22,
+        "name": "네트워크",
+        "icon": null,
+        "sortOrder": 2,
+        "children": null
+      },
+      {
+        "id": 23,
+        "name": "데이터베이스",
+        "icon": null,
+        "sortOrder": 3,
+        "children": null
+      },
+      {
+        "id": 24,
+        "name": "자료구조",
+        "icon": null,
+        "sortOrder": 4,
+        "children": null
+      }
+    ]
+  }
+]
+```
+
+---
+
+### 4.2 대분류 목록 조회
+
+**Endpoint:** `GET /api/v1/topics/parents`
+
+**설명:** 대분류 주제만 조회합니다 (소분류 미포함).
+
+**인증:** 불필요
+
+**Request Example:**
+```
+GET /api/v1/topics/parents
+```
+
+**Response:**
+```json
+[
+  {
+    "id": 1,
+    "name": "알고리즘/코딩테스트",
+    "icon": "code",
+    "sortOrder": 1,
+    "children": null
+  },
+  {
+    "id": 2,
+    "name": "CS 기초",
+    "icon": "cpu",
+    "sortOrder": 2,
+    "children": null
+  },
+  {
+    "id": 3,
+    "name": "백엔드",
+    "icon": "server",
+    "sortOrder": 3,
+    "children": null
+  }
+]
+```
+
+---
+
+### 4.3 소분류 목록 조회
+
+**Endpoint:** `GET /api/v1/topics/{parentId}/children`
+
+**설명:** 특정 대분류에 속한 소분류 목록을 조회합니다.
+
+**인증:** 불필요
+
+**Path Parameters:**
+| 파라미터 | 타입 | 필수 | 설명 |
+|---------|------|------|------|
+| parentId | Long | Y | 대분류 주제 ID |
+
+**Request Example:**
+```
+GET /api/v1/topics/1/children
+```
+
+**Response:**
+```json
+[
+  {
+    "id": 11,
+    "name": "백준",
+    "icon": null,
+    "sortOrder": 1,
+    "children": null
+  },
+  {
+    "id": 12,
+    "name": "프로그래머스",
+    "icon": null,
+    "sortOrder": 2,
+    "children": null
+  },
+  {
+    "id": 13,
+    "name": "리트코드",
+    "icon": null,
+    "sortOrder": 3,
+    "children": null
+  }
+]
+```
+
+---
+
+### 4.4 주제 상세 조회
+
+**Endpoint:** `GET /api/v1/topics/{topicId}`
+
+**설명:** 특정 주제의 상세 정보를 조회합니다. 대분류인 경우 소분류 목록도 포함됩니다.
+
+**인증:** 불필요
+
+**Path Parameters:**
+| 파라미터 | 타입 | 필수 | 설명 |
+|---------|------|------|------|
+| topicId | Long | Y | 주제 ID |
+
+**Request Example:**
+```
+GET /api/v1/topics/1
+```
+
+**Response (대분류):**
+```json
+{
+  "id": 1,
+  "name": "알고리즘/코딩테스트",
+  "icon": "code",
+  "sortOrder": 1,
+  "children": [
+    {
+      "id": 11,
+      "name": "백준",
+      "icon": null,
+      "sortOrder": 1,
+      "children": null
+    },
+    {
+      "id": 12,
+      "name": "프로그래머스",
+      "icon": null,
+      "sortOrder": 2,
+      "children": null
+    }
+  ]
+}
+```
+
+**Response (소분류):**
+```json
+{
+  "id": 11,
+  "name": "백준",
+  "icon": null,
+  "sortOrder": 1,
+  "children": null
+}
+```
+
+**Error Response:** (400 Bad Request)
+```json
+{
+  "error": "존재하지 않는 주제입니다: 999"
+}
+```
+
+---
+
+## 5. 형식(Format) API
+
+스터디 진행 형식을 관리하는 API입니다.
+
+### Base URL: `/api/v1/formats`
+
+---
+
+### 5.1 전체 형식 목록 조회
+
+**Endpoint:** `GET /api/v1/formats`
+
+**설명:** 모든 스터디 형식을 조회합니다.
+
+**인증:** 불필요
+
+**Request Example:**
+```
+GET /api/v1/formats
+```
+
+**Response:**
+```json
+[
+  {
+    "id": 1,
+    "name": "문제 풀이",
+    "description": "알고리즘 문제를 함께 풀어요",
+    "icon": "problem-solving-icon",
+    "sortOrder": 1
+  },
+  {
+    "id": 2,
+    "name": "강의 수강",
+    "description": "온라인 강의를 함께 수강해요",
+    "icon": "lecture-icon",
+    "sortOrder": 2
+  },
+  {
+    "id": 3,
+    "name": "책 스터디",
+    "description": "책을 함께 읽고 토론해요",
+    "icon": "book-icon",
+    "sortOrder": 3
+  },
+  {
+    "id": 4,
+    "name": "프로젝트",
+    "description": "함께 프로젝트를 진행해요",
+    "icon": "project-icon",
+    "sortOrder": 4
+  },
+  {
+    "id": 5,
+    "name": "모의 면접",
+    "description": "기술 면접을 준비해요",
+    "icon": "interview-icon",
+    "sortOrder": 5
+  },
+  {
+    "id": 6,
+    "name": "자격증 준비",
+    "description": "자격증 시험을 준비해요",
+    "icon": "certificate-icon",
+    "sortOrder": 6
+  }
+]
+```
+
+---
+
+### 5.2 형식 상세 조회
+
+**Endpoint:** `GET /api/v1/formats/{formatId}`
+
+**설명:** 특정 형식의 상세 정보를 조회합니다.
+
+**인증:** 불필요
+
+**Path Parameters:**
+| 파라미터 | 타입 | 필수 | 설명 |
+|---------|------|------|------|
+| formatId | Long | Y | 형식 ID |
+
+**Request Example:**
+```
+GET /api/v1/formats/1
+```
+
+**Response:**
+```json
+{
+  "id": 1,
+  "name": "문제 풀이",
+  "description": "알고리즘 문제를 함께 풀어요",
+  "icon": "problem-solving-icon",
+  "sortOrder": 1
+}
+```
+
+**Error Response:** (400 Bad Request)
+```json
+{
+  "error": "존재하지 않는 형식입니다: 999"
+}
+```
+
+---
+
+## 6. 에러 코드
 
 | 코드 | HTTP 상태 | 설명 |
 |------|-----------|------|
 | STUDY_NOT_FOUND | 404 | 스터디를 찾을 수 없음 |
+| TOPIC_NOT_FOUND | 400 | 주제를 찾을 수 없음 |
+| FORMAT_NOT_FOUND | 400 | 형식을 찾을 수 없음 |
 | NOT_STUDY_LEADER | 403 | 스터디장 권한 필요 |
 | STUDY_FULL | 400 | 스터디 정원 초과 |
 | RECRUIT_CLOSED | 400 | 모집 기간 종료 |
@@ -831,7 +1225,7 @@ user-id: 1
 
 ---
 
-## 5. Enum 값 정리
+## 7. Enum 값 정리
 
 ### StudyType (스터디 타입)
 - `PLANNED` - 계획형

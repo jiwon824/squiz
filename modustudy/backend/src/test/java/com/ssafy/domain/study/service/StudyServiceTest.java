@@ -1,12 +1,15 @@
 package com.ssafy.domain.study.service;
 
+import com.ssafy.common.exception.NotFoundException;
 import com.ssafy.common.exception.StudyException;
 import com.ssafy.domain.study.dto.request.StudyCreateRequest;
 import com.ssafy.domain.study.dto.request.StudyUpdateRequest;
 import com.ssafy.domain.study.dto.response.StudyResponse;
 import com.ssafy.domain.study.entity.*;
+import com.ssafy.domain.study.repository.FormatRepository;
 import com.ssafy.domain.study.repository.StudyMemberRepository;
 import com.ssafy.domain.study.repository.StudyRepository;
+import com.ssafy.domain.study.repository.TopicRepository;
 import com.ssafy.domain.user.entity.Role;
 import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.repository.UserRepository;
@@ -23,6 +26,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -48,10 +52,19 @@ class StudyServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private TopicRepository topicRepository;
+
+    @Mock
+    private FormatRepository formatRepository;
+
     @InjectMocks
     private StudyService studyService;
 
     private User testUser;
+    private Topic parentTopic;
+    private Topic childTopic;
+    private Format testFormat;
     private Study testStudy;
 
     @BeforeEach
@@ -62,14 +75,41 @@ class StudyServiceTest {
                 .email("kim@ssafy.com")
                 .role(Role.USER)
                 .build();
+        ReflectionTestUtils.setField(testUser, "id", 1L);
 
+        // Topic 설정 (대분류)
+        parentTopic = Topic.builder()
+                .name("알고리즘/코딩테스트")
+                .icon("code")
+                .sortOrder(1)
+                .build();
+        ReflectionTestUtils.setField(parentTopic, "id", 1L);
+
+        // Topic 설정 (소분류)
+        childTopic = Topic.builder()
+                .name("백준")
+                .parent(parentTopic)
+                .sortOrder(1)
+                .build();
+        ReflectionTestUtils.setField(childTopic, "id", 11L);
+
+        // Format 설정
+        testFormat = Format.builder()
+                .name("문제 풀이")
+                .description("알고리즘/자격증 문제 풀고 리뷰")
+                .icon("edit")
+                .sortOrder(1)
+                .build();
+        ReflectionTestUtils.setField(testFormat, "id", 1L);
+
+        // Study 설정 (Topic, Format 연관관계 사용)
         testStudy = Study.builder()
                 .id(1L)
                 .leaderId(1L)
                 .name("알고리즘 마스터")
                 .description("백준 골드 문제 집중 풀이")
-                .topic("알고리즘")
-                .format("문제풀이")
+                .topic(childTopic)
+                .format(testFormat)
                 .studyType(StudyType.PLANNED)
                 .meetingType(MeetingType.ONLINE)
                 .status(Status.RECRUITING)
@@ -80,7 +120,8 @@ class StudyServiceTest {
                 .endDate(LocalDate.of(2025, 5, 1))
                 .recruitStartDate(LocalDate.of(2025, 1, 15))
                 .recruitEndDate(LocalDate.of(2025, 1, 31))
-                .createdAt(LocalDateTime.now())  // ⭐ NPE 방지
+                .extensionCount(0)
+                .createdAt(LocalDateTime.now())
                 .build();
     }
 
@@ -101,8 +142,8 @@ class StudyServiceTest {
             StudyCreateRequest request = StudyCreateRequest.builder()
                     .name("알고리즘 마스터")
                     .description("백준 골드 문제 집중 풀이")
-                    .topic("알고리즘")
-                    .format("문제풀이")
+                    .topicId(11L)       // 소분류 Topic ID
+                    .formatId(1L)       // Format ID
                     .studyType(StudyType.PLANNED)
                     .meetingType(MeetingType.ONLINE)
                     .isPublic(true)
@@ -115,6 +156,8 @@ class StudyServiceTest {
                     .build();
 
             given(userRepository.findById(leaderId)).willReturn(Optional.of(testUser));
+            given(topicRepository.findById(11L)).willReturn(Optional.of(childTopic));
+            given(formatRepository.findById(1L)).willReturn(Optional.of(testFormat));
             given(studyRepository.save(any(Study.class))).willReturn(testStudy);
             given(studyMemberRepository.save(any(StudyMember.class))).willReturn(StudyMember.builder().build());
 
@@ -125,7 +168,16 @@ class StudyServiceTest {
             assertThat(response).isNotNull();
             assertThat(response.getId()).isEqualTo(1L);
             assertThat(response.getName()).isEqualTo("알고리즘 마스터");
-            assertThat(response.getLeaderName()).isEqualTo("김싸피");
+
+            // Topic 정보 검증
+            assertThat(response.getTopic()).isNotNull();
+            assertThat(response.getTopic().getName()).isEqualTo("백준");
+            assertThat(response.getTopic().getParent()).isNotNull();
+            assertThat(response.getTopic().getParent().getName()).isEqualTo("알고리즘/코딩테스트");
+
+            // Format 정보 검증
+            assertThat(response.getFormat()).isNotNull();
+            assertThat(response.getFormat().getName()).isEqualTo("문제 풀이");
 
             // ⭐ 핵심: StudyMember 저장 검증
             ArgumentCaptor<StudyMember> memberCaptor = ArgumentCaptor.forClass(StudyMember.class);
@@ -136,11 +188,59 @@ class StudyServiceTest {
             assertThat(savedMember.getUserId()).isEqualTo(leaderId);
             assertThat(savedMember.getRole()).isEqualTo(MemberRole.LEADER);
             assertThat(savedMember.getStatus()).isEqualTo(MemberStatus.APPROVED);
-            assertThat(savedMember.getIsProbation()).isFalse();  // 스터디장은 수습 아님!
+            assertThat(savedMember.getIsProbation()).isFalse();
             assertThat(savedMember.getJoinedAt()).isNotNull();
 
             verify(userRepository, times(1)).findById(leaderId);
+            verify(topicRepository, times(1)).findById(11L);
+            verify(formatRepository, times(1)).findById(1L);
             verify(studyRepository, times(1)).save(any(Study.class));
+        }
+
+        @Test
+        @DisplayName("스터디 생성 성공 - Format 없이 생성")
+        void createStudy_Success_WithoutFormat() {
+            // given
+            Long leaderId = 1L;
+
+            StudyCreateRequest request = StudyCreateRequest.builder()
+                    .name("알고리즘 스터디")
+                    .topicId(11L)
+                    .formatId(null)  // Format 없음
+                    .studyType(StudyType.PLANNED)
+                    .meetingType(MeetingType.ONLINE)
+                    .startDate(LocalDate.of(2025, 2, 1))
+                    .endDate(LocalDate.of(2025, 5, 1))
+                    .build();
+
+            Study studyWithoutFormat = Study.builder()
+                    .id(1L)
+                    .leaderId(leaderId)
+                    .name("알고리즘 스터디")
+                    .topic(childTopic)
+                    .format(null)
+                    .studyType(StudyType.PLANNED)
+                    .meetingType(MeetingType.ONLINE)
+                    .status(Status.DRAFT)
+                    .startDate(LocalDate.of(2025, 2, 1))
+                    .endDate(LocalDate.of(2025, 5, 1))
+                    .extensionCount(0)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+
+            given(userRepository.findById(leaderId)).willReturn(Optional.of(testUser));
+            given(topicRepository.findById(11L)).willReturn(Optional.of(childTopic));
+            given(studyRepository.save(any(Study.class))).willReturn(studyWithoutFormat);
+            given(studyMemberRepository.save(any(StudyMember.class))).willReturn(StudyMember.builder().build());
+
+            // when
+            StudyResponse response = studyService.createStudy(request, leaderId);
+
+            // then
+            assertThat(response.getTopic()).isNotNull();
+            assertThat(response.getFormat()).isNull();
+
+            verify(formatRepository, never()).findById(any());
         }
 
         @Test
@@ -151,6 +251,7 @@ class StudyServiceTest {
 
             StudyCreateRequest request = StudyCreateRequest.builder()
                     .name("알고리즘 마스터")
+                    .topicId(11L)
                     .meetingType(MeetingType.ONLINE)
                     .startDate(LocalDate.of(2025, 2, 1))
                     .endDate(LocalDate.of(2025, 5, 1))
@@ -160,11 +261,64 @@ class StudyServiceTest {
 
             // when & then
             assertThatThrownBy(() -> studyService.createStudy(request, leaderId))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("존재하지 않는 사용자");
+                    .isInstanceOf(NotFoundException.class);
 
             verify(studyRepository, never()).save(any());
             verify(studyMemberRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("스터디 생성 실패 - 존재하지 않는 Topic")
+        void createStudy_TopicNotFound() {
+            // given
+            Long leaderId = 1L;
+
+            StudyCreateRequest request = StudyCreateRequest.builder()
+                    .name("알고리즘 스터디")
+                    .topicId(999L)  // 존재하지 않는 Topic ID
+                    .studyType(StudyType.PLANNED)
+                    .meetingType(MeetingType.ONLINE)
+                    .startDate(LocalDate.of(2025, 2, 1))
+                    .endDate(LocalDate.of(2025, 5, 1))
+                    .build();
+
+            given(userRepository.findById(leaderId)).willReturn(Optional.of(testUser));
+            given(topicRepository.findById(999L)).willReturn(Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() -> studyService.createStudy(request, leaderId))
+                    .isInstanceOf(StudyException.InvalidStudyRequestException.class)
+                    .hasMessageContaining("존재하지 않는 주제");
+
+            verify(studyRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("스터디 생성 실패 - 존재하지 않는 Format")
+        void createStudy_FormatNotFound() {
+            // given
+            Long leaderId = 1L;
+
+            StudyCreateRequest request = StudyCreateRequest.builder()
+                    .name("알고리즘 스터디")
+                    .topicId(11L)
+                    .formatId(999L)  // 존재하지 않는 Format ID
+                    .studyType(StudyType.PLANNED)
+                    .meetingType(MeetingType.ONLINE)
+                    .startDate(LocalDate.of(2025, 2, 1))
+                    .endDate(LocalDate.of(2025, 5, 1))
+                    .build();
+
+            given(userRepository.findById(leaderId)).willReturn(Optional.of(testUser));
+            given(topicRepository.findById(11L)).willReturn(Optional.of(childTopic));
+            given(formatRepository.findById(999L)).willReturn(Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() -> studyService.createStudy(request, leaderId))
+                    .isInstanceOf(StudyException.InvalidStudyRequestException.class)
+                    .hasMessageContaining("존재하지 않는 형식");
+
+            verify(studyRepository, never()).save(any());
         }
 
         @Test
@@ -175,6 +329,7 @@ class StudyServiceTest {
 
             StudyCreateRequest request = StudyCreateRequest.builder()
                     .name("오프라인 스터디")
+                    .topicId(11L)
                     .meetingType(MeetingType.OFFLINE)  // 오프라인인데
                     .regionId(null)  // 지역 정보 없음!
                     .startDate(LocalDate.of(2025, 2, 1))
@@ -182,6 +337,7 @@ class StudyServiceTest {
                     .build();
 
             given(userRepository.findById(leaderId)).willReturn(Optional.of(testUser));
+            given(topicRepository.findById(11L)).willReturn(Optional.of(childTopic));
 
             // when & then
             assertThatThrownBy(() -> studyService.createStudy(request, leaderId))
@@ -200,12 +356,14 @@ class StudyServiceTest {
 
             StudyCreateRequest request = StudyCreateRequest.builder()
                     .name("알고리즘 마스터")
+                    .topicId(11L)
                     .meetingType(MeetingType.ONLINE)
                     .startDate(LocalDate.of(2025, 5, 1))  // 시작일이 더 늦음
                     .endDate(LocalDate.of(2025, 2, 1))    // 종료일이 더 빠름
                     .build();
 
             given(userRepository.findById(leaderId)).willReturn(Optional.of(testUser));
+            given(topicRepository.findById(11L)).willReturn(Optional.of(childTopic));
 
             // when & then
             assertThatThrownBy(() -> studyService.createStudy(request, leaderId))
@@ -251,6 +409,35 @@ class StudyServiceTest {
         }
 
         @Test
+        @DisplayName("스터디 수정 성공 - Topic 변경")
+        void updateStudy_ChangeTopic_Success() {
+            // given
+            Long studyId = 1L;
+            Long leaderId = 1L;
+
+            Topic newTopic = Topic.builder()
+                    .name("프로그래머스")
+                    .parent(parentTopic)
+                    .sortOrder(2)
+                    .build();
+            ReflectionTestUtils.setField(newTopic, "id", 12L);
+
+            StudyUpdateRequest request = StudyUpdateRequest.builder()
+                    .topicId(12L)
+                    .build();
+
+            given(studyRepository.findById(studyId)).willReturn(Optional.of(testStudy));
+            given(topicRepository.findById(12L)).willReturn(Optional.of(newTopic));
+
+            // when
+            StudyResponse response = studyService.updateStudy(studyId, request, leaderId);
+
+            // then
+            assertThat(response).isNotNull();
+            verify(topicRepository, times(1)).findById(12L);
+        }
+
+        @Test
         @DisplayName("스터디 수정 실패 - 권한 없음 (스터디장 아님)")
         void updateStudy_NotLeader() {
             // given
@@ -284,6 +471,26 @@ class StudyServiceTest {
             // when & then
             assertThatThrownBy(() -> studyService.updateStudy(studyId, request, leaderId))
                     .isInstanceOf(StudyException.StudyNotFoundException.class);
+        }
+
+        @Test
+        @DisplayName("스터디 수정 실패 - 존재하지 않는 Topic으로 변경 시도")
+        void updateStudy_InvalidTopic() {
+            // given
+            Long studyId = 1L;
+            Long leaderId = 1L;
+
+            StudyUpdateRequest request = StudyUpdateRequest.builder()
+                    .topicId(999L)  // 존재하지 않는 Topic
+                    .build();
+
+            given(studyRepository.findById(studyId)).willReturn(Optional.of(testStudy));
+            given(topicRepository.findById(999L)).willReturn(Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() -> studyService.updateStudy(studyId, request, leaderId))
+                    .isInstanceOf(StudyException.InvalidStudyRequestException.class)
+                    .hasMessageContaining("존재하지 않는 주제");
         }
     }
 
@@ -321,8 +528,9 @@ class StudyServiceTest {
             Study inProgressStudy = Study.builder()
                     .id(studyId)
                     .leaderId(leaderId)
-                    .status(Status.IN_PROGRESS)  // 진행 중!
-                    .createdAt(LocalDateTime.now())  // ⭐ NPE 방지
+                    .topic(childTopic)
+                    .status(Status.IN_PROGRESS)
+                    .createdAt(LocalDateTime.now())
                     .build();
 
             given(studyRepository.findById(studyId)).willReturn(Optional.of(inProgressStudy));
@@ -366,20 +574,20 @@ class StudyServiceTest {
             Long userId = 1L;
             Pageable pageable = PageRequest.of(0, 10);
 
-            // 스터디장으로 만든 스터디 (⭐ createdAt 추가!)
             Study leaderStudy = Study.builder()
                     .id(1L)
                     .leaderId(userId)
                     .name("내가 만든 스터디")
-                    .createdAt(LocalDateTime.now())  // ⭐ NPE 방지
+                    .topic(childTopic)
+                    .createdAt(LocalDateTime.now())
                     .build();
 
-            // 멤버로 참여한 스터디 (⭐ createdAt 추가!)
             Study memberStudy = Study.builder()
                     .id(2L)
-                    .leaderId(999L)  // 다른 사람이 스터디장
+                    .leaderId(999L)
                     .name("참여한 스터디")
-                    .createdAt(LocalDateTime.now().minusDays(1))  // ⭐ NPE 방지
+                    .topic(childTopic)
+                    .createdAt(LocalDateTime.now().minusDays(1))
                     .build();
 
             StudyMember membership = StudyMember.builder()
@@ -401,7 +609,7 @@ class StudyServiceTest {
 
             // then
             assertThat(result).isNotNull();
-            assertThat(result.getTotalElements()).isEqualTo(2);  // 스터디장 1개 + 멤버 1개
+            assertThat(result.getTotalElements()).isEqualTo(2);
 
             verify(studyMemberRepository, times(1)).findByUserIdAndStatus(userId, MemberStatus.APPROVED);
             verify(studyRepository, times(1)).findByLeaderId(userId, pageable);
@@ -465,8 +673,9 @@ class StudyServiceTest {
             Study completedStudy = Study.builder()
                     .id(studyId)
                     .leaderId(leaderId)
-                    .status(Status.COMPLETED)  // 이미 완료됨
-                    .createdAt(LocalDateTime.now())  // ⭐ NPE 방지
+                    .topic(childTopic)
+                    .status(Status.COMPLETED)
+                    .createdAt(LocalDateTime.now())
                     .build();
 
             given(studyRepository.findById(studyId)).willReturn(Optional.of(completedStudy));
@@ -499,6 +708,9 @@ class StudyServiceTest {
             assertThat(result).isNotNull();
             assertThat(result.getId()).isEqualTo(studyId);
             assertThat(result.getName()).isEqualTo("알고리즘 마스터");
+            assertThat(result.getTopic()).isNotNull();
+            assertThat(result.getTopic().getName()).isEqualTo("백준");
+            assertThat(result.getTopicName()).isEqualTo("백준");
         }
 
         @Test

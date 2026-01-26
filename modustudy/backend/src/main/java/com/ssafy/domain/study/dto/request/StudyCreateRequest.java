@@ -22,12 +22,12 @@ public class StudyCreateRequest {
     @Size(max = 1000, message = "설명은 1000자 이내여야 합니다")
     private String description;
 
-    @NotBlank(message = "주제는 필수입니다")
-    @Size(max = 50, message = "주제는 50자 이내여야 합니다")
-    private String topic;
+    // ========== 카테고리 변경: String → Long(ID) ==========
+    @NotNull(message = "주제는 필수입니다")
+    private Long topicId;
 
-    @Size(max = 50, message = "형식은 50자 이내여야 합니다")
-    private String format;
+    private Long formatId;
+    // ====================================================
 
     @NotNull(message = "스터디 타입은 필수입니다")
     private StudyType studyType;
@@ -35,7 +35,6 @@ public class StudyCreateRequest {
     @NotNull(message = "미팅 타입은 필수입니다")
     private MeetingType meetingType;
 
-    // 오프라인/혼합인 경우 필수
     private Long regionId;
 
     @Size(max = 200, message = "상세 장소는 200자 이내여야 합니다")
@@ -45,7 +44,7 @@ public class StudyCreateRequest {
     private String scheduleSummary;
 
     @Size(max = 50, message = "요일 정보는 50자 이내여야 합니다")
-    private String scheduleDays; // ex: "MON,WED,FRI"
+    private String scheduleDays;
 
     private LocalTime scheduleTime;
 
@@ -90,8 +89,9 @@ public class StudyCreateRequest {
 
     /**
      * DTO를 Entity로 변환
+     * ⚠️ Topic, Format은 Service에서 조회 후 설정해야 함
      */
-    public Study toEntity(Long leaderId) {
+    public Study toEntity(Long leaderId, Topic topic, Format format) {
         return Study.builder()
                 .leaderId(leaderId)
                 .name(name)
@@ -107,7 +107,7 @@ public class StudyCreateRequest {
                 .scheduleTime(scheduleTime)
                 .maxMembers(maxMembers)
                 .isPublic(isPublic)
-                .status(Status.DRAFT) // 초기 상태는 임시저장
+                .status(Status.DRAFT)
                 .penaltyPolicy(penaltyPolicy)
                 .startDate(startDate)
                 .endDate(endDate)

@@ -84,7 +84,7 @@ public class StudyController {
             @PageableDefault(size = 20) Pageable pageable) {
 
         log.info("API 호출 - 스터디 검색 : keyword={}, topic={}",
-                condition.getKeyword(), condition.getTopic());
+                condition.getKeyword(), condition.getTopicId());
 
         Page<Study> studies = studyService.searchStudies(condition, pageable);
 

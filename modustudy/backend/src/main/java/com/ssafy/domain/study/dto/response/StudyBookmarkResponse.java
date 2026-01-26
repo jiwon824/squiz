@@ -22,18 +22,61 @@ public class StudyBookmarkResponse {
 
     // 스터디 정보 (목록 조회 시)
     private String studyName;
-    private String studyTopic;
     private String studyDescription;
     private String studyStatus;
     private String meetingType;
     private Integer maxMembers;
     private String difficulty;
 
+    // ========== 카테고리 정보 ==========
+    private TopicInfo topic;
+    private FormatInfo format;
+
     // 북마크 통계
     private Long bookmarkCount;
 
     // 북마크 여부 (스터디 목록에서 사용)
     private Boolean isBookmarked;
+
+    // ========== 내부 DTO 클래스 ==========
+
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class TopicInfo {
+        private Long id;
+        private String name;
+        private String parentName;  // 대분류명
+
+        public static TopicInfo from(com.ssafy.domain.study.entity.Topic topic) {
+            if (topic == null) return null;
+
+            return TopicInfo.builder()
+                    .id(topic.getId())
+                    .name(topic.getName())
+                    .parentName(topic.getParent() != null ? topic.getParent().getName() : null)
+                    .build();
+        }
+    }
+
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class FormatInfo {
+        private Long id;
+        private String name;
+
+        public static FormatInfo from(com.ssafy.domain.study.entity.Format format) {
+            if (format == null) return null;
+
+            return FormatInfo.builder()
+                    .id(format.getId())
+                    .name(format.getName())
+                    .build();
+        }
+    }
 
     /**
      * 북마크만 (토글 응답용)
@@ -58,12 +101,13 @@ public class StudyBookmarkResponse {
                 .studyId(bookmark.getStudyId())
                 .createdAt(bookmark.getCreatedAt())
                 .studyName(study.getName())
-                .studyTopic(study.getTopic())
                 .studyDescription(study.getDescription())
                 .studyStatus(study.getStatus().name())
                 .meetingType(study.getMeetingType().name())
                 .maxMembers(study.getMaxMembers())
                 .difficulty(study.getDifficulty() != null ? study.getDifficulty().name() : null)
+                .topic(TopicInfo.from(study.getTopic()))
+                .format(FormatInfo.from(study.getFormat()))
                 .isBookmarked(true)
                 .build();
     }
@@ -78,12 +122,13 @@ public class StudyBookmarkResponse {
                 .studyId(bookmark.getStudyId())
                 .createdAt(bookmark.getCreatedAt())
                 .studyName(study.getName())
-                .studyTopic(study.getTopic())
                 .studyDescription(study.getDescription())
                 .studyStatus(study.getStatus().name())
                 .meetingType(study.getMeetingType().name())
                 .maxMembers(study.getMaxMembers())
                 .difficulty(study.getDifficulty() != null ? study.getDifficulty().name() : null)
+                .topic(TopicInfo.from(study.getTopic()))
+                .format(FormatInfo.from(study.getFormat()))
                 .bookmarkCount(bookmarkCount)
                 .isBookmarked(true)
                 .build();
