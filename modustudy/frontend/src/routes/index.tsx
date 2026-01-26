@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import { Skeleton } from '../shared/components';
 
 // 즉시 로드: 랜딩 및 핵심 페이지
@@ -84,7 +84,7 @@ const AdminDashboardPage = lazy(() =>
 );
 
 export const AppRouter = () => {
-    const { login, logout, setInitialized } = useAuthStore();
+    const { login, logout, isInitialized, setInitialized } = useAuthStore();
 
     useEffect(() => {
         const initAuth = async () => {
@@ -114,52 +114,54 @@ export const AppRouter = () => {
         initAuth();
     }, [login, logout, setInitialized]);
 
-    return (
-        <BrowserRouter>
-            <Suspense fallback={<div className="p-6"><Skeleton variant="rect" height="100vh" /></div>}>
-                <Routes>
-                    {/* 즉시 로드 페이지 */}
-                    <Route path="/" element={<StartPage />} />
-                    <Route path="/startpage" element={<StartPage />} />
-                    <Route path="/dashboard" element={
-                        <Suspense fallback={<DashboardSkeleton />}>
-                            <Dashboard />
-                        </Suspense>
-                    } />
-                    <Route path="/calendar-expand" element={<CalendarExpandWidget />} />
-                    <Route path="/calendar" element={<CalendarPage />} />
-                    <Route path="/test-calendar" element={<CalendarTestPage />} />
-                    <Route path="/reuse-test" element={<ReuseTest />} />
+    if (!isInitialized) {
+        return <div className="p-6"><Skeleton variant="rect" height="100vh" /></div>;
+    }
 
-                    {/* Lazy 로드 페이지 */}
-                    <Route path="/login" element={<LoginPage />} />
-                    <Route path="/login/callback" element={<LoginCallbackPage />} />
-                    <Route path="/password/reset" element={<PasswordResetPage />} />
-                    <Route path="/signup" element={<SignupPage />} />
-                    <Route path="/quiz" element={<QuizGameSelection />} />
-                    <Route path="/quiz-commentle" element={<CommentleQuiz />} />
-                    <Route path="/quiz-practice" element={<QuizCourseList />} />
-                    <Route path="/quiz-practice/:courseId" element={<CourseDetail />} />
-                    <Route path="/quiz-practice/:courseId/section/:sectionId/session" element={<QuizSessionPage />} />
-                    <Route path="/study" element={<StudyPage />} />
-                    <Route path="/study/create" element={<StudyTypeSelectPage />} />
-                    <Route path="/study/create/planned" element={<StudyCreatePage />} />
-                    <Route path="/study/create/lightning" element={<LightningStudyCreatePage />} />
-                    <Route path="/study/:id" element={<StudyDetailPage />} />
-                    <Route path="/study/manage/:id" element={<StudyManagementPage />} />
-                    <Route path="/study/:studyId/meetings" element={<MeetingHistoryPage />} />
-                    <Route path="/study/:studyId/meetings/:meetingId" element={<MeetingDetailPage />} />
-                    <Route path="/study/:studyId/meetings/:meetingId/room" element={<MeetingRoomPage />} />
-                    <Route path="/recruitment" element={<RecruitmentPage />} />
-                    <Route path="/setting" element={<SettingPage />} />
-                    <Route path="/profile" element={
-                        <Suspense fallback={<ProfileSkeleton />}>
-                            <ProfilePage />
-                        </Suspense>
-                    } />
-                    <Route path="/admin" element={<AdminDashboardPage />} />
-                </Routes>
-            </Suspense>
-        </BrowserRouter>
+    return (
+        <Suspense fallback={<div className="p-6"><Skeleton variant="rect" height="100vh" /></div>}>
+            <Routes>
+                {/* 즉시 로드 페이지 */}
+                <Route path="/" element={<StartPage />} />
+                <Route path="/startpage" element={<StartPage />} />
+                <Route path="/dashboard" element={
+                    <Suspense fallback={<DashboardSkeleton />}>
+                        <Dashboard />
+                    </Suspense>
+                } />
+                <Route path="/calendar-expand" element={<CalendarExpandWidget />} />
+                <Route path="/calendar" element={<CalendarPage />} />
+                <Route path="/test-calendar" element={<CalendarTestPage />} />
+                <Route path="/reuse-test" element={<ReuseTest />} />
+
+                {/* Lazy 로드 페이지 */}
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/login/callback" element={<LoginCallbackPage />} />
+                <Route path="/password/reset" element={<PasswordResetPage />} />
+                <Route path="/signup" element={<SignupPage />} />
+                <Route path="/quiz" element={<QuizGameSelection />} />
+                <Route path="/quiz-commentle" element={<CommentleQuiz />} />
+                <Route path="/quiz-practice" element={<QuizCourseList />} />
+                <Route path="/quiz-practice/:courseId" element={<CourseDetail />} />
+                <Route path="/quiz-practice/:courseId/section/:sectionId/session" element={<QuizSessionPage />} />
+                <Route path="/study" element={<StudyPage />} />
+                <Route path="/study/create" element={<StudyTypeSelectPage />} />
+                <Route path="/study/create/planned" element={<StudyCreatePage />} />
+                <Route path="/study/create/lightning" element={<LightningStudyCreatePage />} />
+                <Route path="/study/:id" element={<StudyDetailPage />} />
+                <Route path="/study/manage/:id" element={<StudyManagementPage />} />
+                <Route path="/study/:studyId/meetings" element={<MeetingHistoryPage />} />
+                <Route path="/study/:studyId/meetings/:meetingId" element={<MeetingDetailPage />} />
+                <Route path="/study/:studyId/meetings/:meetingId/room" element={<MeetingRoomPage />} />
+                <Route path="/recruitment" element={<RecruitmentPage />} />
+                <Route path="/setting" element={<SettingPage />} />
+                <Route path="/profile" element={
+                    <Suspense fallback={<ProfileSkeleton />}>
+                        <ProfilePage />
+                    </Suspense>
+                } />
+                <Route path="/admin" element={<AdminDashboardPage />} />
+            </Routes>
+        </Suspense>
     );
 };

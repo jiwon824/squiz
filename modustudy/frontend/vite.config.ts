@@ -15,15 +15,24 @@ export default defineConfig({
         },
     },
     server: {
+        allowedHosts: true,
         host: '0.0.0.0',
         port: 3000,
         open: true,
         proxy: {
             '/api': {
-                target: 'http://localhost:5000',
+                target: 'http://localhost:8080',
                 changeOrigin: true,
                 secure: false,
-            }
+                // 도메인 변환: 서버가 8080 포트용으로 발행한 쿠키를 Vite가 중간에서 가로채 modustudy.local용으로 이름을 바꿔줌
+                cookieDomainRewrite: 'modustudy.local',
+            },
+            '/oauth2': {
+                target: 'http://localhost:8080',
+                changeOrigin: true,
+                secure: false,
+                cookieDomainRewrite: 'modustudy.local',
+            },
         },
         https: (() => {
             const certPath = process.env.VITE_HTTPS_CERT

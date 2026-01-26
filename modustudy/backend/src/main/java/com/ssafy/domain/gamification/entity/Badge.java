@@ -59,5 +59,6 @@ public class Badge extends BaseEntity {
      * 목록 정렬 우선순위.
      */
     @Column(name = "sort_order")
+    @Builder.Default
     private Integer sortOrder = 0;
 }
