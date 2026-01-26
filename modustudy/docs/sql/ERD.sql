@@ -346,6 +346,25 @@ CREATE TABLE `study_leader_review` (
     UNIQUE KEY `uk_study_reviewer` (`study_id`, `reviewer_id`)
 );
 
+CREATE TABLE `format` (
+    `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
+    `name` VARCHAR(50) NOT NULL,
+    `description` VARCHAR(200),
+    `icon` VARCHAR(50),
+    `sort_order` INT DEFAULT 0,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE `topic` (
+    `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
+    `name` VARCHAR(50) NOT NULL,
+    `parent_id` BIGINT NULL,                     -- 대분류는 NULL, 소분류는 대분류 ID
+    `icon` VARCHAR(50),
+    `sort_order` INT DEFAULT 0,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (`parent_id`) REFERENCES `topic`(`id`) ON DELETE SET NULL
+);
+
 -- =============================================
 -- 3. 워크스페이스/채팅
 -- =============================================
