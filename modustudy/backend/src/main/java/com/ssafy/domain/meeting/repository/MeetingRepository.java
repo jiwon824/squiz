@@ -21,6 +21,7 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
               and (:meetingType is null or m.meetingType = :meetingType)
               and (:startAt is null or m.startedAt >= :startAt)
               and (:endAt is null or m.startedAt <= :endAt)
+            order by m.startedAt desc
             """)
     Page<Meeting> searchMeetings(@Param("studyId") Long studyId,
                                  @Param("meetingType") MeetingType meetingType,

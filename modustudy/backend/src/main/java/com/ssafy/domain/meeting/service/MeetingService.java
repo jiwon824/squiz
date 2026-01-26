@@ -45,12 +45,15 @@ import com.lowagie.text.Image;
 import com.lowagie.text.Paragraph;
 import com.lowagie.text.pdf.BaseFont;
 import com.lowagie.text.pdf.PdfWriter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.beans.factory.annotation.Value;
 
@@ -62,13 +65,18 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
+import java.nio.file.Paths;
 
 @Service
 @RequiredArgsConstructor
 public class MeetingService {
+
+    private static final Logger log = LoggerFactory.getLogger(MeetingService.class);
 
     private final MeetingRepository meetingRepository;
     private final MeetingParticipantRepository meetingParticipantRepository;
@@ -82,6 +90,7 @@ public class MeetingService {
     private final ObjectMapper objectMapper;
     private final SfuProperties sfuProperties;
     private final LocalFileStorageService localFileStorageService;
+    private final RestTemplate restTemplate;
     @Value("${meeting.pdf.font-path:}")
     private String pdfFontPath;
 
@@ -166,6 +175,7 @@ public class MeetingService {
         Meeting meeting = Meeting.start(studyId, request.sessionId(), request.channelId(),
                 request.title(), meetingType, autoShareSummary, request.shareChannelId(), LocalDateTime.now());
         Meeting saved = meetingRepository.save(meeting);
+        triggerSfuRecordingStart(saved);
         return new MeetingResponse(saved.getId(), saved.getTitle(), buildRoomToken(saved), saved.getStatus().name(),
                 saved.getMeetingType().name(), saved.getRecordingStatus().name(), saved.getSttStatus().name(),
                 resolveSummaryStatus(saved).name());
@@ -187,6 +197,7 @@ public class MeetingService {
         int participantCount = participants.size();
         meeting.end(endedAt, participantCount);
         meeting.updateSummaryStatus(SummaryStatus.PROCESSING);
+        completeSfuRecording(meeting);
         return new MeetingEndResponse(meeting.getDurationSeconds(), meeting.getParticipantCount(),
                 meeting.getSummaryStatus().name());
     }
@@ -197,6 +208,7 @@ public class MeetingService {
         if (meeting.getStatus() == MeetingStatus.ENDED) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "MEETING_ALREADY_ENDED");
         }
+        boolean firstJoin = meeting.getParticipantCount() == null || meeting.getParticipantCount() == 0;
         MeetingParticipant participant = meetingParticipantRepository.findTopByMeetingIdAndUserIdOrderByJoinedAtDesc(meetingId, userId)
                 .orElseGet(() -> MeetingParticipant.join(meetingId, userId, LocalDateTime.now()));
         if (participant.getId() != null) {
@@ -204,6 +216,9 @@ public class MeetingService {
         }
         meetingParticipantRepository.save(participant);
         meeting.updateParticipantCount(meetingParticipantRepository.countByMeetingId(meetingId));
+        if (firstJoin) {
+            triggerSfuRecordingStart(meeting);
+        }
         // Provide ICE servers for WebRTC clients to connect to the SFU.
         List<MeetingIceServerResponse> iceServers = sfuProperties.getIceServers().stream()
                 .filter(server -> server.getUrls() != null && !server.getUrls().isBlank())
@@ -802,6 +817,97 @@ public class MeetingService {
 
     private SummaryStatus resolveSummaryStatus(Meeting meeting) {
         return meeting.getSummaryStatus() == null ? SummaryStatus.PENDING : meeting.getSummaryStatus();
+    }
+
+    private void triggerSfuRecordingStart(Meeting meeting) {
+        String controlUrl = resolveSfuControlUrl();
+        if (controlUrl == null || controlUrl.isBlank()) {
+            log.warn("SFU control URL is not configured. Skip recording start. meetingId={}", meeting.getId());
+            return;
+        }
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("roomId", buildRoomToken(meeting));
+        payload.put("meetingId", meeting.getId());
+        try {
+            Map response = restTemplate.postForObject(controlUrl + "/recordings/start", payload, Map.class);
+            log.info("SFU recording started. meetingId={} response={}", meeting.getId(), response);
+        } catch (Exception e) {
+            log.warn("SFU recording start failed. meetingId={} controlUrl={} error={}", meeting.getId(), controlUrl, e.toString());
+            meeting.updateRecordingStatus(RecordingStatus.FAILED);
+        }
+    }
+
+    private void completeSfuRecording(Meeting meeting) {
+        String controlUrl = resolveSfuControlUrl();
+        if (controlUrl == null || controlUrl.isBlank()) {
+            log.warn("SFU control URL is not configured. Skip recording stop. meetingId={}", meeting.getId());
+            return;
+        }
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("roomId", buildRoomToken(meeting));
+        try {
+            Map response = restTemplate.postForObject(controlUrl + "/recordings/stop", payload, Map.class);
+            if (response == null) {
+                log.warn("SFU recording stop returned null response. meetingId={}", meeting.getId());
+                meeting.updateRecordingStatus(RecordingStatus.FAILED);
+                return;
+            }
+            Object outputPathValue = response.get("outputPath");
+            Object fileSizeValue = response.get("fileSize");
+            log.info("SFU recording stopped. meetingId={} response={}", meeting.getId(), response);
+            String recordingUrl = resolveRecordingUrl(outputPathValue == null ? null : String.valueOf(outputPathValue));
+            Long fileSize = fileSizeValue == null ? null : Long.parseLong(String.valueOf(fileSizeValue));
+            if (recordingUrl == null) {
+                log.warn("SFU recording output path invalid. meetingId={} outputPath={}", meeting.getId(), outputPathValue);
+                meeting.updateRecordingStatus(RecordingStatus.FAILED);
+                return;
+            }
+            MeetingRecordingRequest request = new MeetingRecordingRequest(
+                    recordingUrl,
+                    "webm",
+                    meeting.getDurationSeconds(),
+                    meeting.getStartedAt(),
+                    meeting.getEndedAt(),
+                    fileSize,
+                    RecordingStatus.READY
+            );
+            upsertRecording(meeting.getStudyId(), meeting.getId(), request);
+        } catch (Exception e) {
+            log.warn("SFU recording stop failed. meetingId={} controlUrl={} error={}", meeting.getId(), controlUrl, e.toString());
+            meeting.updateRecordingStatus(RecordingStatus.FAILED);
+        }
+    }
+
+    private String resolveSfuControlUrl() {
+        String controlUrl = sfuProperties.getControlUrl();
+        if (controlUrl != null && !controlUrl.isBlank()) {
+            return controlUrl;
+        }
+        String baseUrl = sfuProperties.getBaseUrl();
+        if (baseUrl == null || baseUrl.isBlank()) {
+            return null;
+        }
+        if (baseUrl.startsWith("wss://")) {
+            return "https://" + baseUrl.substring(6);
+        }
+        if (baseUrl.startsWith("ws://")) {
+            return "http://" + baseUrl.substring(5);
+        }
+        return baseUrl;
+    }
+
+    private String resolveRecordingUrl(String outputPath) {
+        if (outputPath == null || outputPath.isBlank()) {
+            return null;
+        }
+        Path basePath = localFileStorageService.getBasePath().toAbsolutePath().normalize();
+        Path resolved = Paths.get(outputPath).toAbsolutePath().normalize();
+        if (!resolved.startsWith(basePath)) {
+            return null;
+        }
+        Path relative = basePath.relativize(resolved);
+        String normalized = relative.toString().replace("\\", "/");
+        return "/uploads/" + normalized;
     }
 
     private BaseFont resolvePdfBaseFont() throws IOException, DocumentException {

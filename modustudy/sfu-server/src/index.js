@@ -6,8 +6,10 @@ const { Server } = require('socket.io');
 const mediasoup = require('mediasoup');
 const config = require('./config');
 const fs = require('fs');
+const { createRecordingManager } = require('./recordingManager');
 
 const app = express();
+app.use(express.json({ limit: '1mb' }));
 const useHttps = String(process.env.SFU_USE_HTTPS ?? 'true').toLowerCase() !== 'false';
 let server;
 if (useHttps) {
@@ -38,6 +40,7 @@ const io = new Server(server, {
 
 const rooms = new Map();
 let worker;
+let recordingManager;
 
 async function createWorker() {
   worker = await mediasoup.createWorker({
@@ -69,7 +72,7 @@ function getPeer(room, socketId) {
 
 function cleanPeer(peer) {
   peer.consumers.forEach((consumer) => consumer.close());
-  peer.producers.forEach((producer) => producer.close());
+  peer.producers.forEach((entry) => entry.producer.close());
   peer.transports.forEach((transport) => transport.close());
 }
 
@@ -77,8 +80,8 @@ function listProducers(room, excludeSocketId) {
   const producerInfos = [];
   room.peers.forEach((peer, peerId) => {
     if (peerId === excludeSocketId) return;
-    peer.producers.forEach((producer) => {
-      producerInfos.push({ producerId: producer.id, peerId, kind: producer.kind });
+    peer.producers.forEach((entry) => {
+      producerInfos.push({ producerId: entry.producer.id, peerId, kind: entry.kind });
     });
   });
   return producerInfos;
@@ -117,16 +120,30 @@ io.on('connection', (socket) => {
       }
       const transport = await room.router.createWebRtcTransport({
         listenIps,
-        enableUdp: true,
-        enableTcp: true,
-        preferUdp: true,
+        enableUdp: config.rtcEnableUdp,
+        enableTcp: config.rtcEnableTcp,
+        preferUdp: config.rtcPreferUdp,
         initialAvailableOutgoingBitrate: 1000000
+      });
+      // eslint-disable-next-line no-console
+      console.log('[webrtc] transport created', { roomId, transportId: transport.id, direction: 'client' });
+
+      transport.on('connectionstatechange', (state) => {
+        // eslint-disable-next-line no-console
+        console.log('[webrtc] transport state', { roomId, transportId: transport.id, state });
+      });
+
+      transport.on('icestatechange', (state) => {
+        // eslint-disable-next-line no-console
+        console.log('[webrtc] transport ice', { roomId, transportId: transport.id, state });
       });
 
       const peer = getPeer(room, socket.id);
       peer.transports.set(transport.id, transport);
 
       transport.on('dtlsstatechange', (dtlsState) => {
+        // eslint-disable-next-line no-console
+        console.log('[webrtc] transport dtls', { roomId, transportId: transport.id, dtlsState });
         if (dtlsState === 'closed') {
           transport.close();
         }
@@ -165,20 +182,26 @@ io.on('connection', (socket) => {
       if (kind === 'video') {
         const existingVideoProducer = Array.from(peer.producers.values()).find((item) => item.kind === 'video');
         if (existingVideoProducer) {
-          existingVideoProducer.close();
-          peer.producers.delete(existingVideoProducer.id);
-          socket.to(roomId).emit('producerClosed', { producerId: existingVideoProducer.id, peerId: socket.id });
+          existingVideoProducer.producer.close();
+          peer.producers.delete(existingVideoProducer.producer.id);
+          socket.to(roomId).emit('producerClosed', { producerId: existingVideoProducer.producer.id, peerId: socket.id });
         }
       }
       const producer = await transport.produce({ kind, rtpParameters });
-      peer.producers.set(producer.id, producer);
+      peer.producers.set(producer.id, { producer, kind, createdAt: Date.now() });
 
       producer.on('transportclose', () => {
         producer.close();
         peer.producers.delete(producer.id);
+        if (recordingManager) {
+          recordingManager.onProducersChanged(roomId);
+        }
       });
 
       socket.to(roomId).emit('newProducer', { producerId: producer.id, producerPeerId: socket.id, kind });
+      if (recordingManager) {
+        recordingManager.onProducersChanged(roomId);
+      }
       callback({ producerId: producer.id });
     } catch (err) {
       callback({ error: err.message });
@@ -193,14 +216,17 @@ io.on('connection', (socket) => {
         return;
       }
       const peer = getPeer(room, socket.id);
-      const producer = peer?.producers.get(producerId);
-      if (!producer) {
+      const entry = peer?.producers.get(producerId);
+      if (!entry) {
         callback({ closed: false });
         return;
       }
-      producer.close();
+      entry.producer.close();
       peer.producers.delete(producerId);
       socket.to(roomId).emit('producerClosed', { producerId, peerId: socket.id });
+      if (recordingManager) {
+        recordingManager.onProducersChanged(roomId);
+      }
       callback({ closed: true });
     } catch (err) {
       callback({ error: err.message });
@@ -283,11 +309,54 @@ io.on('connection', (socket) => {
       cleanPeer(peer);
       room.peers.delete(socket.id);
       socket.to(roomId).emit('peerLeft', { peerId: socket.id });
-      if (room.peers.size === 0) {
+      if (recordingManager) {
+        recordingManager.onProducersChanged(roomId);
+      }
+      if (room.peers.size === 0 && !(recordingManager && recordingManager.recordings.has(roomId))) {
         rooms.delete(roomId);
       }
     });
   });
+});
+
+app.post('/recordings/start', async (req, res) => {
+  try {
+    const { roomId, meetingId } = req.body || {};
+    if (!roomId || !meetingId) {
+      res.status(400).json({ error: 'roomId and meetingId required' });
+      return;
+    }
+    // eslint-disable-next-line no-console
+    console.log('[recording] start request', { roomId, meetingId });
+    const result = await recordingManager.startRecording({ roomId, meetingId });
+    // eslint-disable-next-line no-console
+    console.log('[recording] start response', { roomId, result });
+    res.json(result);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('[recording] start failed', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/recordings/stop', async (req, res) => {
+  try {
+    const { roomId } = req.body || {};
+    if (!roomId) {
+      res.status(400).json({ error: 'roomId required' });
+      return;
+    }
+    // eslint-disable-next-line no-console
+    console.log('[recording] stop request', { roomId });
+    const result = await recordingManager.stopRecording({ roomId });
+    // eslint-disable-next-line no-console
+    console.log('[recording] stop response', { roomId, result });
+    res.json(result);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('[recording] stop failed', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.get('/health', (req, res) => {
@@ -296,6 +365,7 @@ app.get('/health', (req, res) => {
 
 createWorker()
   .then(() => {
+    recordingManager = createRecordingManager({ getOrCreateRoom, rooms, config });
     server.listen(config.port, () => {
       // eslint-disable-next-line no-console
       console.log(`SFU server listening on ${config.port}`);

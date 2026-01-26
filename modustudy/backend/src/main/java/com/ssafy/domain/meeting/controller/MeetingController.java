@@ -20,6 +20,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -47,7 +49,7 @@ public class MeetingController {
             @RequestParam(required = false) MeetingType meetingType,
             @RequestParam(required = false) LocalDate startDate,
             @RequestParam(required = false) LocalDate endDate,
-            Pageable pageable
+            @PageableDefault(sort = "startedAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
         Page<MeetingListItemResponse> page = meetingService.listMeetings(studyId, meetingType, startDate, endDate, pageable);
         return ResponseEntity.ok(PageResponse.of(page));

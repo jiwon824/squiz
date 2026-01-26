@@ -8,6 +8,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class SfuProperties {
     // SFU endpoint and ICE server configuration for WebRTC clients.
     private String baseUrl;
+    private String controlUrl;
     private List<IceServer> iceServers = new ArrayList<>();
 
     public String getBaseUrl() {
@@ -16,6 +17,14 @@ public class SfuProperties {
 
     public void setBaseUrl(String baseUrl) {
         this.baseUrl = baseUrl;
+    }
+
+    public String getControlUrl() {
+        return controlUrl;
+    }
+
+    public void setControlUrl(String controlUrl) {
+        this.controlUrl = controlUrl;
     }
 
     public List<IceServer> getIceServers() {

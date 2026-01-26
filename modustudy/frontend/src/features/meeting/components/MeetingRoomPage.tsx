@@ -88,11 +88,11 @@ const MeetingRoomPage: React.FC = () => {
     const [pipPosition] = useState<PipPosition>('bottom-right');
     const [localStream, setLocalStream] = useState<MediaStream | null>(null);
     const [remoteVideoStreams, setRemoteVideoStreams] = useState<RemoteVideoStream[]>([]);
-    const [isRecording, setIsRecording] = useState(false);
     const [photoCount, setPhotoCount] = useState(0);
     const [isCapturing, setIsCapturing] = useState(false);
     const [roomGuardStatus, setRoomGuardStatus] = useState<'checking' | 'ok' | 'blocked'>('checking');
     const [roomGuardMessage, setRoomGuardMessage] = useState('회의 정보를 확인 중입니다.');
+    const [sfuReady, setSfuReady] = useState(false);
 
     const aiVideoRef = useRef<HTMLVideoElement | null>(null);
     const videoStageRef = useRef<HTMLDivElement | null>(null);
@@ -100,8 +100,6 @@ const MeetingRoomPage: React.FC = () => {
     const micEnabledRef = useRef(micEnabled);
     const speakingRef = useRef(false);
     const presenceRef = useRef(false);
-    const recordingRef = useRef(false);
-    const recordingDisabledRef = useRef(false);
     const prevPresenterRef = useRef(false);
     const publishedVideoTrackIdRef = useRef<string | null>(null);
     const publishedAudioTrackIdRef = useRef<string | null>(null);
@@ -807,6 +805,12 @@ const MeetingRoomPage: React.FC = () => {
         }
     }, [isPresenter, updateOutgoingAudio, updateOutgoingVideo]);
 
+    useEffect(() => {
+        if (!isPresenter) return;
+        if (shareModeRef.current !== null) return;
+        void handleShareModeChange('camera');
+    }, [handleShareModeChange, isPresenter]);
+
 
     useEffect(() => {
         const wasPresenter = prevPresenterRef.current;
@@ -818,6 +822,15 @@ const MeetingRoomPage: React.FC = () => {
             }
         }
     }, [cameraEnabled, isPresenter, stopCameraPublish, stopScreenShare]);
+
+    useEffect(() => {
+        if (!sfuReady || !isPresenter) return;
+        if (shareModeRef.current === null) {
+            void handleShareModeChange('camera');
+            return;
+        }
+        void updateOutgoingVideo({ publish: true });
+    }, [handleShareModeChange, isPresenter, sfuReady, updateOutgoingVideo]);
 
     useEffect(() => {
         void ensureCameraStream(false);
@@ -1087,6 +1100,7 @@ const MeetingRoomPage: React.FC = () => {
                     onPeerLeft: handlePeerLeft,
                     onProducerClosed: handleProducerClosed,
                 });
+                setSfuReady(true);
                 if (!cancelled && micEnabledRef.current) {
                     await startMicrophone();
                 }
@@ -1106,6 +1120,7 @@ const MeetingRoomPage: React.FC = () => {
             if (sfuClientRef.current) {
                 sfuClientRef.current.close();
             }
+            setSfuReady(false);
             if (aiDetectionCleanupRef.current) {
                 aiDetectionCleanupRef.current();
                 aiDetectionCleanupRef.current = null;
@@ -1154,45 +1169,6 @@ const MeetingRoomPage: React.FC = () => {
             .catch(() => setPhotoCount(0));
     }, [numericMeetingId, numericStudyId]);
 
-    useEffect(() => {
-        if (recordingDisabledRef.current) return;
-        if (!localStream || recordingRef.current) return;
-        const audioTracks = localMicStreamRef.current?.getAudioTracks() ?? [];
-        const videoTracks = localStream.getVideoTracks();
-        const combined = new MediaStream([...audioTracks, ...videoTracks]);
-        if (combined.getTracks().length === 0) return;
-        let recorder: MediaRecorder | null = null;
-        let stopped = false;
-        const tryStart = () => {
-            const mimeTypes = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
-            const supported = mimeTypes.find((type) => MediaRecorder.isTypeSupported(type));
-            if (!supported) {
-                recordingDisabledRef.current = true;
-                return;
-            }
-            try {
-                recorder = new MediaRecorder(combined, supported ? { mimeType: supported } : undefined);
-                recorder.start();
-                recordingRef.current = true;
-                setIsRecording(true);
-            } catch (error) {
-                console.error('Failed to start MediaRecorder', error);
-                recordingDisabledRef.current = true;
-            }
-        };
-        tryStart();
-
-        return () => {
-            if (stopped) return;
-            stopped = true;
-            if (recorder && recorder.state !== 'inactive') {
-                recorder.stop();
-            }
-            recordingRef.current = false;
-            setIsRecording(false);
-        };
-    }, [localStream]);
-
     if (roomGuardStatus !== 'ok') {
         return (
             <MainLayout>
@@ -1231,7 +1207,6 @@ const MeetingRoomPage: React.FC = () => {
                         <div className="meeting-room__meta-right">
                             <div className="meeting-room__status">
                                 <span>{isPresenter ? '발표자 모드' : '참가자 모드'}</span>
-                                {isRecording && <span className="meeting-room__recording">녹화 중</span>}
                             </div>
                             <button className="meeting-btn ghost" onClick={() => navigate(meetingListPath)}>
                                 목록으로

@@ -97,6 +97,9 @@ export const createSfuClient = (baseUrl: string) => {
                 .then(() => callback())
                 .catch(errback);
         });
+        transport.on('connectionstatechange', (state) => {
+            console.log('[sfu] send transport state', state);
+        });
         transport.on('produce', ({ kind, rtpParameters }, callback, errback) => {
             request('produce', { roomId, transportId: transport.id, kind, rtpParameters })
                 .then(({ producerId }) => callback({ id: producerId }))
@@ -112,6 +115,9 @@ export const createSfuClient = (baseUrl: string) => {
             request('connectWebRtcTransport', { roomId, transportId: transport.id, dtlsParameters })
                 .then(() => callback())
                 .catch(errback);
+        });
+        transport.on('connectionstatechange', (state) => {
+            console.log('[sfu] recv transport state', state);
         });
         return transport;
     };
