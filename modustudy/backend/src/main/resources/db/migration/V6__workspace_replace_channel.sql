@@ -5,6 +5,9 @@
 -- - channel 테이블 삭제
 -- =============================================
 
+-- 0. 외래키 체크 임시 비활성화
+SET FOREIGN_KEY_CHECKS = 0;
+
 -- 1. workspace 테이블 생성
 CREATE TABLE IF NOT EXISTS `workspace` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -48,3 +51,6 @@ CREATE INDEX `idx_message_created_at` ON `message` (`created_at`);
 
 -- 10. channel 테이블 삭제
 DROP TABLE IF EXISTS `channel`;
+
+-- 11. 외래키 체크 재활성화
+SET FOREIGN_KEY_CHECKS = 1;
