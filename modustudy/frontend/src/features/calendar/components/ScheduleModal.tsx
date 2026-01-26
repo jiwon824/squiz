@@ -1,7 +1,10 @@
 import { useEffect } from 'react';
-import { Modal, Button, Input } from '@/shared/components';
+import { Modal, Button, Input, DatePicker, TimePicker } from '@/shared/components';
 import { UnifiedSchedule } from '../types';
 import { useScheduleForm } from '../hooks';
+import {
+    Tag, AlignLeft, Calendar as CalendarIcon, Clock, MapPin
+} from 'lucide-react';
 
 interface ScheduleModalProps {
     isOpen: boolean;
@@ -64,105 +67,97 @@ export const ScheduleModal = ({ isOpen, onClose, schedule, initialDate }: Schedu
                 </div>
 
                 {/* 폼 */}
-                <div className="space-y-4">
+                <div className="space-y-6">
                     {/* 제목 */}
-                    <Input
-                        label="제목 *"
-                        type="text"
-                        value={formData.title}
-                        onChange={(e) => handleChange('title', e.target.value)}
-                        error={errors.title}
-                        placeholder="일정 제목을 입력하세요"
-                    />
+                    <div className="space-y-1.5">
+                        <label className="flex items-center gap-2 text-sm font-bold text-gray-700 ml-1">
+                            <Tag size={16} className="text-blue-500" />
+                            제목 *
+                        </label>
+                        <Input
+                            type="text"
+                            value={formData.title}
+                            onChange={(e) => handleChange('title', e.target.value)}
+                            error={errors.title}
+                            placeholder="예: 알고리즘 문제 풀이, 프로젝트 회의"
+                            className="text-base"
+                        />
+                    </div>
 
                     {/* 설명 */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <div className="space-y-1.5">
+                        <label className="flex items-center gap-2 text-sm font-bold text-gray-700 ml-1">
+                            <AlignLeft size={16} className="text-blue-500" />
                             설명
                         </label>
                         <textarea
                             value={formData.description || ''}
                             onChange={(e) => handleChange('description', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                            className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none resize-none min-h-[100px]"
                             rows={3}
-                            placeholder="일정 설명을 입력하세요"
+                            placeholder="일정에 대한 상세 내용을 입력하세요"
                         />
                     </div>
 
                     {/* 날짜 및 시간 */}
                     <div className="grid grid-cols-2 gap-4">
-                        <Input
-                            label="시작 날짜 *"
-                            type="date"
-                            value={formData.startDate}
-                            onChange={(e) => handleChange('startDate', e.target.value)}
-                            error={errors.startDate}
-                        />
-                        <Input
-                            label="시작 시간"
-                            type="time"
-                            value={formData.startTime || ''}
-                            onChange={(e) => handleChange('startTime', e.target.value)}
-                            error={errors.startTime}
-                        />
+                        <div className="space-y-1.5">
+                            <label className="flex items-center gap-2 text-sm font-bold text-gray-700 ml-1">
+                                <CalendarIcon size={16} className="text-blue-500" />
+                                시작 날짜 *
+                            </label>
+                            <DatePicker
+                                value={formData.startDate}
+                                onChange={(date) => handleChange('startDate', date)}
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="flex items-center gap-2 text-sm font-bold text-gray-700 ml-1">
+                                <Clock size={16} className="text-blue-500" />
+                                시작 시간
+                            </label>
+                            <TimePicker
+                                value={formData.startTime || ''}
+                                onChange={(time) => handleChange('startTime', time)}
+                            />
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                        <Input
-                            label="종료 날짜"
-                            type="date"
-                            value={formData.endDate || ''}
-                            onChange={(e) => handleChange('endDate', e.target.value)}
-                            error={errors.endDate}
-                        />
-                        <Input
-                            label="종료 시간"
-                            type="time"
-                            value={formData.endTime || ''}
-                            onChange={(e) => handleChange('endTime', e.target.value)}
-                            error={errors.endTime}
-                        />
+                        <div className="space-y-1.5">
+                            <label className="flex items-center gap-2 text-sm font-bold text-gray-700 ml-1">
+                                <CalendarIcon size={16} className="text-gray-400" />
+                                종료 날짜
+                            </label>
+                            <DatePicker
+                                value={formData.endDate || ''}
+                                onChange={(date) => handleChange('endDate', date)}
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="flex items-center gap-2 text-sm font-bold text-gray-700 ml-1">
+                                <Clock size={16} className="text-gray-400" />
+                                종료 시간
+                            </label>
+                            <TimePicker
+                                value={formData.endTime || ''}
+                                onChange={(time) => handleChange('endTime', time)}
+                            />
+                        </div>
                     </div>
 
                     {/* 장소 */}
-                    <Input
-                        label="장소"
-                        type="text"
-                        value={formData.location || ''}
-                        onChange={(e) => handleChange('location', e.target.value)}
-                        placeholder="장소를 입력하세요"
-                    />
-
-                    {/* 온라인 여부 */}
-                    <div className="flex items-center gap-3">
-                        <input
-                            type="checkbox"
-                            id="isOnline"
-                            checked={formData.isOnline}
-                            onChange={(e) => handleChange('isOnline', e.target.checked)}
-                            className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                    <div className="space-y-1.5">
+                        <label className="flex items-center gap-2 text-sm font-bold text-gray-700 ml-1">
+                            <MapPin size={16} className="text-blue-500" />
+                            장소
+                        </label>
+                        <Input
+                            type="text"
+                            value={formData.location || ''}
+                            onChange={(e) => handleChange('location', e.target.value)}
+                            placeholder="오프라인 장소 또는 링크를 입력하세요"
                         />
-                        <label htmlFor="isOnline" className="text-sm font-medium text-gray-700">
-                            온라인 일정
-                        </label>
-                    </div>
-
-                    {/* 색상 */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            색상
-                        </label>
-                        <div className="flex items-center gap-3">
-                            <input
-                                type="color"
-                                value={formData.color || '#4285F4'}
-                                onChange={(e) => handleChange('color', e.target.value)}
-                                className="w-12 h-12 rounded-lg border border-gray-300 cursor-pointer"
-                            />
-                            <span className="text-sm text-gray-600">
-                                {formData.color || '#4285F4'}
-                            </span>
-                        </div>
                     </div>
                 </div>
 
