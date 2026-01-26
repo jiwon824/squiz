@@ -7,6 +7,7 @@ import { DateScheduleListModal } from './DateScheduleListModal';
 import { UnifiedSchedule } from '../types';
 import { Button } from '@/shared/components';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { DailyGoalsWidget } from '@/features/dashboard/components';
 
 /**
  * 캘린더 컴포넌트 테스트 페이지
@@ -137,9 +138,10 @@ export const CalendarTestPage = () => {
                 </div>
 
                 {/* 컨트롤 바 */}
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 mb-6">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 md:p-4 mb-4 md:mb-6">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        {/* 날짜 네비게이션 */}
+                        <div className="flex items-center justify-between md:justify-start gap-2 md:gap-4 w-full md:w-auto">
                             <Button
                                 variant="primary"
                                 size="sm"
@@ -147,14 +149,14 @@ export const CalendarTestPage = () => {
                             >
                                 오늘
                             </Button>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center flex-1 md:flex-none justify-center gap-2">
                                 <Button
                                     variant="ghost"
                                     size="sm"
                                     onClick={handlePrevMonth}
                                     leftIcon={<ChevronLeft size={20} />}
                                 />
-                                <span className="text-xl font-bold text-gray-900 min-w-[200px] text-center">
+                                <span className="text-lg md:text-xl font-bold text-gray-900 min-w-[140px] md:min-w-[200px] text-center">
                                     {currentDate.getFullYear()}년 {currentDate.getMonth() + 1}월
                                 </span>
                                 <Button
@@ -166,33 +168,41 @@ export const CalendarTestPage = () => {
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-3">
-                            <div className="flex items-center gap-2 text-sm">
-                                <div className="w-3 h-3 bg-blue-500 rounded"></div>
-                                <span>개인</span>
+                        {/* 범례 (Legend) */}
+                        <div className="flex items-center justify-end gap-3 md:gap-4 overflow-x-auto pb-1 md:pb-0">
+                            <div className="flex items-center gap-1.5 text-xs md:text-sm whitespace-nowrap">
+                                <div className="w-2.5 h-2.5 md:w-3 md:h-3 bg-blue-500 rounded-full md:rounded"></div>
+                                <span className="text-gray-600">개인</span>
                             </div>
-                            <div className="flex items-center gap-2 text-sm">
-                                <div className="w-3 h-3 bg-green-500 rounded"></div>
-                                <span>스터디</span>
+                            <div className="flex items-center gap-1.5 text-xs md:text-sm whitespace-nowrap">
+                                <div className="w-2.5 h-2.5 md:w-3 md:h-3 bg-green-500 rounded-full md:rounded"></div>
+                                <span className="text-gray-600">스터디</span>
                             </div>
-                            <div className="flex items-center gap-2 text-sm">
-                                <div className="w-3 h-3 bg-red-500 rounded"></div>
-                                <span>Google</span>
+                            <div className="flex items-center gap-1.5 text-xs md:text-sm whitespace-nowrap">
+                                <div className="w-2.5 h-2.5 md:w-3 md:h-3 bg-red-500 rounded-full md:rounded"></div>
+                                <span className="text-gray-600">Google</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* 캘린더 */}
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                    <Calendar
-                        currentDate={currentDate}
-                        schedules={mockSchedules}
-                        onDateClick={handleDateClick}
-                        onQuickAdd={handleQuickAdd}
-                        onEventClick={handleEventClick}
-                        viewMode="monthly"
-                    />
+                <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+                    {/* 캘린더 */}
+                    <div className="xl:col-span-3 bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                        <Calendar
+                            currentDate={currentDate}
+                            schedules={mockSchedules}
+                            onDateClick={handleDateClick}
+                            onQuickAdd={handleQuickAdd}
+                            onEventClick={handleEventClick}
+                            viewMode="monthly"
+                        />
+                    </div>
+
+                    {/* 사이드 위젯 영역 */}
+                    <div className="space-y-6 xl:h-full">
+                        <DailyGoalsWidget date={selectedDate || new Date().toISOString().split('T')[0]} />
+                    </div>
                 </div>
 
                 {/* Mock 데이터 표시 */}
@@ -209,7 +219,7 @@ export const CalendarTestPage = () => {
                             >
                                 <div className="flex items-start gap-2">
                                     <div className={`w-2 h-2 rounded-full mt-1.5 ${schedule.source === 'personal' ? 'bg-blue-500' :
-                                            schedule.source === 'study' ? 'bg-green-500' : 'bg-red-500'
+                                        schedule.source === 'study' ? 'bg-green-500' : 'bg-red-500'
                                         }`}></div>
                                     <div>
                                         <p className="font-medium text-sm">{schedule.title}</p>

@@ -75,9 +75,9 @@ export const CalendarExpandWidget = () => {
             {/* 페이지 헤더 */}
             <header className="planner-header">
                 <div className="header-left">
-                    <BackButton 
-                        variant="icon-only" 
-                        onClick={() => navigate(-1)} 
+                    <BackButton
+                        variant="icon-only"
+                        onClick={() => navigate(-1)}
                     />
                     <div className="planner-date-display">
                         <span className="year-label">{currentDate.getFullYear()}</span>

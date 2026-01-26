@@ -55,9 +55,9 @@ const StudyManagementPage: React.FC = () => {
                 {/* 헤더 */}
                 <header className="mb-8">
                     <div className="flex items-center gap-2 mb-4">
-                        <BackButton 
-                            variant="icon-only" 
-                            onClick={() => navigate(`/study/${study.id}`)} 
+                        <BackButton
+                            variant="icon-only"
+                            onClick={() => navigate(`/study/${study.id}`)}
                         />
                         <span className="text-sm font-medium text-gray-600">스터디로 돌아가기</span>
                     </div>
