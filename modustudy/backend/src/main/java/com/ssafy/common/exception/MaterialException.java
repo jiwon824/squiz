@@ -118,4 +118,18 @@ public class MaterialException {
                     "파일 삭제 중 오류가 발생했습니다");
         }
     }
+
+    /**
+     * 파일 업로드 실패 (400)
+     */
+    public static class FileUploadFailedException extends BusinessException {
+        public FileUploadFailedException(String message) {
+            super(HttpStatus.BAD_REQUEST, "FILE_UPLOAD_FAILED", message);
+        }
+
+        public FileUploadFailedException() {
+            super(HttpStatus.BAD_REQUEST, "FILE_UPLOAD_FAILED",
+                    "파일 업로드에 실패했습니다");
+        }
+    }
 }
