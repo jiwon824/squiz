@@ -1,14 +1,19 @@
 package com.ssafy.domain.user.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.domain.user.dto.request.ProfileSetupRequest;
+import com.ssafy.domain.user.dto.request.StudyPreferenceRequest;
 import com.ssafy.domain.user.dto.request.UserUpdateRequest;
+import com.ssafy.domain.user.dto.response.StudyPreferenceResponse;
 import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import com.ssafy.domain.user.dto.response.StatsResponse;
 import java.time.LocalDateTime;
@@ -109,17 +114,85 @@ public class UserServiceImpl implements UserService {
         return user;
     }
 
-    // ========== 헬퍼 메서드 ========== ← 추가!
+    // ========== 스터디 선호 설정 ==========
+
+    @Override
+    @Transactional(readOnly = true)
+    public StudyPreferenceResponse getStudyPreference(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        return StudyPreferenceResponse.builder()
+                .techStacks(parseJsonList(user.getTechStacks()))
+                .availableDays(parseJsonList(user.getAvailableDays()))
+                .preferredTimeSlots(parseJsonList(user.getPreferredTimeSlots()))
+                .preferredDurationWeeks(user.getPreferredDurationWeeks())
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public StudyPreferenceResponse updateStudyPreference(Long userId, StudyPreferenceRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        // 기술 스택 업데이트
+        if (request.getTechStacks() != null) {
+            user.setTechStacks(convertToJson(request.getTechStacks()));
+        }
+
+        // 가능 요일 업데이트
+        if (request.getAvailableDays() != null) {
+            user.setAvailableDays(convertToJson(request.getAvailableDays()));
+        }
+
+        // 선호 시간대 업데이트
+        if (request.getPreferredTimeSlots() != null) {
+            user.setPreferredTimeSlots(convertToJson(request.getPreferredTimeSlots()));
+        }
+
+        // 선호 기간 업데이트
+        if (request.getPreferredDurationWeeks() != null) {
+            int weeks = Math.max(2, Math.min(8, request.getPreferredDurationWeeks()));
+            user.setPreferredDurationWeeks(weeks);
+        }
+
+        User savedUser = userRepository.save(user);
+
+        return StudyPreferenceResponse.builder()
+                .techStacks(parseJsonList(savedUser.getTechStacks()))
+                .availableDays(parseJsonList(savedUser.getAvailableDays()))
+                .preferredTimeSlots(parseJsonList(savedUser.getPreferredTimeSlots()))
+                .preferredDurationWeeks(savedUser.getPreferredDurationWeeks())
+                .build();
+    }
+
+    // ========== 헬퍼 메서드 ==========
+
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
      * List를 JSON 문자열로 변환
      */
     private String convertToJson(Object obj) {
         try {
-            ObjectMapper mapper = new ObjectMapper();
-            return mapper.writeValueAsString(obj);
+            return objectMapper.writeValueAsString(obj);
         } catch (Exception e) {
             return "[]";
+        }
+    }
+
+    /**
+     * JSON 문자열을 List<String>으로 변환
+     */
+    private List<String> parseJsonList(String json) {
+        if (json == null || json.isBlank()) {
+            return Collections.emptyList();
+        }
+        try {
+            return objectMapper.readValue(json, new TypeReference<List<String>>() {});
+        } catch (Exception e) {
+            return Collections.emptyList();
         }
     }
 

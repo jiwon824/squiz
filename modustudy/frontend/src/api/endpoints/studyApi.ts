@@ -95,3 +95,52 @@ export const createStudy = async (data: StudyCreatePayload) => {
     const response = await api.post('/api/v1/study', data);
     return response.data;
 };
+
+// ========== AI 스터디 계획 생성 ==========
+
+export interface StudyRecommendItem {
+    studyId: number;
+    studyName: string;
+    topicName: string;
+    parentTopicName: string | null;
+    formatName: string;
+    difficulty: string;
+    matchingScore: number;
+    matchReason: string;
+}
+
+// 사용자 맞춤 스터디 추천 목록
+export const getStudyRecommendations = async (limit: number = 10): Promise<StudyRecommendItem[]> => {
+    const response = await api.get(`/api/v1/study/recommend?limit=${limit}`);
+    return response.data;
+};
+
+// AI 스터디 계획 생성 (inference server)
+export interface AiStudyPlanRequest {
+    topic: string;         // 사용자가 입력한 자유 텍스트 주제
+    techStack?: string[];  // 프로필에서 자동 로드
+    schedule?: string[];   // 프로필에서 자동 로드
+}
+
+export interface AiStudyPlanResponse {
+    name: string;
+    intro: string;
+    description: string;
+    topic: string;
+    format: string;
+    difficulty: string;
+    goal: string;
+    textbook: string;
+    prerequisites: string;
+    processDetail: string;
+    durationWeeks?: number;
+    scheduleSuggestion: {
+        days: string[];
+        time: string;
+    };
+}
+
+export const generateStudyPlan = async (data: AiStudyPlanRequest): Promise<AiStudyPlanResponse> => {
+    const response = await api.post('/api/v1/study/template/ai-generate', data);
+    return response.data;
+};

@@ -1543,7 +1543,10 @@ def generate_quiz_from_keywords(client, topic_name, topic_info, num_questions=5)
     try:
         response = client.chat.completions.create(
             model="gpt-4o-mini",
-            messages=[{"role": "user", "content": prompt}],
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": prompt},
+            ],
             temperature=0.85,
             max_tokens=2048,
         )

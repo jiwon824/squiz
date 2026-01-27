@@ -3,7 +3,7 @@
  * 설정 페이지의 좌측 네비게이션 메뉴를 담당합니다.
  */
 
-import { Bell, Shield, User, Palette } from 'lucide-react';
+import { Bell, Shield, User, Palette, BookOpen } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 import { useSettingStore } from '../store/settingStore';
 import type { SettingSection } from '../types';
@@ -32,6 +32,12 @@ const menuItems: Array<{
         label: '프로필 설정',
         description: '프로필 정보 수정',
         icon: User,
+    },
+    {
+        id: 'study',
+        label: '스터디 선호',
+        description: '기술스택, 일정, 기간',
+        icon: BookOpen,
     },
     {
         id: 'theme',

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Info, Calendar, Plus, Trash2, BookOpen, MapPin, AlertCircle, Clock, Users, Target, Shield } from 'lucide-react';
+import { ChevronLeft, Info, Calendar, Plus, Trash2, BookOpen, MapPin, AlertCircle, Clock, Users, Target, Shield, Sparkles, Loader2 } from 'lucide-react';
 import { MainLayout } from '@/layouts/MainLayout';
 import { useUIStore } from '@/store/uiStore';
 import { Button } from '@/shared/components/Button';
@@ -10,8 +10,8 @@ import { cn } from '@/shared/utils/cn';
 import { DateRangePicker } from './DateRangePicker';
 import { DatePicker, TimePicker } from '@/shared/components';
 import {
-    getTopics, getFormats, getProvinces, getDistricts, createStudy,
-    type TopicParent, type FormatItem, type RegionItem, type StudyCreatePayload
+    getTopics, getFormats, getProvinces, getDistricts, createStudy, generateStudyPlan,
+    type TopicParent, type FormatItem, type RegionItem, type StudyCreatePayload, type AiStudyPlanResponse
 } from '@/api/endpoints/studyApi';
 
 interface CurriculumItem {
@@ -34,6 +34,9 @@ const StudyCreatePage: React.FC = () => {
     const [provinces, setProvinces] = useState<RegionItem[]>([]);
     const [districts, setDistricts] = useState<RegionItem[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [aiTopicInput, setAiTopicInput] = useState('');
+    const [isAiGenerating, setIsAiGenerating] = useState(false);
+    const [showDifficultyInfo, setShowDifficultyInfo] = useState(false);
 
     // 오늘 날짜 계산 (YYYY-MM-DD)
     const today = new Date();
@@ -248,6 +251,108 @@ const StudyCreatePage: React.FC = () => {
         setFormData(prev => ({ ...prev, curriculum: newCurriculum }));
     };
 
+    // AI 스터디 계획 생성
+    const handleAiGenerate = async () => {
+        if (!aiTopicInput.trim()) {
+            showToast('스터디 주제를 입력해주세요.', 'error');
+            return;
+        }
+
+        setIsAiGenerating(true);
+        try {
+            // 저장된 스터디 선호 설정에서 기술스택/일정 자동 로드
+            let techStack: string[] | undefined;
+            let schedule: string[] | undefined;
+            try {
+                const saved = localStorage.getItem('studyPreference');
+                if (saved) {
+                    const pref = JSON.parse(saved);
+                    if (pref.techStack?.length > 0) techStack = pref.techStack;
+                    if (pref.availableDays?.length > 0) {
+                        const timeSlotMap: Record<string, string> = {
+                            morning: '07:00-12:00',
+                            afternoon: '12:00-18:00',
+                            evening: '18:00-22:00',
+                            night: '22:00-02:00',
+                        };
+                        const timeStr = pref.preferredTimeSlot ? timeSlotMap[pref.preferredTimeSlot] : '';
+                        schedule = pref.availableDays.map((d: string) => timeStr ? `${d} ${timeStr}` : d);
+                    }
+                }
+            } catch { /* localStorage 실패 무시 */ }
+
+            const result: AiStudyPlanResponse = await generateStudyPlan({
+                topic: aiTopicInput.trim(),
+                techStack,
+                schedule,
+            });
+
+            // AI 결과를 폼에 반영
+            setFormData(prev => {
+                const updated = { ...prev };
+                updated.name = result.name || prev.name;
+                updated.intro = result.intro || prev.intro;
+                updated.description = result.description || prev.description;
+                updated.goal = result.goal || prev.goal;
+                updated.textbook = result.textbook || prev.textbook;
+                updated.prerequisites = result.prerequisites || prev.prerequisites;
+                updated.processDetail = result.processDetail || prev.processDetail;
+
+                // 난이도 매핑
+                if (['BEGINNER', 'INTERMEDIATE', 'ADVANCED'].includes(result.difficulty)) {
+                    updated.difficulty = result.difficulty;
+                }
+
+                // 토픽 매칭 (세부주제명으로 검색)
+                if (result.topic && topics.length > 0) {
+                    for (const parent of topics) {
+                        const child = parent.children.find(c => c.name === result.topic);
+                        if (child) {
+                            updated.topicParentId = parent.id;
+                            updated.topicId = child.id;
+                            break;
+                        }
+                    }
+                }
+
+                // 형식 매칭 (형식명으로 검색)
+                if (result.format && formats.length > 0) {
+                    const matched = formats.find(f => f.name === result.format);
+                    if (matched) {
+                        updated.formatId = matched.id;
+                    }
+                }
+
+                // 스터디 기간(주) → 총 회차 반영
+                if (result.durationWeeks && result.durationWeeks >= 2 && result.durationWeeks <= 8) {
+                    updated.totalSessions = result.durationWeeks;
+                }
+
+                // 일정 제안 반영
+                if (result.scheduleSuggestion) {
+                    if (result.scheduleSuggestion.days?.length > 0) {
+                        updated.scheduleDays = result.scheduleSuggestion.days;
+                    }
+                    if (result.scheduleSuggestion.time) {
+                        // "19:00-21:00" → "19:00"
+                        const timePart = result.scheduleSuggestion.time.split('-')[0];
+                        if (timePart) updated.scheduleTime = timePart;
+                    }
+                }
+
+                return updated;
+            });
+
+            showToast('AI가 스터디 계획을 생성했습니다! 내용을 확인해주세요.', 'success');
+        } catch (err: any) {
+            const message = err?.response?.data?.error?.message || 'AI 생성에 실패했습니다. 다시 시도해주세요.';
+            showToast(message, 'error');
+            console.error('AI 스터디 계획 생성 실패:', err);
+        } finally {
+            setIsAiGenerating(false);
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -344,6 +449,46 @@ const StudyCreatePage: React.FC = () => {
                 <form onSubmit={handleSubmit}>
                     <div className="flex flex-col lg:flex-row gap-8 items-start relative">
                         <div className="flex-1 min-w-0 space-y-6">
+                            {/* AI 스터디 계획 생성 카드 */}
+                            <div className={cn(styles.card, "border-primary/30 bg-gradient-to-br from-primary/5 to-transparent")}>
+                                <div className={styles.section}>
+                                    <h2 className={styles.sectionTitle}>
+                                        <Sparkles size={20} className="text-primary" />
+                                        AI로 스터디 계획 생성하기
+                                    </h2>
+                                    <p className="text-sm text-gray-500 mt-1">
+                                        어떤 스터디를 하고 싶은지 자유롭게 입력하면, AI가 전체 계획을 자동으로 채워드립니다.
+                                    </p>
+
+                                    <div className="mt-4 flex gap-3">
+                                        <div className="flex-1">
+                                            <Input
+                                                placeholder="예: React 심화 학습, 코딩테스트 준비, Docker 입문..."
+                                                value={aiTopicInput}
+                                                onChange={(e) => setAiTopicInput(e.target.value)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        e.preventDefault();
+                                                        handleAiGenerate();
+                                                    }
+                                                }}
+                                                disabled={isAiGenerating}
+                                            />
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            variant="primary"
+                                            onClick={handleAiGenerate}
+                                            disabled={isAiGenerating || !aiTopicInput.trim()}
+                                            leftIcon={isAiGenerating ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
+                                            className="shrink-0"
+                                        >
+                                            {isAiGenerating ? '생성 중...' : 'AI 생성'}
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+
                             {/* 기본 정보 카드 */}
                             <div id="basic-info" className={styles.card}>
                                 <div className={styles.section}>
@@ -355,7 +500,7 @@ const StudyCreatePage: React.FC = () => {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                                         <div className="md:col-span-2">
                                             <Input
-                                                label="스터디 이름"
+                                                label="제목"
                                                 name="name"
                                                 placeholder="모두가 이해하기 쉬운 이름을 지어주세요"
                                                 required
@@ -511,7 +656,28 @@ const StudyCreatePage: React.FC = () => {
                                         </div>
 
                                         <div>
-                                            <label className={styles.label}>권장 난이도</label>
+                                            <div className="flex items-center gap-1.5 mb-1.5">
+                                                <label className="text-sm font-semibold text-gray-700">예상 스터디 난이도</label>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowDifficultyInfo(prev => !prev)}
+                                                    className="text-gray-400 hover:text-primary transition-colors"
+                                                    aria-label="난이도 설명 보기"
+                                                >
+                                                    <Info size={15} />
+                                                </button>
+                                            </div>
+                                            {showDifficultyInfo && (
+                                                <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-800 space-y-1.5">
+                                                    <p className="font-semibold">난이도는 참여자 매칭에 사용됩니다.</p>
+                                                    <ul className="space-y-1 text-blue-700">
+                                                        <li><strong>입문</strong> — 해당 분야 경험이 없는 분도 참여 가능</li>
+                                                        <li><strong>중급</strong> — 기초 지식이 있고 실전 경험을 쌓고 싶은 분</li>
+                                                        <li><strong>고급</strong> — 실무 경험이 있거나 심화 학습을 원하는 분</li>
+                                                    </ul>
+                                                    <p className="text-xs text-blue-500 pt-1">스터디 추천 시 사용자 수준과 매칭하는 데 활용됩니다.</p>
+                                                </div>
+                                            )}
                                             <div className={styles.toggleGroup}>
                                                 {['BEGINNER', 'INTERMEDIATE', 'ADVANCED'].map((level) => (
                                                     <button

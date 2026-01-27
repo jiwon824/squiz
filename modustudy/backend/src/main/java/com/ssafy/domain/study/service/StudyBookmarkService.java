@@ -4,6 +4,7 @@ import com.ssafy.common.exception.StudyException;
 import com.ssafy.domain.study.dto.response.StudyBookmarkResponse;
 import com.ssafy.domain.study.entity.Study;
 import com.ssafy.domain.study.entity.StudyBookmark;
+import com.ssafy.domain.study.entity.StudyRecommendAction;
 import com.ssafy.domain.study.repository.StudyBookmarkRepository;
 import com.ssafy.domain.study.repository.StudyRepository;
 import com.ssafy.domain.user.repository.UserRepository;
@@ -27,6 +28,7 @@ public class StudyBookmarkService {
     private final StudyBookmarkRepository bookmarkRepository;
     private final StudyRepository studyRepository;
     private final UserRepository userRepository;
+    private final StudyRecommendService studyRecommendService;
 
     // ============================================================
     // 북마크 토글 (추가/삭제)
@@ -65,6 +67,8 @@ public class StudyBookmarkService {
                     StudyBookmark bookmark = StudyBookmark.create(userId, studyId);
                     StudyBookmark saved = bookmarkRepository.save(bookmark);
                     log.info("북마크 추가 완료 - studyId: {}, userId: {}", studyId, userId);
+                    // 추천 반응 자동 기록
+                    studyRecommendService.tryLogAction(userId, studyId, StudyRecommendAction.ActionType.BOOKMARK);
                     return StudyBookmarkResponse.from(saved);
                 });
     }

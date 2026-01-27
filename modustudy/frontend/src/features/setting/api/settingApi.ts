@@ -10,6 +10,8 @@ import type {
     SocialAccountsResponse,
     SetPasswordRequest,
     ChangePasswordRequest,
+    StudyPreference,
+    StudyPreferenceUpdateRequest,
 } from '../types';
 
 // ============================================
@@ -81,6 +83,35 @@ export const changePassword = async (request: ChangePasswordRequest): Promise<vo
 };
 
 // ============================================
+// 스터디 선호 설정 API
+// ============================================
+
+/**
+ * 스터디 선호 설정 조회
+ * GET /api/v1/users/me/study-preference
+ */
+export const getStudyPreference = async (): Promise<StudyPreference> => {
+    const response = await api.get<{ success: boolean; data: StudyPreference }>(
+        '/api/v1/users/me/study-preference'
+    );
+    return response.data.data;
+};
+
+/**
+ * 스터디 선호 설정 저장
+ * PUT /api/v1/users/me/study-preference
+ */
+export const updateStudyPreference = async (
+    request: StudyPreferenceUpdateRequest
+): Promise<StudyPreference> => {
+    const response = await api.put<{ success: boolean; data: StudyPreference }>(
+        '/api/v1/users/me/study-preference',
+        request
+    );
+    return response.data.data;
+};
+
+// ============================================
 // API 객체 export
 // ============================================
 
@@ -94,6 +125,9 @@ export const settingApi = {
     // 비밀번호
     setPassword,
     changePassword,
+    // 스터디 선호 설정
+    getStudyPreference,
+    updateStudyPreference,
 };
 
 export default settingApi;
