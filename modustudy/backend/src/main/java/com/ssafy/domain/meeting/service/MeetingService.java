@@ -573,9 +573,7 @@ public class MeetingService {
                     .filter(Objects::nonNull)
                     .forEach(userIds::add);
         }
-        if (userIds.isEmpty()) {
-            userIds.addAll(findVoiceSegmentUserIds(meetingId));
-        }
+        userIds.addAll(findVoiceSegmentUserIds(meetingId));
         userIds.forEach((userId) -> {
             try {
                 concatVoiceSegmentsIfExists(meetingId, userId);

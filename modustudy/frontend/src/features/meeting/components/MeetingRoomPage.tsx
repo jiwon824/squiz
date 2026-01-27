@@ -568,7 +568,7 @@ const MeetingRoomPage: React.FC = () => {
     );
 
     const VOICE_RECORDER_SLICE_MS = 1000;
-    const VOICE_RECORDER_FLUSH_DELAY_MS = 200;
+    const VOICE_RECORDER_FLUSH_DELAY_MS = 400;
 
     const startVoiceRecording = useCallback(
         (stream: MediaStream) => {

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     MeetingAudioRecordingResponse,
     MeetingRecordingResponse,
@@ -8,6 +9,8 @@ import {
 import '../styles/MeetingDetail.css';
 
 interface MeetingRecordingPanelProps {
+    studyId: number | null;
+    meetingId: number | null;
     recording: MeetingRecordingResponse | null;
     audioRecordings: MeetingAudioRecordingResponse[];
     sttFile: MeetingSttFileResponse | null;
@@ -15,23 +18,32 @@ interface MeetingRecordingPanelProps {
 }
 
 const MeetingRecordingPanel: React.FC<MeetingRecordingPanelProps> = ({
+    studyId,
+    meetingId,
     recording,
     audioRecordings,
     sttFile,
     summaryFile,
 }) => {
+    const navigate = useNavigate();
+    const canViewRecording = Boolean(recording?.recordingUrl && studyId && meetingId);
+
     return (
         <section className="meeting-detail-card">
             <div className="meeting-detail-card__header">
-                <h3>녹음/녹화</h3>
+                <h3>녹화</h3>
             </div>
             <div className="meeting-detail-card__body">
-                {recording?.recordingUrl ? (
-                    <a href={recording.recordingUrl} target="_blank" rel="noreferrer">
-                        📹 전체 녹화 보기
-                    </a>
+                {canViewRecording ? (
+                    <button
+                        type="button"
+                        className="meeting-btn ghost"
+                        onClick={() => navigate(`/study/${studyId}/meetings/${meetingId}/recording`)}
+                    >
+                        전체 녹화 보기
+                    </button>
                 ) : (
-                    <p className="meeting-detail-empty">녹화 파일이 아직 없습니다.</p>
+                    <p className="meeting-detail-empty">녹화 파일이 아직 준비되지 않았어요.</p>
                 )}
 
                 <div className="meeting-recording-list">
@@ -43,7 +55,7 @@ const MeetingRecordingPanel: React.FC<MeetingRecordingPanelProps> = ({
                             rel="noreferrer"
                             className="meeting-recording-item"
                         >
-                            🎙️ {audio.trackType === 'MIXED' ? '전체 음성' : `개인 음성 (${audio.userId ?? '-'})`}
+                            음성: {audio.trackType === 'MIXED' ? '전체' : `개인 (${audio.userId ?? '-'})`}
                         </a>
                     ))}
                 </div>
@@ -51,12 +63,12 @@ const MeetingRecordingPanel: React.FC<MeetingRecordingPanelProps> = ({
                 <div className="meeting-recording-files">
                     {sttFile?.fileUrl && (
                         <a href={sttFile.fileUrl} target="_blank" rel="noreferrer">
-                            📝 STT 텍스트
+                            STT 텍스트
                         </a>
                     )}
                     {summaryFile?.fileUrl && (
                         <a href={summaryFile.fileUrl} target="_blank" rel="noreferrer">
-                            🧾 요약 텍스트
+                            요약 텍스트
                         </a>
                     )}
                 </div>

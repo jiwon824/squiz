@@ -11,6 +11,7 @@ const RECORDING_OVERLAP_MS = Number(process.env.RECORDING_OVERLAP_MS || 0);
 const RECORDING_REFRESH_INTERVAL_MS = Number(process.env.RECORDING_REFRESH_INTERVAL_MS || 0);
 const RECORDING_VIDEO_READY_TIMEOUT_MS = Number(process.env.RECORDING_VIDEO_READY_TIMEOUT_MS || 1200);
 const RECORDING_VIDEO_READY_POLL_MS = Number(process.env.RECORDING_VIDEO_READY_POLL_MS || 150);
+const RECORDING_STOP_GRACE_MS = Number(process.env.RECORDING_STOP_GRACE_MS || 400);
 const reservedPorts = new Set();
 const RECORDING_RTP_PORT_MIN = Number(process.env.RECORDING_RTP_PORT_MIN || 45000);
 const RECORDING_RTP_PORT_MAX = Number(process.env.RECORDING_RTP_PORT_MAX || 47000);
@@ -19,6 +20,8 @@ let recordingPortCursor = RECORDING_RTP_PORT_MIN % 2 === 0
   : RECORDING_RTP_PORT_MIN + 1;
 const RECORDING_SWITCH_RETRY_MS = Number(process.env.RECORDING_SWITCH_RETRY_MS || 300);
 const RECORDING_SWITCH_MAX_RETRIES = Number(process.env.RECORDING_SWITCH_MAX_RETRIES || 8);
+
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const getFreeUdpPort = () =>
   new Promise((resolve, reject) => {
@@ -549,6 +552,9 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
       state.currentSegment = null;
     }
     if (segment.ffmpeg) {
+      if (RECORDING_STOP_GRACE_MS > 0) {
+        await delay(RECORDING_STOP_GRACE_MS);
+      }
       segment.ffmpeg.kill('SIGINT');
       await waitForExit(segment.ffmpeg);
     }
@@ -594,7 +600,6 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
 
     const room = rooms.get(roomId);
     if (!room) return;
-    if (!videoProducerId) return;
 
     const usedPorts = new Set();
     const segmentIndex = state.segments.length;
