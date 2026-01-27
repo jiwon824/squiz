@@ -8,7 +8,19 @@ import {
     ConnectionStatus,
 } from './dmWebSocketTypes';
 
-const WS_URL = import.meta.env.VITE_WS_URL || 'http://localhost:8080/ws';
+// WebSocket URL 결정: 환경변수 > API URL 기반 > 현재 origin 기반
+const getWsUrl = (): string => {
+    if (import.meta.env.VITE_WS_URL) {
+        return import.meta.env.VITE_WS_URL;
+    }
+    if (import.meta.env.VITE_API_URL) {
+        return `${import.meta.env.VITE_API_URL}/ws`;
+    }
+    // 프로덕션: 현재 origin 사용
+    return `${window.location.origin}/ws`;
+};
+
+const WS_URL = getWsUrl();
 
 class DmWebSocketService {
     private client: Client | null = null;

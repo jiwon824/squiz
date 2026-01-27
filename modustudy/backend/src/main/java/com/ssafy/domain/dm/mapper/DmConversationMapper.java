@@ -4,7 +4,7 @@ import com.ssafy.domain.dm.entity.DmConversation;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 @Mapper
@@ -33,7 +33,7 @@ public interface DmConversationMapper {
     /**
      * 마지막 메시지 시간 업데이트
      */
-    void updateLastMessageAt(@Param("id") Long id, @Param("lastMessageAt") LocalDateTime lastMessageAt);
+    void updateLastMessageAt(@Param("id") Long id, @Param("lastMessageAt") OffsetDateTime lastMessageAt);
 
     /**
      * 마지막 읽은 메시지 ID 업데이트 (user1)

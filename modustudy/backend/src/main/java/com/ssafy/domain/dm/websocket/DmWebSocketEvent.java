@@ -2,12 +2,15 @@ package com.ssafy.domain.dm.websocket;
 
 import com.ssafy.domain.dm.dto.response.DirectMessageResponse;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 
 /**
  * DM WebSocket 이벤트 DTO
  */
 public class DmWebSocketEvent {
+
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     public enum Type {
         MESSAGE,        // 새 메시지
@@ -22,15 +25,15 @@ public class DmWebSocketEvent {
     private Long senderId;
     private String senderNickname;
     private DirectMessageResponse message;
-    private LocalDateTime timestamp;
+    private OffsetDateTime timestamp;
 
     public DmWebSocketEvent() {
-        this.timestamp = LocalDateTime.now();
+        this.timestamp = OffsetDateTime.now(KST);
     }
 
     public DmWebSocketEvent(Type type) {
         this.type = type;
-        this.timestamp = LocalDateTime.now();
+        this.timestamp = OffsetDateTime.now(KST);
     }
 
     public static DmWebSocketEvent newMessage(DirectMessageResponse message) {
@@ -110,11 +113,11 @@ public class DmWebSocketEvent {
         this.message = message;
     }
 
-    public LocalDateTime getTimestamp() {
+    public OffsetDateTime getTimestamp() {
         return timestamp;
     }
 
-    public void setTimestamp(LocalDateTime timestamp) {
+    public void setTimestamp(OffsetDateTime timestamp) {
         this.timestamp = timestamp;
     }
 }
