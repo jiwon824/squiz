@@ -19,8 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
-import java.time.OffsetDateTime;
-import java.time.ZoneId;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.*;
@@ -29,8 +28,6 @@ import static org.mockito.BDDMockito.*;
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class DirectMessageServiceTest {
-
-    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     @Mock
     private DirectMessageMapper directMessageMapper;
@@ -74,7 +71,7 @@ class DirectMessageServiceTest {
                     .senderId(senderId)
                     .content("안녕하세요!")
                     .senderNickname("발신자")
-                    .createdAt(OffsetDateTime.now(KST))
+                    .createdAt(LocalDateTime.now())
                     .build();
 
             given(friendService.isBlocked(senderId, receiverId)).willReturn(false);
@@ -100,7 +97,7 @@ class DirectMessageServiceTest {
             assertThat(response.content()).isEqualTo("안녕하세요!");
             assertThat(response.isMine()).isTrue();
             verify(directMessageMapper, times(1)).insert(any(DirectMessage.class));
-            verify(dmConversationMapper, times(1)).updateLastMessageAt(eq(1L), any(OffsetDateTime.class));
+            verify(dmConversationMapper, times(1)).updateLastMessageAt(eq(1L), any(LocalDateTime.class));
         }
 
         @Test
@@ -168,7 +165,7 @@ class DirectMessageServiceTest {
                     .conversationId(1L)
                     .senderId(senderId)
                     .content("안녕하세요!")
-                    .createdAt(OffsetDateTime.now(KST))
+                    .createdAt(LocalDateTime.now())
                     .build();
 
             given(friendService.isBlocked(senderId, receiverId)).willReturn(false);
@@ -227,7 +224,7 @@ class DirectMessageServiceTest {
                             .user2Nickname("상대방1")
                             .lastMessageContent("마지막 메시지")
                             .lastMessageSenderId(userId)
-                            .lastMessageAt(OffsetDateTime.now(KST))
+                            .lastMessageAt(LocalDateTime.now())
                             .build()
             );
 
@@ -266,7 +263,7 @@ class DirectMessageServiceTest {
                             .senderId(userId)
                             .content("안녕하세요")
                             .senderNickname("나")
-                            .createdAt(OffsetDateTime.now(KST))
+                            .createdAt(LocalDateTime.now())
                             .build(),
                     DirectMessage.builder()
                             .id(2L)
@@ -274,7 +271,7 @@ class DirectMessageServiceTest {
                             .senderId(2L)
                             .content("반갑습니다")
                             .senderNickname("상대방")
-                            .createdAt(OffsetDateTime.now(KST))
+                            .createdAt(LocalDateTime.now())
                             .build()
             );
 

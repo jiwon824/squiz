@@ -2,7 +2,7 @@ package com.ssafy.domain.dm.entity;
 
 import lombok.*;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 
 /**
  * DM 메시지 엔티티
@@ -37,8 +37,8 @@ public class DirectMessage {
     @Builder.Default
     private Boolean isDeleted = false;
 
-    private OffsetDateTime createdAt;
-    private OffsetDateTime updatedAt;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
     // JOIN된 발신자 정보
     private String senderNickname;
