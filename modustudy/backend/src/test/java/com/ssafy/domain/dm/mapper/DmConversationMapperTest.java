@@ -12,8 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.OffsetDateTime;
-import java.time.ZoneId;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -203,7 +202,7 @@ class DmConversationMapperTest {
                 .user2Deleted(false)
                 .build();
         dmConversationMapper.insert(conversation);
-        OffsetDateTime now = OffsetDateTime.now(ZoneId.of("Asia/Seoul"));
+        LocalDateTime now = LocalDateTime.now();
 
         // when
         dmConversationMapper.updateLastMessageAt(conversation.getId(), now);

@@ -202,18 +202,18 @@ export const useDMStore = create<DMState>((set, get) => ({
 
         dmWebSocket.connect(user.id, user.nickname, {
             onMessage: (event) => {
-                // 새 메시지 수신
-                if (event.data) {
+                // 새 메시지 수신 - 백엔드는 event.message로 전송
+                if (event.message) {
                     const message: Message = {
-                        id: event.data.messageId,
-                        conversationId: event.data.conversationId,
-                        senderId: event.data.senderId,
-                        senderNickname: event.data.senderNickname,
-                        senderProfileImage: event.data.senderProfileImage,
-                        content: event.data.content,
-                        isDeleted: event.data.isDeleted,
-                        isMine: event.data.isMine,
-                        createdAt: event.data.createdAt
+                        id: event.message.messageId,
+                        conversationId: event.message.conversationId,
+                        senderId: event.message.senderId,
+                        senderNickname: event.message.senderNickname,
+                        senderProfileImage: event.message.senderProfileImage,
+                        content: event.message.content,
+                        isDeleted: event.message.isDeleted,
+                        isMine: event.message.isMine,
+                        createdAt: event.message.createdAt
                     };
                     get().addMessage(message);
                     // 대화방 목록 새로고침 (최신 메시지 반영)
