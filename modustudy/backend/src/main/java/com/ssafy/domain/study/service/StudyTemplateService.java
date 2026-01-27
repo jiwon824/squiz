@@ -1,17 +1,26 @@
 package com.ssafy.domain.study.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.domain.study.dto.request.CreateTemplateRequest;
+import com.ssafy.domain.study.dto.request.TemplateRecommendRequest;
 import com.ssafy.domain.study.dto.request.UpdateTemplateRequest;
 import com.ssafy.domain.study.dto.response.StudyTemplateResponse;
+import com.ssafy.domain.study.dto.response.TemplateRecommendResponse;
 import com.ssafy.domain.study.entity.StudyTemplate;
 import com.ssafy.domain.study.repository.StudyTemplateRepository;
+import com.ssafy.domain.user.entity.Profile;
+import com.ssafy.domain.user.entity.UserSchedule;
+import com.ssafy.domain.user.repository.ProfileRepository;
+import com.ssafy.domain.user.repository.UserScheduleRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -24,6 +33,13 @@ import java.util.stream.Collectors;
 public class StudyTemplateService {
 
     private final StudyTemplateRepository studyTemplateRepository;
+    private final ProfileRepository profileRepository;
+    private final UserScheduleRepository userScheduleRepository;
+    private final RestTemplate restTemplate;
+    private final ObjectMapper objectMapper;
+
+    @Value("${app.ai-server.base-url:http://localhost:8000}")
+    private String aiServerBaseUrl;
 
     /**
      * 템플릿 생성
@@ -178,5 +194,81 @@ public class StudyTemplateService {
 
         studyTemplateRepository.delete(template);
         log.info("템플릿 삭제 완료 - templateId: {}", templateId);
+    }
+
+    /**
+     * AI 템플릿 추천
+     * AI 서버에 사용자 정보를 전달하고 추천 결과를 반환
+     */
+    public TemplateRecommendResponse recommendTemplate(TemplateRecommendRequest request, Long userId) {
+        log.info("AI 템플릿 추천 시작 - userId: {}", userId);
+
+        // AI 서버 요청 바디 구성
+        Map<String, Object> aiRequest = new HashMap<>();
+
+        // 사용자 기술 스택 조회
+        List<String> userTech = List.of();
+        try {
+            Profile profile = profileRepository.findByUserId(userId).orElse(null);
+            if (profile != null && profile.getTech() != null) {
+                userTech = objectMapper.readValue(profile.getTech(), List.class);
+            }
+        } catch (Exception e) {
+            log.warn("기술 스택 조회 실패 - userId: {}, error: {}", userId, e.getMessage());
+        }
+        aiRequest.put("user_tech", userTech);
+
+        // 사용자 가용 스케줄 조회
+        Map<String, Map<String, String>> userSchedule = new LinkedHashMap<>();
+        List<UserSchedule> schedules = userScheduleRepository.findByUserIdAndIsAvailableTrue(userId);
+        for (UserSchedule s : schedules) {
+            Map<String, String> timeInfo = new HashMap<>();
+            timeInfo.put("start", s.getStartTime().toString());
+            timeInfo.put("end", s.getEndTime().toString());
+            userSchedule.put(s.getDayOfWeek().name(), timeInfo);
+        }
+        aiRequest.put("user_schedule", userSchedule);
+        if (request.getStudyType() != null) {
+            aiRequest.put("study_type", request.getStudyType());
+        }
+        if (request.getDifficultyPreference() != null) {
+            aiRequest.put("difficulty_preference", request.getDifficultyPreference());
+        }
+
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(aiRequest, headers);
+
+            ResponseEntity<String> responseEntity = restTemplate.postForEntity(
+                    aiServerBaseUrl + "/api/recommend-template", entity, String.class);
+            String responseBody = responseEntity.getBody();
+
+            @SuppressWarnings("unchecked")
+            Map<String, Object> result = objectMapper.readValue(responseBody, Map.class);
+
+            TemplateRecommendResponse response = TemplateRecommendResponse.builder()
+                    .templateType((String) result.get("template_type"))
+                    .topic((String) result.get("topic"))
+                    .format((String) result.get("format"))
+                    .difficulty((String) result.get("difficulty"))
+                    .goal((String) result.get("goal"))
+                    .textbook((String) result.get("textbook"))
+                    .scheduleSuggestion(result.containsKey("schedule_suggestion")
+                            ? (Map<String, Object>) result.get("schedule_suggestion") : null)
+                    .reason((String) result.get("reason"))
+                    .tokensUsed(result.containsKey("tokens_used")
+                            ? ((Number) result.get("tokens_used")).intValue() : 0)
+                    .build();
+
+            log.info("AI 템플릿 추천 완료 - type: {}, topic: {}",
+                    response.getTemplateType(), response.getTopic());
+
+            return response;
+
+        } catch (Exception e) {
+            log.error("AI 서버 호출 실패 - userId: {}, error: {}", userId, e.getMessage());
+            throw new RuntimeException("AI 추천 서비스를 일시적으로 사용할 수 없습니다.", e);
+        }
     }
 }
