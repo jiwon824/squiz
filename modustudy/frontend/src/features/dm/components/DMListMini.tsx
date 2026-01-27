@@ -34,6 +34,7 @@ const DMListMini: React.FC = () => {
         currentConversationId,
         unreadCount,
         isLoading,
+        isLoadingConversations,
         pendingDMUser,
         fetchConversations,
         fetchUnreadCount,
@@ -250,7 +251,7 @@ const DMListMini: React.FC = () => {
 
             {/* 대화방 목록 */}
             <div className="flex-1 overflow-y-auto">
-                {isLoading ? (
+                {isLoadingConversations && conversations.length === 0 ? (
                     <div className="flex items-center justify-center py-8">
                         <Loader2 size={24} className="animate-spin text-gray-400" />
                     </div>
