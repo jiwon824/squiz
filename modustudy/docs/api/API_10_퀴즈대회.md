@@ -19,7 +19,6 @@
 | GET | `/{contestId}/result` | 대회 결과 조회 | △ |
 | GET | `/{contestId}/result/detail` | 대회 결과 상세 (틀린 문제) | △ |
 | GET | `/{contestId}/ranking` | 대회 순위 조회 | X |
-| GET | `/history` | 역대 대회 목록 | X |
 | GET | `/my-records` | 내 대회 기록 | O |
 
 ---
