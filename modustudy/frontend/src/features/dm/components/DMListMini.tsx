@@ -47,10 +47,16 @@ const DMListMini: React.FC = () => {
     const [messageInput, setMessageInput] = useState('');
     const messagesRef = useRef<HTMLDivElement>(null);
 
-    // 메시지 목록 자동 스크롤
+    // 메시지 목록 자동 스크롤 (DOM 업데이트 후 실행)
     useEffect(() => {
         if (!messagesRef.current) return;
-        messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
+        // setTimeout으로 DOM 업데이트 완료 후 스크롤
+        const timer = setTimeout(() => {
+            if (messagesRef.current) {
+                messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
+            }
+        }, 0);
+        return () => clearTimeout(timer);
     }, [messages.length]);
 
     // 초기 데이터 로드 + WebSocket 연결

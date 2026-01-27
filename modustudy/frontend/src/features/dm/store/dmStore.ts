@@ -88,13 +88,13 @@ export const useDMStore = create<DMState>((set, get) => ({
         }
     },
 
-    // 메시지 전송
+    // 메시지 전송 (WebSocket으로 전송, 실패 시 REST API 사용)
     sendMessage: async (receiverId: number, content: string) => {
         try {
             // WebSocket이 연결되어 있으면 WebSocket으로 전송
             if (get().isWebSocketConnected && dmWebSocket.isConnected()) {
                 dmWebSocket.sendMessage(receiverId, content);
-                // WebSocket 응답은 onMessage 핸들러에서 처리됨
+                // WebSocket 응답(토픽)으로 메시지가 추가됨
             } else {
                 // WebSocket이 없으면 REST API로 전송
                 const newMessage = await sendMessageApi(receiverId, content);
