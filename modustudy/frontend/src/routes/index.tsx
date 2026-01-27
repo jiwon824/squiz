@@ -45,6 +45,9 @@ const RecruitmentPage = lazy(() =>
 const StudyPage = lazy(() =>
     import('../features/study').then(m => ({ default: m.StudyPage }))
 );
+const StudyPageV2 = lazy(() =>
+    import('../features/study').then(m => ({ default: m.StudyPageV2 }))
+);
 const StudyTypeSelectPage = lazy(() =>
     import('../features/study').then(m => ({ default: m.StudyTypeSelectPage }))
 );
@@ -56,6 +59,9 @@ const LightningStudyCreatePage = lazy(() =>
 );
 const StudyDetailPage = lazy(() =>
     import('../features/study').then(m => ({ default: m.StudyDetailPage }))
+);
+const StudyDetailPageV2 = lazy(() =>
+    import('../features/study').then(m => ({ default: m.StudyDetailPageV2 }))
 );
 const StudyManagementPage = lazy(() =>
     import('../features/study').then(m => ({ default: m.StudyManagementPage }))
@@ -158,10 +164,12 @@ export const AppRouter = () => {
 
             {/* 스터디 */}
             <Route path="/study" element={<StudyPage />} />
+            <Route path="/study-v2" element={<StudyPageV2 />} />
             <Route path="/study/create" element={<StudyTypeSelectPage />} />
             <Route path="/study/create/planned" element={<StudyCreatePage />} />
             <Route path="/study/create/lightning" element={<LightningStudyCreatePage />} />
             <Route path="/study/:id" element={<StudyDetailPage />} />
+            <Route path="/study/v2/:id" element={<StudyDetailPageV2 />} />
             <Route path="/study/manage/:id" element={<StudyManagementPage />} />
 
             {/* 미팅 */}
