@@ -5,11 +5,13 @@ import { PasswordInput } from './PasswordInput';
 import { OAuthTempData } from '../types';
 import { authApi } from '@/api/endpoints/authApi';
 import { useAuthStore } from '@/store/authStore';
+import { useUIStore } from '@/store/uiStore';
 
 export const SignupPage = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const login = useAuthStore((state) => state.login);
+    const showToast = useUIStore((state) => state.showToast);
 
     // OAuth 모드 감지
     const isOAuthMode = searchParams.get('oauth') === 'true';
@@ -39,7 +41,7 @@ export const SignupPage = () => {
                 }));
             } else {
                 // OAuth 데이터가 없으면 로그인 페이지로
-                alert('잘못된 접근입니다.');
+                showToast('잘못된 접근입니다.', 'error');
                 navigate('/login');
             }
         }
@@ -57,27 +59,27 @@ export const SignupPage = () => {
 
         // 비밀번호 검증
         if (formData.password.length < 8) {
-            alert('비밀번호는 8자 이상이어야 합니다.');
+            showToast('비밀번호는 8자 이상이어야 합니다.', 'warning');
             return;
         }
 
         if (!/\d/.test(formData.password)) {
-            alert('비밀번호에 숫자를 포함해주세요.');
+            showToast('비밀번호에 숫자를 포함해주세요.', 'warning');
             return;
         }
 
         if (!/[!@#$%^&*(),.?":{}|<>]/.test(formData.password)) {
-            alert('비밀번호에 특수문자를 포함해주세요.');
+            showToast('비밀번호에 특수문자를 포함해주세요.', 'warning');
             return;
         }
 
         if (formData.password !== formData.confirmPassword) {
-            alert('비밀번호가 일치하지 않습니다.');
+            showToast('비밀번호가 일치하지 않습니다.', 'warning');
             return;
         }
 
         if (!formData.nickname.trim()) {
-            alert('닉네임을 입력해주세요.');
+            showToast('닉네임을 입력해주세요.', 'warning');
             return;
         }
 
@@ -112,19 +114,19 @@ export const SignupPage = () => {
                 localStorage.removeItem('oauthTempData');
 
                 console.log('[INFO] 회원가입 완료!');
-                alert('회원가입이 완료되었습니다!');
+                showToast('회원가입이 완료되었습니다!', 'success');
                 navigate('/dashboard');
             } else {
                 // 일반 회원가입 처리
                 console.log('[INFO] 일반 회원가입:', formData);
 
                 // TODO: 일반 회원가입 API 연동
-                alert('회원가입이 완료되었습니다!');
+                showToast('회원가입이 완료되었습니다!', 'success');
                 navigate('/login');
             }
         } catch (error) {
             console.error('Signup error:', error);
-            alert('회원가입 중 오류가 발생했습니다. 다시 시도해주세요.');
+            showToast('회원가입 중 오류가 발생했습니다. 다시 시도해주세요.', 'error');
         } finally {
             setIsLoading(false);
         }

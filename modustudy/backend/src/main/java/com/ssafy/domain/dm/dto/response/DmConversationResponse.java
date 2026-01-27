@@ -2,7 +2,7 @@ package com.ssafy.domain.dm.dto.response;
 
 import com.ssafy.domain.dm.entity.DmConversation;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 
 /**
  * DM 대화방 응답 DTO
@@ -16,7 +16,7 @@ public record DmConversationResponse(
         String lastMessage,
         Boolean lastMessageIsMine,
         Integer unreadCount,
-        OffsetDateTime lastMessageAt
+        LocalDateTime lastMessageAt
 ) {
     public static DmConversationResponse from(DmConversation conversation, Long myId, int unreadCount) {
         return new DmConversationResponse(

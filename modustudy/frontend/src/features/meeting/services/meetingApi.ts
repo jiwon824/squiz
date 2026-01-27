@@ -168,6 +168,28 @@ export const meetingApi = {
         return data.data;
     },
 
+    async uploadRecordingAudioSegment(
+        studyId: number,
+        meetingId: number,
+        file: Blob
+    ): Promise<void> {
+        const formData = new FormData();
+        formData.append('audio', file, 'segment.webm');
+        await api.post(`${buildMeetingPath(studyId, meetingId)}/recording/audio/segment`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
+    },
+
+    async concatRecordingAudio(
+        studyId: number,
+        meetingId: number
+    ): Promise<MeetingAudioRecordingResponse> {
+        const { data } = await api.post<ApiResponse<MeetingAudioRecordingResponse>>(
+            `${buildMeetingPath(studyId, meetingId)}/recording/audio/concat`
+        );
+        return data.data;
+    },
+
     async listAudioRecordings(
         studyId: number,
         meetingId: number,

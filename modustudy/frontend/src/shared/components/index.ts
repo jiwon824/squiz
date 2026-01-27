@@ -1,5 +1,6 @@
 export * from './Button';
 export * from './Input';
+export * from './FormField';
 export * from './Modal';
 export * from './Spinner';
 export * from './SquizLogo';

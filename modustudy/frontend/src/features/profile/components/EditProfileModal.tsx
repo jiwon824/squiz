@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { X, User, CheckCircle2 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
+import { useUIStore } from '@/store/uiStore';
 import { userApi } from '@/api/endpoints/userApi';
+import { Button } from '@/shared/components/Button';
 
 interface EditProfileModalProps {
     isOpen: boolean;
@@ -10,6 +12,7 @@ interface EditProfileModalProps {
 
 export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) => {
     const { user, updateUser } = useAuthStore();
+    const showToast = useUIStore((state) => state.showToast);
     const [formData, setFormData] = useState({
         name: user?.name || '',
         nickname: user?.nickname || '',
@@ -44,7 +47,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
                 bio: formData.bio // API 결과에 bio가 없다면 폼 데이터 사용
             });
 
-            alert('프로필 정보가 수정되었습니다.');
+            showToast('프로필 정보가 수정되었습니다.', 'success');
             onClose();
         } catch (err: any) {
             console.error('Profile update error:', err);
@@ -67,7 +70,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
                 <div className="p-6">
                     <div className="flex items-center justify-between mb-6">
                         <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                            <User className="text-study-blue" size={24} />
+                            <User className="text-primary" size={24} />
                             프로필 편집
                         </h2>
                         <button
@@ -100,7 +103,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
                                 value={formData.nickname}
                                 onChange={handleChange}
                                 placeholder="사용하실 닉네임을 입력해주세요"
-                                className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-study-blue/20 focus:border-study-blue transition-all outline-none"
+                                className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
                             />
                         </div>
 
@@ -112,7 +115,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
                                 onChange={handleChange as any}
                                 placeholder="자신을 한 줄로 표현해 보세요"
                                 rows={2}
-                                className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-study-blue/20 focus:border-study-blue transition-all outline-none resize-none"
+                                className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none resize-none"
                             />
                         </div>
 
@@ -123,27 +126,25 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
                         )}
 
                         <div className="pt-4 flex gap-3">
-                            <button
+                            <Button
                                 type="button"
+                                variant="secondary"
+                                size="lg"
+                                fullWidth
                                 onClick={onClose}
-                                className="flex-1 p-3.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-2xl transition-all"
                             >
                                 취소
-                            </button>
-                            <button
+                            </Button>
+                            <Button
                                 type="submit"
-                                disabled={isLoading}
-                                className="flex-1 p-3.5 bg-gradient-to-r from-study-blue to-study-blue-dark text-white font-bold rounded-2xl shadow-lg shadow-study-blue/20 hover:shadow-study-blue/30 hover:-translate-y-0.5 transition-all active:translate-y-0 disabled:opacity-50 flex items-center justify-center gap-2"
+                                variant="primary"
+                                size="lg"
+                                fullWidth
+                                isLoading={isLoading}
+                                leftIcon={!isLoading ? <CheckCircle2 size={18} /> : undefined}
                             >
-                                {isLoading ? (
-                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                ) : (
-                                    <>
-                                        <CheckCircle2 size={18} />
-                                        저장하기
-                                    </>
-                                )}
-                            </button>
+                                저장하기
+                            </Button>
                         </div>
                     </form>
                 </div>

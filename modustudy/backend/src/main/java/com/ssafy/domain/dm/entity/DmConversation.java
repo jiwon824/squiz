@@ -2,7 +2,7 @@ package com.ssafy.domain.dm.entity;
 
 import lombok.*;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 
 /**
  * DM 대화방 엔티티
@@ -52,10 +52,10 @@ public class DmConversation {
     /**
      * 마지막 메시지 시간 (정렬용)
      */
-    private OffsetDateTime lastMessageAt;
+    private LocalDateTime lastMessageAt;
 
-    private OffsetDateTime createdAt;
-    private OffsetDateTime updatedAt;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
     // JOIN된 사용자 정보
     private String user1Nickname;

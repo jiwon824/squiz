@@ -3,8 +3,8 @@
 # ===========================================
 FROM node:22-alpine
 
-# Mediasoup 빌드에 필요한 패키지
-RUN apk add --no-cache python3 py3-pip make g++ linux-headers
+# Mediasoup 빌드에 필요한 패키지 + ffmpeg (녹화용)
+RUN apk add --no-cache python3 py3-pip make g++ linux-headers ffmpeg
 
 WORKDIR /app
 

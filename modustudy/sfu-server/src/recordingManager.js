@@ -11,6 +11,7 @@ const RECORDING_OVERLAP_MS = Number(process.env.RECORDING_OVERLAP_MS || 0);
 const RECORDING_REFRESH_INTERVAL_MS = Number(process.env.RECORDING_REFRESH_INTERVAL_MS || 0);
 const RECORDING_VIDEO_READY_TIMEOUT_MS = Number(process.env.RECORDING_VIDEO_READY_TIMEOUT_MS || 1200);
 const RECORDING_VIDEO_READY_POLL_MS = Number(process.env.RECORDING_VIDEO_READY_POLL_MS || 150);
+const RECORDING_STOP_GRACE_MS = Number(process.env.RECORDING_STOP_GRACE_MS || 400);
 const reservedPorts = new Set();
 const RECORDING_RTP_PORT_MIN = Number(process.env.RECORDING_RTP_PORT_MIN || 45000);
 const RECORDING_RTP_PORT_MAX = Number(process.env.RECORDING_RTP_PORT_MAX || 47000);
@@ -19,6 +20,8 @@ let recordingPortCursor = RECORDING_RTP_PORT_MIN % 2 === 0
   : RECORDING_RTP_PORT_MIN + 1;
 const RECORDING_SWITCH_RETRY_MS = Number(process.env.RECORDING_SWITCH_RETRY_MS || 300);
 const RECORDING_SWITCH_MAX_RETRIES = Number(process.env.RECORDING_SWITCH_MAX_RETRIES || 8);
+
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const getFreeUdpPort = () =>
   new Promise((resolve, reject) => {
@@ -445,7 +448,7 @@ const logConsumerStats = async (label, consumer, transport, roomId, producerId) 
   }
 };
 
-const waitForConsumerPackets = async (consumer, timeoutMs, pollMs) => {
+const waitForConsumerPackets = async (consumer, transport, timeoutMs, pollMs) => {
   if (!consumer || consumer.closed) return false;
   const deadline = Date.now() + timeoutMs;
   const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -464,6 +467,19 @@ const waitForConsumerPackets = async (consumer, timeoutMs, pollMs) => {
       }
     } catch {
       // ignore stats failures
+    }
+    if (transport && typeof transport.getStats === 'function') {
+      try {
+        const stats = await transport.getStats();
+        const report = Array.from(stats.values())[0] || {};
+        const packets = report.packetsSent ?? report.packetCount ?? report.packets ?? 0;
+        const bytes = report.bytesSent ?? report.byteCount ?? report.bytes ?? 0;
+        if (Number(packets) > 0 || Number(bytes) > 0) {
+          return true;
+        }
+      } catch {
+        // ignore transport stats failures
+      }
     }
     await delay(pollMs);
   }
@@ -536,6 +552,9 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
       state.currentSegment = null;
     }
     if (segment.ffmpeg) {
+      if (RECORDING_STOP_GRACE_MS > 0) {
+        await delay(RECORDING_STOP_GRACE_MS);
+      }
       segment.ffmpeg.kill('SIGINT');
       await waitForExit(segment.ffmpeg);
     }
@@ -581,7 +600,6 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
 
     const room = rooms.get(roomId);
     if (!room) return;
-    if (!videoProducerId) return;
 
     const usedPorts = new Set();
     const segmentIndex = state.segments.length;
@@ -598,6 +616,7 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
       let videoConsumerInfo = null;
       let videoConsumerRef = null;
       const audioConsumerInfos = [];
+      const audioEntries = [];
 
       if (videoProducerId) {
         const producer = findProducer(room, videoProducerId);
@@ -666,7 +685,11 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
           await consumer.resume();
           consumers.push(consumer);
           transports.push(transport);
-          audioConsumerInfos.push({ port, rtpParameters: consumer.rtpParameters, producerId: producer.id });
+          audioEntries.push({
+            consumer,
+            transport,
+            info: { port, rtpParameters: consumer.rtpParameters, producerId: producer.id }
+          });
           // eslint-disable-next-line no-console
           console.log('[recording] audio transport connected', {
             roomId,
@@ -684,6 +707,40 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
             // ignore
           }
         }
+      }
+
+      if (audioEntries.length > 0) {
+        const readyEntries = [];
+        for (const entry of audioEntries) {
+          const ready = await waitForConsumerPackets(
+            entry.consumer,
+            entry.transport,
+            RECORDING_VIDEO_READY_TIMEOUT_MS,
+            RECORDING_VIDEO_READY_POLL_MS
+          );
+          if (ready) {
+            readyEntries.push(entry);
+          } else {
+            // eslint-disable-next-line no-console
+            console.warn('[recording] audio packets not ready; dropping', {
+              roomId,
+              producerId: entry.info.producerId
+            });
+            try {
+              entry.consumer.close();
+            } catch {
+              // ignore
+            }
+            try {
+              entry.transport.close();
+            } catch {
+              // ignore
+            }
+          }
+        }
+        readyEntries.forEach((entry) => {
+          audioConsumerInfos.push(entry.info);
+        });
       }
 
       let sdpContent = null;
@@ -741,6 +798,7 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
           if (videoConsumerInfo && videoConsumerRef) {
             const ready = await waitForConsumerPackets(
               videoConsumerRef,
+              transports[0],
               RECORDING_VIDEO_READY_TIMEOUT_MS,
               RECORDING_VIDEO_READY_POLL_MS
             );
