@@ -7,8 +7,7 @@ import { Input } from '@/shared/components/Input';
 import { Select } from '@/shared/components/Select';
 import { cn } from '@/shared/utils/cn';
 import { DateRangePicker } from './DateRangePicker';
-import { DatePicker } from './DatePicker';
-import { TimePicker } from './TimePicker';
+import { DatePicker, TimePicker } from '@/shared/components';
 
 interface CurriculumItem {
     session: number;

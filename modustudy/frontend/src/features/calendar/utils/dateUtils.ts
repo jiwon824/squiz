@@ -83,6 +83,16 @@ export const getTodayString = (): string => {
 };
 
 /*
+ 현재 시간 문자열 반환 (HH:mm)
+ */
+export const getCurrentTimeString = (): string => {
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+};
+
+/*
  두 날짜가 같은지 비교
  */
 export const isSameDate = (date1: string, date2: string): boolean => {

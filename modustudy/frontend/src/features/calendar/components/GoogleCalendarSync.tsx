@@ -95,8 +95,8 @@ export const GoogleCalendarSync = ({ className = '' }: GoogleCalendarSyncProps) 
 
                     {/* 안내 메시지 */}
                     <p className="text-xs text-gray-500 leading-relaxed">
-                        💡 Google Calendar의 일정은 읽기 전용입니다.
-                        수정 및 삭제는 Google Calendar에서 직접 해주세요.
+                        💡 Google Calendar와 양방향으로 동기화됩니다.
+                        앱에서 만든 일정은 Google Calendar에도 자동 등록됩니다.
                     </p>
                 </div>
             ) : (
@@ -112,15 +112,15 @@ export const GoogleCalendarSync = ({ className = '' }: GoogleCalendarSyncProps) 
                     <ul className="space-y-2">
                         <li className="flex items-start gap-2 text-sm text-gray-600">
                             <span className="text-green-500">✓</span>
-                            <span>Google Calendar 일정 자동 동기화</span>
+                            <span>양방향 동기화 (읽기/쓰기 권한)</span>
                         </li>
                         <li className="flex items-start gap-2 text-sm text-gray-600">
                             <span className="text-green-500">✓</span>
-                            <span>통합 캘린더에서 한눈에 확인</span>
+                            <span>Google Calendar 일정 자동 반영</span>
                         </li>
                         <li className="flex items-start gap-2 text-sm text-gray-600">
                             <span className="text-green-500">✓</span>
-                            <span>읽기 전용으로 안전하게 관리</span>
+                            <span>통합 캘린더에서 스마트한 일정 관리</span>
                         </li>
                     </ul>
 
@@ -138,7 +138,7 @@ export const GoogleCalendarSync = ({ className = '' }: GoogleCalendarSyncProps) 
                     {/* 안내 메시지 */}
                     <p className="text-xs text-gray-500 leading-relaxed">
                         🔒 Google OAuth 2.0을 통해 안전하게 연동됩니다.
-                        일정 정보는 읽기 전용으로만 접근합니다.
+                        일정 관리를 위해 캘린더 접근 권한이 필요합니다.
                     </p>
                 </div>
             )}
