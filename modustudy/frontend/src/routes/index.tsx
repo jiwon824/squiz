@@ -121,9 +121,9 @@ export const AppRouter = () => {
         return <div className="p-6"><Skeleton variant="rect" height="100vh" /></div>;
     }
 
-return (
-    <Suspense fallback={<div className="p-6"><Skeleton variant="rect" height="100vh" /></div>}>
-        <Routes>
+    return (
+        <Suspense fallback={<div className="p-6"><Skeleton variant="rect" height="100vh" /></div>}>
+            <Routes>
             {/* 즉시 로드 페이지 */}
             <Route path="/" element={<StartPage />} />
             <Route path="/startpage" element={<StartPage />} />
@@ -185,6 +185,7 @@ return (
                 }
             />
             <Route path="/admin" element={<AdminDashboardPage />} />
-        </Routes>
-    </Suspense>
-);
+            </Routes>
+        </Suspense>
+    );
+};
