@@ -60,7 +60,7 @@ services:
       - uploads-data:/app/uploads
     environment:
       - NODE_ENV=production
-      - SFU_USE_HTTPS=false
+      - SFU_USE_HTTPS=true
       - SFU_ANNOUNCED_IP=i14d106.p.ssafy.io
       - RECORDINGS_BASE_PATH=/app/uploads
       - FFMPEG_PATH=ffmpeg
