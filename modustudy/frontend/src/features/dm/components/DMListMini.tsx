@@ -1,7 +1,31 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { MessageSquare, Send, Loader2 } from 'lucide-react';
 import { useDMStore } from '../store/dmStore';
 import { BackButton } from '@/shared/components';
+
+// URL을 클릭 가능한 링크로 변환하는 함수
+const renderMessageContent = (content: string) => {
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const parts = content.split(urlRegex);
+
+    return parts.map((part, index) => {
+        if (part.match(urlRegex)) {
+            return (
+                <a
+                    key={index}
+                    href={part}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline break-all hover:opacity-80"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    {part}
+                </a>
+            );
+        }
+        return <span key={index}>{part}</span>;
+    });
+};
 
 const DMListMini: React.FC = () => {
     const {
@@ -21,6 +45,12 @@ const DMListMini: React.FC = () => {
     } = useDMStore();
 
     const [messageInput, setMessageInput] = useState('');
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    // 메시지 목록 자동 스크롤
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [messages]);
 
     // 초기 데이터 로드 + WebSocket 연결
     useEffect(() => {
@@ -55,21 +85,25 @@ const DMListMini: React.FC = () => {
         }
     };
 
-    // 시간 포맷팅
+    // 시간 포맷팅 (백엔드는 KST 기준 LocalDateTime 반환)
     const formatTime = (dateString: string) => {
-        const date = new Date(dateString);
+        // ISO 문자열에 타임존이 없으면 KST로 간주
+        const isoString = dateString.includes('Z') || dateString.includes('+')
+            ? dateString
+            : dateString + '+09:00';
+        const date = new Date(isoString);
         const now = new Date();
         const diff = now.getTime() - date.getTime();
         const days = Math.floor(diff / (1000 * 60 * 60 * 24));
 
         if (days === 0) {
-            return date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+            return date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Seoul' });
         } else if (days === 1) {
             return '어제';
         } else if (days < 7) {
             return `${days}일 전`;
         } else {
-            return date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+            return date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', timeZone: 'Asia/Seoul' });
         }
     };
 
@@ -147,27 +181,30 @@ const DMListMini: React.FC = () => {
                             <Loader2 size={24} className="animate-spin text-gray-400" />
                         </div>
                     ) : Array.isArray(messages) && messages.length > 0 ? (
-                        messages.map(msg => (
-                            <div
-                                key={msg.id}
-                                className={`flex ${msg.senderId === currentConversation?.participantId ? 'justify-start' : 'justify-end'}`}
-                            >
+                        <>
+                            {messages.map(msg => (
                                 <div
-                                    className={`max-w-[80%] px-3 py-2 rounded-lg text-sm ${msg.senderId === currentConversation?.participantId
-                                        ? 'bg-gray-100 text-gray-800'
-                                        : 'bg-study-blue text-white'
-                                        }`}
+                                    key={msg.id}
+                                    className={`flex ${msg.senderId === currentConversation?.participantId ? 'justify-start' : 'justify-end'}`}
                                 >
-                                    <p>{msg.content}</p>
-                                    <p className={`text-[10px] mt-1 ${msg.senderId === currentConversation?.participantId
-                                        ? 'text-gray-400'
-                                        : 'text-blue-200'
-                                        }`}>
-                                        {formatTime(msg.createdAt)}
-                                    </p>
+                                    <div
+                                        className={`max-w-[80%] px-3 py-2 rounded-lg text-sm break-words ${msg.senderId === currentConversation?.participantId
+                                            ? 'bg-gray-100 text-gray-800'
+                                            : 'bg-study-blue text-white'
+                                            }`}
+                                    >
+                                        <p>{renderMessageContent(msg.content)}</p>
+                                        <p className={`text-[10px] mt-1 ${msg.senderId === currentConversation?.participantId
+                                            ? 'text-gray-400'
+                                            : 'text-blue-200'
+                                            }`}>
+                                            {formatTime(msg.createdAt)}
+                                        </p>
+                                    </div>
                                 </div>
-                            </div>
-                        ))
+                            ))}
+                            <div ref={messagesEndRef} />
+                        </>
                     ) : (
                         <div className="text-center py-8 text-gray-400 text-sm">
                             메시지가 없습니다
