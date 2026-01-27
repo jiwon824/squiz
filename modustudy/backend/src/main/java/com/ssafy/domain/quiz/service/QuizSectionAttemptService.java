@@ -161,7 +161,15 @@ public class QuizSectionAttemptService {
         attempt.getAttemptQuestions().stream()
                 .filter(aq -> aq.getQuestion().getId().equals(answerItem.questionId()))
                 .findFirst()
-                .ifPresent(aq -> aq.saveAnswer(answerItem.answer()));
+                // save(aq) 명시적 호출
+                // - 이유: 기존에는 JPA의 **더티 체킹(Dirty Checking)**에 의존하여 변경 사항이 자동으로 반영되길 기대했으나,
+                // 실제 환경에서 영속성 컨텍스트 관리 문제로 인해 DB에 답안이 즉시 저장되지 않는 현상이 발생했을 가능성이 높습니다.
+                // - 효과: attemptQuestionRepository.save(aq)를 명시적으로 호출함으로써,
+                // 답안이 변경되는 즉시 DB에 반영되도록 강제하여 임시 저장 누락 문제를 해결합니다.
+                .ifPresent(aq -> {
+                    aq.saveAnswer(answerItem.answer());
+                    attemptQuestionRepository.save(aq);
+                });
     }
 
     /**

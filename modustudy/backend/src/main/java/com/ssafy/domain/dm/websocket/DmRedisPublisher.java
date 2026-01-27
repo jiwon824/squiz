@@ -1,6 +1,5 @@
 package com.ssafy.domain.dm.websocket;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,15 +29,10 @@ public class DmRedisPublisher {
      * 특정 사용자에게 DM 이벤트 발행
      */
     public void publishToUser(Long userId, String destination, Object payload) {
-        try {
-            DmRedisMessage message = new DmRedisMessage(userId, destination, payload);
-            String channel = DM_CHANNEL_PREFIX + userId;
-            String json = objectMapper.writeValueAsString(message);
-            redisTemplate.convertAndSend(channel, json);
-            log.debug("Published DM to Redis: channel={}, destination={}", channel, destination);
-        } catch (JsonProcessingException e) {
-            log.error("Failed to serialize DM message for Redis", e);
-        }
+        DmRedisMessage message = new DmRedisMessage(userId, destination, payload);
+        String channel = DM_CHANNEL_PREFIX + userId;
+        redisTemplate.convertAndSend(channel, message);
+        log.debug("Published DM to Redis: channel={}, destination={}", channel, destination);
     }
 
     /**
