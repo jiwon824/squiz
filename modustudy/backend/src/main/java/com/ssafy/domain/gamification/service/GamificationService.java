@@ -13,6 +13,7 @@ import com.ssafy.domain.study.entity.MemberStatus;
 import com.ssafy.domain.study.repository.StudyMemberRepository;
 import java.util.Objects;
 import java.util.Collections;
+import com.ssafy.domain.study.entity.StudyMember;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -360,7 +361,7 @@ public class GamificationService {
         // 1. 스터디의 활성 멤버 조회
         List<StudyMember> members = studyMemberRepository.findByStudyIdAndStatus(
                 studyId,
-                MemberStatus.ACTIVE
+                MemberStatus.APPROVED
         );
 
         if (members.isEmpty()) {

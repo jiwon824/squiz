@@ -9,16 +9,18 @@ import java.util.List;
 @Getter
 @Builder
 public class StudyRankingResponse {
+
     private List<RankingInfo> rankings;
     private Integer myRank;
     private Integer totalMembers;
 
     @Getter
+    @Setter  // setRank() 때문에 필요
     @Builder
     public static class RankingInfo {
-        @Setter
         private Integer rank;
         private UserInfo user;
+        private Integer totalExperience;
         private Integer activityDays;
         private Double attendanceRate;
         private Boolean isMe;

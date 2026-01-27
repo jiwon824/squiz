@@ -27,4 +27,11 @@ public interface BadgeRepository extends JpaRepository<Badge, Long> {
      * @return 배지 엔티티
      */
     Optional<Badge> findByCode(String code);
+
+    /**
+     * 모든 배지를 카테고리와 정렬 순서대로 조회한다.
+     *
+     * @return 정렬된 배지 목록
+     */
+    List<Badge> findAllByOrderByCategoryAscSortOrderAsc();
 }
