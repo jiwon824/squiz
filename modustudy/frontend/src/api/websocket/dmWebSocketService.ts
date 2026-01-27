@@ -88,18 +88,18 @@ class DmWebSocketService {
     }
 
     /**
-     * 채널 구독 (토픽 방식)
+     * 채널 구독 (Principal 기반 /user/queue 방식)
      */
     private subscribe(): void {
         if (!this.client || !this.userId) return;
 
-        // 개인 DM 메시지 수신 (사용자별 토픽)
-        this.client.subscribe(`/topic/dm/user/${this.userId}`, (message: IMessage) => {
+        // 개인 DM 메시지 수신 (Principal 기반 user queue)
+        this.client.subscribe('/user/queue/dm', (message: IMessage) => {
             this.handleEvent(message);
         });
 
         // DM 이벤트 (typing, read 등)
-        this.client.subscribe(`/topic/dm/events/${this.userId}`, (message: IMessage) => {
+        this.client.subscribe('/user/queue/dm/events', (message: IMessage) => {
             this.handleEvent(message);
         });
     }
