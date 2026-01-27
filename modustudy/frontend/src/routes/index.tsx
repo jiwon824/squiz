@@ -75,9 +75,6 @@ const MeetingDetailPage = lazy(() =>
 const MeetingRoomPage = lazy(() =>
     import('../features/meeting').then(m => ({ default: m.MeetingRoomPage }))
 );
-const MeetingRecordingPlaybackPage = lazy(() =>
-    import('../features/meeting').then(m => ({ default: m.MeetingRecordingPlaybackPage }))
-);
 
 const ProfileSkeleton = lazy(() =>
     import('@/features/profile/components/ProfileSkeleton').then(module => ({ default: module.ProfileSkeleton }))
@@ -168,10 +165,6 @@ export const AppRouter = () => {
             <Route path="/study/:studyId/meetings" element={<MeetingHistoryPage />} />
             <Route path="/study/:studyId/meetings/:meetingId" element={<MeetingDetailPage />} />
             <Route path="/study/:studyId/meetings/:meetingId/room" element={<MeetingRoomPage />} />
-            <Route
-                path="/study/:studyId/meetings/:meetingId/recording"
-                element={<MeetingRecordingPlaybackPage />}
-            />
 
             {/* 기타 */}
             <Route path="/recruitment" element={<RecruitmentPage />} />

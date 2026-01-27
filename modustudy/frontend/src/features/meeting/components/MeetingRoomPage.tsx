@@ -73,6 +73,7 @@ const MeetingRoomPage: React.FC = () => {
     const aiDetectionCleanupRef = useRef<(() => void) | null>(null);
     const chatDedupRef = useRef<Set<string>>(new Set());
     const remoteAudioElementsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
+    const remoteAudioTracksRef = useRef<Map<string, MediaStreamTrack>>(new Map());
     const voiceRecorderRef = useRef<MediaRecorder | null>(null);
     const voiceStopResolverRef = useRef<(() => void) | null>(null);
     const voiceUploadChainRef = useRef<Promise<void>>(Promise.resolve());
@@ -82,6 +83,9 @@ const MeetingRoomPage: React.FC = () => {
     const mixedAudioContextRef = useRef<AudioContext | null>(null);
     const mixedAudioTrackRef = useRef<MediaStreamTrack | null>(null);
     const mixedAudioKeyRef = useRef<string | null>(null);
+    const recordingAudioContextRef = useRef<AudioContext | null>(null);
+    const recordingAudioTrackRef = useRef<MediaStreamTrack | null>(null);
+    const recordingAudioKeyRef = useRef<string | null>(null);
 
     const [meetingTitle, setMeetingTitle] = useState('');
     const [meetingStartedAt, setMeetingStartedAt] = useState<string | null>(null);
@@ -97,6 +101,7 @@ const MeetingRoomPage: React.FC = () => {
     const [pipPosition] = useState<PipPosition>('bottom-right');
     const [localStream, setLocalStream] = useState<MediaStream | null>(null);
     const [remoteVideoStreams, setRemoteVideoStreams] = useState<RemoteVideoStream[]>([]);
+    const [remoteAudioVersion, setRemoteAudioVersion] = useState(0);
     const [photoCount, setPhotoCount] = useState(0);
     const [isCapturing, setIsCapturing] = useState(false);
     const [roomGuardStatus, setRoomGuardStatus] = useState<'checking' | 'ok' | 'blocked'>('checking');
@@ -237,6 +242,22 @@ const MeetingRoomPage: React.FC = () => {
         }
     }, []);
 
+    const stopRecordingAudioTrack = useCallback(() => {
+        if (recordingAudioTrackRef.current) {
+            try {
+                recordingAudioTrackRef.current.stop();
+            } catch {
+                // ignore
+            }
+        }
+        recordingAudioTrackRef.current = null;
+        recordingAudioKeyRef.current = null;
+        if (recordingAudioContextRef.current) {
+            recordingAudioContextRef.current.close().catch(() => {});
+            recordingAudioContextRef.current = null;
+        }
+    }, []);
+
     const ensureMixedAudioTrack = useCallback(
         (tracks: MediaStreamTrack[]) => {
             if (tracks.length <= 1) {
@@ -266,6 +287,37 @@ const MeetingRoomPage: React.FC = () => {
             return outputTrack;
         },
         [stopMixedAudioTrack]
+    );
+
+    const ensureRecordingAudioTrack = useCallback(
+        (tracks: MediaStreamTrack[]) => {
+            if (tracks.length <= 1) {
+                stopRecordingAudioTrack();
+                return tracks[0] ?? null;
+            }
+            const ids = tracks.map((track) => track.id).sort();
+            const key = ids.join('|');
+            if (recordingAudioKeyRef.current === key && recordingAudioTrackRef.current) {
+                if (recordingAudioTrackRef.current.readyState === 'live') {
+                    return recordingAudioTrackRef.current;
+                }
+            }
+            stopRecordingAudioTrack();
+            const context = new AudioContext();
+            const destination = context.createMediaStreamDestination();
+            tracks.forEach((track) => {
+                const sourceStream = new MediaStream([track]);
+                const source = context.createMediaStreamSource(sourceStream);
+                source.connect(destination);
+            });
+            context.resume().catch(() => {});
+            const outputTrack = destination.stream.getAudioTracks()[0] ?? null;
+            recordingAudioContextRef.current = context;
+            recordingAudioTrackRef.current = outputTrack;
+            recordingAudioKeyRef.current = key;
+            return outputTrack;
+        },
+        [stopRecordingAudioTrack]
     );
 
     const getPresenterAudioSelection = useCallback(() => {
@@ -631,6 +683,7 @@ const MeetingRoomPage: React.FC = () => {
     const finalizeVoiceRecording = useCallback(async () => {
         if (!numericStudyId || !numericMeetingId) return;
         if (!isLoggedIn) return;
+        if (!canEndMeeting) return;
         if (voiceFinalizeRequestedRef.current) return;
         voiceFinalizeRequestedRef.current = true;
         try {
@@ -640,43 +693,75 @@ const MeetingRoomPage: React.FC = () => {
         } catch (error) {
             console.error('Failed to finalize voice recording', error);
         }
-    }, [isLoggedIn, numericMeetingId, numericStudyId, stopVoiceRecording]);
+    }, [canEndMeeting, isLoggedIn, numericMeetingId, numericStudyId, stopVoiceRecording]);
 
     const getVoiceRecordingTrack = useCallback(() => {
-        if (!isPresenterRef.current) {
-            const micTrack = localMicStreamRef.current?.getAudioTracks()?.[0] ?? null;
-            if (micEnabledRef.current && micTrack && micTrack.readyState === 'live') {
-                return { track: micTrack, sourceId: `mic:${micTrack.id}` };
+        const tracks: MediaStreamTrack[] = [];
+        const sourceIds: string[] = [];
+        const micTrack = localMicStreamRef.current?.getAudioTracks()?.[0] ?? null;
+        const screenTrack = localScreenStreamRef.current?.getAudioTracks()?.[0] ?? null;
+
+        if (micEnabledRef.current && micTrack && micTrack.readyState === 'live') {
+            tracks.push(micTrack);
+            sourceIds.push(`mic:${micTrack.id}`);
+        }
+
+        if (screenSharingRef.current && screenTrack && screenTrack.readyState === 'live') {
+            tracks.push(screenTrack);
+            sourceIds.push(`screen:${screenTrack.id}`);
+        }
+
+        remoteAudioTracksRef.current.forEach((track, producerId) => {
+            if (track.readyState === 'live') {
+                tracks.push(track);
+                sourceIds.push(`remote:${producerId}:${track.id}`);
             }
+        });
+
+        if (tracks.length === 0) {
+            stopRecordingAudioTrack();
             return null;
         }
-        return getPresenterAudioSelection();
-    }, [getPresenterAudioSelection]);
+
+        const mixedTrack = ensureRecordingAudioTrack(tracks);
+        const track = tracks.length > 1 ? mixedTrack : tracks[0];
+        if (!track) return null;
+        const sourceId = tracks.length > 1 ? `mix:${sourceIds.join('|')}` : sourceIds[0];
+        return { track, sourceId };
+    }, [ensureRecordingAudioTrack, stopRecordingAudioTrack]);
 
     const updateVoiceRecordingSource = useCallback(() => {
         voiceSourceUpdateChainRef.current = voiceSourceUpdateChainRef.current.then(async () => {
-            if (!isLoggedIn || !numericStudyId || !numericMeetingId) {
+            const shouldPublishPresenterAudio = isPresenterRef.current && shareModeRef.current;
+            const presenterSelection = shouldPublishPresenterAudio ? getPresenterAudioSelection() : null;
+            const canRecord = isLoggedIn && canEndMeeting && numericStudyId && numericMeetingId;
+
+            if (!canRecord) {
                 if (voiceRecorderRef.current) {
                     await stopVoiceRecording();
                 }
                 voiceRecordingSourceIdRef.current = null;
+                if (shouldPublishPresenterAudio) {
+                    await updateOutgoingAudio(presenterSelection?.track ?? null);
+                }
                 return;
             }
+
             const selection = getVoiceRecordingTrack();
             if (!selection) {
                 if (voiceRecorderRef.current) {
                     await stopVoiceRecording();
                 }
                 voiceRecordingSourceIdRef.current = null;
-                if (isPresenterRef.current && shareModeRef.current) {
-                    await updateOutgoingAudio(null);
+                if (shouldPublishPresenterAudio) {
+                    await updateOutgoingAudio(presenterSelection?.track ?? null);
                 }
                 return;
             }
             const nextSourceId = selection.sourceId;
             if (voiceRecorderRef.current && voiceRecordingSourceIdRef.current === nextSourceId) {
-                if (isPresenterRef.current && shareModeRef.current) {
-                    await updateOutgoingAudio(selection.track ?? null);
+                if (shouldPublishPresenterAudio) {
+                    await updateOutgoingAudio(presenterSelection?.track ?? null);
                 }
                 return;
             }
@@ -686,11 +771,13 @@ const MeetingRoomPage: React.FC = () => {
             const stream = new MediaStream([selection.track]);
             startVoiceRecording(stream);
             voiceRecordingSourceIdRef.current = nextSourceId;
-            if (isPresenterRef.current && shareModeRef.current) {
-                await updateOutgoingAudio(selection.track ?? null);
+            if (shouldPublishPresenterAudio) {
+                await updateOutgoingAudio(presenterSelection?.track ?? null);
             }
         });
     }, [
+        canEndMeeting,
+        getPresenterAudioSelection,
         getVoiceRecordingTrack,
         isLoggedIn,
         numericMeetingId,
@@ -1148,6 +1235,7 @@ const MeetingRoomPage: React.FC = () => {
     const handleRoomEvent = useCallback(
         (event: MeetingRoomEvent) => {
             if (event.type === 'MEETING_ENDED') {
+                void finalizeVoiceRecording();
                 stopCameraHardware();
                 navigate(`/study/${numericStudyId}/meetings/${numericMeetingId}`);
                 return;
@@ -1194,7 +1282,16 @@ const MeetingRoomPage: React.FC = () => {
                 selfParticipantIdRef.current = event.presenterId;
             }
         },
-        [appendChatMessage, mergeParticipants, navigate, numericStudyId, numericMeetingId, presenterName, stopCameraHardware]
+        [
+            appendChatMessage,
+            finalizeVoiceRecording,
+            mergeParticipants,
+            navigate,
+            numericStudyId,
+            numericMeetingId,
+            presenterName,
+            stopCameraHardware,
+        ]
     );
 
     const handleNewConsumer = useCallback(
@@ -1205,6 +1302,12 @@ const MeetingRoomPage: React.FC = () => {
                 audio.autoplay = true;
                 audio.play().catch(() => {});
                 remoteAudioElementsRef.current.set(payload.producerId, audio);
+                const track = payload.stream.getAudioTracks()?.[0] ?? null;
+                if (track) {
+                    remoteAudioTracksRef.current.set(payload.producerId, track);
+                    setRemoteAudioVersion((prev) => prev + 1);
+                    updateVoiceRecordingSource();
+                }
                 return;
             }
             setRemoteVideoStreams((prev) => {
@@ -1227,7 +1330,7 @@ const MeetingRoomPage: React.FC = () => {
                 ];
             });
         },
-        [setRemoteVideoStreams]
+        [setRemoteVideoStreams, updateVoiceRecordingSource]
     );
 
     const handlePeerLeft = useCallback((peerId: string) => {
@@ -1246,7 +1349,11 @@ const MeetingRoomPage: React.FC = () => {
             audio.srcObject = null;
             remoteAudioElementsRef.current.delete(payload.producerId);
         }
-    }, []);
+        if (remoteAudioTracksRef.current.delete(payload.producerId)) {
+            setRemoteAudioVersion((prev) => prev + 1);
+            updateVoiceRecordingSource();
+        }
+    }, [updateVoiceRecordingSource]);
 
     useEffect(() => {
         let cancelled = false;
@@ -1371,6 +1478,7 @@ const MeetingRoomPage: React.FC = () => {
             stopCameraHardware();
             stopTracks(localScreenStreamRef.current);
             stopMixedAudioTrack();
+            stopRecordingAudioTrack();
             remoteAudioElementsRef.current.forEach((audio) => {
                 try {
                     audio.pause();
@@ -1380,6 +1488,7 @@ const MeetingRoomPage: React.FC = () => {
                 audio.srcObject = null;
             });
             remoteAudioElementsRef.current.clear();
+            remoteAudioTracksRef.current.clear();
             canvasComposer.stopComposing();
             if (joinSuccessRef.current) {
                 meetingApi.leaveMeeting(numericStudyId, numericMeetingId).catch((error) => {
@@ -1396,6 +1505,7 @@ const MeetingRoomPage: React.FC = () => {
         handleRoomEvent,
         finalizeVoiceRecording,
         stopMixedAudioTrack,
+        stopRecordingAudioTrack,
         startMicrophone,
     ]);
 
@@ -1407,7 +1517,7 @@ const MeetingRoomPage: React.FC = () => {
 
     useEffect(() => {
         updateVoiceRecordingSource();
-    }, [cameraEnabled, isPresenter, micEnabled, screenSharing, shareMode, updateVoiceRecordingSource]);
+    }, [cameraEnabled, isPresenter, micEnabled, remoteAudioVersion, screenSharing, shareMode, updateVoiceRecordingSource]);
 
     useEffect(() => {
         if (!numericStudyId || !numericMeetingId) return;

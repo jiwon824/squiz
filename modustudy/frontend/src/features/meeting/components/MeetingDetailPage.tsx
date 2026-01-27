@@ -155,8 +155,6 @@ const MeetingDetailPage: React.FC = () => {
                     onUpdate={handleUpdateActionItem}
                 />
                 <MeetingRecordingPanel
-                    studyId={Number.isFinite(numericStudyId) ? numericStudyId : null}
-                    meetingId={Number.isFinite(numericMeetingId) ? numericMeetingId : null}
                     recording={recording}
                     audioRecordings={audioRecordings}
                     sttFile={sttFile}
