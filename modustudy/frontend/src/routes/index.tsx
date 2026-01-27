@@ -5,6 +5,7 @@ import { Skeleton } from '../shared/components';
 // 즉시 로드: 랜딩 및 핵심 페이지
 import { StartPage } from '../features/start/StartPage';
 import { Dashboard, CalendarExpandWidget, DashboardSkeleton } from '../features/dashboard';
+import { DashboardV2 } from '../features/dashboard-v2';
 import { CalendarTestPage } from '../features/calendar/components/CalendarTestPage';
 import { CalendarPage } from '../features/calendar/components/CalendarPage';
 import { authApi } from '@/api/endpoints/authApi';
@@ -141,6 +142,7 @@ export const AppRouter = () => {
                     </Suspense>
                 }
             />
+            <Route path="/dashboard-v2" element={<DashboardV2 />} />
             <Route path="/calendar-expand" element={<CalendarExpandWidget />} />
             <Route path="/calendar" element={<CalendarPage />} />
             <Route path="/test-calendar" element={<CalendarTestPage />} />

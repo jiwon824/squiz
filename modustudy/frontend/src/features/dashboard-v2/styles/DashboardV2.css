@@ -1,0 +1,45 @@
+/* Dashboard V2 추가 스타일 */
+
+/* 스크롤바 커스텀 */
+.dashboard-v2-scroll::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.dashboard-v2-scroll::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.dashboard-v2-scroll::-webkit-scrollbar-thumb {
+    background: #80a1ba;
+    border-radius: 4px;
+}
+
+.dashboard-v2-scroll::-webkit-scrollbar-thumb:hover {
+    background: #6b8ca8;
+}
+
+/* 애니메이션 */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in-up {
+    animation: fadeInUp 0.5s ease-out;
+}
+
+/* 그라데이션 텍스트 */
+.gradient-text {
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-teal) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
