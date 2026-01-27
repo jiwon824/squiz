@@ -15,20 +15,21 @@ export default defineConfig({
         },
     },
     server: {
-        allowedHosts: true,
+        allowedHosts: 'all',
         host: '0.0.0.0',
         port: 3000,
         open: true,
         proxy: {
             '/api': {
-                target: 'https://localhost:8080',
+                // 백엔드(Tomcat)는 현재 HTTP 모드로 동작
+                target: 'http://localhost:8080',
                 changeOrigin: true,
                 secure: false,
-                // 백엔드가 발급한 쿠키(domain=localhost)를 프론트 도메인에 맞게 변환
+                // 쿠키 도메인 재작성: modustudy.local로 접속 시 도메인 유지
                 cookieDomainRewrite: 'modustudy.local',
             },
             '/oauth2': {
-                target: 'https://localhost:8080',
+                target: 'http://localhost:8080',
                 changeOrigin: true,
                 secure: false,
                 cookieDomainRewrite: 'modustudy.local',
