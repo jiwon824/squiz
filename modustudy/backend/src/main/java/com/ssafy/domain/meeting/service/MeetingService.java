@@ -53,7 +53,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.beans.factory.annotation.Value;
 
@@ -65,12 +64,9 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Objects;
-import java.nio.file.Paths;
 
 @Service
 @RequiredArgsConstructor
@@ -90,13 +86,11 @@ public class MeetingService {
     private final ObjectMapper objectMapper;
     private final SfuProperties sfuProperties;
     private final LocalFileStorageService localFileStorageService;
-    private final RestTemplate restTemplate;
     @Value("${meeting.pdf.font-path:}")
     private String pdfFontPath;
     @Value("${app.ffmpeg.path:ffmpeg}")
     private String ffmpegPath;
 
-    private static final String MIXED_VOICE_FILENAME = "meetingvoice.webm";
 
     @Transactional(readOnly = true)
     public Page<MeetingListItemResponse> listMeetings(Long studyId, MeetingType meetingType,
@@ -179,7 +173,6 @@ public class MeetingService {
         Meeting meeting = Meeting.start(studyId, request.sessionId(), request.workspaceId(),
                 request.title(), meetingType, autoShareSummary, request.shareWorkspaceId(), LocalDateTime.now());
         Meeting saved = meetingRepository.save(meeting);
-        triggerSfuRecordingStart(saved);
         return new MeetingResponse(saved.getId(), saved.getTitle(), buildRoomToken(saved), saved.getStatus().name(),
                 saved.getMeetingType().name(), saved.getRecordingStatus().name(), saved.getSttStatus().name(),
                 resolveSummaryStatus(saved).name());
@@ -201,7 +194,6 @@ public class MeetingService {
         int participantCount = participants.size();
         meeting.end(endedAt, participantCount);
         meeting.updateSummaryStatus(SummaryStatus.PROCESSING);
-        completeSfuRecording(meeting);
         finalizeIndividualVoiceRecordings(meetingId, participants);
         return new MeetingEndResponse(meeting.getDurationSeconds(), meeting.getParticipantCount(),
                 meeting.getSummaryStatus().name());
@@ -213,7 +205,6 @@ public class MeetingService {
         if (meeting.getStatus() == MeetingStatus.ENDED) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "MEETING_ALREADY_ENDED");
         }
-        boolean firstJoin = meeting.getParticipantCount() == null || meeting.getParticipantCount() == 0;
         MeetingParticipant participant = meetingParticipantRepository.findTopByMeetingIdAndUserIdOrderByJoinedAtDesc(meetingId, userId)
                 .orElseGet(() -> MeetingParticipant.join(meetingId, userId, LocalDateTime.now()));
         if (participant.getId() != null) {
@@ -221,9 +212,6 @@ public class MeetingService {
         }
         meetingParticipantRepository.save(participant);
         meeting.updateParticipantCount(meetingParticipantRepository.countByMeetingId(meetingId));
-        if (firstJoin) {
-            triggerSfuRecordingStart(meeting);
-        }
         // Provide ICE servers for WebRTC clients to connect to the SFU.
         List<MeetingIceServerResponse> iceServers = sfuProperties.getIceServers().stream()
                 .filter(server -> server.getUrls() != null && !server.getUrls().isBlank())
@@ -476,12 +464,10 @@ public class MeetingService {
         if (trackType == MeetingAudioTrackType.INDIVIDUAL && userId == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "USER_ID_REQUIRED");
         }
-        if (trackType == MeetingAudioTrackType.MIXED && userId != null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "USER_ID_NOT_ALLOWED");
+        if (trackType == MeetingAudioTrackType.MIXED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "MIXED_AUDIO_NOT_SUPPORTED");
         }
-        String filename = trackType == MeetingAudioTrackType.MIXED
-                ? MIXED_VOICE_FILENAME
-                : buildIndividualVoiceFilename(userId);
+        String filename = buildIndividualVoiceFilename(userId);
         String recordingUrl = localFileStorageService.saveMeetingVoiceFinal(meetingId, filename, audio);
         String format = extractFileExtension(audio.getOriginalFilename());
         MeetingAudioRecording saved = saveOrUpdateAudioRecording(
@@ -1013,135 +999,6 @@ public class MeetingService {
         return meeting.getSummaryStatus() == null ? SummaryStatus.PENDING : meeting.getSummaryStatus();
     }
 
-    private void triggerSfuRecordingStart(Meeting meeting) {
-        String controlUrl = resolveSfuControlUrl();
-        if (controlUrl == null || controlUrl.isBlank()) {
-            log.warn("SFU control URL is not configured. Skip recording start. meetingId={}", meeting.getId());
-            return;
-        }
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("roomId", buildRoomToken(meeting));
-        payload.put("meetingId", meeting.getId());
-        try {
-            Map response = restTemplate.postForObject(controlUrl + "/recordings/start", payload, Map.class);
-            log.info("SFU recording started. meetingId={} response={}", meeting.getId(), response);
-        } catch (Exception e) {
-            log.warn("SFU recording start failed. meetingId={} controlUrl={} error={}", meeting.getId(), controlUrl, e.toString());
-            meeting.updateRecordingStatus(RecordingStatus.FAILED);
-        }
-    }
-
-    private void completeSfuRecording(Meeting meeting) {
-        String controlUrl = resolveSfuControlUrl();
-        if (controlUrl == null || controlUrl.isBlank()) {
-            log.warn("SFU control URL is not configured. Skip recording stop. meetingId={}", meeting.getId());
-            return;
-        }
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("roomId", buildRoomToken(meeting));
-        try {
-            Map response = restTemplate.postForObject(controlUrl + "/recordings/stop", payload, Map.class);
-            if (response == null) {
-                log.warn("SFU recording stop returned null response. meetingId={}", meeting.getId());
-                meeting.updateRecordingStatus(RecordingStatus.FAILED);
-                return;
-            }
-            Object outputPathValue = response.get("outputPath");
-            Object fileSizeValue = response.get("fileSize");
-            log.info("SFU recording stopped. meetingId={} response={}", meeting.getId(), response);
-            String recordingUrl = resolveRecordingUrl(outputPathValue == null ? null : String.valueOf(outputPathValue));
-            Long fileSize = fileSizeValue == null ? null : Long.parseLong(String.valueOf(fileSizeValue));
-            if (recordingUrl == null) {
-                log.warn("SFU recording output path invalid. meetingId={} outputPath={}", meeting.getId(), outputPathValue);
-                meeting.updateRecordingStatus(RecordingStatus.FAILED);
-                return;
-            }
-            MeetingRecordingRequest request = new MeetingRecordingRequest(
-                    recordingUrl,
-                    "webm",
-                    meeting.getDurationSeconds(),
-                    meeting.getStartedAt(),
-                    meeting.getEndedAt(),
-                    fileSize,
-                    RecordingStatus.READY
-            );
-            upsertRecording(meeting.getStudyId(), meeting.getId(), request);
-            extractMixedVoiceFromRecording(meeting.getId(), recordingUrl);
-        } catch (Exception e) {
-            log.warn("SFU recording stop failed. meetingId={} controlUrl={} error={}", meeting.getId(), controlUrl, e.toString());
-            meeting.updateRecordingStatus(RecordingStatus.FAILED);
-        }
-    }
-
-    private void extractMixedVoiceFromRecording(Long meetingId, String recordingUrl) {
-        Path inputPath = localFileStorageService.resolveUploadedPath(recordingUrl);
-        if (inputPath == null || !Files.exists(inputPath)) {
-            log.warn("Mixed voice extract skipped: recording not found. meetingId={} url={}", meetingId, recordingUrl);
-            return;
-        }
-        Path outputPath = localFileStorageService.resolveMeetingVoiceFile(meetingId, MIXED_VOICE_FILENAME);
-        List<String> args = List.of(
-                ffmpegPath,
-                "-y",
-                "-i",
-                inputPath.toAbsolutePath().toString(),
-                "-vn",
-                "-c:a",
-                "libopus",
-                "-b:a",
-                "64k",
-                outputPath.toAbsolutePath().toString()
-        );
-        runFfmpeg(args, "mixed-voice-extract", meetingId);
-        Long fileSize;
-        try {
-            fileSize = Files.size(outputPath);
-        } catch (IOException e) {
-            fileSize = null;
-        }
-        String recordingUrlResolved = localFileStorageService.buildMeetingVoiceUrl(meetingId, MIXED_VOICE_FILENAME);
-        MeetingAudioRecording saved = saveOrUpdateAudioRecording(
-                meetingId,
-                null,
-                MeetingAudioTrackType.MIXED,
-                recordingUrlResolved,
-                "webm",
-                fileSize
-        );
-        log.info("Mixed voice extracted. meetingId={} recordingId={}", meetingId, saved.getId());
-    }
-
-    private String resolveSfuControlUrl() {
-        String controlUrl = sfuProperties.getControlUrl();
-        if (controlUrl != null && !controlUrl.isBlank()) {
-            return controlUrl;
-        }
-        String baseUrl = sfuProperties.getBaseUrl();
-        if (baseUrl == null || baseUrl.isBlank()) {
-            return null;
-        }
-        if (baseUrl.startsWith("wss://")) {
-            return "https://" + baseUrl.substring(6);
-        }
-        if (baseUrl.startsWith("ws://")) {
-            return "http://" + baseUrl.substring(5);
-        }
-        return baseUrl;
-    }
-
-    private String resolveRecordingUrl(String outputPath) {
-        if (outputPath == null || outputPath.isBlank()) {
-            return null;
-        }
-        Path basePath = localFileStorageService.getBasePath().toAbsolutePath().normalize();
-        Path resolved = Paths.get(outputPath).toAbsolutePath().normalize();
-        if (!resolved.startsWith(basePath)) {
-            return null;
-        }
-        Path relative = basePath.relativize(resolved);
-        String normalized = relative.toString().replace("\\", "/");
-        return "/uploads/" + normalized;
-    }
 
     private String buildIndividualVoiceFilename(Long userId) {
         return userId + "voice.webm";

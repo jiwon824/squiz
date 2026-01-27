@@ -3,19 +3,11 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { MainLayout } from '@/layouts/MainLayout';
 import { meetingApi } from '../services/meetingApi';
 import {
-    MeetingActionItemRequest,
-    MeetingActionItemResponse,
-    MeetingAudioRecordingResponse,
     MeetingChatMessageResponse,
     MeetingDetailResponse,
     MeetingPhotoResponse,
-    MeetingRecordingResponse,
-    MeetingSttFileResponse,
-    MeetingSttSummaryResponse,
 } from '../types';
-import MeetingActionItems from './MeetingActionItems';
 import MeetingSummaryPanel from './MeetingSummaryPanel';
-import MeetingRecordingPanel from './MeetingRecordingPanel';
 import '../styles/MeetingDetail.css';
 import '../styles/MeetingShared.css';
 
@@ -25,11 +17,6 @@ const MeetingDetailPage: React.FC = () => {
     const numericMeetingId = Number(meetingId);
     const navigate = useNavigate();
     const [detail, setDetail] = useState<MeetingDetailResponse | null>(null);
-    const [actionItems, setActionItems] = useState<MeetingActionItemResponse[]>([]);
-    const [recording, setRecording] = useState<MeetingRecordingResponse | null>(null);
-    const [audioRecordings, setAudioRecordings] = useState<MeetingAudioRecordingResponse[]>([]);
-    const [sttFile, setSttFile] = useState<MeetingSttFileResponse | null>(null);
-    const [summaryFile, setSummaryFile] = useState<MeetingSttSummaryResponse | null>(null);
     const [chatMessages, setChatMessages] = useState<MeetingChatMessageResponse[]>([]);
     const [photos, setPhotos] = useState<MeetingPhotoResponse[]>([]);
     const [selectingPhotoId, setSelectingPhotoId] = useState<number | null>(null);
@@ -49,43 +36,16 @@ const MeetingDetailPage: React.FC = () => {
         const load = async () => {
             const meetingDetail = await meetingApi.getMeetingDetail(numericStudyId, numericMeetingId);
             setDetail(meetingDetail);
-            setActionItems(meetingDetail.summary?.actionItems ?? []);
-
-            const [recordingData, audioData, chatData] = await Promise.all([
-                meetingApi.getRecording(numericStudyId, numericMeetingId).catch(() => null),
-                meetingApi.listAudioRecordings(numericStudyId, numericMeetingId).catch(() => []),
-                meetingApi.getChatHistory(numericStudyId, numericMeetingId, { page: 0, size: 100 }).catch(() => null),
-            ]);
-            if (recordingData) setRecording(recordingData);
-            if (audioData) setAudioRecordings(audioData);
+            const chatData = await meetingApi
+                .getChatHistory(numericStudyId, numericMeetingId, { page: 0, size: 100 })
+                .catch(() => null);
             if (chatData) setChatMessages(chatData.content);
-
-            const stt = await meetingApi
-                .getSttFile(numericStudyId, numericMeetingId, { trackType: 'MIXED' })
-                .catch(() => null);
-            const summary = await meetingApi
-                .getSummaryFile(numericStudyId, numericMeetingId, { trackType: 'MIXED' })
-                .catch(() => null);
-            if (stt) setSttFile(stt);
-            if (summary) setSummaryFile(summary);
 
             const photoList = await meetingApi.getPhotos(numericStudyId, numericMeetingId).catch(() => []);
             setPhotos(photoList);
         };
         load();
     }, [numericStudyId, numericMeetingId]);
-
-    const handleAddActionItem = async (payload: MeetingActionItemRequest) => {
-        if (!numericStudyId || !numericMeetingId) return;
-        const created = await meetingApi.addActionItem(numericStudyId, numericMeetingId, payload);
-        setActionItems((prev) => [...prev, created]);
-    };
-
-    const handleUpdateActionItem = async (id: number, payload: MeetingActionItemRequest) => {
-        if (!numericStudyId || !numericMeetingId) return;
-        const updated = await meetingApi.updateActionItem(numericStudyId, numericMeetingId, id, payload);
-        setActionItems((prev) => prev.map((item) => (item.id === id ? updated : item)));
-    };
 
     const handleExport = async (format: 'MARKDOWN' | 'PDF') => {
         if (!numericStudyId || !numericMeetingId) return;
@@ -148,18 +108,6 @@ const MeetingDetailPage: React.FC = () => {
                 </div>
 
                 <MeetingSummaryPanel summary={detail?.summary ?? null} />
-                <MeetingActionItems
-                    actionItems={actionItems}
-                    participants={detail?.participants ?? []}
-                    onAdd={handleAddActionItem}
-                    onUpdate={handleUpdateActionItem}
-                />
-                <MeetingRecordingPanel
-                    recording={recording}
-                    audioRecordings={audioRecordings}
-                    sttFile={sttFile}
-                    summaryFile={summaryFile}
-                />
 
                 <section className="meeting-detail-card">
                     <div className="meeting-detail-card__header">
