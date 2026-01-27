@@ -265,14 +265,14 @@ public class OAuth2Service {
     private String googleRedirectUri;
 
     /**
-     * 구글 로그인 URL 생성
+     * 구글 로그인 URL 생성 (Calendar scope 포함)
      */
     public String getGoogleAuthUrl() {
         return "https://accounts.google.com/o/oauth2/v2/auth?" +
                 "client_id=" + googleClientId +
                 "&redirect_uri=" + googleRedirectUri +
                 "&response_type=code" +
-                "&scope=openid%20profile%20email" +
+                "&scope=openid%20profile%20email%20https://www.googleapis.com/auth/calendar" +
                 "&access_type=offline" +
                 "&prompt=consent";
     }
@@ -283,14 +283,23 @@ public class OAuth2Service {
     public AuthResponse processGoogleCallback(String code) {
         log.info("구글 로그인 콜백 처리 시작");
 
-        // 1. Authorization Code로 Access Token 받기
-        String googleAccessToken = getGoogleAccessToken(code);
+        // 1. Authorization Code로 Token 정보 받기 (access_token + refresh_token)
+        Map<String, Object> googleTokens = getGoogleTokens(code);
+        String googleAccessToken = (String) googleTokens.get("access_token");
+        String googleRefreshToken = (String) googleTokens.get("refresh_token");
+        Integer expiresIn = (Integer) googleTokens.get("expires_in");
 
         // 2. Access Token으로 사용자 정보 받기
         OAuth2UserInfo userInfo = getGoogleUserInfo(googleAccessToken);
 
-        // 3. 이메일 기반 User 찾기 또는 생성 + 소셜 계정 연동
-        User user = findOrCreateUserWithSocial(userInfo, SocialProvider.GOOGLE);
+        // 3. 이메일 기반 User 찾기 또는 생성 + 소셜 계정 연동 + Google 토큰 저장
+        User user = findOrCreateUserWithSocialAndTokens(
+                userInfo,
+                SocialProvider.GOOGLE,
+                googleAccessToken,
+                googleRefreshToken,
+                expiresIn
+        );
 
         // 4. 신규 유저 여부 판단 (nickname이 없으면 추가 정보 입력 필요)
         boolean isNewUser = (user.getNickname() == null);
@@ -313,9 +322,9 @@ public class OAuth2Service {
     }
 
     /**
-     * Authorization Code로 Access Token 받기 (구글)
+     * Authorization Code로 Token 정보 받기 (구글) - access_token, refresh_token 모두 반환
      */
-    private String getGoogleAccessToken(String code) {
+    private Map<String, Object> getGoogleTokens(String code) {
         String tokenUrl = "https://oauth2.googleapis.com/token";
 
         HttpHeaders headers = new HttpHeaders();
@@ -337,7 +346,10 @@ public class OAuth2Service {
             throw new RuntimeException("구글 토큰 발급 실패: " + body.get("error_description"));
         }
 
-        return (String) body.get("access_token");
+        log.info("구글 토큰 발급 성공: access_token 있음={}, refresh_token 있음={}",
+                body.containsKey("access_token"), body.containsKey("refresh_token"));
+
+        return body;
     }
 
     /**
@@ -445,6 +457,162 @@ public class OAuth2Service {
         userRepository.save(user);
 
         return user;
+    }
+
+    /**
+     * 이메일로 User 찾기 또는 생성 + 소셜 계정 연동 + OAuth 토큰 저장
+     * (Google Calendar 연동을 위해 provider의 access_token, refresh_token 저장)
+     */
+    private User findOrCreateUserWithSocialAndTokens(
+            OAuth2UserInfo userInfo,
+            SocialProvider provider,
+            String providerAccessToken,
+            String providerRefreshToken,
+            Integer expiresInSeconds
+    ) {
+        // 1. 이메일로 기존 User 찾기
+        Optional<User> existingUser = userRepository.findByEmail(userInfo.getEmail());
+
+        User user;
+        UserSocialAccount socialAccount;
+
+        if (existingUser.isPresent()) {
+            // ===== 기존 User 있음 =====
+            user = existingUser.get();
+
+            log.info("기존 회원 발견: userId={}, email={}", user.getId(), user.getEmail());
+
+            // 해당 provider로 이미 연동되었는지 확인
+            Optional<UserSocialAccount> existingSocial = socialAccountRepository
+                    .findByProviderAndProviderUserId(provider, userInfo.getProviderId());
+
+            if (existingSocial.isEmpty()) {
+                // 새로운 소셜 계정 추가!
+                socialAccount = UserSocialAccount.builder()
+                        .user(user)
+                        .provider(provider)
+                        .providerUserId(userInfo.getProviderId())
+                        .email(userInfo.getEmail())
+                        .isPrimary(false)
+                        .linkedAt(LocalDateTime.now())
+                        .accessToken(providerAccessToken)
+                        .refreshToken(providerRefreshToken)
+                        .tokenExpiresAt(expiresInSeconds != null
+                                ? LocalDateTime.now().plusSeconds(expiresInSeconds)
+                                : null)
+                        .calendarId("primary")
+                        .build();
+
+                socialAccountRepository.save(socialAccount);
+                log.info("소셜 계정 추가 연동 (토큰 포함): userId={}, provider={}", user.getId(), provider);
+            } else {
+                // 기존 소셜 계정 토큰 업데이트
+                socialAccount = existingSocial.get();
+                socialAccount.updateTokens(
+                        providerAccessToken,
+                        providerRefreshToken,
+                        expiresInSeconds != null
+                                ? LocalDateTime.now().plusSeconds(expiresInSeconds)
+                                : null
+                );
+                socialAccountRepository.save(socialAccount);
+                log.info("소셜 계정 토큰 갱신: userId={}, provider={}", user.getId(), provider);
+            }
+
+        } else {
+            // ===== 신규 User 생성 =====
+            user = User.builder()
+                    .email(userInfo.getEmail())
+                    .name(userInfo.getName())
+                    .nickname(null)
+                    .profileImage(userInfo.getProfileImageUrl())
+                    .role(Role.USER)
+                    .isActive(true)
+                    .lastLoginAt(LocalDateTime.now())
+                    .isOnline(true)
+                    .isSearchable(true)
+                    .totalExp(0)
+                    .currentPoints(0)
+                    .currentLevel(1)
+                    .levelName("새싹")
+                    .build();
+
+            user = userRepository.save(user);
+
+            // 소셜 계정 생성 (토큰 포함)
+            socialAccount = UserSocialAccount.builder()
+                    .user(user)
+                    .provider(provider)
+                    .providerUserId(userInfo.getProviderId())
+                    .email(userInfo.getEmail())
+                    .isPrimary(true)
+                    .linkedAt(LocalDateTime.now())
+                    .accessToken(providerAccessToken)
+                    .refreshToken(providerRefreshToken)
+                    .tokenExpiresAt(expiresInSeconds != null
+                            ? LocalDateTime.now().plusSeconds(expiresInSeconds)
+                            : null)
+                    .calendarId("primary")
+                    .build();
+
+            socialAccountRepository.save(socialAccount);
+            log.info("신규 회원 가입 (토큰 포함): userId={}, provider={}", user.getId(), provider);
+        }
+
+        // 로그인 상태 업데이트
+        user.setLastLoginAt(LocalDateTime.now());
+        user.setIsOnline(true);
+        userRepository.save(user);
+
+        return user;
+    }
+
+    /**
+     * Google Access Token 갱신 (refresh_token 사용)
+     */
+    public String refreshGoogleAccessToken(Long userId) {
+        UserSocialAccount socialAccount = socialAccountRepository
+                .findByUserIdAndProvider(userId, SocialProvider.GOOGLE)
+                .orElseThrow(() -> new IllegalArgumentException("Google 계정이 연동되어 있지 않습니다."));
+
+        if (socialAccount.getRefreshToken() == null) {
+            throw new IllegalStateException("Google refresh token이 없습니다. 다시 로그인해주세요.");
+        }
+
+        String tokenUrl = "https://oauth2.googleapis.com/token";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+        params.add("grant_type", "refresh_token");
+        params.add("client_id", googleClientId);
+        params.add("client_secret", googleClientSecret);
+        params.add("refresh_token", socialAccount.getRefreshToken());
+
+        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
+        ResponseEntity<Map> response = restTemplate.postForEntity(tokenUrl, request, Map.class);
+
+        Map<String, Object> body = response.getBody();
+
+        if (body.containsKey("error")) {
+            throw new RuntimeException("Google 토큰 갱신 실패: " + body.get("error_description"));
+        }
+
+        String newAccessToken = (String) body.get("access_token");
+        Integer expiresIn = (Integer) body.get("expires_in");
+
+        // 토큰 업데이트 (refresh_token은 그대로 유지, 새로 발급되지 않음)
+        socialAccount.updateTokens(
+                newAccessToken,
+                null,  // refresh_token은 Google에서 새로 발급하지 않음
+                expiresIn != null ? LocalDateTime.now().plusSeconds(expiresIn) : null
+        );
+        socialAccountRepository.save(socialAccount);
+
+        log.info("Google access token 갱신 완료: userId={}", userId);
+
+        return newAccessToken;
     }
 
     /**

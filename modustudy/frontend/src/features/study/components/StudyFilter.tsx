@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, SlidersHorizontal, X, Plus } from 'lucide-react';
+import { Search, SlidersHorizontal, X, Plus, ChevronDown, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/StudyFilter.css';
 
@@ -11,19 +11,36 @@ interface StudyFilterProps {
 export interface FilterState {
     status: string[];
     topic: string[];
+    subTopic: string[]; // 세부 주제 추가
     meetingType: string[];
     difficulty: string[];
     studyType: string[];
     regionId: number[];
 }
 
+// 대분류 → 소분류 매핑
+const TOPIC_CATEGORIES: Record<string, string[]> = {
+    '알고리즘/코딩테스트': ['백준', '프로그래머스', 'SWEA', 'LeetCode', '코딩테스트 대비'],
+    'CS 기초': ['자료구조', '알고리즘 이론', '운영체제', '네트워크', '데이터베이스', '컴퓨터구조', '디자인패턴', '시스템 설계'],
+    '프론트엔드': ['HTML/CSS', 'JavaScript', 'TypeScript', 'React', 'Vue', 'Next.js', '웹 접근성/성능'],
+    '백엔드': ['Java/Spring', 'Python/Django', 'Python/FastAPI', 'Node.js/Express', 'Go', 'Kotlin', 'API 설계'],
+    '인프라/DevOps': ['Docker', 'Kubernetes', 'CI/CD', 'AWS', 'GCP', 'Linux', '모니터링'],
+    'AI/ML': ['머신러닝 기초', '딥러닝', 'NLP', '컴퓨터 비전', 'MLOps', '논문 리뷰'],
+    '모바일': ['Android (Kotlin)', 'Android (Java)', 'iOS (Swift)', 'Flutter', 'React Native'],
+    '자격증': ['정보처리기사', 'SQLD/SQLP', '리눅스마스터', '네트워크관리사', 'AWS 자격증', 'Azure 자격증', 'CKAD/CKA'],
+    '취업 준비': ['기술 면접', '코딩테스트 대비', '포트폴리오', '이력서/자소서', '모의 면접'],
+    '프로젝트': ['사이드 프로젝트', '클론 코딩', '오픈소스 기여', '해커톤 준비']
+};
+
 const StudyFilter: React.FC<StudyFilterProps> = ({ onFilterChange, onSearch }) => {
     const navigate = useNavigate();
     const [searchKeyword, setSearchKeyword] = useState('');
     const [showFilters, setShowFilters] = useState(false);
+    const [expandedTopics, setExpandedTopics] = useState<string[]>([]); // 펼쳐진 대분류
     const [filters, setFilters] = useState<FilterState>({
         status: [],
         topic: [],
+        subTopic: [],
         meetingType: [],
         difficulty: [],
         studyType: [],
@@ -37,15 +54,7 @@ const StudyFilter: React.FC<StudyFilterProps> = ({ onFilterChange, onSearch }) =
             { value: 'IN_PROGRESS', label: '진행중' },
             { value: 'COMPLETED', label: '완료' },
         ],
-        topic: [
-            { value: '알고리즘', label: '알고리즘' },
-            { value: 'CS', label: 'CS' },
-            { value: '백엔드', label: '백엔드' },
-            { value: '프론트엔드', label: '프론트엔드' },
-            { value: '데이터베이스', label: '데이터베이스' },
-            { value: '데이터 분석', label: '데이터 분석' },
-            { value: '프로그래밍 기초', label: '프로그래밍 기초' },
-        ],
+        topic: Object.keys(TOPIC_CATEGORIES).map(topic => ({ value: topic, label: topic })),
         meetingType: [
             { value: 'ONLINE', label: '온라인' },
             { value: 'OFFLINE', label: '오프라인' },
@@ -88,16 +97,27 @@ const StudyFilter: React.FC<StudyFilterProps> = ({ onFilterChange, onSearch }) =
         });
     };
 
+    // 대분류 펼침/접기 토글
+    const toggleTopicExpand = (topic: string) => {
+        setExpandedTopics(prev =>
+            prev.includes(topic)
+                ? prev.filter(t => t !== topic)
+                : [...prev, topic]
+        );
+    };
+
     const clearFilters = () => {
         const emptyFilters: FilterState = {
             status: [],
             topic: [],
+            subTopic: [],
             meetingType: [],
             difficulty: [],
             studyType: [],
             regionId: [],
         };
         setFilters(emptyFilters);
+        setExpandedTopics([]);
         onFilterChange(emptyFilters);
     };
 
@@ -183,19 +203,44 @@ const StudyFilter: React.FC<StudyFilterProps> = ({ onFilterChange, onSearch }) =
                             </div>
                         </div>
 
-                        {/* 주제 */}
-                        <div className="filter-section">
+                        {/* 주제 (대분류 + 세부 카테고리) */}
+                        <div className="filter-section filter-section-topic">
                             <h4 className="filter-section-title">주제</h4>
-                            <div className="filter-options">
+                            <div className="filter-topics-grid">
                                 {filterOptions.topic.map((option) => (
-                                    <label key={option.value} className="filter-option">
-                                        <input
-                                            type="checkbox"
-                                            checked={filters.topic.includes(option.value)}
-                                            onChange={() => handleFilterToggle('topic', option.value)}
-                                        />
-                                        <span>{option.label}</span>
-                                    </label>
+                                    <div key={option.value} className="filter-topic-group">
+                                        <div className="filter-topic-header">
+                                            <label className="filter-option filter-option-main">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={filters.topic.includes(option.value)}
+                                                    onChange={() => handleFilterToggle('topic', option.value)}
+                                                />
+                                                <span>{option.label}</span>
+                                            </label>
+                                            <button
+                                                type="button"
+                                                className="topic-expand-btn"
+                                                onClick={() => toggleTopicExpand(option.value)}
+                                            >
+                                                {expandedTopics.includes(option.value) ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                                            </button>
+                                        </div>
+                                        {expandedTopics.includes(option.value) && (
+                                            <div className="filter-subtopics">
+                                                {TOPIC_CATEGORIES[option.value]?.map((subTopic) => (
+                                                    <label key={subTopic} className="filter-option filter-option-sub">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={filters.subTopic.includes(subTopic)}
+                                                            onChange={() => handleFilterToggle('subTopic', subTopic)}
+                                                        />
+                                                        <span>{subTopic}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
                                 ))}
                             </div>
                         </div>

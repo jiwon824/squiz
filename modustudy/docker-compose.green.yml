@@ -26,6 +26,7 @@ services:
     volumes:
       - uploads-data:/app/uploads
     environment:
+      - TZ=Asia/Seoul
       - SPRING_PROFILES_ACTIVE=prod
       - SPRING_DATASOURCE_URL=jdbc:mysql://squiz-mysql:3306/squiz?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul
       - SPRING_DATASOURCE_USERNAME=${DB_USERNAME}

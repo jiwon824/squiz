@@ -1,25 +1,14 @@
 package com.ssafy.domain.gamification.entity;
 
-import com.ssafy.domain.user.entity.User;
+import com.ssafy.common.entity.BaseEntity;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+import lombok.*;
 
 @Entity
-@Table(
-        name = "daily_contribution",
-        uniqueConstraints = @UniqueConstraint(
-                name = "uk_user_date",
-                columnNames = {"user_id", "contribution_date"}
-        )
-)
+@Table(name = "daily_contribution")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+<<<<<<< HEAD
 public class DailyContribution {
 
     @Id
@@ -59,3 +48,7 @@ public class DailyContribution {
         this.activityCount++;
     }
 }
+=======
+public class DailyContribution extends BaseEntity {
+}
+>>>>>>> 3389b2ff68a26273732372d6bd8e25e865e5c448

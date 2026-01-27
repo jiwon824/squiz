@@ -31,7 +31,8 @@
     "sockjs-client": "^1.6.1",
     "tailwind-merge": "^3.4.0",
     "three": "^0.182.0",
-    "zustand": "^5.0.10"
+    "zustand": "^5.0.10",
+    "recharts": "^2.15.2"
   },
   "devDependencies": {
     "@types/react": "^18.2.55",

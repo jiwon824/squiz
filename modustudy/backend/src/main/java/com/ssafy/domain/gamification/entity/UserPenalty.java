@@ -1,19 +1,14 @@
 package com.ssafy.domain.gamification.entity;
 
-import com.ssafy.domain.user.entity.User;
-import com.ssafy.domain.study.entity.Study;
+import com.ssafy.common.entity.BaseEntity;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-
-import java.time.LocalDateTime;
+import lombok.*;
 
 @Entity
 @Table(name = "user_penalty")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+<<<<<<< HEAD
 public class UserPenalty {
 
     @Id
@@ -68,3 +63,7 @@ public class UserPenalty {
         this.removedAt = LocalDateTime.now();
     }
 }
+=======
+public class UserPenalty extends BaseEntity {
+}
+>>>>>>> 3389b2ff68a26273732372d6bd8e25e865e5c448

@@ -1,21 +1,19 @@
 package com.ssafy.domain.gamification.entity;
 
-import com.ssafy.domain.user.entity.User;
-import jakarta.persistence.*;
+import com.ssafy.common.entity.BaseEntity;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
 import lombok.AccessLevel;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "contribution_detail")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class ContributionDetail {
+public class ContributionDetail extends BaseEntity {
 
+<<<<<<< HEAD
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -62,3 +60,6 @@ public class ContributionDetail {
         RETROSPECT_WRITTEN
     }
 }
+=======
+}
+>>>>>>> 3389b2ff68a26273732372d6bd8e25e865e5c448

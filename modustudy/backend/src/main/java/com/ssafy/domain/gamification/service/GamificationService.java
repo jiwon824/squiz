@@ -1,13 +1,7 @@
 package com.ssafy.domain.gamification.service;
 
-import com.ssafy.domain.gamification.entity.BadgeCategory;
-import com.ssafy.domain.gamification.dto.response.*;
-import com.ssafy.domain.gamification.entity.*;
-import com.ssafy.domain.gamification.repository.*;
-import com.ssafy.domain.user.entity.User;
-import com.ssafy.domain.user.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+<<<<<<< HEAD
 import org.springframework.transaction.annotation.Transactional;
 import com.ssafy.domain.study.entity.MemberStatus;
 import com.ssafy.domain.study.repository.StudyMemberRepository;
@@ -18,11 +12,12 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.*;
 import java.util.stream.Collectors;
+=======
+>>>>>>> 3389b2ff68a26273732372d6bd8e25e865e5c448
 
 @Service
-@RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class GamificationService {
+<<<<<<< HEAD
 
     private final UserStatsRepository userStatsRepository;
     private final DailyContributionRepository dailyContributionRepository;
@@ -465,3 +460,6 @@ public class GamificationService {
                 .build();
     }
 }
+=======
+}
+>>>>>>> 3389b2ff68a26273732372d6bd8e25e865e5c448

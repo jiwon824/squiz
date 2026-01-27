@@ -53,8 +53,13 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/studies/**").permitAll()
                         // 퀴즈 코스
                         .requestMatchers("/api/v1/quiz-courses/**").permitAll()
+<<<<<<< HEAD
                         // 게이미피케이션
                         .requestMatchers("/api/v1/gamification/test/**","/api/v1/gamification/stats").permitAll()
+=======
+                        // 데일리
+                        .requestMatchers("/api/v1/dailies/**").permitAll()
+>>>>>>> 3389b2ff68a26273732372d6bd8e25e865e5c448
                         // 나머지는 인증 필요
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
