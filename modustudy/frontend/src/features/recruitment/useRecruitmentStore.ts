@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { RecruitmentPost, RecruitmentComment, ReportRequest } from './types';
+import { useUIStore } from '@/store/uiStore';
 
 interface RecruitmentStore {
     posts: RecruitmentPost[];
@@ -99,7 +100,7 @@ export const useRecruitmentStore = create<RecruitmentStore>((set) => ({
 
     report: (request) => {
         console.log('Report submitted:', request);
-        alert('신고가 접수되었습니다.');
+        useUIStore.getState().showToast('신고가 접수되었습니다.', 'success');
     },
 
     toggleComplete: (id) => set((state) => ({

@@ -25,6 +25,7 @@ import { QuizProgressBar } from './components/QuizProgressBar';
 import { QuizNavigation } from './components/QuizNavigation';
 import { QuizExitModal } from './components/QuizExitModal';
 import { Button } from '@/shared/components/Button';
+import { useUIStore } from '@/store/uiStore';
 
 import {
     startOrResumeAttempt,
@@ -73,6 +74,7 @@ const mapApiQuestionToUiQuestion = (apiQuestion: AttemptQuestion): QuizQuestionT
 export const QuizSession = () => {
     const { courseId, sectionNumber } = useParams<{ courseId: string; sectionNumber: string }>();
     const navigate = useNavigate();
+    const showToast = useUIStore((state) => state.showToast);
 
     // API 상태 관리
     const [attemptData, setAttemptData] = useState<AttemptData | null>(null);
@@ -222,13 +224,13 @@ export const QuizSession = () => {
             console.log('[QuizSession] 퀴즈 완료:', result);
 
             // TODO: 결과 페이지로 이동 또는 결과 모달 표시
-            alert(`점수: ${result.score}점\n정답: ${result.correctCount}/${result.totalQuestions}\n${result.isPassed ? '통과!' : '다시 도전해보세요!'}`);
+            showToast(`점수: ${result.score}점 (정답: ${result.correctCount}/${result.totalQuestions}) ${result.isPassed ? '- 통과!' : '- 다시 도전해보세요!'}`, result.isPassed ? 'success' : 'info');
 
             setHasChanges(false);
             navigate(`/quiz-practice/${courseId}`, { replace: true });
         } catch (err) {
             console.error('[QuizSession] 제출 실패:', err);
-            alert(err instanceof Error ? err.message : '제출에 실패했습니다.');
+            showToast(err instanceof Error ? err.message : '제출에 실패했습니다.', 'error');
         } finally {
             setIsSubmitting(false);
         }
