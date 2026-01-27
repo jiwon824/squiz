@@ -1,8 +1,7 @@
-package com.ssafy.domain.retrospective.repository;
+package com.ssafy.domain.retrospect.repository;
 
 import com.ssafy.domain.retrospect.entity.Retrospective;
 import com.ssafy.domain.retrospect.entity.RetrospectiveType;
-import com.ssafy.domain.retrospect.repository.RetrospectiveRepository;
 import com.ssafy.domain.study.entity.*;
 import com.ssafy.domain.study.repository.FormatRepository;
 import com.ssafy.domain.study.repository.StudyRepository;
