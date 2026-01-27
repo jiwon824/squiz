@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { WorkspaceHeader } from './WorkspaceHeader';
+import { WorkspaceSidebar } from './WorkspaceSidebar';
 import { ChatArea } from './ChatArea';
 import { MessageInput } from './MessageInput';
 import { MemberList, type WorkspaceMember } from './MemberList';
@@ -101,13 +102,14 @@ const mockMessages: MessageResponse[] = [
 ];
 
 export const WorkspacePage: React.FC<WorkspacePageProps> = ({
-  studyId,
+  studyId = 1, // 테스트용 기본값
   studyName = '스터디 워크스페이스',
 }) => {
   const [messages, setMessages] = useState<MessageResponse[]>(mockMessages);
   const [members] = useState<WorkspaceMember[]>(mockMembers);
   const [isMembersVisible, setIsMembersVisible] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading] = useState(false);
+  const [activeMenu, setActiveMenu] = useState<'chat' | 'materials' | 'calendar' | 'meeting'>('chat');
 
   // 메시지 전송 핸들러
   const handleSendMessage = useCallback((content: string) => {
@@ -141,6 +143,14 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
 
   return (
     <div className="workspace-container">
+      {/* 왼쪽 사이드바 */}
+      <WorkspaceSidebar
+        studyId={studyId}
+        studyName={studyName}
+        activeMenu={activeMenu}
+        onMenuChange={setActiveMenu}
+      />
+
       {/* 메인 채팅 영역 */}
       <div className="workspace-main">
         <WorkspaceHeader

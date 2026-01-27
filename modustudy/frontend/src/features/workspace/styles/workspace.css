@@ -2,10 +2,10 @@
 
 .workspace-container {
   display: flex;
-  height: 100%;
+  height: 100vh;
+  width: 100%;
   background-color: #36393f;
   color: #dcddde;
-  border-radius: 12px;
   overflow: hidden;
 }
 
@@ -364,9 +364,215 @@
   color: #72767d;
 }
 
+/* 워크스페이스 사이드바 (왼쪽) */
+.workspace-sidebar {
+  width: 240px;
+  background-color: #2f3136;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #202225;
+}
+
+.workspace-sidebar__header {
+  height: 48px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #202225;
+  box-shadow: 0 1px 0 rgba(4, 4, 5, 0.2);
+}
+
+.workspace-sidebar__study-name {
+  font-weight: 600;
+  font-size: 15px;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.workspace-sidebar__settings-btn {
+  background: none;
+  border: none;
+  color: #b9bbbe;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.workspace-sidebar__settings-btn:hover {
+  color: #fff;
+  background-color: rgba(79, 84, 92, 0.4);
+}
+
+.workspace-sidebar__menu {
+  padding: 8px;
+  flex: 1;
+}
+
+.workspace-sidebar__menu-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  color: #8e9297;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.workspace-sidebar__menu-item:hover {
+  background-color: rgba(79, 84, 92, 0.4);
+  color: #dcddde;
+}
+
+.workspace-sidebar__menu-item--active {
+  background-color: rgba(79, 84, 92, 0.6);
+  color: #fff;
+}
+
+.workspace-sidebar__menu-icon {
+  font-size: 20px;
+}
+
+.workspace-sidebar__menu-label {
+  flex: 1;
+}
+
+.workspace-sidebar__menu-badge {
+  color: #72767d;
+  display: flex;
+  align-items: center;
+}
+
+.workspace-sidebar__divider {
+  height: 1px;
+  margin: 8px 16px;
+  background-color: #40444b;
+}
+
+.workspace-sidebar__quick-actions {
+  padding: 8px;
+}
+
+.workspace-sidebar__section-title {
+  padding: 0 12px;
+  margin-bottom: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #72767d;
+  letter-spacing: 0.02em;
+}
+
+.workspace-sidebar__action-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  color: #8e9297;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.workspace-sidebar__action-btn:hover {
+  background-color: rgba(79, 84, 92, 0.4);
+  color: #dcddde;
+}
+
+.workspace-sidebar__action-btn .material-icons {
+  font-size: 18px;
+}
+
+.workspace-sidebar__footer {
+  padding: 12px;
+  border-top: 1px solid #202225;
+}
+
+.workspace-sidebar__meeting-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 4px;
+  background-color: #5865f2;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.workspace-sidebar__meeting-btn:hover {
+  background-color: #4752c4;
+}
+
+.workspace-sidebar__meeting-btn .material-icons {
+  font-size: 20px;
+}
+
 /* 반응형 */
+@media (max-width: 1024px) {
+  .workspace-sidebar {
+    width: 72px;
+  }
+
+  .workspace-sidebar__header {
+    justify-content: center;
+    padding: 0;
+  }
+
+  .workspace-sidebar__study-name,
+  .workspace-sidebar__settings-btn {
+    display: none;
+  }
+
+  .workspace-sidebar__menu-label,
+  .workspace-sidebar__menu-badge,
+  .workspace-sidebar__section-title,
+  .workspace-sidebar__action-btn span:not(.material-icons) {
+    display: none;
+  }
+
+  .workspace-sidebar__menu-item,
+  .workspace-sidebar__action-btn {
+    justify-content: center;
+    padding: 12px;
+  }
+
+  .workspace-sidebar__meeting-btn span:not(.material-icons) {
+    display: none;
+  }
+
+  .workspace-sidebar__meeting-btn {
+    padding: 12px;
+  }
+}
+
 @media (max-width: 768px) {
   .member-list {
+    display: none;
+  }
+
+  .workspace-sidebar {
     display: none;
   }
 }

@@ -10,3 +10,4 @@ export { MessageItem } from './components/MessageItem';
 export { MessageInput } from './components/MessageInput';
 export { MemberList, type WorkspaceMember } from './components/MemberList';
 export { WorkspaceHeader } from './components/WorkspaceHeader';
+export { WorkspaceSidebar } from './components/WorkspaceSidebar';
