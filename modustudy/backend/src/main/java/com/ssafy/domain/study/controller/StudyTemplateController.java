@@ -1,8 +1,10 @@
 package com.ssafy.domain.study.controller;
 
 import com.ssafy.domain.study.dto.request.CreateTemplateRequest;
+import com.ssafy.domain.study.dto.request.TemplateRecommendRequest;
 import com.ssafy.domain.study.dto.request.UpdateTemplateRequest;
 import com.ssafy.domain.study.dto.response.StudyTemplateResponse;
+import com.ssafy.domain.study.dto.response.TemplateRecommendResponse;
 import com.ssafy.domain.study.service.StudyTemplateService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -80,6 +82,32 @@ public class StudyTemplateController {
         List<StudyTemplateResponse> response = studyTemplateService.getSystemTemplates(templateType);
 
         log.info("API 응답 - 시스템 템플릿 목록: count={}", response.size());
+
+        return ResponseEntity.ok(response);
+    }
+
+    // ============================================================
+    // AI 추천
+    // ============================================================
+
+    /**
+     * AI 템플릿 추천
+     * POST /api/v1/study-templates/recommend
+     */
+    @PostMapping("/recommend")
+    public ResponseEntity<TemplateRecommendResponse> recommendTemplate(
+            @RequestBody(required = false) TemplateRecommendRequest request,
+            @RequestHeader("user-id") Long userId) {
+
+        log.info("API 호출 - AI 템플릿 추천: userId={}", userId);
+
+        if (request == null) {
+            request = new TemplateRecommendRequest();
+        }
+
+        TemplateRecommendResponse response = studyTemplateService.recommendTemplate(request, userId);
+
+        log.info("API 응답 - AI 추천 완료: type={}, topic={}", response.getTemplateType(), response.getTopic());
 
         return ResponseEntity.ok(response);
     }
