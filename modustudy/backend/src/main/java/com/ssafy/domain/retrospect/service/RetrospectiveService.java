@@ -2,6 +2,7 @@ package com.ssafy.domain.retrospect.service;
 
 import com.ssafy.common.exception.RetrospectiveException;
 import com.ssafy.common.exception.StudyException;
+import com.ssafy.domain.retrospect.dto.request.RetrospectiveCreateRequest;
 import com.ssafy.domain.retrospect.dto.response.RetrospectiveDetailResponse;
 import com.ssafy.domain.retrospect.dto.response.RetrospectiveListResponse;
 import com.ssafy.domain.retrospect.entity.Category;
@@ -9,6 +10,7 @@ import com.ssafy.domain.retrospect.entity.Retrospective;
 import com.ssafy.domain.retrospect.entity.RetrospectiveItem;
 import com.ssafy.domain.retrospect.repository.RetrospectiveItemRepository;
 import com.ssafy.domain.retrospect.repository.RetrospectiveRepository;
+import com.ssafy.domain.study.entity.Study;
 import com.ssafy.domain.study.entity.StudySession;
 import com.ssafy.domain.study.repository.StudyRepository;
 import com.ssafy.domain.study.repository.StudySessionRepository;
@@ -51,9 +53,11 @@ public class RetrospectiveService {
         // 회고 목록 조회
         List<Retrospective> retrospectives = retrospectiveRepository.findByStudyId(studyId);
 
-        // 최신순 정렬
+        // 최신순 정렬 (createdAt 역순, 같으면 id 역순)
         List<Retrospective> sorted = retrospectives.stream()
-                .sorted(Comparator.comparing(Retrospective::getCreatedAt).reversed())
+                .sorted(Comparator
+                        .comparing(Retrospective::getCreatedAt).reversed()
+                        .thenComparing(Comparator.comparing(Retrospective::getId).reversed()))
                 .toList();
 
         // 페이징 처리
@@ -118,6 +122,70 @@ public class RetrospectiveService {
         log.info("회고 상세 조회 완료 - retroId: {}, itemCount: {}", retroId, items.size());
 
         return RetrospectiveDetailResponse.of(retrospective, session, itemsMap);
+    }
+
+    /**
+     * 회고 생성 (스터디 멤버 누구나)
+     */
+    @Transactional
+    public RetrospectiveDetailResponse createRetrospective(Long studyId, RetrospectiveCreateRequest request, Long userId) {
+        log.info("회고 생성 - studyId: {}, userId: {}, title: {}", studyId, userId, request.getTitle());
+
+        // 스터디 존재 여부 확인
+        if (!studyRepository.existsById(studyId)) {
+            throw new StudyException.StudyNotFoundException(studyId);
+        }
+
+        // TODO: 스터디 멤버 여부 확인 (StudyMemberRepository 필요)
+
+        // 세션 ID가 있으면 유효성 검증
+        if (request.getSessionId() != null) {
+            boolean sessionExists = studySessionRepository.existsById(request.getSessionId());
+            if (!sessionExists) {
+                throw new RetrospectiveException.InvalidRetrospectiveRequestException("존재하지 않는 세션입니다.");
+            }
+        }
+
+        // 회고 생성
+        Retrospective retrospective = request.toEntity(studyId, userId);
+        Retrospective saved = retrospectiveRepository.save(retrospective);
+
+        log.info("회고 생성 완료 - retroId: {}", saved.getId());
+
+        // 상세 조회로 응답 반환
+        return getRetrospectiveDetail(studyId, saved.getId());
+    }
+
+    /**
+     * 회고 삭제 (스터디장 또는 생성자)
+     */
+    @Transactional
+    public void deleteRetrospective(Long studyId, Long retroId, Long userId) {
+        log.info("회고 삭제 - studyId: {}, retroId: {}, userId: {}", studyId, retroId, userId);
+
+        // 스터디 조회
+        Study study = studyRepository.findById(studyId)
+                .orElseThrow(() -> new StudyException.StudyNotFoundException(studyId));
+
+        // 회고 조회
+        Retrospective retrospective = retrospectiveRepository.findByIdAndStudyId(retroId, studyId)
+                .orElseThrow(RetrospectiveException.RetrospectiveNotFoundException::new);
+
+        // 권한 확인: 스터디장 또는 생성자
+        boolean isLeader = study.getLeaderId().equals(userId);
+        boolean isCreator = retrospective.getCreatedBy().equals(userId);
+
+        if (!isLeader && !isCreator) {
+            throw new RetrospectiveException.NotRetrospectiveOwnerException();
+        }
+
+        // 회고 항목 먼저 삭제
+        retrospectiveItemRepository.deleteByRetrospectiveId(retroId);
+
+        // 회고 삭제
+        retrospectiveRepository.delete(retrospective);
+
+        log.info("회고 삭제 완료 - retroId: {}", retroId);
     }
 
     /**

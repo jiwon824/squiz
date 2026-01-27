@@ -128,6 +128,7 @@ class RetrospectiveItemRepositoryTest {
         // 5. Retrospective 생성
         retrospective = retrospectiveRepository.save(Retrospective.builder()
                 .studyId(study.getId())
+                .createdBy(user1.getId())
                 .title("1회차 회고")
                 .retrospectiveType(RetrospectiveType.KPT)
                 .build());
@@ -354,6 +355,7 @@ class RetrospectiveItemRepositoryTest {
         // given - 다른 회고 생성
         Retrospective otherRetro = retrospectiveRepository.save(Retrospective.builder()
                 .studyId(study.getId())
+                .createdBy(user1.getId())
                 .title("다른 회고")
                 .retrospectiveType(RetrospectiveType.FREE)
                 .build());

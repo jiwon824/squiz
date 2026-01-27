@@ -2,6 +2,7 @@ package com.ssafy.domain.retrospect.service;
 
 import com.ssafy.common.exception.RetrospectiveException;
 import com.ssafy.common.exception.StudyException;
+import com.ssafy.domain.retrospect.dto.request.RetrospectiveCreateRequest;
 import com.ssafy.domain.retrospect.dto.response.RetrospectiveDetailResponse;
 import com.ssafy.domain.retrospect.dto.response.RetrospectiveListResponse;
 import com.ssafy.domain.retrospect.entity.Category;
@@ -163,6 +164,7 @@ class RetrospectiveServiceTest {
         retro1 = retrospectiveRepository.save(Retrospective.builder()
                 .studyId(studyId)
                 .sessionId(session1.getId())
+                .createdBy(userId)
                 .title("1회차 회고")
                 .retrospectiveType(RetrospectiveType.KPT)
                 .build());
@@ -170,6 +172,7 @@ class RetrospectiveServiceTest {
         retro2 = retrospectiveRepository.save(Retrospective.builder()
                 .studyId(studyId)
                 .sessionId(session2.getId())
+                .createdBy(userId)
                 .title("2회차 회고")
                 .retrospectiveType(RetrospectiveType.KPT)
                 .build());
@@ -177,6 +180,7 @@ class RetrospectiveServiceTest {
         retro3 = retrospectiveRepository.save(Retrospective.builder()
                 .studyId(studyId)
                 .sessionId(null)  // 세션 없는 자유 회고
+                .createdBy(otherUser.getId())  // 다른 유저가 생성
                 .title("중간 점검 회고")
                 .retrospectiveType(RetrospectiveType.FREE)
                 .build());
@@ -468,6 +472,173 @@ class RetrospectiveServiceTest {
             // when & then
             assertThatThrownBy(() -> retrospectiveService
                     .getRetrospectiveDetail(otherStudy.getId(), retro1.getId()))
+                    .isInstanceOf(RetrospectiveException.RetrospectiveNotFoundException.class);
+        }
+    }
+
+    // ============================================================
+    // 회고 생성 테스트
+    // ============================================================
+
+    @Nested
+    @DisplayName("회고 생성")
+    class CreateRetrospective {
+
+        @Test
+        @DisplayName("성공 - 기본 생성")
+        void success() {
+            // given
+            RetrospectiveCreateRequest request = RetrospectiveCreateRequest.builder()
+                    .title("새 회고")
+                    .retrospectiveType(RetrospectiveType.KPT)
+                    .build();
+
+            // when
+            RetrospectiveDetailResponse result = retrospectiveService
+                    .createRetrospective(studyId, request, userId);
+
+            // then
+            assertThat(result.getId()).isNotNull();
+            assertThat(result.getTitle()).isEqualTo("새 회고");
+            assertThat(result.getRetrospectiveType()).isEqualTo(RetrospectiveType.KPT);
+            assertThat(result.getSession()).isNull();
+        }
+
+        @Test
+        @DisplayName("성공 - 세션과 함께 생성")
+        void successWithSession() {
+            // given
+            RetrospectiveCreateRequest request = RetrospectiveCreateRequest.builder()
+                    .title("세션 회고")
+                    .retrospectiveType(RetrospectiveType.KPT)
+                    .sessionId(session1.getId())
+                    .build();
+
+            // when
+            RetrospectiveDetailResponse result = retrospectiveService
+                    .createRetrospective(studyId, request, userId);
+
+            // then
+            assertThat(result.getSession()).isNotNull();
+            assertThat(result.getSession().getId()).isEqualTo(session1.getId());
+        }
+
+        @Test
+        @DisplayName("성공 - 기본 타입 KPT")
+        void defaultTypeIsKpt() {
+            // given
+            RetrospectiveCreateRequest request = RetrospectiveCreateRequest.builder()
+                    .title("타입 미지정 회고")
+                    .retrospectiveType(null)  // 타입 미지정
+                    .build();
+
+            // when
+            RetrospectiveDetailResponse result = retrospectiveService
+                    .createRetrospective(studyId, request, userId);
+
+            // then
+            assertThat(result.getRetrospectiveType()).isEqualTo(RetrospectiveType.KPT);
+        }
+
+        @Test
+        @DisplayName("실패 - 존재하지 않는 스터디")
+        void studyNotFound() {
+            // given
+            RetrospectiveCreateRequest request = RetrospectiveCreateRequest.builder()
+                    .title("새 회고")
+                    .build();
+
+            // when & then
+            assertThatThrownBy(() -> retrospectiveService
+                    .createRetrospective(999L, request, userId))
+                    .isInstanceOf(StudyException.StudyNotFoundException.class);
+        }
+
+        @Test
+        @DisplayName("실패 - 존재하지 않는 세션")
+        void sessionNotFound() {
+            // given
+            RetrospectiveCreateRequest request = RetrospectiveCreateRequest.builder()
+                    .title("새 회고")
+                    .sessionId(999L)
+                    .build();
+
+            // when & then
+            assertThatThrownBy(() -> retrospectiveService
+                    .createRetrospective(studyId, request, userId))
+                    .isInstanceOf(RetrospectiveException.InvalidRetrospectiveRequestException.class)
+                    .hasMessageContaining("존재하지 않는 세션");
+        }
+    }
+
+    // ============================================================
+    // 회고 삭제 테스트
+    // ============================================================
+
+    @Nested
+    @DisplayName("회고 삭제")
+    class DeleteRetrospective {
+
+        @Test
+        @DisplayName("성공 - 생성자가 삭제")
+        void successByCreator() {
+            // when
+            retrospectiveService.deleteRetrospective(studyId, retro1.getId(), userId);
+
+            // then
+            assertThat(retrospectiveRepository.findById(retro1.getId())).isEmpty();
+        }
+
+        @Test
+        @DisplayName("성공 - 스터디장이 다른 사람의 회고 삭제")
+        void successByLeader() {
+            // retro3는 otherUser가 생성, study의 리더는 user
+            // when
+            retrospectiveService.deleteRetrospective(studyId, retro3.getId(), userId);
+
+            // then
+            assertThat(retrospectiveRepository.findById(retro3.getId())).isEmpty();
+        }
+
+        @Test
+        @DisplayName("성공 - 회고 삭제 시 항목도 함께 삭제")
+        void deleteWithItems() {
+            // given
+            Long retroId = retro1.getId();
+            int itemCount = retrospectiveItemRepository.findByRetrospectiveId(retroId).size();
+            assertThat(itemCount).isGreaterThan(0);
+
+            // when
+            retrospectiveService.deleteRetrospective(studyId, retroId, userId);
+
+            // then
+            assertThat(retrospectiveRepository.findById(retroId)).isEmpty();
+            assertThat(retrospectiveItemRepository.findByRetrospectiveId(retroId)).isEmpty();
+        }
+
+        @Test
+        @DisplayName("실패 - 권한 없음 (생성자도 아니고 스터디장도 아님)")
+        void noPermission() {
+            // retro1은 user가 생성, user가 스터디장
+            // otherUser는 생성자도 아니고 스터디장도 아님
+            assertThatThrownBy(() -> retrospectiveService
+                    .deleteRetrospective(studyId, retro1.getId(), otherUser.getId()))
+                    .isInstanceOf(RetrospectiveException.NotRetrospectiveOwnerException.class);
+        }
+
+        @Test
+        @DisplayName("실패 - 존재하지 않는 스터디")
+        void studyNotFound() {
+            assertThatThrownBy(() -> retrospectiveService
+                    .deleteRetrospective(999L, retro1.getId(), userId))
+                    .isInstanceOf(StudyException.StudyNotFoundException.class);
+        }
+
+        @Test
+        @DisplayName("실패 - 존재하지 않는 회고")
+        void retrospectiveNotFound() {
+            assertThatThrownBy(() -> retrospectiveService
+                    .deleteRetrospective(studyId, 999L, userId))
                     .isInstanceOf(RetrospectiveException.RetrospectiveNotFoundException.class);
         }
     }

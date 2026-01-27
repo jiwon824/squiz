@@ -28,9 +28,11 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import static org.hamcrest.Matchers.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+import org.springframework.http.MediaType;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -152,6 +154,7 @@ class RetrospectiveControllerTest {
         retro1 = retrospectiveRepository.save(Retrospective.builder()
                 .studyId(studyId)
                 .sessionId(session.getId())
+                .createdBy(userId)
                 .title("1회차 회고")
                 .retrospectiveType(RetrospectiveType.KPT)
                 .build());
@@ -159,6 +162,7 @@ class RetrospectiveControllerTest {
         retro2 = retrospectiveRepository.save(Retrospective.builder()
                 .studyId(studyId)
                 .sessionId(null)
+                .createdBy(otherUser.getId())
                 .title("자유 회고")
                 .retrospectiveType(RetrospectiveType.FREE)
                 .build());
@@ -402,6 +406,196 @@ class RetrospectiveControllerTest {
 
             // when & then
             mockMvc.perform(get("/api/v1/studies/{studyId}/retrospectives/{retroId}", otherStudy.getId(), retro1.getId())
+                            .header("User-Id", userId))
+                    .andDo(print())
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.code").value("RETROSPECTIVE_NOT_FOUND"));
+        }
+    }
+
+    // ============================================================
+    // 회고 생성 API 테스트
+    // ============================================================
+
+    @Nested
+    @DisplayName("회고 생성 API")
+    class CreateRetrospective {
+
+        @Test
+        @DisplayName("성공 - 기본 생성")
+        void success() throws Exception {
+            String requestBody = """
+                    {
+                        "title": "새 회고",
+                        "retrospectiveType": "KPT"
+                    }
+                    """;
+
+            mockMvc.perform(post("/api/v1/studies/{studyId}/retrospectives", studyId)
+                            .header("User-Id", userId)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(requestBody))
+                    .andDo(print())
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.id").exists())
+                    .andExpect(jsonPath("$.title").value("새 회고"))
+                    .andExpect(jsonPath("$.retrospectiveType").value("KPT"));
+        }
+
+        @Test
+        @DisplayName("성공 - 세션과 함께 생성")
+        void successWithSession() throws Exception {
+            String requestBody = String.format("""
+                    {
+                        "title": "세션 회고",
+                        "retrospectiveType": "KPT",
+                        "sessionId": %d
+                    }
+                    """, session.getId());
+
+            mockMvc.perform(post("/api/v1/studies/{studyId}/retrospectives", studyId)
+                            .header("User-Id", userId)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(requestBody))
+                    .andDo(print())
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.session").isNotEmpty())
+                    .andExpect(jsonPath("$.session.id").value(session.getId()));
+        }
+
+        @Test
+        @DisplayName("성공 - FREE 타입")
+        void successWithFreeType() throws Exception {
+            String requestBody = """
+                    {
+                        "title": "자유 형식 회고",
+                        "retrospectiveType": "FREE"
+                    }
+                    """;
+
+            mockMvc.perform(post("/api/v1/studies/{studyId}/retrospectives", studyId)
+                            .header("User-Id", userId)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(requestBody))
+                    .andDo(print())
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.retrospectiveType").value("FREE"));
+        }
+
+        @Test
+        @DisplayName("실패 - 제목 누락")
+        void failWithoutTitle() throws Exception {
+            String requestBody = """
+                    {
+                        "retrospectiveType": "KPT"
+                    }
+                    """;
+
+            mockMvc.perform(post("/api/v1/studies/{studyId}/retrospectives", studyId)
+                            .header("User-Id", userId)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(requestBody))
+                    .andDo(print())
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        @DisplayName("실패 - 존재하지 않는 스터디")
+        void studyNotFound() throws Exception {
+            String requestBody = """
+                    {
+                        "title": "새 회고",
+                        "retrospectiveType": "KPT"
+                    }
+                    """;
+
+            mockMvc.perform(post("/api/v1/studies/{studyId}/retrospectives", 999L)
+                            .header("User-Id", userId)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(requestBody))
+                    .andDo(print())
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.code").value("STUDY_NOT_FOUND"));
+        }
+
+        @Test
+        @DisplayName("실패 - 존재하지 않는 세션")
+        void sessionNotFound() throws Exception {
+            String requestBody = """
+                    {
+                        "title": "새 회고",
+                        "sessionId": 999
+                    }
+                    """;
+
+            mockMvc.perform(post("/api/v1/studies/{studyId}/retrospectives", studyId)
+                            .header("User-Id", userId)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(requestBody))
+                    .andDo(print())
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.code").value("INVALID_RETROSPECTIVE_REQUEST"));
+        }
+    }
+
+    // ============================================================
+    // 회고 삭제 API 테스트
+    // ============================================================
+
+    @Nested
+    @DisplayName("회고 삭제 API")
+    class DeleteRetrospective {
+
+        @Test
+        @DisplayName("성공 - 생성자가 삭제")
+        void successByCreator() throws Exception {
+            mockMvc.perform(delete("/api/v1/studies/{studyId}/retrospectives/{retroId}", studyId, retro1.getId())
+                            .header("User-Id", userId))
+                    .andDo(print())
+                    .andExpect(status().isNoContent());
+
+            // 삭제 확인
+            mockMvc.perform(get("/api/v1/studies/{studyId}/retrospectives/{retroId}", studyId, retro1.getId())
+                            .header("User-Id", userId))
+                    .andExpect(status().isNotFound());
+        }
+
+        @Test
+        @DisplayName("성공 - 스터디장이 다른 사람의 회고 삭제")
+        void successByLeader() throws Exception {
+            // retro2는 otherUser가 생성, study의 리더는 user
+            mockMvc.perform(delete("/api/v1/studies/{studyId}/retrospectives/{retroId}", studyId, retro2.getId())
+                            .header("User-Id", userId))
+                    .andDo(print())
+                    .andExpect(status().isNoContent());
+        }
+
+        @Test
+        @DisplayName("실패 - 권한 없음 (생성자도 아니고 스터디장도 아님)")
+        void noPermission() throws Exception {
+            // retro1은 user가 생성, user가 스터디장
+            // otherUser는 생성자도 아니고 스터디장도 아님
+            mockMvc.perform(delete("/api/v1/studies/{studyId}/retrospectives/{retroId}", studyId, retro1.getId())
+                            .header("User-Id", otherUser.getId()))
+                    .andDo(print())
+                    .andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.code").value("NOT_RETROSPECTIVE_OWNER"));
+        }
+
+        @Test
+        @DisplayName("실패 - 존재하지 않는 스터디")
+        void studyNotFound() throws Exception {
+            mockMvc.perform(delete("/api/v1/studies/{studyId}/retrospectives/{retroId}", 999L, retro1.getId())
+                            .header("User-Id", userId))
+                    .andDo(print())
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.code").value("STUDY_NOT_FOUND"));
+        }
+
+        @Test
+        @DisplayName("실패 - 존재하지 않는 회고")
+        void retrospectiveNotFound() throws Exception {
+            mockMvc.perform(delete("/api/v1/studies/{studyId}/retrospectives/{retroId}", studyId, 999L)
                             .header("User-Id", userId))
                     .andDo(print())
                     .andExpect(status().isNotFound())

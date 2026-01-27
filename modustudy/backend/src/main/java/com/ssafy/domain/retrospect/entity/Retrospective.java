@@ -1,18 +1,20 @@
 package com.ssafy.domain.retrospect.entity;
 
-import com.ssafy.common.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
+/**
+ * 회고 엔티티
+ */
 @Entity
 @Table(name = "retrospective")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Builder
 @AllArgsConstructor
+@Builder
 public class Retrospective {
 
     @Id
@@ -25,7 +27,10 @@ public class Retrospective {
     @Column(name = "session_id")
     private Long sessionId;
 
-    @Column(length = 200, nullable = false)
+    @Column(name = "created_by", nullable = false)
+    private Long createdBy;
+
+    @Column(nullable = false, length = 200)
     private String title;
 
     @Enumerated(EnumType.STRING)
@@ -34,6 +39,6 @@ public class Retrospective {
     private RetrospectiveType retrospectiveType = RetrospectiveType.KPT;
 
     @CreationTimestamp
-    @Column(name = "created_at")
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 }
