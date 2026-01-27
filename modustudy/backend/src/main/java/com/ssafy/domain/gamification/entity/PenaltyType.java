@@ -40,13 +40,6 @@ public enum PenaltyType {
             "🚌",
             "자료 업로드 3회 또는 회고록 3회",
             3
-    ),
-    ATTENDANCE_IMPOSSIBLE(
-            "출석률 회복불가",
-            "남은 세션 모두 출석해도 50% 미만",
-            "❌",
-            "해소 불가",
-            null  // 해소 불가능
     );
 
     private final String name;

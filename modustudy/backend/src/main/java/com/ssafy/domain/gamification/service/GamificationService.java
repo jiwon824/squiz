@@ -331,27 +331,49 @@ public class GamificationService {
      * 패널티 목록 조회
      */
     public PenaltyListResponse getPenalties(Long userId) {
-        // 활성 패널티
+        // 활성 패널티 조회
         List<UserPenalty> activePenalties = userPenaltyRepository
-                .findByUserIdAndIsActiveWithDetails(userId, true);
+                .findByUserIdAndIsActiveTrueWithDetails(userId);
 
-        // 해소된 패널티
+        // 해소된 패널티 조회
         List<UserPenalty> removedPenalties = userPenaltyRepository
-                .findByUserIdAndIsActiveWithDetails(userId, false);
+                .findByUserIdAndIsActiveFalseWithDetails(userId);
 
+        // DTO 변환
         List<PenaltyListResponse.PenaltyInfo> activePenaltyInfos = activePenalties.stream()
-                .map(PenaltyListResponse.PenaltyInfo::from)
-                .collect(Collectors.toList());
+                .map(up -> PenaltyListResponse.PenaltyInfo.builder()
+                        .id(up.getId())
+                        .code(up.getPenalty().getCode())
+                        .name(up.getPenalty().getName())
+                        .description(up.getPenalty().getDescription())
+                        .icon(up.getPenalty().getIcon())
+                        .grantCondition(up.getPenalty().getGrantCondition())
+                        .removalCondition(up.getPenalty().getRemovalCondition())
+                        .removalProgress(up.getRemovalProgress())
+                        .removalRequired(up.getPenalty().getRemovalRequired())
+                        .studyId(up.getStudy() != null ? up.getStudy().getId() : null)
+                        .studyName(up.getStudy() != null ? up.getStudy().getName() : null)
+                        .grantedAt(up.getGrantedAt())
+                        .build())
+                .toList();
 
         List<PenaltyListResponse.RemovedPenalty> removedPenaltyInfos = removedPenalties.stream()
-                .map(PenaltyListResponse.RemovedPenalty::from)
-                .collect(Collectors.toList());
+                .map(up -> PenaltyListResponse.RemovedPenalty.builder()
+                        .id(up.getId())
+                        .code(up.getPenalty().getCode())
+                        .name(up.getPenalty().getName())
+                        .description(up.getPenalty().getDescription())
+                        .icon(up.getPenalty().getIcon())
+                        .grantedAt(up.getGrantedAt())
+                        .removedAt(up.getRemovedAt())
+                        .build())
+                .toList();
 
         return PenaltyListResponse.builder()
+                .totalActive(activePenalties.size())
+                .totalRemoved(removedPenalties.size())
                 .activePenalties(activePenaltyInfos)
                 .removedPenalties(removedPenaltyInfos)
-                .totalActive(activePenaltyInfos.size())
-                .totalRemoved(removedPenaltyInfos.size())
                 .build();
     }
     /**

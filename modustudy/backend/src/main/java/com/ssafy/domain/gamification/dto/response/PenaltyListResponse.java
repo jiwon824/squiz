@@ -1,6 +1,6 @@
 package com.ssafy.domain.gamification.dto.response;
 
-import com.ssafy.domain.gamification.entity.PenaltyType;
+import com.ssafy.domain.gamification.entity.Penalty;
 import com.ssafy.domain.gamification.entity.UserPenalty;
 import lombok.Builder;
 import lombok.Getter;
@@ -20,34 +20,36 @@ public class PenaltyListResponse {
     @Builder
     public static class PenaltyInfo {
         private Long id;
-        private String penaltyType;
-        private String name;
+        private String code;              // ⭐ 추가: THREE_DAY_QUIT 등
+        private String name;              // 작심삼일 등
         private String description;
         private String icon;
-        private LocalDateTime grantedAt;
-        private Long studyId;
-        private String studyName;
-        private Boolean isActive;
+        private String grantCondition;    // ⭐ 추가
         private String removalCondition;
         private Integer removalProgress;
         private Integer removalRequired;
+        private Long studyId;
+        private String studyName;
+        private Boolean isActive;
+        private LocalDateTime grantedAt;
 
-        // ⭐ 추가: UserPenalty로부터 생성하는 메서드
+        // ⭐ 수정: Penalty 엔티티 사용
         public static PenaltyInfo from(UserPenalty userPenalty) {
-            PenaltyType type = userPenalty.getPenaltyType();
+            Penalty penalty = userPenalty.getPenalty();
             return PenaltyInfo.builder()
                     .id(userPenalty.getId())
-                    .penaltyType(type.name())
-                    .name(type.getName())
-                    .description(type.getDescription())
-                    .icon(type.getIcon())
-                    .grantedAt(userPenalty.getGrantedAt())
+                    .code(penalty.getCode())
+                    .name(penalty.getName())
+                    .description(penalty.getDescription())
+                    .icon(penalty.getIcon())
+                    .grantCondition(penalty.getGrantCondition())
+                    .removalCondition(penalty.getRemovalCondition())
+                    .removalProgress(userPenalty.getRemovalProgress())
+                    .removalRequired(penalty.getRemovalRequired())
                     .studyId(userPenalty.getStudy() != null ? userPenalty.getStudy().getId() : null)
                     .studyName(userPenalty.getStudy() != null ? userPenalty.getStudy().getName() : null)
                     .isActive(userPenalty.getIsActive())
-                    .removalCondition(type.getRemovalCondition())
-                    .removalProgress(userPenalty.getRemovalProgress())
-                    .removalRequired(type.getRemovalRequired())
+                    .grantedAt(userPenalty.getGrantedAt())
                     .build();
         }
     }
@@ -56,7 +58,7 @@ public class PenaltyListResponse {
     @Builder
     public static class RemovedPenalty {
         private Long id;
-        private String penaltyType;
+        private String code;              // ⭐ 추가
         private String name;
         private String description;
         private String icon;
@@ -65,15 +67,15 @@ public class PenaltyListResponse {
         private Long studyId;
         private String studyName;
 
-        // ⭐ 추가: UserPenalty로부터 생성하는 메서드
+        // ⭐ 수정: Penalty 엔티티 사용
         public static RemovedPenalty from(UserPenalty userPenalty) {
-            PenaltyType type = userPenalty.getPenaltyType();
+            Penalty penalty = userPenalty.getPenalty();
             return RemovedPenalty.builder()
                     .id(userPenalty.getId())
-                    .penaltyType(type.name())
-                    .name(type.getName())
-                    .description(type.getDescription())
-                    .icon(type.getIcon())
+                    .code(penalty.getCode())
+                    .name(penalty.getName())
+                    .description(penalty.getDescription())
+                    .icon(penalty.getIcon())
                     .grantedAt(userPenalty.getGrantedAt())
                     .removedAt(userPenalty.getRemovedAt())
                     .studyId(userPenalty.getStudy() != null ? userPenalty.getStudy().getId() : null)
