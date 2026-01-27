@@ -42,6 +42,7 @@ services:
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - APP_SFU_CONTROL_URL=http://squiz-sfu-green:4000
     restart: unless-stopped
     networks:
       - squiz-network
@@ -60,10 +61,17 @@ services:
       - uploads-data:/app/uploads
     environment:
       - NODE_ENV=production
+      - PORT=4000
       - SFU_USE_HTTPS=false
+      - LISTEN_IP=0.0.0.0
       - SFU_ANNOUNCED_IP=i14d106.p.ssafy.io
-      - RECORDINGS_BASE_PATH=/app/uploads
+      - CORS_ORIGINS=*
       - FFMPEG_PATH=ffmpeg
+      - RECORDINGS_BASE_PATH=/app/uploads
+      - RECORDING_RTP_IP=127.0.0.1
+      - RTC_ENABLE_UDP=false
+      - RTC_ENABLE_TCP=true
+      - RTC_PREFER_UDP=false
     restart: unless-stopped
     networks:
       - squiz-network
