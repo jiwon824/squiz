@@ -24,7 +24,7 @@ export default defineConfig({
                 target: 'http://localhost:8080',
                 changeOrigin: true,
                 secure: false,
-                // 도메인 변환: 서버가 8080 포트용으로 발행한 쿠키를 Vite가 중간에서 가로채 modustudy.local용으로 이름을 바꿔줌
+                // 백엔드가 발급한 쿠키(domain=localhost)를 프론트 도메인에 맞게 변환
                 cookieDomainRewrite: 'modustudy.local',
             },
             '/oauth2': {
@@ -56,9 +56,7 @@ export default defineConfig({
         rollupOptions: {
             output: {
                 manualChunks: {
-                    // React 코어 라이브러리 분리
                     'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-                    // UI 라이브러리 분리
                     'ui-vendor': ['lucide-react'],
                 },
             },

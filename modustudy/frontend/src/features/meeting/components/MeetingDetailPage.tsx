@@ -129,7 +129,7 @@ const MeetingDetailPage: React.FC = () => {
                     <div>
                         <h1>{detail?.title || '미팅 기록'}</h1>
                         <p>
-                            {detail?.startedAt ? new Date(detail.startedAt).toLocaleString() : '시작 전'}
+                            {detail?.startedAt ? new Date(detail.startedAt).toLocaleString() : '시작 시간 미정'}
                             {detail?.endedAt && ` ~ ${new Date(detail.endedAt).toLocaleTimeString()}`}
                         </p>
                     </div>
@@ -157,6 +157,8 @@ const MeetingDetailPage: React.FC = () => {
                     onUpdate={handleUpdateActionItem}
                 />
                 <MeetingRecordingPanel
+                    studyId={Number.isFinite(numericStudyId) ? numericStudyId : null}
+                    meetingId={Number.isFinite(numericMeetingId) ? numericMeetingId : null}
                     recording={recording}
                     audioRecordings={audioRecordings}
                     sttFile={sttFile}
@@ -165,15 +167,15 @@ const MeetingDetailPage: React.FC = () => {
 
                 <section className="meeting-detail-card">
                     <div className="meeting-detail-card__header">
-                        <h3>회의 사진</h3>
+                        <h3>미팅 사진</h3>
                         {selectedPhotoId ? <span className="meeting-status-chip">선택됨</span> : null}
                     </div>
                     <div className="meeting-detail-card__body">
                         {!canSelectPhotos && (
-                            <p className="meeting-detail-empty">미팅 종료 후 사진을 선택할 수 있습니다.</p>
+                            <p className="meeting-detail-empty">미팅 종료 후에 사진을 선택할 수 있습니다.</p>
                         )}
                         {canSelectPhotos && photos.length === 0 && (
-                            <p className="meeting-detail-empty">캡쳐된 회의 사진이 없습니다.</p>
+                            <p className="meeting-detail-empty">저장된 캡처가 없습니다.</p>
                         )}
                         {canSelectPhotos && photos.length > 0 && (
                             <div className="meeting-photo-grid">
@@ -184,9 +186,9 @@ const MeetingDetailPage: React.FC = () => {
                                         className={`meeting-photo-card ${photo.isSelected ? 'selected' : ''}`}
                                         onClick={() => handleSelectPhoto(photo.id)}
                                         disabled={selectingPhotoId === photo.id}
-                                        title={photo.isSelected ? '선택된 사진' : '이 사진을 선택'}
+                                        title={photo.isSelected ? '선택된 사진' : '사진 선택'}
                                     >
-                                        <img src={resolveImageUrl(photo.imageUrl)} alt="회의 사진" />
+                                        <img src={resolveImageUrl(photo.imageUrl)} alt="미팅 캡처" />
                                         <div className="meeting-photo-card__footer">
                                             <span>{new Date(photo.capturedAt).toLocaleTimeString()}</span>
                                             <span>{photo.isSelected ? '선택됨' : '선택'}</span>
