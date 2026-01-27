@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { MessageSquare, Send, Loader2 } from 'lucide-react';
 import { useDMStore } from '../store/dmStore';
 import { BackButton } from '@/shared/components';
+import { cn } from '@/shared/utils/cn';
 
 // URL을 클릭 가능한 링크로 변환하는 함수
 const renderMessageContent = (content: string) => {
@@ -47,6 +48,48 @@ const DMListMini: React.FC = () => {
 
     const [messageInput, setMessageInput] = useState('');
     const messagesRef = useRef<HTMLDivElement>(null);
+    const [showDemoChat, setShowDemoChat] = useState(false); // 데모 채팅방 표시 여부
+
+    // 🎨 임시 데모 데이터 (테스트용)
+    const DEMO_MODE = true;
+    const demoMessages = DEMO_MODE ? [
+        {
+            id: 1,
+            senderId: 100,
+            content: '안녕하세요! 오늘 스터디 몇 시에 시작하나요?',
+            createdAt: new Date(Date.now() - 3600000).toISOString(),
+        },
+        {
+            id: 2,
+            senderId: 999, // 나
+            content: '7시에 시작합니다! 준비 부탁드려요 😊',
+            createdAt: new Date(Date.now() - 3000000).toISOString(),
+        },
+        {
+            id: 3,
+            senderId: 100,
+            content: '네 알겠습니다. 자료는 미리 공유해주실 수 있나요?',
+            createdAt: new Date(Date.now() - 2400000).toISOString(),
+        },
+        {
+            id: 4,
+            senderId: 999,
+            content: '네, 지금 바로 공유해드릴게요. https://example.com/study-materials',
+            createdAt: new Date(Date.now() - 1800000).toISOString(),
+        },
+        {
+            id: 5,
+            senderId: 100,
+            content: '감사합니다! 🙏',
+            createdAt: new Date(Date.now() - 1200000).toISOString(),
+        },
+    ] : messages;
+
+    const demoConversation = DEMO_MODE ? {
+        id: 1,
+        participantId: 100,
+        participantNickname: '김철수',
+    } : conversations.find(c => c.id === currentConversationId);
 
     // 메시지 목록 자동 스크롤 (DOM 업데이트 후 실행)
     useEffect(() => {
@@ -58,10 +101,12 @@ const DMListMini: React.FC = () => {
             }
         }, 0);
         return () => clearTimeout(timer);
-    }, [messages.length]);
+    }, [DEMO_MODE ? demoMessages.length : messages.length]);
 
     // 초기 데이터 로드 + WebSocket 연결
     useEffect(() => {
+        if (DEMO_MODE) return; // 데모 모드에서는 API 호출 안함
+
         fetchConversations();
         fetchUnreadCount();
         connectWebSocket();
@@ -74,6 +119,13 @@ const DMListMini: React.FC = () => {
     // 메시지 전송
     const handleSendMessage = async () => {
         if (!messageInput.trim()) return;
+
+        // 🎨 데모 모드: 메시지 전송 안함 (UI 확인용)
+        if (DEMO_MODE) {
+            alert('데모 모드입니다. 실제 메시지는 전송되지 않습니다.');
+            setMessageInput('');
+            return;
+        }
 
         // 새 대화 시작 모드
         if (pendingDMUser) {
@@ -121,7 +173,10 @@ const DMListMini: React.FC = () => {
                         variant="icon-only"
                         onClick={() => clearPendingDM()}
                     />
-                    <div className="w-8 h-8 rounded-full bg-study-blue/10 flex items-center justify-center font-bold text-xs text-study-blue">
+                    <div className={cn(
+                        'w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs',
+                        'bg-study-blue/10 text-study-blue'
+                    )}>
                         {pendingDMUser.nickname.charAt(0)}
                     </div>
                     <span className="font-bold text-sm">{pendingDMUser.nickname}</span>
@@ -143,17 +198,24 @@ const DMListMini: React.FC = () => {
                         type="text"
                         value={messageInput}
                         onChange={(e) => setMessageInput(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                        onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
                         placeholder="메시지 입력..."
-                        className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-study-blue"
+                        className={cn(
+                            'flex-1 px-3 py-2 text-sm rounded-lg',
+                            'border border-gray-200 focus:outline-none focus:border-study-blue'
+                        )}
                         autoFocus
                     />
                     <button
                         onClick={handleSendMessage}
                         disabled={!messageInput.trim()}
-                        className="p-2 bg-study-blue text-white rounded-lg hover:bg-study-blue/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className={cn(
+                            'w-11 h-11 flex items-center justify-center rounded-lg transition-colors',
+                            'bg-study-blue text-white hover:bg-study-blue/90',
+                            'disabled:opacity-50 disabled:cursor-not-allowed'
+                        )}
                     >
-                        <Send size={16} />
+                        <Send size={18} />
                     </button>
                 </div>
             </div>
@@ -161,8 +223,8 @@ const DMListMini: React.FC = () => {
     }
 
     // 대화방 상세 보기
-    if (currentConversationId) {
-        const currentConversation = conversations.find(c => c.id === currentConversationId);
+    if ((DEMO_MODE && showDemoChat) || (!DEMO_MODE && currentConversationId)) {
+        const currentConversation = DEMO_MODE ? demoConversation : conversations.find(c => c.id === currentConversationId);
 
         return (
             <div className="p-4 h-full flex flex-col">
@@ -170,42 +232,84 @@ const DMListMini: React.FC = () => {
                 <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-100">
                     <BackButton
                         variant="icon-only"
-                        onClick={() => setCurrentConversation(null)}
+                        onClick={() => DEMO_MODE ? setShowDemoChat(false) : setCurrentConversation(null)}
                     />
-                    <div className="w-8 h-8 rounded-full bg-study-blue/10 flex items-center justify-center font-bold text-xs text-study-blue">
+                    <div className={cn(
+                        'w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs',
+                        'bg-study-blue/10 text-study-blue'
+                    )}>
                         {currentConversation?.participantNickname.charAt(0)}
                     </div>
                     <span className="font-bold text-sm">{currentConversation?.participantNickname}</span>
                 </div>
 
                 {/* 메시지 목록 */}
-                <div className="flex-1 overflow-y-auto space-y-3 mb-4" ref={messagesRef}>
+                <div className="overflow-y-auto space-y-4 mb-4 max-h-[calc(100vh-250px)]" ref={messagesRef}>
                     {isLoading ? (
                         <div className="flex items-center justify-center py-8">
                             <Loader2 size={24} className="animate-spin text-gray-400" />
                         </div>
-                    ) : Array.isArray(messages) && messages.length > 0 ? (
-                        messages.map(msg => (
-                            <div
-                                key={msg.id}
-                                className={`flex ${msg.senderId === currentConversation?.participantId ? 'justify-start' : 'justify-end'}`}
-                            >
+                    ) : Array.isArray(DEMO_MODE ? demoMessages : messages) && (DEMO_MODE ? demoMessages : messages).length > 0 ? (
+                        (DEMO_MODE ? demoMessages : messages).map(msg => {
+                            const isReceiver = msg.senderId === currentConversation?.participantId;
+                            return (
                                 <div
-                                    className={`max-w-[80%] px-3 py-2 rounded-lg text-sm break-words ${msg.senderId === currentConversation?.participantId
-                                        ? 'bg-gray-100 text-gray-800'
-                                        : 'bg-study-blue text-white'
-                                        }`}
+                                    key={msg.id}
+                                    className={cn('flex gap-2', isReceiver ? 'flex-row' : 'flex-row-reverse')}
                                 >
-                                    <p>{renderMessageContent(msg.content)}</p>
-                                    <p className={`text-[10px] mt-1 ${msg.senderId === currentConversation?.participantId
-                                        ? 'text-gray-400'
-                                        : 'text-blue-200'
-                                        }`}>
-                                        {formatTime(msg.createdAt)}
-                                    </p>
+                                    {/* 아바타 */}
+                                    <div className="flex-shrink-0">
+                                        <div className={cn(
+                                            'w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm',
+                                            'bg-primary/10 text-primary'
+                                        )}>
+                                            {isReceiver
+                                                ? currentConversation?.participantNickname.charAt(0)
+                                                : 'Me'
+                                            }
+                                        </div>
+                                    </div>
+
+                                    {/* 메시지 콘텐츠 */}
+                                    <div className={cn(
+                                        'flex flex-col max-w-[70%]',
+                                        isReceiver ? 'items-start' : 'items-end'
+                                    )}>
+                                        {/* 헤더: 이름 + 시간 */}
+                                        <div className={cn(
+                                            'flex items-center gap-2 mb-1',
+                                            isReceiver ? 'flex-row' : 'flex-row-reverse'
+                                        )}>
+                                            <span className="text-xs font-semibold text-text-primary">
+                                                {isReceiver ? currentConversation?.participantNickname : '나'}
+                                            </span>
+                                            <time className="text-[10px] text-text-secondary">
+                                                {formatTime(msg.createdAt)}
+                                            </time>
+                                        </div>
+
+                                        {/* 말풍선 */}
+                                        <div
+                                            className={cn(
+                                                'px-4 py-2 rounded-2xl text-sm break-words',
+                                                isReceiver
+                                                    ? 'bg-gray-100 text-text-primary rounded-tl-sm'
+                                                    : 'bg-primary text-white rounded-tr-sm'
+                                            )}
+                                        >
+                                            {renderMessageContent(msg.content)}
+                                        </div>
+
+                                        {/* 푸터: 읽음 상태 (추후 확장 가능) */}
+                                        {!isReceiver && (
+                                            <div className="text-[10px] text-text-secondary mt-1">
+                                                전송됨
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                        ))
+                            );
+                        })
                     ) : (
                         <div className="text-center py-8 text-gray-400 text-sm">
                             메시지가 없습니다
@@ -219,16 +323,23 @@ const DMListMini: React.FC = () => {
                         type="text"
                         value={messageInput}
                         onChange={(e) => setMessageInput(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                        onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
                         placeholder="메시지 입력..."
-                        className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-study-blue"
+                        className={cn(
+                            'flex-1 px-3 py-2 text-sm rounded-lg',
+                            'border border-gray-200 focus:outline-none focus:border-study-blue'
+                        )}
                     />
                     <button
                         onClick={handleSendMessage}
                         disabled={!messageInput.trim()}
-                        className="p-2 bg-study-blue text-white rounded-lg hover:bg-study-blue/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className={cn(
+                            'w-11 h-11 flex items-center justify-center rounded-lg transition-colors',
+                            'bg-study-blue text-white hover:bg-study-blue/90',
+                            'disabled:opacity-50 disabled:cursor-not-allowed'
+                        )}
                     >
-                        <Send size={16} />
+                        <Send size={18} />
                     </button>
                 </div>
             </div>
@@ -236,6 +347,10 @@ const DMListMini: React.FC = () => {
     }
 
     // 대화방 목록
+    const displayConversations = DEMO_MODE
+        ? [{ id: 1, participantNickname: '김철수', lastMessage: '감사합니다! 🙏', lastMessageAt: new Date(Date.now() - 1200000).toISOString(), unreadCount: 0 }]
+        : conversations;
+
     return (
         <div className="p-4 h-full flex flex-col">
             {/* 헤더 */}
@@ -251,21 +366,27 @@ const DMListMini: React.FC = () => {
 
             {/* 대화방 목록 */}
             <div className="flex-1 overflow-y-auto">
-                {isLoadingConversations && conversations.length === 0 ? (
+                {isLoadingConversations && displayConversations.length === 0 ? (
                     <div className="flex items-center justify-center py-8">
                         <Loader2 size={24} className="animate-spin text-gray-400" />
                     </div>
-                ) : Array.isArray(conversations) && conversations.length > 0 ? (
+                ) : Array.isArray(displayConversations) && displayConversations.length > 0 ? (
                     <div className="space-y-1">
-                        {conversations.map(dm => (
+                        {displayConversations.map(dm => (
                             <div
                                 key={dm.id}
-                                onClick={() => setCurrentConversation(dm.id)}
-                                className="flex flex-col p-2 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer group"
+                                onClick={() => DEMO_MODE ? setShowDemoChat(true) : setCurrentConversation(dm.id)}
+                                className={cn(
+                                    'flex flex-col p-2 rounded-lg transition-colors cursor-pointer group',
+                                    'hover:bg-gray-50'
+                                )}
                             >
                                 <div className="flex justify-between items-start mb-0.5">
                                     <div className="flex items-center gap-2">
-                                        <div className="w-7 h-7 rounded-full bg-study-blue/10 flex items-center justify-center font-bold text-xs text-study-blue">
+                                        <div className={cn(
+                                            'w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs',
+                                            'bg-study-blue/10 text-study-blue'
+                                        )}>
                                             {dm.participantNickname.charAt(0)}
                                         </div>
                                         <span className="text-sm font-bold text-gray-800">{dm.participantNickname}</span>
@@ -275,7 +396,10 @@ const DMListMini: React.FC = () => {
                                 <div className="flex justify-between items-center pl-9">
                                     <p className="text-xs text-gray-500 truncate pr-4">{dm.lastMessage}</p>
                                     {dm.unreadCount > 0 && (
-                                        <span className="min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-[10px] rounded-full">
+                                        <span className={cn(
+                                            'min-w-[18px] h-[18px] flex items-center justify-center',
+                                            'bg-red-500 text-white text-[10px] rounded-full'
+                                        )}>
                                             {dm.unreadCount}
                                         </span>
                                     )}
