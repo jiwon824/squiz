@@ -69,9 +69,9 @@ services:
       - FFMPEG_PATH=ffmpeg
       - RECORDINGS_BASE_PATH=/app/uploads
       - RECORDING_RTP_IP=127.0.0.1
-      - RTC_ENABLE_UDP=false
+      - RTC_ENABLE_UDP=true
       - RTC_ENABLE_TCP=true
-      - RTC_PREFER_UDP=false
+      - RTC_PREFER_UDP=true
     restart: unless-stopped
     networks:
       - squiz-network
