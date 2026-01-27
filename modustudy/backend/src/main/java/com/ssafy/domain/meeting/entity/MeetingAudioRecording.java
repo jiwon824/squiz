@@ -45,4 +45,16 @@ public class MeetingAudioRecording extends BaseEntity {
         this.format = format;
         this.fileSize = fileSize;
     }
+
+    public void updateRecording(String recordingUrl, String format, Long fileSize) {
+        if (recordingUrl != null && !recordingUrl.isBlank()) {
+            this.recordingUrl = recordingUrl;
+        }
+        if (format != null && !format.isBlank()) {
+            this.format = format;
+        }
+        if (fileSize != null) {
+            this.fileSize = fileSize;
+        }
+    }
 }

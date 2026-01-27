@@ -98,6 +98,67 @@ public class LocalFileStorageService {
         return "/uploads/meetings/" + meetingId + "/recordings/audio/users/" + userId + "/" + filename;
     }
 
+    public Path saveMeetingVoiceSegment(Long meetingId, Long userId, MultipartFile file) {
+        String originalName = file.getOriginalFilename();
+        String safeName = originalName == null ? "segment" : originalName.replace("\\", "_").replace("/", "_");
+        String extension = extractExtension(safeName);
+        if (extension.isBlank()) {
+            extension = ".webm";
+        }
+        String timestamp = LocalDateTime.now().format(FILE_TS);
+        String filename = timestamp + "-" + UUID.randomUUID() + extension;
+        Path segmentsDir = resolveMeetingVoiceSegmentsDir(meetingId, userId);
+        Path targetFile = segmentsDir.resolve(filename).normalize();
+        if (!targetFile.startsWith(segmentsDir)) {
+            throw new IllegalArgumentException("Invalid path");
+        }
+        try {
+            Files.createDirectories(segmentsDir);
+            Files.copy(file.getInputStream(), targetFile, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new IllegalStateException("Failed to store file", e);
+        }
+        return targetFile;
+    }
+
+    public String saveMeetingVoiceFinal(Long meetingId, String filename, MultipartFile file) {
+        Path voiceDir = resolveMeetingVoiceDir(meetingId);
+        Path targetFile = voiceDir.resolve(filename).normalize();
+        if (!targetFile.startsWith(voiceDir)) {
+            throw new IllegalArgumentException("Invalid path");
+        }
+        try {
+            Files.createDirectories(voiceDir);
+            Files.copy(file.getInputStream(), targetFile, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new IllegalStateException("Failed to store file", e);
+        }
+        return buildMeetingVoiceUrl(meetingId, filename);
+    }
+
+    public Path resolveMeetingVoiceDir(Long meetingId) {
+        return basePath.resolve("meetings")
+                .resolve(String.valueOf(meetingId))
+                .resolve("recordings")
+                .resolve("voice")
+                .normalize();
+    }
+
+    public Path resolveMeetingVoiceSegmentsDir(Long meetingId, Long userId) {
+        return resolveMeetingVoiceDir(meetingId)
+                .resolve("segments")
+                .resolve(String.valueOf(userId))
+                .normalize();
+    }
+
+    public Path resolveMeetingVoiceFile(Long meetingId, String filename) {
+        return resolveMeetingVoiceDir(meetingId).resolve(filename).normalize();
+    }
+
+    public String buildMeetingVoiceUrl(Long meetingId, String filename) {
+        return "/uploads/meetings/" + meetingId + "/recordings/voice/" + filename;
+    }
+
     public String saveMeetingTextFile(Long meetingId, Long userId, boolean mixed, String filename, MultipartFile file) {
         Path targetDir = basePath.resolve("meetings")
                 .resolve(String.valueOf(meetingId))
