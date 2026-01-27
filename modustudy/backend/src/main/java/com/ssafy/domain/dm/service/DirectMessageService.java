@@ -14,7 +14,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -22,6 +23,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class DirectMessageService {
+
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     private final DirectMessageMapper directMessageMapper;
     private final DmConversationMapper dmConversationMapper;
@@ -66,7 +69,7 @@ public class DirectMessageService {
         directMessageMapper.insert(message);
 
         // 대화방 마지막 메시지 시간 업데이트
-        dmConversationMapper.updateLastMessageAt(conversation.getId(), LocalDateTime.now());
+        dmConversationMapper.updateLastMessageAt(conversation.getId(), OffsetDateTime.now(KST));
 
         // 저장된 메시지 조회
         DirectMessage saved = directMessageMapper.findById(message.getId());

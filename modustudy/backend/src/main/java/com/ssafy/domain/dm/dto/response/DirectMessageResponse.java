@@ -2,7 +2,7 @@ package com.ssafy.domain.dm.dto.response;
 
 import com.ssafy.domain.dm.entity.DirectMessage;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 /**
  * DM 메시지 응답 DTO
@@ -16,7 +16,7 @@ public record DirectMessageResponse(
         String content,
         Boolean isDeleted,
         Boolean isMine,
-        LocalDateTime createdAt
+        OffsetDateTime createdAt
 ) {
     public static DirectMessageResponse from(DirectMessage message, Long myId) {
         return new DirectMessageResponse(
