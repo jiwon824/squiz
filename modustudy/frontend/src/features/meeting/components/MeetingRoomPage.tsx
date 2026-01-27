@@ -102,7 +102,6 @@ const MeetingRoomPage: React.FC = () => {
     const [localStream, setLocalStream] = useState<MediaStream | null>(null);
     const [remoteVideoStreams, setRemoteVideoStreams] = useState<RemoteVideoStream[]>([]);
     const [remoteAudioVersion, setRemoteAudioVersion] = useState(0);
-    const [photoCount, setPhotoCount] = useState(0);
     const [isCapturing, setIsCapturing] = useState(false);
     const [roomGuardStatus, setRoomGuardStatus] = useState<'checking' | 'ok' | 'blocked'>('checking');
     const [roomGuardMessage, setRoomGuardMessage] = useState('회의 정보를 확인 중입니다.');
@@ -170,8 +169,6 @@ const MeetingRoomPage: React.FC = () => {
         isPresenterRef.current = isPresenter;
     }, [isPresenter]);
 
-    const maxPhotoCount = 3;
-    const remainingCaptures = Math.max(0, maxPhotoCount - photoCount);
     const formatDuration = (totalSeconds: number) => {
         const safeSeconds = Math.max(0, Math.floor(totalSeconds));
         const hours = Math.floor(safeSeconds / 3600);
@@ -1192,7 +1189,7 @@ const MeetingRoomPage: React.FC = () => {
         });
 
     const handleCapture = useCallback(async () => {
-        if (!numericStudyId || !numericMeetingId || isCapturing || remainingCaptures <= 0) return;
+        if (!numericStudyId || !numericMeetingId || isCapturing) return;
         const video = videoStageRef.current?.querySelector('video');
         if (!video) {
             window.alert('캡처할 화면이 없습니다.');
@@ -1207,13 +1204,12 @@ const MeetingRoomPage: React.FC = () => {
             }
             const file = new File([blob], 'meeting-capture.png', { type: 'image/png' });
             await meetingApi.addPhoto(numericStudyId, numericMeetingId, file);
-            setPhotoCount((prev) => Math.min(maxPhotoCount, prev + 1));
         } catch (error) {
             console.error('Failed to capture meeting screen', error);
         } finally {
             setIsCapturing(false);
         }
-    }, [isCapturing, maxPhotoCount, numericMeetingId, numericStudyId, remainingCaptures]);
+    }, [isCapturing, numericMeetingId, numericStudyId]);
 
     const presenterLabel = presenterName ? '발표자: ' + presenterName : '발표자';
 
@@ -1519,14 +1515,6 @@ const MeetingRoomPage: React.FC = () => {
         updateVoiceRecordingSource();
     }, [cameraEnabled, isPresenter, micEnabled, remoteAudioVersion, screenSharing, shareMode, updateVoiceRecordingSource]);
 
-    useEffect(() => {
-        if (!numericStudyId || !numericMeetingId) return;
-        meetingApi
-            .getPhotos(numericStudyId, numericMeetingId)
-            .then((photos) => setPhotoCount(photos.length))
-            .catch(() => setPhotoCount(0));
-    }, [numericMeetingId, numericStudyId]);
-
     if (roomGuardStatus === 'blocked') {
         return (
             <MainLayout>
@@ -1593,8 +1581,7 @@ const MeetingRoomPage: React.FC = () => {
                         onTogglePresenter={handleTogglePresenter}
                         onEndMeeting={handleEndMeeting}
                         canEndMeeting={canEndMeeting}
-                        captureRemaining={remainingCaptures}
-                        captureDisabled={remainingCaptures === 0 || isCapturing}
+                        captureDisabled={isCapturing}
                         onCapture={handleCapture}
                     />
                 </div>

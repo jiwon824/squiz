@@ -297,6 +297,18 @@ export const meetingApi = {
         return data.data;
     },
 
+    async selectPhotos(
+        studyId: number,
+        meetingId: number,
+        photoIds: number[]
+    ): Promise<MeetingPhotoResponse[]> {
+        const { data } = await api.put<ApiResponse<MeetingPhotoResponse[]>>(
+            `${buildMeetingPath(studyId, meetingId)}/photos/selection`,
+            { photoIds }
+        );
+        return data.data;
+    },
+
     async getActionItems(studyId: number, meetingId: number): Promise<MeetingActionItemResponse[]> {
         const { data } = await api.get<ApiResponse<MeetingActionItemResponse[]>>(
             `${buildMeetingPath(studyId, meetingId)}/action-items`

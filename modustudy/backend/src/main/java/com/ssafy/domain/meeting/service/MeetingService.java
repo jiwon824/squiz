@@ -327,9 +327,12 @@ public class MeetingService {
     }
 
     @Transactional(readOnly = true)
-    public List<MeetingPhotoResponse> getPhotos(Long studyId, Long meetingId) {
+    public List<MeetingPhotoResponse> getPhotos(Long studyId, Long meetingId, Long userId) {
         getMeetingOrThrow(studyId, meetingId);
-        return meetingPhotoRepository.findByMeetingIdOrderByCapturedAtDesc(meetingId).stream()
+        if (userId == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "AUTH_REQUIRED");
+        }
+        return meetingPhotoRepository.findByMeetingIdAndUserIdOrderByCapturedAtDesc(meetingId, userId).stream()
                 .map(photo -> new MeetingPhotoResponse(
                         photo.getId(),
                         photo.getImageUrl(),
@@ -339,32 +342,62 @@ public class MeetingService {
     }
 
     @Transactional
-    public MeetingPhotoResponse addPhoto(Long studyId, Long meetingId, MultipartFile image) {
+    public MeetingPhotoResponse addPhoto(Long studyId, Long meetingId, Long userId, MultipartFile image) {
         getMeetingOrThrow(studyId, meetingId);
+        if (userId == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "AUTH_REQUIRED");
+        }
         if (image == null || image.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "IMAGE_REQUIRED");
         }
         // Save to local filesystem and return a public URL path.
         String imageUrl = localFileStorageService.saveMeetingPhoto(meetingId, image);
         MeetingPhoto saved = meetingPhotoRepository.save(
-                MeetingPhoto.capture(meetingId, imageUrl, LocalDateTime.now()));
+                MeetingPhoto.capture(meetingId, userId, imageUrl, LocalDateTime.now()));
         return new MeetingPhotoResponse(saved.getId(), saved.getImageUrl(), saved.getCapturedAt(), saved.getIsSelected());
     }
 
     @Transactional
-    public MeetingPhotoResponse selectPhoto(Long studyId, Long meetingId, Long photoId) {
+    public MeetingPhotoResponse selectPhoto(Long studyId, Long meetingId, Long userId, Long photoId) {
         getMeetingOrThrow(studyId, meetingId);
+        if (userId == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "AUTH_REQUIRED");
+        }
         MeetingPhoto target = meetingPhotoRepository.findById(photoId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "PHOTO_NOT_FOUND"));
         if (!target.getMeetingId().equals(meetingId)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "PHOTO_MEETING_MISMATCH");
         }
-        List<MeetingPhoto> photos = meetingPhotoRepository.findByMeetingIdOrderByCapturedAtDesc(meetingId);
+        if (target.getUserId() == null || !target.getUserId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "PHOTO_FORBIDDEN");
+        }
+        List<MeetingPhoto> photos = meetingPhotoRepository.findByMeetingIdAndUserIdOrderByCapturedAtDesc(meetingId, userId);
         for (MeetingPhoto photo : photos) {
             photo.updateSelected(photo.getId().equals(photoId));
         }
         meetingPhotoRepository.saveAll(photos);
         return new MeetingPhotoResponse(target.getId(), target.getImageUrl(), target.getCapturedAt(), true);
+    }
+
+    @Transactional
+    public List<MeetingPhotoResponse> selectPhotos(Long studyId, Long meetingId, Long userId, List<Long> photoIds) {
+        getMeetingOrThrow(studyId, meetingId);
+        if (userId == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "AUTH_REQUIRED");
+        }
+        List<MeetingPhoto> photos = meetingPhotoRepository.findByMeetingIdAndUserIdOrderByCapturedAtDesc(meetingId, userId);
+        var selectedIds = photoIds == null ? java.util.Set.<Long>of() : new java.util.HashSet<>(photoIds);
+        for (MeetingPhoto photo : photos) {
+            photo.updateSelected(selectedIds.contains(photo.getId()));
+        }
+        meetingPhotoRepository.saveAll(photos);
+        return photos.stream()
+                .map(photo -> new MeetingPhotoResponse(
+                        photo.getId(),
+                        photo.getImageUrl(),
+                        photo.getCapturedAt(),
+                        photo.getIsSelected()))
+                .toList();
     }
 
     @Transactional
@@ -876,8 +909,8 @@ public class MeetingService {
         MeetingSttFile transcriptFile = meetingSttFileRepository
                 .findByMeetingIdAndTrackTypeAndUserIdIsNull(meetingId, MeetingTextTrackType.MIXED)
                 .orElse(null);
-        MeetingPhoto selectedPhoto = meetingPhotoRepository.findFirstByMeetingIdAndIsSelectedTrue(meetingId)
-                .orElse(null);
+        List<MeetingPhoto> selectedPhotos = meetingPhotoRepository
+                .findByMeetingIdAndIsSelectedTrueOrderByCapturedAtDesc(meetingId);
         StringBuilder builder = new StringBuilder();
         builder.append("# Meeting Summary").append("\n\n");
         builder.append("- Title: ").append(meeting.getTitle()).append("\n");
@@ -909,9 +942,11 @@ public class MeetingService {
                 builder.append(transcriptText).append("\n");
             }
         }
-        if (selectedPhoto != null) {
+        if (!selectedPhotos.isEmpty()) {
             builder.append("\n## 회의 사진\n");
-            builder.append("![").append("회의 사진").append("](").append(selectedPhoto.getImageUrl()).append(")\n");
+            for (MeetingPhoto photo : selectedPhotos) {
+                builder.append("![").append("회의 사진").append("](").append(photo.getImageUrl()).append(")\n");
+            }
         }
         return builder.toString();
     }
@@ -919,8 +954,8 @@ public class MeetingService {
     @Transactional(readOnly = true)
     public byte[] exportMeetingPdf(Long studyId, Long meetingId) {
         String markdown = exportMeetingMarkdown(studyId, meetingId);
-        MeetingPhoto selectedPhoto = meetingPhotoRepository.findFirstByMeetingIdAndIsSelectedTrue(meetingId)
-                .orElse(null);
+        List<MeetingPhoto> selectedPhotos = meetingPhotoRepository
+                .findByMeetingIdAndIsSelectedTrueOrderByCapturedAtDesc(meetingId);
         try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
             Document document = new Document();
             PdfWriter.getInstance(document, outputStream);
@@ -946,7 +981,7 @@ public class MeetingService {
                     document.add(paragraph);
                 }
             }
-            appendSelectedPhoto(document, sectionFont, bodyFont, selectedPhoto);
+            appendSelectedPhotos(document, sectionFont, bodyFont, selectedPhotos);
             document.close();
             return outputStream.toByteArray();
         } catch (DocumentException e) {
@@ -1107,27 +1142,29 @@ public class MeetingService {
         return BaseFont.createFont(BaseFont.HELVETICA, BaseFont.WINANSI, BaseFont.NOT_EMBEDDED);
     }
 
-    private void appendSelectedPhoto(Document document, Font sectionFont, Font bodyFont, MeetingPhoto selectedPhoto)
+    private void appendSelectedPhotos(Document document, Font sectionFont, Font bodyFont, List<MeetingPhoto> photos)
             throws DocumentException {
-        if (selectedPhoto == null) {
+        if (photos == null || photos.isEmpty()) {
             return;
         }
         Paragraph paragraph = new Paragraph("회의 사진", sectionFont);
         paragraph.setSpacingBefore(10f);
         document.add(paragraph);
-        Path imagePath = localFileStorageService.resolveUploadedPath(selectedPhoto.getImageUrl());
-        if (imagePath == null || !Files.exists(imagePath)) {
-            document.add(new Paragraph(selectedPhoto.getImageUrl(), bodyFont));
-            return;
-        }
-        try {
-            Image image = Image.getInstance(imagePath.toAbsolutePath().toString());
-            float maxWidth = document.getPageSize().getWidth() - document.leftMargin() - document.rightMargin();
-            image.scaleToFit(maxWidth, 360f);
-            image.setSpacingBefore(6f);
-            document.add(image);
-        } catch (Exception e) {
-            document.add(new Paragraph(selectedPhoto.getImageUrl(), bodyFont));
+        for (MeetingPhoto photo : photos) {
+            Path imagePath = localFileStorageService.resolveUploadedPath(photo.getImageUrl());
+            if (imagePath == null || !Files.exists(imagePath)) {
+                document.add(new Paragraph(photo.getImageUrl(), bodyFont));
+                continue;
+            }
+            try {
+                Image image = Image.getInstance(imagePath.toAbsolutePath().toString());
+                float maxWidth = document.getPageSize().getWidth() - document.leftMargin() - document.rightMargin();
+                image.scaleToFit(maxWidth, 360f);
+                image.setSpacingBefore(6f);
+                document.add(image);
+            } catch (Exception e) {
+                document.add(new Paragraph(photo.getImageUrl(), bodyFont));
+            }
         }
     }
 
@@ -1240,3 +1277,5 @@ public class MeetingService {
         }
     }
 }
+
+

@@ -12,6 +12,9 @@ public class MeetingPhoto extends BaseEntity {
     @Column(name = "meeting_id", nullable = false)
     private Long meetingId;
 
+    @Column(name = "user_id")
+    private Long userId;
+
     @Column(name = "image_url", nullable = false, length = 500)
     private String imageUrl;
 
@@ -22,16 +25,18 @@ public class MeetingPhoto extends BaseEntity {
     private Boolean isSelected;
 
     @Builder
-    private MeetingPhoto(Long meetingId, String imageUrl, java.time.LocalDateTime capturedAt, Boolean isSelected) {
+    private MeetingPhoto(Long meetingId, Long userId, String imageUrl, java.time.LocalDateTime capturedAt, Boolean isSelected) {
         this.meetingId = meetingId;
+        this.userId = userId;
         this.imageUrl = imageUrl;
         this.capturedAt = capturedAt;
         this.isSelected = isSelected;
     }
 
-    public static MeetingPhoto capture(Long meetingId, String imageUrl, java.time.LocalDateTime capturedAt) {
+    public static MeetingPhoto capture(Long meetingId, Long userId, String imageUrl, java.time.LocalDateTime capturedAt) {
         return MeetingPhoto.builder()
                 .meetingId(meetingId)
+                .userId(userId)
                 .imageUrl(imageUrl)
                 .capturedAt(capturedAt)
                 .isSelected(false)

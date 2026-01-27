@@ -7,7 +7,6 @@ interface MeetingControlsProps {
     micDisabled: boolean;
     shareMode: 'camera' | 'screen' | 'mixed' | null;
     canEndMeeting: boolean;
-    captureRemaining: number;
     captureDisabled: boolean;
     onToggleMic: () => void;
     onShareModeChange: (mode: 'camera' | 'screen' | 'mixed') => void;
@@ -26,7 +25,6 @@ const MeetingControls: React.FC<MeetingControlsProps> = ({
     onTogglePresenter,
     canEndMeeting,
     onEndMeeting,
-    captureRemaining,
     captureDisabled,
     onCapture,
 }) => {
@@ -75,9 +73,9 @@ const MeetingControls: React.FC<MeetingControlsProps> = ({
                     className="meeting-control"
                     onClick={onCapture}
                     disabled={captureDisabled}
-                    title={captureDisabled ? '캡쳐 횟수를 모두 사용했습니다.' : '화면 캡쳐'}
+                    title={captureDisabled ? '캡쳐 중입니다.' : '화면 캡쳐'}
                 >
-                    화면 캡쳐({captureRemaining}회 남음)
+                    화면 캡쳐
                 </button>
                 <button
                     className="meeting-control danger"

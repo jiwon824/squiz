@@ -7,6 +7,7 @@ import com.ssafy.common.response.PageResponse;
 import com.ssafy.domain.meeting.dto.request.MeetingActionItemRequest;
 import com.ssafy.domain.meeting.dto.request.MeetingKeywordUpdateRequest;
 import com.ssafy.domain.meeting.dto.request.MeetingMuteRequest;
+import com.ssafy.domain.meeting.dto.request.MeetingPhotoSelectionRequest;
 import com.ssafy.domain.meeting.dto.request.MeetingRecordingRequest;
 import com.ssafy.domain.meeting.dto.request.MeetingRequest;
 import com.ssafy.domain.meeting.dto.request.MeetingSummaryUpdateRequest;
@@ -292,28 +293,47 @@ public class MeetingController {
     @GetMapping("/{meetingId}/photos")
     public ResponseEntity<ApiResponse<List<MeetingPhotoResponse>>> photos(
             @PathVariable Long studyId,
-            @PathVariable Long meetingId
+            @PathVariable Long meetingId,
+            @AuthenticationPrincipal SsafyUserDetails userDetails
     ) {
-        return ResponseEntity.ok(ApiResponse.success(meetingService.getPhotos(studyId, meetingId)));
+        Long userId = userDetails == null ? null : userDetails.getUser().getId();
+        return ResponseEntity.ok(ApiResponse.success(meetingService.getPhotos(studyId, meetingId, requireUserId(userId))));
     }
 
     @PostMapping("/{meetingId}/photos")
     public ResponseEntity<ApiResponse<MeetingPhotoResponse>> addPhoto(
             @PathVariable Long studyId,
             @PathVariable Long meetingId,
+            @AuthenticationPrincipal SsafyUserDetails userDetails,
             @RequestPart("image") MultipartFile image
     ) {
+        Long userId = userDetails == null ? null : userDetails.getUser().getId();
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success(meetingService.addPhoto(studyId, meetingId, image)));
+                .body(ApiResponse.success(meetingService.addPhoto(studyId, meetingId, requireUserId(userId), image)));
     }
 
     @PutMapping("/{meetingId}/photos/{photoId}/select")
     public ResponseEntity<ApiResponse<MeetingPhotoResponse>> selectPhoto(
             @PathVariable Long studyId,
             @PathVariable Long meetingId,
-            @PathVariable Long photoId
+            @PathVariable Long photoId,
+            @AuthenticationPrincipal SsafyUserDetails userDetails
     ) {
-        return ResponseEntity.ok(ApiResponse.success(meetingService.selectPhoto(studyId, meetingId, photoId)));
+        Long userId = userDetails == null ? null : userDetails.getUser().getId();
+        return ResponseEntity.ok(ApiResponse.success(
+                meetingService.selectPhoto(studyId, meetingId, requireUserId(userId), photoId)));
+    }
+
+    @PutMapping("/{meetingId}/photos/selection")
+    public ResponseEntity<ApiResponse<List<MeetingPhotoResponse>>> selectPhotos(
+            @PathVariable Long studyId,
+            @PathVariable Long meetingId,
+            @AuthenticationPrincipal SsafyUserDetails userDetails,
+            @RequestBody MeetingPhotoSelectionRequest request
+    ) {
+        Long userId = userDetails == null ? null : userDetails.getUser().getId();
+        return ResponseEntity.ok(ApiResponse.success(
+                meetingService.selectPhotos(studyId, meetingId, requireUserId(userId), request.photoIds())));
     }
 
     @PutMapping("/{meetingId}/keywords")
