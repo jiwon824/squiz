@@ -7,6 +7,8 @@ import com.ssafy.domain.material.dto.response.MaterialCreateResponse;
 import com.ssafy.domain.material.dto.response.MaterialDetailResponse;
 import com.ssafy.domain.material.dto.response.MaterialListResponse;
 import com.ssafy.domain.material.entity.MaterialType;
+import com.ssafy.domain.material.service.FileStorageService;
+import com.ssafy.domain.material.service.MaterialFileStorageService;
 import com.ssafy.domain.material.service.MaterialService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -16,8 +18,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * 자료 컨트롤러
@@ -30,6 +34,7 @@ import org.springframework.web.bind.annotation.*;
 public class MaterialController {
 
     private final MaterialService materialService;
+    private final FileStorageService fileStorageService;
 
     /**
      * 자료 목록 조회
@@ -91,9 +96,48 @@ public class MaterialController {
         return ResponseEntity.status(HttpStatus.CREATED).body(result);
     }
 
-    // TODO: 파일 업로드 API - FileStorageService 구현 후 추가
-    // @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    // public ResponseEntity<MaterialCreateResponse> uploadFileMaterial(...)
+    /**
+     * 파일 자료 업로드
+     * POST /api/v1/studies/{studyId}/materials/upload
+     * Content-Type: multipart/form-data
+     */
+    @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<MaterialCreateResponse> uploadFileMaterial(
+            @PathVariable Long studyId,
+            @RequestHeader("User-Id") Long userId,
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("title") String title,
+            @RequestParam(value = "description", required = false) String description,
+            @RequestParam(value = "weekNumber", required = false) Integer weekNumber) {
+
+        log.info("파일 자료 업로드 요청 - studyId: {}, userId: {}, fileName: {}, title: {}",
+                studyId, userId, file.getOriginalFilename(), title);
+
+        // 1. 파일 저장
+        String directory = "materials/study_" + studyId;
+        FileStorageService.FileUploadResult uploadResult = fileStorageService.upload(file, directory);
+
+        // 2. MaterialType 결정 (확장자 기반)
+        MaterialType materialType = MaterialType.valueOf(
+                MaterialFileStorageService.detectMaterialType(uploadResult.fileName()));
+
+        // 3. Material 생성
+        MaterialCreateResponse result = materialService.createFileMaterial(
+                studyId,
+                userId,
+                title,
+                description,
+                materialType,
+                uploadResult.filePath(),
+                uploadResult.fileName(),
+                uploadResult.fileSize(),
+                weekNumber
+        );
+
+        log.info("파일 자료 업로드 완료 - materialId: {}", result.getId());
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(result);
+    }
 
     /**
      * 자료 수정

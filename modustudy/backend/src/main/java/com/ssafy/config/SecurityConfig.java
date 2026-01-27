@@ -54,6 +54,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/study/**").permitAll()
                         .requestMatchers("/api/v1/workspaces/**").permitAll()
                         .requestMatchers("/api/v1/studies/**").permitAll()
+                        .requestMatchers("/files/**").permitAll()
                         // 퀴즈 코스
                         .requestMatchers("/api/v1/quiz-courses/**").permitAll()
                         // 게이미피케이션
