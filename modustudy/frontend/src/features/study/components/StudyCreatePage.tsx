@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Info, Calendar, Plus, Trash2, BookOpen, MapPin, AlertCircle, Clock, Users, Target, Shield } from 'lucide-react';
 import { MainLayout } from '@/layouts/MainLayout';
+import { useUIStore } from '@/store/uiStore';
 import { Button } from '@/shared/components/Button';
 import { Input } from '@/shared/components/Input';
 import { Select } from '@/shared/components/Select';
@@ -56,6 +57,7 @@ const TOPIC_SUBTOPICS: Record<string, string[]> = {
 
 const StudyCreatePage: React.FC = () => {
     const navigate = useNavigate();
+    const showToast = useUIStore((state) => state.showToast);
 
     // 오늘 날짜 계산 (YYYY-MM-DD)
     const today = new Date();
@@ -244,7 +246,7 @@ const StudyCreatePage: React.FC = () => {
         e.preventDefault();
         console.log('Form submitted:', formData);
         localStorage.removeItem('studyCreateFormData');
-        alert('스터디가 생성되었습니다! (모의)');
+        showToast('스터디가 생성되었습니다!', 'success');
         navigate('/study');
     };
 

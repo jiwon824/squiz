@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { MainLayout } from '@/layouts/MainLayout';
 import { useAuthStore } from '@/store/authStore';
+import { useUIStore } from '@/store/uiStore';
 import MeetingControls from './MeetingControls';
 import MeetingParticipants from './MeetingParticipants';
 import MeetingChatPanel from './MeetingChatPanel';
@@ -41,6 +42,7 @@ const MeetingRoomPage: React.FC = () => {
     const meetingListPath =
         Number.isFinite(numericStudyId) && numericStudyId > 0 ? `/study/${numericStudyId}/meetings` : '/study';
     const { user, isLoggedIn } = useAuthStore();
+    const showToast = useUIStore((state) => state.showToast);
 
     const getGuestName = useCallback(() => {
         const key = 'meeting-guest-name';
@@ -891,14 +893,14 @@ const MeetingRoomPage: React.FC = () => {
         if (!numericStudyId || !numericMeetingId || isCapturing || remainingCaptures <= 0) return;
         const video = videoStageRef.current?.querySelector('video');
         if (!video) {
-            window.alert('캡처할 화면이 없습니다.');
+            showToast('캡처할 화면이 없습니다.', 'warning');
             return;
         }
         setIsCapturing(true);
         try {
             const blob = await captureFrame(video);
             if (!blob) {
-                window.alert('캡처할 화면이 없습니다.');
+                showToast('캡처할 화면이 없습니다.', 'warning');
                 return;
             }
             const file = new File([blob], 'meeting-capture.png', { type: 'image/png' });

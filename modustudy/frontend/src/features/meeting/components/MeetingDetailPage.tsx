@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { MainLayout } from '@/layouts/MainLayout';
+import { useUIStore } from '@/store/uiStore';
 import { meetingApi } from '../services/meetingApi';
 import {
     MeetingActionItemRequest,
@@ -24,6 +25,7 @@ const MeetingDetailPage: React.FC = () => {
     const numericStudyId = Number(studyId);
     const numericMeetingId = Number(meetingId);
     const navigate = useNavigate();
+    const showToast = useUIStore((state) => state.showToast);
     const [detail, setDetail] = useState<MeetingDetailResponse | null>(null);
     const [actionItems, setActionItems] = useState<MeetingActionItemResponse[]>([]);
     const [recording, setRecording] = useState<MeetingRecordingResponse | null>(null);
@@ -90,7 +92,7 @@ const MeetingDetailPage: React.FC = () => {
     const handleExport = async (format: 'MARKDOWN' | 'PDF') => {
         if (!numericStudyId || !numericMeetingId) return;
         if (photos.length > 0 && !selectedPhotoId) {
-            window.alert('회의 사진을 선택해 주세요.');
+            showToast('회의 사진을 선택해 주세요.', 'warning');
             return;
         }
         const blob = await meetingApi.exportMeeting(numericStudyId, numericMeetingId, format);

@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import '../styles/ProfilePage.css';
 import { useAuthStore } from '@/store/authStore';
+import { useUIStore } from '@/store/uiStore';
 import { EditProfileModal } from './EditProfileModal';
 import { PasswordResetModal } from '@/features/auth/components/PasswordResetModal';
 import { userApi } from '@/api/endpoints/userApi';
@@ -11,6 +12,7 @@ import { MainLayout } from '@/layouts/MainLayout';
 
 export const ProfilePage = () => {
     const { user, updateUser } = useAuthStore();
+    const showToast = useUIStore((state) => state.showToast);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
     const [isImageUploading, setIsImageUploading] = useState(false);
@@ -34,7 +36,7 @@ export const ProfilePage = () => {
 
         // 파일 타입 검사
         if (!file.type.startsWith('image/')) {
-            alert('이미지 파일만 업로드 가능합니다.');
+            showToast('이미지 파일만 업로드 가능합니다.', 'warning');
             return;
         }
 
@@ -42,10 +44,10 @@ export const ProfilePage = () => {
         try {
             const updatedUser = await userApi.updateProfileImage(file);
             updateUser({ avatar: updatedUser.profileImage || undefined });
-            alert('프로필 이미지가 변경되었습니다.');
+            showToast('프로필 이미지가 변경되었습니다.', 'success');
         } catch (error) {
             console.error('Image upload error:', error);
-            alert('이미지 업로드 중 오류가 발생했습니다.');
+            showToast('이미지 업로드 중 오류가 발생했습니다.', 'error');
         } finally {
             setIsImageUploading(false);
         }

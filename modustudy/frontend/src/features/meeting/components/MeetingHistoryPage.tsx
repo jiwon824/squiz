@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { MainLayout } from '@/layouts/MainLayout';
 import { useAuthStore } from '@/store/authStore';
+import { useUIStore } from '@/store/uiStore';
 import MeetingStartModal from './MeetingStartModal';
 import { meetingApi } from '../services/meetingApi';
 import { MeetingListItemResponse, MeetingRequestPayload, MeetingType } from '../types';
@@ -13,6 +14,7 @@ const MeetingHistoryPage: React.FC = () => {
     const numericStudyId = Number(studyId);
     const navigate = useNavigate();
     const { user } = useAuthStore();
+    const showToast = useUIStore((state) => state.showToast);
     const ownerKey = user?.id ?? user?.name ?? 'guest';
     const [meetings, setMeetings] = useState<MeetingListItemResponse[]>([]);
     const [meetingType, setMeetingType] = useState<MeetingType | 'ALL'>('ALL');
@@ -58,10 +60,10 @@ const MeetingHistoryPage: React.FC = () => {
             const status = (error as { response?: { status?: number; data?: { message?: string } } })?.response?.status;
             const message = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
             if (status === 409 && message === 'MEETING_IN_PROGRESS') {
-                alert('이미 진행 중인 미팅이 있습니다. 기존 미팅을 종료한 뒤 다시 시도해주세요.');
+                showToast('이미 진행 중인 미팅이 있습니다. 기존 미팅을 종료한 뒤 다시 시도해주세요.', 'warning');
                 return;
             }
-            alert('미팅 시작에 실패했습니다. 백엔드 연결과 CORS 설정을 확인해주세요.');
+            showToast('미팅 시작에 실패했습니다. 백엔드 연결과 CORS 설정을 확인해주세요.', 'error');
             console.error(error);
         }
     };
