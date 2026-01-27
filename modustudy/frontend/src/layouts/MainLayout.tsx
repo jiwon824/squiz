@@ -1,13 +1,16 @@
 // 헤더 + 사이드바 포함 기본 레이아웃
 
 import { motion } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Sidebar } from './components/Sidebar';
 import { RightSideBar } from './components/RightSideBar';
 import { useUIStore } from '@/store/uiStore';
 import { useAuthStore } from '@/store/authStore';
 import { SquizLogoNew } from '@/shared/components/SquizLogoNew';
+import { Button } from '@/shared/components/Button';
+import { Bell, Menu, User, Settings, LogOut } from 'lucide-react';
+import { cn } from '@/shared/utils/cn';
 
 interface MainLayoutProps {
     children: React.ReactNode;
@@ -17,6 +20,10 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     const { isSidebarOpen, toggleSidebar, closeSidebar, activeRightTab, setActiveRightTab } = useUIStore();
     const { isLoggedIn, user, logout } = useAuthStore();
     const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+    const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+    const [isProfileOpen, setIsProfileOpen] = useState(false);
+    const notificationRef = useRef<HTMLDivElement>(null);
+    const profileRef = useRef<HTMLDivElement>(null);
     const location = useLocation();
 
     // 반응형 리사이즈 감지
@@ -48,6 +55,21 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         }
     }, [location.pathname, isSidebarOpen, closeSidebar]);
 
+    // 드롭다운 외부 클릭 감지
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+                setIsNotificationOpen(false);
+            }
+            if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+                setIsProfileOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
     const isCompactMode = windowWidth <= 600;
     const isMeetingRoom = /^\/study\/\d+\/meetings\/\d+\/room/.test(location.pathname);
     const shouldHideHeader = isMeetingRoom;
@@ -56,65 +78,214 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         <div className="flex flex-col h-screen bg-study-bg overflow-hidden">
             {/* 헤더 - 회의 룸에서는 숨김 */}
             {!shouldHideHeader && (
-                <header className="h-16 w-full bg-study-bg flex items-center justify-between px-6 flex-shrink-0 z-50">
-                    <div className="flex items-center gap-4">
-                        {/* 사이드바 토글 버튼 */}
+                <header className={cn(
+                    'h-16 w-full bg-white border-b border-gray-100 flex items-center flex-shrink-0 z-50',
+                    'px-4 md:px-6'
+                )}>
+                    {/* 데스크탑: 왼쪽 햄버거 + 로고 */}
+                    <div className={cn(
+                        'flex items-center gap-2 md:gap-4',
+                        windowWidth <= 768 ? 'flex-1' : ''
+                    )}>
+                        {/* 햄버거 버튼 (항상 왼쪽 고정) */}
                         <button
                             onClick={toggleSidebar}
-                            className="p-2 rounded-google hover:bg-study-blue/10 transition-colors"
+                            className={cn(
+                                'p-2 rounded-lg hover:bg-gray-100 transition-colors',
+                                'flex items-center justify-center'
+                            )}
                             aria-label="Toggle sidebar"
                         >
-                            <span className="material-icons text-study-blue">
-                                {isSidebarOpen ? 'menu_open' : 'menu'}
-                            </span>
+                            <Menu size={20} className="text-gray-700" />
                         </button>
 
-                        {/* 로고 영역 */}
-                        <Link to="/dashboard" className="flex items-center">
-                            <SquizLogoNew width={160} height={55} className="scale-110 origin-left" />
+                        {/* 로고 (데스크탑: 왼쪽, 모바일: 가운데) */}
+                        <Link
+                            to="/dashboard"
+                            className={cn(
+                                'flex items-center no-underline',
+                                windowWidth <= 768 && 'absolute left-1/2 -translate-x-1/2'
+                            )}
+                        >
+                            <SquizLogoNew
+                                width={windowWidth <= 768 ? 120 : 160}
+                                height={windowWidth <= 768 ? 40 : 55}
+                                className="scale-110 origin-left"
+                            />
                         </Link>
                     </div>
 
-                    {/* 우측 인증 영역 */}
-                    <div className="flex items-center gap-3 pr-14 h-full">
-                        <div className="w-px h-6 bg-study-blue/20 mx-1" />
-
+                    {/* 우측 영역 */}
+                    <div className={cn(
+                        'flex items-center gap-2 md:gap-4',
+                        windowWidth <= 768 ? 'ml-auto' : 'ml-auto mr-14'
+                    )}>
                         {isLoggedIn ? (
-                            <div className="flex items-center gap-3 ml-2">
-                                <Link
-                                    to="/profile"
-                                    className="flex items-center gap-3 p-1 px-4 bg-white/60 hover:bg-white hover:shadow-md hover:-translate-y-0.5 transition-all rounded-full border border-study-blue/20 backdrop-blur-md shadow-sm group cursor-pointer no-underline active:scale-95"
-                                >
-                                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-study-blue to-study-blue-dark flex items-center justify-center text-white text-sm font-bold overflow-hidden shadow-inner ring-2 ring-white/50">
-                                        {user?.avatar ? (
-                                            <img
-                                                src={user.avatar}
-                                                alt="P"
-                                                className="w-full h-full object-cover group-hover:scale-110 transition-transform"
-                                            />
-                                        ) : (
-                                            (user?.nickname || user?.name)?.charAt(0) || 'U'
+                            <>
+                                {/* 알림 드롭다운 */}
+                                <div ref={notificationRef} className="relative">
+                                    <button
+                                        onClick={() => {
+                                            setIsNotificationOpen(!isNotificationOpen);
+                                            setIsProfileOpen(false);
+                                        }}
+                                        className={cn(
+                                            'p-2 rounded-lg transition-colors relative',
+                                            'hover:bg-gray-100',
+                                            isNotificationOpen && 'bg-gray-100'
                                         )}
-                                    </div>
-                                    {(user?.nickname || user?.name) && (
-                                        <span className="text-base font-bold text-study-text-dark tracking-tight">
-                                            {user.nickname || user.name}님
-                                        </span>
+                                        aria-label="Notifications"
+                                    >
+                                        <div className="relative">
+                                            {/* 읽지 않은 알림 표시 */}
+                                            <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" />
+                                            <Bell size={20} className="text-gray-700" />
+                                        </div>
+                                    </button>
+
+                                    {/* 알림 드롭다운 메뉴 */}
+                                    {isNotificationOpen && (
+                                        <div className={cn(
+                                            'absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200',
+                                            'animate-in fade-in slide-in-from-top-2 duration-200 z-50'
+                                        )}>
+                                            {/* 헤더 */}
+                                            <div className="px-4 py-3 border-b border-gray-100">
+                                                <h6 className="text-base font-semibold text-gray-900">알림</h6>
+                                            </div>
+
+                                            {/* 알림 목록 */}
+                                            <div className="max-h-96 overflow-y-auto">
+                                                {/* TODO: 백엔드 API 연결 후 실제 데이터로 교체 */}
+                                                <div className="p-4 text-center text-sm text-gray-500">
+                                                    새로운 알림이 없습니다
+                                                </div>
+                                            </div>
+
+                                            {/* 푸터 */}
+                                            <div className="px-4 py-2 border-t border-gray-100">
+                                                <Link
+                                                    to="/notifications"
+                                                    className="flex items-center justify-center gap-1 text-sm text-study-blue hover:text-study-blue-dark no-underline"
+                                                    onClick={() => setIsNotificationOpen(false)}
+                                                >
+                                                    <span>전체 보기</span>
+                                                </Link>
+                                            </div>
+                                        </div>
                                     )}
-                                </Link>
-                                <button
-                                    onClick={logout}
-                                    className="p-2 px-4 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-pill text-xs font-bold transition-all hover:scale-105 active:scale-95"
-                                >
-                                    로그아웃
-                                </button>
-                            </div>
+                                </div>
+
+                                {/* 프로필 드롭다운 */}
+                                <div ref={profileRef} className="relative">
+                                    <button
+                                        onClick={() => {
+                                            setIsProfileOpen(!isProfileOpen);
+                                            setIsNotificationOpen(false);
+                                        }}
+                                        className={cn(
+                                            'flex items-center p-1 rounded-lg transition-colors',
+                                            'hover:bg-gray-100',
+                                            isProfileOpen && 'bg-gray-100'
+                                        )}
+                                        aria-label="Profile menu"
+                                    >
+                                        <div className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-gradient-to-br from-study-blue to-study-blue-dark flex items-center justify-center text-white text-sm font-bold overflow-hidden">
+                                            {user?.avatar ? (
+                                                <img
+                                                    src={user.avatar}
+                                                    alt="Profile"
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            ) : (
+                                                (user?.nickname || user?.name)?.charAt(0) || 'U'
+                                            )}
+                                        </div>
+                                    </button>
+
+                                    {/* 프로필 드롭다운 메뉴 */}
+                                    {isProfileOpen && (
+                                        <div className={cn(
+                                            'absolute right-0 mt-2 w-60 bg-white rounded-lg shadow-lg border border-gray-200',
+                                            'animate-in fade-in slide-in-from-top-2 duration-200 z-50'
+                                        )}>
+                                            {/* 헤더 */}
+                                            <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
+                                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-study-blue to-study-blue-dark flex items-center justify-center text-white text-sm font-bold overflow-hidden">
+                                                    {user?.avatar ? (
+                                                        <img
+                                                            src={user.avatar}
+                                                            alt="Profile"
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                    ) : (
+                                                        (user?.nickname || user?.name)?.charAt(0) || 'U'
+                                                    )}
+                                                </div>
+                                                <div>
+                                                    <h6 className="text-base font-semibold text-gray-900">
+                                                        {user?.nickname || user?.name || '사용자'}
+                                                    </h6>
+                                                    <small className="text-gray-500">회원</small>
+                                                </div>
+                                            </div>
+
+                                            {/* 메뉴 아이템 */}
+                                            <ul className="py-2">
+                                                <li>
+                                                    <Link
+                                                        to="/profile"
+                                                        className={cn(
+                                                            'flex items-center gap-2 px-4 py-2 text-sm text-gray-700',
+                                                            'hover:bg-gray-50 transition-colors no-underline'
+                                                        )}
+                                                        onClick={() => setIsProfileOpen(false)}
+                                                    >
+                                                        <User size={16} />
+                                                        <span>마이 프로필</span>
+                                                    </Link>
+                                                </li>
+                                                <li>
+                                                    <Link
+                                                        to="/settings"
+                                                        className={cn(
+                                                            'flex items-center gap-2 px-4 py-2 text-sm text-gray-700',
+                                                            'hover:bg-gray-50 transition-colors no-underline'
+                                                        )}
+                                                        onClick={() => setIsProfileOpen(false)}
+                                                    >
+                                                        <Settings size={16} />
+                                                        <span>설정</span>
+                                                    </Link>
+                                                </li>
+                                            </ul>
+
+                                            {/* 푸터 */}
+                                            <div className="px-3 py-2 border-t border-gray-100">
+                                                <button
+                                                    onClick={() => {
+                                                        logout();
+                                                        setIsProfileOpen(false);
+                                                    }}
+                                                    className={cn(
+                                                        'w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg',
+                                                        'bg-red-50 text-red-600 hover:bg-red-100 transition-colors text-sm font-medium'
+                                                    )}
+                                                >
+                                                    <LogOut size={16} />
+                                                    <span>로그아웃</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </>
                         ) : (
-                            <Link
-                                to="/login"
-                                className="ml-2 p-2 px-5 bg-study-blue hover:bg-study-blue-dark text-white rounded-pill text-sm font-bold shadow-md shadow-study-blue/20 transition-all hover:scale-105 active:scale-95 no-underline"
-                            >
-                                로그인 / 회원가입
+                            /* 비로그인시 로그인 버튼 */
+                            <Link to="/login" className="no-underline">
+                                <Button variant="primary" size="sm">
+                                    로그인
+                                </Button>
                             </Link>
                         )}
                     </div>
