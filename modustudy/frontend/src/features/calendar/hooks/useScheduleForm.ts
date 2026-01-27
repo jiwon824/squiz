@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useCalendarStore } from '../services/calendarStore';
 import { UnifiedSchedule } from '../types';
-import { getTodayString } from '../utils';
+import { getTodayString, getCurrentTimeString } from '../utils';
 import { CreatePersonalScheduleRequest, UpdatePersonalScheduleRequest } from '@/api/endpoints/calendarApi';
 import { useUIStore } from '@/store/uiStore';
 
@@ -16,12 +16,13 @@ export const useScheduleForm = (initialSchedule?: UnifiedSchedule) => {
         title: initialSchedule?.title || '',
         description: initialSchedule?.description || '',
         startDate: initialSchedule?.startDate || getTodayString(),
-        startTime: initialSchedule?.startTime || '',
-        endDate: initialSchedule?.endDate || '',
+        startTime: initialSchedule?.startTime || getCurrentTimeString(),
+        endDate: initialSchedule?.endDate || initialSchedule?.startDate || getTodayString(),
         endTime: initialSchedule?.endTime || '',
         location: initialSchedule?.location || '',
         isOnline: initialSchedule?.isOnline ?? false,
-        color: initialSchedule?.color || '#4285F4'
+        color: initialSchedule?.color || '#4285F4',
+        syncToGoogle: initialSchedule?.isSyncedWithGoogle ?? true
     });
 
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -113,12 +114,13 @@ export const useScheduleForm = (initialSchedule?: UnifiedSchedule) => {
             title: '',
             description: '',
             startDate: getTodayString(),
-            startTime: '',
-            endDate: '',
+            startTime: getCurrentTimeString(),
+            endDate: getTodayString(),
             endTime: '',
             location: '',
             isOnline: false,
-            color: '#4285F4'
+            color: '#4285F4',
+            syncToGoogle: true
         });
         setErrors({});
     };

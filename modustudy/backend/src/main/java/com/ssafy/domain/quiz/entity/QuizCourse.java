@@ -65,5 +65,6 @@ public class QuizCourse extends BaseEntity {
      */
     @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("sectionNumber ASC")
+    @Builder.Default
     private List<QuizCourseSection> sections = new ArrayList<>();
 }
