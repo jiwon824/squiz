@@ -1,13 +1,19 @@
 package com.ssafy.domain.retrospect.service;
 
+import com.ssafy.common.exception.RetrospectiveException;
 import com.ssafy.common.exception.StudyException;
+import com.ssafy.domain.retrospect.dto.response.RetrospectiveDetailResponse;
 import com.ssafy.domain.retrospect.dto.response.RetrospectiveListResponse;
+import com.ssafy.domain.retrospect.entity.Category;
 import com.ssafy.domain.retrospect.entity.Retrospective;
+import com.ssafy.domain.retrospect.entity.RetrospectiveItem;
 import com.ssafy.domain.retrospect.repository.RetrospectiveItemRepository;
 import com.ssafy.domain.retrospect.repository.RetrospectiveRepository;
 import com.ssafy.domain.study.entity.StudySession;
 import com.ssafy.domain.study.repository.StudyRepository;
 import com.ssafy.domain.study.repository.StudySessionRepository;
+import com.ssafy.domain.user.entity.User;
+import com.ssafy.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -16,8 +22,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +35,7 @@ public class RetrospectiveService {
     private final RetrospectiveItemRepository retrospectiveItemRepository;
     private final StudyRepository studyRepository;
     private final StudySessionRepository studySessionRepository;
+    private final UserRepository userRepository;
 
     /**
      * 스터디별 회고 목록 조회 (최신순)
@@ -67,6 +74,50 @@ public class RetrospectiveService {
         log.info("회고 목록 조회 완료 - studyId: {}, count: {}", studyId, content.size());
 
         return new PageImpl<>(content, pageable, sorted.size());
+    }
+
+    /**
+     * 회고 상세 조회
+     */
+    public RetrospectiveDetailResponse getRetrospectiveDetail(Long studyId, Long retroId) {
+        log.info("회고 상세 조회 - studyId: {}, retroId: {}", studyId, retroId);
+
+        // 스터디 존재 여부 확인
+        if (!studyRepository.existsById(studyId)) {
+            throw new StudyException.StudyNotFoundException(studyId);
+        }
+
+        // 회고 조회
+        Retrospective retrospective = retrospectiveRepository.findByIdAndStudyId(retroId, studyId)
+                .orElseThrow(RetrospectiveException.RetrospectiveNotFoundException::new);
+
+        // 세션 정보 조회
+        StudySession session = null;
+        if (retrospective.getSessionId() != null) {
+            session = studySessionRepository.findById(retrospective.getSessionId()).orElse(null);
+        }
+
+        // 회고 항목 조회 및 카테고리별 그룹핑
+        List<RetrospectiveItem> items = retrospectiveItemRepository.findByRetrospectiveId(retroId);
+
+        // 항목을 생성순으로 정렬 후 카테고리별로 그룹핑
+        Map<Category, List<RetrospectiveDetailResponse.ItemResponse>> itemsMap = items.stream()
+                .sorted(Comparator.comparing(RetrospectiveItem::getCreatedAt))
+                .collect(Collectors.groupingBy(
+                        RetrospectiveItem::getCategory,
+                        LinkedHashMap::new,
+                        Collectors.mapping(
+                                item -> {
+                                    User user = userRepository.findById(item.getUserId()).orElse(null);
+                                    return RetrospectiveDetailResponse.ItemResponse.of(item, user);
+                                },
+                                Collectors.toList()
+                        )
+                ));
+
+        log.info("회고 상세 조회 완료 - retroId: {}, itemCount: {}", retroId, items.size());
+
+        return RetrospectiveDetailResponse.of(retrospective, session, itemsMap);
     }
 
     /**

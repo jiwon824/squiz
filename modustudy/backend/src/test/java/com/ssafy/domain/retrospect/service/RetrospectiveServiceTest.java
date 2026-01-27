@@ -1,6 +1,8 @@
 package com.ssafy.domain.retrospect.service;
 
+import com.ssafy.common.exception.RetrospectiveException;
 import com.ssafy.common.exception.StudyException;
+import com.ssafy.domain.retrospect.dto.response.RetrospectiveDetailResponse;
 import com.ssafy.domain.retrospect.dto.response.RetrospectiveListResponse;
 import com.ssafy.domain.retrospect.entity.Category;
 import com.ssafy.domain.retrospect.entity.Retrospective;
@@ -18,6 +20,7 @@ import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -62,6 +65,7 @@ class RetrospectiveServiceTest {
     private Study study;
     private Long studyId;
     private User user;
+    private User otherUser;
     private Long userId;
     private StudySession session1;
     private StudySession session2;
@@ -88,6 +92,23 @@ class RetrospectiveServiceTest {
                 .build());
         userRepository.flush();
         userId = user.getId();
+
+        // 다른 유저
+        otherUser = userRepository.save(User.builder()
+                .userId("otheruser")
+                .email("other@test.com")
+                .nickname("다른유저")
+                .name("다른")
+                .role(Role.USER)
+                .isActive(true)
+                .isOnline(false)
+                .isSearchable(true)
+                .totalExp(0)
+                .currentPoints(0)
+                .currentLevel(1)
+                .levelName("Bronze")
+                .build());
+        userRepository.flush();
 
         // 2. Topic 생성
         Topic topic = topicRepository.save(Topic.builder()
@@ -176,23 +197,6 @@ class RetrospectiveServiceTest {
                 .content("아쉬웠던 점")
                 .build());
 
-        // 다른 유저의 항목 추가
-        User otherUser = userRepository.save(User.builder()
-                .userId("otheruser")
-                .email("other@test.com")
-                .nickname("다른유저")
-                .name("다른")
-                .role(Role.USER)
-                .isActive(true)
-                .isOnline(false)
-                .isSearchable(true)
-                .totalExp(0)
-                .currentPoints(0)
-                .currentLevel(1)
-                .levelName("Bronze")
-                .build());
-        userRepository.flush();
-
         retrospectiveItemRepository.save(RetrospectiveItem.builder()
                 .retrospectiveId(retro1.getId())
                 .userId(otherUser.getId())
@@ -202,170 +206,269 @@ class RetrospectiveServiceTest {
         retrospectiveItemRepository.flush();
     }
 
-    @Test
-    @DisplayName("회고 목록 조회 성공")
-    void getRetrospectives_Success() {
-        // when
-        Page<RetrospectiveListResponse> result = retrospectiveService
-                .getRetrospectives(studyId, userId, PageRequest.of(0, 20));
+    // ============================================================
+    // 회고 목록 조회 테스트
+    // ============================================================
 
-        // then
-        assertThat(result.getTotalElements()).isEqualTo(3);
-        assertThat(result.getContent()).hasSize(3);
+    @Nested
+    @DisplayName("회고 목록 조회")
+    class GetRetrospectives {
+
+        @Test
+        @DisplayName("성공")
+        void success() {
+            // when
+            Page<RetrospectiveListResponse> result = retrospectiveService
+                    .getRetrospectives(studyId, userId, PageRequest.of(0, 20));
+
+            // then
+            assertThat(result.getTotalElements()).isEqualTo(3);
+            assertThat(result.getContent()).hasSize(3);
+        }
+
+        @Test
+        @DisplayName("최신순 정렬 확인")
+        void orderByCreatedAtDesc() {
+            // when
+            Page<RetrospectiveListResponse> result = retrospectiveService
+                    .getRetrospectives(studyId, userId, PageRequest.of(0, 20));
+
+            // then
+            assertThat(result.getContent().get(0).getTitle()).isEqualTo("중간 점검 회고");
+        }
+
+        @Test
+        @DisplayName("세션 정보 포함")
+        void withSessionInfo() {
+            // when
+            Page<RetrospectiveListResponse> result = retrospectiveService
+                    .getRetrospectives(studyId, userId, PageRequest.of(0, 20));
+
+            // then
+            RetrospectiveListResponse retro1Response = result.getContent().stream()
+                    .filter(r -> r.getTitle().equals("1회차 회고"))
+                    .findFirst()
+                    .orElseThrow();
+
+            assertThat(retro1Response.getSession()).isNotNull();
+            assertThat(retro1Response.getSession().getSessionNumber()).isEqualTo(1);
+
+            RetrospectiveListResponse retro3Response = result.getContent().stream()
+                    .filter(r -> r.getTitle().equals("중간 점검 회고"))
+                    .findFirst()
+                    .orElseThrow();
+
+            assertThat(retro3Response.getSession()).isNull();
+        }
+
+        @Test
+        @DisplayName("itemCount, participantCount, hasMyItem 확인")
+        void withCounts() {
+            // when
+            Page<RetrospectiveListResponse> result = retrospectiveService
+                    .getRetrospectives(studyId, userId, PageRequest.of(0, 20));
+
+            // then
+            RetrospectiveListResponse retro1Response = result.getContent().stream()
+                    .filter(r -> r.getTitle().equals("1회차 회고"))
+                    .findFirst()
+                    .orElseThrow();
+
+            assertThat(retro1Response.getItemCount()).isEqualTo(3);
+            assertThat(retro1Response.getParticipantCount()).isEqualTo(2);
+            assertThat(retro1Response.getHasMyItem()).isTrue();
+        }
+
+        @Test
+        @DisplayName("페이징 확인")
+        void withPaging() {
+            // when
+            Page<RetrospectiveListResponse> result = retrospectiveService
+                    .getRetrospectives(studyId, userId, PageRequest.of(0, 2));
+
+            // then
+            assertThat(result.getContent()).hasSize(2);
+            assertThat(result.getTotalElements()).isEqualTo(3);
+            assertThat(result.getTotalPages()).isEqualTo(2);
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 스터디")
+        void studyNotFound() {
+            assertThatThrownBy(() -> retrospectiveService
+                    .getRetrospectives(999L, userId, PageRequest.of(0, 20)))
+                    .isInstanceOf(StudyException.StudyNotFoundException.class);
+        }
+
+        @Test
+        @DisplayName("회고가 없는 스터디")
+        void emptyList() {
+            // given
+            Topic topic2 = topicRepository.save(Topic.builder()
+                    .name("백엔드")
+                    .sortOrder(2)
+                    .build());
+            topicRepository.flush();
+
+            Study emptyStudy = studyRepository.save(Study.builder()
+                    .leaderId(userId)
+                    .name("빈 스터디")
+                    .topic(topic2)
+                    .studyType(StudyType.PLANNED)
+                    .meetingType(MeetingType.ONLINE)
+                    .status(Status.IN_PROGRESS)
+                    .maxMembers(10)
+                    .startDate(LocalDate.of(2025, 1, 1))
+                    .endDate(LocalDate.of(2025, 6, 30))
+                    .extensionCount(0)
+                    .build());
+            studyRepository.flush();
+
+            // when
+            Page<RetrospectiveListResponse> result = retrospectiveService
+                    .getRetrospectives(emptyStudy.getId(), userId, PageRequest.of(0, 20));
+
+            // then
+            assertThat(result.getContent()).isEmpty();
+            assertThat(result.getTotalElements()).isEqualTo(0);
+        }
     }
 
-    @Test
-    @DisplayName("회고 목록 조회 - 최신순 정렬 확인")
-    void getRetrospectives_OrderByCreatedAtDesc() {
-        // when
-        Page<RetrospectiveListResponse> result = retrospectiveService
-                .getRetrospectives(studyId, userId, PageRequest.of(0, 20));
+    // ============================================================
+    // 회고 상세 조회 테스트
+    // ============================================================
 
-        // then
-        // 마지막에 생성된 retro3가 첫 번째로 와야 함
-        assertThat(result.getContent().get(0).getTitle()).isEqualTo("중간 점검 회고");
-    }
+    @Nested
+    @DisplayName("회고 상세 조회")
+    class GetRetrospectiveDetail {
 
-    @Test
-    @DisplayName("회고 목록 조회 - 세션 정보 포함")
-    void getRetrospectives_WithSessionInfo() {
-        // when
-        Page<RetrospectiveListResponse> result = retrospectiveService
-                .getRetrospectives(studyId, userId, PageRequest.of(0, 20));
+        @Test
+        @DisplayName("성공")
+        void success() {
+            // when
+            RetrospectiveDetailResponse result = retrospectiveService
+                    .getRetrospectiveDetail(studyId, retro1.getId());
 
-        // then
-        // retro1 찾기 (1회차 회고)
-        RetrospectiveListResponse retro1Response = result.getContent().stream()
-                .filter(r -> r.getTitle().equals("1회차 회고"))
-                .findFirst()
-                .orElseThrow();
+            // then
+            assertThat(result.getId()).isEqualTo(retro1.getId());
+            assertThat(result.getTitle()).isEqualTo("1회차 회고");
+            assertThat(result.getRetrospectiveType()).isEqualTo(RetrospectiveType.KPT);
+        }
 
-        assertThat(retro1Response.getSession()).isNotNull();
-        assertThat(retro1Response.getSession().getSessionNumber()).isEqualTo(1);
+        @Test
+        @DisplayName("세션 정보 포함")
+        void withSessionInfo() {
+            // when
+            RetrospectiveDetailResponse result = retrospectiveService
+                    .getRetrospectiveDetail(studyId, retro1.getId());
 
-        // retro3은 세션 없음
-        RetrospectiveListResponse retro3Response = result.getContent().stream()
-                .filter(r -> r.getTitle().equals("중간 점검 회고"))
-                .findFirst()
-                .orElseThrow();
+            // then
+            assertThat(result.getSession()).isNotNull();
+            assertThat(result.getSession().getId()).isEqualTo(session1.getId());
+            assertThat(result.getSession().getSessionNumber()).isEqualTo(1);
+            assertThat(result.getSession().getTitle()).isEqualTo("1회차 세션");
+        }
 
-        assertThat(retro3Response.getSession()).isNull();
-    }
+        @Test
+        @DisplayName("세션 없는 회고")
+        void withoutSession() {
+            // when
+            RetrospectiveDetailResponse result = retrospectiveService
+                    .getRetrospectiveDetail(studyId, retro3.getId());
 
-    @Test
-    @DisplayName("회고 목록 조회 - itemCount 확인")
-    void getRetrospectives_WithItemCount() {
-        // when
-        Page<RetrospectiveListResponse> result = retrospectiveService
-                .getRetrospectives(studyId, userId, PageRequest.of(0, 20));
+            // then
+            assertThat(result.getSession()).isNull();
+        }
 
-        // then
-        RetrospectiveListResponse retro1Response = result.getContent().stream()
-                .filter(r -> r.getTitle().equals("1회차 회고"))
-                .findFirst()
-                .orElseThrow();
+        @Test
+        @DisplayName("카테고리별 항목 그룹핑")
+        void itemsGroupedByCategory() {
+            // when
+            RetrospectiveDetailResponse result = retrospectiveService
+                    .getRetrospectiveDetail(studyId, retro1.getId());
 
-        assertThat(retro1Response.getItemCount()).isEqualTo(3);  // 3개 항목
+            // then
+            assertThat(result.getItems()).isNotNull();
+            assertThat(result.getItems().getKEEP()).hasSize(1);
+            assertThat(result.getItems().getPROBLEM()).hasSize(1);
+            assertThat(result.getItems().getTRY()).hasSize(1);
 
-        RetrospectiveListResponse retro2Response = result.getContent().stream()
-                .filter(r -> r.getTitle().equals("2회차 회고"))
-                .findFirst()
-                .orElseThrow();
+            assertThat(result.getItems().getKEEP().get(0).getContent()).isEqualTo("좋았던 점");
+            assertThat(result.getItems().getPROBLEM().get(0).getContent()).isEqualTo("아쉬웠던 점");
+            assertThat(result.getItems().getTRY().get(0).getContent()).isEqualTo("시도해볼 점");
+        }
 
-        assertThat(retro2Response.getItemCount()).isEqualTo(0);  // 항목 없음
-    }
+        @Test
+        @DisplayName("항목에 사용자 정보 포함")
+        void itemsWithUserInfo() {
+            // when
+            RetrospectiveDetailResponse result = retrospectiveService
+                    .getRetrospectiveDetail(studyId, retro1.getId());
 
-    @Test
-    @DisplayName("회고 목록 조회 - participantCount 확인")
-    void getRetrospectives_WithParticipantCount() {
-        // when
-        Page<RetrospectiveListResponse> result = retrospectiveService
-                .getRetrospectives(studyId, userId, PageRequest.of(0, 20));
+            // then
+            RetrospectiveDetailResponse.ItemResponse keepItem = result.getItems().getKEEP().get(0);
+            assertThat(keepItem.getUser()).isNotNull();
+            assertThat(keepItem.getUser().getId()).isEqualTo(userId);
+            assertThat(keepItem.getUser().getNickname()).isEqualTo("테스트유저");
+        }
 
-        // then
-        RetrospectiveListResponse retro1Response = result.getContent().stream()
-                .filter(r -> r.getTitle().equals("1회차 회고"))
-                .findFirst()
-                .orElseThrow();
+        @Test
+        @DisplayName("항목이 없는 회고")
+        void emptyItems() {
+            // when
+            RetrospectiveDetailResponse result = retrospectiveService
+                    .getRetrospectiveDetail(studyId, retro2.getId());
 
-        assertThat(retro1Response.getParticipantCount()).isEqualTo(2);  // 2명 참여
-    }
+            // then
+            assertThat(result.getItems().getKEEP()).isEmpty();
+            assertThat(result.getItems().getPROBLEM()).isEmpty();
+            assertThat(result.getItems().getTRY()).isEmpty();
+        }
 
-    @Test
-    @DisplayName("회고 목록 조회 - hasMyItem 확인")
-    void getRetrospectives_WithHasMyItem() {
-        // when
-        Page<RetrospectiveListResponse> result = retrospectiveService
-                .getRetrospectives(studyId, userId, PageRequest.of(0, 20));
+        @Test
+        @DisplayName("존재하지 않는 스터디")
+        void studyNotFound() {
+            assertThatThrownBy(() -> retrospectiveService
+                    .getRetrospectiveDetail(999L, retro1.getId()))
+                    .isInstanceOf(StudyException.StudyNotFoundException.class);
+        }
 
-        // then
-        RetrospectiveListResponse retro1Response = result.getContent().stream()
-                .filter(r -> r.getTitle().equals("1회차 회고"))
-                .findFirst()
-                .orElseThrow();
+        @Test
+        @DisplayName("존재하지 않는 회고")
+        void retrospectiveNotFound() {
+            assertThatThrownBy(() -> retrospectiveService
+                    .getRetrospectiveDetail(studyId, 999L))
+                    .isInstanceOf(RetrospectiveException.RetrospectiveNotFoundException.class);
+        }
 
-        assertThat(retro1Response.getHasMyItem()).isTrue();  // 내 항목 있음
+        @Test
+        @DisplayName("다른 스터디의 회고 조회 시 실패")
+        void wrongStudyId() {
+            // given
+            Topic topic2 = topicRepository.save(Topic.builder()
+                    .name("CS")
+                    .sortOrder(3)
+                    .build());
+            topicRepository.flush();
 
-        RetrospectiveListResponse retro2Response = result.getContent().stream()
-                .filter(r -> r.getTitle().equals("2회차 회고"))
-                .findFirst()
-                .orElseThrow();
+            Study otherStudy = studyRepository.save(Study.builder()
+                    .leaderId(userId)
+                    .name("다른 스터디")
+                    .topic(topic2)
+                    .studyType(StudyType.PLANNED)
+                    .meetingType(MeetingType.ONLINE)
+                    .status(Status.IN_PROGRESS)
+                    .maxMembers(10)
+                    .startDate(LocalDate.of(2025, 1, 1))
+                    .endDate(LocalDate.of(2025, 6, 30))
+                    .extensionCount(0)
+                    .build());
+            studyRepository.flush();
 
-        assertThat(retro2Response.getHasMyItem()).isFalse();  // 내 항목 없음
-    }
-
-    @Test
-    @DisplayName("회고 목록 조회 - 페이징 확인")
-    void getRetrospectives_WithPaging() {
-        // when
-        Page<RetrospectiveListResponse> result = retrospectiveService
-                .getRetrospectives(studyId, userId, PageRequest.of(0, 2));
-
-        // then
-        assertThat(result.getContent()).hasSize(2);
-        assertThat(result.getTotalElements()).isEqualTo(3);
-        assertThat(result.getTotalPages()).isEqualTo(2);
-    }
-
-    @Test
-    @DisplayName("회고 목록 조회 - 존재하지 않는 스터디")
-    void getRetrospectives_StudyNotFound() {
-        // when & then
-        assertThatThrownBy(() -> retrospectiveService
-                .getRetrospectives(999L, userId, PageRequest.of(0, 20)))
-                .isInstanceOf(StudyException.StudyNotFoundException.class);
-    }
-
-    @Test
-    @DisplayName("회고 목록 조회 - 회고가 없는 스터디")
-    void getRetrospectives_EmptyList() {
-        // given - 새 스터디 생성
-        Topic topic2 = topicRepository.save(Topic.builder()
-                .name("백엔드")
-                .sortOrder(2)
-                .build());
-        topicRepository.flush();
-
-        Study emptyStudy = studyRepository.save(Study.builder()
-                .leaderId(userId)
-                .name("빈 스터디")
-                .topic(topic2)
-                .studyType(StudyType.PLANNED)
-                .meetingType(MeetingType.ONLINE)
-                .status(Status.IN_PROGRESS)
-                .maxMembers(10)
-                .startDate(LocalDate.of(2025, 1, 1))
-                .endDate(LocalDate.of(2025, 6, 30))
-                .extensionCount(0)
-                .build());
-        studyRepository.flush();
-
-        // when
-        Page<RetrospectiveListResponse> result = retrospectiveService
-                .getRetrospectives(emptyStudy.getId(), userId, PageRequest.of(0, 20));
-
-        // then
-        assertThat(result.getContent()).isEmpty();
-        assertThat(result.getTotalElements()).isEqualTo(0);
+            // when & then
+            assertThatThrownBy(() -> retrospectiveService
+                    .getRetrospectiveDetail(otherStudy.getId(), retro1.getId()))
+                    .isInstanceOf(RetrospectiveException.RetrospectiveNotFoundException.class);
+        }
     }
 }

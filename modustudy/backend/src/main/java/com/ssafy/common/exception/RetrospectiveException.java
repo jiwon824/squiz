@@ -11,6 +11,11 @@ public class RetrospectiveException {
      * 회고를 찾을 수 없음 (404)
      */
     public static class RetrospectiveNotFoundException extends BusinessException {
+        public RetrospectiveNotFoundException() {
+            super(HttpStatus.NOT_FOUND, "RETROSPECTIVE_NOT_FOUND",
+                    "존재하지 않는 회고입니다.");
+        }
+
         public RetrospectiveNotFoundException(Long retrospectiveId) {
             super(HttpStatus.NOT_FOUND, "RETROSPECTIVE_NOT_FOUND",
                     "존재하지 않는 회고입니다: " + retrospectiveId);

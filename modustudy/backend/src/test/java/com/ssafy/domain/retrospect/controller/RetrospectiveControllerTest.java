@@ -16,6 +16,7 @@ import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -27,8 +28,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import static org.hamcrest.Matchers.*;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -65,6 +64,7 @@ class RetrospectiveControllerTest {
     private Study study;
     private Long studyId;
     private User user;
+    private User otherUser;
     private Long userId;
     private StudySession session;
     private Retrospective retro1;
@@ -89,6 +89,23 @@ class RetrospectiveControllerTest {
                 .build());
         userRepository.flush();
         userId = user.getId();
+
+        // 다른 유저
+        otherUser = userRepository.save(User.builder()
+                .userId("otheruser")
+                .email("other@test.com")
+                .nickname("다른유저")
+                .name("다른")
+                .role(Role.USER)
+                .isActive(true)
+                .isOnline(false)
+                .isSearchable(true)
+                .totalExp(0)
+                .currentPoints(0)
+                .currentLevel(1)
+                .levelName("Bronze")
+                .build());
+        userRepository.flush();
 
         // 2. Topic 생성
         Topic topic = topicRepository.save(Topic.builder()
@@ -161,79 +178,234 @@ class RetrospectiveControllerTest {
                 .category(Category.PROBLEM)
                 .content("아쉬웠던 점")
                 .build());
+
+        retrospectiveItemRepository.save(RetrospectiveItem.builder()
+                .retrospectiveId(retro1.getId())
+                .userId(otherUser.getId())
+                .category(Category.TRY)
+                .content("시도해볼 점")
+                .build());
         retrospectiveItemRepository.flush();
     }
 
-    @Test
-    @DisplayName("회고 목록 조회 API 성공")
-    void getRetrospectives_Success() throws Exception {
-        mockMvc.perform(get("/api/v1/studies/{studyId}/retrospectives", studyId)
-                        .header("User-Id", userId))
-                .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content").isArray())
-                .andExpect(jsonPath("$.content", hasSize(2)))
-                .andExpect(jsonPath("$.totalElements").value(2));
+    // ============================================================
+    // 회고 목록 조회 API 테스트
+    // ============================================================
+
+    @Nested
+    @DisplayName("회고 목록 조회 API")
+    class GetRetrospectives {
+
+        @Test
+        @DisplayName("성공")
+        void success() throws Exception {
+            mockMvc.perform(get("/api/v1/studies/{studyId}/retrospectives", studyId)
+                            .header("User-Id", userId))
+                    .andDo(print())
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.content").isArray())
+                    .andExpect(jsonPath("$.content", hasSize(2)))
+                    .andExpect(jsonPath("$.totalElements").value(2));
+        }
+
+        @Test
+        @DisplayName("세션 정보 포함")
+        void withSessionInfo() throws Exception {
+            mockMvc.perform(get("/api/v1/studies/{studyId}/retrospectives", studyId)
+                            .header("User-Id", userId))
+                    .andDo(print())
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.content[?(@.title == '1회차 회고')].session.sessionNumber").value(1));
+        }
+
+        @Test
+        @DisplayName("세션 없는 회고")
+        void withoutSession() throws Exception {
+            mockMvc.perform(get("/api/v1/studies/{studyId}/retrospectives", studyId)
+                            .header("User-Id", userId))
+                    .andDo(print())
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.content[?(@.title == '자유 회고')]").exists())
+                    .andExpect(jsonPath("$.content[?(@.title == '자유 회고')].session", hasItem(nullValue())));
+        }
+
+        @Test
+        @DisplayName("itemCount, participantCount, hasMyItem 포함")
+        void withCounts() throws Exception {
+            mockMvc.perform(get("/api/v1/studies/{studyId}/retrospectives", studyId)
+                            .header("User-Id", userId))
+                    .andDo(print())
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.content[?(@.title == '1회차 회고')].itemCount").value(3))
+                    .andExpect(jsonPath("$.content[?(@.title == '1회차 회고')].participantCount").value(2))
+                    .andExpect(jsonPath("$.content[?(@.title == '1회차 회고')].hasMyItem").value(true))
+                    .andExpect(jsonPath("$.content[?(@.title == '자유 회고')].itemCount").value(0))
+                    .andExpect(jsonPath("$.content[?(@.title == '자유 회고')].hasMyItem").value(false));
+        }
+
+        @Test
+        @DisplayName("페이징")
+        void withPaging() throws Exception {
+            mockMvc.perform(get("/api/v1/studies/{studyId}/retrospectives", studyId)
+                            .header("User-Id", userId)
+                            .param("page", "0")
+                            .param("size", "1"))
+                    .andDo(print())
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.content", hasSize(1)))
+                    .andExpect(jsonPath("$.totalElements").value(2))
+                    .andExpect(jsonPath("$.totalPages").value(2));
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 스터디")
+        void studyNotFound() throws Exception {
+            mockMvc.perform(get("/api/v1/studies/{studyId}/retrospectives", 999L)
+                            .header("User-Id", userId))
+                    .andDo(print())
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.code").value("STUDY_NOT_FOUND"));
+        }
     }
 
-    @Test
-    @DisplayName("회고 목록 조회 API - 세션 정보 포함")
-    void getRetrospectives_WithSessionInfo() throws Exception {
-        mockMvc.perform(get("/api/v1/studies/{studyId}/retrospectives", studyId)
-                        .header("User-Id", userId))
-                .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[?(@.title == '1회차 회고')].session.sessionNumber").value(1));
-    }
+    // ============================================================
+    // 회고 상세 조회 API 테스트
+    // ============================================================
 
-    @Test
-    @DisplayName("회고 목록 조회 API - 세션 없는 회고")
-    void getRetrospectives_WithoutSession() throws Exception {
-        mockMvc.perform(get("/api/v1/studies/{studyId}/retrospectives", studyId)
-                        .header("User-Id", userId))
-                .andDo(print())
-                .andExpect(status().isOk())
-                // 자유 회고가 존재하고 session이 null인지 확인
-                .andExpect(jsonPath("$.content[?(@.title == '자유 회고')]").exists())
-                .andExpect(jsonPath("$.content[?(@.title == '자유 회고')].session", hasItem(nullValue())));
-    }
+    @Nested
+    @DisplayName("회고 상세 조회 API")
+    class GetRetrospectiveDetail {
 
-    @Test
-    @DisplayName("회고 목록 조회 API - itemCount, participantCount, hasMyItem 포함")
-    void getRetrospectives_WithCounts() throws Exception {
-        mockMvc.perform(get("/api/v1/studies/{studyId}/retrospectives", studyId)
-                        .header("User-Id", userId))
-                .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[?(@.title == '1회차 회고')].itemCount").value(2))
-                .andExpect(jsonPath("$.content[?(@.title == '1회차 회고')].participantCount").value(1))
-                .andExpect(jsonPath("$.content[?(@.title == '1회차 회고')].hasMyItem").value(true))
-                .andExpect(jsonPath("$.content[?(@.title == '자유 회고')].itemCount").value(0))
-                .andExpect(jsonPath("$.content[?(@.title == '자유 회고')].hasMyItem").value(false));
-    }
+        @Test
+        @DisplayName("성공")
+        void success() throws Exception {
+            mockMvc.perform(get("/api/v1/studies/{studyId}/retrospectives/{retroId}", studyId, retro1.getId())
+                            .header("User-Id", userId))
+                    .andDo(print())
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(retro1.getId()))
+                    .andExpect(jsonPath("$.title").value("1회차 회고"))
+                    .andExpect(jsonPath("$.retrospectiveType").value("KPT"));
+        }
 
-    @Test
-    @DisplayName("회고 목록 조회 API - 페이징")
-    void getRetrospectives_WithPaging() throws Exception {
-        mockMvc.perform(get("/api/v1/studies/{studyId}/retrospectives", studyId)
-                        .header("User-Id", userId)
-                        .param("page", "0")
-                        .param("size", "1"))
-                .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content", hasSize(1)))
-                .andExpect(jsonPath("$.totalElements").value(2))
-                .andExpect(jsonPath("$.totalPages").value(2));
-    }
+        @Test
+        @DisplayName("세션 정보 포함")
+        void withSessionInfo() throws Exception {
+            mockMvc.perform(get("/api/v1/studies/{studyId}/retrospectives/{retroId}", studyId, retro1.getId())
+                            .header("User-Id", userId))
+                    .andDo(print())
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.session").isNotEmpty())
+                    .andExpect(jsonPath("$.session.id").value(session.getId()))
+                    .andExpect(jsonPath("$.session.sessionNumber").value(1))
+                    .andExpect(jsonPath("$.session.title").value("1회차 세션"));
+        }
 
-    @Test
-    @DisplayName("회고 목록 조회 API - 존재하지 않는 스터디")
-    void getRetrospectives_StudyNotFound() throws Exception {
-        mockMvc.perform(get("/api/v1/studies/{studyId}/retrospectives", 999L)
-                        .header("User-Id", userId))
-                .andDo(print())
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.code").value("STUDY_NOT_FOUND"));
-    }
+        @Test
+        @DisplayName("세션 없는 회고")
+        void withoutSession() throws Exception {
+            mockMvc.perform(get("/api/v1/studies/{studyId}/retrospectives/{retroId}", studyId, retro2.getId())
+                            .header("User-Id", userId))
+                    .andDo(print())
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.session").doesNotExist());
+        }
 
+        @Test
+        @DisplayName("카테고리별 항목 그룹핑")
+        void itemsGroupedByCategory() throws Exception {
+            mockMvc.perform(get("/api/v1/studies/{studyId}/retrospectives/{retroId}", studyId, retro1.getId())
+                            .header("User-Id", userId))
+                    .andDo(print())
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.items.KEEP").isArray())
+                    .andExpect(jsonPath("$.items.KEEP", hasSize(1)))
+                    .andExpect(jsonPath("$.items.PROBLEM").isArray())
+                    .andExpect(jsonPath("$.items.PROBLEM", hasSize(1)))
+                    .andExpect(jsonPath("$.items.TRY").isArray())
+                    .andExpect(jsonPath("$.items.TRY", hasSize(1)))
+                    .andExpect(jsonPath("$.items.KEEP[0].content").value("좋았던 점"))
+                    .andExpect(jsonPath("$.items.PROBLEM[0].content").value("아쉬웠던 점"))
+                    .andExpect(jsonPath("$.items.TRY[0].content").value("시도해볼 점"));
+        }
+
+        @Test
+        @DisplayName("항목에 사용자 정보 포함")
+        void itemsWithUserInfo() throws Exception {
+            mockMvc.perform(get("/api/v1/studies/{studyId}/retrospectives/{retroId}", studyId, retro1.getId())
+                            .header("User-Id", userId))
+                    .andDo(print())
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.items.KEEP[0].user").isNotEmpty())
+                    .andExpect(jsonPath("$.items.KEEP[0].user.id").value(userId))
+                    .andExpect(jsonPath("$.items.KEEP[0].user.nickname").value("테스트유저"));
+        }
+
+        @Test
+        @DisplayName("항목이 없는 회고")
+        void emptyItems() throws Exception {
+            mockMvc.perform(get("/api/v1/studies/{studyId}/retrospectives/{retroId}", studyId, retro2.getId())
+                            .header("User-Id", userId))
+                    .andDo(print())
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.items.KEEP").isArray())
+                    .andExpect(jsonPath("$.items.KEEP", hasSize(0)))
+                    .andExpect(jsonPath("$.items.PROBLEM").isArray())
+                    .andExpect(jsonPath("$.items.PROBLEM", hasSize(0)))
+                    .andExpect(jsonPath("$.items.TRY").isArray())
+                    .andExpect(jsonPath("$.items.TRY", hasSize(0)));
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 스터디")
+        void studyNotFound() throws Exception {
+            mockMvc.perform(get("/api/v1/studies/{studyId}/retrospectives/{retroId}", 999L, retro1.getId())
+                            .header("User-Id", userId))
+                    .andDo(print())
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.code").value("STUDY_NOT_FOUND"));
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 회고")
+        void retrospectiveNotFound() throws Exception {
+            mockMvc.perform(get("/api/v1/studies/{studyId}/retrospectives/{retroId}", studyId, 999L)
+                            .header("User-Id", userId))
+                    .andDo(print())
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.code").value("RETROSPECTIVE_NOT_FOUND"));
+        }
+
+        @Test
+        @DisplayName("다른 스터디의 회고 조회 시 실패")
+        void wrongStudyId() throws Exception {
+            // given - 다른 스터디 생성
+            Topic topic2 = topicRepository.save(Topic.builder()
+                    .name("CS")
+                    .sortOrder(2)
+                    .build());
+            topicRepository.flush();
+
+            Study otherStudy = studyRepository.save(Study.builder()
+                    .leaderId(userId)
+                    .name("다른 스터디")
+                    .topic(topic2)
+                    .studyType(StudyType.PLANNED)
+                    .meetingType(MeetingType.ONLINE)
+                    .status(Status.IN_PROGRESS)
+                    .maxMembers(10)
+                    .startDate(LocalDate.of(2025, 1, 1))
+                    .endDate(LocalDate.of(2025, 6, 30))
+                    .extensionCount(0)
+                    .build());
+            studyRepository.flush();
+
+            // when & then
+            mockMvc.perform(get("/api/v1/studies/{studyId}/retrospectives/{retroId}", otherStudy.getId(), retro1.getId())
+                            .header("User-Id", userId))
+                    .andDo(print())
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.code").value("RETROSPECTIVE_NOT_FOUND"));
+        }
+    }
 }

@@ -1,5 +1,6 @@
 package com.ssafy.domain.retrospect.controller;
 
+import com.ssafy.domain.retrospect.dto.response.RetrospectiveDetailResponse;
 import com.ssafy.domain.retrospect.dto.response.RetrospectiveListResponse;
 import com.ssafy.domain.retrospect.service.RetrospectiveService;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +36,24 @@ public class RetrospectiveController {
 
         log.info("API 응답 - 회고 목록: studyId={}, count={}, totalElements={}",
                 studyId, response.getContent().size(), response.getTotalElements());
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 회고 상세 조회
+     * GET /api/v1/studies/{studyId}/retrospectives/{retroId}
+     */
+    @GetMapping("/{retroId}")
+    public ResponseEntity<RetrospectiveDetailResponse> getRetrospectiveDetail(
+            @PathVariable Long studyId,
+            @PathVariable Long retroId) {
+
+        log.info("API 호출 - 회고 상세 조회: studyId={}, retroId={}", studyId, retroId);
+
+        RetrospectiveDetailResponse response = retrospectiveService.getRetrospectiveDetail(studyId, retroId);
+
+        log.info("API 응답 - 회고 상세: retroId={}, title={}", response.getId(), response.getTitle());
 
         return ResponseEntity.ok(response);
     }
