@@ -88,18 +88,29 @@ public class QuizSectionAttemptService {
             throw new SectionLockedException();
         }
 
-        // 4. 진행 중인 시도 확인
-        Optional<UserSectionAttempt> existingAttempt = attemptRepository
-                .findInProgressAttemptWithQuestions(userId, courseId, sectionNumber);
+        // 4. 진행 중인 시도 확인 (중복 시도 방지 로직 추가)
+        List<UserSectionAttempt> attempts = attemptRepository
+                .findAllInProgressAttemptsWithQuestions(userId, courseId, sectionNumber);
 
         UserSectionAttempt attempt;
-        if (existingAttempt.isPresent()) {
-            // 기존 시도 재개
-            attempt = existingAttempt.get();
-        } else {
+        if (attempts.isEmpty()) {
             // 새 시도 생성
             User user = userRepository.getReferenceById(userId);
             attempt = createNewAttempt(user, section);
+        } else {
+            // 가장 최근 시도 재개 (OrderBy CreatedAt DESC)
+            attempt = attempts.get(0);
+
+            // 중복된 시도가 있다면(error case), 나머지는 포기 처리하여 자동 복구(Self-healing)
+            if (attempts.size() > 1) {
+                log.warn("Multiple IN_PROGRESS attempts found for user {} in section {}. Cleaning up duplicates.",
+                        userId, sectionNumber);
+                for (int i = 1; i < attempts.size(); i++) {
+                    UserSectionAttempt redundant = attempts.get(i);
+                    redundant.abandon(); // 포기 처리
+                    // Dirty checking으로 자동 저장됨
+                }
+            }
         }
 
         return buildAttemptResponse(attempt, section);
@@ -108,12 +119,16 @@ public class QuizSectionAttemptService {
     /**
      * 단일 답안을 임시 저장한다.
      *
-     * <p>사용자가 문제를 풀고 "다음" 버튼을 누를 때마다 호출되어
+     * <p>
+     * 사용자가 문제를 풀고 "다음" 버튼을 누를 때마다 호출되어
      * 실시간으로 답안을 저장한다. 이를 통해 브라우저 충돌이나
-     * 네트워크 끊김 시에도 데이터 유실을 방지한다.</p>
+     * 네트워크 끊김 시에도 데이터 유실을 방지한다.
+     * </p>
      *
-     * <p>동일 문제에 대해 여러 번 호출되어도 마지막 답안으로
-     * 덮어쓰기되므로 멱등성이 보장된다.</p>
+     * <p>
+     * 동일 문제에 대해 여러 번 호출되어도 마지막 답안으로
+     * 덮어쓰기되므로 멱등성이 보장된다.
+     * </p>
      *
      * @param attemptId 시도 ID
      * @param request   저장할 단일 답안

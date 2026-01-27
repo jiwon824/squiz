@@ -16,6 +16,23 @@ import java.util.Optional;
 public interface UserSectionAttemptRepository extends JpaRepository<UserSectionAttempt, Long> {
 
        /**
+        * Find all in-progress attempts for user and section with questions.
+        * Used to detect and handle duplicates.
+        */
+       @Query("SELECT a FROM UserSectionAttempt a " +
+                     "LEFT JOIN FETCH a.attemptQuestions aq " +
+                     "LEFT JOIN FETCH aq.question " +
+                     "WHERE a.user.id = :userId " +
+                     "AND a.section.quizCourseId = :quizCourseId " +
+                     "AND a.section.sectionNumber = :sectionNumber " +
+                     "AND a.status = 'IN_PROGRESS' " +
+                     "ORDER BY a.createdAt DESC")
+       List<UserSectionAttempt> findAllInProgressAttemptsWithQuestions(
+                     @Param("userId") Long userId,
+                     @Param("quizCourseId") Long quizCourseId,
+                     @Param("sectionNumber") Integer sectionNumber);
+
+       /**
         * Find in-progress attempt for user and section with questions.
         */
        @Query("SELECT a FROM UserSectionAttempt a " +
