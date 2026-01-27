@@ -4,10 +4,12 @@ import AuthLayout from './AuthLayout';
 import { PasswordResetModal } from './PasswordResetModal';
 import { authApi } from '@/api/endpoints/authApi';
 import { useAuthStore } from '@/store/authStore';
+import { useUIStore } from '@/store/uiStore';
 
 export const LoginPage = () => {
     const navigate = useNavigate();
     const login = useAuthStore((state) => state.login);
+    const showToast = useUIStore((state) => state.showToast);
 
     // 폼 상태
     const [formData, setFormData] = useState({
@@ -43,7 +45,7 @@ export const LoginPage = () => {
         e.preventDefault();
 
         if (!formData.email || !formData.password) {
-            alert('이메일과 비밀번호를 입력해주세요.');
+            showToast('이메일과 비밀번호를 입력해주세요.', 'warning');
             return;
         }
 
@@ -190,7 +192,7 @@ export const LoginPage = () => {
                                 window.location.href = authUrl;
                             } catch (error) {
                                 console.error('Failed to get Kakao Auth URL:', error);
-                                alert('카카오 로그인 페이지를 불러오는데 실패했습니다.');
+                                showToast('카카오 로그인 페이지를 불러오는데 실패했습니다.', 'error');
                             }
                         }}
                         title="카카오 로그인"
@@ -212,7 +214,7 @@ export const LoginPage = () => {
                                 window.location.href = authUrl;
                             } catch (error) {
                                 console.error('Failed to get Google Auth URL:', error);
-                                alert('구글 로그인 페이지를 불러오는데 실패했습니다.');
+                                showToast('구글 로그인 페이지를 불러오는데 실패했습니다.', 'error');
                             }
                         }}
                         title="구글 로그인"
@@ -237,7 +239,7 @@ export const LoginPage = () => {
                                 window.location.href = authUrl;
                             } catch (error) {
                                 console.error('Failed to get Naver Auth URL:', error);
-                                alert('네이버 로그인 페이지를 불러오는데 실패했습니다.');
+                                showToast('네이버 로그인 페이지를 불러오는데 실패했습니다.', 'error');
                             }
                         }}
                         title="네이버 로그인"

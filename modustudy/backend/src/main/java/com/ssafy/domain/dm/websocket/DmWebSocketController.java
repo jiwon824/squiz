@@ -147,11 +147,12 @@ public class DmWebSocketController {
     }
 
     /**
-     * 특정 사용자에게 메시지 전송 (Redis Pub/Sub 통해 모든 서버에 전달)
+     * 특정 사용자에게 메시지 전송 (Redis Pub/Sub을 통해)
      */
     private void sendToUser(Long userId, String destination, Object payload) {
         // Redis를 통해 발행 - 모든 서버의 해당 사용자 세션에 전달됨
         dmRedisPublisher.publishToUser(userId, destination, payload);
+        log.debug("Published DM to Redis for userId={}, destination={}", userId, destination);
     }
 
     /**

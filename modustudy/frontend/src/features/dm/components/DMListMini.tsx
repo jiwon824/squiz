@@ -45,12 +45,19 @@ const DMListMini: React.FC = () => {
     } = useDMStore();
 
     const [messageInput, setMessageInput] = useState('');
-    const messagesEndRef = useRef<HTMLDivElement>(null);
+    const messagesRef = useRef<HTMLDivElement>(null);
 
-    // 메시지 목록 자동 스크롤
+    // 메시지 목록 자동 스크롤 (DOM 업데이트 후 실행)
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages]);
+        if (!messagesRef.current) return;
+        // setTimeout으로 DOM 업데이트 완료 후 스크롤
+        const timer = setTimeout(() => {
+            if (messagesRef.current) {
+                messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
+            }
+        }, 0);
+        return () => clearTimeout(timer);
+    }, [messages.length]);
 
     // 초기 데이터 로드 + WebSocket 연결
     useEffect(() => {
@@ -85,25 +92,21 @@ const DMListMini: React.FC = () => {
         }
     };
 
-    // 시간 포맷팅 (백엔드는 KST 기준 LocalDateTime 반환)
+    // 시간 포맷팅 (백엔드는 서버 로컬 시간 LocalDateTime 반환)
     const formatTime = (dateString: string) => {
-        // ISO 문자열에 타임존이 없으면 KST로 간주
-        const isoString = dateString.includes('Z') || dateString.includes('+')
-            ? dateString
-            : dateString + '+09:00';
-        const date = new Date(isoString);
+        const date = new Date(dateString);
         const now = new Date();
         const diff = now.getTime() - date.getTime();
         const days = Math.floor(diff / (1000 * 60 * 60 * 24));
 
         if (days === 0) {
-            return date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Seoul' });
+            return date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
         } else if (days === 1) {
             return '어제';
         } else if (days < 7) {
             return `${days}일 전`;
         } else {
-            return date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', timeZone: 'Asia/Seoul' });
+            return date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
         }
     };
 
@@ -175,36 +178,33 @@ const DMListMini: React.FC = () => {
                 </div>
 
                 {/* 메시지 목록 */}
-                <div className="flex-1 overflow-y-auto space-y-3 mb-4">
+                <div className="flex-1 overflow-y-auto space-y-3 mb-4" ref={messagesRef}>
                     {isLoading ? (
                         <div className="flex items-center justify-center py-8">
                             <Loader2 size={24} className="animate-spin text-gray-400" />
                         </div>
                     ) : Array.isArray(messages) && messages.length > 0 ? (
-                        <>
-                            {messages.map(msg => (
+                        messages.map(msg => (
+                            <div
+                                key={msg.id}
+                                className={`flex ${msg.senderId === currentConversation?.participantId ? 'justify-start' : 'justify-end'}`}
+                            >
                                 <div
-                                    key={msg.id}
-                                    className={`flex ${msg.senderId === currentConversation?.participantId ? 'justify-start' : 'justify-end'}`}
+                                    className={`max-w-[80%] px-3 py-2 rounded-lg text-sm break-words ${msg.senderId === currentConversation?.participantId
+                                        ? 'bg-gray-100 text-gray-800'
+                                        : 'bg-study-blue text-white'
+                                        }`}
                                 >
-                                    <div
-                                        className={`max-w-[80%] px-3 py-2 rounded-lg text-sm break-words ${msg.senderId === currentConversation?.participantId
-                                            ? 'bg-gray-100 text-gray-800'
-                                            : 'bg-study-blue text-white'
-                                            }`}
-                                    >
-                                        <p>{renderMessageContent(msg.content)}</p>
-                                        <p className={`text-[10px] mt-1 ${msg.senderId === currentConversation?.participantId
-                                            ? 'text-gray-400'
-                                            : 'text-blue-200'
-                                            }`}>
-                                            {formatTime(msg.createdAt)}
-                                        </p>
-                                    </div>
+                                    <p>{renderMessageContent(msg.content)}</p>
+                                    <p className={`text-[10px] mt-1 ${msg.senderId === currentConversation?.participantId
+                                        ? 'text-gray-400'
+                                        : 'text-blue-200'
+                                        }`}>
+                                        {formatTime(msg.createdAt)}
+                                    </p>
                                 </div>
-                            ))}
-                            <div ref={messagesEndRef} />
-                        </>
+                            </div>
+                        ))
                     ) : (
                         <div className="text-center py-8 text-gray-400 text-sm">
                             메시지가 없습니다

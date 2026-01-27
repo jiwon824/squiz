@@ -1,307 +1,218 @@
-# 자료실 API (Material)
+# 자료실(Material) 도메인 구현 완료 보고서
 
-## 기본 정보
-- Base URL: `/api/v1/studies/{studyId}/materials`
-- 인증: JWT 필요
+## 📋 구현 현황
+
+### ✅ 완료된 항목
+
+| Task ID | 설명 | 상태 |
+|---------|------|------|
+| SC-120-B-1 | MaterialRepository | ✅ 완료 |
+| SC-120-B-2 | MaterialCommentRepository | ✅ 완료 |
+| SC-120-B-3 | DTO (Request/Response) | ✅ 완료 |
+| SC-120-B-4 | MaterialException | ✅ 완료 |
+| SC-120-B-5 | MaterialService | ✅ 완료 |
+| SC-120-B-6 | MaterialCommentService | ✅ 완료 |
+| SC-120-B-10 | MaterialController | ✅ 완료 |
+| SC-120-B-11 | 자료 CRUD API | ✅ 완료 (파일 업로드 제외) |
+| SC-120-B-12 | 댓글 API | ✅ 완료 |
+| SC-120-B-13 | Repository 테스트 | ✅ 완료 |
+| SC-120-B-14 | Service 테스트 | ✅ 완료 |
+| SC-120-B-15 | Controller 테스트 | ✅ 완료 |
+
+### ⏳ 미완료 항목
+
+| Task ID | 설명 | 상태 | 비고 |
+|---------|------|------|------|
+| SC-120-B-7 | FileStorageService | ⏳ 대기 | 파일 저장 방식 결정 필요 (로컬/S3) |
+| SC-120-B-8 | 파일 업로드 API | ⏳ 대기 | FileStorageService 구현 후 |
+| SC-120-B-9 | 파일 다운로드 API | ⏳ 대기 | FileStorageService 구현 후 |
 
 ---
 
-## 엔드포인트 목록
+## 📁 파일 구조
 
-| Method | Endpoint | 설명 | 인증 |
+```
+com.ssafy.domain.material/
+├── controller/
+│   ├── MaterialController.java
+│   ├── MaterialControllerTest.java
+│   ├── MaterialCommentController.java
+│   └── MaterialCommentControllerTest.java
+├── dto/
+│   ├── request/
+│   │   ├── MaterialCreateRequest.java
+│   │   ├── MaterialUpdateRequest.java
+│   │   ├── MaterialSearchCondition.java
+│   │   ├── MaterialFileUploadRequest.java
+│   │   └── MaterialCommentCreateRequest.java
+│   └── response/
+│       ├── MaterialListResponse.java
+│       ├── MaterialDetailResponse.java
+│       ├── MaterialCreateResponse.java
+│       ├── MaterialCommentResponse.java
+│       ├── MaterialCommentCreateResponse.java
+│       └── UploaderInfo.java
+├── entity/
+│   ├── Material.java
+│   ├── MaterialComment.java
+│   └── MaterialType.java
+├── repository/
+│   ├── MaterialRepository.java
+│   ├── MaterialRepositoryCustom.java
+│   ├── MaterialRepositoryImpl.java
+│   ├── MaterialRepositoryTest.java
+│   ├── MaterialCommentRepository.java
+│   └── MaterialCommentRepositoryTest.java
+└── service/
+    ├── MaterialService.java
+    ├── MaterialServiceTest.java
+    ├── MaterialCommentService.java
+    └── MaterialCommentServiceTest.java
+
+com.ssafy.common.exception/
+└── MaterialException.java
+```
+
+---
+
+## 🔌 API 엔드포인트
+
+### 자료 API
+
+| Method | Endpoint | 설명 | 구현 |
 |--------|----------|------|------|
-| GET | `/` | 자료 목록 조회 | O |
-| GET | `/{materialId}` | 자료 상세 조회 | O |
-| POST | `/` | 자료 업로드 | O |
-| PUT | `/{materialId}` | 자료 수정 | O |
-| DELETE | `/{materialId}` | 자료 삭제 | O |
-| GET | `/{materialId}/comments` | 댓글 목록 | O |
-| POST | `/{materialId}/comments` | 댓글 작성 | O |
-| DELETE | `/{materialId}/comments/{commentId}` | 댓글 삭제 | O |
+| GET | `/api/v1/studies/{studyId}/materials` | 자료 목록 조회 | ✅ |
+| GET | `/api/v1/studies/{studyId}/materials/{materialId}` | 자료 상세 조회 | ✅ |
+| POST | `/api/v1/studies/{studyId}/materials` | 링크 자료 생성 | ✅ |
+| POST | `/api/v1/studies/{studyId}/materials` (multipart) | 파일 업로드 | ⏳ |
+| PUT | `/api/v1/studies/{studyId}/materials/{materialId}` | 자료 수정 | ✅ |
+| DELETE | `/api/v1/studies/{studyId}/materials/{materialId}` | 자료 삭제 | ✅ |
+
+### 댓글 API
+
+| Method | Endpoint | 설명 | 구현 |
+|--------|----------|------|------|
+| GET | `.../materials/{materialId}/comments` | 댓글 목록 | ✅ |
+| POST | `.../materials/{materialId}/comments` | 댓글 작성 | ✅ |
+| DELETE | `.../materials/{materialId}/comments/{commentId}` | 댓글 삭제 | ✅ |
 
 ---
 
-## API 상세
+## 🔍 API 명세 vs 구현 비교
 
-### 1. 자료 목록 조회
+### 차이점
 
-**Request**
-```
-GET /api/v1/studies/{studyId}/materials?page=0&size=20&weekNumber=1&type=FILE
-Authorization: Bearer {accessToken}
-```
+| 항목 | API 명세 | 현재 구현 | 비고 |
+|------|----------|-----------|------|
+| 응답 래퍼 | `{"success": true, "data": {...}}` | 직접 데이터 반환 | 프로젝트 패턴 준수 |
+| 인증 | JWT Bearer Token | `User-Id` 헤더 | JWT 구현 후 수정 필요 |
+| 파일 업로드 | multipart/form-data | 미구현 | FileStorageService 필요 |
+| fileUrl 필드 | S3 URL 반환 | filePath 반환 | 파일 서비스 구현 후 수정 |
 
-| Parameter | Type | 필수 | 설명 |
-|-----------|------|------|------|
-| page | int | X | 페이지 번호 |
-| size | int | X | 페이지 크기 |
-| weekNumber | int | X | 주차 필터 |
-| type | string | X | LINK/FILE/IMAGE/VIDEO |
-| keyword | string | X | 검색어 |
+### 응답 필드 매핑
 
-**Response**
-```json
-{
-  "success": true,
-  "data": {
-    "content": [
-      {
-        "id": 1,
-        "title": "DP 개념 정리",
-        "description": "다이나믹 프로그래밍 기초 개념",
-        "materialType": "FILE",
-        "fileUrl": "https://storage.../dp_concept.pdf",
-        "fileSize": 1024000,
-        "weekNumber": 1,
-        "viewCount": 15,
-        "commentCount": 3,
-        "uploader": {
-          "id": 1,
-          "nickname": "홍길동",
-          "profileImage": "https://..."
-        },
-        "createdAt": "2025-01-15T10:00:00Z"
-      },
-      {
-        "id": 2,
-        "title": "백준 문제 링크",
-        "description": "이번 주 풀어야 할 문제 목록",
-        "materialType": "LINK",
-        "url": "https://www.acmicpc.net/problem/1000",
-        "weekNumber": 1,
-        "viewCount": 20,
-        "commentCount": 1,
-        "uploader": {
-          "id": 2,
-          "nickname": "김싸피"
-        },
-        "createdAt": "2025-01-15T11:00:00Z"
-      }
-    ],
-    "page": 0,
-    "totalElements": 10
-  }
-}
-```
+**MaterialListResponse:**
+- ✅ id, title, description, materialType, weekNumber, viewCount, commentCount, createdAt
+- ✅ uploader (id, nickname, profileImage)
+- ⏳ fileUrl (현재 url/filePath로 분리)
+
+**MaterialDetailResponse:**
+- ✅ id, title, description, materialType, weekNumber, viewCount, createdAt
+- ✅ uploader, fileName
+- ⏳ fileUrl, updatedAt (엔티티에 없음)
 
 ---
 
-### 2. 자료 상세 조회
+## 🧪 테스트 현황
 
-**Request**
-```
-GET /api/v1/studies/{studyId}/materials/{materialId}
-Authorization: Bearer {accessToken}
-```
+### Repository 테스트
+- MaterialRepositoryTest: 7개 @Nested 클래스, 20+ 테스트
+- MaterialCommentRepositoryTest: 6개 @Nested 클래스, 15+ 테스트
 
-**Response**
-```json
-{
-  "success": true,
-  "data": {
-    "id": 1,
-    "title": "DP 개념 정리",
-    "description": "다이나믹 프로그래밍 기초 개념을 정리한 문서입니다.",
-    "materialType": "FILE",
-    "fileUrl": "https://storage.../dp_concept.pdf",
-    "fileName": "dp_concept.pdf",
-    "fileSize": 1024000,
-    "weekNumber": 1,
-    "viewCount": 16,
-    "uploader": {
-      "id": 1,
-      "nickname": "홍길동",
-      "profileImage": "https://..."
-    },
-    "createdAt": "2025-01-15T10:00:00Z",
-    "updatedAt": "2025-01-15T10:00:00Z"
-  }
-}
-```
+### Service 테스트
+- MaterialServiceTest: 6개 @Nested 클래스
+- MaterialCommentServiceTest: 4개 @Nested 클래스
+
+### Controller 테스트
+- MaterialControllerTest: 5개 @Nested 클래스
+- MaterialCommentControllerTest: 3개 @Nested 클래스
 
 ---
 
-### 3. 자료 업로드
+## 📝 TODO (향후 작업)
 
-**Request - 파일/이미지**
-```
-POST /api/v1/studies/{studyId}/materials
-Authorization: Bearer {accessToken}
-Content-Type: multipart/form-data
-```
+### 1. FileStorageService 구현 (파일 저장 방식 결정 후)
 
-| Field | Type | 필수 | 설명 |
-|-------|------|------|------|
-| file | File | O | 파일 (max 50MB) |
-| title | string | O | 제목 |
-| description | string | X | 설명 |
-| weekNumber | int | X | 주차 |
-
-**Request - 링크**
-```
-POST /api/v1/studies/{studyId}/materials
-Authorization: Bearer {accessToken}
-Content-Type: application/json
-```
-```json
-{
-  "title": "백준 문제 링크",
-  "description": "이번 주 풀어야 할 문제",
-  "materialType": "LINK",
-  "url": "https://www.acmicpc.net/problem/1000",
-  "weekNumber": 1
+```java
+public interface FileStorageService {
+    // 파일 업로드
+    FileUploadResult upload(MultipartFile file, String directory);
+    
+    // 파일 삭제
+    void delete(String filePath);
+    
+    // 파일 URL 생성
+    String getFileUrl(String filePath);
 }
 ```
 
-**Response**
-```json
-{
-  "success": true,
-  "data": {
-    "id": 3,
-    "title": "백준 문제 링크",
-    "materialType": "LINK",
-    "createdAt": "2025-01-16T10:00:00Z"
-  }
+**옵션:**
+- A) 로컬 저장: `/uploads/materials/` 디렉토리
+- B) AWS S3: 클라우드 스토리지
+
+### 2. 파일 업로드 API 추가
+
+```java
+@PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+public ResponseEntity<MaterialCreateResponse> uploadFileMaterial(
+        @PathVariable Long studyId,
+        @RequestHeader("User-Id") Long userId,
+        @RequestParam("file") MultipartFile file,
+        @Valid @ModelAttribute MaterialFileUploadRequest request) {
+    // FileStorageService로 파일 저장
+    // MaterialService.createFileMaterial() 호출
+}
+```
+
+### 3. JWT 인증 적용 (인증 모듈 완성 후)
+
+```java
+// 현재
+@RequestHeader("User-Id") Long userId
+
+// 변경 예정
+@AuthenticationPrincipal UserDetails userDetails
+Long userId = userDetails.getId();
+```
+
+### 4. 스터디 멤버 검증 추가
+
+```java
+// 스터디 멤버만 자료 접근 가능하도록 검증
+if (!studyMemberService.isMember(studyId, userId)) {
+    throw new StudyException.NotStudyMemberException();
 }
 ```
 
 ---
 
-### 4. 자료 수정
+## 📌 참고사항
 
-**Request**
-```
-PUT /api/v1/studies/{studyId}/materials/{materialId}
-Authorization: Bearer {accessToken}
-Content-Type: application/json
-```
-```json
-{
-  "title": "DP 개념 정리 (수정)",
-  "description": "메모이제이션 내용 추가",
-  "weekNumber": 2
-}
-```
+### 헤더 규칙
+- `User-Id`: 사용자 ID (Long)
+- `Is-Leader`: 스터디장 여부 (Boolean, 삭제 시 사용)
 
-**Response**
-```json
-{
-  "success": true,
-  "message": "자료가 수정되었습니다."
-}
-```
+### 에러 코드
+| 코드 | HTTP Status | 설명 |
+|------|-------------|------|
+| MATERIAL_NOT_FOUND | 404 | 자료를 찾을 수 없음 |
+| NOT_MATERIAL_OWNER | 403 | 본인 자료만 수정/삭제 가능 |
+| FILE_SIZE_EXCEEDED | 400 | 파일 크기 초과 |
+| INVALID_FILE_TYPE | 400 | 지원하지 않는 파일 형식 |
+| COMMENT_NOT_FOUND | 404 | 댓글을 찾을 수 없음 |
+| NOT_COMMENT_AUTHOR | 403 | 본인 댓글만 삭제 가능 |
 
 ---
 
-### 5. 자료 삭제
-
-**Request**
-```
-DELETE /api/v1/studies/{studyId}/materials/{materialId}
-Authorization: Bearer {accessToken}
-```
-
-**Response**
-```json
-{
-  "success": true,
-  "message": "자료가 삭제되었습니다."
-}
-```
-
----
-
-### 6. 댓글 목록
-
-**Request**
-```
-GET /api/v1/studies/{studyId}/materials/{materialId}/comments
-Authorization: Bearer {accessToken}
-```
-
-**Response**
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": 1,
-      "user": {
-        "id": 2,
-        "nickname": "김싸피",
-        "profileImage": "https://..."
-      },
-      "content": "정리 감사합니다!",
-      "createdAt": "2025-01-15T12:00:00Z"
-    },
-    {
-      "id": 2,
-      "user": {
-        "id": 3,
-        "nickname": "이싸피"
-      },
-      "content": "5페이지에 오타가 있어요",
-      "createdAt": "2025-01-15T13:00:00Z"
-    }
-  ]
-}
-```
-
----
-
-### 7. 댓글 작성
-
-**Request**
-```
-POST /api/v1/studies/{studyId}/materials/{materialId}/comments
-Authorization: Bearer {accessToken}
-Content-Type: application/json
-```
-```json
-{
-  "content": "좋은 자료 감사합니다!"
-}
-```
-
-**Response**
-```json
-{
-  "success": true,
-  "data": {
-    "id": 3,
-    "content": "좋은 자료 감사합니다!",
-    "createdAt": "2025-01-16T10:00:00Z"
-  }
-}
-```
-
----
-
-### 8. 댓글 삭제
-
-**Request**
-```
-DELETE /api/v1/studies/{studyId}/materials/{materialId}/comments/{commentId}
-Authorization: Bearer {accessToken}
-```
-
-**Response**
-```json
-{
-  "success": true,
-  "message": "댓글이 삭제되었습니다."
-}
-```
-
----
-
-## 에러 코드
-
-| 코드 | 설명 |
-|------|------|
-| MATERIAL_NOT_FOUND | 자료를 찾을 수 없음 |
-| NOT_MATERIAL_OWNER | 본인 자료만 수정/삭제 가능 |
-| FILE_SIZE_EXCEEDED | 파일 크기 초과 |
-| INVALID_FILE_TYPE | 지원하지 않는 파일 형식 |
-| COMMENT_NOT_FOUND | 댓글을 찾을 수 없음 |
+## 🗓️ 완료일
+- 2025-01-26

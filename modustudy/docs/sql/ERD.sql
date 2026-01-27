@@ -1169,11 +1169,13 @@ CREATE TABLE `retrospective` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
     `study_id` BIGINT NOT NULL,
     `session_id` BIGINT,
+    `created_by` BIGINT NOT NULL,
     `title` VARCHAR(200) NOT NULL,
     `retrospective_type` ENUM('KPT', 'FREE') DEFAULT 'KPT',
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (`study_id`) REFERENCES `study`(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`session_id`) REFERENCES `study_session`(`id`)
+    FOREIGN KEY (`session_id`) REFERENCES `study_session`(`id`),
+    FOREIGN KEY (`created_by`) REFERENCES `user`(`id`)
 );
 
 CREATE TABLE `retrospective_item` (

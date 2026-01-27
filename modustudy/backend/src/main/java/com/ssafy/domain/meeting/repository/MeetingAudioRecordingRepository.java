@@ -3,6 +3,7 @@ package com.ssafy.domain.meeting.repository;
 import com.ssafy.domain.meeting.entity.MeetingAudioRecording;
 import com.ssafy.domain.meeting.entity.MeetingAudioTrackType;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface MeetingAudioRecordingRepository extends JpaRepository<MeetingAudioRecording, Long> {
@@ -17,4 +18,13 @@ public interface MeetingAudioRecordingRepository extends JpaRepository<MeetingAu
             Long meetingId,
             MeetingAudioTrackType trackType,
             Long userId);
+
+    Optional<MeetingAudioRecording> findTopByMeetingIdAndTrackTypeAndUserIdOrderByCreatedAtDesc(
+            Long meetingId,
+            MeetingAudioTrackType trackType,
+            Long userId);
+
+    Optional<MeetingAudioRecording> findTopByMeetingIdAndTrackTypeAndUserIdIsNullOrderByCreatedAtDesc(
+            Long meetingId,
+            MeetingAudioTrackType trackType);
 }
