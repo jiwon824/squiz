@@ -88,26 +88,19 @@ class DmWebSocketService {
     }
 
     /**
-     * 채널 구독
+     * 채널 구독 (토픽 방식)
      */
     private subscribe(): void {
-        if (!this.client) return;
+        if (!this.client || !this.userId) return;
 
-        // 개인 DM 메시지 수신
-        this.client.subscribe('/user/queue/dm', (message: IMessage) => {
+        // 개인 DM 메시지 수신 (사용자별 토픽)
+        this.client.subscribe(`/topic/dm/user/${this.userId}`, (message: IMessage) => {
             this.handleEvent(message);
         });
 
         // DM 이벤트 (typing, read 등)
-        this.client.subscribe('/user/queue/dm/events', (message: IMessage) => {
+        this.client.subscribe(`/topic/dm/events/${this.userId}`, (message: IMessage) => {
             this.handleEvent(message);
-        });
-
-        // 에러 메시지
-        this.client.subscribe('/user/queue/dm/errors', (message: IMessage) => {
-            const error = message.body;
-            console.error('DM WebSocket error:', error);
-            this.handlers.onError?.(error);
         });
     }
 

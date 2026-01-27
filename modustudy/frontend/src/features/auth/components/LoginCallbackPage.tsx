@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { authApi } from '@/api/endpoints/authApi';
 import { useAuthStore } from '@/store/authStore';
+import { useUIStore } from '@/store/uiStore';
 import AuthLayout from './AuthLayout';
 import { Loader2 } from 'lucide-react';
 
@@ -9,6 +10,7 @@ export const LoginCallbackPage = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const login = useAuthStore((state) => state.login);
+    const showToast = useUIStore((state) => state.showToast);
 
     // 중복 요청 방지를 위한 ref (React StrictMode에서 useEffect 두 번 실행 대응)
     const isProcessingRef = useRef(false);
@@ -87,7 +89,7 @@ export const LoginCallbackPage = () => {
                 // 에러 발생 시 플래그 리셋 (재시도 가능하도록)
                 isProcessingRef.current = false;
 
-                alert('로그인 처리 중 오류가 발생했습니다. 다시 시도해주세요.');
+                showToast('로그인 처리 중 오류가 발생했습니다. 다시 시도해주세요.', 'error');
                 navigate('/login', { replace: true });
             }
         };
