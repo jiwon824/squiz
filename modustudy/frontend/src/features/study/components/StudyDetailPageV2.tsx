@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-    Heart, Star, Users, Calendar, Clock, MapPin,
+    Heart, Star, Users, Clock, MapPin,
     Target, Award, AlertTriangle, Share2, Shield, Send,
     BookOpen, ChevronRight
 } from 'lucide-react';
+import { DifficultyBadge } from './DifficultyBadge';
 import { useAuthStore } from '@/store/authStore';
 import { studyService, Study } from '../services/studyService';
 import StudyApplyModalV2 from './StudyApplyModalV2';
@@ -107,20 +108,6 @@ const StudyDetailPageV2: React.FC = () => {
         }
     };
 
-    const getDifficultyConfig = (difficulty: string) => {
-        switch (difficulty) {
-            case 'BEGINNER':
-            case 'ELEMENTARY':
-                return { text: '입문', color: 'text-[var(--color-success)]', bgColor: 'bg-[var(--color-success-light)]' };
-            case 'INTERMEDIATE':
-                return { text: '중급', color: 'text-[var(--color-primary)]', bgColor: 'bg-[var(--color-primary-alpha-10)]' };
-            case 'ADVANCED':
-                return { text: '고급', color: 'text-[var(--color-error)]', bgColor: 'bg-[var(--color-error-light)]' };
-            default:
-                return { text: difficulty, color: 'text-[var(--color-text-tertiary)]', bgColor: 'bg-gray-100' };
-        }
-    };
-
     const getMeetingTypeText = (meetingType: string) => {
         switch (meetingType) {
             case 'ONLINE': return '온라인';
@@ -131,7 +118,6 @@ const StudyDetailPageV2: React.FC = () => {
     };
 
     const statusConfig = getStatusConfig(study.status);
-    const diffConfig = getDifficultyConfig(study.difficulty);
     const isOwner = String(user?.id) === String(study.leader.id);
 
     return (
@@ -175,13 +161,7 @@ const StudyDetailPageV2: React.FC = () => {
                                     )}>
                                         {statusConfig.text}
                                     </span>
-                                    <span className={cn(
-                                        "px-3 py-1 rounded-full text-xs font-bold",
-                                        diffConfig.color,
-                                        diffConfig.bgColor
-                                    )}>
-                                        {diffConfig.text}
-                                    </span>
+                                    <DifficultyBadge difficulty={study.difficulty} size="md" />
                                     <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[var(--color-background-secondary)] text-[var(--color-text-secondary)]">
                                         {study.topic}
                                     </span>
@@ -243,11 +223,6 @@ const StudyDetailPageV2: React.FC = () => {
                                         icon={<MapPin size={18} />}
                                         label="진행 방식"
                                         value={`${getMeetingTypeText(study.meetingType)}${study.region ? ` · ${study.region.name}` : ''}`}
-                                    />
-                                    <InfoRow
-                                        icon={<Calendar size={18} />}
-                                        label="모임 요일"
-                                        value={study.scheduleDays}
                                     />
                                     <InfoRow
                                         icon={<Clock size={18} />}
