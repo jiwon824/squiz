@@ -285,15 +285,16 @@ const StudyPageV2: React.FC = () => {
                     {paginatedData.studies.length > 0 ? (
                         <>
                             <div className={cn(
-                                "grid gap-5 mb-8",
+                                "mb-8",
                                 viewMode === 'grid'
-                                    ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
-                                    : "grid-cols-1"
+                                    ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"
+                                    : "flex flex-col gap-3"
                             )}>
                                 {paginatedData.studies.map((study) => (
                                     <StudyCardContentV2
                                         key={study.id}
                                         study={study}
+                                        variant={viewMode === 'grid' ? 'card' : 'list'}
                                         onBookmarkToggle={handleBookmarkToggle}
                                         onClick={handleStudyClick}
                                     />
