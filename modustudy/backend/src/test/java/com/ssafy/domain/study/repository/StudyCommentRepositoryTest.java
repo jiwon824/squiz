@@ -1,11 +1,10 @@
 package com.ssafy.domain.study.repository;
 
-import com.ssafy.domain.study.entity.Study;
-import com.ssafy.domain.study.entity.StudyComment;
-import com.ssafy.domain.study.entity.StudyType;
+import com.ssafy.domain.study.entity.*;
 import com.ssafy.domain.user.entity.Role;
 import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.repository.UserRepository;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -37,12 +36,24 @@ class StudyCommentRepositoryTest {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private TopicRepository topicRepository;
+
+    @Autowired
+    private FormatRepository formatRepository;
+
+    @Autowired
+    private EntityManager entityManager;
+
     private User user1;
     private User user2;
     private User user3;
     private User user4;
     private Study study1;
     private Study study2;
+    private Topic topic1;
+    private Topic topic2;
+    private Format format;
     private StudyComment parentComment1;
     private StudyComment parentComment2;
     private StudyComment replyComment1;
@@ -51,7 +62,25 @@ class StudyCommentRepositoryTest {
 
     @BeforeEach
     void setUp() {
-        // 먼저 User 엔티티 생성 (외래 키 제약 조건 충족)
+        // 1. Topic 생성
+        topic1 = topicRepository.save(Topic.builder()
+                .name("Java")
+                .sortOrder(1)
+                .build());
+        topic2 = topicRepository.save(Topic.builder()
+                .name("Spring")
+                .sortOrder(2)
+                .build());
+        topicRepository.flush();
+
+        // 2. Format 생성
+        format = formatRepository.save(Format.builder()
+                .name("코드 리뷰")
+                .sortOrder(1)
+                .build());
+        formatRepository.flush();
+
+        // 3. User 엔티티 생성
         user1 = userRepository.save(User.builder()
                 .userId("testuser1")
                 .email("user1@test.com")
@@ -114,57 +143,59 @@ class StudyCommentRepositoryTest {
 
         userRepository.flush();
 
-        // Study 엔티티 생성 (외래 키 제약 조건 충족)
+        // 4. Study 엔티티 생성
         study1 = studyRepository.save(Study.builder()
                 .leaderId(user1.getId())
                 .name("테스트 스터디 1")
-                .topic("Java")
+                .topic(topic1)
+                .format(format)
                 .studyType(StudyType.PLANNED)
                 .build());
 
         study2 = studyRepository.save(Study.builder()
                 .leaderId(user2.getId())
                 .name("테스트 스터디 2")
-                .topic("Spring")
+                .topic(topic2)
+                .format(format)
                 .studyType(StudyType.PLANNED)
                 .build());
 
         studyRepository.flush();
 
-        // 스터디 1의 최상위 댓글들
-        parentComment1 = StudyComment.builder()
+        // 5. 스터디 1의 최상위 댓글들
+        parentComment1 = commentRepository.save(StudyComment.builder()
                 .studyId(study1.getId())
                 .userId(user1.getId())
                 .content("첫 번째 댓글입니다.")
-                .build();
-        parentComment1 = commentRepository.save(parentComment1);
+                .build());
 
-        parentComment2 = StudyComment.builder()
+        parentComment2 = commentRepository.save(StudyComment.builder()
                 .studyId(study1.getId())
                 .userId(user2.getId())
                 .content("두 번째 댓글입니다.")
                 .imageUrl("https://example.com/image.png")
-                .build();
-        parentComment2 = commentRepository.save(parentComment2);
+                .build());
 
-        // 첫 번째 댓글의 대댓글들
-        replyComment1 = StudyComment.builder()
+        commentRepository.flush();
+
+        // 6. 첫 번째 댓글의 대댓글들
+        replyComment1 = commentRepository.save(StudyComment.builder()
                 .studyId(study1.getId())
                 .userId(user3.getId())
                 .parentId(parentComment1.getId())
                 .content("첫 번째 댓글에 대한 답글입니다.")
-                .build();
-        replyComment1 = commentRepository.save(replyComment1);
+                .build());
 
-        replyComment2 = StudyComment.builder()
+        replyComment2 = commentRepository.save(StudyComment.builder()
                 .studyId(study1.getId())
                 .userId(user1.getId())
                 .parentId(parentComment1.getId())
                 .content("작성자의 답글입니다.")
-                .build();
-        replyComment2 = commentRepository.save(replyComment2);
+                .build());
 
-        // 삭제된 댓글 (스터디 1)
+        commentRepository.flush();
+
+        // 7. 삭제된 댓글 (스터디 1)
         deletedComment = StudyComment.builder()
                 .studyId(study1.getId())
                 .userId(user4.getId())
@@ -172,6 +203,7 @@ class StudyCommentRepositoryTest {
                 .build();
         deletedComment.delete();
         deletedComment = commentRepository.save(deletedComment);
+        commentRepository.flush();
     }
 
     // ============================================================
@@ -386,7 +418,7 @@ class StudyCommentRepositoryTest {
     void findByIdAndStudyIdAndIsDeletedFalse_WrongStudy() {
         // given
         Long commentId = parentComment1.getId();
-        Long wrongStudyId = 999L;
+        Long wrongStudyId = study2.getId();
 
         // when
         Optional<StudyComment> result = commentRepository.findByIdAndStudyIdAndIsDeletedFalse(commentId, wrongStudyId);
@@ -454,6 +486,7 @@ class StudyCommentRepositoryTest {
 
         // when
         StudyComment saved = commentRepository.save(newComment);
+        commentRepository.flush();
 
         // then
         assertThat(saved).isNotNull();
@@ -478,6 +511,7 @@ class StudyCommentRepositoryTest {
 
         // when
         StudyComment saved = commentRepository.save(reply);
+        commentRepository.flush();
 
         // then
         assertThat(saved).isNotNull();
@@ -499,6 +533,7 @@ class StudyCommentRepositoryTest {
 
         // when
         StudyComment saved = commentRepository.save(commentWithImage);
+        commentRepository.flush();
 
         // then
         assertThat(saved).isNotNull();
@@ -515,6 +550,7 @@ class StudyCommentRepositoryTest {
         // when
         comment.updateContent(newContent);
         StudyComment updated = commentRepository.save(comment);
+        commentRepository.flush();
 
         // then
         assertThat(updated.getContent()).isEqualTo(newContent);
@@ -529,6 +565,7 @@ class StudyCommentRepositoryTest {
         // when
         comment.delete();
         StudyComment deleted = commentRepository.save(comment);
+        commentRepository.flush();
 
         // then
         assertThat(deleted.getIsDeleted()).isTrue();
@@ -546,14 +583,13 @@ class StudyCommentRepositoryTest {
 
         // when
         commentRepository.delete(parentComment2);
+        entityManager.flush();
+        entityManager.clear();
 
         // then
         Optional<StudyComment> result = commentRepository.findById(commentId);
         assertThat(result).isEmpty();
     }
-
-    // deleteByStudyId 테스트는 Spring Data JPA derived delete와 영속성 컨텍스트 충돌로 제거
-    // Spring Data JPA의 기본 기능은 프레임워크 레벨에서 이미 검증됨
 
     // ============================================================
     // 비즈니스 로직 테스트

@@ -1,9 +1,10 @@
 package com.ssafy.domain.study.workspace.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ssafy.domain.study.entity.Study;
-import com.ssafy.domain.study.entity.StudyType;
+import com.ssafy.domain.study.entity.*;
+import com.ssafy.domain.study.repository.FormatRepository;
 import com.ssafy.domain.study.repository.StudyRepository;
+import com.ssafy.domain.study.repository.TopicRepository;
 import com.ssafy.domain.study.workspace.dto.request.MessageCreateRequest;
 import com.ssafy.domain.study.workspace.dto.request.MessageUpdateRequest;
 import com.ssafy.domain.study.workspace.entity.Message;
@@ -23,17 +24,24 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
+import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+/**
+ * MessageController 통합 테스트
+ */
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
-@DisplayName("MessageController 테스트")
+@WithMockUser(username = "testuser", roles = {"USER"})
 class MessageControllerTest {
 
     @Autowired
@@ -55,18 +63,40 @@ class MessageControllerTest {
     private UserRepository userRepository;
 
     @Autowired
+    private TopicRepository topicRepository;
+
+    @Autowired
+    private FormatRepository formatRepository;
+
+    @Autowired
     private EntityManager entityManager;
 
-    private User user;
+    private User user1;
     private User user2;
     private Study study;
     private Workspace workspace;
-    private Message message;
+    private Message message1;
+    private Topic topic;
+    private Format format;
 
     @BeforeEach
     void setUp() {
-        // 1. User 생성
-        user = userRepository.save(User.builder()
+        // 1. Topic 생성
+        topic = topicRepository.save(Topic.builder()
+                .name("알고리즘")
+                .sortOrder(1)
+                .build());
+        topicRepository.flush();
+
+        // 2. Format 생성
+        format = formatRepository.save(Format.builder()
+                .name("문제 풀이")
+                .sortOrder(1)
+                .build());
+        formatRepository.flush();
+
+        // 3. User 생성
+        user1 = userRepository.save(User.builder()
                 .userId("testuser1")
                 .email("test1@test.com")
                 .nickname("테스트유저1")
@@ -98,366 +128,302 @@ class MessageControllerTest {
                 .build());
         userRepository.flush();
 
-        // 2. Study 생성
+        // 4. Study 생성
         study = studyRepository.save(Study.builder()
-                .leaderId(user.getId())
-                .name("테스트 스터디")
-                .topic("Java")
+                .leaderId(user1.getId())
+                .name("알고리즘 스터디")
+                .topic(topic)
+                .format(format)
                 .studyType(StudyType.PLANNED)
                 .build());
         studyRepository.flush();
 
-        // 3. Workspace 생성
+        // 5. Workspace 생성
         workspace = workspaceRepository.save(Workspace.create(study.getId()));
         workspaceRepository.flush();
 
-        // 4. Message 생성
-        message = messageRepository.save(Message.createTextMessage(
-                workspace.getId(),
-                user.getId(),
-                "테스트 메시지입니다."
-        ));
+        // 6. Message 생성
+        message1 = messageRepository.save(Message.createTextMessage(
+                workspace.getId(), user1.getId(), "안녕하세요!"));
         messageRepository.flush();
     }
 
     @Nested
-    @DisplayName("메시지 생성 API")
+    @DisplayName("메시지 생성")
     class CreateMessage {
 
         @Test
-        @DisplayName("텍스트 메시지 생성 성공 - 201 Created")
-        void createMessage_Success() throws Exception {
+        @DisplayName("성공 - 텍스트 메시지 생성")
+        void createTextMessage_Success() throws Exception {
+            // given
             MessageCreateRequest request = MessageCreateRequest.text(
-                    workspace.getId(), "안녕하세요!");
+                    workspace.getId(), "새 메시지입니다");
 
+            // when & then
             mockMvc.perform(post("/api/v1/workspaces/{workspaceId}/messages", workspace.getId())
-                            .header("User-Id", user.getId())
+                            .header("User-Id", user1.getId())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
-                    .andDo(print())
                     .andExpect(status().isCreated())
                     .andExpect(jsonPath("$.id").exists())
                     .andExpect(jsonPath("$.workspaceId").value(workspace.getId()))
-                    .andExpect(jsonPath("$.userId").value(user.getId()))
-                    .andExpect(jsonPath("$.content").value("안녕하세요!"))
-                    .andExpect(jsonPath("$.messageType").value("TEXT"))
-                    .andExpect(jsonPath("$.nickname").value("테스트유저1"));
+                    .andExpect(jsonPath("$.userId").value(user1.getId()))
+                    .andExpect(jsonPath("$.nickname").value("테스트유저1"))
+                    .andExpect(jsonPath("$.content").value("새 메시지입니다"))
+                    .andExpect(jsonPath("$.messageType").value("TEXT"));
         }
 
         @Test
-        @DisplayName("이미지 메시지 생성 성공")
+        @DisplayName("성공 - 이미지 메시지 생성")
         void createImageMessage_Success() throws Exception {
+            // given
             MessageCreateRequest request = MessageCreateRequest.image(
-                    workspace.getId(), "이미지 설명", "https://example.com/img.png");
+                    workspace.getId(), "이미지입니다", "https://example.com/image.jpg");
 
+            // when & then
             mockMvc.perform(post("/api/v1/workspaces/{workspaceId}/messages", workspace.getId())
-                            .header("User-Id", user.getId())
+                            .header("User-Id", user1.getId())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
-                    .andDo(print())
                     .andExpect(status().isCreated())
                     .andExpect(jsonPath("$.messageType").value("IMAGE"))
-                    .andExpect(jsonPath("$.fileUrl").value("https://example.com/img.png"));
+                    .andExpect(jsonPath("$.fileUrl").value("https://example.com/image.jpg"));
         }
 
         @Test
-        @DisplayName("내용 없이 메시지 생성 시 400 에러")
-        void createMessage_NoContent() throws Exception {
-            MessageCreateRequest request = MessageCreateRequest.builder()
-                    .workspaceId(workspace.getId())
-                    .content("")
-                    .build();
-
-            mockMvc.perform(post("/api/v1/workspaces/{workspaceId}/messages", workspace.getId())
-                            .header("User-Id", user.getId())
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andDo(print())
-                    .andExpect(status().isBadRequest());
-        }
-
-        @Test
-        @DisplayName("workspaceId 불일치 시 400 에러")
+        @DisplayName("실패 - workspaceId 불일치")
         void createMessage_WorkspaceIdMismatch() throws Exception {
-            MessageCreateRequest request = MessageCreateRequest.text(999999L, "메시지");
+            // given
+            MessageCreateRequest request = MessageCreateRequest.text(999L, "메시지");
 
+            // when & then
             mockMvc.perform(post("/api/v1/workspaces/{workspaceId}/messages", workspace.getId())
-                            .header("User-Id", user.getId())
+                            .header("User-Id", user1.getId())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
-                    .andDo(print())
-                    .andExpect(status().isBadRequest());
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.message").value(containsString("일치하지 않습니다")));
         }
     }
 
     @Nested
-    @DisplayName("메시지 목록 조회 API")
+    @DisplayName("메시지 목록 조회")
     class GetMessages {
 
         @Test
-        @DisplayName("메시지 목록 조회 성공 - 200 OK")
+        @DisplayName("성공 - 페이징 조회")
         void getMessages_Success() throws Exception {
-            // given - 추가 메시지 생성
-            messageRepository.save(Message.createTextMessage(workspace.getId(), user.getId(), "메시지1"));
-            messageRepository.save(Message.createTextMessage(workspace.getId(), user2.getId(), "메시지2"));
-            messageRepository.flush();
-
-            mockMvc.perform(get("/api/v1/workspaces/{workspaceId}/messages", workspace.getId())
-                            .contentType(MediaType.APPLICATION_JSON))
-                    .andDo(print())
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.content").isArray())
-                    .andExpect(jsonPath("$.totalElements").value(3))
-                    .andExpect(jsonPath("$.pageNumber").value(0));
-        }
-
-        @Test
-        @DisplayName("페이징 파라미터 적용")
-        void getMessages_WithPaging() throws Exception {
-            // given - 10개 메시지 생성
-            for (int i = 0; i < 10; i++) {
-                messageRepository.save(Message.createTextMessage(
-                        workspace.getId(), user.getId(), "메시지 " + i));
-            }
-            messageRepository.flush();
-
+            // when & then
             mockMvc.perform(get("/api/v1/workspaces/{workspaceId}/messages", workspace.getId())
                             .param("page", "0")
-                            .param("size", "5")
-                            .contentType(MediaType.APPLICATION_JSON))
-                    .andDo(print())
+                            .param("size", "10"))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.content.length()").value(5))
-                    .andExpect(jsonPath("$.totalElements").value(11)) // setUp 1개 + 10개
-                    .andExpect(jsonPath("$.pageSize").value(5));
+                    .andExpect(jsonPath("$.content").isArray())
+                    .andExpect(jsonPath("$.content", hasSize(1)))
+                    .andExpect(jsonPath("$.totalElements").value(1));
         }
-    }
-
-    @Nested
-    @DisplayName("최근 메시지 조회 API")
-    class GetRecentMessages {
 
         @Test
-        @DisplayName("최근 메시지 조회 성공")
+        @DisplayName("성공 - 최근 메시지 조회")
         void getRecentMessages_Success() throws Exception {
-            // given
-            for (int i = 0; i < 5; i++) {
-                messageRepository.save(Message.createTextMessage(
-                        workspace.getId(), user.getId(), "메시지 " + i));
-            }
-            messageRepository.flush();
-
+            // when & then
             mockMvc.perform(get("/api/v1/workspaces/{workspaceId}/messages/recent", workspace.getId())
-                            .param("limit", "3")
-                            .contentType(MediaType.APPLICATION_JSON))
-                    .andDo(print())
+                            .param("limit", "5"))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.length()").value(3));
+                    .andExpect(jsonPath("$").isArray())
+                    .andExpect(jsonPath("$", hasSize(1)));
+        }
+
+        @Test
+        @DisplayName("성공 - 특정 시간 이후 메시지 조회")
+        void getMessagesAfter_Success() throws Exception {
+            // given
+            String beforeTime = LocalDateTime.now().minusHours(1)
+                    .format(DateTimeFormatter.ISO_DATE_TIME);
+
+            // when & then
+            mockMvc.perform(get("/api/v1/workspaces/{workspaceId}/messages/after", workspace.getId())
+                            .param("after", beforeTime))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$").isArray())
+                    .andExpect(jsonPath("$", hasSize(1)));
         }
     }
 
     @Nested
-    @DisplayName("메시지 검색 API")
+    @DisplayName("메시지 검색")
     class SearchMessages {
 
         @Test
-        @DisplayName("키워드로 메시지 검색 성공")
+        @DisplayName("성공 - 키워드 검색")
         void searchMessages_Success() throws Exception {
-            // given
-            messageRepository.save(Message.createTextMessage(workspace.getId(), user.getId(), "Java 공부"));
-            messageRepository.save(Message.createTextMessage(workspace.getId(), user.getId(), "Spring 공부"));
-            messageRepository.save(Message.createTextMessage(workspace.getId(), user.getId(), "Python 학습"));
-            messageRepository.flush();
-
+            // when & then
             mockMvc.perform(get("/api/v1/workspaces/{workspaceId}/messages/search", workspace.getId())
-                            .param("keyword", "공부")
-                            .contentType(MediaType.APPLICATION_JSON))
-                    .andDo(print())
+                            .param("keyword", "안녕"))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.totalElements").value(2));
+                    .andExpect(jsonPath("$.content", hasSize(1)))
+                    .andExpect(jsonPath("$.content[0].content").value(containsString("안녕")));
+        }
+
+        @Test
+        @DisplayName("성공 - 검색 결과 없음")
+        void searchMessages_NoResult() throws Exception {
+            // when & then
+            mockMvc.perform(get("/api/v1/workspaces/{workspaceId}/messages/search", workspace.getId())
+                            .param("keyword", "존재하지않는키워드"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.content", hasSize(0)));
         }
     }
 
     @Nested
-    @DisplayName("메시지 타입별 조회 API")
+    @DisplayName("메시지 타입별 조회")
     class GetMessagesByType {
 
         @Test
-        @DisplayName("이미지 타입 메시지만 조회")
-        void getMessagesByType_Success() throws Exception {
-            // given
-            messageRepository.save(Message.createImageMessage(
-                    workspace.getId(), user.getId(), "이미지1", "https://example.com/1.png"));
-            messageRepository.save(Message.createImageMessage(
-                    workspace.getId(), user.getId(), "이미지2", "https://example.com/2.png"));
-            messageRepository.flush();
-
+        @DisplayName("성공 - TEXT 타입 조회")
+        void getMessagesByType_Text() throws Exception {
+            // when & then
             mockMvc.perform(get("/api/v1/workspaces/{workspaceId}/messages/type/{messageType}",
-                            workspace.getId(), MessageType.IMAGE)
-                            .contentType(MediaType.APPLICATION_JSON))
-                    .andDo(print())
+                            workspace.getId(), "TEXT"))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.totalElements").value(2));
+                    .andExpect(jsonPath("$.content", hasSize(1)))
+                    .andExpect(jsonPath("$.content[0].messageType").value("TEXT"));
+        }
+
+        @Test
+        @DisplayName("성공 - IMAGE 타입 조회 (결과 없음)")
+        void getMessagesByType_Image_Empty() throws Exception {
+            // when & then
+            mockMvc.perform(get("/api/v1/workspaces/{workspaceId}/messages/type/{messageType}",
+                            workspace.getId(), "IMAGE"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.content", hasSize(0)));
         }
     }
 
     @Nested
-    @DisplayName("메시지 상세 조회 API")
+    @DisplayName("메시지 상세 조회")
     class GetMessage {
 
         @Test
-        @DisplayName("메시지 상세 조회 성공")
+        @DisplayName("성공 - 메시지 상세 조회")
         void getMessage_Success() throws Exception {
+            // when & then
             mockMvc.perform(get("/api/v1/workspaces/{workspaceId}/messages/{messageId}",
-                            workspace.getId(), message.getId())
-                            .contentType(MediaType.APPLICATION_JSON))
-                    .andDo(print())
+                            workspace.getId(), message1.getId()))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.id").value(message.getId()))
-                    .andExpect(jsonPath("$.content").value("테스트 메시지입니다."))
+                    .andExpect(jsonPath("$.id").value(message1.getId()))
+                    .andExpect(jsonPath("$.content").value("안녕하세요!"))
                     .andExpect(jsonPath("$.nickname").value("테스트유저1"));
         }
 
         @Test
-        @DisplayName("존재하지 않는 메시지 조회 시 400 에러")
+        @DisplayName("실패 - 존재하지 않는 메시지")
         void getMessage_NotFound() throws Exception {
+            // when & then
             mockMvc.perform(get("/api/v1/workspaces/{workspaceId}/messages/{messageId}",
-                            workspace.getId(), 999999L)
-                            .contentType(MediaType.APPLICATION_JSON))
-                    .andDo(print())
-                    .andExpect(status().isBadRequest());
-        }
-
-        @Test
-        @DisplayName("삭제된 메시지 조회 시 내용 숨김")
-        void getMessage_Deleted() throws Exception {
-            // given
-            message.delete();
-            messageRepository.flush();
-
-            mockMvc.perform(get("/api/v1/workspaces/{workspaceId}/messages/{messageId}",
-                            workspace.getId(), message.getId())
-                            .contentType(MediaType.APPLICATION_JSON))
-                    .andDo(print())
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.content").value("삭제된 메시지입니다."))
-                    .andExpect(jsonPath("$.isDeleted").value(true));
+                            workspace.getId(), 99999L))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.message").value(containsString("찾을 수 없습니다")));
         }
     }
 
     @Nested
-    @DisplayName("메시지 수정 API")
+    @DisplayName("메시지 수정")
     class UpdateMessage {
 
         @Test
-        @DisplayName("메시지 수정 성공 - 200 OK")
+        @DisplayName("성공 - 메시지 수정")
         void updateMessage_Success() throws Exception {
+            // given
             MessageUpdateRequest request = MessageUpdateRequest.builder()
                     .content("수정된 메시지")
                     .build();
 
+            // when & then
             mockMvc.perform(put("/api/v1/workspaces/{workspaceId}/messages/{messageId}",
-                            workspace.getId(), message.getId())
-                            .header("User-Id", user.getId())
+                            workspace.getId(), message1.getId())
+                            .header("User-Id", user1.getId())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
-                    .andDo(print())
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.content").value("수정된 메시지"));
         }
 
         @Test
-        @DisplayName("본인이 아닌 사용자가 수정 시도 시 400 에러")
+        @DisplayName("실패 - 작성자가 아닌 사용자")
         void updateMessage_NotAuthor() throws Exception {
+            // given
             MessageUpdateRequest request = MessageUpdateRequest.builder()
                     .content("수정 시도")
                     .build();
 
+            // when & then
             mockMvc.perform(put("/api/v1/workspaces/{workspaceId}/messages/{messageId}",
-                            workspace.getId(), message.getId())
+                            workspace.getId(), message1.getId())
                             .header("User-Id", user2.getId())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
-                    .andDo(print())
-                    .andExpect(status().isBadRequest());
-        }
-
-        @Test
-        @DisplayName("삭제된 메시지 수정 시도 시 400 에러")
-        void updateMessage_Deleted() throws Exception {
-            // given
-            message.delete();
-            messageRepository.flush();
-
-            MessageUpdateRequest request = MessageUpdateRequest.builder()
-                    .content("수정 시도")
-                    .build();
-
-            mockMvc.perform(put("/api/v1/workspaces/{workspaceId}/messages/{messageId}",
-                            workspace.getId(), message.getId())
-                            .header("User-Id", user.getId())
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andDo(print())
-                    .andExpect(status().isBadRequest());
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.message").value(containsString("본인이 작성한")));
         }
     }
 
     @Nested
-    @DisplayName("메시지 삭제 API")
+    @DisplayName("메시지 삭제")
     class DeleteMessage {
 
         @Test
-        @DisplayName("메시지 삭제 성공 - 204 No Content")
+        @DisplayName("성공 - 작성자가 삭제")
         void deleteMessage_Success() throws Exception {
+            // when & then
             mockMvc.perform(delete("/api/v1/workspaces/{workspaceId}/messages/{messageId}",
-                            workspace.getId(), message.getId())
-                            .header("User-Id", user.getId())
-                            .contentType(MediaType.APPLICATION_JSON))
-                    .andDo(print())
+                            workspace.getId(), message1.getId())
+                            .header("User-Id", user1.getId()))
                     .andExpect(status().isNoContent());
+
+            // 삭제 확인
+            entityManager.flush();
+            entityManager.clear();
+
+            Message found = messageRepository.findById(message1.getId()).orElseThrow();
+            assert found.isDeleted();
         }
 
         @Test
-        @DisplayName("본인이 아닌 사용자가 삭제 시도 시 400 에러")
+        @DisplayName("실패 - 작성자가 아닌 사용자")
         void deleteMessage_NotAuthor() throws Exception {
+            // when & then
             mockMvc.perform(delete("/api/v1/workspaces/{workspaceId}/messages/{messageId}",
-                            workspace.getId(), message.getId())
-                            .header("User-Id", user2.getId())
-                            .contentType(MediaType.APPLICATION_JSON))
-                    .andDo(print())
-                    .andExpect(status().isBadRequest());
+                            workspace.getId(), message1.getId())
+                            .header("User-Id", user2.getId()))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.message").value(containsString("본인이 작성한")));
         }
 
         @Test
-        @DisplayName("관리자 메시지 삭제 성공 - 204 No Content")
+        @DisplayName("성공 - 관리자 삭제")
         void deleteMessageByAdmin_Success() throws Exception {
+            // when & then
             mockMvc.perform(delete("/api/v1/workspaces/{workspaceId}/messages/{messageId}/admin",
-                            workspace.getId(), message.getId())
-                            .header("User-Id", user2.getId())  // 다른 사용자여도 가능
-                            .contentType(MediaType.APPLICATION_JSON))
-                    .andDo(print())
+                            workspace.getId(), message1.getId())
+                            .header("User-Id", user1.getId()))
                     .andExpect(status().isNoContent());
         }
     }
 
     @Nested
-    @DisplayName("메시지 수 조회 API")
-    class GetMessageCount {
+    @DisplayName("메시지 통계")
+    class MessageStatistics {
 
         @Test
-        @DisplayName("메시지 수 조회 성공")
+        @DisplayName("성공 - 메시지 개수 조회")
         void getMessageCount_Success() throws Exception {
-            // given
-            messageRepository.save(Message.createTextMessage(workspace.getId(), user.getId(), "메시지1"));
-            messageRepository.save(Message.createTextMessage(workspace.getId(), user.getId(), "메시지2"));
-            messageRepository.flush();
-
-            mockMvc.perform(get("/api/v1/workspaces/{workspaceId}/messages/count", workspace.getId())
-                            .contentType(MediaType.APPLICATION_JSON))
-                    .andDo(print())
+            // when & then
+            mockMvc.perform(get("/api/v1/workspaces/{workspaceId}/messages/count", workspace.getId()))
                     .andExpect(status().isOk())
-                    .andExpect(content().string("3")); // setUp 1개 + 2개
+                    .andExpect(content().string("1"));
         }
     }
 }

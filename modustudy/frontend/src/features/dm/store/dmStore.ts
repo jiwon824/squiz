@@ -3,13 +3,15 @@ import { create } from 'zustand';
 import {
     getConversations,
     getMessages,
-    sendMessage,
+    sendMessage as sendMessageApi,
     getUnreadCount,
     markAsRead,
     deleteConversation,
     Conversation,
-    Message
+    Message,
+    dmWebSocket
 } from '@/api/endpoints/dmApi';
+import { useAuthStore } from '@/store/authStore';
 
 // 새 대화 시작을 위한 사용자 정보
 interface PendingDMUser {
@@ -27,6 +29,7 @@ interface DMState {
     isLoading: boolean;
     error: string | null;
     pendingDMUser: PendingDMUser | null;  // 새 대화 시작 대상
+    isWebSocketConnected: boolean;  // WebSocket 연결 상태
 
     // 액션
     fetchConversations: () => Promise<void>;
@@ -39,6 +42,9 @@ interface DMState {
     startConversationWith: (user: PendingDMUser) => void;  // 새 대화 시작
     clearPendingDM: () => void;  // 대기 상태 초기화
     clearError: () => void;
+    connectWebSocket: () => void;  // WebSocket 연결
+    disconnectWebSocket: () => void;  // WebSocket 해제
+    addMessage: (message: Message) => void;  // 메시지 추가 (WebSocket용)
 }
 
 export const useDMStore = create<DMState>((set, get) => ({
@@ -50,6 +56,7 @@ export const useDMStore = create<DMState>((set, get) => ({
     isLoading: false,
     error: null,
     pendingDMUser: null,
+    isWebSocketConnected: false,
 
     // 대화방 목록 조회
     fetchConversations: async () => {
@@ -84,10 +91,17 @@ export const useDMStore = create<DMState>((set, get) => ({
     // 메시지 전송
     sendMessage: async (receiverId: number, content: string) => {
         try {
-            const newMessage = await sendMessage(receiverId, content);
-            set(state => ({
-                messages: [...state.messages, newMessage]
-            }));
+            // WebSocket이 연결되어 있으면 WebSocket으로 전송
+            if (get().isWebSocketConnected && dmWebSocket.isConnected()) {
+                dmWebSocket.sendMessage(receiverId, content);
+                // WebSocket 응답은 onMessage 핸들러에서 처리됨
+            } else {
+                // WebSocket이 없으면 REST API로 전송
+                const newMessage = await sendMessageApi(receiverId, content);
+                set(state => ({
+                    messages: [...state.messages, newMessage]
+                }));
+            }
             // 대화방 목록 새로고침
             get().fetchConversations();
         } catch (error: any) {
@@ -169,5 +183,80 @@ export const useDMStore = create<DMState>((set, get) => ({
     clearPendingDM: () => set({ pendingDMUser: null }),
 
     // 에러 초기화
-    clearError: () => set({ error: null })
+    clearError: () => set({ error: null }),
+
+    // WebSocket 연결
+    connectWebSocket: () => {
+        const authStore = useAuthStore.getState();
+        const user = authStore.user;
+
+        if (!user) {
+            console.warn('Cannot connect DM WebSocket: user not logged in');
+            return;
+        }
+
+        if (dmWebSocket.isConnected()) {
+            console.warn('DM WebSocket already connected');
+            return;
+        }
+
+        dmWebSocket.connect(user.id, user.nickname, {
+            onMessage: (event) => {
+                // 새 메시지 수신 - 백엔드는 event.message로 전송
+                if (event.message) {
+                    const message: Message = {
+                        id: event.message.messageId,
+                        conversationId: event.message.conversationId,
+                        senderId: event.message.senderId,
+                        senderNickname: event.message.senderNickname,
+                        senderProfileImage: event.message.senderProfileImage,
+                        content: event.message.content,
+                        isDeleted: event.message.isDeleted,
+                        isMine: event.message.isMine,
+                        createdAt: event.message.createdAt
+                    };
+                    get().addMessage(message);
+                    // 대화방 목록 새로고침 (최신 메시지 반영)
+                    get().fetchConversations();
+                    get().fetchUnreadCount();
+                }
+            },
+            onTyping: (event) => {
+                // 입력 중 표시 (필요시 구현)
+                console.log('Typing:', event);
+            },
+            onRead: (event) => {
+                // 읽음 처리 (필요시 구현)
+                console.log('Read:', event);
+            },
+            onConnectionChange: (status) => {
+                set({ isWebSocketConnected: status === 'CONNECTED' });
+                console.log('DM WebSocket status:', status);
+            },
+            onError: (error) => {
+                console.error('DM WebSocket error:', error);
+            }
+        });
+    },
+
+    // WebSocket 해제
+    disconnectWebSocket: () => {
+        dmWebSocket.disconnect();
+        set({ isWebSocketConnected: false });
+    },
+
+    // 메시지 추가 (WebSocket 수신용)
+    addMessage: (message: Message) => {
+        const { currentConversationId, messages } = get();
+        // 현재 열려있는 대화방의 메시지인 경우에만 추가
+        if (currentConversationId === message.conversationId) {
+            // 중복 체크
+            const exists = messages.some(m => m.id === message.id);
+            if (!exists) {
+                set(state => ({
+                    messages: [...state.messages, message]
+                }));
+            }
+        }
+    }
 }));

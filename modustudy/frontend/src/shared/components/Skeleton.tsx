@@ -9,6 +9,15 @@ interface SkeletonProps {
     count?: number;
 }
 
+const styles = {
+    base: 'skeleton',
+    variants: {
+        text: 'w-full h-4 rounded',
+        circle: 'rounded-full',
+        rect: 'rounded-md',
+    },
+};
+
 export const Skeleton: React.FC<SkeletonProps> = ({
     className,
     variant = 'rect',
@@ -16,14 +25,6 @@ export const Skeleton: React.FC<SkeletonProps> = ({
     height,
     count = 1,
 }) => {
-    const baseStyles = 'skeleton';
-
-    const variantStyles = {
-        text: 'w-full h-4 rounded',
-        circle: 'rounded-full',
-        rect: 'rounded-md',
-    };
-
     const items = Array.from({ length: count });
 
     return (
@@ -31,7 +32,11 @@ export const Skeleton: React.FC<SkeletonProps> = ({
             {items.map((_, index) => (
                 <div
                     key={index}
-                    className={cn(baseStyles, variantStyles[variant], className)}
+                    className={cn(
+                        styles.base,
+                        styles.variants[variant],
+                        className
+                    )}
                     style={{
                         width: width,
                         height: height,

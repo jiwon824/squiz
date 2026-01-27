@@ -1,6 +1,31 @@
-import React, { useEffect, useState } from 'react';
-import { MessageSquare, Send, ArrowLeft, Loader2 } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
+import { MessageSquare, Send, Loader2 } from 'lucide-react';
 import { useDMStore } from '../store/dmStore';
+import { BackButton } from '@/shared/components';
+
+// URL을 클릭 가능한 링크로 변환하는 함수
+const renderMessageContent = (content: string) => {
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const parts = content.split(urlRegex);
+
+    return parts.map((part, index) => {
+        if (part.match(urlRegex)) {
+            return (
+                <a
+                    key={index}
+                    href={part}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline break-all hover:opacity-80"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    {part}
+                </a>
+            );
+        }
+        return <span key={index}>{part}</span>;
+    });
+};
 
 const DMListMini: React.FC = () => {
     const {
@@ -14,16 +39,30 @@ const DMListMini: React.FC = () => {
         fetchUnreadCount,
         setCurrentConversation,
         sendMessage,
-        clearPendingDM
+        clearPendingDM,
+        connectWebSocket,
+        disconnectWebSocket
     } = useDMStore();
 
     const [messageInput, setMessageInput] = useState('');
+    const messagesRef = useRef<HTMLDivElement>(null);
 
-    // 초기 데이터 로드
+    // 메시지 목록 자동 스크롤
+    useEffect(() => {
+        if (!messagesRef.current) return;
+        messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
+    }, [messages.length]);
+
+    // 초기 데이터 로드 + WebSocket 연결
     useEffect(() => {
         fetchConversations();
         fetchUnreadCount();
-    }, [fetchConversations, fetchUnreadCount]);
+        connectWebSocket();
+
+        return () => {
+            disconnectWebSocket();
+        };
+    }, [fetchConversations, fetchUnreadCount, connectWebSocket, disconnectWebSocket]);
 
     // 메시지 전송
     const handleSendMessage = async () => {
@@ -47,7 +86,7 @@ const DMListMini: React.FC = () => {
         }
     };
 
-    // 시간 포맷팅
+    // 시간 포맷팅 (백엔드는 서버 로컬 시간 LocalDateTime 반환)
     const formatTime = (dateString: string) => {
         const date = new Date(dateString);
         const now = new Date();
@@ -71,12 +110,10 @@ const DMListMini: React.FC = () => {
             <div className="p-4 h-full flex flex-col">
                 {/* 채팅 헤더 */}
                 <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-100">
-                    <button
+                    <BackButton
+                        variant="icon-only"
                         onClick={() => clearPendingDM()}
-                        className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-                    >
-                        <ArrowLeft size={18} />
-                    </button>
+                    />
                     <div className="w-8 h-8 rounded-full bg-study-blue/10 flex items-center justify-center font-bold text-xs text-study-blue">
                         {pendingDMUser.nickname.charAt(0)}
                     </div>
@@ -124,12 +161,10 @@ const DMListMini: React.FC = () => {
             <div className="p-4 h-full flex flex-col">
                 {/* 채팅 헤더 */}
                 <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-100">
-                    <button
+                    <BackButton
+                        variant="icon-only"
                         onClick={() => setCurrentConversation(null)}
-                        className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-                    >
-                        <ArrowLeft size={18} />
-                    </button>
+                    />
                     <div className="w-8 h-8 rounded-full bg-study-blue/10 flex items-center justify-center font-bold text-xs text-study-blue">
                         {currentConversation?.participantNickname.charAt(0)}
                     </div>
@@ -137,7 +172,7 @@ const DMListMini: React.FC = () => {
                 </div>
 
                 {/* 메시지 목록 */}
-                <div className="flex-1 overflow-y-auto space-y-3 mb-4">
+                <div className="flex-1 overflow-y-auto space-y-3 mb-4" ref={messagesRef}>
                     {isLoading ? (
                         <div className="flex items-center justify-center py-8">
                             <Loader2 size={24} className="animate-spin text-gray-400" />
@@ -149,12 +184,12 @@ const DMListMini: React.FC = () => {
                                 className={`flex ${msg.senderId === currentConversation?.participantId ? 'justify-start' : 'justify-end'}`}
                             >
                                 <div
-                                    className={`max-w-[80%] px-3 py-2 rounded-lg text-sm ${msg.senderId === currentConversation?.participantId
+                                    className={`max-w-[80%] px-3 py-2 rounded-lg text-sm break-words ${msg.senderId === currentConversation?.participantId
                                         ? 'bg-gray-100 text-gray-800'
                                         : 'bg-study-blue text-white'
                                         }`}
                                 >
-                                    <p>{msg.content}</p>
+                                    <p>{renderMessageContent(msg.content)}</p>
                                     <p className={`text-[10px] mt-1 ${msg.senderId === currentConversation?.participantId
                                         ? 'text-gray-400'
                                         : 'text-blue-200'

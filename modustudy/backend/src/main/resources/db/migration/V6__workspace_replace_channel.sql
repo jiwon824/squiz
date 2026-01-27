@@ -5,6 +5,10 @@
 -- - drop channel table
 
 -- 1. create workspace table
+-- 0. 외래키 체크 임시 비활성화
+SET FOREIGN_KEY_CHECKS = 0;
+
+-- 1. workspace 테이블 생성
 CREATE TABLE IF NOT EXISTS `workspace` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
     `study_id` BIGINT NOT NULL UNIQUE,
@@ -85,3 +89,6 @@ ALTER TABLE `meeting`
 
 -- 10. drop channel table
 DROP TABLE IF EXISTS `channel`;
+
+-- 11. 외래키 체크 재활성화
+SET FOREIGN_KEY_CHECKS = 1;

@@ -15,14 +15,23 @@ export default defineConfig({
         },
     },
     server: {
+        allowedHosts: true,
         host: '0.0.0.0',
         port: 3000,
         open: true,
         proxy: {
             '/api': {
-                target: 'https://modustudy.local:8080',
+                target: 'http://localhost:8080',
                 changeOrigin: true,
                 secure: false,
+                // 백엔드가 발급한 쿠키(domain=localhost)를 프론트 도메인에 맞게 변환
+                cookieDomainRewrite: 'modustudy.local',
+            },
+            '/oauth2': {
+                target: 'http://localhost:8080',
+                changeOrigin: true,
+                secure: false,
+                cookieDomainRewrite: 'modustudy.local',
             },
         },
         https: (() => {
@@ -47,9 +56,7 @@ export default defineConfig({
         rollupOptions: {
             output: {
                 manualChunks: {
-                    // React 코어 라이브러리 분리
                     'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-                    // UI 라이브러리 분리
                     'ui-vendor': ['lucide-react'],
                 },
             },

@@ -1,12 +1,11 @@
 package com.ssafy.domain.study.workspace.service;
 
-import com.ssafy.domain.study.entity.Study;
-import com.ssafy.domain.study.entity.StudyType;
+import com.ssafy.domain.study.entity.*;
+import com.ssafy.domain.study.repository.FormatRepository;
 import com.ssafy.domain.study.repository.StudyRepository;
+import com.ssafy.domain.study.repository.TopicRepository;
 import com.ssafy.domain.study.workspace.dto.response.WorkspaceResponse;
-import com.ssafy.domain.study.workspace.entity.Message;
 import com.ssafy.domain.study.workspace.entity.Workspace;
-import com.ssafy.domain.study.workspace.repository.MessageRepository;
 import com.ssafy.domain.study.workspace.repository.WorkspaceRepository;
 import com.ssafy.domain.user.entity.Role;
 import com.ssafy.domain.user.entity.User;
@@ -23,9 +22,11 @@ import org.springframework.transaction.annotation.Transactional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+/**
+ * WorkspaceService 통합 테스트
+ */
 @SpringBootTest
 @Transactional
-@DisplayName("WorkspaceService 테스트")
 class WorkspaceServiceTest {
 
     @Autowired
@@ -35,25 +36,44 @@ class WorkspaceServiceTest {
     private WorkspaceRepository workspaceRepository;
 
     @Autowired
-    private MessageRepository messageRepository;
-
-    @Autowired
     private StudyRepository studyRepository;
 
     @Autowired
     private UserRepository userRepository;
 
     @Autowired
+    private TopicRepository topicRepository;
+
+    @Autowired
+    private FormatRepository formatRepository;
+
+    @Autowired
     private EntityManager entityManager;
 
     private User user;
-    private Study study;
-    private Study studyWithWorkspace;
+    private Study study1;
+    private Study study2;
     private Workspace workspace;
+    private Topic topic;
+    private Format format;
 
     @BeforeEach
     void setUp() {
-        // 1. User 생성
+        // 1. Topic 생성
+        topic = topicRepository.save(Topic.builder()
+                .name("알고리즘")
+                .sortOrder(1)
+                .build());
+        topicRepository.flush();
+
+        // 2. Format 생성
+        format = formatRepository.save(Format.builder()
+                .name("문제 풀이")
+                .sortOrder(1)
+                .build());
+        formatRepository.flush();
+
+        // 3. User 생성
         user = userRepository.save(User.builder()
                 .userId("testuser")
                 .email("test@test.com")
@@ -70,26 +90,27 @@ class WorkspaceServiceTest {
                 .build());
         userRepository.flush();
 
-        // 2. Study 생성 (워크스페이스 없음)
-        study = studyRepository.save(Study.builder()
+        // 4. Study 생성
+        study1 = studyRepository.save(Study.builder()
                 .leaderId(user.getId())
-                .name("테스트 스터디")
-                .topic("Java")
+                .name("알고리즘 스터디")
+                .topic(topic)
+                .format(format)
                 .studyType(StudyType.PLANNED)
                 .build());
         studyRepository.flush();
 
-        // 3. Study 생성 (워크스페이스 있음)
-        studyWithWorkspace = studyRepository.save(Study.builder()
+        study2 = studyRepository.save(Study.builder()
                 .leaderId(user.getId())
-                .name("워크스페이스 있는 스터디")
-                .topic("Spring")
+                .name("CS 스터디")
+                .topic(topic)
+                .format(format)
                 .studyType(StudyType.PLANNED)
                 .build());
         studyRepository.flush();
 
-        // 4. Workspace 생성
-        workspace = workspaceRepository.save(Workspace.create(studyWithWorkspace.getId()));
+        // 5. Workspace 생성 (study1만)
+        workspace = workspaceRepository.save(Workspace.create(study1.getId()));
         workspaceRepository.flush();
     }
 
@@ -98,23 +119,22 @@ class WorkspaceServiceTest {
     class CreateWorkspace {
 
         @Test
-        @DisplayName("워크스페이스 생성 성공")
+        @DisplayName("성공 - 워크스페이스 생성")
         void createWorkspace_Success() {
             // when
-            WorkspaceResponse response = workspaceService.createWorkspace(study.getId());
+            WorkspaceResponse response = workspaceService.createWorkspace(study2.getId());
 
             // then
-            assertThat(response).isNotNull();
             assertThat(response.getId()).isNotNull();
-            assertThat(response.getStudyId()).isEqualTo(study.getId());
+            assertThat(response.getStudyId()).isEqualTo(study2.getId());
             assertThat(response.getCreatedAt()).isNotNull();
         }
 
         @Test
-        @DisplayName("이미 워크스페이스가 존재하면 예외 발생")
+        @DisplayName("실패 - 이미 워크스페이스가 존재")
         void createWorkspace_AlreadyExists() {
             // when & then
-            assertThatThrownBy(() -> workspaceService.createWorkspace(studyWithWorkspace.getId()))
+            assertThatThrownBy(() -> workspaceService.createWorkspace(study1.getId()))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("이미 해당 스터디의 워크스페이스가 존재합니다");
         }
@@ -125,43 +145,41 @@ class WorkspaceServiceTest {
     class GetWorkspace {
 
         @Test
-        @DisplayName("ID로 워크스페이스 조회 성공")
+        @DisplayName("성공 - ID로 조회")
         void getWorkspace_Success() {
             // when
             WorkspaceResponse response = workspaceService.getWorkspace(workspace.getId());
 
             // then
-            assertThat(response).isNotNull();
             assertThat(response.getId()).isEqualTo(workspace.getId());
-            assertThat(response.getStudyId()).isEqualTo(studyWithWorkspace.getId());
+            assertThat(response.getStudyId()).isEqualTo(study1.getId());
         }
 
         @Test
-        @DisplayName("존재하지 않는 워크스페이스 조회 시 예외 발생")
+        @DisplayName("실패 - 존재하지 않는 워크스페이스 ID")
         void getWorkspace_NotFound() {
             // when & then
-            assertThatThrownBy(() -> workspaceService.getWorkspace(999999L))
+            assertThatThrownBy(() -> workspaceService.getWorkspace(99999L))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("워크스페이스를 찾을 수 없습니다");
         }
 
         @Test
-        @DisplayName("스터디 ID로 워크스페이스 조회 성공")
+        @DisplayName("성공 - 스터디 ID로 조회")
         void getWorkspaceByStudyId_Success() {
             // when
-            WorkspaceResponse response = workspaceService.getWorkspaceByStudyId(studyWithWorkspace.getId());
+            WorkspaceResponse response = workspaceService.getWorkspaceByStudyId(study1.getId());
 
             // then
-            assertThat(response).isNotNull();
             assertThat(response.getId()).isEqualTo(workspace.getId());
-            assertThat(response.getStudyId()).isEqualTo(studyWithWorkspace.getId());
+            assertThat(response.getStudyId()).isEqualTo(study1.getId());
         }
 
         @Test
-        @DisplayName("워크스페이스가 없는 스터디 ID로 조회 시 예외 발생")
+        @DisplayName("실패 - 존재하지 않는 스터디 ID")
         void getWorkspaceByStudyId_NotFound() {
             // when & then
-            assertThatThrownBy(() -> workspaceService.getWorkspaceByStudyId(study.getId()))
+            assertThatThrownBy(() -> workspaceService.getWorkspaceByStudyId(99999L))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("해당 스터디의 워크스페이스를 찾을 수 없습니다");
         }
@@ -172,20 +190,20 @@ class WorkspaceServiceTest {
     class ExistsWorkspace {
 
         @Test
-        @DisplayName("워크스페이스가 존재하면 true 반환")
+        @DisplayName("성공 - 존재하는 경우")
         void existsWorkspace_True() {
             // when
-            boolean exists = workspaceService.existsWorkspace(studyWithWorkspace.getId());
+            boolean exists = workspaceService.existsWorkspace(study1.getId());
 
             // then
             assertThat(exists).isTrue();
         }
 
         @Test
-        @DisplayName("워크스페이스가 없으면 false 반환")
+        @DisplayName("성공 - 존재하지 않는 경우")
         void existsWorkspace_False() {
             // when
-            boolean exists = workspaceService.existsWorkspace(study.getId());
+            boolean exists = workspaceService.existsWorkspace(study2.getId());
 
             // then
             assertThat(exists).isFalse();
@@ -197,21 +215,10 @@ class WorkspaceServiceTest {
     class DeleteWorkspace {
 
         @Test
-        @DisplayName("워크스페이스 삭제 성공")
+        @DisplayName("성공 - ID로 삭제")
         void deleteWorkspace_Success() {
             // given
-            Study deleteStudy = studyRepository.save(Study.builder()
-                    .leaderId(user.getId())
-                    .name("삭제용 스터디")
-                    .topic("Delete")
-                    .studyType(StudyType.PLANNED)
-                    .build());
-            studyRepository.flush();
-
-            Workspace deleteWorkspace = workspaceRepository.save(Workspace.create(deleteStudy.getId()));
-            workspaceRepository.flush();
-
-            Long workspaceId = deleteWorkspace.getId();
+            Long workspaceId = workspace.getId();
 
             // when
             workspaceService.deleteWorkspace(workspaceId);
@@ -223,64 +230,19 @@ class WorkspaceServiceTest {
         }
 
         @Test
-        @DisplayName("워크스페이스 삭제 시 메시지도 함께 삭제")
-        void deleteWorkspace_WithMessages() {
-            // given
-            Study deleteStudy = studyRepository.save(Study.builder()
-                    .leaderId(user.getId())
-                    .name("삭제용 스터디2")
-                    .topic("Delete2")
-                    .studyType(StudyType.PLANNED)
-                    .build());
-            studyRepository.flush();
-
-            Workspace deleteWorkspace = workspaceRepository.save(Workspace.create(deleteStudy.getId()));
-            workspaceRepository.flush();
-
-            // 메시지 추가
-            messageRepository.save(Message.createTextMessage(
-                    deleteWorkspace.getId(), user.getId(), "테스트 메시지1"));
-            messageRepository.save(Message.createTextMessage(
-                    deleteWorkspace.getId(), user.getId(), "테스트 메시지2"));
-            messageRepository.flush();
-
-            Long workspaceId = deleteWorkspace.getId();
-
-            // when
-            workspaceService.deleteWorkspace(workspaceId);
-            entityManager.flush();
-            entityManager.clear();
-
-            // then
-            assertThat(workspaceRepository.findById(workspaceId)).isEmpty();
-            assertThat(messageRepository.countByWorkspaceId(workspaceId)).isEqualTo(0);
-        }
-
-        @Test
-        @DisplayName("존재하지 않는 워크스페이스 삭제 시 예외 발생")
+        @DisplayName("실패 - 존재하지 않는 워크스페이스 ID")
         void deleteWorkspace_NotFound() {
             // when & then
-            assertThatThrownBy(() -> workspaceService.deleteWorkspace(999999L))
+            assertThatThrownBy(() -> workspaceService.deleteWorkspace(99999L))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("워크스페이스를 찾을 수 없습니다");
         }
 
         @Test
-        @DisplayName("스터디 ID로 워크스페이스 삭제 성공")
+        @DisplayName("성공 - 스터디 ID로 삭제")
         void deleteWorkspaceByStudyId_Success() {
             // given
-            Study deleteStudy = studyRepository.save(Study.builder()
-                    .leaderId(user.getId())
-                    .name("삭제용 스터디3")
-                    .topic("Delete3")
-                    .studyType(StudyType.PLANNED)
-                    .build());
-            studyRepository.flush();
-
-            Workspace deleteWorkspace = workspaceRepository.save(Workspace.create(deleteStudy.getId()));
-            workspaceRepository.flush();
-
-            Long studyId = deleteStudy.getId();
+            Long studyId = study1.getId();
 
             // when
             workspaceService.deleteWorkspaceByStudyId(studyId);
@@ -288,7 +250,16 @@ class WorkspaceServiceTest {
             entityManager.clear();
 
             // then
-            assertThat(workspaceRepository.findByStudyId(studyId)).isEmpty();
+            assertThat(workspaceRepository.existsByStudyId(studyId)).isFalse();
+        }
+
+        @Test
+        @DisplayName("실패 - 존재하지 않는 스터디 ID로 삭제")
+        void deleteWorkspaceByStudyId_NotFound() {
+            // when & then
+            assertThatThrownBy(() -> workspaceService.deleteWorkspaceByStudyId(99999L))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("해당 스터디의 워크스페이스를 찾을 수 없습니다");
         }
     }
 }

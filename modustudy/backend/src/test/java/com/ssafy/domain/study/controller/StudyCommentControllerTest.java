@@ -4,8 +4,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.domain.study.dto.request.StudyCommentCreateRequest;
 import com.ssafy.domain.study.dto.request.StudyCommentUpdateRequest;
 import com.ssafy.domain.study.entity.*;
+import com.ssafy.domain.study.repository.FormatRepository;
 import com.ssafy.domain.study.repository.StudyCommentRepository;
 import com.ssafy.domain.study.repository.StudyRepository;
+import com.ssafy.domain.study.repository.TopicRepository;
 import com.ssafy.domain.user.entity.Role;
 import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.repository.UserRepository;
@@ -50,15 +52,37 @@ class StudyCommentControllerTest {
     @Autowired
     private StudyCommentRepository commentRepository;
 
+    @Autowired
+    private TopicRepository topicRepository;
+
+    @Autowired
+    private FormatRepository formatRepository;
+
     private User leader;
     private User commenter1;
     private User commenter2;
     private Study testStudy;
     private StudyComment parentComment;
     private StudyComment replyComment;
+    private Topic topic;
+    private Format format;
 
     @BeforeEach
     void setUp() {
+        // Topic 생성
+        topic = topicRepository.save(Topic.builder()
+                .name("알고리즘")
+                .sortOrder(1)
+                .build());
+        topicRepository.flush();
+
+        // Format 생성
+        format = formatRepository.save(Format.builder()
+                .name("문제 풀이")
+                .sortOrder(1)
+                .build());
+        formatRepository.flush();
+
         // 스터디장 생성
         leader = User.builder()
                 .userId("leader123")
@@ -110,12 +134,15 @@ class StudyCommentControllerTest {
                 .build();
         commenter2 = userRepository.save(commenter2);
 
+        userRepository.flush();
+
         // 테스트 스터디 생성
         testStudy = Study.builder()
                 .leaderId(leader.getId())
                 .name("알고리즘 스터디")
                 .description("알고리즘 문제 풀이")
-                .topic("알고리즘")
+                .topic(topic)
+                .format(format)
                 .studyType(StudyType.PLANNED)
                 .meetingType(MeetingType.ONLINE)
                 .status(Status.RECRUITING)
@@ -128,6 +155,7 @@ class StudyCommentControllerTest {
                 .extensionCount(0)
                 .build();
         testStudy = studyRepository.save(testStudy);
+        studyRepository.flush();
 
         // 테스트용 댓글 생성
         parentComment = StudyComment.builder()
@@ -145,6 +173,7 @@ class StudyCommentControllerTest {
                 .content("대댓글입니다. 저도 관심있어요!")
                 .build();
         replyComment = commentRepository.save(replyComment);
+        commentRepository.flush();
     }
 
     // ============================================================
@@ -474,6 +503,7 @@ class StudyCommentControllerTest {
         // given - 댓글 삭제
         parentComment.delete();
         commentRepository.save(parentComment);
+        commentRepository.flush();
 
         // when & then - 목록에서는 삭제된 댓글도 표시 (대댓글 때문에)
         mockMvc.perform(get("/api/v1/study/{studyId}/comments", testStudy.getId()))

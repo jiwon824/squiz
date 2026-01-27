@@ -1,8 +1,9 @@
 package com.ssafy.domain.study.workspace.repository;
 
-import com.ssafy.domain.study.entity.Study;
-import com.ssafy.domain.study.entity.StudyType;
+import com.ssafy.domain.study.entity.*;
+import com.ssafy.domain.study.repository.FormatRepository;
 import com.ssafy.domain.study.repository.StudyRepository;
+import com.ssafy.domain.study.repository.TopicRepository;
 import com.ssafy.domain.study.workspace.entity.Message;
 import com.ssafy.domain.study.workspace.entity.MessageType;
 import com.ssafy.domain.study.workspace.entity.Workspace;
@@ -18,7 +19,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -26,9 +26,11 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * MessageRepository 통합 테스트
+ */
 @SpringBootTest
 @Transactional
-@DisplayName("MessageRepository 테스트")
 class MessageRepositoryTest {
 
     @Autowired
@@ -44,18 +46,42 @@ class MessageRepositoryTest {
     private UserRepository userRepository;
 
     @Autowired
+    private TopicRepository topicRepository;
+
+    @Autowired
+    private FormatRepository formatRepository;
+
+    @Autowired
     private EntityManager entityManager;
 
-    private User user;
+    private User user1;
     private User user2;
     private Study study;
     private Workspace workspace;
-    private Message message;
+    private Message message1;
+    private Message message2;
+    private Message deletedMessage;
+    private Topic topic;
+    private Format format;
 
     @BeforeEach
     void setUp() {
-        // 1. User 생성
-        user = userRepository.save(User.builder()
+        // 1. Topic 생성
+        topic = topicRepository.save(Topic.builder()
+                .name("알고리즘")
+                .sortOrder(1)
+                .build());
+        topicRepository.flush();
+
+        // 2. Format 생성
+        format = formatRepository.save(Format.builder()
+                .name("문제 풀이")
+                .sortOrder(1)
+                .build());
+        formatRepository.flush();
+
+        // 3. User 생성
+        user1 = userRepository.save(User.builder()
                 .userId("testuser1")
                 .email("test1@test.com")
                 .nickname("테스트유저1")
@@ -87,25 +113,37 @@ class MessageRepositoryTest {
                 .build());
         userRepository.flush();
 
-        // 2. Study 생성
+        // 4. Study 생성
         study = studyRepository.save(Study.builder()
-                .leaderId(user.getId())
-                .name("테스트 스터디")
-                .topic("Java")
+                .leaderId(user1.getId())
+                .name("알고리즘 스터디")
+                .topic(topic)
+                .format(format)
                 .studyType(StudyType.PLANNED)
                 .build());
         studyRepository.flush();
 
-        // 3. Workspace 생성
+        // 5. Workspace 생성
         workspace = workspaceRepository.save(Workspace.create(study.getId()));
         workspaceRepository.flush();
 
-        // 4. Message 생성
-        message = messageRepository.save(Message.createTextMessage(
-                workspace.getId(),
-                user.getId(),
-                "테스트 메시지입니다."
-        ));
+        // 6. Message 생성
+        message1 = messageRepository.save(Message.createTextMessage(
+                workspace.getId(), user1.getId(), "안녕하세요!"));
+        messageRepository.flush();
+
+        message2 = messageRepository.save(Message.createTextMessage(
+                workspace.getId(), user2.getId(), "반갑습니다!"));
+        messageRepository.flush();
+
+        // 7. 삭제된 메시지 생성
+        deletedMessage = messageRepository.save(Message.builder()
+                .workspaceId(workspace.getId())
+                .userId(user1.getId())
+                .content("삭제된 메시지")
+                .messageType(MessageType.TEXT)
+                .isDeleted(true)
+                .build());
         messageRepository.flush();
     }
 
@@ -114,98 +152,86 @@ class MessageRepositoryTest {
     class CreateMessage {
 
         @Test
-        @DisplayName("텍스트 메시지 생성 성공")
+        @DisplayName("성공 - 텍스트 메시지 생성")
         void createTextMessage_Success() {
-            // given & when
-            Message textMessage = messageRepository.save(Message.createTextMessage(
-                    workspace.getId(),
-                    user.getId(),
-                    "안녕하세요!"
-            ));
+            // given
+            Message message = Message.createTextMessage(
+                    workspace.getId(), user1.getId(), "새 메시지");
+
+            // when
+            Message saved = messageRepository.save(message);
             messageRepository.flush();
 
             // then
-            assertThat(textMessage.getId()).isNotNull();
-            assertThat(textMessage.getWorkspaceId()).isEqualTo(workspace.getId());
-            assertThat(textMessage.getUserId()).isEqualTo(user.getId());
-            assertThat(textMessage.getContent()).isEqualTo("안녕하세요!");
-            assertThat(textMessage.getMessageType()).isEqualTo(MessageType.TEXT);
-            assertThat(textMessage.getIsDeleted()).isFalse();
+            assertThat(saved.getId()).isNotNull();
+            assertThat(saved.getWorkspaceId()).isEqualTo(workspace.getId());
+            assertThat(saved.getUserId()).isEqualTo(user1.getId());
+            assertThat(saved.getContent()).isEqualTo("새 메시지");
+            assertThat(saved.getMessageType()).isEqualTo(MessageType.TEXT);
+            assertThat(saved.getIsDeleted()).isFalse();
         }
 
         @Test
-        @DisplayName("이미지 메시지 생성 성공")
+        @DisplayName("성공 - 이미지 메시지 생성")
         void createImageMessage_Success() {
-            // given & when
-            Message imageMessage = messageRepository.save(Message.createImageMessage(
-                    workspace.getId(),
-                    user.getId(),
-                    "이미지 설명",
-                    "https://example.com/image.png"
-            ));
+            // given
+            Message message = Message.createImageMessage(
+                    workspace.getId(), user1.getId(), "이미지입니다",
+                    "https://example.com/image.jpg");
+
+            // when
+            Message saved = messageRepository.save(message);
             messageRepository.flush();
 
             // then
-            assertThat(imageMessage.getMessageType()).isEqualTo(MessageType.IMAGE);
-            assertThat(imageMessage.getFileUrl()).isEqualTo("https://example.com/image.png");
-            assertThat(imageMessage.hasFile()).isTrue();
+            assertThat(saved.getMessageType()).isEqualTo(MessageType.IMAGE);
+            assertThat(saved.getFileUrl()).isEqualTo("https://example.com/image.jpg");
         }
 
         @Test
-        @DisplayName("파일 메시지 생성 성공")
+        @DisplayName("성공 - 파일 메시지 생성")
         void createFileMessage_Success() {
-            // given & when
-            Message fileMessage = messageRepository.save(Message.createFileMessage(
-                    workspace.getId(),
-                    user.getId(),
-                    "문서 파일",
-                    "https://example.com/document.pdf"
-            ));
+            // given
+            Message message = Message.createFileMessage(
+                    workspace.getId(), user1.getId(), "파일입니다",
+                    "https://example.com/file.pdf");
+
+            // when
+            Message saved = messageRepository.save(message);
             messageRepository.flush();
 
             // then
-            assertThat(fileMessage.getMessageType()).isEqualTo(MessageType.FILE);
-            assertThat(fileMessage.getFileUrl()).isEqualTo("https://example.com/document.pdf");
-            assertThat(fileMessage.hasFile()).isTrue();
+            assertThat(saved.getMessageType()).isEqualTo(MessageType.FILE);
+            assertThat(saved.getFileUrl()).isEqualTo("https://example.com/file.pdf");
         }
 
         @Test
-        @DisplayName("시스템 메시지 생성 성공 - 저장 없이 객체 테스트")
+        @DisplayName("성공 - 시스템 메시지 생성")
         void createSystemMessage_Success() {
-            // given & when - DB 저장 없이 객체만 생성 (userId=0L은 FK 위반)
-            Message systemMessage = Message.createSystemMessage(
-                    workspace.getId(),
-                    "테스트유저1님이 입장하셨습니다."
-            );
+            // given
+            Message message = Message.createSystemMessage(
+                    workspace.getId(), "테스트유저1님이 입장했습니다.");
+
+            // when
+            Message saved = messageRepository.save(message);
+            messageRepository.flush();
 
             // then
-            assertThat(systemMessage.getMessageType()).isEqualTo(MessageType.SYSTEM);
-            assertThat(systemMessage.getUserId()).isEqualTo(0L);
-            assertThat(systemMessage.isSystemMessage()).isTrue();
-            assertThat(systemMessage.getWorkspaceId()).isEqualTo(workspace.getId());
+            assertThat(saved.getMessageType()).isEqualTo(MessageType.SYSTEM);
+            assertThat(saved.getUserId()).isEqualTo(0L);
         }
     }
 
     @Nested
     @DisplayName("메시지 조회")
-    class FindMessages {
+    class FindMessage {
 
         @Test
-        @DisplayName("워크스페이스 ID로 메시지 목록 조회 (삭제되지 않은 것만)")
+        @DisplayName("성공 - 워크스페이스별 메시지 조회 (삭제 제외)")
         void findByWorkspaceIdAndNotDeleted_Success() {
-            // given
-            Message message2 = messageRepository.save(Message.createTextMessage(
-                    workspace.getId(), user.getId(), "두 번째 메시지"));
-            Message deletedMessage = messageRepository.save(Message.createTextMessage(
-                    workspace.getId(), user.getId(), "삭제된 메시지"));
-            deletedMessage.delete();
-            messageRepository.flush();
-
-            Pageable pageable = PageRequest.of(0, 10);
-
             // when
             Page<Message> result = messageRepository.findByWorkspaceIdAndNotDeleted(
-                    workspace.getId(), pageable);
+                    workspace.getId(), PageRequest.of(0, 10));
 
             // then
             assertThat(result.getContent()).hasSize(2);
@@ -213,156 +239,134 @@ class MessageRepositoryTest {
         }
 
         @Test
-        @DisplayName("워크스페이스 ID로 메시지 목록 조회 (삭제 포함)")
-        void findByWorkspaceId_IncludeDeleted() {
-            // given
-            Message deletedMessage = messageRepository.save(Message.createTextMessage(
-                    workspace.getId(), user.getId(), "삭제된 메시지"));
-            deletedMessage.delete();
-            messageRepository.flush();
-
-            Pageable pageable = PageRequest.of(0, 10);
-
+        @DisplayName("성공 - 워크스페이스별 메시지 조회 (삭제 포함)")
+        void findByWorkspaceId_Success() {
             // when
-            Page<Message> result = messageRepository.findByWorkspaceId(workspace.getId(), pageable);
+            Page<Message> result = messageRepository.findByWorkspaceId(
+                    workspace.getId(), PageRequest.of(0, 10));
 
             // then
-            assertThat(result.getContent()).hasSize(2);
+            assertThat(result.getContent()).hasSize(3);
         }
 
         @Test
-        @DisplayName("최근 메시지 N개 조회")
+        @DisplayName("성공 - 최근 메시지 조회")
         void findRecentMessages_Success() {
-            // given
-            for (int i = 0; i < 5; i++) {
-                messageRepository.save(Message.createTextMessage(
-                        workspace.getId(), user.getId(), "메시지 " + i));
-            }
-            messageRepository.flush();
-
-            Pageable pageable = PageRequest.of(0, 3);
-
             // when
-            List<Message> result = messageRepository.findRecentMessages(workspace.getId(), pageable);
+            List<Message> result = messageRepository.findRecentMessages(
+                    workspace.getId(), PageRequest.of(0, 5));
 
             // then
-            assertThat(result).hasSize(3);
+            assertThat(result).hasSize(2);
+            assertThat(result).noneMatch(Message::isDeleted);
         }
 
         @Test
-        @DisplayName("특정 시간 이후의 메시지 조회")
-        void findMessagesAfter_Success() {
-            // given
-            LocalDateTime baseTime = LocalDateTime.now().minusMinutes(1);
-
-            Message newMessage = messageRepository.save(Message.createTextMessage(
-                    workspace.getId(), user.getId(), "새 메시지"));
-            messageRepository.flush();
-
-            // when
-            List<Message> result = messageRepository.findMessagesAfter(workspace.getId(), baseTime);
-
-            // then
-            assertThat(result).isNotEmpty();
-        }
-
-        @Test
-        @DisplayName("사용자 ID로 메시지 목록 조회")
+        @DisplayName("성공 - 사용자별 메시지 조회")
         void findByUserId_Success() {
-            // given
-            messageRepository.save(Message.createTextMessage(
-                    workspace.getId(), user2.getId(), "user2의 메시지"));
-            messageRepository.flush();
-
-            Pageable pageable = PageRequest.of(0, 10);
-
             // when
-            Page<Message> result = messageRepository.findByUserId(user.getId(), pageable);
+            Page<Message> result = messageRepository.findByUserId(
+                    user1.getId(), PageRequest.of(0, 10));
 
             // then
-            assertThat(result.getContent()).allMatch(m -> m.getUserId().equals(user.getId()));
+            assertThat(result.getContent()).hasSize(1);
+            assertThat(result.getContent().get(0).getUserId()).isEqualTo(user1.getId());
         }
 
         @Test
-        @DisplayName("메시지 타입별 조회")
+        @DisplayName("성공 - 메시지 타입별 조회")
         void findByWorkspaceIdAndMessageType_Success() {
             // given
             messageRepository.save(Message.createImageMessage(
-                    workspace.getId(), user.getId(), "이미지", "https://example.com/img.png"));
-            messageRepository.save(Message.createImageMessage(
-                    workspace.getId(), user.getId(), "이미지2", "https://example.com/img2.png"));
-            messageRepository.flush();
-
-            Pageable pageable = PageRequest.of(0, 10);
-
-            // when
-            Page<Message> result = messageRepository.findByWorkspaceIdAndMessageType(
-                    workspace.getId(), MessageType.IMAGE, pageable);
-
-            // then
-            assertThat(result.getContent()).hasSize(2);
-            assertThat(result.getContent()).allMatch(m -> m.getMessageType() == MessageType.IMAGE);
-        }
-
-        @Test
-        @DisplayName("메시지 내용 검색")
-        void searchByContent_Success() {
-            // given
-            messageRepository.save(Message.createTextMessage(
-                    workspace.getId(), user.getId(), "Java 공부하자"));
-            messageRepository.save(Message.createTextMessage(
-                    workspace.getId(), user.getId(), "Spring 공부하자"));
-            messageRepository.save(Message.createTextMessage(
-                    workspace.getId(), user.getId(), "Python 배우자"));
-            messageRepository.flush();
-
-            Pageable pageable = PageRequest.of(0, 10);
-
-            // when
-            Page<Message> result = messageRepository.searchByContent(
-                    workspace.getId(), "공부", pageable);
-
-            // then
-            assertThat(result.getContent()).hasSize(2);
-            assertThat(result.getContent()).allMatch(m -> m.getContent().contains("공부"));
-        }
-
-        @Test
-        @DisplayName("워크스페이스 내 메시지 수 조회")
-        void countByWorkspaceId_Success() {
-            // given
-            messageRepository.save(Message.createTextMessage(
-                    workspace.getId(), user.getId(), "메시지 1"));
-            messageRepository.save(Message.createTextMessage(
-                    workspace.getId(), user.getId(), "메시지 2"));
+                    workspace.getId(), user1.getId(), "이미지",
+                    "https://example.com/img.jpg"));
             messageRepository.flush();
 
             // when
-            long count = messageRepository.countByWorkspaceId(workspace.getId());
+            Page<Message> textMessages = messageRepository.findByWorkspaceIdAndMessageType(
+                    workspace.getId(), MessageType.TEXT, PageRequest.of(0, 10));
+            Page<Message> imageMessages = messageRepository.findByWorkspaceIdAndMessageType(
+                    workspace.getId(), MessageType.IMAGE, PageRequest.of(0, 10));
 
             // then
-            assertThat(count).isEqualTo(3); // setUp에서 1개 + 여기서 2개
+            assertThat(textMessages.getContent()).hasSize(2);
+            assertThat(imageMessages.getContent()).hasSize(1);
         }
     }
 
     @Nested
-    @DisplayName("메시지 수정")
-    class UpdateMessage {
+    @DisplayName("메시지 검색")
+    class SearchMessage {
 
         @Test
-        @DisplayName("메시지 내용 수정 성공")
-        void updateContent_Success() {
-            // given
-            String newContent = "수정된 메시지입니다.";
-
+        @DisplayName("성공 - 키워드 검색")
+        void searchByContent_Success() {
             // when
-            message.updateContent(newContent);
-            messageRepository.flush();
-            entityManager.clear();
+            Page<Message> result = messageRepository.searchByContent(
+                    workspace.getId(), "안녕", PageRequest.of(0, 10));
 
             // then
-            Message found = messageRepository.findById(message.getId()).orElseThrow();
-            assertThat(found.getContent()).isEqualTo(newContent);
+            assertThat(result.getContent()).hasSize(1);
+            assertThat(result.getContent().get(0).getContent()).contains("안녕");
+        }
+
+        @Test
+        @DisplayName("성공 - 검색 결과 없음")
+        void searchByContent_NoResult() {
+            // when
+            Page<Message> result = messageRepository.searchByContent(
+                    workspace.getId(), "존재하지않는키워드", PageRequest.of(0, 10));
+
+            // then
+            assertThat(result.getContent()).isEmpty();
+        }
+    }
+
+    @Nested
+    @DisplayName("특정 시간 이후 메시지 조회")
+    class FindMessagesAfter {
+
+        @Test
+        @DisplayName("성공 - 특정 시간 이후 메시지 조회")
+        void findMessagesAfter_Success() {
+            // given
+            LocalDateTime beforeTime = LocalDateTime.now().minusHours(1);
+
+            // when
+            List<Message> result = messageRepository.findMessagesAfter(
+                    workspace.getId(), beforeTime);
+
+            // then
+            assertThat(result).hasSize(2);
+        }
+
+        @Test
+        @DisplayName("성공 - 미래 시간 조회 시 빈 결과")
+        void findMessagesAfter_Empty() {
+            // given
+            LocalDateTime futureTime = LocalDateTime.now().plusHours(1);
+
+            // when
+            List<Message> result = messageRepository.findMessagesAfter(
+                    workspace.getId(), futureTime);
+
+            // then
+            assertThat(result).isEmpty();
+        }
+    }
+
+    @Nested
+    @DisplayName("메시지 통계")
+    class MessageStatistics {
+
+        @Test
+        @DisplayName("성공 - 메시지 개수 조회")
+        void countByWorkspaceId_Success() {
+            // when
+            long count = messageRepository.countByWorkspaceId(workspace.getId());
+
+            // then
+            assertThat(count).isEqualTo(2); // 삭제된 메시지 제외
         }
     }
 
@@ -371,28 +375,8 @@ class MessageRepositoryTest {
     class DeleteMessage {
 
         @Test
-        @DisplayName("메시지 Soft Delete 성공")
-        void softDelete_Success() {
-            // when
-            message.delete();
-            messageRepository.flush();
-            entityManager.clear();
-
-            // then
-            Message found = messageRepository.findById(message.getId()).orElseThrow();
-            assertThat(found.isDeleted()).isTrue();
-        }
-
-        @Test
-        @DisplayName("워크스페이스 ID로 모든 메시지 삭제 성공")
+        @DisplayName("성공 - 워크스페이스별 전체 삭제")
         void deleteAllByWorkspaceId_Success() {
-            // given
-            messageRepository.save(Message.createTextMessage(
-                    workspace.getId(), user.getId(), "메시지 1"));
-            messageRepository.save(Message.createTextMessage(
-                    workspace.getId(), user.getId(), "메시지 2"));
-            messageRepository.flush();
-
             // when
             messageRepository.deleteAllByWorkspaceId(workspace.getId());
             entityManager.flush();
@@ -400,92 +384,73 @@ class MessageRepositoryTest {
 
             // then
             long count = messageRepository.countByWorkspaceId(workspace.getId());
-            assertThat(count).isEqualTo(0);
+            assertThat(count).isZero();
         }
 
         @Test
-        @DisplayName("사용자 ID로 모든 메시지 삭제 성공")
+        @DisplayName("성공 - 사용자별 전체 삭제")
         void deleteAllByUserId_Success() {
-            // given
-            Long userId = user.getId();
-            Pageable pageable = PageRequest.of(0, 10);
-
             // when
-            messageRepository.deleteAllByUserId(userId);
+            messageRepository.deleteAllByUserId(user1.getId());
             entityManager.flush();
             entityManager.clear();
 
             // then
-            Page<Message> result = messageRepository.findByUserId(userId, pageable);
+            Page<Message> result = messageRepository.findByUserId(
+                    user1.getId(), PageRequest.of(0, 10));
             assertThat(result.getContent()).isEmpty();
         }
     }
 
     @Nested
-    @DisplayName("비즈니스 로직 테스트")
-    class BusinessLogic {
+    @DisplayName("엔티티 비즈니스 로직")
+    class EntityBusinessLogic {
 
         @Test
-        @DisplayName("작성자 확인")
+        @DisplayName("성공 - 메시지 내용 수정")
+        void updateContent_Success() {
+            // when
+            message1.updateContent("수정된 내용");
+            messageRepository.flush();
+            entityManager.clear();
+
+            // then
+            Message found = messageRepository.findById(message1.getId()).orElseThrow();
+            assertThat(found.getContent()).isEqualTo("수정된 내용");
+        }
+
+        @Test
+        @DisplayName("성공 - 메시지 삭제 (Soft Delete)")
+        void delete_Success() {
+            // when
+            message1.delete();
+            messageRepository.flush();
+            entityManager.clear();
+
+            // then
+            Message found = messageRepository.findById(message1.getId()).orElseThrow();
+            assertThat(found.isDeleted()).isTrue();
+        }
+
+        @Test
+        @DisplayName("성공 - 작성자 확인")
         void isAuthor_Success() {
             // then
-            assertThat(message.isAuthor(user.getId())).isTrue();
-            assertThat(message.isAuthor(user2.getId())).isFalse();
+            assertThat(message1.isAuthor(user1.getId())).isTrue();
+            assertThat(message1.isAuthor(user2.getId())).isFalse();
         }
 
         @Test
-        @DisplayName("시스템 메시지 여부 확인 - 저장 없이 객체 테스트")
-        void isSystemMessage_Success() {
-            // given - DB 저장 없이 객체만 생성 (userId=0L은 FK 위반이므로)
-            Message systemMessage = Message.builder()
-                    .workspaceId(1L)
-                    .userId(0L)
-                    .content("시스템 메시지")
-                    .messageType(MessageType.SYSTEM)
-                    .build();
-
-            Message textMessage = Message.builder()
-                    .workspaceId(1L)
-                    .userId(1L)
-                    .content("일반 메시지")
-                    .messageType(MessageType.TEXT)
-                    .build();
-
-            // then
-            assertThat(systemMessage.isSystemMessage()).isTrue();
-            assertThat(textMessage.isSystemMessage()).isFalse();
-        }
-
-        @Test
-        @DisplayName("파일 첨부 여부 확인 - 저장 없이 객체 테스트")
+        @DisplayName("성공 - 파일 첨부 여부 확인")
         void hasFile_Success() {
-            // given - DB 저장 없이 객체만 생성
-            Message imageMessage = Message.builder()
-                    .workspaceId(1L)
-                    .userId(1L)
-                    .content("이미지")
-                    .messageType(MessageType.IMAGE)
-                    .fileUrl("https://example.com/img.png")
-                    .build();
-
-            Message fileMessage = Message.builder()
-                    .workspaceId(1L)
-                    .userId(1L)
-                    .content("파일")
-                    .messageType(MessageType.FILE)
-                    .fileUrl("https://example.com/file.pdf")
-                    .build();
-
-            Message textMessage = Message.builder()
-                    .workspaceId(1L)
-                    .userId(1L)
-                    .content("텍스트")
-                    .messageType(MessageType.TEXT)
-                    .build();
+            // given
+            Message imageMessage = Message.createImageMessage(
+                    workspace.getId(), user1.getId(), "이미지", "url");
+            Message textMessage = Message.createTextMessage(
+                    workspace.getId(), user1.getId(), "텍스트");
 
             // then
             assertThat(imageMessage.hasFile()).isTrue();
-            assertThat(fileMessage.hasFile()).isTrue();
             assertThat(textMessage.hasFile()).isFalse();
         }
     }

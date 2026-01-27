@@ -469,9 +469,145 @@ GET /api/v1/calendar/all
 
 ---
 
-## 5. 데이터베이스 스키마
+## 5. 오늘의 학습 목표 (Daily Goals) API
 
-### 5.1 personal_schedule 테이블
+### 5.1 학습 목표 목록 조회
+```
+GET /api/v1/users/me/daily-goals
+```
+
+**Request Headers:**
+- `Authorization`: Bearer {accessToken}
+- `User-Id`: {userId}
+
+**Query Parameters:**
+| 파라미터 | 타입 | 필수 | 설명 |
+|---------|------|------|------|
+| date | String | Y | 조회할 날짜 (YYYY-MM-DD) |
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "title": "알고리즘 코드 리뷰 2건",
+      "completed": true,
+      "date": "2026-01-26",
+      "createdAt": "2026-01-26T09:00:00Z"
+    },
+    {
+      "id": 2,
+      "title": "네트워크 OSI 7계층 정리",
+      "completed": false,
+      "date": "2026-01-26",
+      "createdAt": "2026-01-26T10:00:00Z"
+    }
+  ],
+  "message": "학습 목표 목록 조회 성공"
+}
+```
+
+---
+
+### 5.2 학습 목표 생성
+```
+POST /api/v1/users/me/daily-goals
+```
+
+**Request Headers:**
+- `Authorization`: Bearer {accessToken}
+- `User-Id`: {userId}
+- `Content-Type`: application/json
+
+**Request Body:**
+```json
+{
+  "title": "CS 면접 질문 3개 준비",
+  "date": "2026-01-26"
+}
+```
+
+**Response (201 Created):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": 3,
+    "userId": 1,
+    "title": "CS 면접 질문 3개 준비",
+    "completed": false,
+    "date": "2026-01-26",
+    "createdAt": "2026-01-26T14:00:00Z"
+  },
+  "message": "학습 목표 생성 성공"
+}
+```
+
+---
+
+### 5.3 학습 목표 상태 변경 (토글)
+```
+PATCH /api/v1/users/me/daily-goals/{goalId}/toggle
+```
+
+**Request Headers:**
+- `Authorization`: Bearer {accessToken}
+- `User-Id`: {userId}
+
+**Path Parameters:**
+| 파라미터 | 타입 | 설명 |
+|---------|------|------|
+| goalId | Long | 학습 목표 ID |
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": 3,
+    "userId": 1,
+    "title": "CS 면접 질문 3개 준비",
+    "completed": true,
+    "date": "2026-01-26",
+    "createdAt": "2026-01-26T14:00:00Z"
+  },
+  "message": "학습 목표 상태 변경 성공"
+}
+```
+
+---
+
+### 5.4 학습 목표 삭제
+```
+DELETE /api/v1/users/me/daily-goals/{goalId}
+```
+
+**Request Headers:**
+- `Authorization`: Bearer {accessToken}
+- `User-Id`: {userId}
+
+**Path Parameters:**
+| 파라미터 | 타입 | 설명 |
+|---------|------|------|
+| goalId | Long | 학습 목표 ID |
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": null,
+  "message": "학습 목표 삭제 성공"
+}
+```
+
+---
+
+## 6. 데이터베이스 스키마
+```
+
+### 6.1 personal_schedule 테이블
 
 ```sql
 CREATE TABLE personal_schedule (

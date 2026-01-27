@@ -1,7 +1,7 @@
 import { CalendarDayInfo } from '../types';
 
-/**
- * 해당 월의 모든 날짜 계산 (이전달/현재달/다음달 포함)
+/*
+ 해당 월의 모든 날짜 계산 (이전달/현재달/다음달 포함)
  */
 export const getDaysInMonth = (year: number, month: number): CalendarDayInfo[] => {
     const date = new Date(year, month, 1);
@@ -14,7 +14,7 @@ export const getDaysInMonth = (year: number, month: number): CalendarDayInfo[] =
         days.push({
             day: prevDate.getDate(),
             month: 'prev',
-            fullDate: prevDate.toISOString().split('T')[0]
+            fullDate: formatDate(prevDate)
         });
     }
 
@@ -23,7 +23,7 @@ export const getDaysInMonth = (year: number, month: number): CalendarDayInfo[] =
         days.push({
             day: date.getDate(),
             month: 'current',
-            fullDate: new Date(date).toISOString().split('T')[0]
+            fullDate: formatDate(date)
         });
         date.setDate(date.getDate() + 1);
     }
@@ -36,15 +36,15 @@ export const getDaysInMonth = (year: number, month: number): CalendarDayInfo[] =
         days.push({
             day: nextDate.getDate(),
             month: 'next',
-            fullDate: nextDate.toISOString().split('T')[0]
+            fullDate: formatDate(nextDate)
         });
     }
 
     return days;
 };
 
-/**
- * 오늘 기준 주간 뷰 계산
+/*
+ 오늘 기준 주간 뷰 계산
  */
 export const getWeeklyDays = (
     allDays: CalendarDayInfo[],
@@ -58,36 +58,49 @@ export const getWeeklyDays = (
     return allDays.slice(startOfWeekIndex, startOfWeekIndex + 7);
 };
 
-/**
- * 날짜 문자열을 Date 객체로 변환
+/*
+ 날짜 문자열을 Date 객체로 변환
  */
 export const parseDate = (dateStr: string): Date => {
     return new Date(dateStr);
 };
 
-/**
- * Date 객체를 YYYY-MM-DD 형식으로 변환
+/*
+ Date 객체를 YYYY-MM-DD 형식으로 변환 (로컬 시간 기준)
  */
 export const formatDate = (date: Date): string => {
-    return date.toISOString().split('T')[0];
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
 };
 
-/**
- * 오늘 날짜 문자열 반환 (YYYY-MM-DD)
+/*
+ 오늘 날짜 문자열 반환 (YYYY-MM-DD)
  */
 export const getTodayString = (): string => {
     return formatDate(new Date());
 };
 
-/**
- * 두 날짜가 같은지 비교
+/*
+ 현재 시간 문자열 반환 (HH:mm)
+ */
+export const getCurrentTimeString = (): string => {
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+};
+
+/*
+ 두 날짜가 같은지 비교
  */
 export const isSameDate = (date1: string, date2: string): boolean => {
     return date1 === date2;
 };
 
-/**
- * 날짜가 오늘인지 확인
+/*
+ 날짜가 오늘인지 확인
  */
 export const isToday = (dateStr: string): boolean => {
     return isSameDate(dateStr, getTodayString());

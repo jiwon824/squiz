@@ -6,7 +6,8 @@ import QuizSubHeader from './QuizSubHeader';
 import QuizInputList from './QuizInputlist';
 import QuizGuessInput from './QuizGuessInput';
 import { Modal } from '@/shared/components/Modal';
-import { Trophy, ArrowLeft, Info, Crown, Box } from 'lucide-react';
+import { BackButton } from '@/shared/components';
+import { Trophy, Info, Crown, Box } from 'lucide-react';
 import { checkSimilarity, fetchDailyWord, fetchLeaderboard, saveToLeaderboard, getLocalUserGuesses, saveLocalUserGuesses, cleanupOldGuesses } from '../services/quizService';
 import { useAuthStore } from '@/store/authStore';
 import './Commentle.css';
@@ -176,9 +177,7 @@ const CommentleQuiz = () => {
         <div className="w-full max-w-[1400px] mx-auto animate-fade-in">
             {/* 상단 헤더: 뒤로가기 + 정보 아이콘 */}
             <div className="quiz-top-header">
-                <button onClick={() => navigate('/quiz')} className="back-btn">
-                    <ArrowLeft size={20} />
-                </button>
+                <BackButton variant="icon-only" onClick={() => navigate('/quiz')} />
 
                 {/* 점수 산정 방식 안내 */}
                 <div className="info-tooltip-wrapper">

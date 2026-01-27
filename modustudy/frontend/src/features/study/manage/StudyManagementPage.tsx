@@ -8,7 +8,8 @@ import MemberManagement from './components/MemberManagement';
 import AttendanceManagement from './components/AttendanceManagement';
 import ExcuseManagement from './components/ExcuseManagement';
 import { studyService, Study } from '../services/studyService';
-import { Settings, ArrowLeft } from 'lucide-react';
+import { BackButton } from '@/shared/components';
+import { Settings } from 'lucide-react';
 
 export type ManageTab = 'dashboard' | 'applicants' | 'members' | 'attendance' | 'excuse';
 
@@ -53,13 +54,13 @@ const StudyManagementPage: React.FC = () => {
             <div className="max-w-7xl mx-auto px-4 py-6">
                 {/* 헤더 */}
                 <header className="mb-8">
-                    <button 
-                        onClick={() => navigate(`/study/${study.id}`)}
-                        className="flex items-center gap-2 text-text-secondary hover:text-primary mb-4 transition-colors"
-                    >
-                        <ArrowLeft size={18} />
-                        <span className="text-sm font-medium">스터디로 돌아가기</span>
-                    </button>
+                    <div className="flex items-center gap-2 mb-4">
+                        <BackButton
+                            variant="icon-only"
+                            onClick={() => navigate(`/study/${study.id}`)}
+                        />
+                        <span className="text-sm font-medium text-gray-600">스터디로 돌아가기</span>
+                    </div>
                     <div className="flex items-center gap-4">
                         <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
                             <Settings size={24} className="text-primary" />

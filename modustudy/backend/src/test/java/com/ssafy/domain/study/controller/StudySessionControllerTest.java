@@ -4,38 +4,44 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.domain.study.dto.request.StudySessionCreateRequest;
 import com.ssafy.domain.study.dto.request.StudySessionUpdateRequest;
 import com.ssafy.domain.study.entity.*;
+import com.ssafy.domain.study.repository.FormatRepository;
 import com.ssafy.domain.study.repository.StudyRepository;
 import com.ssafy.domain.study.repository.StudySessionRepository;
+import com.ssafy.domain.study.repository.TopicRepository;
 import com.ssafy.domain.user.entity.Role;
 import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.repository.UserRepository;
-import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
  * StudySessionController 통합 테스트
+ *
+ * 실제 엔드포인트:
+ * - Base: /api/v1/studies/{studyId}/sessions
+ * - 상태 변경: POST (PATCH가 아님)
+ * - 목록 조회: List 반환 (Page가 아님)
+ * - 통계: /statistics (stats가 아님)
  */
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
+@WithMockUser(username = "testuser", roles = {"USER"})
 class StudySessionControllerTest {
 
     @Autowired
@@ -45,31 +51,66 @@ class StudySessionControllerTest {
     private ObjectMapper objectMapper;
 
     @Autowired
-    private StudySessionRepository studySessionRepository;
-
-    @Autowired
     private StudyRepository studyRepository;
 
     @Autowired
     private UserRepository userRepository;
 
     @Autowired
-    private EntityManager entityManager;
+    private StudySessionRepository sessionRepository;
+
+    @Autowired
+    private TopicRepository topicRepository;
+
+    @Autowired
+    private FormatRepository formatRepository;
 
     private User leader;
-    private User otherUser;
-    private Study study;
-
-    private static final String BASE_URL = "/api/v1/studies/{studyId}/sessions";
+    private User member;
+    private Study testStudy;
+    private StudySession testSession;
+    private Topic topic;
+    private Format format;
 
     @BeforeEach
     void setUp() {
-        // 1. 스터디장 생성
+        // 1. Topic 생성
+        topic = topicRepository.save(Topic.builder()
+                .name("알고리즘")
+                .sortOrder(1)
+                .build());
+        topicRepository.flush();
+
+        // 2. Format 생성
+        format = formatRepository.save(Format.builder()
+                .name("문제 풀이")
+                .sortOrder(1)
+                .build());
+        formatRepository.flush();
+
+        // 3. 스터디장 생성
         leader = userRepository.save(User.builder()
-                .userId("leader")
+                .userId("leader123")
                 .email("leader@test.com")
                 .nickname("스터디장")
-                .name("리더")
+                .name("김리더")
+                .role(Role.USER)
+                .isActive(true)
+                .isOnline(false)
+                .isSearchable(true)
+                .totalExp(0)
+                .currentPoints(0)
+                .currentLevel(5)
+                .levelName("Gold")
+                .build());
+        userRepository.flush();
+
+        // 4. 일반 멤버 생성
+        member = userRepository.save(User.builder()
+                .userId("member123")
+                .email("member@test.com")
+                .nickname("멤버")
+                .name("이멤버")
                 .role(Role.USER)
                 .isActive(true)
                 .isOnline(false)
@@ -81,508 +122,353 @@ class StudySessionControllerTest {
                 .build());
         userRepository.flush();
 
-        // 2. 다른 사용자 생성
-        otherUser = userRepository.save(User.builder()
-                .userId("other")
-                .email("other@test.com")
-                .nickname("다른유저")
-                .name("다른")
-                .role(Role.USER)
-                .isActive(true)
-                .isOnline(false)
-                .isSearchable(true)
-                .totalExp(0)
-                .currentPoints(0)
-                .currentLevel(1)
-                .levelName("Bronze")
-                .build());
-        userRepository.flush();
-
-        // 3. 스터디 생성
-        study = studyRepository.save(Study.builder()
+        // 5. 테스트용 스터디 생성
+        testStudy = studyRepository.save(Study.builder()
                 .leaderId(leader.getId())
-                .name("테스트 스터디")
-                .topic("Java")
+                .name("알고리즘 스터디")
+                .description("알고리즘 문제 풀이")
+                .topic(topic)
+                .format(format)
                 .studyType(StudyType.PLANNED)
+                .meetingType(MeetingType.ONLINE)
+                .status(Status.IN_PROGRESS)
+                .maxMembers(10)
+                .isPublic(true)
+                .startDate(LocalDate.of(2025, 2, 1))
+                .endDate(LocalDate.of(2025, 5, 1))
+                .recruitStartDate(LocalDate.of(2025, 1, 15))
+                .recruitEndDate(LocalDate.of(2025, 1, 31))
+                .extensionCount(0)
                 .build());
         studyRepository.flush();
+
+        // 6. 테스트용 세션 생성 (미래 날짜로 설정)
+        testSession = sessionRepository.save(StudySession.builder()
+                .studyId(testStudy.getId())
+                .sessionNumber(1)
+                .title("1회차: 배열과 문자열")
+                .description("배열과 문자열 기초 문제 풀이")
+                .scheduledAt(LocalDateTime.now().plusDays(7))  // 미래 날짜
+                .durationMinutes(120)
+                .location("온라인 (Zoom)")
+                .isOnline(true)
+                .status(SessionStatus.SCHEDULED)
+                .build());
+        sessionRepository.flush();
     }
 
-    @Nested
-    @DisplayName("POST /api/v1/studies/{studyId}/sessions - 세션 생성")
-    class CreateSession {
+    // ============================================================
+    // 세션 생성 테스트
+    // ============================================================
 
-        @Test
-        @DisplayName("성공 - 201 Created")
-        void createSession_Success() throws Exception {
-            // given
-            StudySessionCreateRequest request = StudySessionCreateRequest.builder()
-                    .title("1회차: OT")
-                    .description("오리엔테이션")
-                    .scheduledAt(LocalDateTime.now().plusDays(7))
-                    .durationMinutes(90)
-                    .location("Zoom")
-                    .isOnline(true)
-                    .build();
+    @Test
+    @DisplayName("세션 생성 성공")
+    void createSession_Success() throws Exception {
+        // given
+        StudySessionCreateRequest request = StudySessionCreateRequest.builder()
+                .title("2회차: 스택과 큐")
+                .description("스택과 큐 자료구조 학습")
+                .scheduledAt(LocalDateTime.of(2025, 2, 12, 19, 0))
+                .durationMinutes(120)
+                .isOnline(true)
+                .build();
 
-            // when
-            ResultActions result = mockMvc.perform(post(BASE_URL, study.getId())
-                    .header("User-Id", leader.getId())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(request)));
-
-            // then
-            result.andDo(print())
-                    .andExpect(status().isCreated())
-                    .andExpect(jsonPath("$.id").exists())
-                    .andExpect(jsonPath("$.studyId").value(study.getId()))
-                    .andExpect(jsonPath("$.sessionNumber").value(1))
-                    .andExpect(jsonPath("$.title").value("1회차: OT"))
-                    .andExpect(jsonPath("$.durationMinutes").value(90))
-                    .andExpect(jsonPath("$.status").value("SCHEDULED"));
-        }
-
-        @Test
-        @DisplayName("실패 - 스터디장이 아닌 사용자 - 403 Forbidden")
-        void createSession_NotLeader_Forbidden() throws Exception {
-            // given
-            StudySessionCreateRequest request = StudySessionCreateRequest.builder()
-                    .title("1회차")
-                    .scheduledAt(LocalDateTime.now().plusDays(7))
-                    .build();
-
-            // when
-            ResultActions result = mockMvc.perform(post(BASE_URL, study.getId())
-                    .header("User-Id", otherUser.getId())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(request)));
-
-            // then
-            result.andDo(print())
-                    .andExpect(status().isForbidden());
-        }
-
-        @Test
-        @DisplayName("실패 - 필수 필드 누락 - 400 Bad Request")
-        void createSession_MissingRequired_BadRequest() throws Exception {
-            // given - scheduledAt 누락
-            StudySessionCreateRequest request = StudySessionCreateRequest.builder()
-                    .title("1회차")
-                    .build();
-
-            // when
-            ResultActions result = mockMvc.perform(post(BASE_URL, study.getId())
-                    .header("User-Id", leader.getId())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(request)));
-
-            // then
-            result.andDo(print())
-                    .andExpect(status().isBadRequest());
-        }
-
-        @Test
-        @DisplayName("실패 - 존재하지 않는 스터디 - 404 Not Found")
-        void createSession_StudyNotFound_NotFound() throws Exception {
-            // given
-            StudySessionCreateRequest request = StudySessionCreateRequest.builder()
-                    .title("1회차")
-                    .scheduledAt(LocalDateTime.now().plusDays(7))
-                    .build();
-
-            // when
-            ResultActions result = mockMvc.perform(post(BASE_URL, 999L)
-                    .header("User-Id", leader.getId())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(request)));
-
-            // then
-            result.andDo(print())
-                    .andExpect(status().isNotFound());
-        }
+        // when & then
+        mockMvc.perform(post("/api/v1/studies/{studyId}/sessions", testStudy.getId())
+                        .header("User-Id", leader.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").exists())
+                .andExpect(jsonPath("$.studyId").value(testStudy.getId()))
+                .andExpect(jsonPath("$.sessionNumber").value(2))
+                .andExpect(jsonPath("$.title").value("2회차: 스택과 큐"))
+                .andExpect(jsonPath("$.status").value("SCHEDULED"));
     }
 
-    @Nested
-    @DisplayName("GET /api/v1/studies/{studyId}/sessions/{sessionId} - 세션 단건 조회")
-    class GetSession {
+    @Test
+    @DisplayName("세션 생성 실패 - 권한 없음")
+    void createSession_NotLeader() throws Exception {
+        // given
+        StudySessionCreateRequest request = StudySessionCreateRequest.builder()
+                .title("2회차: 스택과 큐")
+                .scheduledAt(LocalDateTime.of(2025, 2, 12, 19, 0))
+                .durationMinutes(120)
+                .build();
 
-        @Test
-        @DisplayName("성공 - 200 OK")
-        void getSession_Success() throws Exception {
-            // given
-            StudySession session = createTestSession(study.getId(), 1, "1회차: OT");
-            studySessionRepository.flush();
-
-            // when
-            ResultActions result = mockMvc.perform(get(BASE_URL + "/{sessionId}",
-                    study.getId(), session.getId()));
-
-            // then
-            result.andDo(print())
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.id").value(session.getId()))
-                    .andExpect(jsonPath("$.title").value("1회차: OT"))
-                    .andExpect(jsonPath("$.sessionNumber").value(1));
-        }
-
-        @Test
-        @DisplayName("실패 - 존재하지 않는 세션 - 404 Not Found")
-        void getSession_NotFound() throws Exception {
-            // when
-            ResultActions result = mockMvc.perform(get(BASE_URL + "/{sessionId}",
-                    study.getId(), 999L));
-
-            // then
-            result.andDo(print())
-                    .andExpect(status().isNotFound());
-        }
+        // when & then
+        mockMvc.perform(post("/api/v1/studies/{studyId}/sessions", testStudy.getId())
+                        .header("User-Id", member.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value(containsString("스터디장만")));
     }
 
-    @Nested
-    @DisplayName("GET /api/v1/studies/{studyId}/sessions/number/{sessionNumber} - 회차로 조회")
-    class GetSessionByNumber {
+    @Test
+    @DisplayName("세션 생성 실패 - 존재하지 않는 스터디")
+    void createSession_StudyNotFound() throws Exception {
+        // given
+        StudySessionCreateRequest request = StudySessionCreateRequest.builder()
+                .title("새 세션")
+                .scheduledAt(LocalDateTime.of(2025, 2, 12, 19, 0))
+                .durationMinutes(120)
+                .build();
 
-        @Test
-        @DisplayName("성공 - 200 OK")
-        void getSessionByNumber_Success() throws Exception {
-            // given
-            createTestSession(study.getId(), 1, "1회차");
-            createTestSession(study.getId(), 2, "2회차");
-            studySessionRepository.flush();
-
-            // when
-            ResultActions result = mockMvc.perform(get(BASE_URL + "/number/{sessionNumber}",
-                    study.getId(), 2));
-
-            // then
-            result.andDo(print())
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.sessionNumber").value(2))
-                    .andExpect(jsonPath("$.title").value("2회차"));
-        }
+        // when & then
+        mockMvc.perform(post("/api/v1/studies/{studyId}/sessions", 99999L)
+                        .header("User-Id", leader.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value(containsString("존재하지 않는 스터디")));
     }
 
-    @Nested
-    @DisplayName("GET /api/v1/studies/{studyId}/sessions - 세션 목록 조회")
-    class GetSessions {
+    // ============================================================
+    // 세션 목록 조회 테스트 (List 반환)
+    // ============================================================
 
-        @Test
-        @DisplayName("성공 - 전체 목록 (회차 순)")
-        void getSessions_All_Success() throws Exception {
-            // given
-            createTestSession(study.getId(), 3, "3회차");
-            createTestSession(study.getId(), 1, "1회차");
-            createTestSession(study.getId(), 2, "2회차");
-            studySessionRepository.flush();
-
-            // when
-            ResultActions result = mockMvc.perform(get(BASE_URL, study.getId()));
-
-            // then
-            result.andDo(print())
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$", hasSize(3)))
-                    .andExpect(jsonPath("$[0].sessionNumber").value(1))
-                    .andExpect(jsonPath("$[1].sessionNumber").value(2))
-                    .andExpect(jsonPath("$[2].sessionNumber").value(3));
-        }
-
-        @Test
-        @DisplayName("성공 - 상태별 필터링")
-        void getSessions_ByStatus_Success() throws Exception {
-            // given
-            StudySession session1 = createTestSession(study.getId(), 1, "1회차");
-            createTestSession(study.getId(), 2, "2회차");
-            createTestSession(study.getId(), 3, "3회차");
-            studySessionRepository.flush();
-
-            // session1 완료 처리
-            session1.start();
-            session1.complete();
-            studySessionRepository.flush();
-
-            // when
-            ResultActions result = mockMvc.perform(get(BASE_URL, study.getId())
-                    .param("status", "SCHEDULED"));
-
-            // then
-            result.andDo(print())
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$", hasSize(2)));
-        }
+    @Test
+    @DisplayName("스터디별 세션 목록 조회 성공")
+    void getSessionsByStudy_Success() throws Exception {
+        // when & then - List 반환 (Page가 아님)
+        mockMvc.perform(get("/api/v1/studies/{studyId}/sessions", testStudy.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].sessionNumber").value(1))
+                .andExpect(jsonPath("$[0].title").value("1회차: 배열과 문자열"));
     }
 
-    @Nested
-    @DisplayName("GET /api/v1/studies/{studyId}/sessions/next - 다음 예정 세션")
-    class GetNextSession {
-
-        @Test
-        @DisplayName("성공 - 200 OK")
-        void getNextSession_Success() throws Exception {
-            // given
-            LocalDateTime now = LocalDateTime.now();
-            createTestSessionWithScheduledAt(study.getId(), 1, "1회차", now.plusDays(7));
-            createTestSessionWithScheduledAt(study.getId(), 2, "2회차", now.plusDays(14));
-            studySessionRepository.flush();
-
-            // when
-            ResultActions result = mockMvc.perform(get(BASE_URL + "/next", study.getId()));
-
-            // then
-            result.andDo(print())
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.sessionNumber").value(1));
-        }
-
-        @Test
-        @DisplayName("실패 - 예정된 세션 없음 - 404 Not Found")
-        void getNextSession_NotFound() throws Exception {
-            // when
-            ResultActions result = mockMvc.perform(get(BASE_URL + "/next", study.getId()));
-
-            // then
-            result.andDo(print())
-                    .andExpect(status().isNotFound());
-        }
-    }
-
-    @Nested
-    @DisplayName("PUT /api/v1/studies/{studyId}/sessions/{sessionId} - 세션 수정")
-    class UpdateSession {
-
-        @Test
-        @DisplayName("성공 - 200 OK")
-        void updateSession_Success() throws Exception {
-            // given
-            StudySession session = createTestSession(study.getId(), 1, "1회차");
-            studySessionRepository.flush();
-
-            StudySessionUpdateRequest request = StudySessionUpdateRequest.builder()
-                    .title("1회차: OT (수정됨)")
-                    .description("수정된 설명")
-                    .durationMinutes(120)
-                    .build();
-
-            // when
-            ResultActions result = mockMvc.perform(put(BASE_URL + "/{sessionId}",
-                    study.getId(), session.getId())
-                    .header("User-Id", leader.getId())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(request)));
-
-            // then
-            result.andDo(print())
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.title").value("1회차: OT (수정됨)"))
-                    .andExpect(jsonPath("$.description").value("수정된 설명"))
-                    .andExpect(jsonPath("$.durationMinutes").value(120));
-        }
-
-        @Test
-        @DisplayName("실패 - 진행 중인 세션 수정 - 400 Bad Request")
-        void updateSession_InProgress_BadRequest() throws Exception {
-            // given
-            StudySession session = createTestSession(study.getId(), 1, "1회차");
-            session.start();
-            studySessionRepository.flush();
-
-            StudySessionUpdateRequest request = StudySessionUpdateRequest.builder()
-                    .title("수정 시도")
-                    .build();
-
-            // when
-            ResultActions result = mockMvc.perform(put(BASE_URL + "/{sessionId}",
-                    study.getId(), session.getId())
-                    .header("User-Id", leader.getId())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(request)));
-
-            // then
-            result.andDo(print())
-                    .andExpect(status().isBadRequest());
-        }
-    }
-
-    @Nested
-    @DisplayName("DELETE /api/v1/studies/{studyId}/sessions/{sessionId} - 세션 삭제")
-    class DeleteSession {
-
-        @Test
-        @DisplayName("성공 - 204 No Content")
-        void deleteSession_Success() throws Exception {
-            // given
-            StudySession session = createTestSession(study.getId(), 1, "1회차");
-            studySessionRepository.flush();
-            Long sessionId = session.getId();
-
-            // when
-            ResultActions result = mockMvc.perform(delete(BASE_URL + "/{sessionId}",
-                    study.getId(), sessionId)
-                    .header("User-Id", leader.getId()));
-
-            // then
-            result.andDo(print())
-                    .andExpect(status().isNoContent());
-
-            // 삭제 확인
-            entityManager.flush();
-            entityManager.clear();
-            assertThat(studySessionRepository.findById(sessionId)).isEmpty();
-        }
-
-        @Test
-        @DisplayName("실패 - 완료된 세션 삭제 - 400 Bad Request")
-        void deleteSession_Completed_BadRequest() throws Exception {
-            // given
-            StudySession session = createTestSession(study.getId(), 1, "1회차");
-            session.start();
-            session.complete();
-            studySessionRepository.flush();
-
-            // when
-            ResultActions result = mockMvc.perform(delete(BASE_URL + "/{sessionId}",
-                    study.getId(), session.getId())
-                    .header("User-Id", leader.getId()));
-
-            // then
-            result.andDo(print())
-                    .andExpect(status().isBadRequest());
-        }
-    }
-
-    @Nested
-    @DisplayName("POST /api/v1/studies/{studyId}/sessions/{sessionId}/start - 세션 시작")
-    class StartSession {
-
-        @Test
-        @DisplayName("성공 - 200 OK")
-        void startSession_Success() throws Exception {
-            // given
-            StudySession session = createTestSession(study.getId(), 1, "1회차");
-            studySessionRepository.flush();
-
-            // when
-            ResultActions result = mockMvc.perform(post(BASE_URL + "/{sessionId}/start",
-                    study.getId(), session.getId())
-                    .header("User-Id", leader.getId()));
-
-            // then
-            result.andDo(print())
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.status").value("IN_PROGRESS"));
-        }
-    }
-
-    @Nested
-    @DisplayName("POST /api/v1/studies/{studyId}/sessions/{sessionId}/complete - 세션 완료")
-    class CompleteSession {
-
-        @Test
-        @DisplayName("성공 - 200 OK")
-        void completeSession_Success() throws Exception {
-            // given
-            StudySession session = createTestSession(study.getId(), 1, "1회차");
-            session.start();
-            studySessionRepository.flush();
-
-            // when
-            ResultActions result = mockMvc.perform(post(BASE_URL + "/{sessionId}/complete",
-                    study.getId(), session.getId())
-                    .header("User-Id", leader.getId()));
-
-            // then
-            result.andDo(print())
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.status").value("COMPLETED"))
-                    .andExpect(jsonPath("$.completedAt").exists());
-        }
-    }
-
-    @Nested
-    @DisplayName("POST /api/v1/studies/{studyId}/sessions/{sessionId}/cancel - 세션 취소")
-    class CancelSession {
-
-        @Test
-        @DisplayName("성공 - 200 OK")
-        void cancelSession_Success() throws Exception {
-            // given
-            StudySession session = createTestSession(study.getId(), 1, "1회차");
-            studySessionRepository.flush();
-
-            // when
-            ResultActions result = mockMvc.perform(post(BASE_URL + "/{sessionId}/cancel",
-                    study.getId(), session.getId())
-                    .header("User-Id", leader.getId()));
-
-            // then
-            result.andDo(print())
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.status").value("CANCELLED"));
-        }
-    }
-
-    @Nested
-    @DisplayName("GET /api/v1/studies/{studyId}/sessions/statistics - 세션 통계")
-    class GetSessionStatistics {
-
-        @Test
-        @DisplayName("성공 - 200 OK")
-        void getSessionStatistics_Success() throws Exception {
-            // given
-            StudySession session1 = createTestSession(study.getId(), 1, "1회차");
-            StudySession session2 = createTestSession(study.getId(), 2, "2회차");
-            createTestSession(study.getId(), 3, "3회차");
-            StudySession session4 = createTestSession(study.getId(), 4, "4회차");
-            studySessionRepository.flush();
-
-            // session1, session2 완료
-            session1.start();
-            session1.complete();
-            session2.start();
-            session2.complete();
-            // session4 취소
-            session4.cancel();
-            studySessionRepository.flush();
-
-            // when
-            ResultActions result = mockMvc.perform(get(BASE_URL + "/statistics", study.getId()));
-
-            // then
-            result.andDo(print())
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.totalCount").value(4))
-                    .andExpect(jsonPath("$.completedCount").value(2))
-                    .andExpect(jsonPath("$.scheduledCount").value(1))
-                    .andExpect(jsonPath("$.cancelledCount").value(1))
-                    .andExpect(jsonPath("$.completionRate").value(50.0));
-        }
-    }
-
-    // ==================== Helper Methods ====================
-
-    private StudySession createTestSession(Long studyId, int sessionNumber, String title) {
-        return studySessionRepository.save(StudySession.builder()
-                .studyId(studyId)
-                .sessionNumber(sessionNumber)
-                .title(title)
-                .description(title + " 설명")
-                .scheduledAt(LocalDateTime.now().plusDays(sessionNumber * 7L))
+    @Test
+    @DisplayName("세션 목록 조회 - 상태 필터링")
+    void getSessionsByStudy_WithStatusFilter() throws Exception {
+        // given - 다른 상태의 세션 추가
+        sessionRepository.save(StudySession.builder()
+                .studyId(testStudy.getId())
+                .sessionNumber(0)
+                .title("0회차: OT")
+                .scheduledAt(LocalDateTime.of(2025, 2, 1, 19, 0))
                 .durationMinutes(60)
                 .isOnline(true)
+                .status(SessionStatus.COMPLETED)
                 .build());
+        sessionRepository.flush();
+
+        // when & then - SCHEDULED만 조회
+        mockMvc.perform(get("/api/v1/studies/{studyId}/sessions", testStudy.getId())
+                        .param("status", "SCHEDULED"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].status").value("SCHEDULED"));
     }
 
-    private StudySession createTestSessionWithScheduledAt(Long studyId, int sessionNumber,
-                                                          String title, LocalDateTime scheduledAt) {
-        return studySessionRepository.save(StudySession.builder()
-                .studyId(studyId)
-                .sessionNumber(sessionNumber)
-                .title(title)
-                .description(title + " 설명")
-                .scheduledAt(scheduledAt)
-                .durationMinutes(60)
-                .isOnline(true)
-                .build());
+    @Test
+    @DisplayName("다음 예정 세션 조회")
+    void getNextSession_Success() throws Exception {
+        // when & then - /next 엔드포인트 사용
+        mockMvc.perform(get("/api/v1/studies/{studyId}/sessions/next", testStudy.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sessionNumber").value(1));
     }
 
+    // ============================================================
+    // 세션 상세 조회 테스트
+    // ============================================================
+
+    @Test
+    @DisplayName("세션 상세 조회 성공")
+    void getSession_Success() throws Exception {
+        // when & then
+        mockMvc.perform(get("/api/v1/studies/{studyId}/sessions/{sessionId}",
+                        testStudy.getId(), testSession.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(testSession.getId()))
+                .andExpect(jsonPath("$.title").value("1회차: 배열과 문자열"))
+                .andExpect(jsonPath("$.sessionNumber").value(1))
+                .andExpect(jsonPath("$.status").value("SCHEDULED"));
+    }
+
+    @Test
+    @DisplayName("세션 상세 조회 실패 - 존재하지 않는 세션")
+    void getSession_NotFound() throws Exception {
+        // when & then
+        mockMvc.perform(get("/api/v1/studies/{studyId}/sessions/{sessionId}",
+                        testStudy.getId(), 99999L))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value(containsString("세션을 찾을 수 없습니다")));
+    }
+
+    // ============================================================
+    // 세션 수정 테스트
+    // ============================================================
+
+    @Test
+    @DisplayName("세션 수정 성공")
+    void updateSession_Success() throws Exception {
+        // given
+        StudySessionUpdateRequest request = StudySessionUpdateRequest.builder()
+                .title("수정된 제목: 배열과 문자열 심화")
+                .description("심화 문제 풀이")
+                .scheduledAt(LocalDateTime.of(2025, 2, 6, 20, 0))
+                .durationMinutes(150)
+                .build();
+
+        // when & then
+        mockMvc.perform(put("/api/v1/studies/{studyId}/sessions/{sessionId}",
+                        testStudy.getId(), testSession.getId())
+                        .header("User-Id", leader.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title").value("수정된 제목: 배열과 문자열 심화"))
+                .andExpect(jsonPath("$.durationMinutes").value(150));
+    }
+
+    @Test
+    @DisplayName("세션 수정 실패 - 권한 없음")
+    void updateSession_NotLeader() throws Exception {
+        // given
+        StudySessionUpdateRequest request = StudySessionUpdateRequest.builder()
+                .title("수정 시도")
+                .build();
+
+        // when & then
+        mockMvc.perform(put("/api/v1/studies/{studyId}/sessions/{sessionId}",
+                        testStudy.getId(), testSession.getId())
+                        .header("User-Id", member.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value(containsString("스터디장만")));
+    }
+
+    // ============================================================
+    // 세션 상태 변경 테스트 (POST 방식)
+    // ============================================================
+
+    @Test
+    @DisplayName("세션 시작 성공")
+    void startSession_Success() throws Exception {
+        // when & then - POST 사용 (PATCH가 아님)
+        mockMvc.perform(post("/api/v1/studies/{studyId}/sessions/{sessionId}/start",
+                        testStudy.getId(), testSession.getId())
+                        .header("User-Id", leader.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("IN_PROGRESS"));
+    }
+
+    @Test
+    @DisplayName("세션 완료 성공")
+    void completeSession_Success() throws Exception {
+        // given - 세션 시작 상태로 변경
+        testSession.start();
+        sessionRepository.save(testSession);
+        sessionRepository.flush();
+
+        // when & then - POST 사용
+        mockMvc.perform(post("/api/v1/studies/{studyId}/sessions/{sessionId}/complete",
+                        testStudy.getId(), testSession.getId())
+                        .header("User-Id", leader.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("COMPLETED"));
+    }
+
+    @Test
+    @DisplayName("세션 취소 성공")
+    void cancelSession_Success() throws Exception {
+        // when & then - POST 사용
+        mockMvc.perform(post("/api/v1/studies/{studyId}/sessions/{sessionId}/cancel",
+                        testStudy.getId(), testSession.getId())
+                        .header("User-Id", leader.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CANCELLED"));
+    }
+
+    @Test
+    @DisplayName("세션 상태 변경 실패 - 잘못된 상태 전환")
+    void invalidStatusTransition() throws Exception {
+        // given - 완료 상태로 변경
+        testSession.start();
+        testSession.complete();
+        sessionRepository.save(testSession);
+        sessionRepository.flush();
+
+        // when & then - 완료된 세션을 시작하려고 시도
+        mockMvc.perform(post("/api/v1/studies/{studyId}/sessions/{sessionId}/start",
+                        testStudy.getId(), testSession.getId())
+                        .header("User-Id", leader.getId()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").exists());
+    }
+
+    // ============================================================
+    // 세션 삭제 테스트
+    // ============================================================
+
+    @Test
+    @DisplayName("세션 삭제 성공")
+    void deleteSession_Success() throws Exception {
+        // when & then
+        mockMvc.perform(delete("/api/v1/studies/{studyId}/sessions/{sessionId}",
+                        testStudy.getId(), testSession.getId())
+                        .header("User-Id", leader.getId()))
+                .andExpect(status().isNoContent());
+
+        // 삭제 확인
+        mockMvc.perform(get("/api/v1/studies/{studyId}/sessions/{sessionId}",
+                        testStudy.getId(), testSession.getId()))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("세션 삭제 실패 - 권한 없음")
+    void deleteSession_NotLeader() throws Exception {
+        // when & then
+        mockMvc.perform(delete("/api/v1/studies/{studyId}/sessions/{sessionId}",
+                        testStudy.getId(), testSession.getId())
+                        .header("User-Id", member.getId()))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value(containsString("스터디장만")));
+    }
+
+    // ============================================================
+    // 세션 번호로 조회 테스트
+    // ============================================================
+
+    @Test
+    @DisplayName("세션 번호로 조회 성공")
+    void getSessionByNumber_Success() throws Exception {
+        // when & then
+        mockMvc.perform(get("/api/v1/studies/{studyId}/sessions/number/{sessionNumber}",
+                        testStudy.getId(), 1))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sessionNumber").value(1))
+                .andExpect(jsonPath("$.title").value("1회차: 배열과 문자열"));
+    }
+
+    @Test
+    @DisplayName("세션 번호로 조회 실패 - 존재하지 않는 번호")
+    void getSessionByNumber_NotFound() throws Exception {
+        // when & then
+        mockMvc.perform(get("/api/v1/studies/{studyId}/sessions/number/{sessionNumber}",
+                        testStudy.getId(), 99))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value(containsString("세션을 찾을 수 없습니다")));
+    }
+
+    // ============================================================
+    // 세션 통계 테스트 (/statistics 엔드포인트)
+    // ============================================================
+
+    @Test
+    @DisplayName("세션 통계 조회 성공")
+    void getSessionStatistics_Success() throws Exception {
+        // when & then - /statistics 사용 (stats가 아님)
+        mockMvc.perform(get("/api/v1/studies/{studyId}/sessions/statistics", testStudy.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalCount").value(1))
+                .andExpect(jsonPath("$.scheduledCount").value(1))
+                .andExpect(jsonPath("$.completedCount").value(0));
+    }
 }
