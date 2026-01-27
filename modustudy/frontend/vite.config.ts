@@ -21,14 +21,14 @@ export default defineConfig({
         open: true,
         proxy: {
             '/api': {
-                target: 'http://localhost:8080',
+                target: 'https://localhost:8080',
                 changeOrigin: true,
                 secure: false,
                 // 백엔드가 발급한 쿠키(domain=localhost)를 프론트 도메인에 맞게 변환
                 cookieDomainRewrite: 'modustudy.local',
             },
             '/oauth2': {
-                target: 'http://localhost:8080',
+                target: 'https://localhost:8080',
                 changeOrigin: true,
                 secure: false,
                 cookieDomainRewrite: 'modustudy.local',
