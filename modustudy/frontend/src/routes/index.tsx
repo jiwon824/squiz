@@ -88,6 +88,9 @@ const MeetingRoomPage = lazy(() =>
 const MeetingRecordingPlaybackPage = lazy(() =>
     import('../features/meeting').then(m => ({ default: m.MeetingRecordingPlaybackPage }))
 );
+const WorkspacePage = lazy(() =>
+    import('../features/workspace').then(m => ({ default: m.WorkspacePage }))
+);
 
 const ProfileSkeleton = lazy(() =>
     import('@/features/profile/components/ProfileSkeleton').then(module => ({ default: module.ProfileSkeleton }))
@@ -134,21 +137,22 @@ export const AppRouter = () => {
     return (
         <Suspense fallback={<div className="p-6"><Skeleton variant="rect" height="100vh" /></div>}>
             <Routes>
-                {/* 즉시 로드 페이지 */}
-                <Route path="/" element={<StartPage />} />
-                <Route path="/startpage" element={<StartPage />} />
-                <Route
-                    path="/dashboard"
-                    element={
-                        <Suspense fallback={<DashboardSkeleton />}>
-                            <Dashboard />
-                        </Suspense>
-                    }
-                />
-                <Route path="/calendar-expand" element={<CalendarExpandWidget />} />
-                <Route path="/calendar" element={<CalendarPage />} />
-                <Route path="/test-calendar" element={<CalendarTestPage />} />
-                <Route path="/reuse-test" element={<ReuseTest />} />
+            {/* 즉시 로드 페이지 */}
+            <Route path="/" element={<StartPage />} />
+            <Route path="/startpage" element={<StartPage />} />
+            <Route
+                path="/dashboard"
+                element={
+                    <Suspense fallback={<DashboardSkeleton />}>
+                        <Dashboard />
+                    </Suspense>
+                }
+            />
+            <Route path="/calendar-expand" element={<CalendarExpandWidget />} />
+            <Route path="/calendar" element={<CalendarPage />} />
+            <Route path="/test-calendar" element={<CalendarTestPage />} />
+            <Route path="/reuse-test" element={<ReuseTest />} />
+            <Route path="/workspace-test" element={<WorkspacePage />} />
 
                 {/* 인증 */}
                 <Route path="/login" element={<LoginPage />} />
@@ -166,16 +170,14 @@ export const AppRouter = () => {
                     element={<QuizSessionPage />}
                 />
 
-                {/* 스터디 */}
-                <Route path="/study" element={<StudyPage />} />
-                <Route path="/study-v2" element={<StudyPageV2 />} />
-                <Route path="/study/create" element={<StudyTypeSelectPage />} />
-                <Route path="/study/create/planned" element={<StudyCreatePage />} />
-                <Route path="/study/create/lightning" element={<LightningStudyCreatePage />} />
-                <Route path="/study/:id" element={<StudyDetailPage />} />
-                <Route path="/study/v2/:id" element={<StudyDetailPageV2 />} />
-                <Route path="/study/v3/:id" element={<StudyDetailPageV3 />} />
-                <Route path="/study/manage/:id" element={<StudyManagementPage />} />
+            {/* 스터디 */}
+            <Route path="/study" element={<StudyPage />} />
+            <Route path="/study/create" element={<StudyTypeSelectPage />} />
+            <Route path="/study/create/planned" element={<StudyCreatePage />} />
+            <Route path="/study/create/lightning" element={<LightningStudyCreatePage />} />
+            <Route path="/study/:id" element={<StudyDetailPage />} />
+            <Route path="/study/manage/:id" element={<StudyManagementPage />} />
+            <Route path="/study/:studyId/workspace" element={<WorkspacePage />} />
 
                 {/* 미팅 */}
                 <Route path="/study/:studyId/meetings" element={<MeetingHistoryPage />} />
