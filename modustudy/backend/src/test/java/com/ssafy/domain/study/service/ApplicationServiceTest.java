@@ -56,6 +56,9 @@ class ApplicationServiceTest {
     @Mock
     private StudyMemberRepository studyMemberRepository;
 
+    @Mock
+    private StudyRecommendService studyRecommendService;
+
     @InjectMocks
     private ApplicationService applicationService;
 

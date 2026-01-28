@@ -4,6 +4,7 @@ import com.ssafy.common.exception.StudyException;
 import com.ssafy.domain.study.dto.request.ApplicationCreateRequest;
 import com.ssafy.domain.study.dto.response.ApplicationResponse;
 import com.ssafy.domain.study.entity.*;
+import com.ssafy.domain.study.entity.StudyRecommendAction;
 import com.ssafy.domain.study.repository.StudyApplicationRepository;
 import com.ssafy.domain.study.repository.StudyMemberRepository;
 import com.ssafy.domain.study.repository.StudyRepository;
@@ -28,6 +29,7 @@ public class ApplicationService {
     private final StudyRepository studyRepository;
     private final UserRepository userRepository;
     private final StudyMemberRepository studyMemberRepository;
+    private final StudyRecommendService studyRecommendService;
 
     // ============================================================
     // 신청 생성
@@ -78,7 +80,10 @@ public class ApplicationService {
 
         log.info("스터디 신청 생성 완료 - applicationId: {}", saved.getId());
 
-        // 6. DTO 변환 및 추가 정보 설정
+        // 6. 추천 반응 자동 기록 (추천에서 온 지원인지 감지)
+        studyRecommendService.tryLogAction(userId, studyId, StudyRecommendAction.ActionType.APPLY);
+
+        // 7. DTO 변환 및 추가 정보 설정
         ApplicationResponse response = ApplicationResponse.from(saved);
         response.setStudyName(study.getName());
         response.setUserInfo(user.getName(), user.getNickname(), user.getEmail());

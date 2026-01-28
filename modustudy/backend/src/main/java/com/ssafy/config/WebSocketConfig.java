@@ -19,16 +19,19 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        String[] origins = allowedOrigins.split("\\s*,\\s*");
-        if (Arrays.asList(origins).contains("*")) {
-            registry.addEndpoint("/ws")
-                    .setAllowedOriginPatterns(origins)
-                    .addInterceptors(new WebSocketHandshakeInterceptor())
-                    .withSockJS();
-            return;
-        }
+        // SockJS는 setAllowedOriginPatterns("*") 전파가 안 되므로 명시적 origin 목록 사용
         registry.addEndpoint("/ws")
-                .setAllowedOrigins(origins)
+                .setAllowedOrigins(
+                        "http://localhost:3000",
+                        "https://localhost:3000",
+                        "http://localhost:3001",
+                        "https://localhost:3001",
+                        "http://localhost:3003",
+                        "https://localhost:3003",
+                        "http://localhost:5173",
+                        "https://modustudy.local:3000",
+                        "https://i14d106.p.ssafy.io"
+                )
                 .addInterceptors(new WebSocketHandshakeInterceptor())
                 .withSockJS();
     }

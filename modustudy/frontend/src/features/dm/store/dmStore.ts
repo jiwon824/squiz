@@ -26,7 +26,8 @@ interface DMState {
     currentConversationId: number | null;
     messages: Message[];
     unreadCount: number;
-    isLoading: boolean;
+    isLoading: boolean;           // 메시지 로딩 전용
+    isLoadingConversations: boolean;  // 대화 목록 로딩 (메시지 영역에 영향 안 줌)
     error: string | null;
     pendingDMUser: PendingDMUser | null;  // 새 대화 시작 대상
     isWebSocketConnected: boolean;  // WebSocket 연결 상태
@@ -54,20 +55,21 @@ export const useDMStore = create<DMState>((set, get) => ({
     messages: [],
     unreadCount: 0,
     isLoading: false,
+    isLoadingConversations: false,
     error: null,
     pendingDMUser: null,
     isWebSocketConnected: false,
 
-    // 대화방 목록 조회
+    // 대화방 목록 조회 (메시지 영역에 영향 주지 않도록 별도 로딩 플래그 사용)
     fetchConversations: async () => {
-        set({ isLoading: true, error: null });
+        set({ isLoadingConversations: true, error: null });
         try {
             const conversations = await getConversations();
-            set({ conversations, isLoading: false });
+            set({ conversations, isLoadingConversations: false });
         } catch (error: any) {
             set({
                 error: error.response?.data?.message || '대화 목록을 불러오지 못했습니다.',
-                isLoading: false
+                isLoadingConversations: false
             });
         }
     },
@@ -88,15 +90,32 @@ export const useDMStore = create<DMState>((set, get) => ({
         }
     },
 
-    // 메시지 전송 (WebSocket으로 전송, 실패 시 REST API 사용)
+    // 메시지 전송 (WebSocket 우선, 실패 시 REST API 폴백 + 낙관적 업데이트)
     sendMessage: async (receiverId: number, content: string) => {
         try {
-            // WebSocket이 연결되어 있으면 WebSocket으로 전송
             if (get().isWebSocketConnected && dmWebSocket.isConnected()) {
+                // WebSocket으로 전송
                 dmWebSocket.sendMessage(receiverId, content);
-                // WebSocket 응답(토픽)으로 메시지가 추가됨
+                // 낙관적 업데이트: 서버 echo-back 전에 로컬에 즉시 표시
+                const authUser = useAuthStore.getState().user;
+                if (authUser) {
+                    const optimisticMessage: Message = {
+                        id: Date.now(), // 임시 ID (서버 echo-back 시 중복 체크로 교체)
+                        conversationId: get().currentConversationId || 0,
+                        senderId: Number(authUser.id),
+                        senderNickname: authUser.nickname || authUser.name,
+                        senderProfileImage: authUser.avatar || null,
+                        content,
+                        isDeleted: false,
+                        isMine: true,
+                        createdAt: new Date().toISOString()
+                    };
+                    set(state => ({
+                        messages: [...state.messages, optimisticMessage]
+                    }));
+                }
             } else {
-                // WebSocket이 없으면 REST API로 전송
+                // REST API 폴백
                 const newMessage = await sendMessageApi(receiverId, content);
                 set(state => ({
                     messages: [...state.messages, newMessage]
@@ -200,7 +219,7 @@ export const useDMStore = create<DMState>((set, get) => ({
             return;
         }
 
-        dmWebSocket.connect(user.id, user.nickname, {
+        dmWebSocket.connect(Number(user.id), user.nickname, {
             onMessage: (event) => {
                 // 새 메시지 수신 - 백엔드는 event.message로 전송
                 if (event.message) {
@@ -245,12 +264,23 @@ export const useDMStore = create<DMState>((set, get) => ({
         set({ isWebSocketConnected: false });
     },
 
-    // 메시지 추가 (WebSocket 수신용)
+    // 메시지 추가 (WebSocket 수신용 - 상대방 메시지 + 내 echo-back 처리)
     addMessage: (message: Message) => {
         const { currentConversationId, messages } = get();
         // 현재 열려있는 대화방의 메시지인 경우에만 추가
         if (currentConversationId === message.conversationId) {
-            // 중복 체크
+            // 서버에서 온 echo-back인 경우: 낙관적 메시지를 서버 메시지로 교체
+            const optimisticIdx = messages.findIndex(
+                m => m.isMine && m.content === message.content && m.id !== message.id && m.id > 1e12
+            );
+            if (optimisticIdx !== -1) {
+                // 낙관적 메시지를 서버 응답으로 교체
+                set(state => ({
+                    messages: state.messages.map((m, i) => i === optimisticIdx ? message : m)
+                }));
+                return;
+            }
+            // 중복 체크 (같은 서버 ID)
             const exists = messages.some(m => m.id === message.id);
             if (!exists) {
                 set(state => ({

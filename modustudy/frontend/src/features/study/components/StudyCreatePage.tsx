@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Info, Calendar, Plus, Trash2, BookOpen, MapPin, AlertCircle, Clock, Users, Target, Shield } from 'lucide-react';
+import { ChevronLeft, Info, Calendar, Plus, Trash2, BookOpen, MapPin, AlertCircle, Clock, Users, Target, Shield, Sparkles, Loader2 } from 'lucide-react';
 import { MainLayout } from '@/layouts/MainLayout';
 import { useUIStore } from '@/store/uiStore';
 import { Button } from '@/shared/components/Button';
@@ -9,6 +9,10 @@ import { Select } from '@/shared/components/Select';
 import { cn } from '@/shared/utils/cn';
 import { DateRangePicker } from './DateRangePicker';
 import { DatePicker, TimePicker } from '@/shared/components';
+import {
+    getTopics, getFormats, getProvinces, getDistricts, createStudy, generateStudyPlan,
+    type TopicParent, type FormatItem, type RegionItem, type StudyCreatePayload, type AiStudyPlanResponse
+} from '@/api/endpoints/studyApi';
 
 interface CurriculumItem {
     session: number;
@@ -17,47 +21,22 @@ interface CurriculumItem {
     date?: string;
 }
 
-// 시/도 데이터
-const CITIES = ['서울특별시', '부산광역시', '대구광역시', '인천광역시', '광주광역시', '대전광역시', '울산광역시', '세종특별자치시', '경기도', '강원도', '충청북도', '충청남도', '전라북도', '전라남도', '경상북도', '경상남도', '제주특별자치도'];
-
-// 구/군 데이터 (간소화)
-const DISTRICTS: Record<string, string[]> = {
-    '서울특별시': ['강남구', '강동구', '강북구', '강서구', '관악구', '광진구', '구로구', '금천구', '노원구', '도봉구', '동대문구', '동작구', '마포구', '서대문구', '서초구', '성동구', '성북구', '송파구', '양천구', '영등포구', '용산구', '은평구', '종로구', '중구', '중랑구'],
-    '부산광역시': ['강서구', '금정구', '남구', '동구', '동래구', '부산진구', '북구', '사상구', '사하구', '서구', '수영구', '연제구', '영도구', '중구', '해운대구', '기장군'],
-    '대구광역시': ['남구', '달서구', '동구', '북구', '서구', '수성구', '중구', '달성군'],
-    '인천광역시': ['계양구', '남동구', '동구', '미추홀구', '부평구', '서구', '연수구', '중구', '강화군', '옹진군'],
-    '광주광역시': ['광산구', '남구', '동구', '북구', '서구'],
-    '대전광역시': ['대덕구', '동구', '서구', '유성구', '중구'],
-    '울산광역시': ['남구', '동구', '북구', '중구', '울주군'],
-    '세종특별자치시': ['세종시'],
-    '경기도': ['수원시', '성남시', '고양시', '용인시', '부천시', '안산시', '안양시', '남양주시', '화성시', '평택시', '의정부시', '시흥시', '파주시', '김포시', '광명시', '광주시', '군포시', '하남시', '오산시', '이천시', '안성시', '의왕시', '양평군', '여주시', '과천시', '고양시', '구리시', '포천시', '양주시', '동두천시', '가평군', '연천군'],
-    '강원도': ['춘천시', '원주시', '강릉시', '동해시', '태백시', '속초시', '삼척시', '홍천군', '횡성군', '영월군', '평창군', '정선군', '철원군', '화천군', '양구군', '인제군', '고성군', '양양군'],
-    '충청북도': ['청주시', '충주시', '제천시', '보은군', '옥천군', '영동군', '증평군', '진천군', '괴산군', '음성군', '단양군'],
-    '충청남도': ['천안시', '공주시', '보령시', '아산시', '서산시', '논산시', '계룡시', '당진시', '금산군', '부여군', '서천군', '청양군', '홍성군', '예산군', '태안군'],
-    '전라북도': ['전주시', '군산시', '익산시', '정읍시', '남원시', '김제시', '완주군', '진안군', '무주군', '장수군', '임실군', '순창군', '고창군', '부안군'],
-    '전라남도': ['목포시', '여수시', '순천시', '나주시', '광양시', '담양군', '곡성군', '구례군', '고흥군', '보성군', '화순군', '장흥군', '강진군', '해남군', '영암군', '무안군', '함평군', '영광군', '장성군', '완도군', '진도군', '신안군'],
-    '경상북도': ['포항시', '경주시', '김천시', '안동시', '구미시', '영주시', '영천시', '상주시', '문경시', '경산시', '군위군', '의성군', '청송군', '영양군', '영덕군', '청도군', '고령군', '성주군', '칠곡군', '예천군', '봉화군', '울진군', '울릉군'],
-    '경상남도': ['창원시', '진주시', '통영시', '사천시', '김해시', '밀양시', '거제시', '양산시', '의령군', '함안군', '창녕군', '고성군', '남해군', '하동군', '산청군', '함양군', '거창군', '합천군'],
-    '제주특별자치도': ['제주시', '서귀포시']
-};
-
-// 대분류 → 세부주제 매핑
-const TOPIC_SUBTOPICS: Record<string, string[]> = {
-    '알고리즘/코딩테스트': ['백준', '프로그래머스', 'SWEA', 'LeetCode', '코딩테스트 대비'],
-    'CS 기초': ['자료구조', '알고리즘 이론', '운영체제', '네트워크', '데이터베이스', '컴퓨터구조', '디자인패턴', '시스템 설계'],
-    '프론트엔드': ['HTML/CSS', 'JavaScript', 'TypeScript', 'React', 'Vue', 'Next.js', '웹 접근성/성능'],
-    '백엔드': ['Java/Spring', 'Python/Django', 'Python/FastAPI', 'Node.js/Express', 'Go', 'Kotlin', 'API 설계'],
-    '인프라/DevOps': ['Docker', 'Kubernetes', 'CI/CD', 'AWS', 'GCP', 'Linux', '모니터링'],
-    'AI/ML': ['머신러닝 기초', '딥러닝', 'NLP', '컴퓨터 비전', 'MLOps', '논문 리뷰'],
-    '모바일': ['Android (Kotlin)', 'Android (Java)', 'iOS (Swift)', 'Flutter', 'React Native'],
-    '자격증': ['정보처리기사', 'SQLD/SQLP', '리눅스마스터', '네트워크관리사', 'AWS 자격증', 'Azure 자격증', 'CKAD/CKA'],
-    '취업 준비': ['기술 면접', '코딩테스트 대비', '포트폴리오', '이력서/자소서', '모의 면접'],
-    '프로젝트': ['사이드 프로젝트', '클론 코딩', '오픈소스 기여', '해커톤 준비']
-};
+// 하드코딩 폴백 (API 실패 시 사용)
+const FALLBACK_FORMATS = ['문제 풀이', '독서/책 스터디', '강의 수강', '프로젝트', '모의 면접', '코드 리뷰', '발표/세미나', '토론'];
 
 const StudyCreatePage: React.FC = () => {
     const navigate = useNavigate();
     const showToast = useUIStore((state) => state.showToast);
+
+    // API 데이터 상태
+    const [topics, setTopics] = useState<TopicParent[]>([]);
+    const [formats, setFormats] = useState<FormatItem[]>([]);
+    const [provinces, setProvinces] = useState<RegionItem[]>([]);
+    const [districts, setDistricts] = useState<RegionItem[]>([]);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [aiTopicInput, setAiTopicInput] = useState('');
+    const [isAiGenerating, setIsAiGenerating] = useState(false);
+    const [showDifficultyInfo, setShowDifficultyInfo] = useState(false);
 
     // 오늘 날짜 계산 (YYYY-MM-DD)
     const today = new Date();
@@ -68,15 +47,15 @@ const StudyCreatePage: React.FC = () => {
         name: '',
         intro: '', // 한줄 소개 (썸네일용)
         description: '', // 상세 설명
-        topic: '알고리즘/코딩테스트',
-        subTopic: '', // 세부주제
-        format: '문제 풀이', // 스터디 형식
+        topicParentId: null as number | null, // 대분류 ID
+        topicId: null as number | null,       // 세부주제 ID
+        formatId: null as number | null,      // 형식 ID
         difficulty: 'BEGINNER',
         meetingType: 'ONLINE',
         maxMembers: 4,
         totalSessions: 8,
-        city: '',
-        district: '',
+        provinceId: null as number | null,    // 시/도 ID
+        districtId: null as number | null,    // 시/군/구 ID (= regionId)
 
         // 일정 정보
         startDate: null as string | null,
@@ -102,6 +81,36 @@ const StudyCreatePage: React.FC = () => {
         hasCurriculum: false,
         curriculum: [{ session: 1, description: '' }] as CurriculumItem[]
     });
+
+    // API 데이터 로딩
+    useEffect(() => {
+        const loadData = async () => {
+            try {
+                const [topicsData, formatsData, provincesData] = await Promise.all([
+                    getTopics(),
+                    getFormats(),
+                    getProvinces()
+                ]);
+                setTopics(topicsData);
+                setFormats(formatsData);
+                setProvinces(provincesData);
+            } catch (err) {
+                console.error('초기 데이터 로딩 실패:', err);
+            }
+        };
+        loadData();
+    }, []);
+
+    // 시/도 선택 시 시/군/구 로딩
+    useEffect(() => {
+        if (formData.provinceId) {
+            getDistricts(formData.provinceId)
+                .then(setDistricts)
+                .catch((err) => console.error('시/군/구 로딩 실패:', err));
+        } else {
+            setDistricts([]);
+        }
+    }, [formData.provinceId]);
 
     // Save/Load form data from localStorage
     useEffect(() => {
@@ -201,12 +210,12 @@ const StudyCreatePage: React.FC = () => {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleCityChange = (city: string) => {
-        setFormData(prev => ({ ...prev, city, district: '' }));
+    const handleProvinceChange = (provinceId: number | null) => {
+        setFormData(prev => ({ ...prev, provinceId, districtId: null }));
     };
 
-    const handleTopicChange = (topic: string) => {
-        setFormData(prev => ({ ...prev, topic, subTopic: '' }));
+    const handleTopicParentChange = (parentId: number | null) => {
+        setFormData(prev => ({ ...prev, topicParentId: parentId, topicId: null }));
     };
 
     const handleDateRangeChange = (start: string | null, end: string | null) => {
@@ -242,12 +251,157 @@ const StudyCreatePage: React.FC = () => {
         setFormData(prev => ({ ...prev, curriculum: newCurriculum }));
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    // AI 스터디 계획 생성
+    const handleAiGenerate = async () => {
+        if (!aiTopicInput.trim()) {
+            showToast('스터디 주제를 입력해주세요.', 'error');
+            return;
+        }
+
+        setIsAiGenerating(true);
+        try {
+            // 저장된 스터디 선호 설정에서 기술스택/일정 자동 로드
+            let techStack: string[] | undefined;
+            let schedule: string[] | undefined;
+            try {
+                const saved = localStorage.getItem('studyPreference');
+                if (saved) {
+                    const pref = JSON.parse(saved);
+                    if (pref.techStack?.length > 0) techStack = pref.techStack;
+                    if (pref.availableDays?.length > 0) {
+                        const timeSlotMap: Record<string, string> = {
+                            morning: '07:00-12:00',
+                            afternoon: '12:00-18:00',
+                            evening: '18:00-22:00',
+                            night: '22:00-02:00',
+                        };
+                        const timeStr = pref.preferredTimeSlot ? timeSlotMap[pref.preferredTimeSlot] : '';
+                        schedule = pref.availableDays.map((d: string) => timeStr ? `${d} ${timeStr}` : d);
+                    }
+                }
+            } catch { /* localStorage 실패 무시 */ }
+
+            const result: AiStudyPlanResponse = await generateStudyPlan({
+                topic: aiTopicInput.trim(),
+                techStack,
+                schedule,
+            });
+
+            // AI 결과를 폼에 반영
+            setFormData(prev => {
+                const updated = { ...prev };
+                updated.name = result.name || prev.name;
+                updated.intro = result.intro || prev.intro;
+                updated.description = result.description || prev.description;
+                updated.goal = result.goal || prev.goal;
+                updated.textbook = result.textbook || prev.textbook;
+                updated.prerequisites = result.prerequisites || prev.prerequisites;
+                updated.processDetail = result.processDetail || prev.processDetail;
+
+                // 난이도 매핑
+                if (['BEGINNER', 'INTERMEDIATE', 'ADVANCED'].includes(result.difficulty)) {
+                    updated.difficulty = result.difficulty;
+                }
+
+                // 토픽 매칭 (세부주제명으로 검색)
+                if (result.topic && topics.length > 0) {
+                    for (const parent of topics) {
+                        const child = parent.children.find(c => c.name === result.topic);
+                        if (child) {
+                            updated.topicParentId = parent.id;
+                            updated.topicId = child.id;
+                            break;
+                        }
+                    }
+                }
+
+                // 형식 매칭 (형식명으로 검색)
+                if (result.format && formats.length > 0) {
+                    const matched = formats.find(f => f.name === result.format);
+                    if (matched) {
+                        updated.formatId = matched.id;
+                    }
+                }
+
+                // 스터디 기간(주) → 총 회차 반영
+                if (result.durationWeeks && result.durationWeeks >= 2 && result.durationWeeks <= 8) {
+                    updated.totalSessions = result.durationWeeks;
+                }
+
+                // 일정 제안 반영
+                if (result.scheduleSuggestion) {
+                    if (result.scheduleSuggestion.days?.length > 0) {
+                        updated.scheduleDays = result.scheduleSuggestion.days;
+                    }
+                    if (result.scheduleSuggestion.time) {
+                        // "19:00-21:00" → "19:00"
+                        const timePart = result.scheduleSuggestion.time.split('-')[0];
+                        if (timePart) updated.scheduleTime = timePart;
+                    }
+                }
+
+                return updated;
+            });
+
+            showToast('AI가 스터디 계획을 생성했습니다! 내용을 확인해주세요.', 'success');
+        } catch (err: any) {
+            const message = err?.response?.data?.error?.message || 'AI 생성에 실패했습니다. 다시 시도해주세요.';
+            showToast(message, 'error');
+            console.error('AI 스터디 계획 생성 실패:', err);
+        } finally {
+            setIsAiGenerating(false);
+        }
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        console.log('Form submitted:', formData);
-        localStorage.removeItem('studyCreateFormData');
-        showToast('스터디가 생성되었습니다!', 'success');
-        navigate('/study');
+
+        // topicId 필수 검증
+        if (!formData.topicId) {
+            showToast('세부 주제를 선택해주세요.', 'error');
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            const payload: StudyCreatePayload = {
+                name: formData.name,
+                intro: formData.intro || undefined,
+                description: formData.description || undefined,
+                topicId: formData.topicId,
+                formatId: formData.formatId || undefined,
+                studyType: formData.studyType,
+                meetingType: formData.meetingType,
+                regionId: formData.districtId || formData.provinceId || undefined,
+                scheduleDays: formData.scheduleDays.length > 0 ? formData.scheduleDays.join(',') : undefined,
+                scheduleTime: formData.scheduleTime || undefined,
+                maxMembers: formData.maxMembers,
+                isPublic: formData.isPublic,
+                penaltyPolicy: formData.penaltyPolicy,
+                startDate: formData.startDate || undefined,
+                endDate: formData.endDate || undefined,
+                totalSessions: formData.totalSessions,
+                recruitStartDate: formData.recruitStartDate || undefined,
+                recruitEndDate: formData.recruitEndDate || undefined,
+                textbook: formData.textbook || undefined,
+                goal: formData.goal || undefined,
+                difficulty: formData.difficulty,
+                prerequisites: formData.prerequisites || undefined,
+                processDetail: formData.processDetail || undefined,
+                targetOrgType: formData.targetOrgType || undefined,
+            };
+
+            await createStudy(payload);
+            localStorage.removeItem('studyCreateFormData');
+            showToast('스터디가 생성되었습니다!', 'success');
+            navigate('/study');
+        } catch (err: any) {
+            const message = err?.response?.data?.error?.message || '스터디 생성에 실패했습니다.';
+            showToast(message, 'error');
+            console.error('스터디 생성 실패:', err);
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     // 스타일 정의
@@ -295,6 +449,46 @@ const StudyCreatePage: React.FC = () => {
                 <form onSubmit={handleSubmit}>
                     <div className="flex flex-col lg:flex-row gap-8 items-start relative">
                         <div className="flex-1 min-w-0 space-y-6">
+                            {/* AI 스터디 계획 생성 카드 */}
+                            <div className={cn(styles.card, "border-primary/30 bg-gradient-to-br from-primary/5 to-transparent")}>
+                                <div className={styles.section}>
+                                    <h2 className={styles.sectionTitle}>
+                                        <Sparkles size={20} className="text-primary" />
+                                        AI로 스터디 계획 생성하기
+                                    </h2>
+                                    <p className="text-sm text-gray-500 mt-1">
+                                        어떤 스터디를 하고 싶은지 자유롭게 입력하면, AI가 전체 계획을 자동으로 채워드립니다.
+                                    </p>
+
+                                    <div className="mt-4 flex gap-3">
+                                        <div className="flex-1">
+                                            <Input
+                                                placeholder="예: React 심화 학습, 코딩테스트 준비, Docker 입문..."
+                                                value={aiTopicInput}
+                                                onChange={(e) => setAiTopicInput(e.target.value)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        e.preventDefault();
+                                                        handleAiGenerate();
+                                                    }
+                                                }}
+                                                disabled={isAiGenerating}
+                                            />
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            variant="primary"
+                                            onClick={handleAiGenerate}
+                                            disabled={isAiGenerating || !aiTopicInput.trim()}
+                                            leftIcon={isAiGenerating ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
+                                            className="shrink-0"
+                                        >
+                                            {isAiGenerating ? '생성 중...' : 'AI 생성'}
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+
                             {/* 기본 정보 카드 */}
                             <div id="basic-info" className={styles.card}>
                                 <div className={styles.section}>
@@ -306,7 +500,7 @@ const StudyCreatePage: React.FC = () => {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                                         <div className="md:col-span-2">
                                             <Input
-                                                label="스터디 이름"
+                                                label="제목"
                                                 name="name"
                                                 placeholder="모두가 이해하기 쉬운 이름을 지어주세요"
                                                 required
@@ -342,19 +536,19 @@ const StudyCreatePage: React.FC = () => {
                                         <div className="md:col-span-2">
                                             <label className={styles.label}>스터디 형식</label>
                                             <div className="grid grid-cols-4 gap-2">
-                                                {['문제 풀이', '독서/책 스터디', '강의 수강', '프로젝트', '모의 면접', '코드 리뷰', '발표/세미나', '토론'].map((format) => (
+                                                {(formats.length > 0 ? formats : FALLBACK_FORMATS.map((name, i) => ({ id: i, name, description: null, icon: null, sortOrder: i }))).map((format) => (
                                                     <button
-                                                        key={format}
+                                                        key={typeof format === 'string' ? format : format.id}
                                                         type="button"
-                                                        onClick={() => handleOptionToggle('format', format)}
+                                                        onClick={() => setFormData(prev => ({ ...prev, formatId: typeof format === 'string' ? null : format.id }))}
                                                         className={cn(
                                                             "py-2.5 px-3 rounded-xl text-center transition-all border-2 text-sm font-medium",
-                                                            formData.format === format
+                                                            formData.formatId === (typeof format === 'string' ? null : format.id)
                                                                 ? "border-primary bg-primary/10 text-primary"
                                                                 : "border-gray-200 bg-gray-50 text-gray-600 hover:border-gray-300"
                                                         )}
                                                     >
-                                                        {format}
+                                                        {typeof format === 'string' ? format : format.name}
                                                     </button>
                                                 ))}
                                             </div>
@@ -363,23 +557,33 @@ const StudyCreatePage: React.FC = () => {
                                         <div>
                                             <Select
                                                 label="주제"
-                                                value={formData.topic}
-                                                onChange={handleTopicChange}
-                                                options={[
-                                                    '알고리즘/코딩테스트', 'CS 기초', '프론트엔드', '백엔드',
-                                                    '인프라/DevOps', 'AI/ML', '모바일', '자격증',
-                                                    '취업 준비', '프로젝트'
-                                                ]}
+                                                value={topics.find(t => t.id === formData.topicParentId)?.name || ''}
+                                                onChange={(val) => {
+                                                    const selected = topics.find(t => t.name === val);
+                                                    handleTopicParentChange(selected ? selected.id : null);
+                                                }}
+                                                options={topics.map(t => t.name)}
+                                                placeholder="주제 선택"
                                             />
                                         </div>
 
                                         <div>
                                             <Select
                                                 label="세부 주제"
-                                                value={formData.subTopic}
-                                                onChange={(val) => setFormData(prev => ({ ...prev, subTopic: val }))}
-                                                options={TOPIC_SUBTOPICS[formData.topic] || []}
-                                                placeholder="세부 주제 선택 (선택사항)"
+                                                value={
+                                                    topics.find(t => t.id === formData.topicParentId)
+                                                        ?.children.find(c => c.id === formData.topicId)?.name || ''
+                                                }
+                                                onChange={(val) => {
+                                                    const parent = topics.find(t => t.id === formData.topicParentId);
+                                                    const child = parent?.children.find(c => c.name === val);
+                                                    setFormData(prev => ({ ...prev, topicId: child ? child.id : null }));
+                                                }}
+                                                options={
+                                                    (topics.find(t => t.id === formData.topicParentId)?.children || []).map(c => c.name)
+                                                }
+                                                placeholder="세부 주제 선택"
+                                                disabled={!formData.topicParentId}
                                             />
                                         </div>
 
@@ -452,7 +656,28 @@ const StudyCreatePage: React.FC = () => {
                                         </div>
 
                                         <div>
-                                            <label className={styles.label}>권장 난이도</label>
+                                            <div className="flex items-center gap-1.5 mb-1.5">
+                                                <label className="text-sm font-semibold text-gray-700">예상 스터디 난이도</label>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowDifficultyInfo(prev => !prev)}
+                                                    className="text-gray-400 hover:text-primary transition-colors"
+                                                    aria-label="난이도 설명 보기"
+                                                >
+                                                    <Info size={15} />
+                                                </button>
+                                            </div>
+                                            {showDifficultyInfo && (
+                                                <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-800 space-y-1.5">
+                                                    <p className="font-semibold">난이도는 참여자 매칭에 사용됩니다.</p>
+                                                    <ul className="space-y-1 text-blue-700">
+                                                        <li><strong>입문</strong> — 해당 분야 경험이 없는 분도 참여 가능</li>
+                                                        <li><strong>중급</strong> — 기초 지식이 있고 실전 경험을 쌓고 싶은 분</li>
+                                                        <li><strong>고급</strong> — 실무 경험이 있거나 심화 학습을 원하는 분</li>
+                                                    </ul>
+                                                    <p className="text-xs text-blue-500 pt-1">스터디 추천 시 사용자 수준과 매칭하는 데 활용됩니다.</p>
+                                                </div>
+                                            )}
                                             <div className={styles.toggleGroup}>
                                                 {['BEGINNER', 'INTERMEDIATE', 'ADVANCED'].map((level) => (
                                                     <button
@@ -499,20 +724,26 @@ const StudyCreatePage: React.FC = () => {
                                                 <div>
                                                     <Select
                                                         label="시/도"
-                                                        value={formData.city}
-                                                        onChange={handleCityChange}
-                                                        options={CITIES}
+                                                        value={provinces.find(p => p.id === formData.provinceId)?.name || ''}
+                                                        onChange={(val) => {
+                                                            const selected = provinces.find(p => p.name === val);
+                                                            handleProvinceChange(selected ? selected.id : null);
+                                                        }}
+                                                        options={provinces.map(p => p.name)}
                                                         placeholder="시/도 선택"
                                                     />
                                                 </div>
                                                 <div>
                                                     <Select
                                                         label="구/군"
-                                                        value={formData.district}
-                                                        onChange={(val) => setFormData(prev => ({ ...prev, district: val }))}
-                                                        options={formData.city ? DISTRICTS[formData.city] || [] : []}
+                                                        value={districts.find(d => d.id === formData.districtId)?.name || ''}
+                                                        onChange={(val) => {
+                                                            const selected = districts.find(d => d.name === val);
+                                                            setFormData(prev => ({ ...prev, districtId: selected ? selected.id : null }));
+                                                        }}
+                                                        options={districts.map(d => d.name)}
                                                         placeholder="구/군 선택"
-                                                        disabled={!formData.city}
+                                                        disabled={!formData.provinceId}
                                                     />
                                                 </div>
                                             </div>
@@ -834,8 +1065,9 @@ const StudyCreatePage: React.FC = () => {
                                     variant="primary"
                                     size="lg"
                                     className="flex-1 sm:flex-none sm:min-w-[200px] shadow-lg shadow-primary/20"
+                                    disabled={isSubmitting}
                                 >
-                                    스터디 개설하기
+                                    {isSubmitting ? '생성 중...' : '스터디 개설하기'}
                                 </Button>
                             </div>
                         </div>

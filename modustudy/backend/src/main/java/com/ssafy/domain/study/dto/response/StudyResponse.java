@@ -18,6 +18,7 @@ public class StudyResponse {
 
     private Long id;
     private String name;
+    private String intro;
     private String description;
 
     // ========== 카테고리 정보 ==========
@@ -150,6 +151,7 @@ public class StudyResponse {
         return StudyResponse.builder()
                 .id(study.getId())
                 .name(study.getName())
+                .intro(study.getIntro())
                 .description(study.getDescription())
                 .topic(TopicInfo.from(study.getTopic()))
                 .format(FormatInfo.from(study.getFormat()))

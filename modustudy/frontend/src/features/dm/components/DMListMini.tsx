@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { MessageSquare, Send, Loader2 } from 'lucide-react';
 import { useDMStore } from '../store/dmStore';
 import { BackButton } from '@/shared/components';
+import { cn } from '@/shared/utils/cn';
 
 // URL을 클릭 가능한 링크로 변환하는 함수
 const renderMessageContent = (content: string) => {
@@ -34,6 +35,7 @@ const DMListMini: React.FC = () => {
         currentConversationId,
         unreadCount,
         isLoading,
+        isLoadingConversations,
         pendingDMUser,
         fetchConversations,
         fetchUnreadCount,
@@ -46,6 +48,7 @@ const DMListMini: React.FC = () => {
 
     const [messageInput, setMessageInput] = useState('');
     const messagesRef = useRef<HTMLDivElement>(null);
+    const currentConversation = conversations.find(c => c.id === currentConversationId);
 
     // 메시지 목록 자동 스크롤 (DOM 업데이트 후 실행)
     useEffect(() => {
@@ -92,9 +95,11 @@ const DMListMini: React.FC = () => {
         }
     };
 
-    // 시간 포맷팅 (백엔드는 서버 로컬 시간 LocalDateTime 반환)
+    // 시간 포맷팅 (백엔드 LocalDateTime은 UTC, 타임존 정보 없이 반환됨)
     const formatTime = (dateString: string) => {
-        const date = new Date(dateString);
+        // 타임존 정보가 없는 경우 UTC로 해석
+        const normalized = dateString.includes('Z') || dateString.includes('+') ? dateString : dateString + 'Z';
+        const date = new Date(normalized);
         const now = new Date();
         const diff = now.getTime() - date.getTime();
         const days = Math.floor(diff / (1000 * 60 * 60 * 24));
@@ -120,7 +125,10 @@ const DMListMini: React.FC = () => {
                         variant="icon-only"
                         onClick={() => clearPendingDM()}
                     />
-                    <div className="w-8 h-8 rounded-full bg-study-blue/10 flex items-center justify-center font-bold text-xs text-study-blue">
+                    <div className={cn(
+                        'w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs',
+                        'bg-study-blue/10 text-study-blue'
+                    )}>
                         {pendingDMUser.nickname.charAt(0)}
                     </div>
                     <span className="font-bold text-sm">{pendingDMUser.nickname}</span>
@@ -142,17 +150,24 @@ const DMListMini: React.FC = () => {
                         type="text"
                         value={messageInput}
                         onChange={(e) => setMessageInput(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                        onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
                         placeholder="메시지 입력..."
-                        className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-study-blue"
+                        className={cn(
+                            'flex-1 px-3 py-2 text-sm rounded-lg',
+                            'border border-gray-200 focus:outline-none focus:border-study-blue'
+                        )}
                         autoFocus
                     />
                     <button
                         onClick={handleSendMessage}
                         disabled={!messageInput.trim()}
-                        className="p-2 bg-study-blue text-white rounded-lg hover:bg-study-blue/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className={cn(
+                            'w-11 h-11 flex items-center justify-center rounded-lg transition-colors',
+                            'bg-study-blue text-white hover:bg-study-blue/90',
+                            'disabled:opacity-50 disabled:cursor-not-allowed'
+                        )}
                     >
-                        <Send size={16} />
+                        <Send size={18} />
                     </button>
                 </div>
             </div>
@@ -161,7 +176,6 @@ const DMListMini: React.FC = () => {
 
     // 대화방 상세 보기
     if (currentConversationId) {
-        const currentConversation = conversations.find(c => c.id === currentConversationId);
 
         return (
             <div className="p-4 h-full flex flex-col">
@@ -171,40 +185,82 @@ const DMListMini: React.FC = () => {
                         variant="icon-only"
                         onClick={() => setCurrentConversation(null)}
                     />
-                    <div className="w-8 h-8 rounded-full bg-study-blue/10 flex items-center justify-center font-bold text-xs text-study-blue">
+                    <div className={cn(
+                        'w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs',
+                        'bg-study-blue/10 text-study-blue'
+                    )}>
                         {currentConversation?.participantNickname.charAt(0)}
                     </div>
                     <span className="font-bold text-sm">{currentConversation?.participantNickname}</span>
                 </div>
 
                 {/* 메시지 목록 */}
-                <div className="flex-1 overflow-y-auto space-y-3 mb-4" ref={messagesRef}>
+                <div className="overflow-y-auto space-y-4 mb-4 max-h-[calc(100vh-250px)]" ref={messagesRef}>
                     {isLoading ? (
                         <div className="flex items-center justify-center py-8">
                             <Loader2 size={24} className="animate-spin text-gray-400" />
                         </div>
                     ) : Array.isArray(messages) && messages.length > 0 ? (
-                        messages.map(msg => (
-                            <div
-                                key={msg.id}
-                                className={`flex ${msg.senderId === currentConversation?.participantId ? 'justify-start' : 'justify-end'}`}
-                            >
+                        messages.map(msg => {
+                            const isReceiver = msg.senderId === currentConversation?.participantId;
+                            return (
                                 <div
-                                    className={`max-w-[80%] px-3 py-2 rounded-lg text-sm break-words ${msg.senderId === currentConversation?.participantId
-                                        ? 'bg-gray-100 text-gray-800'
-                                        : 'bg-study-blue text-white'
-                                        }`}
+                                    key={msg.id}
+                                    className={cn('flex gap-2', isReceiver ? 'flex-row' : 'flex-row-reverse')}
                                 >
-                                    <p>{renderMessageContent(msg.content)}</p>
-                                    <p className={`text-[10px] mt-1 ${msg.senderId === currentConversation?.participantId
-                                        ? 'text-gray-400'
-                                        : 'text-blue-200'
-                                        }`}>
-                                        {formatTime(msg.createdAt)}
-                                    </p>
+                                    {/* 아바타 */}
+                                    <div className="flex-shrink-0">
+                                        <div className={cn(
+                                            'w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm',
+                                            'bg-primary/10 text-primary'
+                                        )}>
+                                            {isReceiver
+                                                ? currentConversation?.participantNickname.charAt(0)
+                                                : 'Me'
+                                            }
+                                        </div>
+                                    </div>
+
+                                    {/* 메시지 콘텐츠 */}
+                                    <div className={cn(
+                                        'flex flex-col max-w-[70%]',
+                                        isReceiver ? 'items-start' : 'items-end'
+                                    )}>
+                                        {/* 헤더: 이름 + 시간 */}
+                                        <div className={cn(
+                                            'flex items-center gap-2 mb-1',
+                                            isReceiver ? 'flex-row' : 'flex-row-reverse'
+                                        )}>
+                                            <span className="text-xs font-semibold text-text-primary">
+                                                {isReceiver ? currentConversation?.participantNickname : '나'}
+                                            </span>
+                                            <time className="text-[10px] text-text-secondary">
+                                                {formatTime(msg.createdAt)}
+                                            </time>
+                                        </div>
+
+                                        {/* 말풍선 */}
+                                        <div
+                                            className={cn(
+                                                'px-4 py-2 rounded-2xl text-sm break-words',
+                                                isReceiver
+                                                    ? 'bg-gray-100 text-text-primary rounded-tl-sm'
+                                                    : 'bg-primary text-white rounded-tr-sm'
+                                            )}
+                                        >
+                                            {renderMessageContent(msg.content)}
+                                        </div>
+
+                                        {/* 푸터: 읽음 상태 (추후 확장 가능) */}
+                                        {!isReceiver && (
+                                            <div className="text-[10px] text-text-secondary mt-1">
+                                                전송됨
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                        ))
+                            );
+                        })
                     ) : (
                         <div className="text-center py-8 text-gray-400 text-sm">
                             메시지가 없습니다
@@ -218,16 +274,23 @@ const DMListMini: React.FC = () => {
                         type="text"
                         value={messageInput}
                         onChange={(e) => setMessageInput(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                        onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
                         placeholder="메시지 입력..."
-                        className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-study-blue"
+                        className={cn(
+                            'flex-1 px-3 py-2 text-sm rounded-lg',
+                            'border border-gray-200 focus:outline-none focus:border-study-blue'
+                        )}
                     />
                     <button
                         onClick={handleSendMessage}
                         disabled={!messageInput.trim()}
-                        className="p-2 bg-study-blue text-white rounded-lg hover:bg-study-blue/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className={cn(
+                            'w-11 h-11 flex items-center justify-center rounded-lg transition-colors',
+                            'bg-study-blue text-white hover:bg-study-blue/90',
+                            'disabled:opacity-50 disabled:cursor-not-allowed'
+                        )}
                     >
-                        <Send size={16} />
+                        <Send size={18} />
                     </button>
                 </div>
             </div>
@@ -235,6 +298,7 @@ const DMListMini: React.FC = () => {
     }
 
     // 대화방 목록
+
     return (
         <div className="p-4 h-full flex flex-col">
             {/* 헤더 */}
@@ -250,7 +314,7 @@ const DMListMini: React.FC = () => {
 
             {/* 대화방 목록 */}
             <div className="flex-1 overflow-y-auto">
-                {isLoading ? (
+                {isLoadingConversations && conversations.length === 0 ? (
                     <div className="flex items-center justify-center py-8">
                         <Loader2 size={24} className="animate-spin text-gray-400" />
                     </div>
@@ -260,11 +324,17 @@ const DMListMini: React.FC = () => {
                             <div
                                 key={dm.id}
                                 onClick={() => setCurrentConversation(dm.id)}
-                                className="flex flex-col p-2 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer group"
+                                className={cn(
+                                    'flex flex-col p-2 rounded-lg transition-colors cursor-pointer group',
+                                    'hover:bg-gray-50'
+                                )}
                             >
                                 <div className="flex justify-between items-start mb-0.5">
                                     <div className="flex items-center gap-2">
-                                        <div className="w-7 h-7 rounded-full bg-study-blue/10 flex items-center justify-center font-bold text-xs text-study-blue">
+                                        <div className={cn(
+                                            'w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs',
+                                            'bg-study-blue/10 text-study-blue'
+                                        )}>
                                             {dm.participantNickname.charAt(0)}
                                         </div>
                                         <span className="text-sm font-bold text-gray-800">{dm.participantNickname}</span>
@@ -274,7 +344,10 @@ const DMListMini: React.FC = () => {
                                 <div className="flex justify-between items-center pl-9">
                                     <p className="text-xs text-gray-500 truncate pr-4">{dm.lastMessage}</p>
                                     {dm.unreadCount > 0 && (
-                                        <span className="min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-[10px] rounded-full">
+                                        <span className={cn(
+                                            'min-w-[18px] h-[18px] flex items-center justify-center',
+                                            'bg-red-500 text-white text-[10px] rounded-full'
+                                        )}>
                                             {dm.unreadCount}
                                         </span>
                                     )}

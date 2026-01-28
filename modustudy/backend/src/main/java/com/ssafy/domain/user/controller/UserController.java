@@ -4,7 +4,9 @@ import com.ssafy.common.auth.SsafyUserDetails;
 import com.ssafy.common.response.ApiResponse;
 import com.ssafy.common.response.MessageResponse;
 import com.ssafy.domain.user.dto.request.ProfileSetupRequest;
+import com.ssafy.domain.user.dto.request.StudyPreferenceRequest;
 import com.ssafy.domain.user.dto.request.UserUpdateRequest;
+import com.ssafy.domain.user.dto.response.StudyPreferenceResponse;
 import com.ssafy.domain.user.dto.response.UserDTO;
 import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.service.UserService;
@@ -102,6 +104,39 @@ public class UserController {
                 )
         );
     }
+    /**
+     * 스터디 선호 설정 조회
+     * GET /api/v1/users/me/study-preference
+     */
+    @GetMapping("/me/study-preference")
+    public ResponseEntity<ApiResponse<StudyPreferenceResponse>> getStudyPreference(
+            Authentication authentication) {
+
+        SsafyUserDetails userDetails = (SsafyUserDetails) authentication.getPrincipal();
+        Long userId = userDetails.getUser().getId();
+
+        StudyPreferenceResponse response = userService.getStudyPreference(userId);
+
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    /**
+     * 스터디 선호 설정 수정
+     * PUT /api/v1/users/me/study-preference
+     */
+    @PutMapping("/me/study-preference")
+    public ResponseEntity<ApiResponse<StudyPreferenceResponse>> updateStudyPreference(
+            Authentication authentication,
+            @RequestBody StudyPreferenceRequest request) {
+
+        SsafyUserDetails userDetails = (SsafyUserDetails) authentication.getPrincipal();
+        Long userId = userDetails.getUser().getId();
+
+        StudyPreferenceResponse response = userService.updateStudyPreference(userId, request);
+
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
     /**
      * 서비스 통계 조회 (메인 페이지용)
      * GET /api/v1/users/stats
