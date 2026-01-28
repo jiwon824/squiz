@@ -2,23 +2,28 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles, TrendingUp, Calendar } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
+import { useAuthStore } from '@/store/authStore';
 import { STTReportWidget } from './STTReportWidget';
 import { AIQuizWidget } from './AIQuizWidget';
 import { LearningArchiveWidget } from './LearningArchiveWidget';
 
 export const UserDashboardV2: React.FC = () => {
+    const { user } = useAuthStore();
+
     return (
-        <div className="flex-1 overflow-y-auto bg-gradient-to-b from-gray-50 to-white">
+        <div className="flex-1 overflow-y-auto">
             <div className="max-w-7xl mx-auto p-8 space-y-8">
                 {/* 환영 메시지 */}
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-2xl p-8 border border-primary/20"
+                    className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-2xl p-8"
                 >
                     <div className="flex items-center gap-3 mb-3">
                         <Sparkles className="text-primary" size={32} />
-                        <h1 className="text-3xl font-black text-text-primary">안녕하세요! 👋</h1>
+                        <h1 className="text-3xl font-black text-text-primary mb-0">
+                            안녕하세요 {user?.nickname || user?.name || ''}님! 👋
+                        </h1>
                     </div>
                     <p className="text-text-secondary text-lg">오늘도 즐거운 학습 되세요!</p>
                 </motion.div>
@@ -89,24 +94,38 @@ interface StatCardProps {
     color: 'primary' | 'secondary' | 'accent';
 }
 
-const StatCard: React.FC<StatCardProps> = ({ icon, title, value, change, color }) => {
-    const colorStyles = {
-        primary: 'from-primary/10 to-primary/5 border-primary/20',
-        secondary: 'from-secondary/10 to-secondary/5 border-secondary/20',
-        accent: 'from-accent/10 to-accent/5 border-accent/20',
-    };
+const COLOR_STYLES = {
+    primary: 'from-primary/10 to-primary/5 border-primary/20',
+    secondary: 'from-secondary/10 to-secondary/5 border-secondary/20',
+    accent: 'from-accent/10 to-accent/5 border-accent/20',
+} as const;
 
+const TEXT_COLOR_STYLES = {
+    primary: 'text-primary',
+    secondary: 'text-secondary',
+    accent: 'text-accent',
+} as const;
+
+const BG_COLOR_STYLES = {
+    primary: 'bg-primary',
+    secondary: 'bg-secondary',
+    accent: 'bg-accent',
+} as const;
+
+const StatCard: React.FC<StatCardProps> = ({ icon, title, value, change, color }) => {
     return (
         <motion.div
             whileHover={{ y: -4 }}
             className={cn(
                 'bg-gradient-to-br rounded-2xl p-6 border shadow-md transition-all',
-                colorStyles[color]
+                COLOR_STYLES[color]
             )}
         >
             <div className="flex items-center justify-between mb-4">
                 <div className="p-3 bg-white rounded-xl shadow-sm">{icon}</div>
-                <span className="text-xs font-medium text-accent px-2 py-1 bg-white rounded-full">{change}</span>
+                <span className="text-xs font-medium text-accent px-2 py-1 bg-white rounded-full">
+                    {change}
+                </span>
             </div>
             <p className="text-sm text-text-secondary mb-1">{title}</p>
             <p className="text-3xl font-black text-text-primary">{value}</p>
@@ -122,21 +141,15 @@ interface InfoCardProps {
 }
 
 const InfoCard: React.FC<InfoCardProps> = ({ title, items, color }) => {
-    const colorStyles = {
-        primary: 'text-primary',
-        secondary: 'text-secondary',
-        accent: 'text-accent',
-    };
-
     return (
         <div className="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
-            <h3 className={cn('font-bold mb-4 flex items-center gap-2', colorStyles[color])}>
+            <h3 className={cn('font-bold mb-0 flex items-center gap-2', TEXT_COLOR_STYLES[color])}>
                 <span className="text-lg">{title}</span>
             </h3>
             <ul className="space-y-3">
                 {items.map((item, idx) => (
                     <li key={idx} className="flex items-start gap-2 text-sm text-text-secondary">
-                        <span className={cn('mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0', `bg-${color}`)} />
+                        <span className={cn('mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0', BG_COLOR_STYLES[color])} />
                         <span>{item}</span>
                     </li>
                 ))}

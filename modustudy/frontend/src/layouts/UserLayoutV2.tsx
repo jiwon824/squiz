@@ -1,6 +1,6 @@
 // 로그인 사용자 전용 레이아웃 V2 - 학습 관리 중심
 
-import { motion } from 'framer-motion';
+import '@/features/dashboard-v2/styles/DashboardV2.css';
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Sidebar } from './components/Sidebar';
@@ -8,6 +8,7 @@ import { RightSideBarV2 } from './components-v2/RightSideBarV2';
 import { useUIStore } from '@/store/uiStore';
 import { useAuthStore } from '@/store/authStore';
 import { SquizLogoNew } from '@/shared/components/SquizLogoNew';
+import { cn } from '@/shared/utils/cn';
 
 interface UserLayoutV2Props {
     children: React.ReactNode;
@@ -53,10 +54,10 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children }) => {
     const shouldHideHeader = isMeetingRoom;
 
     return (
-        <div className="flex flex-col h-screen bg-study-bg overflow-hidden">
+        <div className="flex flex-col h-screen bg-slate-200 overflow-hidden">
             {/* 헤더 - 회의 룸에서는 숨김 */}
             {!shouldHideHeader && (
-                <header className="h-16 w-full bg-study-bg flex items-center justify-between px-6 flex-shrink-0 z-50">
+                <header className="h-16 w-full bg-slate-200 flex items-center justify-between px-6 flex-shrink-0 z-50">
                     <div className="flex items-center gap-4">
                         {/* 사이드바 토글 버튼 */}
                         <button
@@ -82,13 +83,24 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children }) => {
                         <div className="flex items-center gap-3 ml-2">
                             <Link
                                 to="/profile"
-                                className="flex items-center gap-3 p-1 px-4 bg-white/60 hover:bg-white hover:shadow-md hover:-translate-y-0.5 transition-all rounded-full border border-study-blue/20 backdrop-blur-md shadow-sm group cursor-pointer no-underline active:scale-95"
+                                className={cn(
+                                    'flex items-center gap-3 p-1 px-4',
+                                    'bg-white/60 hover:bg-white hover:shadow-md hover:-translate-y-0.5',
+                                    'transition-all rounded-full border border-study-blue/20',
+                                    'backdrop-blur-md shadow-sm group cursor-pointer no-underline active:scale-95'
+                                )}
                             >
-                                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-study-blue to-study-blue-dark flex items-center justify-center text-white text-sm font-bold overflow-hidden shadow-inner ring-2 ring-white/50">
+                                <div className={cn(
+                                    'w-9 h-9 rounded-full',
+                                    'bg-gradient-to-br from-study-blue to-study-blue-dark',
+                                    'flex items-center justify-center',
+                                    'text-white text-sm font-bold overflow-hidden',
+                                    'shadow-inner ring-2 ring-white/50'
+                                )}>
                                     {user?.avatar ? (
                                         <img
                                             src={user.avatar}
-                                            alt="P"
+                                            alt="프로필"
                                             className="w-full h-full object-cover group-hover:scale-110 transition-transform"
                                         />
                                     ) : (
@@ -103,7 +115,11 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children }) => {
                             </Link>
                             <button
                                 onClick={logout}
-                                className="p-2 px-4 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-pill text-xs font-bold transition-all hover:scale-105 active:scale-95"
+                                className={cn(
+                                    'p-2 px-4 bg-gray-100 hover:bg-gray-200',
+                                    'text-gray-600 rounded-pill text-xs font-bold',
+                                    'transition-all hover:scale-105 active:scale-95'
+                                )}
                             >
                                 로그아웃
                             </button>
@@ -115,21 +131,25 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children }) => {
             <div className="flex flex-1 overflow-hidden relative">
                 <Sidebar />
 
-                <motion.main
-                    className="flex-1 flex flex-col overflow-hidden"
-                    layout
-                    transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                {/* 페이지 콘텐츠 */}
+                <main
+                    className={cn(
+                        'flex-1 flex flex-col overflow-hidden',
+                        'pb-6 bg-slate-200 transition-all duration-300 ease-out',
+                        shouldHideHeader ? 'pt-0' : 'pt-2',
+                        isSidebarOpen ? 'pl-6' : 'pl-4',
+                        isCompactMode ? 'pr-2' : activeRightTab ? 'pr-80' : 'pr-14'
+                    )}
                 >
-                    {/* 페이지 콘텐츠 */}
-                    <div
+                    {/* 둥근 메인 컨테이너 섹션 */}
+                    <section
                         id="main-content-scroll"
-                        className={`flex-1 overflow-auto ${shouldHideHeader ? 'pt-0' : 'pt-2'} pb-6 bg-study-bg transition-all duration-300 ${
-                            isSidebarOpen ? 'pl-6' : 'pl-0'
-                        } ${isCompactMode ? 'pr-2' : activeRightTab ? 'pr-80' : 'pr-14'}`}
+                        className="bg-white rounded-3xl h-full overflow-auto scrollbar-hide"
+                        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                     >
                         {children}
-                    </div>
-                </motion.main>
+                    </section>
+                </main>
 
                 {!isCompactMode && <RightSideBarV2 />}
             </div>

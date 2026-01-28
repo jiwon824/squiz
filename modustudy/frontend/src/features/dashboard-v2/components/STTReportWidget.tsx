@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { FileText, Calendar, Users, ChevronRight } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
+import { WidgetHeader, WidgetContainer } from '@/shared/components/layouts';
 
 // Mock 데이터
 const MOCK_REPORTS = [
@@ -39,15 +40,15 @@ export const STTReportWidget: React.FC = () => {
     const [selectedReport, setSelectedReport] = useState(MOCK_REPORTS[0]);
 
     return (
-        <div className={cn('bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden')}>
-            {/* 헤더 */}
-            <div className="bg-gradient-to-r from-primary/10 to-secondary/10 px-6 py-4 flex items-center gap-3 border-b border-gray-100">
-                <FileText className="text-primary" size={24} />
-                <div>
-                    <h3 className="text-lg font-bold text-text-primary">STT 미팅 리포트</h3>
-                    <p className="text-sm text-text-secondary">최근 스터디 요약</p>
-                </div>
-            </div>
+        <WidgetContainer>
+            {/* 헤더 - 공통 컴포넌트 사용 */}
+            <WidgetHeader
+                icon={FileText}
+                iconColor="primary"
+                title="STT 미팅 리포트"
+                subtitle="최근 스터디 요약"
+                maximizePath="/stt-report"
+            />
 
             <div className="flex">
                 {/* 좌측: 미팅 리스트 */}
@@ -63,8 +64,12 @@ export const STTReportWidget: React.FC = () => {
                                     : 'hover:bg-gray-100'
                             )}
                         >
-                            <h4 className="font-bold text-text-primary text-sm mb-1">{report.studyName}</h4>
-                            <p className="text-xs text-text-secondary truncate">{report.meetingTitle}</p>
+                            <h4 className="font-bold text-text-primary text-sm mb-0">
+                                {report.studyName}
+                            </h4>
+                            <p className="text-xs text-text-secondary truncate">
+                                {report.meetingTitle}
+                            </p>
                             <div className="flex items-center gap-2 mt-2 text-xs text-text-tertiary">
                                 <Calendar size={12} />
                                 <span>{report.date}</span>
@@ -81,7 +86,9 @@ export const STTReportWidget: React.FC = () => {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.3 }}
                     >
-                        <h3 className="text-xl font-bold text-text-primary mb-2">{selectedReport.meetingTitle}</h3>
+                        <h3 className="text-xl font-bold text-text-primary mb-0">
+                            {selectedReport.meetingTitle}
+                        </h3>
                         <div className="flex items-center gap-4 text-sm text-text-secondary mb-4">
                             <div className="flex items-center gap-1">
                                 <Calendar size={14} />
@@ -96,13 +103,15 @@ export const STTReportWidget: React.FC = () => {
 
                         {/* 요약 */}
                         <div className="bg-gray-50 rounded-xl p-4 mb-4">
-                            <h4 className="font-bold text-text-primary mb-2 text-sm">📝 요약</h4>
-                            <p className="text-text-secondary text-sm leading-relaxed">{selectedReport.summary}</p>
+                            <h4 className="font-bold text-text-primary mb-0 text-sm">📝 요약</h4>
+                            <p className="text-text-secondary text-sm leading-relaxed">
+                                {selectedReport.summary}
+                            </p>
                         </div>
 
                         {/* 키워드 */}
                         <div className="mb-4">
-                            <h4 className="font-bold text-text-primary mb-2 text-sm">🔑 핵심 키워드</h4>
+                            <h4 className="font-bold text-text-primary mb-0 text-sm">🔑 핵심 키워드</h4>
                             <div className="flex flex-wrap gap-2">
                                 {selectedReport.keywords.map((keyword, idx) => (
                                     <span
@@ -117,10 +126,13 @@ export const STTReportWidget: React.FC = () => {
 
                         {/* 하이라이트 */}
                         <div>
-                            <h4 className="font-bold text-text-primary mb-2 text-sm">💡 주요 내용</h4>
+                            <h4 className="font-bold text-text-primary mb-0 text-sm">💡 주요 내용</h4>
                             <ul className="space-y-2">
                                 {selectedReport.highlights.map((highlight, idx) => (
-                                    <li key={idx} className="flex items-start gap-2 text-sm text-text-secondary">
+                                    <li
+                                        key={idx}
+                                        className="flex items-start gap-2 text-sm text-text-secondary"
+                                    >
                                         <ChevronRight size={16} className="text-primary flex-shrink-0 mt-0.5" />
                                         <span>{highlight}</span>
                                     </li>
@@ -130,6 +142,6 @@ export const STTReportWidget: React.FC = () => {
                     </motion.div>
                 </div>
             </div>
-        </div>
+        </WidgetContainer>
     );
 };

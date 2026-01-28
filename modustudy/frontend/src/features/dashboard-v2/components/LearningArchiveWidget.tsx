@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Archive, Search, Calendar, Tag, Grid, List } from 'lucide-react';
+import { Archive, Search, Calendar, Grid, List } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
+import { WidgetHeader, WidgetContainer } from '@/shared/components/layouts';
 
 // Mock 데이터
 const MOCK_ARCHIVES = [
@@ -57,38 +58,42 @@ export const LearningArchiveWidget: React.FC = () => {
         return matchesSearch && matchesTag;
     });
 
+    // 뷰 모드 토글 버튼
+    const viewModeButtons = (
+        <>
+            <button
+                onClick={() => setViewMode('grid')}
+                className={cn(
+                    'p-2 rounded-lg transition-all',
+                    viewMode === 'grid' ? 'bg-primary/20 text-primary' : 'text-gray-400 hover:bg-gray-100'
+                )}
+            >
+                <Grid size={18} />
+            </button>
+            <button
+                onClick={() => setViewMode('list')}
+                className={cn(
+                    'p-2 rounded-lg transition-all',
+                    viewMode === 'list' ? 'bg-primary/20 text-primary' : 'text-gray-400 hover:bg-gray-100'
+                )}
+            >
+                <List size={18} />
+            </button>
+            <div className="w-px h-5 bg-gray-200 mx-1" />
+        </>
+    );
+
     return (
-        <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
-            {/* 헤더 */}
-            <div className="bg-gradient-to-r from-accent/10 to-primary/10 px-6 py-4 flex items-center justify-between border-b border-gray-100">
-                <div className="flex items-center gap-3">
-                    <Archive className="text-accent" size={24} />
-                    <div>
-                        <h3 className="text-lg font-bold text-text-primary">학습 보관함</h3>
-                        <p className="text-sm text-text-secondary">과거 스터디 기록</p>
-                    </div>
-                </div>
-                <div className="flex gap-2">
-                    <button
-                        onClick={() => setViewMode('grid')}
-                        className={cn(
-                            'p-2 rounded-lg transition-all',
-                            viewMode === 'grid' ? 'bg-primary/20 text-primary' : 'text-gray-400 hover:bg-gray-100'
-                        )}
-                    >
-                        <Grid size={18} />
-                    </button>
-                    <button
-                        onClick={() => setViewMode('list')}
-                        className={cn(
-                            'p-2 rounded-lg transition-all',
-                            viewMode === 'list' ? 'bg-primary/20 text-primary' : 'text-gray-400 hover:bg-gray-100'
-                        )}
-                    >
-                        <List size={18} />
-                    </button>
-                </div>
-            </div>
+        <WidgetContainer>
+            {/* 헤더 - 공통 컴포넌트 사용 */}
+            <WidgetHeader
+                icon={Archive}
+                iconColor="accent"
+                title="학습 보관함"
+                subtitle="과거 스터디 기록"
+                maximizePath="/learning-archive"
+                rightActions={viewModeButtons}
+            />
 
             <div className="p-6">
                 {/* 검색 및 필터 */}
@@ -101,7 +106,7 @@ export const LearningArchiveWidget: React.FC = () => {
                             placeholder="제목, 내용 검색..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none transition-colors"
+                            className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:border-primary focus:outline-none transition-colors"
                         />
                     </div>
 
@@ -154,7 +159,7 @@ export const LearningArchiveWidget: React.FC = () => {
                             )}
                         >
                             <div className="flex items-start justify-between mb-2">
-                                <h4 className="font-bold text-text-primary">{archive.title}</h4>
+                                <h4 className="font-bold text-text-primary mb-0">{archive.title}</h4>
                                 <span className="text-xs text-text-tertiary flex items-center gap-1">
                                     <Calendar size={12} />
                                     {archive.date}
@@ -190,6 +195,6 @@ export const LearningArchiveWidget: React.FC = () => {
                     </div>
                 )}
             </div>
-        </div>
+        </WidgetContainer>
     );
 };

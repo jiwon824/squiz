@@ -5,7 +5,12 @@ import { Skeleton } from '../shared/components';
 // 즉시 로드: 랜딩 및 핵심 페이지
 import { StartPage } from '../features/start/StartPage';
 import { Dashboard, CalendarExpandWidget, DashboardSkeleton } from '../features/dashboard';
-import { DashboardV2 } from '../features/dashboard-v2';
+import { DashboardV2, GuestDashboardV2, UserDashboardV2 } from '../features/dashboard-v2';
+import { StudyAfterQuiz } from '../features/dashboard-v2/pages/StudyAfterQuiz';
+import { STTReportPage } from '../features/dashboard-v2/pages/STTReportPage';
+import { LearningArchivePage } from '../features/dashboard-v2/pages/LearningArchivePage';
+import { GuestLayoutV2 } from '@/layouts/GuestLayoutV2';
+import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { CalendarTestPage } from '../features/calendar/components/CalendarTestPage';
 import { CalendarPage } from '../features/calendar/components/CalendarPage';
 import { authApi } from '@/api/endpoints/authApi';
@@ -143,6 +148,8 @@ export const AppRouter = () => {
                 }
             />
             <Route path="/dashboard-v2" element={<DashboardV2 />} />
+            <Route path="/dashboard-v2/guest" element={<GuestLayoutV2><GuestDashboardV2 /></GuestLayoutV2>} />
+            <Route path="/dashboard-v2/user" element={<UserLayoutV2><UserDashboardV2 /></UserLayoutV2>} />
             <Route path="/calendar-expand" element={<CalendarExpandWidget />} />
             <Route path="/calendar" element={<CalendarPage />} />
             <Route path="/test-calendar" element={<CalendarTestPage />} />
@@ -156,6 +163,9 @@ export const AppRouter = () => {
 
             {/* 퀴즈 */}
             <Route path="/quiz" element={<QuizGameSelection />} />
+            <Route path="/quiz/review" element={<StudyAfterQuiz />} />
+            <Route path="/stt-report" element={<STTReportPage />} />
+            <Route path="/learning-archive" element={<LearningArchivePage />} />
             <Route path="/quiz-commentle" element={<CommentleQuiz />} />
             <Route path="/quiz-practice" element={<QuizCourseList />} />
             <Route path="/quiz-practice/:courseId" element={<CourseDetail />} />

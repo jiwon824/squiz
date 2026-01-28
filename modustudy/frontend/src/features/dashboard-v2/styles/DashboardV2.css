@@ -1,23 +1,37 @@
 /* Dashboard V2 추가 스타일 */
 
+/* 스크롤바 숨기기 */
+.scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari, Opera */
+}
+
 /* 스크롤바 커스텀 */
-.dashboard-v2-scroll::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+.dashboard-v2-scroll::-webkit-scrollbar,
+.quiz-list-scroll::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
 }
 
-.dashboard-v2-scroll::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 4px;
+.dashboard-v2-scroll::-webkit-scrollbar-track,
+.quiz-list-scroll::-webkit-scrollbar-track {
+    background: #f5f5f5;
+    border-radius: 3px;
 }
 
-.dashboard-v2-scroll::-webkit-scrollbar-thumb {
-    background: #80a1ba;
-    border-radius: 4px;
+.dashboard-v2-scroll::-webkit-scrollbar-thumb,
+.quiz-list-scroll::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 3px;
 }
 
-.dashboard-v2-scroll::-webkit-scrollbar-thumb:hover {
-    background: #6b8ca8;
+.dashboard-v2-scroll::-webkit-scrollbar-thumb:hover,
+.quiz-list-scroll::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
 }
 
 /* 애니메이션 */
@@ -42,4 +56,264 @@
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+}
+
+/* ============================================
+   목업 애니메이션 스타일
+   ============================================ */
+
+/* 애니메이션 딜레이 지원 fade-in */
+.animate-fade-in {
+    animation: fade-in 1s var(--animation-delay, 0s) ease forwards;
+    opacity: 0;
+}
+
+.animate-fade-up {
+    animation: fade-up 1s var(--animation-delay, 0s) ease forwards;
+    opacity: 0;
+}
+
+/* 마퀴 애니메이션 (가로 스크롤) */
+.animate-marquee {
+    animation: marquee var(--duration, 20s) infinite linear;
+}
+
+/* 마퀴 애니메이션 (세로 스크롤) */
+.animate-marquee-vertical {
+    animation: marquee-vertical var(--duration, 20s) linear infinite;
+}
+
+/* 쉬머 효과 (로딩/스켈레톤용) */
+.animate-shimmer {
+    animation: shimmer-v2 8s infinite;
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.4) 50%,
+        rgba(255, 255, 255, 0) 100%
+    );
+    background-size: var(--shimmer-width, 200%) 100%;
+}
+
+/* 이미지 글로우 효과 */
+.animate-image-glow {
+    animation: image-glow 4s ease-in-out infinite;
+}
+
+/* 펄스 효과 */
+.animate-pulse-soft {
+    animation: pulse-soft 3s ease-in-out infinite;
+}
+
+/* 플로팅 효과 */
+.animate-float {
+    animation: float 6s ease-in-out infinite;
+}
+
+/* ============================================
+   키프레임 정의
+   ============================================ */
+
+@keyframes fade-in {
+    0% {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    100% {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes fade-up {
+    0% {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    100% {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes marquee {
+    0% {
+        transform: translateX(0);
+    }
+    100% {
+        transform: translateX(calc(-100% - var(--gap, 1rem)));
+    }
+}
+
+@keyframes marquee-vertical {
+    0% {
+        transform: translateY(0);
+    }
+    100% {
+        transform: translateY(calc(-100% - var(--gap, 1rem)));
+    }
+}
+
+@keyframes shimmer-v2 {
+    0%, 90%, 100% {
+        background-position: calc(-100% - var(--shimmer-width, 200%)) 0;
+    }
+    30%, 60% {
+        background-position: calc(100% + var(--shimmer-width, 200%)) 0;
+    }
+}
+
+@keyframes image-glow {
+    0% {
+        opacity: 0;
+        animation-timing-function: cubic-bezier(0.74, 0.25, 0.76, 1);
+    }
+    10% {
+        opacity: 0.7;
+        animation-timing-function: cubic-bezier(0.12, 0.01, 0.08, 0.99);
+    }
+    100% {
+        opacity: 0.4;
+    }
+}
+
+@keyframes pulse-soft {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.8;
+        transform: scale(1.02);
+    }
+}
+
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+/* ============================================
+   목업 UI 컴포넌트 스타일
+   ============================================ */
+
+/* 목업 브라우저 창 */
+.mockup-browser {
+    background: var(--color-surface, #ffffff);
+    border-radius: 12px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+}
+
+.mockup-browser-header {
+    background: linear-gradient(to bottom, #f7f7f7, #e8e8e8);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid #d4d4d4;
+}
+
+.mockup-browser-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+.mockup-browser-dot.red { background: #ff5f57; }
+.mockup-browser-dot.yellow { background: #febc2e; }
+.mockup-browser-dot.green { background: #28c840; }
+
+.mockup-browser-url {
+    flex: 1;
+    margin-left: 12px;
+    background: #ffffff;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    color: #666;
+    border: 1px solid #e0e0e0;
+}
+
+/* 목업 폰 */
+.mockup-phone {
+    background: #1a1a1a;
+    border-radius: 40px;
+    padding: 12px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+}
+
+.mockup-phone-screen {
+    background: var(--color-surface, #ffffff);
+    border-radius: 32px;
+    overflow: hidden;
+}
+
+.mockup-phone-notch {
+    width: 120px;
+    height: 24px;
+    background: #1a1a1a;
+    border-radius: 0 0 16px 16px;
+    margin: 0 auto;
+}
+
+/* 목업 카드 그리드 */
+.mockup-grid {
+    display: grid;
+    gap: 16px;
+}
+
+.mockup-card {
+    background: var(--color-surface, #ffffff);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.mockup-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+/* 목업 텍스트 라인 (스켈레톤용) */
+.mockup-line {
+    background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+    background-size: 200% 100%;
+    animation: shimmer-v2 2s infinite;
+    border-radius: 4px;
+    height: 12px;
+}
+
+.mockup-line.short { width: 60%; }
+.mockup-line.medium { width: 80%; }
+.mockup-line.full { width: 100%; }
+
+/* 목업 아바타 */
+.mockup-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+}
+
+/* 다크 모드 지원 */
+[data-theme="dark"] .mockup-browser-header {
+    background: linear-gradient(to bottom, #3a3a3a, #2a2a2a);
+    border-bottom-color: #444;
+}
+
+[data-theme="dark"] .mockup-browser-url {
+    background: #1a1a1a;
+    border-color: #444;
+    color: #aaa;
+}
+
+[data-theme="dark"] .mockup-line {
+    background: linear-gradient(90deg, #3a3a3a 25%, #4a4a4a 50%, #3a3a3a 75%);
+    background-size: 200% 100%;
 }

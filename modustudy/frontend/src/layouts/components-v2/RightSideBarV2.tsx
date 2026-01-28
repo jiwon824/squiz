@@ -7,6 +7,7 @@ import FriendListMini from '@/features/friend/components/FriendListMini';
 import DMListMini from '@/features/dm/components/DMListMini';
 import { useDMStore } from '@/features/dm/store/dmStore';
 import { useFriendStore } from '@/features/friend/store/friendStore';
+import { cn } from '@/shared/utils/cn';
 
 // Mock 데이터: 다가오는 미팅 일정
 const MOCK_MEETINGS = [
@@ -76,11 +77,12 @@ const MeetingQuickAccess: React.FC = () => {
                         return (
                             <motion.div
                                 key={meeting.id}
-                                className={`p-3 rounded-lg border transition-all ${
+                                className={cn(
+                                    'p-3 rounded-lg border transition-all',
                                     joinable
                                         ? 'border-study-green bg-study-green/5 shadow-sm'
                                         : 'border-gray-200 bg-gray-50/50'
-                                }`}
+                                )}
                                 whileHover={{ scale: 1.02 }}
                             >
                                 <div className="flex items-start justify-between mb-2">
@@ -106,11 +108,12 @@ const MeetingQuickAccess: React.FC = () => {
                                         navigate(`/study/${meeting.studyId}/meetings/${meeting.id}/room`)
                                     }
                                     disabled={!joinable}
-                                    className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${
+                                    className={cn(
+                                        'w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all',
                                         joinable
                                             ? 'bg-study-green text-white hover:bg-study-green/90 hover:scale-105 active:scale-95'
                                             : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                                    }`}
+                                    )}
                                 >
                                     <Play size={14} />
                                     {joinable ? '지금 참여하기' : '대기 중'}
@@ -181,13 +184,14 @@ export const RightSideBarV2: React.FC = () => {
             </AnimatePresence>
 
             {/* 고정 아이콘 바 */}
-            <div className="w-14 h-full flex flex-col items-center py-4 gap-4 pointer-events-auto">
+            <div className="w-14 h-full flex flex-col items-center py-4 gap-4 pointer-events-auto bg-slate-200">
                 {/* 미팅 버튼 (새로 추가!) */}
                 <button
                     onClick={() => toggleRightTab('meeting')}
-                    className={`icon-bar-btn p-2.5 rounded-full transition-all hover:bg-study-green/10 group relative ${
+                    className={cn(
+                        'icon-bar-btn p-2.5 rounded-full transition-all hover:bg-study-green/10 group relative',
                         activeRightTab === 'meeting' ? 'bg-study-green/15 text-study-green' : 'text-gray-400'
-                    }`}
+                    )}
                     title="미팅"
                 >
                     <Video size={20} className="group-hover:scale-110 transition-transform" />
@@ -199,9 +203,10 @@ export const RightSideBarV2: React.FC = () => {
 
                 <button
                     onClick={() => toggleRightTab('friend')}
-                    className={`icon-bar-btn p-2.5 rounded-full transition-all hover:bg-study-blue/10 group ${
+                    className={cn(
+                        'icon-bar-btn p-2.5 rounded-full transition-all hover:bg-study-blue/10 group',
                         activeRightTab === 'friend' ? 'bg-study-blue/15 text-study-blue' : 'text-gray-400'
-                    }`}
+                    )}
                     title="친구"
                 >
                     <Users size={20} className="group-hover:scale-110 transition-transform" />
@@ -209,9 +214,10 @@ export const RightSideBarV2: React.FC = () => {
 
                 <button
                     onClick={() => toggleRightTab('dm')}
-                    className={`icon-bar-btn p-2.5 rounded-full transition-all hover:bg-study-blue/10 group relative ${
+                    className={cn(
+                        'icon-bar-btn p-2.5 rounded-full transition-all hover:bg-study-blue/10 group relative',
                         activeRightTab === 'dm' ? 'bg-study-blue/15 text-study-blue' : 'text-gray-400'
-                    }`}
+                    )}
                     title="DM"
                 >
                     <MessageSquare size={20} className="group-hover:scale-110 transition-transform" />
