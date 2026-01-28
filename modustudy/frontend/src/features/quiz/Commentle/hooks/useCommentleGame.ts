@@ -14,7 +14,6 @@ export interface Guess {
     id: number;
     word: string;
     score: number;
-    rank: number;
     attemptNum: number;
 }
 
@@ -88,13 +87,11 @@ export const useCommentleGame = () => {
 
         try {
             const result = await checkSimilarity(word);
-            const mockRank = result.isCorrect ? 1 : Math.floor(Math.random() * 10000) + 10;
 
             const newGuess: Guess = {
                 id: Date.now(),
                 word: result.userWord,
                 score: result.score,
-                rank: mockRank,
                 attemptNum: guesses.length + 1
             };
 

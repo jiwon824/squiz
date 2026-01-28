@@ -1,5 +1,5 @@
 import React from 'react';
-import { MainLayout } from '@/layouts/MainLayout';
+import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { useCommentleGame } from './hooks/useCommentleGame';
 import { CommentleHeader } from './components/CommentleHeader';
 import { CommentleProblemCard } from './components/CommentleProblemCard';
@@ -25,64 +25,55 @@ export const CommentleQuizPage: React.FC = () => {
     } = useCommentleGame();
 
     if (problemLoading) {
-        return <MainLayout><CommentleSkeleton /></MainLayout>;
+        return <UserLayoutV2><CommentleSkeleton /></UserLayoutV2>;
     }
 
     return (
-        <MainLayout>
-            <div className="w-full max-w-[1400px] mx-auto p-6 animate-fade-in">
+        <UserLayoutV2>
+            <div className="w-full max-w-[1600px] mx-auto p-6">
                 <CommentleHeader />
 
-                {/* 2-Column Grid Layout for Large Screens */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* 메인 게임 영역 */}
+                <div className="flex flex-col lg:flex-row gap-8">
 
-                    {/* Left Column: Core Game Interaction */}
-                    <div className="flex flex-col">
-                        <section className="sticky top-6 space-y-8">
-                            <div>
-                                <h2 className="text-sm font-black text-text-tertiary uppercase tracking-widest mb-4">Problem Context</h2>
-                                <CommentleProblemCard
-                                    problem={problem}
-                                    attemptCount={guesses.length}
-                                />
-                            </div>
+                    {/* 왼쪽: 게임 핵심 영역 */}
+                    <div className="w-full lg:w-[45%] lg:min-w-[450px] lg:max-w-[650px]">
+                        {/* 문제 정보 */}
+                        <div className="mb-4">
+                            <CommentleProblemCard
+                                problem={problem}
+                                attemptCount={guesses.length}
+                            />
+                        </div>
 
-                            <div>
-                                <CommentleInputSection
-                                    onGuess={handleGuess}
-                                    loading={loading}
-                                />
-                            </div>
+                        {/* 입력 영역 */}
+                        <div className="mb-6">
+                            <CommentleInputSection
+                                onGuess={handleGuess}
+                                loading={loading}
+                            />
+                        </div>
 
-                            <div className="lg:hidden">
-                                <Commentle3DView guesses={guesses} />
-                            </div>
+                        {/* 시도 기록 (오토 높이) */}
+                        <CommentleHistory guesses={guesses} />
 
-                            <div>
-                                <CommentleHistory guesses={guesses} />
-                            </div>
-                        </section>
-                    </div>
+                        {/* 모바일: 3D 뷰 */}
+                        <div className="lg:hidden mt-6">
+                            <Commentle3DView guesses={guesses} />
+                        </div>
 
-                    {/* Right Column: Visualization & Stats */}
-                    <div className="hidden lg:flex flex-col gap-8">
-                        <div className="sticky top-6 space-y-8">
-                            <div>
-                                <h2 className="text-sm font-black text-text-tertiary uppercase tracking-widest mb-4">Semantic Analytics</h2>
-                                <Commentle3DView guesses={guesses} />
-                            </div>
-
-                            <div>
-                                <h2 className="text-sm font-black text-text-tertiary uppercase tracking-widest mb-4">Community Stats</h2>
-                                <CommentleStatsBoard leaderboard={leaderboard} />
-                            </div>
+                        {/* 모바일: 리더보드 */}
+                        <div className="lg:hidden mt-6">
+                            <CommentleStatsBoard leaderboard={leaderboard} />
                         </div>
                     </div>
 
-                    {/* Mobile Stats Board (Shown at the bottom on mobile) */}
-                    <div className="lg:hidden mt-8">
-                        <h2 className="text-sm font-black text-text-tertiary uppercase tracking-widest mb-4">Community Stats</h2>
-                        <CommentleStatsBoard leaderboard={leaderboard} />
+                    {/* 오른쪽: 시각화 영역 (데스크탑만) */}
+                    <div className="hidden lg:block flex-1">
+                        <div className="sticky top-6 space-y-6">
+                            <Commentle3DView guesses={guesses} />
+                            <CommentleStatsBoard leaderboard={leaderboard} />
+                        </div>
                     </div>
                 </div>
 
@@ -110,6 +101,6 @@ export const CommentleQuizPage: React.FC = () => {
                     </div>
                 </Modal>
             </div>
-        </MainLayout>
+        </UserLayoutV2>
     );
 };

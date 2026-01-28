@@ -9,67 +9,86 @@ interface CommentleProblemCardProps {
 
 /* 코멘틀 퀴즈 문제 정보 카드 컴포넌트*/
 export const CommentleProblemCard: React.FC<CommentleProblemCardProps> = ({ problem, attemptCount }) => {
+    // 시도 횟수에 따라 힌트 공개 (5회, 10회, 20회)
+    const getUnlockedHints = () => {
+        if (attemptCount >= 20) return 3;
+        if (attemptCount >= 10) return 2;
+        if (attemptCount >= 5) return 1;
+        return 0;
+    };
+
+    const unlockedHintCount = getUnlockedHints();
+
     return (
-        <div className="bg-gradient-to-br from-surface to-white border border-border-light rounded-3xl p-8 shadow-sm mb-8 relative overflow-hidden">
-            {/* 배경 장식 요소 */}
-            <div className="absolute -top-12 -right-12 w-48 h-48 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
-
-            {/* 헤더 영역: 카테고리, 난이도, 시도 횟수 */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
-                <div className="flex flex-wrap gap-4">
-                    {/* Category Chip */}
-                    <div className="flex items-center gap-2.5 bg-primary/5 px-4 py-2 rounded-2xl border border-primary/10">
-                        <Tag size={16} className="text-primary" />
-                        <span className="text-xs font-bold text-text-tertiary uppercase tracking-wider">Category</span>
-                        <span className="text-base font-bold text-primary">{problem.category}</span>
-                    </div>
-
-                    {/* Difficulty Chip */}
-                    <div className="flex items-center gap-2.5 bg-accent/10 px-4 py-2 rounded-2xl border border-accent/20">
-                        <Zap size={16} className="text-accent-dark" />
-                        <span className="text-xs font-bold text-text-tertiary uppercase tracking-wider">Difficulty</span>
-                        <span className="text-base font-bold text-accent-dark">{problem.difficulty}</span>
-                    </div>
+        <div className="space-y-5">
+            {/* 상단 정보 - 가로 배치 */}
+            <div className="flex flex-wrap items-center gap-4">
+                {/* Category */}
+                <div className="flex items-center gap-2.5 bg-slate-100 px-5 py-2.5 rounded-full">
+                    <Tag size={20} className="text-primary" />
+                    <span className="text-lg font-semibold text-slate-700">{problem.category}</span>
                 </div>
 
-                {/* Attempt Status */}
-                <div className="flex items-center gap-3 bg-white/80 backdrop-blur-sm px-5 py-2.5 rounded-2xl border border-border-light shadow-sm">
-                    <span className="text-sm font-medium text-text-secondary">현재 시도</span>
-                    <span className="text-xl font-black text-error">{attemptCount + 1}</span>
-                    <span className="text-sm font-medium text-text-secondary">번째</span>
+                {/* Difficulty */}
+                <div className="flex items-center gap-2.5 bg-slate-100 px-5 py-2.5 rounded-full">
+                    <Zap size={20} className="text-amber-500" />
+                    <span className="text-lg font-semibold text-slate-700 capitalize">{problem.difficulty}</span>
+                </div>
+
+                {/* Attempt */}
+                <div className="flex items-center gap-2 bg-slate-100 px-5 py-2.5 rounded-full">
+                    <span className="text-lg text-slate-500">시도</span>
+                    <span className="text-xl font-bold text-primary">{attemptCount + 1}</span>
                 </div>
             </div>
 
-            {/* Hints Section */}
-            <div className="bg-white/60 rounded-2xl border border-white/40 p-6">
-                <div className="flex items-center gap-3 mb-4">
-                    <div className="bg-warning/20 p-2 rounded-lg text-warning-dark">
+            {/* 힌트 섹션 */}
+            <div className="bg-surface border border-border-light rounded-3xl p-6 shadow-sm">
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="bg-warning/10 p-2 rounded-xl text-amber-500">
                         <HelpCircle size={20} />
                     </div>
-                    <h3 className="font-bold text-text-primary">오늘의 힌트</h3>
-                    <span className="ml-auto text-xs text-text-tertiary">마우스를 올리면 힌트가 보입니다</span>
+                    <span className="text-xl font-bold text-text-primary">힌트</span>
+                    <span className="text-sm text-text-tertiary ml-auto">hover to reveal</span>
                 </div>
 
-                <div className="flex flex-wrap gap-3">
+                <div className="space-y-4">
                     {problem.hints.length > 0 ? (
-                        problem.hints.map((hint, index) => (
-                            <div
-                                key={index}
-                                className="hint-chip-fancy group cursor-help"
-                                title="Hover to reveal"
-                            >
-                                <span className="text-xs font-bold text-warning-dark mr-2 opacity-50">#{index + 1}</span>
-                                <span className="hint-text blur-md group-hover:blur-none transition-all duration-300 font-medium">
-                                    {hint}
-                                </span>
-                            </div>
-                        ))
+                        problem.hints.map((hint, index) => {
+                            const isUnlocked = index < unlockedHintCount;
+                            const nextUnlockAttempt = index === 0 ? 5 : index === 1 ? 10 : 20;
+
+                            return (
+                                <div
+                                    key={index}
+                                    className={`flex items-start gap-4 p-4 rounded-xl transition-all ${
+                                        isUnlocked
+                                            ? 'bg-white border border-amber-200'
+                                            : 'bg-background-secondary border border-border-light opacity-60'
+                                    }`}
+                                >
+                                    <span className={`text-lg font-bold mt-0.5 ${
+                                        isUnlocked ? 'text-amber-500' : 'text-text-tertiary'
+                                    }`}>
+                                        #{index + 1}
+                                    </span>
+                                    {isUnlocked ? (
+                                        <span className="text-lg text-text-primary group cursor-help blur-sm hover:blur-none transition-all duration-300 flex-1">
+                                            {hint}
+                                        </span>
+                                    ) : (
+                                        <span className="text-base text-text-tertiary italic flex-1">
+                                            🔒 {nextUnlockAttempt}회 시도 후 공개
+                                        </span>
+                                    )}
+                                </div>
+                            );
+                        })
                     ) : (
-                        <div className="text-sm text-text-tertiary italic p-2 italic">아직 공개된 힌트가 없습니다.</div>
+                        <p className="text-lg text-text-tertiary italic">아직 공개된 힌트가 없습니다.</p>
                     )}
                 </div>
             </div>
-
         </div>
     );
 };

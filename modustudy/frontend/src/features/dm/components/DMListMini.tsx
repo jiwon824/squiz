@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { MessageSquare, Send, Loader2 } from 'lucide-react';
 import { useDMStore } from '../store/dmStore';
+import { useAuthStore } from '@/store/authStore';
 import { BackButton } from '@/shared/components';
 import { cn } from '@/shared/utils/cn';
 
@@ -62,8 +63,14 @@ const DMListMini: React.FC = () => {
         return () => clearTimeout(timer);
     }, [messages.length]);
 
-    // 초기 데이터 로드 + WebSocket 연결
+    // 초기 데이터 로드 + WebSocket 연결 (로그인 상태에서만)
     useEffect(() => {
+        const authStore = useAuthStore.getState();
+        if (!authStore.user) {
+            console.log('[DM] User not logged in, skipping WebSocket connection');
+            return;
+        }
+
         fetchConversations();
         fetchUnreadCount();
         connectWebSocket();
@@ -118,7 +125,7 @@ const DMListMini: React.FC = () => {
     // 새 대화 시작 모드
     if (pendingDMUser) {
         return (
-            <div className="p-4 h-full flex flex-col">
+            <div className="py-4 pl-2 pr-4 h-full flex flex-col bg-transparent">
                 {/* 채팅 헤더 */}
                 <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-100">
                     <BackButton
@@ -178,7 +185,7 @@ const DMListMini: React.FC = () => {
     if (currentConversationId) {
 
         return (
-            <div className="p-4 h-full flex flex-col">
+            <div className="py-4 pl-2 pr-4 h-full flex flex-col bg-transparent">
                 {/* 채팅 헤더 */}
                 <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-100">
                     <BackButton
@@ -300,7 +307,7 @@ const DMListMini: React.FC = () => {
     // 대화방 목록
 
     return (
-        <div className="p-4 h-full flex flex-col">
+        <div className="py-4 pl-2 pr-4 h-full flex flex-col bg-transparent">
             {/* 헤더 */}
             <div className="flex items-center gap-2 mb-4 text-study-blue">
                 <MessageSquare size={20} />

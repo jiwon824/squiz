@@ -67,7 +67,7 @@ const FriendListMini: React.FC = () => {
     };
 
     return (
-        <div className="p-4 h-full flex flex-col">
+        <div className="py-4 pl-2 pr-4 h-full flex flex-col bg-transparent">
             {/* 헤더 */}
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2 text-study-blue">

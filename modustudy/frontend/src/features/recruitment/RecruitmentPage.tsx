@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MainLayout } from '@/layouts/MainLayout';
+import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { RecruitmentList } from './components/RecruitmentList';
 import { RecruitmentForm } from './components/RecruitmentForm';
 import { RecruitmentReportModal } from './components/RecruitmentReportModal';
@@ -55,7 +55,7 @@ export const RecruitmentPage = () => {
     };
 
     return (
-        <MainLayout>
+        <UserLayoutV2>
             <div className="max-w-7xl mx-auto py-12 px-6">
 
                 {/* 1. List Mode */}
@@ -225,6 +225,6 @@ export const RecruitmentPage = () => {
                     targetTitle={posts.find(p => p.id === reportTargetId)?.title}
                 />
             </div>
-        </MainLayout>
+        </UserLayoutV2>
     );
 };

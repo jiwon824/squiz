@@ -1,6 +1,6 @@
 ﻿import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { MainLayout } from '@/layouts/MainLayout';
+import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { useAuthStore } from '@/store/authStore';
 import MeetingStartModal from './MeetingStartModal';
 import { meetingApi } from '../services/meetingApi';
@@ -65,7 +65,7 @@ const MeetingHistoryPage: React.FC = () => {
     };
 
     return (
-        <MainLayout>
+        <UserLayoutV2>
             <div className="meeting-history">
                 <div className="meeting-history__header">
                     <div>
@@ -193,7 +193,7 @@ const MeetingHistoryPage: React.FC = () => {
                 onClose={() => setShowStartModal(false)}
                 onStart={handleStartMeeting}
             />
-        </MainLayout>
+        </UserLayoutV2>
     );
 };
 

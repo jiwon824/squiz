@@ -1,14 +1,20 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useEffect } from 'react';
 import { Box, Loader2 } from 'lucide-react';
 import { Guess } from '../hooks/useCommentleGame';
 
-const Embedding3DViewer = lazy(() => import('../Embedding3DViewer.tsx')) as React.ComponentType<{ guesses: Guess[] }>;
+// lazy 로드 + preload 함수
+const importEmbedding3DViewer = () => import('../Embedding3DViewer.tsx');
+const Embedding3DViewer = lazy(importEmbedding3DViewer) as React.ComponentType<{ guesses: Guess[] }>;
 
 interface Commentle3DViewProps {
     guesses: Guess[];
 }
 
 export const Commentle3DView: React.FC<Commentle3DViewProps> = ({ guesses }) => {
+    // 컴포넌트 마운트 시 미리 로드 시작
+    useEffect(() => {
+        importEmbedding3DViewer();
+    }, []);
     return (
         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-1.5 shadow-2xl h-full min-h-[600px] flex flex-col overflow-hidden group">
             <div className="flex items-center gap-3 px-6 py-4 border-b border-slate-800/50">

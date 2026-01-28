@@ -9,11 +9,15 @@ export const Sidebar = () => {
 
     return (
         <aside
-            className="h-screen flex flex-col overflow-hidden bg-slate-200 transition-all duration-300 ease-out"
-            style={{ width: isSidebarOpen ? 280 : 0 }}
+            className="h-full flex flex-col bg-slate-200 transition-all duration-300 ease-out flex-shrink-0"
+            style={{
+                width: isSidebarOpen ? 280 : 0,
+                minWidth: isSidebarOpen ? 280 : 0,
+                overflow: 'hidden'
+            }}
         >
             {/* 메뉴 아이템들 */}
-            <nav className="flex-1 p-4 space-y-2">
+            <nav className="flex-1 p-4 space-y-2" style={{ width: 280 }}>
                 {/* 대시보드 */}
                 <SidebarItem
                     icon={<DashboardIcon />}
