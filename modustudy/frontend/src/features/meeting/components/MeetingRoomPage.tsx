@@ -64,6 +64,7 @@ const MeetingRoomPage: React.FC = () => {
     const joinSuccessRef = useRef(false);
     const updateTokenRef = useRef(0);
     const roomIdRef = useRef<string>('');
+    const useSfuRecording = true;
 
     const localMicStreamRef = useRef<MediaStream | null>(null);
     const localCameraStreamRef = useRef<MediaStream | null>(null);
@@ -319,7 +320,6 @@ const MeetingRoomPage: React.FC = () => {
 
     const getPresenterAudioSelection = useCallback(() => {
         const micTrack = localMicStreamRef.current?.getAudioTracks()?.[0] ?? null;
-        const screenTrack = localScreenStreamRef.current?.getAudioTracks()?.[0] ?? null;
         const shareModeValue = shareModeRef.current;
         const tracks: MediaStreamTrack[] = [];
         const sourceIds: string[] = [];
@@ -330,12 +330,7 @@ const MeetingRoomPage: React.FC = () => {
             sourceIds.push(`mic:${micTrack.id}`);
         }
 
-        if (shareModeValue === 'screen' || shareModeValue === 'mixed') {
-            if (screenTrack && screenTrack.readyState === 'live') {
-                tracks.push(screenTrack);
-                sourceIds.push(`screen:${screenTrack.id}`);
-            }
-        }
+        // 화면 공유 오디오는 녹음 대상에서 제외 (마이크만 유지)
 
         if (tracks.length === 0) {
             stopMixedAudioTrack();
@@ -547,11 +542,13 @@ const MeetingRoomPage: React.FC = () => {
                 }
             }
 
-            if (!publish) {
-                await updateOutgoingAudio(null);
-            } else if (isPresenter && shareModeRef.current) {
-                const selection = getPresenterAudioSelection();
-                await updateOutgoingAudio(selection?.track ?? null);
+            if (isPresenterRef.current) {
+                if (!publish) {
+                    await updateOutgoingAudio(null);
+                } else if (shareModeRef.current) {
+                    const selection = getPresenterAudioSelection();
+                    await updateOutgoingAudio(selection?.track ?? null);
+                }
             }
 
             setLocalStream(publish ? nextStream : null);
@@ -608,7 +605,6 @@ const MeetingRoomPage: React.FC = () => {
             cameraEnabled,
             clearMixedRetry,
             getPresenterAudioSelection,
-            isPresenter,
             pipPosition,
             shareMode,
             updateOutgoingAudio,
@@ -681,6 +677,7 @@ const MeetingRoomPage: React.FC = () => {
     }, []);
 
     const finalizeVoiceRecording = useCallback(async () => {
+        if (useSfuRecording) return;
         if (!numericStudyId || !numericMeetingId) return;
         if (!isLoggedIn) return;
         if (!canEndMeeting) return;
@@ -693,7 +690,7 @@ const MeetingRoomPage: React.FC = () => {
         } catch (error) {
             console.error('Failed to finalize voice recording', error);
         }
-    }, [canEndMeeting, isLoggedIn, numericMeetingId, numericStudyId, stopVoiceRecording]);
+    }, [canEndMeeting, isLoggedIn, numericMeetingId, numericStudyId, stopVoiceRecording, useSfuRecording]);
 
     const getVoiceRecordingTrack = useCallback(() => {
         const tracks: MediaStreamTrack[] = [];
@@ -729,6 +726,7 @@ const MeetingRoomPage: React.FC = () => {
 
 
     const updateVoiceRecordingSource = useCallback(() => {
+        if (useSfuRecording) return;
         voiceSourceUpdateChainRef.current = voiceSourceUpdateChainRef.current.then(async () => {
             // 회의 소유주가 아니면 녹음하지 않음
             if (!canEndMeeting) {
@@ -951,7 +949,9 @@ const MeetingRoomPage: React.FC = () => {
                             shareModeRef.current = 'camera';
                             setCameraEnabled(true);
                         }
-                        void updateOutgoingAudio(null);
+                        if (isPresenterRef.current) {
+                            void updateOutgoingAudio(null);
+                        }
                         updateOutgoingVideo({ nextScreenStream: null });
                         updateVoiceRecordingSource();
                     };
@@ -976,7 +976,9 @@ const MeetingRoomPage: React.FC = () => {
         setScreenSharing(false);
         screenSharingRef.current = false;
         clearMixedRetry();
-        await updateOutgoingAudio(null);
+        if (isPresenterRef.current) {
+            await updateOutgoingAudio(null);
+        }
         await updateOutgoingVideo({ nextScreenStream: null });
         updateVoiceRecordingSource();
     }, [clearMixedRetry, updateOutgoingAudio, updateOutgoingVideo, updateVoiceRecordingSource]);
@@ -1110,8 +1112,13 @@ const MeetingRoomPage: React.FC = () => {
                 composedStreamRef.current = null;
             }
             stopMixedAudioTrack();
-            void updateOutgoingAudio(null);
             updateOutgoingVideo({ publish: false, cameraEnabledOverride: false, nextScreenStream: null });
+            if (micEnabledRef.current) {
+                const micTrack = localMicStreamRef.current?.getAudioTracks()?.[0] ?? null;
+                if (micTrack && micTrack.readyState === 'live') {
+                    void sfuClientRef.current?.produceTrack('audio', micTrack);
+                }
+            }
             return;
         }
         const confirmed = window.confirm('발표자가 되시겠습니까? 현재 발표자는 권한을 내려야 합니다.');
@@ -1514,6 +1521,12 @@ const MeetingRoomPage: React.FC = () => {
             updateSelfParticipant({ isSpeaking: false });
         }
     }, [micEnabled, updateSelfParticipant]);
+
+    useEffect(() => {
+        if (!micEnabled) return;
+        if (localMicStreamRef.current) return;
+        void startMicrophone();
+    }, [micEnabled, startMicrophone]);
 
     useEffect(() => {
         updateVoiceRecordingSource();

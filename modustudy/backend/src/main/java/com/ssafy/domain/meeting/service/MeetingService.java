@@ -86,6 +86,7 @@ public class MeetingService {
     private final ObjectMapper objectMapper;
     private final SfuProperties sfuProperties;
     private final LocalFileStorageService localFileStorageService;
+    private final org.springframework.web.client.RestTemplate restTemplate;
     @Value("${meeting.pdf.font-path:}")
     private String pdfFontPath;
     @Value("${app.ffmpeg.path:ffmpeg}")
@@ -173,6 +174,7 @@ public class MeetingService {
         Meeting meeting = Meeting.start(studyId, request.sessionId(), request.workspaceId(),
                 request.title(), meetingType, autoShareSummary, request.shareWorkspaceId(), LocalDateTime.now());
         Meeting saved = meetingRepository.save(meeting);
+        triggerSfuRecordingStart(saved.getId());
         return new MeetingResponse(saved.getId(), saved.getTitle(), buildRoomToken(saved), saved.getStatus().name(),
                 saved.getMeetingType().name(), saved.getRecordingStatus().name(), saved.getSttStatus().name(),
                 resolveSummaryStatus(saved).name());
@@ -195,8 +197,35 @@ public class MeetingService {
         meeting.end(endedAt, participantCount);
         meeting.updateSummaryStatus(SummaryStatus.PROCESSING);
         finalizeIndividualVoiceRecordings(meetingId, participants);
+        triggerSfuRecordingStop(meetingId);
         return new MeetingEndResponse(meeting.getDurationSeconds(), meeting.getParticipantCount(),
                 meeting.getSummaryStatus().name());
+    }
+
+    private void triggerSfuRecordingStart(Long meetingId) {
+        if (sfuProperties.getControlUrl() == null || sfuProperties.getControlUrl().isBlank()) {
+            return;
+        }
+        String roomId = "meeting-" + meetingId;
+        try {
+            var payload = java.util.Map.of("roomId", roomId, "meetingId", meetingId);
+            restTemplate.postForEntity(sfuProperties.getControlUrl() + "/recordings/start", payload, String.class);
+        } catch (Exception e) {
+            log.warn("SFU recording start failed. meetingId={} error={}", meetingId, e.toString());
+        }
+    }
+
+    private void triggerSfuRecordingStop(Long meetingId) {
+        if (sfuProperties.getControlUrl() == null || sfuProperties.getControlUrl().isBlank()) {
+            return;
+        }
+        String roomId = "meeting-" + meetingId;
+        try {
+            var payload = java.util.Map.of("roomId", roomId);
+            restTemplate.postForEntity(sfuProperties.getControlUrl() + "/recordings/stop", payload, String.class);
+        } catch (Exception e) {
+            log.warn("SFU recording stop failed. meetingId={} error={}", meetingId, e.toString());
+        }
     }
 
     @Transactional

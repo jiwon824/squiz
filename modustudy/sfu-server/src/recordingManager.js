@@ -12,6 +12,8 @@ const RECORDING_REFRESH_INTERVAL_MS = Number(process.env.RECORDING_REFRESH_INTER
 const RECORDING_VIDEO_READY_TIMEOUT_MS = Number(process.env.RECORDING_VIDEO_READY_TIMEOUT_MS || 1200);
 const RECORDING_VIDEO_READY_POLL_MS = Number(process.env.RECORDING_VIDEO_READY_POLL_MS || 150);
 const RECORDING_STOP_GRACE_MS = Number(process.env.RECORDING_STOP_GRACE_MS || 400);
+const RECORDING_VIDEO_ENABLED =
+  String(process.env.RECORDING_VIDEO_ENABLED ?? 'true').toLowerCase() !== 'false';
 const reservedPorts = new Set();
 const RECORDING_RTP_PORT_MIN = Number(process.env.RECORDING_RTP_PORT_MIN || 45000);
 const RECORDING_RTP_PORT_MAX = Number(process.env.RECORDING_RTP_PORT_MAX || 47000);
@@ -208,18 +210,37 @@ const waitForExit = (child) =>
     child.once('exit', () => resolve());
   });
 
-const createFallbackSegment = (ffmpegPath, outputPath, width, height, fps, videoBitrateKbps, audioBitrateKbps) =>
+const createFallbackSegment = (
+  ffmpegPath,
+  outputPath,
+  width,
+  height,
+  fps,
+  videoBitrateKbps,
+  audioBitrateKbps,
+  allowVideo
+) =>
   new Promise((resolve) => {
-    const args = [
-      '-y',
-      '-f', 'lavfi', '-i', `color=c=black:s=${width}x${height}:r=${fps}`,
-      '-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=48000',
-      '-t', '1',
-      '-c:v', 'libvpx', '-b:v', `${videoBitrateKbps}k`, '-r', String(fps), '-g', String(fps * 2),
-      '-c:a', 'libopus', '-b:a', `${audioBitrateKbps}k`,
-      '-f', 'webm',
-      outputPath,
-    ];
+    const args = ['-y'];
+    if (allowVideo) {
+      args.push(
+        '-f', 'lavfi', '-i', `color=c=black:s=${width}x${height}:r=${fps}`,
+        '-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=48000',
+        '-t', '1',
+        '-c:v', 'libvpx', '-b:v', `${videoBitrateKbps}k`, '-r', String(fps), '-g', String(fps * 2),
+        '-c:a', 'libopus', '-b:a', `${audioBitrateKbps}k`,
+        '-f', 'webm',
+        outputPath
+      );
+    } else {
+      args.push(
+        '-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=48000',
+        '-t', '1',
+        '-c:a', 'libopus', '-b:a', `${audioBitrateKbps}k`,
+        '-f', 'webm',
+        outputPath
+      );
+    }
     const proc = spawn(ffmpegPath, args, { stdio: ['ignore', 'ignore', 'ignore'] });
     proc.on('exit', () => resolve());
     proc.on('error', () => resolve());
@@ -233,20 +254,31 @@ const createGapSegment = (
   fps,
   durationSeconds,
   videoBitrateKbps,
-  audioBitrateKbps
+  audioBitrateKbps,
+  allowVideo
 ) =>
   new Promise((resolve) => {
     const safeDuration = Math.max(0.1, durationSeconds);
-    const args = [
-      '-y',
-      '-f', 'lavfi', '-i', `color=c=black:s=${width}x${height}:r=${fps}`,
-      '-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=48000',
-      '-t', safeDuration.toFixed(3),
-      '-c:v', 'libvpx', '-b:v', `${videoBitrateKbps}k`, '-r', String(fps), '-g', String(fps * 2),
-      '-c:a', 'libopus', '-b:a', `${audioBitrateKbps}k`,
-      '-f', 'webm',
-      outputPath,
-    ];
+    const args = ['-y'];
+    if (allowVideo) {
+      args.push(
+        '-f', 'lavfi', '-i', `color=c=black:s=${width}x${height}:r=${fps}`,
+        '-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=48000',
+        '-t', safeDuration.toFixed(3),
+        '-c:v', 'libvpx', '-b:v', `${videoBitrateKbps}k`, '-r', String(fps), '-g', String(fps * 2),
+        '-c:a', 'libopus', '-b:a', `${audioBitrateKbps}k`,
+        '-f', 'webm',
+        outputPath
+      );
+    } else {
+      args.push(
+        '-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=48000',
+        '-t', safeDuration.toFixed(3),
+        '-c:a', 'libopus', '-b:a', `${audioBitrateKbps}k`,
+        '-f', 'webm',
+        outputPath
+      );
+    }
     const proc = spawn(ffmpegPath, args, { stdio: ['ignore', 'ignore', 'ignore'] });
     proc.on('exit', () => resolve());
     proc.on('error', () => resolve());
@@ -264,6 +296,7 @@ const createSegmentProcess = async ({
   hasVideoRtp,
   hasAudioRtp,
   audioCount,
+  allowVideo,
 }) => {
   const args = ['-y', '-loglevel', 'error'];
   let videoInputIndex = null;
@@ -280,12 +313,14 @@ const createSegmentProcess = async ({
     inputIndex += 1;
   }
 
-  if (!hasVideoRtp) {
-    args.push('-f', 'lavfi', '-i', `color=c=black:s=${width}x${height}:r=${fps}`);
-    colorIndex = inputIndex;
-    inputIndex += 1;
-  } else {
-    videoInputIndex = sdpIndex;
+  if (allowVideo) {
+    if (!hasVideoRtp) {
+      args.push('-f', 'lavfi', '-i', `color=c=black:s=${width}x${height}:r=${fps}`);
+      colorIndex = inputIndex;
+      inputIndex += 1;
+    } else {
+      videoInputIndex = sdpIndex;
+    }
   }
 
   if (!hasAudioRtp) {
@@ -297,7 +332,7 @@ const createSegmentProcess = async ({
     audioInputBase = sdpIndex;
   }
 
-  if (!hasVideoRtp) {
+  if (allowVideo && !hasVideoRtp) {
     videoInputIndex = colorIndex;
   }
 
@@ -332,7 +367,9 @@ const createSegmentProcess = async ({
   }
 
   args.push(...mapArgs);
-  args.push('-c:v', 'libvpx', '-b:v', `${videoBitrateKbps}k`, '-r', String(fps), '-g', String(fps * 2));
+  if (videoInputIndex !== null) {
+    args.push('-c:v', 'libvpx', '-b:v', `${videoBitrateKbps}k`, '-r', String(fps), '-g', String(fps * 2));
+  }
   args.push('-c:a', 'libopus', '-b:a', `${audioBitrateKbps}k`);
   args.push('-f', 'webm', outputPath);
 
@@ -570,7 +607,8 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
             config.recordingHeight,
             config.recordingFps,
             config.recordingVideoBitrate,
-            config.recordingAudioBitrate
+            config.recordingAudioBitrate,
+            RECORDING_VIDEO_ENABLED
           );
         }
       } catch {
@@ -710,35 +748,7 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
       }
 
       if (audioEntries.length > 0) {
-        const readyEntries = [];
-        for (const entry of audioEntries) {
-          const ready = await waitForConsumerPackets(
-            entry.consumer,
-            entry.transport,
-            RECORDING_VIDEO_READY_TIMEOUT_MS,
-            RECORDING_VIDEO_READY_POLL_MS
-          );
-          if (ready) {
-            readyEntries.push(entry);
-          } else {
-            // eslint-disable-next-line no-console
-            console.warn('[recording] audio packets not ready; dropping', {
-              roomId,
-              producerId: entry.info.producerId
-            });
-            try {
-              entry.consumer.close();
-            } catch {
-              // ignore
-            }
-            try {
-              entry.transport.close();
-            } catch {
-              // ignore
-            }
-          }
-        }
-        readyEntries.forEach((entry) => {
+        audioEntries.forEach((entry) => {
           audioConsumerInfos.push(entry.info);
         });
       }
@@ -764,6 +774,7 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
           hasVideoRtp: Boolean(videoConsumerInfo),
           hasAudioRtp: audioConsumerInfos.length > 0,
           audioCount: audioConsumerInfos.length,
+          allowVideo: RECORDING_VIDEO_ENABLED,
         });
 
         if (videoConsumerInfo) {
@@ -892,7 +903,8 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
             config.recordingHeight,
             config.recordingFps,
             config.recordingVideoBitrate,
-            config.recordingAudioBitrate
+            config.recordingAudioBitrate,
+            RECORDING_VIDEO_ENABLED
           );
           state.segments.push(segmentPath);
         } catch {
@@ -910,7 +922,7 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
       const room = rooms.get(roomId);
       if (!room) return;
 
-      const nextVideo = pickPresenterVideo(room);
+      const nextVideo = RECORDING_VIDEO_ENABLED ? pickPresenterVideo(room) : null;
       const nextAudio = listAudioProducers(room);
       const nextKey = `${nextVideo || 'blank'}|${nextAudio.join(',')}`;
       const scheduleRetry = () => {
@@ -973,7 +985,8 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
                 config.recordingFps,
                 gapMs / 1000,
                 config.recordingVideoBitrate,
-                config.recordingAudioBitrate
+                config.recordingAudioBitrate,
+                RECORDING_VIDEO_ENABLED
               );
               if (gapIndex === -1) {
                 state.segments.push(gapPath);
@@ -1001,7 +1014,7 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
       'meetings',
       String(meetingId),
       'recordings',
-      'video'
+      'voice'
     );
     const segmentsDir = path.join(outputDir, 'segments');
     ensureDir(segmentsDir);
@@ -1051,9 +1064,21 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
       .map((segmentPath) => `file '${escapeFfmpegPath(segmentPath)}'`)
       .join('\n');
     fs.writeFileSync(concatFile, contents);
-    const outputPath = path.join(state.outputDir, 'meeting.webm');
+    const outputPath = path.join(state.outputDir, 'voice.webm');
     await new Promise((resolve, reject) => {
-      const args = ['-y', '-f', 'concat', '-safe', '0', '-i', concatFile, '-c', 'copy', outputPath];
+      const args = ['-y', '-f', 'concat', '-safe', '0', '-i', concatFile];
+      if (RECORDING_VIDEO_ENABLED) {
+        args.push('-c', 'copy', outputPath);
+      } else {
+        args.push(
+          '-vn',
+          '-af', 'aresample=async=1:first_pts=0',
+          '-c:a', 'libopus',
+          '-b:a', `${config.recordingAudioBitrate}k`,
+          '-f', 'webm',
+          outputPath
+        );
+      }
       // eslint-disable-next-line no-console
       console.log('[recording] concat start', { roomId: state.roomId, segments: existingSegments.length });
       const proc = spawn(config.ffmpegPath, args, { stdio: ['ignore', 'ignore', 'pipe'] });
