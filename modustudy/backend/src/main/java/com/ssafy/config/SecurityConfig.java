@@ -42,7 +42,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/sfu/**").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
                         // 인증 없이 접근 가능
-                        .requestMatchers("/api/v1/auth/**").permitAll()
+                        .requestMatchers("/api/v1/auth/**", "/oauth2/**", "/login/**").permitAll()
                         .requestMatchers("/api/v1/users").permitAll()
                         // News API - 테스트용 (나중에 인증 적용 가능)
                         .requestMatchers("/api/news/**", "/api/test/news/**").permitAll()
@@ -58,7 +58,7 @@ public class SecurityConfig {
                         // 퀴즈 코스
                         .requestMatchers("/api/v1/quiz-courses/**").permitAll()
                         // 게이미피케이션
-                        .requestMatchers("/api/v1/gamification/test/**","/api/v1/gamification/stats").permitAll()
+                        .requestMatchers("/api/v1/gamification/test/**", "/api/v1/gamification/stats").permitAll()
                         // 데일리
                         .requestMatchers("/api/v1/dailies/**").permitAll()
                         // 나머지는 인증 필요
