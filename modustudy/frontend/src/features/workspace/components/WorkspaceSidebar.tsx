@@ -8,6 +8,8 @@ import {
   Info,
   UserCog,
   ExternalLink,
+  Sun,
+  Moon,
   LucideIcon,
 } from 'lucide-react';
 
@@ -15,6 +17,8 @@ interface WorkspaceSidebarProps {
   studyId?: number;
   activeMenu?: 'chat' | 'materials' | 'calendar' | 'meeting';
   onMenuChange?: (menu: 'chat' | 'materials' | 'calendar' | 'meeting') => void;
+  isDarkMode?: boolean;
+  onToggleDarkMode?: () => void;
 }
 
 // 메뉴 아이템 타입
@@ -56,6 +60,8 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
   studyId,
   activeMenu = 'chat',
   onMenuChange,
+  isDarkMode = true,
+  onToggleDarkMode,
 }) => {
   const navigate = useNavigate();
 
@@ -96,6 +102,27 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
             </button>
           );
         })}
+      </div>
+
+      {/* 구분선 */}
+      <div className="workspace-sidebar__divider" />
+
+      {/* 테마 토글 */}
+      <div className="workspace-sidebar__quick-actions">
+        <div className="workspace-sidebar__section-title">테마</div>
+
+        <button
+          className="workspace-sidebar__theme-toggle"
+          onClick={onToggleDarkMode}
+          title={isDarkMode ? '라이트 모드로 전환' : '다크 모드로 전환'}
+        >
+          <div className={cn('workspace-sidebar__toggle-track', isDarkMode && 'workspace-sidebar__toggle-track--dark')}>
+            <div className="workspace-sidebar__toggle-thumb">
+              {isDarkMode ? <Moon size={14} /> : <Sun size={14} />}
+            </div>
+          </div>
+          <span>{isDarkMode ? '다크 모드' : '라이트 모드'}</span>
+        </button>
       </div>
 
       {/* 구분선 */}

@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { cn } from '@/shared/utils/cn';
 import { WorkspaceHeader } from './WorkspaceHeader';
 import { WorkspaceSidebar } from './WorkspaceSidebar';
 import { ChatArea } from './ChatArea';
@@ -110,6 +111,12 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
   const [isMembersVisible, setIsMembersVisible] = useState(true);
   const [isLoading] = useState(false);
   const [activeMenu, setActiveMenu] = useState<'chat' | 'materials' | 'calendar' | 'meeting'>('chat');
+  const [isDarkMode, setIsDarkMode] = useState(true); // 기본값: 다크모드
+
+  // 다크모드 토글
+  const handleToggleDarkMode = useCallback(() => {
+    setIsDarkMode((prev) => !prev);
+  }, []);
 
   // 메시지 전송 핸들러
   const handleSendMessage = useCallback((content: string) => {
@@ -142,9 +149,7 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
   }, []);
 
   return (
-    <div className="workspace-container">
-      {/* 우주 배경은 CSS로 처리 (.workspace-container::before) */}
-
+    <div className={cn('workspace-container', isDarkMode && 'workspace-container--dark')}>
       {/* 메인 컨텐츠 영역 (헤더 + 본문) - member-list에 의해 밀림 */}
       <div className="workspace-content">
         {/* 상단 헤더 */}
@@ -162,6 +167,8 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
             studyId={studyId}
             activeMenu={activeMenu}
             onMenuChange={setActiveMenu}
+            isDarkMode={isDarkMode}
+            onToggleDarkMode={handleToggleDarkMode}
           />
 
           {/* 메인 채팅 영역 */}
