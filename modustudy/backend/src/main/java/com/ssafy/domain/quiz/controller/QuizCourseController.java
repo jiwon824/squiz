@@ -109,6 +109,29 @@ public class QuizCourseController {
     }
 
     /**
+     * 특정 시도 재개 (명시적 attemptId 사용).
+     *
+     * 클라이언트가 이미 알고 있는 attemptId를 사용하여 특정 시도를 재개한다.
+     * 진행 중인 시도만 재개할 수 있으며, 본인의 시도인지 검증한다.
+     *
+     * @param courseId      코스 ID
+     * @param sectionNumber 섹션 번호
+     * @param attemptId     시도 ID
+     * @param userDetails   인증된 사용자 정보
+     * @return 시도 정보 및 문제 목록 (savedAnswer 포함)
+     */
+    @Operation(summary = "특정 시도 재개", description = "명시적 attemptId를 사용하여 특정 시도를 재개합니다. 인증 필요.")
+    @PostMapping("/{courseId}/sections/{sectionNumber}/attempts/{attemptId}")
+    public ApiResponse<SectionAttemptResponse> resumeAttempt(
+            @Parameter(description = "코스 ID") @PathVariable Long courseId,
+            @Parameter(description = "섹션 번호") @PathVariable Integer sectionNumber,
+            @Parameter(description = "시도 ID") @PathVariable Long attemptId,
+            @AuthenticationPrincipal SsafyUserDetails userDetails) {
+        Long userId = userDetails.getUser().getId();
+        return ApiResponse.success(attemptService.resumeAttempt(attemptId, userId));
+    }
+
+    /**
      * 단일 답안 실시간 저장.
      *
      * <p>

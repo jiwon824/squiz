@@ -136,6 +136,46 @@ public class QuizSectionAttemptService {
     }
 
     /**
+     * 특정 시도를 재개한다 (명시적 attemptId 사용).
+     *
+     * <p>
+     * 클라이언트가 이미 알고 있는 attemptId를 사용하여 특정 시도를 로드한다.
+     * 진행 중인 시도만 재개할 수 있으며, 본인의 시도인지 검증한다.
+     * </p>
+     *
+     * @param attemptId 시도 ID
+     * @param userId    사용자 ID
+     * @return 시도 응답 (문제 목록 및 저장된 답안 포함)
+     * @throws NotFoundException    시도를 찾을 수 없는 경우
+     * @throws BusinessException    본인의 시도가 아니거나 이미 완료된 경우
+     */
+    @Transactional(readOnly = true)
+    public SectionAttemptResponse resumeAttempt(Long attemptId, Long userId) {
+        // 1. 시도 조회 (문제 목록 포함)
+        UserSectionAttempt attempt = attemptRepository.findByIdWithQuestions(attemptId)
+                .orElseThrow(NotFoundException::attempt);
+
+        // 2. 본인 시도인지 확인
+        if (!attempt.getUser().getId().equals(userId)) {
+            throw new BusinessException(
+                    HttpStatus.FORBIDDEN,
+                    "NOT_ATTEMPT_OWNER",
+                    "본인의 시도만 재개할 수 있습니다.");
+        }
+
+        // 3. 진행 중인 시도인지 확인
+        if (!attempt.isInProgress()) {
+            throw new BusinessException(
+                    HttpStatus.BAD_REQUEST,
+                    "ATTEMPT_ALREADY_COMPLETED",
+                    "이미 완료된 시도는 재개할 수 없습니다.");
+        }
+
+        // 4. 응답 생성 (savedAnswer 포함)
+        return buildAttemptResponse(attempt, attempt.getSection());
+    }
+
+    /**
      * 단일 답안을 임시 저장한다 (Optimistic Lock 재시도 포함).
      *
      * <p>

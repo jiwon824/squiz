@@ -154,4 +154,25 @@ public interface UserSectionAttemptRepository extends JpaRepository<UserSectionA
        List<UserSectionAttempt> findCompletedAttemptsByUserIdAndCourseId(
                      @Param("userId") Long userId,
                      @Param("quizCourseId") Long quizCourseId);
+
+       /**
+        * Find in-progress attempts for user in a course (for section list display).
+        */
+       @Query("SELECT a FROM UserSectionAttempt a " +
+                     "WHERE a.user.id = :userId " +
+                     "AND a.section.quizCourseId = :quizCourseId " +
+                     "AND a.status = 'IN_PROGRESS' " +
+                     "ORDER BY a.createdAt DESC")
+       List<UserSectionAttempt> findInProgressAttemptsByUserIdAndCourseId(
+                     @Param("userId") Long userId,
+                     @Param("quizCourseId") Long quizCourseId);
+
+       /**
+        * Find a specific attempt by ID with questions (for resume endpoint).
+        */
+       @Query("SELECT DISTINCT a FROM UserSectionAttempt a " +
+                     "LEFT JOIN FETCH a.attemptQuestions aq " +
+                     "LEFT JOIN FETCH aq.question " +
+                     "WHERE a.id = :attemptId")
+       Optional<UserSectionAttempt> findByIdWithQuestions(@Param("attemptId") Long attemptId);
 }

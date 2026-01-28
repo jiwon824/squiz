@@ -29,7 +29,7 @@ export type SectionStatus = 'Locked' | 'InProgress' | 'Completed';
 // -----------------------------------------------------------------------------
 /**
  * CourseDetailSection - 코스 상세 페이지의 섹션 인터페이스
- * 
+ *
  * API 스키마 기반:
  * @property {number} sectionNumber - 섹션 번호 (1부터 시작)
  * @property {string} name - 섹션 이름
@@ -37,6 +37,7 @@ export type SectionStatus = 'Locked' | 'InProgress' | 'Completed';
  * @property {boolean} isPassed - 통과 여부 (true면 완료됨)
  * @property {number | null} bestScore - 최고 점수 (시도하지 않았으면 null)
  * @property {number} attemptCount - 시도 횟수
+ * @property {number | null} inProgressAttemptId - 진행 중인 시도 ID (없으면 null)
  */
 export interface CourseDetailSection {
     sectionNumber: number;
@@ -45,6 +46,7 @@ export interface CourseDetailSection {
     isPassed: boolean;
     bestScore: number | null;
     attemptCount: number;
+    inProgressAttemptId: number | null;
 }
 
 // -----------------------------------------------------------------------------

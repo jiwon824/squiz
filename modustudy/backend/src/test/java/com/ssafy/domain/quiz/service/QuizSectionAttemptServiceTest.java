@@ -573,6 +573,124 @@ class QuizSectionAttemptServiceTest {
         }
 
         // ==========================================================
+        // resumeAttempt() 테스트 (명시적 attemptId 사용 재개)
+        // ==========================================================
+
+        /**
+         * resumeAttempt() 메서드에 대한 중첩 테스트 클래스
+         *
+         * 클라이언트가 이미 알고 있는 attemptId를 사용하여 특정 시도를 재개하는 기능 테스트
+         */
+        @Nested
+        @DisplayName("resumeAttempt 메서드 (명시적 attemptId 사용 재개)")
+        class ResumeAttemptTest {
+
+                @Test
+                @DisplayName("성공: 본인의 진행 중인 시도 재개")
+                void successResumeOwnInProgressAttempt() {
+                        // Given
+                        Long attemptId = 1L;
+                        Long userId = 1L;
+
+                        // 진행 중인 시도 설정
+                        UserSectionAttempt attempt = UserSectionAttempt.builder()
+                                        .user(testUser)
+                                        .section(testSection)
+                                        .totalQuestions(10)
+                                        .build();
+                        ReflectionTestUtils.setField(attempt, "id", attemptId);
+                        ReflectionTestUtils.setField(attempt, "status", AttemptStatus.IN_PROGRESS);
+
+                        // 문제 설정
+                        List<UserSectionAttemptQuestion> attemptQuestions = new ArrayList<>();
+                        UserSectionAttemptQuestion aq = UserSectionAttemptQuestion.builder()
+                                        .question(testQuestions.get(0))
+                                        .orderIndex(1)
+                                        .build();
+                        ReflectionTestUtils.setField(aq, "attempt", attempt);
+                        aq.saveAnswer("A");
+                        attemptQuestions.add(aq);
+                        ReflectionTestUtils.setField(attempt, "attemptQuestions", attemptQuestions);
+
+                        given(attemptRepository.findByIdWithQuestions(attemptId))
+                                        .willReturn(Optional.of(attempt));
+
+                        // When
+                        SectionAttemptResponse response = quizSectionAttemptService.resumeAttempt(attemptId, userId);
+
+                        // Then
+                        assertThat(response.attemptId()).isEqualTo(attemptId);
+                        assertThat(response.questions()).hasSize(1);
+                        assertThat(response.questions().get(0).userAnswer()).isEqualTo("A");
+                }
+
+                @Test
+                @DisplayName("실패: 존재하지 않는 시도")
+                void failWhenAttemptNotFound() {
+                        // Given
+                        Long attemptId = 999L;
+                        Long userId = 1L;
+
+                        given(attemptRepository.findByIdWithQuestions(attemptId))
+                                        .willReturn(Optional.empty());
+
+                        // When & Then
+                        assertThatThrownBy(() -> quizSectionAttemptService.resumeAttempt(attemptId, userId))
+                                        .isInstanceOf(NotFoundException.class);
+                }
+
+                @Test
+                @DisplayName("실패: 본인 시도가 아닐 때")
+                void failWhenNotOwner() {
+                        // Given
+                        Long attemptId = 1L;
+                        Long otherUserId = 999L;
+
+                        UserSectionAttempt attempt = UserSectionAttempt.builder()
+                                        .user(testUser) // userId = 1
+                                        .section(testSection)
+                                        .totalQuestions(10)
+                                        .build();
+                        ReflectionTestUtils.setField(attempt, "id", attemptId);
+                        ReflectionTestUtils.setField(attempt, "status", AttemptStatus.IN_PROGRESS);
+                        ReflectionTestUtils.setField(attempt, "attemptQuestions", new ArrayList<>());
+
+                        given(attemptRepository.findByIdWithQuestions(attemptId))
+                                        .willReturn(Optional.of(attempt));
+
+                        // When & Then
+                        assertThatThrownBy(() -> quizSectionAttemptService.resumeAttempt(attemptId, otherUserId))
+                                        .isInstanceOf(BusinessException.class)
+                                        .hasMessageContaining("본인의 시도만 재개할 수 있습니다");
+                }
+
+                @Test
+                @DisplayName("실패: 이미 완료된 시도")
+                void failWhenAlreadyCompleted() {
+                        // Given
+                        Long attemptId = 1L;
+                        Long userId = 1L;
+
+                        UserSectionAttempt attempt = UserSectionAttempt.builder()
+                                        .user(testUser)
+                                        .section(testSection)
+                                        .totalQuestions(10)
+                                        .build();
+                        ReflectionTestUtils.setField(attempt, "id", attemptId);
+                        ReflectionTestUtils.setField(attempt, "status", AttemptStatus.SUBMITTED);
+                        ReflectionTestUtils.setField(attempt, "attemptQuestions", new ArrayList<>());
+
+                        given(attemptRepository.findByIdWithQuestions(attemptId))
+                                        .willReturn(Optional.of(attempt));
+
+                        // When & Then
+                        assertThatThrownBy(() -> quizSectionAttemptService.resumeAttempt(attemptId, userId))
+                                        .isInstanceOf(BusinessException.class)
+                                        .hasMessageContaining("이미 완료된 시도는 재개할 수 없습니다");
+                }
+        }
+
+        // ==========================================================
         // saveAnswer() 테스트 (단일 답안 실시간 저장)
         // ==========================================================
 
