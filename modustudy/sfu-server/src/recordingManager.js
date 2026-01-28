@@ -346,7 +346,7 @@ const probeDurationSeconds = (ffmpegPath, targetPath) =>
     proc.on('error', () => resolve(null));
   });
 
-const repairSegment = (ffmpegPath, segmentPath, repairedPath) =>
+const repairSegment = (ffmpegPath, segmentPath, repairedPath, durationSeconds = null) =>
   new Promise((resolve, reject) => {
     const args = [
       '-y',
@@ -358,6 +358,9 @@ const repairSegment = (ffmpegPath, segmentPath, repairedPath) =>
       '-f', 'webm',
       repairedPath
     ];
+    if (durationSeconds && Number.isFinite(durationSeconds) && durationSeconds > 0) {
+      args.splice(4, 0, '-t', String(durationSeconds));
+    }
     const proc = spawn(ffmpegPath, args, { stdio: ['ignore', 'ignore', 'pipe'] });
     proc.on('error', (err) => reject(err));
     proc.on('exit', (code) => {
@@ -692,6 +695,10 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
         await waitForExit(proc);
       }
     }
+    if (segment.segmentPath && segment.startedAt && state.segmentMeta) {
+      const wallDurationSec = Math.max(0, (Date.now() - segment.startedAt) / 1000);
+      state.segmentMeta.set(segment.segmentPath, { wallDurationSec });
+    }
     if (segment.segmentPath) {
       try {
         const exists = fs.existsSync(segment.segmentPath);
@@ -758,12 +765,14 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
     const sdpPath = path.join(segmentsDir, `segment-${segmentIndex}.sdp`);
 
     const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-    const maxAttempts = 3;
+    const maxAttempts = 6;
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
       const consumers = [];
       const transports = [];
       let videoConsumerInfo = null;
       let videoConsumerRef = null;
+      let audioConsumerRef = null;
+      let audioTransportRef = null;
       const audioConsumerInfos = [];
       const audioEntries = [];
 
@@ -839,6 +848,10 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
             transport,
             info: { port, rtpParameters: consumer.rtpParameters, producerId: producer.id }
           });
+          if (!audioConsumerRef) {
+            audioConsumerRef = consumer;
+            audioTransportRef = transport;
+          }
           // eslint-disable-next-line no-console
           console.log('[recording] audio transport connected', {
             roomId,
@@ -957,6 +970,7 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
               return null;
             }
           }
+          // For audio-only, don't abort if packets are delayed; keep the segment running.
           if (!state.firstVideoAt && videoConsumerInfo) {
             state.firstVideoAt = Date.now();
           }
@@ -1005,25 +1019,11 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
         }
       }
 
-      if (!stderrText.includes('bind failed') || attempt === maxAttempts) {
-        try {
-          await createFallbackSegment(
-            config.ffmpegPath,
-            segmentPath,
-            config.recordingWidth,
-            config.recordingHeight,
-            config.recordingFps,
-            config.recordingVideoBitrate,
-            config.recordingAudioBitrate,
-            RECORDING_VIDEO_ENABLED
-          );
-          state.segments.push(segmentPath);
-        } catch {
-          // ignore
-        }
-        return null;
+      if (attempt < maxAttempts) {
+        await delay(300);
+        continue;
       }
-      await delay(150);
+      return null;
     }
   };
 
@@ -1144,6 +1144,7 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
       outputDir,
       segmentsDir,
       segments: [],
+      segmentMeta: new Map(),
       currentSegment: null,
       stopping: false,
       startedAt: Date.now(),
@@ -1185,16 +1186,25 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
       const duration = await probeDurationSeconds(config.ffmpegPath, segmentPath);
       // eslint-disable-next-line no-console
       console.log('[recording] segment duration', { roomId: state.roomId, segmentPath, duration });
-      if (!duration || duration <= 0 || duration > 90) {
+      const meta = state.segmentMeta?.get(segmentPath) || null;
+      const wallDurationSec = meta?.wallDurationSec ?? null;
+      const shouldRepair =
+        !duration
+        || duration <= 0
+        || duration > 90
+        || (wallDurationSec && duration > wallDurationSec * 1.5 + 1);
+      if (shouldRepair) {
         const repairedPath = segmentPath.replace(/\.webm$/, '.fixed.webm');
         try {
-          await repairSegment(config.ffmpegPath, segmentPath, repairedPath);
+          await repairSegment(config.ffmpegPath, segmentPath, repairedPath, wallDurationSec);
           repairedSegments.push(repairedPath);
           cleanedSegments.push(repairedPath);
           // eslint-disable-next-line no-console
           console.log('[recording] segment repaired', { roomId: state.roomId, segmentPath, repairedPath });
           continue;
-        } catch {
+        } catch (err) {
+          // eslint-disable-next-line no-console
+          console.error('[recording] segment repair failed', { roomId: state.roomId, segmentPath, err: String(err) });
           // fallback to original if repair fails
         }
       }

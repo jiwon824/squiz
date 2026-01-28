@@ -87,6 +87,18 @@ const MeetingRoomPage: React.FC = () => {
     const recordingAudioContextRef = useRef<AudioContext | null>(null);
     const recordingAudioTrackRef = useRef<MediaStreamTrack | null>(null);
     const recordingAudioKeyRef = useRef<string | null>(null);
+    const micAudioContextRef = useRef<AudioContext | null>(null);
+    const micGainNodeRef = useRef<GainNode | null>(null);
+    const micProcessedTrackRef = useRef<MediaStreamTrack | null>(null);
+    const micDestinationRef = useRef<MediaStreamAudioDestinationNode | null>(null);
+    const micSourceNodeRef = useRef<MediaStreamAudioSourceNode | null>(null);
+    const micConstantSourceRef = useRef<ConstantSourceNode | null>(null);
+    const sfuBaseUrlRef = useRef<string | null>(null);
+    const sfuRecordingStateRef = useRef<'idle' | 'starting' | 'recording' | 'stopping'>('idle');
+    const sfuRecordingRoomIdRef = useRef<string | null>(null);
+    const sfuRecordingChainRef = useRef<Promise<void>>(Promise.resolve());
+    const sfuStopRequestedRef = useRef(false);
+    const devicePermissionRequestedRef = useRef(false);
 
     const [meetingTitle, setMeetingTitle] = useState('');
     const [meetingStartedAt, setMeetingStartedAt] = useState<string | null>(null);
@@ -214,14 +226,10 @@ const MeetingRoomPage: React.FC = () => {
 
     const updateOutgoingAudio = useCallback(async (nextTrack: MediaStreamTrack | null) => {
         if (!sfuClientRef.current) return;
-        if (nextTrack && nextTrack.readyState === 'live') {
-            if (publishedAudioTrackIdRef.current === nextTrack.id) return;
-            await sfuClientRef.current.produceTrack('audio', nextTrack);
-            publishedAudioTrackIdRef.current = nextTrack.id;
-        } else {
-            await sfuClientRef.current.closeProducer('audio');
-            publishedAudioTrackIdRef.current = null;
-        }
+        if (!nextTrack || nextTrack.readyState !== 'live') return;
+        if (publishedAudioTrackIdRef.current === nextTrack.id) return;
+        await sfuClientRef.current.produceTrack('audio', nextTrack);
+        publishedAudioTrackIdRef.current = nextTrack.id;
     }, []);
 
     const stopMixedAudioTrack = useCallback(() => {
@@ -255,6 +263,112 @@ const MeetingRoomPage: React.FC = () => {
             recordingAudioContextRef.current = null;
         }
     }, []);
+
+    const stopMicProcessedTrack = useCallback(() => {
+        if (micProcessedTrackRef.current) {
+            try {
+                micProcessedTrackRef.current.stop();
+            } catch {
+                // ignore
+            }
+        }
+        micProcessedTrackRef.current = null;
+        micGainNodeRef.current = null;
+        micSourceNodeRef.current = null;
+        if (micConstantSourceRef.current) {
+            try {
+                micConstantSourceRef.current.stop();
+            } catch {
+                // ignore
+            }
+        }
+        micConstantSourceRef.current = null;
+        micDestinationRef.current = null;
+        if (micAudioContextRef.current) {
+            micAudioContextRef.current.close().catch(() => {});
+            micAudioContextRef.current = null;
+        }
+    }, []);
+
+    const ensureMicProcessedTrack = useCallback(() => {
+        if (micProcessedTrackRef.current && micProcessedTrackRef.current.readyState === 'live') {
+            return micProcessedTrackRef.current;
+        }
+        stopMicProcessedTrack();
+        const context = new AudioContext();
+        const destination = context.createMediaStreamDestination();
+        const constantSource = context.createConstantSource();
+        constantSource.offset.value = 0;
+        constantSource.connect(destination);
+        constantSource.start();
+        context.resume().catch(() => {});
+        micAudioContextRef.current = context;
+        micDestinationRef.current = destination;
+        micConstantSourceRef.current = constantSource;
+        micProcessedTrackRef.current = destination.stream.getAudioTracks()[0] ?? null;
+        return micProcessedTrackRef.current;
+    }, [stopMicProcessedTrack]);
+
+    const resumeMicContext = useCallback(async () => {
+        const context = micAudioContextRef.current;
+        if (!context) return;
+        if (context.state === 'suspended') {
+            try {
+                await context.resume();
+            } catch {
+                // ignore resume errors
+            }
+        }
+        console.log('[mic] context state', context.state);
+    }, []);
+
+    const attachMicStreamToMixer = useCallback((stream: MediaStream) => {
+        if (!micAudioContextRef.current || !micDestinationRef.current) return;
+        micAudioContextRef.current.resume().catch(() => {});
+        if (micSourceNodeRef.current) {
+            try {
+                micSourceNodeRef.current.disconnect();
+            } catch {
+                // ignore
+            }
+            micSourceNodeRef.current = null;
+        }
+        const source = micAudioContextRef.current.createMediaStreamSource(stream);
+        const gainNode = micAudioContextRef.current.createGain();
+        gainNode.gain.value = 1;
+        source.connect(gainNode);
+        gainNode.connect(micDestinationRef.current);
+        micSourceNodeRef.current = source;
+        micGainNodeRef.current = gainNode;
+        const track = stream.getAudioTracks()[0] ?? null;
+        console.log('[mic] attach mixer', {
+            gain: gainNode.gain.value,
+            trackId: track?.id,
+            trackEnabled: track?.enabled,
+            trackMuted: track?.muted,
+            trackReadyState: track?.readyState,
+        });
+    }, []);
+
+    const normalizeSfuHttpBaseUrl = useCallback((baseUrl: string) => {
+        if (baseUrl.startsWith('ws://')) {
+            return `http://${baseUrl.slice(5)}`;
+        }
+        if (baseUrl.startsWith('wss://')) {
+            return `https://${baseUrl.slice(6)}`;
+        }
+        return baseUrl;
+    }, []);
+
+    const getSfuRecordingUrl = useCallback(
+        (path: string) => {
+            const baseUrl = sfuBaseUrlRef.current;
+            if (!baseUrl) return null;
+            const httpBase = normalizeSfuHttpBaseUrl(baseUrl);
+            return `${httpBase.replace(/\/+$/, '')}/${path.replace(/^\/+/, '')}`;
+        },
+        [normalizeSfuHttpBaseUrl]
+    );
 
     const ensureMixedAudioTrack = useCallback(
         (tracks: MediaStreamTrack[]) => {
@@ -317,30 +431,6 @@ const MeetingRoomPage: React.FC = () => {
         },
         [stopRecordingAudioTrack]
     );
-
-    const getPresenterAudioSelection = useCallback(() => {
-        const micTrack = localMicStreamRef.current?.getAudioTracks()?.[0] ?? null;
-        const shareModeValue = shareModeRef.current;
-        const tracks: MediaStreamTrack[] = [];
-        const sourceIds: string[] = [];
-        const micActive = Boolean(micEnabledRef.current && micTrack && micTrack.readyState === 'live');
-
-        if (micActive && micTrack) {
-            tracks.push(micTrack);
-            sourceIds.push(`mic:${micTrack.id}`);
-        }
-
-        // 화면 공유 오디오는 녹음 대상에서 제외 (마이크만 유지)
-
-        if (tracks.length === 0) {
-            stopMixedAudioTrack();
-            return null;
-        }
-
-        const track = ensureMixedAudioTrack(tracks);
-        const sourceId = tracks.length > 1 ? `mix:${sourceIds.join('|')}` : sourceIds[0];
-        return { track, sourceId };
-    }, [ensureMixedAudioTrack, stopMixedAudioTrack]);
 
     const updateSelfParticipant = useCallback(
         (updates: Partial<MeetingRoomParticipant>) => {
@@ -542,14 +632,7 @@ const MeetingRoomPage: React.FC = () => {
                 }
             }
 
-            if (isPresenterRef.current) {
-                if (!publish) {
-                    await updateOutgoingAudio(null);
-                } else if (shareModeRef.current) {
-                    const selection = getPresenterAudioSelection();
-                    await updateOutgoingAudio(selection?.track ?? null);
-                }
-            }
+            // Audio publishing is handled independently (mic toggle).
 
             setLocalStream(publish ? nextStream : null);
 
@@ -604,10 +687,8 @@ const MeetingRoomPage: React.FC = () => {
         [
             cameraEnabled,
             clearMixedRetry,
-            getPresenterAudioSelection,
             pipPosition,
             shareMode,
-            updateOutgoingAudio,
             waitForTrackUnmute,
         ]
     );
@@ -677,7 +758,28 @@ const MeetingRoomPage: React.FC = () => {
     }, []);
 
     const finalizeVoiceRecording = useCallback(async () => {
-        if (useSfuRecording) return;
+        if (useSfuRecording) {
+            if (!sfuStopRequestedRef.current) {
+                return;
+            }
+            sfuRecordingChainRef.current = sfuRecordingChainRef.current.then(async () => {
+                const roomId = sfuRecordingRoomIdRef.current || roomIdRef.current;
+                const url = getSfuRecordingUrl('/recordings/stop');
+                if (!roomId || !url) return;
+                if (sfuRecordingStateRef.current === 'idle') return;
+                sfuRecordingStateRef.current = 'stopping';
+                try {
+                    await axios.post(url, { roomId });
+                } catch (error) {
+                    console.error('Failed to stop SFU recording', error);
+                } finally {
+                    sfuRecordingStateRef.current = 'idle';
+                    sfuRecordingRoomIdRef.current = null;
+                }
+            });
+            await sfuRecordingChainRef.current;
+            return;
+        }
         if (!numericStudyId || !numericMeetingId) return;
         if (!isLoggedIn) return;
         if (!canEndMeeting) return;
@@ -690,7 +792,38 @@ const MeetingRoomPage: React.FC = () => {
         } catch (error) {
             console.error('Failed to finalize voice recording', error);
         }
-    }, [canEndMeeting, isLoggedIn, numericMeetingId, numericStudyId, stopVoiceRecording, useSfuRecording]);
+    }, [
+        canEndMeeting,
+        getSfuRecordingUrl,
+        isLoggedIn,
+        numericMeetingId,
+        numericStudyId,
+        stopVoiceRecording,
+        useSfuRecording,
+    ]);
+
+    const startSfuRecording = useCallback(async () => {
+        if (!useSfuRecording) return;
+        if (!numericMeetingId) return;
+        const roomId = roomIdRef.current;
+        const url = getSfuRecordingUrl('/recordings/start');
+        if (!roomId || !url) return;
+        sfuRecordingChainRef.current = sfuRecordingChainRef.current.then(async () => {
+            if (sfuRecordingStateRef.current === 'recording' || sfuRecordingStateRef.current === 'starting') {
+                return;
+            }
+            sfuRecordingStateRef.current = 'starting';
+            try {
+                await axios.post(url, { roomId, meetingId: numericMeetingId });
+                sfuRecordingStateRef.current = 'recording';
+                sfuRecordingRoomIdRef.current = roomId;
+            } catch (error) {
+                console.error('Failed to start SFU recording', error);
+                sfuRecordingStateRef.current = 'idle';
+            }
+        });
+        await sfuRecordingChainRef.current;
+    }, [getSfuRecordingUrl, numericMeetingId, useSfuRecording]);
 
     const getVoiceRecordingTrack = useCallback(() => {
         const tracks: MediaStreamTrack[] = [];
@@ -779,42 +912,148 @@ const MeetingRoomPage: React.FC = () => {
         stopVoiceRecording,
     ]);
 
-    const startMicrophone = useCallback(async () => {
-        if (!navigator.mediaDevices?.getUserMedia) {
-            setMicEnabled(false);
-            return;
-        }
-        if (localMicStreamRef.current) {
-            setMicEnabled(true);
-            return;
-        }
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-            localMicStreamRef.current = stream;
-            setMicEnabled(true);
-            updateVoiceRecordingSource();
-            if (sfuClientRef.current) {
-                await sfuClientRef.current.produceTrack('audio', stream.getAudioTracks()[0] ?? null);
+    const ensureMicrophoneStream = useCallback(
+        async (silentMode: boolean) => {
+            const effectiveSilentMode = silentMode && !micEnabledRef.current;
+            const processedTrack = ensureMicProcessedTrack();
+            await resumeMicContext();
+            if (processedTrack) {
+                await updateOutgoingAudio(processedTrack);
             }
-            audioDetectionActiveRef.current = Boolean(
-                await audioDetection.startDetection(stream, (isSpeaking) => {
-                    if (speakingRef.current === isSpeaking) return;
-                    speakingRef.current = isSpeaking;
-                    updateSelfParticipant({ isSpeaking });
-                    if (wsClientRef.current && roomIdRef.current) {
-                        wsClientRef.current.setSpeaking(roomIdRef.current, { speaking: isSpeaking });
-                    }
-                })
-            );
-        } catch (error) {
-            console.error('Failed to access microphone', error);
-            setMicEnabled(false);
+            if (!navigator.mediaDevices?.getUserMedia) {
+                if (!effectiveSilentMode) {
+                    setMicEnabled(false);
+                }
+                return;
+            }
+            if (localMicStreamRef.current) {
+                const existingTrack = localMicStreamRef.current.getAudioTracks()[0] ?? null;
+                if (!existingTrack || existingTrack.readyState !== 'live') {
+                    stopTracks(localMicStreamRef.current);
+                    localMicStreamRef.current = null;
+                }
+            }
+            if (localMicStreamRef.current) {
+                await resumeMicContext();
+                const track = localMicStreamRef.current.getAudioTracks()[0];
+                if (track) {
+                    track.enabled = true;
+                }
+                if (!effectiveSilentMode) {
+                    setMicEnabled(true);
+                }
+                attachMicStreamToMixer(localMicStreamRef.current);
+                if (micGainNodeRef.current) {
+                    micGainNodeRef.current.gain.value = effectiveSilentMode ? 0 : 1;
+                    console.log('[mic] set gain (existing stream)', {
+                        silentMode: effectiveSilentMode,
+                        gain: micGainNodeRef.current.gain.value,
+                        micEnabled: micEnabledRef.current,
+                        trackEnabled: track?.enabled,
+                        trackMuted: track?.muted,
+                        trackReadyState: track?.readyState,
+                    });
+                }
+                updateVoiceRecordingSource();
+                if (useSfuRecording && sfuRecordingStateRef.current === 'starting') {
+                    await startSfuRecording();
+                }
+                return;
+            }
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                localMicStreamRef.current = stream;
+                const track = stream.getAudioTracks()[0] ?? null;
+                if (track) {
+                    track.addEventListener('ended', () => {
+                        console.log('[mic] track ended', { trackId: track.id });
+                    });
+                    track.addEventListener('mute', () => {
+                        console.log('[mic] track muted', { trackId: track.id });
+                    });
+                    track.addEventListener('unmute', () => {
+                        console.log('[mic] track unmuted', { trackId: track.id });
+                    });
+                }
+                await resumeMicContext();
+                if (!effectiveSilentMode) {
+                    setMicEnabled(true);
+                }
+                attachMicStreamToMixer(stream);
+                if (micGainNodeRef.current) {
+                    micGainNodeRef.current.gain.value = effectiveSilentMode ? 0 : 1;
+                    console.log('[mic] set gain (new stream)', {
+                        silentMode: effectiveSilentMode,
+                        gain: micGainNodeRef.current.gain.value,
+                        micEnabled: micEnabledRef.current,
+                    });
+                }
+                updateVoiceRecordingSource();
+                if (useSfuRecording && sfuRecordingStateRef.current === 'starting') {
+                    await startSfuRecording();
+                }
+                if (!effectiveSilentMode) {
+                    audioDetectionActiveRef.current = Boolean(
+                        await audioDetection.startDetection(stream, (isSpeaking) => {
+                            if (speakingRef.current === isSpeaking) return;
+                            speakingRef.current = isSpeaking;
+                            updateSelfParticipant({ isSpeaking });
+                            if (wsClientRef.current && roomIdRef.current) {
+                                wsClientRef.current.setSpeaking(roomIdRef.current, { speaking: isSpeaking });
+                            }
+                        })
+                    );
+                }
+            } catch (error) {
+                console.error('Failed to access microphone', error);
+                if (!effectiveSilentMode) {
+                    setMicEnabled(false);
+                }
+            }
+        },
+        [
+            attachMicStreamToMixer,
+            ensureMicProcessedTrack,
+            resumeMicContext,
+            startSfuRecording,
+            updateOutgoingAudio,
+            updateSelfParticipant,
+            updateVoiceRecordingSource,
+            useSfuRecording,
+        ]
+    );
+
+    const refreshOutgoingAudio = useCallback(async () => {
+        const processedTrack = ensureMicProcessedTrack();
+        if (processedTrack && processedTrack.readyState === 'live') {
+            await updateOutgoingAudio(processedTrack);
         }
-    }, [updateSelfParticipant, updateVoiceRecordingSource]);
+    }, [ensureMicProcessedTrack, updateOutgoingAudio]);
+
+    const requestCameraPermission = useCallback(async () => {
+        if (!navigator.mediaDevices?.getUserMedia) return;
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+            stream.getTracks().forEach((track) => track.stop());
+        } catch (error) {
+            console.error('Failed to access camera permission', error);
+        }
+    }, []);
+
+    const requestDevicePermissions = useCallback(async () => {
+        if (devicePermissionRequestedRef.current) return;
+        devicePermissionRequestedRef.current = true;
+        await ensureMicrophoneStream(true);
+        await requestCameraPermission();
+    }, [ensureMicrophoneStream, requestCameraPermission]);
+
+    const startMicrophone = useCallback(async () => {
+        console.log('[mic] start requested', { micEnabled: micEnabledRef.current });
+        await ensureMicrophoneStream(false);
+    }, [ensureMicrophoneStream]);
 
     const stopMicrophone = useCallback(async () => {
-        // 녹음은 중지하지 않음 - 마이크만 끔
-        // await stopVoiceRecording(); // 이 줄 제거
+        console.log('[mic] stop requested', { micEnabled: micEnabledRef.current });
         audioDetection.stopDetection();
         audioDetectionActiveRef.current = false;
         speakingRef.current = false;
@@ -822,15 +1061,19 @@ const MeetingRoomPage: React.FC = () => {
         if (wsClientRef.current && roomIdRef.current) {
             wsClientRef.current.setSpeaking(roomIdRef.current, { speaking: false });
         }
-        stopTracks(localMicStreamRef.current);
-        localMicStreamRef.current = null;
-        setMicEnabled(false);
-        if (sfuClientRef.current) {
-            await sfuClientRef.current.closeProducer('audio');
+        const track = localMicStreamRef.current?.getAudioTracks()?.[0] ?? null;
+        if (track) {
+            track.enabled = true;
         }
-        // 녹음 소스 업데이트 (마이크 트랙이 제거되었으므로)
+        if (micGainNodeRef.current) {
+            micGainNodeRef.current.gain.value = 0;
+        } else if (!track) {
+            stopTracks(localMicStreamRef.current);
+            localMicStreamRef.current = null;
+        }
+        setMicEnabled(false);
         updateVoiceRecordingSource();
-    }, [updateSelfParticipant, updateVoiceRecordingSource]);
+    }, [ensureMicrophoneStream, updateSelfParticipant, updateVoiceRecordingSource]);
 
     const ensureCameraStream = useCallback(async (publishCamera?: boolean) => {
         if (!navigator.mediaDevices?.getUserMedia) {
@@ -950,7 +1193,7 @@ const MeetingRoomPage: React.FC = () => {
                             setCameraEnabled(true);
                         }
                         if (isPresenterRef.current) {
-                            void updateOutgoingAudio(null);
+                            void refreshOutgoingAudio();
                         }
                         updateOutgoingVideo({ nextScreenStream: null });
                         updateVoiceRecordingSource();
@@ -967,7 +1210,7 @@ const MeetingRoomPage: React.FC = () => {
                 setScreenSharing(false);
             }
         },
-        [updateOutgoingAudio, updateOutgoingVideo, updateVoiceRecordingSource]
+        [refreshOutgoingAudio, updateOutgoingVideo, updateVoiceRecordingSource]
     );
 
     const stopScreenShare = useCallback(async () => {
@@ -977,11 +1220,11 @@ const MeetingRoomPage: React.FC = () => {
         screenSharingRef.current = false;
         clearMixedRetry();
         if (isPresenterRef.current) {
-            await updateOutgoingAudio(null);
+            await refreshOutgoingAudio();
         }
         await updateOutgoingVideo({ nextScreenStream: null });
         updateVoiceRecordingSource();
-    }, [clearMixedRetry, updateOutgoingAudio, updateOutgoingVideo, updateVoiceRecordingSource]);
+    }, [clearMixedRetry, refreshOutgoingAudio, updateOutgoingVideo, updateVoiceRecordingSource]);
 
     const handleToggleMic = useCallback(() => {
         if (micEnabled) {
@@ -1113,12 +1356,7 @@ const MeetingRoomPage: React.FC = () => {
             }
             stopMixedAudioTrack();
             updateOutgoingVideo({ publish: false, cameraEnabledOverride: false, nextScreenStream: null });
-            if (micEnabledRef.current) {
-                const micTrack = localMicStreamRef.current?.getAudioTracks()?.[0] ?? null;
-                if (micTrack && micTrack.readyState === 'live') {
-                    void sfuClientRef.current?.produceTrack('audio', micTrack);
-                }
-            }
+            void refreshOutgoingAudio();
             return;
         }
         const confirmed = window.confirm('발표자가 되시겠습니까? 현재 발표자는 권한을 내려야 합니다.');
@@ -1132,7 +1370,7 @@ const MeetingRoomPage: React.FC = () => {
         if (selfParticipantIdRef.current !== null) {
             setPresenterId(selfParticipantIdRef.current);
         }
-    }, [isPresenter, stopMixedAudioTrack, updateOutgoingAudio, updateOutgoingVideo]);
+    }, [isPresenter, refreshOutgoingAudio, stopMixedAudioTrack, updateOutgoingVideo]);
 
     useEffect(() => {
         if (!isPresenter) return;
@@ -1150,7 +1388,18 @@ const MeetingRoomPage: React.FC = () => {
                 void stopCameraPublish();
             }
         }
-    }, [cameraEnabled, isPresenter, stopCameraPublish, stopScreenShare]);
+        if (isPresenter || wasPresenter) {
+            console.log('[mic] presenter change', {
+                isPresenter,
+                micEnabled: micEnabledRef.current,
+                gain: micGainNodeRef.current?.gain?.value,
+                micTrack: localMicStreamRef.current?.getAudioTracks()?.[0]?.readyState,
+            });
+            if (micEnabledRef.current) {
+                void ensureMicrophoneStream(false);
+            }
+        }
+    }, [cameraEnabled, ensureMicrophoneStream, isPresenter, stopCameraPublish, stopScreenShare]);
 
     useEffect(() => {
         if (!sfuReady || !isPresenter) return;
@@ -1224,6 +1473,7 @@ const MeetingRoomPage: React.FC = () => {
         const confirmed = window.confirm('미팅을 종료하시겠습니까?');
         if (!confirmed) return;
         try {
+            sfuStopRequestedRef.current = true;
             await finalizeVoiceRecording();
             await meetingApi.endMeeting(numericStudyId, numericMeetingId);
         } catch (error) {
@@ -1237,9 +1487,12 @@ const MeetingRoomPage: React.FC = () => {
     const handleRoomEvent = useCallback(
         (event: MeetingRoomEvent) => {
             if (event.type === 'MEETING_ENDED') {
-                void finalizeVoiceRecording();
-                stopCameraHardware();
-                navigate(`/study/${numericStudyId}/meetings/${numericMeetingId}`);
+                sfuStopRequestedRef.current = true;
+                void (async () => {
+                    await finalizeVoiceRecording();
+                    stopCameraHardware();
+                    navigate(`/study/${numericStudyId}/meetings/${numericMeetingId}`);
+                })();
                 return;
             }
             if (event.participants && event.participants.length > 0) {
@@ -1438,6 +1691,7 @@ const MeetingRoomPage: React.FC = () => {
             } catch {
                 // use fallback
             }
+            sfuBaseUrlRef.current = sfuBaseUrl;
 
             const sfuClient = createSfuClient(sfuBaseUrl);
             sfuClientRef.current = sfuClient;
@@ -1450,12 +1704,19 @@ const MeetingRoomPage: React.FC = () => {
                     onProducerClosed: handleProducerClosed,
                 });
                 setSfuReady(true);
-                if (!cancelled && micEnabledRef.current) {
-                    await startMicrophone();
+                await requestDevicePermissions();
+                await refreshOutgoingAudio();
+                if (!cancelled) {
+                    if (useSfuRecording) {
+                        await ensureMicrophoneStream(true);
+                    }
+                    if (micEnabledRef.current) {
+                        await startMicrophone();
+                    }
                 }
-                // 회의 소유주인 경우 즉시 녹음 시작
-                if (!cancelled && canEndMeeting) {
-                    updateVoiceRecordingSource();
+                // SFU 녹음은 첫 오디오 생산 이후에 시작 (무음 세그먼트 방지)
+                if (!cancelled) {
+                    sfuRecordingStateRef.current = 'starting';
                 }
             } catch (error) {
                 console.error('Failed to connect SFU', error);
@@ -1465,7 +1726,9 @@ const MeetingRoomPage: React.FC = () => {
 
         return () => {
             cancelled = true;
-            void finalizeVoiceRecording();
+            if (sfuStopRequestedRef.current) {
+                void finalizeVoiceRecording();
+            }
             wsUnsubscribeRef.current.forEach((unsubscribe) => unsubscribe());
             wsUnsubscribeRef.current = [];
             if (wsClientRef.current) {
@@ -1485,6 +1748,7 @@ const MeetingRoomPage: React.FC = () => {
             stopTracks(localScreenStreamRef.current);
             stopMixedAudioTrack();
             stopRecordingAudioTrack();
+            stopMicProcessedTrack();
             remoteAudioElementsRef.current.forEach((audio) => {
                 try {
                     audio.pause();
@@ -1511,6 +1775,11 @@ const MeetingRoomPage: React.FC = () => {
         handleProducerClosed,
         handleRoomEvent,
         finalizeVoiceRecording,
+        ensureMicrophoneStream,
+        requestDevicePermissions,
+        refreshOutgoingAudio,
+        startSfuRecording,
+        stopMicProcessedTrack,
         stopMixedAudioTrack,
         stopRecordingAudioTrack,
         startMicrophone,
@@ -1643,15 +1912,3 @@ const MeetingRoomPage: React.FC = () => {
 };
 
 export default MeetingRoomPage;
-
-
-
-
-
-
-
-
-
-
-
-
