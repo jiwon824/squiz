@@ -623,6 +623,8 @@ const MeetingRoomPage: React.FC = () => {
         (stream: MediaStream) => {
             if (!numericStudyId || !numericMeetingId) return;
             if (!isLoggedIn) return;
+            // 회의 소유주만 녹음
+            if (!canEndMeeting) return;
             if (voiceRecorderRef.current) return;
             if (typeof MediaRecorder === 'undefined') return;
             const supportedType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
@@ -651,8 +653,9 @@ const MeetingRoomPage: React.FC = () => {
             };
             recorder.start(VOICE_RECORDER_SLICE_MS);
             voiceRecorderRef.current = recorder;
+            console.log('Voice recording started'); // 디버깅용
         },
-        [isLoggedIn, numericMeetingId, numericStudyId]
+        [isLoggedIn, numericMeetingId, numericStudyId, canEndMeeting]
     );
 
     const stopVoiceRecording = useCallback(async () => {
@@ -696,18 +699,15 @@ const MeetingRoomPage: React.FC = () => {
         const tracks: MediaStreamTrack[] = [];
         const sourceIds: string[] = [];
         const micTrack = localMicStreamRef.current?.getAudioTracks()?.[0] ?? null;
-        const screenTrack = localScreenStreamRef.current?.getAudioTracks()?.[0] ?? null;
 
+        // 내 마이크 오디오만 포함 (마이크가 켜져있을 때만)
         if (micEnabledRef.current && micTrack && micTrack.readyState === 'live') {
             tracks.push(micTrack);
             sourceIds.push(`mic:${micTrack.id}`);
         }
 
-        if (screenSharingRef.current && screenTrack && screenTrack.readyState === 'live') {
-            tracks.push(screenTrack);
-            sourceIds.push(`screen:${screenTrack.id}`);
-        }
-
+        // 모든 원격 참가자의 오디오 (항상 포함)
+        // 이것도 마이크 오디오만 포함됨 (화면 공유 오디오는 별도 트랙이므로 자동으로 제외됨)
         remoteAudioTracksRef.current.forEach((track, producerId) => {
             if (track.readyState === 'live') {
                 tracks.push(track);
@@ -727,20 +727,25 @@ const MeetingRoomPage: React.FC = () => {
         return { track, sourceId };
     }, [ensureRecordingAudioTrack, stopRecordingAudioTrack]);
 
+
     const updateVoiceRecordingSource = useCallback(() => {
         voiceSourceUpdateChainRef.current = voiceSourceUpdateChainRef.current.then(async () => {
-            const shouldPublishPresenterAudio = isPresenterRef.current && shareModeRef.current;
-            const presenterSelection = shouldPublishPresenterAudio ? getPresenterAudioSelection() : null;
-            const canRecord = isLoggedIn && canEndMeeting && numericStudyId && numericMeetingId;
+            // 회의 소유주가 아니면 녹음하지 않음
+            if (!canEndMeeting) {
+                if (voiceRecorderRef.current) {
+                    await stopVoiceRecording();
+                }
+                voiceRecordingSourceIdRef.current = null;
+                return;
+            }
+
+            const canRecord = isLoggedIn && numericStudyId && numericMeetingId;
 
             if (!canRecord) {
                 if (voiceRecorderRef.current) {
                     await stopVoiceRecording();
                 }
                 voiceRecordingSourceIdRef.current = null;
-                if (shouldPublishPresenterAudio) {
-                    await updateOutgoingAudio(presenterSelection?.track ?? null);
-                }
                 return;
             }
 
@@ -750,38 +755,30 @@ const MeetingRoomPage: React.FC = () => {
                     await stopVoiceRecording();
                 }
                 voiceRecordingSourceIdRef.current = null;
-                if (shouldPublishPresenterAudio) {
-                    await updateOutgoingAudio(presenterSelection?.track ?? null);
-                }
                 return;
             }
+            
             const nextSourceId = selection.sourceId;
             if (voiceRecorderRef.current && voiceRecordingSourceIdRef.current === nextSourceId) {
-                if (shouldPublishPresenterAudio) {
-                    await updateOutgoingAudio(presenterSelection?.track ?? null);
-                }
                 return;
             }
+            
             if (voiceRecorderRef.current) {
                 await stopVoiceRecording();
             }
+            
             const stream = new MediaStream([selection.track]);
             startVoiceRecording(stream);
             voiceRecordingSourceIdRef.current = nextSourceId;
-            if (shouldPublishPresenterAudio) {
-                await updateOutgoingAudio(presenterSelection?.track ?? null);
-            }
         });
     }, [
         canEndMeeting,
-        getPresenterAudioSelection,
         getVoiceRecordingTrack,
         isLoggedIn,
         numericMeetingId,
         numericStudyId,
         startVoiceRecording,
         stopVoiceRecording,
-        updateOutgoingAudio,
     ]);
 
     const startMicrophone = useCallback(async () => {
@@ -818,7 +815,8 @@ const MeetingRoomPage: React.FC = () => {
     }, [updateSelfParticipant, updateVoiceRecordingSource]);
 
     const stopMicrophone = useCallback(async () => {
-        await stopVoiceRecording();
+        // 녹음은 중지하지 않음 - 마이크만 끔
+        // await stopVoiceRecording(); // 이 줄 제거
         audioDetection.stopDetection();
         audioDetectionActiveRef.current = false;
         speakingRef.current = false;
@@ -832,8 +830,9 @@ const MeetingRoomPage: React.FC = () => {
         if (sfuClientRef.current) {
             await sfuClientRef.current.closeProducer('audio');
         }
+        // 녹음 소스 업데이트 (마이크 트랙이 제거되었으므로)
         updateVoiceRecordingSource();
-    }, [stopVoiceRecording, updateSelfParticipant, updateVoiceRecordingSource]);
+    }, [updateSelfParticipant, updateVoiceRecordingSource]);
 
     const ensureCameraStream = useCallback(async (publishCamera?: boolean) => {
         if (!navigator.mediaDevices?.getUserMedia) {
@@ -1447,6 +1446,10 @@ const MeetingRoomPage: React.FC = () => {
                 if (!cancelled && micEnabledRef.current) {
                     await startMicrophone();
                 }
+                // 회의 소유주인 경우 즉시 녹음 시작
+                if (!cancelled && canEndMeeting) {
+                    updateVoiceRecordingSource();
+                }
             } catch (error) {
                 console.error('Failed to connect SFU', error);
             }
@@ -1495,6 +1498,7 @@ const MeetingRoomPage: React.FC = () => {
     }, [
         numericStudyId,
         numericMeetingId,
+        canEndMeeting, // 의존성 추가
         handleNewConsumer,
         handlePeerLeft,
         handleProducerClosed,
@@ -1513,8 +1517,11 @@ const MeetingRoomPage: React.FC = () => {
 
     useEffect(() => {
         updateVoiceRecordingSource();
-    }, [cameraEnabled, isPresenter, micEnabled, remoteAudioVersion, screenSharing, shareMode, updateVoiceRecordingSource]);
-
+    }, [
+        micEnabled, // 마이크 상태 변경 시
+        remoteAudioVersion, // 원격 참가자 오디오 변경 시
+        updateVoiceRecordingSource
+    ]);
     if (roomGuardStatus === 'blocked') {
         return (
             <MainLayout>
