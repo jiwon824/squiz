@@ -95,9 +95,11 @@ const DMListMini: React.FC = () => {
         }
     };
 
-    // 시간 포맷팅 (백엔드는 서버 로컬 시간 LocalDateTime 반환)
+    // 시간 포맷팅 (백엔드 LocalDateTime은 UTC, 타임존 정보 없이 반환됨)
     const formatTime = (dateString: string) => {
-        const date = new Date(dateString);
+        // 타임존 정보가 없는 경우 UTC로 해석
+        const normalized = dateString.includes('Z') || dateString.includes('+') ? dateString : dateString + 'Z';
+        const date = new Date(normalized);
         const now = new Date();
         const diff = now.getTime() - date.getTime();
         const days = Math.floor(diff / (1000 * 60 * 60 * 24));
