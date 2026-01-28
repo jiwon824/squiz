@@ -101,7 +101,6 @@ const MeetingRoomPage: React.FC = () => {
     const [pipPosition] = useState<PipPosition>('bottom-right');
     const [localStream, setLocalStream] = useState<MediaStream | null>(null);
     const [remoteVideoStreams, setRemoteVideoStreams] = useState<RemoteVideoStream[]>([]);
-    const [remoteAudioVersion, setRemoteAudioVersion] = useState(0);
     const [isCapturing, setIsCapturing] = useState(false);
     const [roomGuardStatus, setRoomGuardStatus] = useState<'checking' | 'ok' | 'blocked'>('checking');
     const [roomGuardMessage, setRoomGuardMessage] = useState('회의 정보를 확인 중입니다.');
@@ -284,37 +283,6 @@ const MeetingRoomPage: React.FC = () => {
             return outputTrack;
         },
         [stopMixedAudioTrack]
-    );
-
-    const ensureRecordingAudioTrack = useCallback(
-        (tracks: MediaStreamTrack[]) => {
-            if (tracks.length <= 1) {
-                stopRecordingAudioTrack();
-                return tracks[0] ?? null;
-            }
-            const ids = tracks.map((track) => track.id).sort();
-            const key = ids.join('|');
-            if (recordingAudioKeyRef.current === key && recordingAudioTrackRef.current) {
-                if (recordingAudioTrackRef.current.readyState === 'live') {
-                    return recordingAudioTrackRef.current;
-                }
-            }
-            stopRecordingAudioTrack();
-            const context = new AudioContext();
-            const destination = context.createMediaStreamDestination();
-            tracks.forEach((track) => {
-                const sourceStream = new MediaStream([track]);
-                const source = context.createMediaStreamSource(sourceStream);
-                source.connect(destination);
-            });
-            context.resume().catch(() => {});
-            const outputTrack = destination.stream.getAudioTracks()[0] ?? null;
-            recordingAudioContextRef.current = context;
-            recordingAudioTrackRef.current = outputTrack;
-            recordingAudioKeyRef.current = key;
-            return outputTrack;
-        },
-        [stopRecordingAudioTrack]
     );
 
     const getPresenterAudioSelection = useCallback(() => {
@@ -623,8 +591,7 @@ const MeetingRoomPage: React.FC = () => {
         (stream: MediaStream) => {
             if (!numericStudyId || !numericMeetingId) return;
             if (!isLoggedIn) return;
-            // 회의 소유주만 녹음
-            if (!canEndMeeting) return;
+            // 모든 참가자가 자신의 마이크를 녹음
             if (voiceRecorderRef.current) return;
             if (typeof MediaRecorder === 'undefined') return;
             const supportedType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
@@ -655,7 +622,7 @@ const MeetingRoomPage: React.FC = () => {
             voiceRecorderRef.current = recorder;
             console.log('Voice recording started'); // 디버깅용
         },
-        [isLoggedIn, numericMeetingId, numericStudyId, canEndMeeting]
+        [isLoggedIn, numericMeetingId, numericStudyId]
     );
 
     const stopVoiceRecording = useCallback(async () => {
@@ -683,62 +650,39 @@ const MeetingRoomPage: React.FC = () => {
     const finalizeVoiceRecording = useCallback(async () => {
         if (!numericStudyId || !numericMeetingId) return;
         if (!isLoggedIn) return;
-        if (!canEndMeeting) return;
         if (voiceFinalizeRequestedRef.current) return;
         voiceFinalizeRequestedRef.current = true;
         try {
+            // 모든 참가자: 자신의 녹음 중지 및 업로드 완료
             await stopVoiceRecording();
             await voiceUploadChainRef.current;
-            await meetingApi.concatRecordingAudio(numericStudyId, numericMeetingId);
+            // 회의 소유주만: 서버에서 모든 참가자 오디오 병합 요청
+            if (canEndMeeting) {
+                await meetingApi.concatRecordingAudio(numericStudyId, numericMeetingId);
+            }
         } catch (error) {
             console.error('Failed to finalize voice recording', error);
         }
     }, [canEndMeeting, isLoggedIn, numericMeetingId, numericStudyId, stopVoiceRecording]);
 
     const getVoiceRecordingTrack = useCallback(() => {
-        const tracks: MediaStreamTrack[] = [];
-        const sourceIds: string[] = [];
         const micTrack = localMicStreamRef.current?.getAudioTracks()?.[0] ?? null;
 
-        // 내 마이크 오디오만 포함 (마이크가 켜져있을 때만)
-        if (micEnabledRef.current && micTrack && micTrack.readyState === 'live') {
-            tracks.push(micTrack);
-            sourceIds.push(`mic:${micTrack.id}`);
-        }
-
-        // 모든 원격 참가자의 오디오 (항상 포함)
-        // 이것도 마이크 오디오만 포함됨 (화면 공유 오디오는 별도 트랙이므로 자동으로 제외됨)
-        remoteAudioTracksRef.current.forEach((track, producerId) => {
-            if (track.readyState === 'live') {
-                tracks.push(track);
-                sourceIds.push(`remote:${producerId}:${track.id}`);
-            }
-        });
-
-        if (tracks.length === 0) {
+        // 각 참가자는 자신의 마이크 오디오만 녹음 (서버에서 모든 참가자 오디오 병합)
+        // 마이크가 켜져있을 때만 녹음
+        if (!micEnabledRef.current || !micTrack || micTrack.readyState !== 'live') {
             stopRecordingAudioTrack();
             return null;
         }
 
-        const mixedTrack = ensureRecordingAudioTrack(tracks);
-        const track = tracks.length > 1 ? mixedTrack : tracks[0];
-        if (!track) return null;
-        const sourceId = tracks.length > 1 ? `mix:${sourceIds.join('|')}` : sourceIds[0];
-        return { track, sourceId };
-    }, [ensureRecordingAudioTrack, stopRecordingAudioTrack]);
+        const sourceId = `mic:${micTrack.id}`;
+        return { track: micTrack, sourceId };
+    }, [stopRecordingAudioTrack]);
 
 
     const updateVoiceRecordingSource = useCallback(() => {
         voiceSourceUpdateChainRef.current = voiceSourceUpdateChainRef.current.then(async () => {
-            // 회의 소유주가 아니면 녹음하지 않음
-            if (!canEndMeeting) {
-                if (voiceRecorderRef.current) {
-                    await stopVoiceRecording();
-                }
-                voiceRecordingSourceIdRef.current = null;
-                return;
-            }
-
+            // 모든 참가자가 자신의 마이크를 녹음
             const canRecord = isLoggedIn && numericStudyId && numericMeetingId;
 
             if (!canRecord) {
@@ -772,7 +716,6 @@ const MeetingRoomPage: React.FC = () => {
             voiceRecordingSourceIdRef.current = nextSourceId;
         });
     }, [
-        canEndMeeting,
         getVoiceRecordingTrack,
         isLoggedIn,
         numericMeetingId,
@@ -1292,6 +1235,7 @@ const MeetingRoomPage: React.FC = () => {
     const handleNewConsumer = useCallback(
         (payload: SfuConsumerPayload) => {
             if (payload.kind === 'audio') {
+                // 원격 오디오 재생 (각 참가자는 자신의 마이크만 녹음하므로 여기서는 재생만)
                 const audio = new Audio();
                 audio.srcObject = payload.stream;
                 audio.autoplay = true;
@@ -1300,8 +1244,6 @@ const MeetingRoomPage: React.FC = () => {
                 const track = payload.stream.getAudioTracks()?.[0] ?? null;
                 if (track) {
                     remoteAudioTracksRef.current.set(payload.producerId, track);
-                    setRemoteAudioVersion((prev) => prev + 1);
-                    updateVoiceRecordingSource();
                 }
                 return;
             }
@@ -1325,7 +1267,7 @@ const MeetingRoomPage: React.FC = () => {
                 ];
             });
         },
-        [setRemoteVideoStreams, updateVoiceRecordingSource]
+        [setRemoteVideoStreams]
     );
 
     const handlePeerLeft = useCallback((peerId: string) => {
@@ -1344,11 +1286,9 @@ const MeetingRoomPage: React.FC = () => {
             audio.srcObject = null;
             remoteAudioElementsRef.current.delete(payload.producerId);
         }
-        if (remoteAudioTracksRef.current.delete(payload.producerId)) {
-            setRemoteAudioVersion((prev) => prev + 1);
-            updateVoiceRecordingSource();
-        }
-    }, [updateVoiceRecordingSource]);
+        // 원격 오디오 트랙 정리 (각 참가자는 자신의 마이크만 녹음)
+        remoteAudioTracksRef.current.delete(payload.producerId);
+    }, []);
 
     useEffect(() => {
         let cancelled = false;
@@ -1446,8 +1386,8 @@ const MeetingRoomPage: React.FC = () => {
                 if (!cancelled && micEnabledRef.current) {
                     await startMicrophone();
                 }
-                // 회의 소유주인 경우 즉시 녹음 시작
-                if (!cancelled && canEndMeeting) {
+                // SFU 연결 시점에 모든 참가자 녹음 시작 (마이크가 켜지면 자동으로 녹음)
+                if (!cancelled) {
                     updateVoiceRecordingSource();
                 }
             } catch (error) {
@@ -1498,7 +1438,6 @@ const MeetingRoomPage: React.FC = () => {
     }, [
         numericStudyId,
         numericMeetingId,
-        canEndMeeting, // 의존성 추가
         handleNewConsumer,
         handlePeerLeft,
         handleProducerClosed,
@@ -1507,6 +1446,7 @@ const MeetingRoomPage: React.FC = () => {
         stopMixedAudioTrack,
         stopRecordingAudioTrack,
         startMicrophone,
+        updateVoiceRecordingSource,
     ]);
 
     useEffect(() => {
@@ -1518,8 +1458,7 @@ const MeetingRoomPage: React.FC = () => {
     useEffect(() => {
         updateVoiceRecordingSource();
     }, [
-        micEnabled, // 마이크 상태 변경 시
-        remoteAudioVersion, // 원격 참가자 오디오 변경 시
+        micEnabled, // 마이크 상태 변경 시 녹음 시작/중지
         updateVoiceRecordingSource
     ]);
     if (roomGuardStatus === 'blocked') {
