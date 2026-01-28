@@ -1520,14 +1520,14 @@ const MeetingRoomPage: React.FC = () => {
         if (!numericStudyId || !numericMeetingId || isCapturing) return;
         const video = videoStageRef.current?.querySelector('video');
         if (!video) {
-            window.alert('캡처할 화면이 없습니다.');
+            showToast('캡처할 화면이 없습니다.', 'warning');
             return;
         }
         setIsCapturing(true);
         try {
             const blob = await captureFrame(video);
             if (!blob) {
-                window.alert('캡처할 화면이 없습니다.');
+                showToast('캡처할 화면이 없습니다.', 'warning');
                 return;
             }
             const file = new File([blob], 'meeting-capture.png', { type: 'image/png' });

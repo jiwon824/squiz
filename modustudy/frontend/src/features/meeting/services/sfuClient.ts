@@ -51,6 +51,7 @@ export const createSfuClient = (baseUrl: string) => {
         socket = io(baseUrl, { transports: ['websocket'] });
 
         socket.on('newProducer', async ({ producerId, producerPeerId, kind }) => {
+            console.log('[sfu] newProducer event', { producerId, producerPeerId, kind });
             const consumerData = await consume(producerId);
             if (consumerData && onNewConsumer) {
                 onNewConsumer({ ...consumerData, peerId: producerPeerId, kind });
@@ -80,18 +81,28 @@ export const createSfuClient = (baseUrl: string) => {
         sendTransport = await createSendTransport();
         recvTransport = await createRecvTransport();
 
+        console.log('[sfu] existingProducers', joinData.existingProducers);
         if (joinData.existingProducers) {
-            for (const info of joinData.existingProducers as Array<{ producerId: string; peerId: string; kind: string }>) {
-                const consumerData = await consume(info.producerId);
-                if (consumerData && onNewConsumer) {
-                    onNewConsumer({ ...consumerData, peerId: info.peerId, kind: info.kind as 'audio' | 'video' });
-                }
+            const producers = joinData.existingProducers as Array<{ producerId: string; peerId: string; kind: string }>;
+            // 기존 producer를 병렬로 consume하여 초기 로딩 시간 단축
+            const results = await Promise.allSettled(
+                producers.map(async (info) => {
+                    const consumerData = await consume(info.producerId);
+                    if (consumerData && onNewConsumer) {
+                        onNewConsumer({ ...consumerData, peerId: info.peerId, kind: info.kind as 'audio' | 'video' });
+                    }
+                })
+            );
+            const failed = results.filter((r) => r.status === 'rejected');
+            if (failed.length > 0) {
+                console.warn('[sfu] some consumers failed', failed.length, '/', producers.length);
             }
         }
     };
 
     const createSendTransport = async () => {
         const { params } = await request('createWebRtcTransport', { roomId });
+        console.log('[sfu] send transport params', { iceServers: params.iceServers, iceCandidates: params.iceCandidates?.length });
         const transport = device.createSendTransport(params);
         transport.on('connect', ({ dtlsParameters }, callback, errback) => {
             request('connectWebRtcTransport', { roomId, transportId: transport.id, dtlsParameters })
@@ -130,6 +141,7 @@ export const createSfuClient = (baseUrl: string) => {
 
     const createRecvTransport = async () => {
         const { params } = await request('createWebRtcTransport', { roomId });
+        console.log('[sfu] recv transport params', { iceServers: params.iceServers, iceCandidates: params.iceCandidates?.length });
         const transport = device.createRecvTransport(params);
         transport.on('connect', ({ dtlsParameters }, callback, errback) => {
             request('connectWebRtcTransport', { roomId, transportId: transport.id, dtlsParameters })
@@ -154,6 +166,7 @@ export const createSfuClient = (baseUrl: string) => {
         if (producers.has(kind)) {
             const existing = producers.get(kind);
             if (existing.track && existing.track.id === track.id) {
+                console.log('[sfu] produceTrack: same track already producing');
                 return existing;
             }
             try {
@@ -187,33 +200,42 @@ export const createSfuClient = (baseUrl: string) => {
     };
 
     const consume = async (producerId: string) => {
+        console.log('[sfu] consume called', { producerId, hasRecvTransport: !!recvTransport, hasDevice: !!device });
         if (!recvTransport || !device || !device.rtpCapabilities) return null;
-        const { params } = await request('consume', {
-            roomId,
-            consumerTransportId: recvTransport.id,
-            producerId,
-            rtpCapabilities: device.rtpCapabilities,
-        });
-        const consumer = await recvTransport.consume({
-            id: params.id,
-            producerId: params.producerId,
-            kind: params.kind,
-            rtpParameters: params.rtpParameters,
-        });
-        consumers.set(consumer.id, consumer);
-        await request('resume', { roomId, consumerId: consumer.id });
         try {
-            await consumer.resume();
-        } catch {
-            // ignore resume errors when transport state changes quickly
+            const { params } = await request('consume', {
+                roomId,
+                consumerTransportId: recvTransport.id,
+                producerId,
+                rtpCapabilities: device.rtpCapabilities,
+            });
+            console.log('[sfu] consume server response', { id: params.id, kind: params.kind, producerId: params.producerId });
+            const consumer = await recvTransport.consume({
+                id: params.id,
+                producerId: params.producerId,
+                kind: params.kind,
+                rtpParameters: params.rtpParameters,
+            });
+            consumers.set(consumer.id, consumer);
+            console.log('[sfu] consumer created', { consumerId: consumer.id, kind: consumer.kind, trackState: consumer.track?.readyState, trackEnabled: consumer.track?.enabled });
+            await request('resume', { roomId, consumerId: consumer.id });
+            try {
+                await consumer.resume();
+            } catch {
+                // ignore resume errors when transport state changes quickly
+            }
+            if (consumer.kind === 'video') {
+                setTimeout(() => {
+                    request('requestKeyFrame', { roomId, consumerId: consumer.id }).catch(() => {});
+                }, 300);
+            }
+            const stream = new MediaStream([consumer.track]);
+            console.log('[sfu] consume success', { consumerId: consumer.id, kind: consumer.kind, streamActive: stream.active, trackCount: stream.getTracks().length });
+            return { consumerId: consumer.id, producerId, stream, kind: consumer.kind as 'audio' | 'video' };
+        } catch (err) {
+            console.error('[sfu] consume failed', { producerId, error: (err as Error).message });
+            return null;
         }
-        if (consumer.kind === 'video') {
-            setTimeout(() => {
-                request('requestKeyFrame', { roomId, consumerId: consumer.id }).catch(() => {});
-            }, 300);
-        }
-        const stream = new MediaStream([consumer.track]);
-        return { consumerId: consumer.id, producerId, stream, kind: consumer.kind as 'audio' | 'video' };
     };
 
     const close = () => {

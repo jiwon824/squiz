@@ -262,9 +262,9 @@ class QuizCourseControllerTest {
                         // given
                         MyProgressDto myProgress = new MyProgressDto(2, 1, false);
                         List<SectionWithProgressDto> sections = List.of(
-                                        new SectionWithProgressDto(1, "Basic Syntax", 10, 70, true, true, 90, 2),
-                                        new SectionWithProgressDto(2, "OOP", 15, 70, true, false, 50, 1),
-                                        new SectionWithProgressDto(3, "Collections", 12, 70, false, false, null, 0));
+                                        new SectionWithProgressDto(1, "Basic Syntax", 10, 70, true, true, 90, 2, null),
+                                        new SectionWithProgressDto(2, "OOP", 15, 70, true, false, 50, 1, 456L),
+                                        new SectionWithProgressDto(3, "Collections", 12, 70, false, false, null, 0, null));
                         SectionsWithProgressResponse response = new SectionsWithProgressResponse(
                                         COURSE_ID, "Java Master", myProgress, sections);
 
@@ -386,6 +386,46 @@ class QuizCourseControllerTest {
                                         .andExpect(status().isOk())
                                         .andExpect(jsonPath("$.data.answeredCount").value(5))
                                         .andExpect(jsonPath("$.data.questions[0].userAnswer").value("A"));
+                }
+        }
+
+        // ========== POST
+        // /api/v1/quiz-courses/{courseId}/sections/{sectionNumber}/attempts/{attemptId} ==========
+
+        @Nested
+        @DisplayName("POST /api/v1/quiz-courses/{courseId}/sections/{sectionNumber}/attempts/{attemptId}")
+        class ResumeAttempt {
+
+                @Test
+                @DisplayName("Resumes specific attempt with explicit attemptId")
+                void resumeAttemptWithExplicitId() throws Exception {
+                        // given
+                        List<AttemptQuestionItem> questions = List.of(
+                                        new AttemptQuestionItem(1, 101L, "Question 1", QuestionType.MULTIPLE_CHOICE,
+                                                        List.of(new OptionItem("A", "Option A")),
+                                                        "A") // savedAnswer indicates resumed
+                        );
+
+                        SectionAttemptResponse response = new SectionAttemptResponse(
+                                        ATTEMPT_ID, SECTION_NUMBER, "Basic Syntax",
+                                        AttemptStatus.IN_PROGRESS, 10, 5, 70,
+                                        LocalDateTime.now().minusMinutes(10), questions);
+                        given(attemptService.resumeAttempt(eq(ATTEMPT_ID), anyLong()))
+                                        .willReturn(response);
+
+                        // when & then
+                        mockMvc.perform(post("/api/v1/quiz-courses/{courseId}/sections/{sectionNumber}/attempts/{attemptId}",
+                                        COURSE_ID, SECTION_NUMBER, ATTEMPT_ID)
+                                        .contentType(MediaType.APPLICATION_JSON))
+                                        .andDo(print())
+                                        .andExpect(status().isOk())
+                                        .andExpect(jsonPath("$.success").value(true))
+                                        .andExpect(jsonPath("$.data.attemptId").value(123))
+                                        .andExpect(jsonPath("$.data.answeredCount").value(5))
+                                        .andExpect(jsonPath("$.data.questions[0].userAnswer").value("A"));
+
+                        // verify the service was called with the correct attemptId
+                        verify(attemptService).resumeAttempt(eq(ATTEMPT_ID), anyLong());
                 }
         }
 

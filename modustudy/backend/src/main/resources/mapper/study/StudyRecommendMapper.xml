@@ -1,0 +1,281 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ssafy.domain.study.mapper.StudyRecommendMapper">
+
+    <!--
+        사용자 맞춤 스터디 참여 추천 쿼리
+        점수 체계:
+          - 기술스택 직접 매칭: 기술 1개당 +10점
+          - 토픽 직접 매칭 (사용자 기술 ↔ 스터디 토픽명): +15점
+          - 토픽 계층 매칭 (같은 parent 아래 sibling): +8점
+          - 연관 기술 매칭 (사용자 기술의 parent 토픽 계열): +5점
+          - 일정 매칭 (요일 겹침): 요일 1개당 +7점
+          - 스터디장 평점 가산: avg_rating * 3점
+          - 잔여석 많을수록 가산: +2점 (빈자리 비율)
+    -->
+    <select id="findRecommendedStudies" resultType="com.ssafy.domain.study.dto.response.StudyRecommendDto">
+        SELECT
+            s.id AS studyId,
+            s.name AS studyName,
+            s.description,
+            t.name AS topicName,
+            pt.name AS parentTopicName,
+            f.name AS formatName,
+            s.difficulty,
+            s.study_type AS studyType,
+            s.meeting_type AS meetingType,
+            s.schedule_days AS scheduleDays,
+            s.schedule_time AS scheduleTime,
+            s.schedule_summary AS scheduleSummary,
+            s.max_members AS maxMembers,
+            member_cnt.cnt AS currentMembers,
+            s.status,
+            s.start_date AS startDate,
+            s.end_date AS endDate,
+            s.recruit_end_date AS recruitEndDate,
+            s.goal,
+            s.textbook,
+            s.leader_id AS leaderId,
+            leader.nickname AS leaderNickname,
+            lp.profile_image_url AS leaderProfileImage,
+            COALESCE(lr_stats.avg_rating, 0) AS leaderAvgRating,
+            COALESCE(lr_stats.review_count, 0) AS leaderReviewCount,
+
+            /* ===== 기술스택 직접 매칭 점수 ===== */
+            COALESCE(tech_match.match_count, 0) AS techMatchCount,
+
+            /* ===== 일정 매칭 점수 ===== */
+            COALESCE(sched_match.match_count, 0) AS scheduleMatchCount,
+
+            /* ===== 토픽 매칭 점수 ===== */
+            COALESCE(topic_match.match_count, 0) AS topicMatchCount,
+
+            /* ===== 종합 매칭 점수 ===== */
+            (
+                COALESCE(tech_match.match_count, 0) * 10
+                + COALESCE(topic_match.match_count, 0) * 8
+                + COALESCE(sched_match.match_count, 0) * 7
+                + COALESCE(lr_stats.avg_rating, 0) * 3
+                + CASE WHEN s.max_members > 0
+                    THEN ((s.max_members - COALESCE(member_cnt.cnt, 0)) * 2.0 / s.max_members)
+                    ELSE 0 END
+            ) AS matchingScore
+
+        FROM study s
+
+        /* 토픽 정보 (계층 포함) */
+        JOIN topic t ON s.topic_id = t.id
+        LEFT JOIN topic pt ON t.parent_id = pt.id
+        LEFT JOIN format f ON s.format_id = f.id
+
+        /* 스터디장 정보 */
+        JOIN `user` leader ON s.leader_id = leader.id
+        LEFT JOIN profile lp ON leader.id = lp.user_id
+
+        /* 현재 멤버 수 (APPROVED 상태만) */
+        LEFT JOIN (
+            SELECT study_id, COUNT(*) AS cnt
+            FROM study_member
+            WHERE status = 'APPROVED'
+            GROUP BY study_id
+        ) member_cnt ON s.id = member_cnt.study_id
+
+        /* 스터디장 평점 통계 */
+        LEFT JOIN (
+            SELECT leader_id, AVG(rating) AS avg_rating, COUNT(*) AS review_count
+            FROM study_leader_review
+            GROUP BY leader_id
+        ) lr_stats ON s.leader_id = lr_stats.leader_id
+
+        /* 기술스택 매칭: 사용자 tech JSON 배열 vs 스터디 설명/이름/토픽명 */
+        LEFT JOIN (
+            SELECT
+                s2.id AS study_id,
+                COUNT(DISTINCT jt.tech_item) AS match_count
+            FROM study s2
+            JOIN topic t2 ON s2.topic_id = t2.id
+            LEFT JOIN topic pt2 ON t2.parent_id = pt2.id
+            JOIN profile p ON p.user_id = #{userId}
+            /* JSON_TABLE: profile.tech 배열을 행으로 풀기 */
+            JOIN JSON_TABLE(
+                p.tech, '$[*]' COLUMNS(tech_item VARCHAR(100) PATH '$')
+            ) jt ON 1=1
+            WHERE (
+                /* 스터디 이름에 기술스택 포함 */
+                LOWER(s2.name) LIKE CONCAT('%', LOWER(jt.tech_item), '%')
+                /* 스터디 설명에 기술스택 포함 */
+                OR LOWER(COALESCE(s2.description, '')) LIKE CONCAT('%', LOWER(jt.tech_item), '%')
+                /* 토픽명에 기술스택 포함 */
+                OR LOWER(t2.name) LIKE CONCAT('%', LOWER(jt.tech_item), '%')
+                /* 상위 토픽명에 기술스택 포함 */
+                OR LOWER(COALESCE(pt2.name, '')) LIKE CONCAT('%', LOWER(jt.tech_item), '%')
+                /* 교재에 기술스택 포함 */
+                OR LOWER(COALESCE(s2.textbook, '')) LIKE CONCAT('%', LOWER(jt.tech_item), '%')
+                /* 목표에 기술스택 포함 */
+                OR LOWER(COALESCE(s2.goal, '')) LIKE CONCAT('%', LOWER(jt.tech_item), '%')
+            )
+            GROUP BY s2.id
+        ) tech_match ON s.id = tech_match.study_id
+
+        /* 토픽 계층 매칭: 사용자 기술스택 → 토픽 트리에서 같은 parent 계열 */
+        LEFT JOIN (
+            SELECT
+                s3.id AS study_id,
+                COUNT(DISTINCT sibling.id) AS match_count
+            FROM study s3
+            JOIN topic st ON s3.topic_id = st.id
+            /* 스터디 토픽의 parent 찾기 */
+            LEFT JOIN topic sp ON st.parent_id = sp.id
+            /* 같은 parent 아래의 sibling 토픽들 */
+            JOIN topic sibling ON (
+                sibling.parent_id = COALESCE(sp.id, st.id)
+                AND sibling.id != st.id
+            )
+            /* 사용자 기술스택과 sibling 토픽명 매칭 */
+            JOIN profile p2 ON p2.user_id = #{userId}
+            JOIN JSON_TABLE(
+                p2.tech, '$[*]' COLUMNS(tech_item VARCHAR(100) PATH '$')
+            ) jt2 ON LOWER(sibling.name) LIKE CONCAT('%', LOWER(jt2.tech_item), '%')
+            GROUP BY s3.id
+        ) topic_match ON s.id = topic_match.study_id
+
+        /* 일정 매칭: 사용자 가능 요일 vs 스터디 schedule_days */
+        LEFT JOIN (
+            SELECT
+                s4.id AS study_id,
+                COUNT(DISTINCT us.day_of_week) AS match_count
+            FROM study s4
+            JOIN user_schedule us ON us.user_id = #{userId} AND us.is_available = TRUE
+            WHERE s4.schedule_days IS NOT NULL
+              AND FIND_IN_SET(us.day_of_week, REPLACE(s4.schedule_days, ' ', '')) > 0
+            GROUP BY s4.id
+        ) sched_match ON s.id = sched_match.study_id
+
+        WHERE
+            /* 모집중인 스터디만 */
+            s.status = 'RECRUITING'
+            /* 공개 스터디만 */
+            AND s.is_public = TRUE
+            /* 잔여석 있는 스터디만 */
+            AND (s.max_members IS NULL OR COALESCE(member_cnt.cnt, 0) &lt; s.max_members)
+            /* 본인이 리더인 스터디 제외 */
+            AND s.leader_id != #{userId}
+            /* 이미 참여중인 스터디 제외 */
+            AND NOT EXISTS (
+                SELECT 1 FROM study_member sm
+                WHERE sm.study_id = s.id
+                  AND sm.user_id = #{userId}
+                  AND sm.status IN ('PENDING', 'APPROVED')
+            )
+            /* 이미 지원중인 스터디 제외 */
+            AND NOT EXISTS (
+                SELECT 1 FROM study_application sa
+                WHERE sa.study_id = s.id
+                  AND sa.user_id = #{userId}
+                  AND sa.status = 'PENDING'
+            )
+
+        ORDER BY matchingScore DESC, s.created_at DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 특정 토픽 기반 추천 -->
+    <select id="findRecommendedStudiesByTopic" resultType="com.ssafy.domain.study.dto.response.StudyRecommendDto">
+        SELECT
+            s.id AS studyId,
+            s.name AS studyName,
+            s.description,
+            t.name AS topicName,
+            pt.name AS parentTopicName,
+            f.name AS formatName,
+            s.difficulty,
+            s.study_type AS studyType,
+            s.meeting_type AS meetingType,
+            s.schedule_days AS scheduleDays,
+            s.schedule_time AS scheduleTime,
+            s.schedule_summary AS scheduleSummary,
+            s.max_members AS maxMembers,
+            member_cnt.cnt AS currentMembers,
+            s.status,
+            s.start_date AS startDate,
+            s.end_date AS endDate,
+            s.recruit_end_date AS recruitEndDate,
+            s.goal,
+            s.textbook,
+            s.leader_id AS leaderId,
+            leader.nickname AS leaderNickname,
+            lp.profile_image_url AS leaderProfileImage,
+            COALESCE(lr_stats.avg_rating, 0) AS leaderAvgRating,
+            COALESCE(lr_stats.review_count, 0) AS leaderReviewCount,
+            COALESCE(sched_match.match_count, 0) AS scheduleMatchCount,
+            0 AS techMatchCount,
+            0 AS topicMatchCount,
+            (
+                COALESCE(sched_match.match_count, 0) * 7
+                + COALESCE(lr_stats.avg_rating, 0) * 3
+                + CASE WHEN s.max_members > 0
+                    THEN ((s.max_members - COALESCE(member_cnt.cnt, 0)) * 2.0 / s.max_members)
+                    ELSE 0 END
+            ) AS matchingScore
+
+        FROM study s
+        JOIN topic t ON s.topic_id = t.id
+        LEFT JOIN topic pt ON t.parent_id = pt.id
+        LEFT JOIN format f ON s.format_id = f.id
+        JOIN `user` leader ON s.leader_id = leader.id
+        LEFT JOIN profile lp ON leader.id = lp.user_id
+
+        LEFT JOIN (
+            SELECT study_id, COUNT(*) AS cnt
+            FROM study_member
+            WHERE status = 'APPROVED'
+            GROUP BY study_id
+        ) member_cnt ON s.id = member_cnt.study_id
+
+        LEFT JOIN (
+            SELECT leader_id, AVG(rating) AS avg_rating, COUNT(*) AS review_count
+            FROM study_leader_review
+            GROUP BY leader_id
+        ) lr_stats ON s.leader_id = lr_stats.leader_id
+
+        LEFT JOIN (
+            SELECT
+                s4.id AS study_id,
+                COUNT(DISTINCT us.day_of_week) AS match_count
+            FROM study s4
+            JOIN user_schedule us ON us.user_id = #{userId} AND us.is_available = TRUE
+            WHERE s4.schedule_days IS NOT NULL
+              AND FIND_IN_SET(us.day_of_week, REPLACE(s4.schedule_days, ' ', '')) > 0
+            GROUP BY s4.id
+        ) sched_match ON s.id = sched_match.study_id
+
+        WHERE
+            s.status = 'RECRUITING'
+            AND s.is_public = TRUE
+            AND (s.max_members IS NULL OR COALESCE(member_cnt.cnt, 0) &lt; s.max_members)
+            AND s.leader_id != #{userId}
+            /* 토픽 필터: 해당 토픽 또는 같은 parent 아래 토픽 */
+            AND (
+                s.topic_id = #{topicId}
+                OR t.parent_id = #{topicId}
+                OR t.parent_id IN (SELECT id FROM topic WHERE parent_id = #{topicId})
+                OR t.parent_id = (SELECT parent_id FROM topic WHERE id = #{topicId})
+            )
+            AND NOT EXISTS (
+                SELECT 1 FROM study_member sm
+                WHERE sm.study_id = s.id
+                  AND sm.user_id = #{userId}
+                  AND sm.status IN ('PENDING', 'APPROVED')
+            )
+            AND NOT EXISTS (
+                SELECT 1 FROM study_application sa
+                WHERE sa.study_id = s.id
+                  AND sa.user_id = #{userId}
+                  AND sa.status = 'PENDING'
+            )
+
+        ORDER BY matchingScore DESC, s.created_at DESC
+        LIMIT #{limit}
+    </select>
+
+</mapper>

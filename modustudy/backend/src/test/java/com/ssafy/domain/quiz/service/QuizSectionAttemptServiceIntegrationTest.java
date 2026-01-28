@@ -286,6 +286,93 @@ class QuizSectionAttemptServiceIntegrationTest {
         }
 
         @Test
+        @DisplayName("성공: Self-healing - 여러 IN_PROGRESS 시도 중 답변이 가장 많은 시도 선택 및 나머지 정리")
+        void multipleInProgressAttempts_IntegratedSelfHealing() {
+            // 1. Given: 답변 수가 다른 3개의 시도를 직접 DB에 삽입
+            Long courseId = testCourse.getId();
+            Integer sectionNumber = testSection.getSectionNumber();
+            Long userId = testUser.getId();
+
+            // 시도 1: 답변 3개 (가장 높은 진행도 - 선택되어야 함)
+            UserSectionAttempt bestAttempt = UserSectionAttempt.builder()
+                    .user(testUser).section(testSection).totalQuestions(10).build();
+            attemptRepository.save(bestAttempt);
+            for (int i = 0; i < 3; i++) {
+                UserSectionAttemptQuestion aq = UserSectionAttemptQuestion.builder()
+                        .attempt(bestAttempt).question(testQuestions.get(i)).orderIndex(i + 1).build();
+                aq.saveAnswer("answer" + i); // 답변 저장
+                attemptQuestionRepository.save(aq);
+            }
+
+            // 시도 2: 답변 1개 (중복 - 포기 대상)
+            UserSectionAttempt redundantAttempt1 = UserSectionAttempt.builder()
+                    .user(testUser).section(testSection).totalQuestions(10).build();
+            attemptRepository.save(redundantAttempt1);
+            UserSectionAttemptQuestion aqRedundant = UserSectionAttemptQuestion.builder()
+                    .attempt(redundantAttempt1).question(testQuestions.get(0)).orderIndex(1).build();
+            aqRedundant.saveAnswer("answer");
+            attemptQuestionRepository.save(aqRedundant);
+
+            // 시도 3: 답변 0개 (중복 - 포기 대상)
+            UserSectionAttempt redundantAttempt2 = UserSectionAttempt.builder()
+                    .user(testUser).section(testSection).totalQuestions(10).build();
+            attemptRepository.save(redundantAttempt2);
+
+            entityManager.flush();
+            entityManager.clear();
+
+            // ID 추출 (ID가 동적으로 생성되므로 변수에 할당)
+            Long expectedId = bestAttempt.getId();
+            Long id1 = redundantAttempt1.getId();
+            Long id2 = redundantAttempt2.getId();
+
+            // 2. When: 서비스 호출 (셀프 힐링 트리거)
+            SectionAttemptResponse response = quizSectionAttemptService
+                    .startOrResumeAttempt(courseId, sectionNumber, userId);
+
+            // 3. Then: 답변 3개인 시도가 반환되었는지 확인
+            assertThat(response.attemptId()).isEqualTo(expectedId);
+
+            // 4. DB 상태 검증: 나머지 시도들이 실제로 ABANDONED가 되었는지 확인
+            UserSectionAttempt dbRedundant1 = attemptRepository.findById(id1).orElseThrow();
+            UserSectionAttempt dbRedundant2 = attemptRepository.findById(id2).orElseThrow();
+            assertThat(dbRedundant1.getStatus()).isEqualTo(AttemptStatus.ABANDONED);
+            assertThat(dbRedundant2.getStatus()).isEqualTo(AttemptStatus.ABANDONED);
+        }
+
+        @Test
+        @DisplayName("성공: 답안 저장 시 @Version 컬럼 값 증가 확인")
+        void saveAnswer_IncrementsVersion() {
+            // 1. Given: 초기 시도 생성
+            SectionAttemptResponse resp = quizSectionAttemptService
+                    .startOrResumeAttempt(testCourse.getId(), testSection.getSectionNumber(), testUser.getId());
+            Long attemptId = resp.attemptId();
+            Long questionId = resp.questions().get(0).questionId();
+
+            entityManager.flush();
+            entityManager.clear();
+
+            // 초기 버전 확인 (0)
+            UserSectionAttemptQuestion initialAq = attemptQuestionRepository
+                    .findByAttemptIdAndQuestionId(attemptId, questionId).orElseThrow();
+            Long initialVersion = initialAq.getVersion();
+
+            // 2. When: 답안 저장
+            SaveAnswerRequest request = new SaveAnswerRequest(
+                    new SaveAnswerRequest.AnswerItem(questionId, "New Answer")
+            );
+            quizSectionAttemptService.saveAnswer(attemptId, request, testUser.getId());
+
+            entityManager.flush();
+            entityManager.clear(); // 영속성 컨텍스트 비우기
+
+            // 3. Then: 버전이 증가했는지 확인
+            UserSectionAttemptQuestion updatedAq = attemptQuestionRepository
+                    .findByAttemptIdAndQuestionId(attemptId, questionId).orElseThrow();
+            assertThat(updatedAq.getVersion()).isEqualTo(initialVersion + 1);
+        }
+
+        @Test
         @DisplayName("실패: 존재하지 않는 섹션 - NotFoundException 발생")
         void sectionNotFound_ThrowsException() {
             // Given: 존재하지 않는 courseId/sectionNumber
@@ -433,7 +520,7 @@ class QuizSectionAttemptServiceIntegrationTest {
         }
 
         @Test
-        @DisplayName("실패: 존재하지 않는 시도 - NotFoundException 발생")
+        @DisplayName("실패: 존재하지 않는 시도 - BusinessException(QUESTION_NOT_FOUND) 발생")
         void attemptNotFound_ThrowsException() {
             // Given
             Long invalidAttemptId = 999999L;
@@ -442,10 +529,11 @@ class QuizSectionAttemptServiceIntegrationTest {
                     new SaveAnswerRequest.AnswerItem(1L, "1")
             );
 
-            // When & Then
+            // When & Then: NotFoundException 대신 BusinessException을 기대함
             assertThatThrownBy(() -> quizSectionAttemptService
                     .saveAnswer(invalidAttemptId, request, userId))
-                    .isInstanceOf(NotFoundException.class);
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessageContaining("해당 문제를 찾을 수 없습니다");
         }
 
         @Test
@@ -500,23 +588,24 @@ class QuizSectionAttemptServiceIntegrationTest {
         }
 
         @Test
-        @DisplayName("성공: 존재하지 않는 questionId는 무시")
-        void nonExistentQuestionId_Ignored() {
+        @DisplayName("실패: 존재하지 않는 questionId - BusinessException(QUESTION_NOT_FOUND) 발생")
+        void questionNotFound_ThrowsException() {
             // Given
             Long userId = testUser.getId();
             SectionAttemptResponse attemptResponse = quizSectionAttemptService
                     .startOrResumeAttempt(testCourse.getId(), testSection.getSectionNumber(), userId);
             Long attemptId = attemptResponse.attemptId();
 
-            // When: 존재하지 않는 questionId로 답안 저장
+            // When: 존재하지 않는 questionId로 답안 저장 시도
             SaveAnswerRequest request = new SaveAnswerRequest(
                     new SaveAnswerRequest.AnswerItem(999999L, "1")
             );
 
-            // Then: 예외 없이 정상 처리 (무시됨)
-            assertThatCode(() -> quizSectionAttemptService
+            // Then: 이제 무시되지 않고 BusinessException이 발생해야 함
+            assertThatThrownBy(() -> quizSectionAttemptService
                     .saveAnswer(attemptId, request, userId))
-                    .doesNotThrowAnyException();
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessageContaining("해당 문제를 찾을 수 없습니다");
         }
     }
 

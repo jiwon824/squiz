@@ -7,14 +7,10 @@ import org.springframework.data.redis.connection.Message;
 import org.springframework.data.redis.connection.MessageListener;
 import org.springframework.data.redis.listener.ChannelTopic;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
-import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
-import org.springframework.messaging.simp.SimpMessageType;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
-import jakarta.annotation.PostConstruct;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -81,33 +77,18 @@ public class DmRedisSubscriber implements MessageListener {
             String destination = dmMessage.getDestination();
             Object payload = dmMessage.getPayload();
 
-            // 로컬 세션에 메시지 전달
-            Set<String> sessionIds = dmSessionService.getSessionIds(userId);
-            if (sessionIds.isEmpty()) {
-                log.debug("No local sessions for userId={}", userId);
-                return;
-            }
-
-            for (String sessionId : sessionIds) {
-                messagingTemplate.convertAndSendToUser(
-                        sessionId,
-                        destination,
-                        payload,
-                        createHeaders(sessionId)
-                );
-            }
-            log.debug("Forwarded Redis message to {} local sessions for userId={}",
-                    sessionIds.size(), userId);
+            // Principal name(userId)을 사용하여 사용자에게 메시지 전달
+            // WebSocketUserInterceptor에서 userId를 Principal로 설정했으므로
+            // convertAndSendToUser의 첫 번째 인자로 userId 문자열 사용
+            messagingTemplate.convertAndSendToUser(
+                    userId.toString(),  // Principal name = userId
+                    destination,
+                    payload
+            );
+            log.debug("Forwarded Redis message to userId={} via Principal", userId);
 
         } catch (Exception e) {
             log.error("Failed to process Redis message", e);
         }
-    }
-
-    private org.springframework.messaging.MessageHeaders createHeaders(String sessionId) {
-        SimpMessageHeaderAccessor accessor = SimpMessageHeaderAccessor.create(SimpMessageType.MESSAGE);
-        accessor.setSessionId(sessionId);
-        accessor.setLeaveMutable(true);
-        return accessor.getMessageHeaders();
     }
 }

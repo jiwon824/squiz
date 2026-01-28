@@ -31,6 +31,9 @@ public class Study {
     @Column(nullable = false, length = 100)
     private String name;
 
+    @Column(length = 200)
+    private String intro;
+
     @Column(columnDefinition = "TEXT")
     private String description;
 

@@ -77,7 +77,7 @@ const MeetingHistoryPage: React.FC = () => {
                     </button>
                 </div>
 
-                <div className="meeting-history__filters">
+                <div className="meeting-history__filters">
                     <input
                         type="date"
                         value={startDate}
@@ -128,7 +128,7 @@ const MeetingHistoryPage: React.FC = () => {
                                             ? new Date(meeting.startedAt).toLocaleString()
                                             : '시작 전'}
                                         {meeting.endedAt && ` ~ ${new Date(meeting.endedAt).toLocaleTimeString()}`}
-                                    </p>
+                                    </p>
                                 </div>
                                 <div className="meeting-history__actions">
                                     {meeting.endedAt && (

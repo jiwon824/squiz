@@ -62,6 +62,17 @@ public class User extends BaseEntity {
     @Column(columnDefinition = "JSON")
     private String techStacks;  // 기술 스택 (JSON 배열)
 
+    // ========== 스터디 선호 설정 ==========
+
+    @Column(columnDefinition = "JSON")
+    private String availableDays;  // 가능한 요일 (JSON 배열, 예: ["MON","WED","FRI"])
+
+    @Column(columnDefinition = "JSON")
+    private String preferredTimeSlots;  // 선호 시간대 (JSON 배열, 예: ["EVENING","NIGHT"])
+
+    @Column(name = "preferred_duration_weeks")
+    private Integer preferredDurationWeeks;  // 선호 스터디 기간 (2~8주)
+
     // ========== 스터디장 관련 ==========
 
     /**

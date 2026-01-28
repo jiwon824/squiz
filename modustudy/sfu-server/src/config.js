@@ -1,12 +1,25 @@
 const path = require('path');
+const os = require('os');
+
+// Docker 컨테이너 내부 IP 자동 감지
+function getContainerIp() {
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        return iface.address;
+      }
+    }
+  }
+  return '127.0.0.1';
+}
 
 const config = {
   port: Number(process.env.PORT || 4000),
-  listenIp: process.env.LISTEN_IP || '127.0.0.1',
+  listenIp: process.env.LISTEN_IP || '0.0.0.0',
   announcedIp: process.env.ANNOUNCED_IP
     || process.env.SFU_ANNOUNCED_IP
-    || process.env.LISTEN_IP
-    || '127.0.0.1',
+    || getContainerIp(),
   corsOrigins: (process.env.CORS_ORIGINS || process.env.SFU_CORS_ORIGINS || '*')
     .split(',')
     .map((origin) => origin.trim())
@@ -29,6 +42,10 @@ const config = {
   rtcEnableUdp: String(process.env.RTC_ENABLE_UDP ?? 'true').toLowerCase() !== 'false',
   rtcEnableTcp: String(process.env.RTC_ENABLE_TCP ?? 'true').toLowerCase() !== 'false',
   rtcPreferUdp: String(process.env.RTC_PREFER_UDP ?? 'true').toLowerCase() !== 'false',
+  // TURN 서버 설정 (환경변수로 주입)
+  turnUrl: process.env.TURN_URL || '',
+  turnUsername: process.env.TURN_USERNAME || '',
+  turnCredential: process.env.TURN_CREDENTIAL || '',
   mediaCodecs: [
     {
       kind: 'audio',

@@ -1,6 +1,7 @@
 ﻿import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { MainLayout } from '@/layouts/MainLayout';
+import { useUIStore } from '@/store/uiStore';
 import { meetingApi } from '../services/meetingApi';
 import {
     MeetingChatMessageResponse,
@@ -16,6 +17,7 @@ const MeetingDetailPage: React.FC = () => {
     const numericStudyId = Number(studyId);
     const numericMeetingId = Number(meetingId);
     const navigate = useNavigate();
+    const showToast = useUIStore((state) => state.showToast);
     const [detail, setDetail] = useState<MeetingDetailResponse | null>(null);
     const [chatMessages, setChatMessages] = useState<MeetingChatMessageResponse[]>([]);
     const [photos, setPhotos] = useState<MeetingPhotoResponse[]>([]);

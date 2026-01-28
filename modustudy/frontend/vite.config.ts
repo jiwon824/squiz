@@ -20,11 +20,43 @@ export default defineConfig({
         port: 3000,
         open: true,
         proxy: {
+            // 꼬멘틀 AI 서비스 (Python Flask - port 5000)
+            '/api/words': {
+                target: 'http://localhost:5000',
+                changeOrigin: true,
+                secure: false,
+            },
+            '/api/embedding': {
+                target: 'http://localhost:5000',
+                changeOrigin: true,
+                secure: false,
+            },
+            '/api/leaderboard': {
+                target: 'http://localhost:5000',
+                changeOrigin: true,
+                secure: false,
+            },
+            '/api/categories': {
+                target: 'http://localhost:5000',
+                changeOrigin: true,
+                secure: false,
+            },
+            '/api/difficulties': {
+                target: 'http://localhost:5000',
+                changeOrigin: true,
+                secure: false,
+            },
+            '/api/health': {
+                target: 'http://localhost:5000',
+                changeOrigin: true,
+                secure: false,
+            },
+            // 메인 백엔드 (Spring Boot - port 8080)
             '/api': {
                 target: 'http://localhost:8080',
                 changeOrigin: true,
                 secure: false,
-                // 백엔드가 발급한 쿠키(domain=localhost)를 프론트 도메인에 맞게 변환
+                // 쿠키 도메인 재작성: modustudy.local로 접속 시 도메인 유지
                 cookieDomainRewrite: 'modustudy.local',
             },
             '/oauth2': {
