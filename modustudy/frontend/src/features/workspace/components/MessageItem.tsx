@@ -36,7 +36,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
   // 시스템 메시지
   if (isSystemMessage) {
     return (
-      <div className="message-item message-item--system">
+      <div className={cn('message-item', 'message-item--system')}>
         <div className="message-item__content">
           <p className="message-item__text">{message.content}</p>
         </div>
@@ -47,7 +47,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
   // 그룹화된 메시지 (같은 사용자 연속 메시지)
   if (isGrouped) {
     return (
-      <div className="message-item message-item--grouped">
+      <div className={cn('message-item', 'message-item--grouped')}>
         <div className="message-item__content">
           <p className="message-item__text">{message.content}</p>
         </div>

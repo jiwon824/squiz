@@ -4,6 +4,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { cn } from '@/shared/utils/cn';
 import {
   X,
   Download,
@@ -228,7 +229,7 @@ export const MaterialDetailModal: React.FC<MaterialDetailModalProps> = ({
   return createPortal(
     <div className="material-modal-overlay" onClick={onClose}>
       <div
-        className="material-modal material-detail-modal"
+        className={cn('material-modal', 'material-detail-modal')}
         onClick={(e) => e.stopPropagation()}
       >
         {/* 헤더 */}
@@ -243,7 +244,7 @@ export const MaterialDetailModal: React.FC<MaterialDetailModalProps> = ({
         </div>
 
         {/* 본문 */}
-        <div className="material-modal__body material-detail__body">
+        <div className={cn('material-modal__body', 'material-detail__body')}>
           {isLoading ? (
             <div className="material-detail__loading">
               <div className="loading-spinner" />
@@ -379,7 +380,7 @@ export const MaterialDetailModal: React.FC<MaterialDetailModalProps> = ({
         </div>
 
         {/* 액션 버튼 */}
-        <div className="material-modal__actions material-detail__actions">
+        <div className={cn('material-modal__actions', 'material-detail__actions')}>
           <button type="button" className="btn-cancel" onClick={onClose}>
             닫기
           </button>

@@ -1,5 +1,4 @@
 import { useState, useRef, useCallback } from 'react';
-import { cn } from '@/shared/utils/cn';
 
 interface MessageInputProps {
   onSend: (content: string) => void;
