@@ -5,13 +5,13 @@ const { spawn } = require('child_process');
 
 const RTP_IP = process.env.RECORDING_RTP_IP || '127.0.0.1';
 const KEEP_RECORDING_SEGMENTS =
-  String(process.env.RECORDING_KEEP_SEGMENTS || '').toLowerCase() === 'true'
-  || process.env.RECORDING_KEEP_SEGMENTS === '1';
+  String(process.env.RECORDING_KEEP_SEGMENTS || '').trim().toLowerCase() === 'true'
+  || String(process.env.RECORDING_KEEP_SEGMENTS || '').trim() === '1';
 const RECORDING_OVERLAP_MS = Number(process.env.RECORDING_OVERLAP_MS || 0);
 const RECORDING_REFRESH_INTERVAL_MS = Number(process.env.RECORDING_REFRESH_INTERVAL_MS || 0);
 const RECORDING_VIDEO_READY_TIMEOUT_MS = Number(process.env.RECORDING_VIDEO_READY_TIMEOUT_MS || 1200);
 const RECORDING_VIDEO_READY_POLL_MS = Number(process.env.RECORDING_VIDEO_READY_POLL_MS || 150);
-const RECORDING_STOP_GRACE_MS = Number(process.env.RECORDING_STOP_GRACE_MS || 400);
+const RECORDING_STOP_GRACE_MS = Number(process.env.RECORDING_STOP_GRACE_MS || 1500);
 const RECORDING_VIDEO_ENABLED =
   String(process.env.RECORDING_VIDEO_ENABLED ?? 'true').toLowerCase() !== 'false';
 const reservedPorts = new Set();
@@ -210,6 +210,32 @@ const waitForExit = (child) =>
     child.once('exit', () => resolve());
   });
 
+const waitForExitWithTimeout = (child, timeoutMs) =>
+  new Promise((resolve) => {
+    if (!child) {
+      resolve(false);
+      return;
+    }
+    let done = false;
+    const onExit = () => {
+      if (done) return;
+      done = true;
+      cleanup();
+      resolve(true);
+    };
+    const cleanup = () => {
+      child.removeListener('exit', onExit);
+      clearTimeout(timer);
+    };
+    const timer = setTimeout(() => {
+      if (done) return;
+      done = true;
+      cleanup();
+      resolve(false);
+    }, timeoutMs);
+    child.once('exit', onExit);
+  });
+
 const createFallbackSegment = (
   ffmpegPath,
   outputPath,
@@ -284,6 +310,62 @@ const createGapSegment = (
     proc.on('error', () => resolve());
   });
 
+const validateSegment = (ffmpegPath, segmentPath) =>
+  new Promise((resolve) => {
+    const args = ['-v', 'error', '-i', segmentPath, '-f', 'null', '-'];
+    const proc = spawn(ffmpegPath, args, { stdio: ['ignore', 'ignore', 'ignore'] });
+    proc.on('exit', (code) => resolve(code === 0));
+    proc.on('error', () => resolve(false));
+  });
+
+const resolveFfprobePath = (ffmpegPath) => {
+  if (!ffmpegPath || ffmpegPath === 'ffmpeg') return 'ffprobe';
+  if (/ffmpeg(?:\.exe)?$/i.test(ffmpegPath)) {
+    return ffmpegPath.replace(/ffmpeg(?:\.exe)?$/i, 'ffprobe');
+  }
+  return 'ffprobe';
+};
+
+const probeDurationSeconds = (ffmpegPath, targetPath) =>
+  new Promise((resolve) => {
+    const args = [
+      '-v', 'error',
+      '-show_entries', 'format=duration',
+      '-of', 'default=noprint_wrappers=1:nokey=1',
+      targetPath,
+    ];
+    const proc = spawn(resolveFfprobePath(ffmpegPath), args, { stdio: ['ignore', 'pipe', 'ignore'] });
+    let output = '';
+    proc.stdout.on('data', (data) => {
+      output += data.toString();
+    });
+    proc.on('exit', () => {
+      const value = Number.parseFloat(output.trim());
+      resolve(Number.isFinite(value) ? value : null);
+    });
+    proc.on('error', () => resolve(null));
+  });
+
+const repairSegment = (ffmpegPath, segmentPath, repairedPath) =>
+  new Promise((resolve, reject) => {
+    const args = [
+      '-y',
+      '-fflags', '+genpts',
+      '-i', segmentPath,
+      '-af', 'asetpts=N/SR/TB',
+      '-c:a', 'libopus',
+      '-b:a', `${config.recordingAudioBitrate}k`,
+      '-f', 'webm',
+      repairedPath
+    ];
+    const proc = spawn(ffmpegPath, args, { stdio: ['ignore', 'ignore', 'pipe'] });
+    proc.on('error', (err) => reject(err));
+    proc.on('exit', (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`segment repair failed (${code})`));
+    });
+  });
+
 const createSegmentProcess = async ({
   ffmpegPath,
   outputPath,
@@ -353,13 +435,15 @@ const createSegmentProcess = async ({
       amixInputs.push(`[${audioInputBase}:a:${idx}]`);
     }
     if (amixInputs.length > 1) {
-      filterParts.push(`${amixInputs.join('')}amix=inputs=${amixInputs.length}:normalize=0[aout]`);
+      filterParts.push(`${amixInputs.join('')}amix=inputs=${amixInputs.length}:normalize=0,asetpts=N/SR/TB[aout]`);
       mapArgs.push('-map', '[aout]');
     } else if (amixInputs.length === 1) {
-      mapArgs.push('-map', `${audioInputBase}:a:0`);
+      filterParts.push(`[${audioInputBase}:a:0]asetpts=N/SR/TB[aout]`);
+      mapArgs.push('-map', '[aout]');
     }
   } else {
-    mapArgs.push('-map', `${audioInputBase}:a:0`);
+    filterParts.push(`[${audioInputBase}:a:0]asetpts=N/SR/TB[aout]`);
+    mapArgs.push('-map', '[aout]');
   }
 
   if (filterParts.length > 0) {
@@ -373,7 +457,7 @@ const createSegmentProcess = async ({
   args.push('-c:a', 'libopus', '-b:a', `${audioBitrateKbps}k`);
   args.push('-f', 'webm', outputPath);
 
-  const proc = spawn(ffmpegPath, args, { stdio: ['ignore', 'ignore', 'pipe'] });
+  const proc = spawn(ffmpegPath, args, { stdio: ['pipe', 'ignore', 'pipe'] });
   const stderrChunks = [];
   let exitInfo = null;
   proc.on('error', (err) => {
@@ -561,7 +645,11 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
     room.peers.forEach((peer) => {
       peer.producers.forEach((entry) => {
         if (entry.kind === 'audio') {
-          ids.push(entry.producer.id);
+          // 화면 공유 오디오는 제외 (마이크 오디오만 녹음)
+          const isScreenAudio = entry.appData && entry.appData.source === 'screen';
+          if (!isScreenAudio) {
+            ids.push(entry.producer.id);
+          }
         }
       });
     });
@@ -589,11 +677,20 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
       state.currentSegment = null;
     }
     if (segment.ffmpeg) {
-      if (RECORDING_STOP_GRACE_MS > 0) {
-        await delay(RECORDING_STOP_GRACE_MS);
+      const proc = segment.ffmpeg;
+      if (proc.stdin && !proc.stdin.destroyed) {
+        try {
+          proc.stdin.write('q');
+          proc.stdin.end();
+        } catch {
+          // ignore stdin errors
+        }
       }
-      segment.ffmpeg.kill('SIGINT');
-      await waitForExit(segment.ffmpeg);
+      const exited = await waitForExitWithTimeout(proc, Math.max(800, RECORDING_STOP_GRACE_MS));
+      if (!exited && !proc.killed) {
+        proc.kill('SIGINT');
+        await waitForExit(proc);
+      }
     }
     if (segment.segmentPath) {
       try {
@@ -610,6 +707,20 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
             config.recordingAudioBitrate,
             RECORDING_VIDEO_ENABLED
           );
+        } else {
+          const valid = await validateSegment(config.ffmpegPath, segment.segmentPath);
+          if (!valid) {
+            await createFallbackSegment(
+              config.ffmpegPath,
+              segment.segmentPath,
+              config.recordingWidth,
+              config.recordingHeight,
+              config.recordingFps,
+              config.recordingVideoBitrate,
+              config.recordingAudioBitrate,
+              RECORDING_VIDEO_ENABLED
+            );
+          }
         }
       } catch {
         // ignore fallback failures
@@ -924,6 +1035,15 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
 
       const nextVideo = RECORDING_VIDEO_ENABLED ? pickPresenterVideo(room) : null;
       const nextAudio = listAudioProducers(room);
+      const hasAudio = nextAudio.length > 0;
+      const hasVideo = Boolean(nextVideo);
+      if (!hasAudio && !hasVideo) {
+        if (state.currentSegment) {
+          await stopSegment(state);
+        }
+        state.pendingGapStartedAt = null;
+        return;
+      }
       const nextKey = `${nextVideo || 'blank'}|${nextAudio.join(',')}`;
       const scheduleRetry = () => {
         if (!state.switchRetry) {
@@ -1047,6 +1167,7 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
     if (!state || state.segments.length === 0) {
       return null;
     }
+    const repairedSegments = [];
     const existingSegments = state.segments.filter((segmentPath) => {
       try {
         return fs.existsSync(segmentPath) && fs.statSync(segmentPath).size > 0;
@@ -1059,20 +1180,41 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
       console.warn('[recording] concat skipped: no segments exist', { roomId: state.roomId });
       return null;
     }
+    const cleanedSegments = [];
+    for (const segmentPath of existingSegments) {
+      const duration = await probeDurationSeconds(config.ffmpegPath, segmentPath);
+      // eslint-disable-next-line no-console
+      console.log('[recording] segment duration', { roomId: state.roomId, segmentPath, duration });
+      if (!duration || duration <= 0 || duration > 90) {
+        const repairedPath = segmentPath.replace(/\.webm$/, '.fixed.webm');
+        try {
+          await repairSegment(config.ffmpegPath, segmentPath, repairedPath);
+          repairedSegments.push(repairedPath);
+          cleanedSegments.push(repairedPath);
+          // eslint-disable-next-line no-console
+          console.log('[recording] segment repaired', { roomId: state.roomId, segmentPath, repairedPath });
+          continue;
+        } catch {
+          // fallback to original if repair fails
+        }
+      }
+      cleanedSegments.push(segmentPath);
+    }
+
     const concatFile = path.join(state.outputDir, 'segments.txt');
-    const contents = existingSegments
+    const contents = cleanedSegments
       .map((segmentPath) => `file '${escapeFfmpegPath(segmentPath)}'`)
       .join('\n');
     fs.writeFileSync(concatFile, contents);
     const outputPath = path.join(state.outputDir, 'voice.webm');
     await new Promise((resolve, reject) => {
-      const args = ['-y', '-f', 'concat', '-safe', '0', '-i', concatFile];
+      const args = ['-y', '-fflags', '+genpts', '-f', 'concat', '-safe', '0', '-i', concatFile];
       if (RECORDING_VIDEO_ENABLED) {
         args.push('-c', 'copy', outputPath);
       } else {
+        // Audio-only: normalize timestamps by sample count to avoid huge timeline jumps.
         args.push(
-          '-vn',
-          '-af', 'aresample=async=1:first_pts=0',
+          '-af', 'asetpts=N/SR/TB',
           '-c:a', 'libopus',
           '-b:a', `${config.recordingAudioBitrate}k`,
           '-f', 'webm',
