@@ -16,10 +16,9 @@ interface UserLayoutV2Props {
 }
 
 export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children }) => {
-    const isSidebarOpen = useUIStore((state) => state.isSidebarOpen);
+    const sidebarMode = useUIStore((state) => state.sidebarMode);
     const activeRightTab = useUIStore((state) => state.activeRightTab);
-    const toggleSidebar = useUIStore((state) => state.toggleSidebar);
-    const closeSidebar = useUIStore((state) => state.closeSidebar);
+    const setSidebarMode = useUIStore((state) => state.setSidebarMode);
     const setActiveRightTab = useUIStore((state) => state.setActiveRightTab);
     const { user, logout } = useAuthStore();
     const [windowWidth, setWindowWidth] = useState(window.innerWidth);
@@ -36,12 +35,12 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children }) => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    // 반응형 1000px 이하에서 사이드바 자동 닫기
+    // 반응형 1000px 이하에서 사이드바 미니 모드로 전환
     useEffect(() => {
-        if (windowWidth <= 1000 && isSidebarOpen) {
-            closeSidebar();
+        if (windowWidth <= 1000 && sidebarMode === 'full') {
+            setSidebarMode('mini');
         }
-    }, [windowWidth, isSidebarOpen, closeSidebar]);
+    }, [windowWidth, sidebarMode, setSidebarMode]);
 
     // 반응형 600px 이하에서 우측 사이드바 자동 닫기
     useEffect(() => {
@@ -53,10 +52,10 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children }) => {
     // 회의 룸 진입 시 좌측 사이드바 자동 닫기
     useEffect(() => {
         const isMeetingRoom = /^\/study\/\d+\/meetings\/\d+\/room/.test(location.pathname);
-        if (isMeetingRoom && isSidebarOpen) {
-            closeSidebar();
+        if (isMeetingRoom && sidebarMode !== 'closed') {
+            setSidebarMode('closed');
         }
-    }, [location.pathname, isSidebarOpen, closeSidebar]);
+    }, [location.pathname, sidebarMode, setSidebarMode]);
 
     // 드롭다운 외부 클릭 감지
     useEffect(() => {
@@ -83,17 +82,6 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children }) => {
             {!shouldHideHeader && (
                 <header className="h-16 w-full bg-slate-200 flex items-center justify-between px-6 flex-shrink-0 z-50">
                     <div className="flex items-center gap-4">
-                        {/* 사이드바 토글 버튼 */}
-                        <button
-                            onClick={toggleSidebar}
-                            className="p-2 rounded-google hover:bg-study-blue/10 transition-colors"
-                            aria-label="Toggle sidebar"
-                        >
-                            <span className="material-icons text-study-blue">
-                                {isSidebarOpen ? 'menu_open' : 'menu'}
-                            </span>
-                        </button>
-
                         {/* 로고 영역 */}
                         <Link to="/dashboard" className="flex items-center">
                             <SquizLogoNew width={160} height={55} className="scale-110 origin-left" />
@@ -269,7 +257,7 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children }) => {
                 <main
                     className={cn(
                         'flex-1 flex flex-col overflow-hidden',
-                        'pb-6 pr-0 pl-8 bg-slate-200 transition-all duration-300 ease-out',
+                        'pb-6 pr-0 pl-0 bg-slate-200 transition-all duration-300 ease-out',
                         shouldHideHeader ? 'pt-0' : 'pt-2'
                     )}
                 >
