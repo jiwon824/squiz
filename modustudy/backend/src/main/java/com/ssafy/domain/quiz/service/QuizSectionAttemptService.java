@@ -20,6 +20,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -54,6 +56,11 @@ public class QuizSectionAttemptService {
      */
     @Value("${quiz.course.questions-per-attempt:30}")
     private int questionsPerAttempt;
+
+    /**
+     * Optimistic Lock 충돌 시 재시도 횟수.
+     */
+    private static final int MAX_RETRY_ATTEMPTS = 3;
 
     /**
      * 섹션 시도를 시작하거나 재개한다.
@@ -98,18 +105,30 @@ public class QuizSectionAttemptService {
             User user = userRepository.getReferenceById(userId);
             attempt = createNewAttempt(user, section);
         } else {
-            // 가장 최근 시도 재개 (OrderBy CreatedAt DESC)
-            attempt = attempts.get(0);
+            // Self-healing: 가장 진행도가 높은 시도 선택
+            // - 1차 기준: 답변한 문제 수가 가장 많은 시도
+            // - 2차 기준 (동점): 가장 최근 생성된 시도
+            //
+            // [이전 버그 수정]
+            // 기존 로직은 단순히 createdAt DESC로 가장 최근 시도를 선택했음.
+            // 문제: Race condition으로 빈 시도가 생성되면, 답변이 저장된 기존 시도가 abandon 처리됨.
+            // 해결: 답변 수 기준으로 선택하여 사용자 데이터 유실 방지.
+            attempt = selectBestAttempt(attempts);
 
-            // 중복된 시도가 있다면(error case), 나머지는 포기 처리하여 자동 복구(Self-healing)
+            // 선택되지 않은 중복 시도들을 포기 처리 (Self-healing)
             if (attempts.size() > 1) {
-                log.warn("Multiple IN_PROGRESS attempts found for user {} in section {}. Cleaning up duplicates.",
-                        userId, sectionNumber);
-                for (int i = 1; i < attempts.size(); i++) {
-                    UserSectionAttempt redundant = attempts.get(i);
-                    redundant.abandon(); // 포기 처리
-                    // Dirty checking으로 자동 저장됨
-                }
+                final Long selectedAttemptId = attempt.getId();
+                log.warn("Multiple IN_PROGRESS attempts found for user {} in section {}. " +
+                        "Selected attempt {} with most progress. Cleaning up {} duplicates.",
+                        userId, sectionNumber, selectedAttemptId, attempts.size() - 1);
+
+                attempts.stream()
+                        .filter(a -> !a.getId().equals(selectedAttemptId))
+                        .forEach(redundant -> {
+                            log.debug("Abandoning redundant attempt {}", redundant.getId());
+                            redundant.abandon();
+                            // Dirty checking으로 자동 저장됨
+                        });
             }
         }
 
@@ -117,7 +136,7 @@ public class QuizSectionAttemptService {
     }
 
     /**
-     * 단일 답안을 임시 저장한다.
+     * 단일 답안을 임시 저장한다 (Optimistic Lock 재시도 포함).
      *
      * <p>
      * 사용자가 문제를 풀고 "다음" 버튼을 누를 때마다 호출되어
@@ -125,22 +144,70 @@ public class QuizSectionAttemptService {
      * 네트워크 끊김 시에도 데이터 유실을 방지한다.
      * </p>
      *
+     * <h3>Optimistic Locking 재시도 전략</h3>
      * <p>
-     * 동일 문제에 대해 여러 번 호출되어도 마지막 답안으로
-     * 덮어쓰기되므로 멱등성이 보장된다.
+     * 동시 요청으로 인한 {@link ObjectOptimisticLockingFailureException} 발생 시
+     * 최대 {@value #MAX_RETRY_ATTEMPTS}회까지 자동 재시도한다.
+     * 재시도 시 최신 데이터를 다시 조회하여 충돌을 해결한다.
      * </p>
      *
      * @param attemptId 시도 ID
      * @param request   저장할 단일 답안
      * @param userId    사용자 ID
+     * @throws ObjectOptimisticLockingFailureException 최대 재시도 횟수 초과 시
      */
     @Transactional
     public void saveAnswer(Long attemptId, SaveAnswerRequest request, Long userId) {
-        UserSectionAttempt attempt = attemptRepository.findById(attemptId)
-                .orElseThrow(NotFoundException::attempt);
+        int retryCount = 0;
+        ObjectOptimisticLockingFailureException lastException = null;
+
+        while (retryCount < MAX_RETRY_ATTEMPTS) {
+            try {
+                doSaveAnswer(attemptId, request, userId);
+                return; // 성공 시 즉시 반환
+            } catch (ObjectOptimisticLockingFailureException e) {
+                lastException = e;
+                retryCount++;
+                log.warn("Optimistic lock conflict on saveAnswer (attempt {}/{}). " +
+                        "attemptId={}, questionId={}",
+                        retryCount, MAX_RETRY_ATTEMPTS,
+                        attemptId, request.answer().questionId());
+
+                if (retryCount < MAX_RETRY_ATTEMPTS) {
+                    // 영속성 컨텍스트 클리어 후 재시도
+                    // (실제로는 트랜잭션이 롤백되어 자동 클리어됨)
+                    try {
+                        Thread.sleep(50L * retryCount); // 백오프
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        throw e;
+                    }
+                }
+            }
+        }
+
+        // 최대 재시도 초과 - 프론트엔드에서 처리하도록 예외 전파
+        log.error("Max retry attempts exceeded for saveAnswer. attemptId={}, questionId={}",
+                attemptId, request.answer().questionId());
+        throw lastException;
+    }
+
+    /**
+     * 실제 답안 저장 로직 (내부용).
+     *
+     * @throws ObjectOptimisticLockingFailureException 동시 수정 충돌 시
+     */
+    private void doSaveAnswer(Long attemptId, SaveAnswerRequest request, Long userId) {
+        // 최신 데이터 조회 (Version 포함)
+        UserSectionAttemptQuestion aq = attemptQuestionRepository
+                .findByAttemptIdAndQuestionId(attemptId, request.answer().questionId())
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND,
+                        "QUESTION_NOT_FOUND",
+                        "해당 문제를 찾을 수 없습니다."));
 
         // 본인 시도인지 확인
-        if (!attempt.getUser().getId().equals(userId)) {
+        if (!aq.getAttempt().getUser().getId().equals(userId)) {
             throw new BusinessException(
                     HttpStatus.FORBIDDEN,
                     "NOT_ATTEMPT_OWNER",
@@ -148,28 +215,16 @@ public class QuizSectionAttemptService {
         }
 
         // 진행 중인 시도인지 확인
-        if (!attempt.isInProgress()) {
+        if (!aq.getAttempt().isInProgress()) {
             throw new BusinessException(
                     HttpStatus.BAD_REQUEST,
                     "ATTEMPT_ALREADY_COMPLETED",
                     "완료된 시도는 수정할 수 없습니다.");
         }
 
-        // 단일 답안 저장 (멱등성 보장: 동일 questionId로 재호출 시 덮어쓰기)
-        SaveAnswerRequest.AnswerItem answerItem = request.answer();
-
-        attempt.getAttemptQuestions().stream()
-                .filter(aq -> aq.getQuestion().getId().equals(answerItem.questionId()))
-                .findFirst()
-                // save(aq) 명시적 호출
-                // - 이유: 기존에는 JPA의 **더티 체킹(Dirty Checking)**에 의존하여 변경 사항이 자동으로 반영되길 기대했으나,
-                // 실제 환경에서 영속성 컨텍스트 관리 문제로 인해 DB에 답안이 즉시 저장되지 않는 현상이 발생했을 가능성이 높습니다.
-                // - 효과: attemptQuestionRepository.save(aq)를 명시적으로 호출함으로써,
-                // 답안이 변경되는 즉시 DB에 반영되도록 강제하여 임시 저장 누락 문제를 해결합니다.
-                .ifPresent(aq -> {
-                    aq.saveAnswer(answerItem.answer());
-                    attemptQuestionRepository.save(aq);
-                });
+        // 답안 저장 (Version 자동 증가)
+        aq.saveAnswer(request.answer().answer());
+        attemptQuestionRepository.save(aq);
     }
 
     /**
@@ -271,6 +326,42 @@ public class QuizSectionAttemptService {
     }
 
     // ========== Private Methods ==========
+
+    /**
+     * 여러 시도 중 가장 진행도가 높은 시도를 선택한다.
+     *
+     * <h3>선택 기준 (우선순위)</h3>
+     * <ol>
+     *   <li><b>답변 수</b>: 답변한 문제가 가장 많은 시도</li>
+     *   <li><b>생성 시각</b>: 동점일 경우 가장 최근 생성된 시도</li>
+     * </ol>
+     *
+     * <h3>구현 Trade-off: Stream.max() vs Manual Loop</h3>
+     * <ul>
+     *   <li><b>Stream.max()</b>: 선언적 코드로 가독성 우수. O(n) 시간 복잡도.</li>
+     *   <li><b>Manual Loop</b>: 약간 빠를 수 있으나 (Stream 오버헤드 없음),
+     *       중복 시도 수가 적어 (보통 1~2개) 성능 차이 무시 가능.</li>
+     * </ul>
+     * <p>
+     * {@code @Transactional} 컨텍스트에서 DB I/O가 주요 병목이므로,
+     * 인메모리 컬렉션 순회의 미세한 성능 차이는 무의미함.
+     * 가독성과 유지보수성을 위해 Stream API 채택.
+     * </p>
+     *
+     * @param attempts 진행 중인 시도 목록 (비어있지 않음을 전제)
+     * @return 가장 진행도가 높은 시도
+     */
+    private UserSectionAttempt selectBestAttempt(List<UserSectionAttempt> attempts) {
+        return attempts.stream()
+                .max(Comparator
+                        // 1차: 답변한 문제 수 (내림차순)
+                        .comparingLong((UserSectionAttempt a) -> a.getAttemptQuestions().stream()
+                                .filter(UserSectionAttemptQuestion::isAnswered)
+                                .count())
+                        // 2차: 생성 시각 (최신 우선)
+                        .thenComparing(UserSectionAttempt::getCreatedAt))
+                .orElse(attempts.get(0)); // Fallback (논리적으로 도달 불가)
+    }
 
     /**
      * 섹션 해금 여부를 확인한다.

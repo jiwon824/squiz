@@ -30,12 +30,15 @@ public interface UserSectionAttemptQuestionRepository extends JpaRepository<User
 
        /**
         * 시도 ID와 문제 ID로 특정 문제를 조회한다.
+        * Attempt와 User도 함께 조회하여 권한 체크 및 Optimistic Lock 처리 시 N+1 방지.
         *
         * @param attemptId  시도 ID
         * @param questionId 문제 ID
         * @return 시도 문제
         */
        @Query("SELECT aq FROM UserSectionAttemptQuestion aq " +
+                     "JOIN FETCH aq.attempt a " +
+                     "JOIN FETCH a.user " +
                      "WHERE aq.attempt.id = :attemptId AND aq.question.id = :questionId")
        Optional<UserSectionAttemptQuestion> findByAttemptIdAndQuestionId(
                      @Param("attemptId") Long attemptId,

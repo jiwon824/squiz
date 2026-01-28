@@ -143,20 +143,46 @@ export const QuizSession = () => {
                 setQuestions(uiQuestions);
 
                 // 저장된 답안 복원
+                // Backend savedAnswer format: string | string[] | null
+                // Frontend answers format: Record<string, string | string[]>
                 const savedAnswers: Record<string, string | string[]> = {};
                 data.questions.forEach(q => {
-                    // 여기서 isValidAnswer가 true를 반환하면 q.savedAnswer는 string | string[]로 추론됩니다.
                     if (isValidAnswer(q.savedAnswer)) {
                         savedAnswers[String(q.questionId)] = q.savedAnswer;
                     }
                 });
+
+                // Calculate initial index: find first unanswered question
+                // This ensures resumed sessions jump to where user left off
+                const firstUnansweredIndex = data.questions.findIndex(q => {
+                    const questionId = String(q.questionId);
+                    return !isValidAnswer(savedAnswers[questionId]);
+                });
+
+                // If all questions answered → go to last question (for review/submit)
+                // If some unanswered → go to first unanswered
+                // If none answered → stay at 0
+                const calculatedIndex = firstUnansweredIndex === -1
+                    ? data.questions.length - 1  // All answered: show last question
+                    : firstUnansweredIndex;
+
+                // IMPORTANT: Set state in correct sequence
+                // 1. Set answers first (so isValidAnswer works correctly for UI)
+                // 2. Set currentIndex after (so button states reflect correct answer)
                 setAnswers(savedAnswers);
+                setCurrentIndex(calculatedIndex);
 
+                // Mark as resumed if any answers were restored
+                const hasRestoredAnswers = Object.keys(savedAnswers).length > 0;
+                setIsResumed(hasRestoredAnswers);
 
-                // 재개 여부 확인
-                setIsResumed(data.answeredCount > 0);
-
-                console.log('[QuizSession] 세션 시작/재개:', data.attemptId);
+                console.log('[QuizSession] Session initialized:', {
+                    attemptId: data.attemptId,
+                    totalQuestions: data.questions.length,
+                    answeredCount: Object.keys(savedAnswers).length,
+                    startingAt: calculatedIndex + 1,
+                    isResumed: hasRestoredAnswers,
+                });
             } catch (err) {
                 console.error('[QuizSession] 세션 초기화 실패:', err);
                 setError(err instanceof Error ? err.message : '퀴즈를 시작하는데 실패했습니다.');
