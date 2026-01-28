@@ -954,6 +954,18 @@ const MeetingRoomPage: React.FC = () => {
                         trackReadyState: track?.readyState,
                     });
                 }
+                if (!effectiveSilentMode && !audioDetectionActiveRef.current) {
+                    audioDetectionActiveRef.current = Boolean(
+                        await audioDetection.startDetection(localMicStreamRef.current, (isSpeaking) => {
+                            if (speakingRef.current === isSpeaking) return;
+                            speakingRef.current = isSpeaking;
+                            updateSelfParticipant({ isSpeaking });
+                            if (wsClientRef.current && roomIdRef.current) {
+                                wsClientRef.current.setSpeaking(roomIdRef.current, { speaking: isSpeaking });
+                            }
+                        })
+                    );
+                }
                 updateVoiceRecordingSource();
                 if (useSfuRecording && sfuRecordingStateRef.current === 'starting') {
                     await startSfuRecording();
