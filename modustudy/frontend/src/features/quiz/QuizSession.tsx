@@ -218,13 +218,29 @@ export const QuizSession = () => {
 
     // 다음 문제로 이동
     const handleNext = useCallback(() => {
+        // 1. 현재 문제의 답변 유효성 검사
+        const currentAnswer = currentQuestion ? answers[currentQuestion.id] : undefined;
+
+        if (!isValidAnswer(currentAnswer)) {
+            showToast('답변을 선택해야 다음으로 넘어갈 수 있습니다.', 'info');
+            return; // 유효하지 않으면 여기서 중단
+        }
+
+        // 2. 유효할 때만 다음 인덱스로 이동
         if (currentIndex < questions.length - 1) {
             setCurrentIndex(prev => prev + 1);
         }
-    }, [currentIndex, questions.length]);
+    }, [currentIndex, questions.length, currentQuestion, answers, showToast]);
 
     // 퀴즈 완료 (제출)
     const handleComplete = useCallback(async () => {
+        // 마지막 문제 답변 체크
+        const currentAnswer = currentQuestion ? answers[currentQuestion.id] : undefined;
+
+        if (!isValidAnswer(currentAnswer)) {
+            showToast('마지막 문제의 답변을 선택해주세요.', 'info');
+            return;
+        }
         if (!attemptData || !courseId || !sectionNumber) return;
 
         setIsSubmitting(true);
@@ -450,6 +466,8 @@ export const QuizSession = () => {
                     onNext={handleNext}
                     onComplete={handleComplete}
                     isLoading={isSubmitting}
+                    isNextDisabled={!isValidAnswer(currentAnswer)}
+                    isCompleteDisabled={!isValidAnswer(currentAnswer)}
                 />
             </main>
 
