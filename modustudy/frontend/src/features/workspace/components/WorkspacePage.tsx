@@ -1,4 +1,5 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { cn } from '@/shared/utils/cn';
 import { WorkspaceHeader } from './WorkspaceHeader';
 import { WorkspaceSidebar } from './WorkspaceSidebar';
@@ -6,113 +7,109 @@ import { ChatArea } from './ChatArea';
 import { MessageInput } from './MessageInput';
 import { MemberList, type WorkspaceMember } from './MemberList';
 import { MaterialArea } from '@/features/material';
-import type { MessageResponse } from '../types';
+import { workspaceApi } from '@/api/endpoints/workspaceApi';
+import { studyApi, type StudyMemberResponse } from '@/api/endpoints/studyApi';
+import { useUIStore } from '@/store/uiStore';
+import type { MessageResponse, WorkspaceResponse } from '../types';
 import '../styles/workspace.css';
 
-interface WorkspacePageProps {
-  studyId?: number;
-  studyName?: string;
-}
+// 스터디 멤버를 워크스페이스 멤버 형식으로 변환
+const toWorkspaceMember = (member: StudyMemberResponse): WorkspaceMember => ({
+  id: member.userId,
+  nickname: member.userNickname || member.userName,
+  profileImageUrl: member.userProfileImage || null,
+  role: member.role,
+  isOnline: false, // 온라인 상태는 별도 WebSocket으로 관리 필요
+});
 
-// 임시 목업 데이터
-const mockMembers: WorkspaceMember[] = [
-  {
-    id: 1,
-    nickname: '김철수',
-    profileImageUrl: null,
-    role: 'LEADER',
-    isOnline: true,
-  },
-  {
-    id: 2,
-    nickname: '이영희',
-    profileImageUrl: null,
-    role: 'MEMBER',
-    isOnline: true,
-  },
-  {
-    id: 3,
-    nickname: '박지민',
-    profileImageUrl: null,
-    role: 'MEMBER',
-    isOnline: false,
-  },
-  {
-    id: 4,
-    nickname: '정민수',
-    profileImageUrl: null,
-    role: 'MEMBER',
-    isOnline: true,
-  },
-];
+export const WorkspacePage: React.FC = () => {
+  const { studyId: studyIdParam } = useParams<{ studyId: string }>();
+  const navigate = useNavigate();
+  const showToast = useUIStore((state) => state.showToast);
 
-const mockMessages: MessageResponse[] = [
-  {
-    id: 1,
-    workspaceId: 1,
-    author: { id: 1, nickname: '김철수', profileImageUrl: null },
-    content: '안녕하세요! 오늘 스터디 잘 부탁드립니다 👋',
-    messageType: 'TEXT',
-    createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-    updatedAt: null,
-  },
-  {
-    id: 2,
-    workspaceId: 1,
-    author: { id: 2, nickname: '이영희', profileImageUrl: null },
-    content: '네! 저도 잘 부탁드려요~',
-    messageType: 'TEXT',
-    createdAt: new Date(Date.now() - 3600000 * 1.5).toISOString(),
-    updatedAt: null,
-  },
-  {
-    id: 3,
-    workspaceId: 1,
-    author: { id: 1, nickname: '김철수', profileImageUrl: null },
-    content: '오늘은 React hooks에 대해서 같이 공부해볼까요?',
-    messageType: 'TEXT',
-    createdAt: new Date(Date.now() - 3600000).toISOString(),
-    updatedAt: null,
-  },
-  {
-    id: 4,
-    workspaceId: 1,
-    author: { id: 1, nickname: '김철수', profileImageUrl: null },
-    content: 'useEffect, useState, useCallback 등을 다뤄보면 좋을 것 같아요',
-    messageType: 'TEXT',
-    createdAt: new Date(Date.now() - 3600000 + 30000).toISOString(),
-    updatedAt: null,
-  },
-  {
-    id: 5,
-    workspaceId: 1,
-    author: { id: 3, nickname: '박지민', profileImageUrl: null },
-    content: '좋아요! 저는 useCallback이랑 useMemo 차이가 헷갈려서 그 부분 집중적으로 보고 싶어요',
-    messageType: 'TEXT',
-    createdAt: new Date(Date.now() - 1800000).toISOString(),
-    updatedAt: null,
-  },
-  {
-    id: 6,
-    workspaceId: 1,
-    author: { id: 4, nickname: '정민수', profileImageUrl: null },
-    content: '저도 참여합니다! Custom hooks도 같이 다뤄볼 수 있을까요?',
-    messageType: 'TEXT',
-    createdAt: new Date(Date.now() - 600000).toISOString(),
-    updatedAt: null,
-  },
-];
+  // studyId 파싱 (테스트 모드용 기본값)
+  const studyId = studyIdParam ? Number(studyIdParam) : undefined;
 
-export const WorkspacePage: React.FC<WorkspacePageProps> = ({
-  studyId = 1, // 테스트용 기본값
-  studyName = '스터디 워크스페이스',
-}) => {
-  const [messages, setMessages] = useState<MessageResponse[]>(mockMessages);
-  const [members] = useState<WorkspaceMember[]>(mockMembers);
+  // 상태
+  const [studyName, setStudyName] = useState('스터디 워크스페이스');
+  const [workspace, setWorkspace] = useState<WorkspaceResponse | null>(null);
+  const [messages, setMessages] = useState<MessageResponse[]>([]);
+  const [members, setMembers] = useState<WorkspaceMember[]>([]);
   const [isMembersVisible, setIsMembersVisible] = useState(true);
-  const [isLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isMessagesLoading, setIsMessagesLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [activeMenu, setActiveMenu] = useState<'chat' | 'materials' | 'calendar' | 'meeting'>('chat');
-  const [isDarkMode, setIsDarkMode] = useState(true); // 기본값: 다크모드
+  const [isDarkMode, setIsDarkMode] = useState(true);
+  const [hasMoreMessages, setHasMoreMessages] = useState(false);
+  const [currentPage, setCurrentPage] = useState(0);
+
+  // 초기 데이터 로드
+  useEffect(() => {
+    const loadInitialData = async () => {
+      if (!studyId) {
+        setIsLoading(false);
+        setError('스터디 ID가 필요합니다.');
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        // 1. 스터디 정보 조회
+        console.log('[Workspace] 스터디 정보 조회:', studyId);
+        const studyData = await studyApi.getStudyDetail(studyId);
+        setStudyName(studyData.name);
+
+        // 2. 워크스페이스 조회 (없으면 생성)
+        console.log('[Workspace] 워크스페이스 조회');
+        let workspaceData: WorkspaceResponse;
+        try {
+          workspaceData = await workspaceApi.getWorkspaceByStudyId(studyId);
+        } catch (wsError: any) {
+          // 워크스페이스가 없으면 생성
+          if (wsError?.response?.status === 400 || wsError?.response?.status === 404) {
+            console.log('[Workspace] 워크스페이스 생성');
+            workspaceData = await workspaceApi.createWorkspace(studyId);
+          } else {
+            throw wsError;
+          }
+        }
+        setWorkspace(workspaceData);
+
+        // 3. 멤버 목록 조회
+        console.log('[Workspace] 멤버 목록 조회');
+        const membersData = await studyApi.getStudyMembers(studyId);
+        const workspaceMembers = membersData.content
+          .filter((m) => m.status === 'APPROVED')
+          .map(toWorkspaceMember);
+        setMembers(workspaceMembers);
+
+        // 4. 메시지 목록 조회
+        console.log('[Workspace] 메시지 목록 조회');
+        const messagesData = await workspaceApi.getMessages(workspaceData.id);
+        // 최신 메시지가 아래로 가도록 역순 정렬
+        setMessages(messagesData.content.reverse());
+        setHasMoreMessages(!messagesData.last);
+        setCurrentPage(0);
+
+        console.log('[Workspace] 초기 데이터 로드 완료');
+      } catch (err: any) {
+        console.error('[Workspace] 초기 데이터 로드 실패:', err);
+        const errorMessage =
+          err?.response?.data?.message ||
+          err?.response?.data?.error ||
+          err?.message ||
+          '워크스페이스를 불러오는데 실패했습니다.';
+        setError(errorMessage);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadInitialData();
+  }, [studyId]);
 
   // 다크모드 토글
   const handleToggleDarkMode = useCallback(() => {
@@ -120,23 +117,26 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
   }, []);
 
   // 메시지 전송 핸들러
-  const handleSendMessage = useCallback((content: string) => {
-    const newMessage: MessageResponse = {
-      id: Date.now(),
-      workspaceId: studyId || 1,
-      author: {
-        id: 1, // 현재 사용자 ID (실제로는 authStore에서 가져옴)
-        nickname: '김철수',
-        profileImageUrl: null,
-      },
-      content,
-      messageType: 'TEXT',
-      createdAt: new Date().toISOString(),
-      updatedAt: null,
-    };
+  const handleSendMessage = useCallback(
+    async (content: string) => {
+      if (!workspace) {
+        console.error('[Workspace] 워크스페이스가 없습니다.');
+        return;
+      }
 
-    setMessages((prev) => [...prev, newMessage]);
-  }, [studyId]);
+      try {
+        const newMessage = await workspaceApi.sendMessage(workspace.id, {
+          content,
+          messageType: 'TEXT',
+        });
+        setMessages((prev) => [...prev, newMessage]);
+      } catch (err: any) {
+        console.error('[Workspace] 메시지 전송 실패:', err);
+        showToast?.('메시지 전송에 실패했습니다.', 'error');
+      }
+    },
+    [workspace, showToast]
+  );
 
   // 멤버 목록 토글
   const handleToggleMembers = useCallback(() => {
@@ -144,14 +144,64 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
   }, []);
 
   // 이전 메시지 로드 (무한 스크롤)
-  const handleLoadMore = useCallback(() => {
-    // TODO: API 연동 시 구현
-    console.log('Load more messages');
-  }, []);
+  const handleLoadMore = useCallback(async () => {
+    if (!workspace || isMessagesLoading || !hasMoreMessages) return;
+
+    setIsMessagesLoading(true);
+    try {
+      const nextPage = currentPage + 1;
+      const messagesData = await workspaceApi.getMessages(workspace.id, nextPage);
+      // 이전 메시지는 앞에 추가
+      setMessages((prev) => [...messagesData.content.reverse(), ...prev]);
+      setHasMoreMessages(!messagesData.last);
+      setCurrentPage(nextPage);
+    } catch (err) {
+      console.error('[Workspace] 이전 메시지 로드 실패:', err);
+    } finally {
+      setIsMessagesLoading(false);
+    }
+  }, [workspace, isMessagesLoading, hasMoreMessages, currentPage]);
+
+  // 뒤로가기
+  const handleGoBack = useCallback(() => {
+    if (studyId) {
+      navigate(`/study/${studyId}`);
+    } else {
+      navigate('/study');
+    }
+  }, [navigate, studyId]);
+
+  // 로딩 상태
+  if (isLoading) {
+    return (
+      <div className={cn('workspace-container', isDarkMode && 'workspace-container--dark')}>
+        <div className="workspace-loading">
+          <div className="loading-spinner" />
+          <span>워크스페이스 불러오는 중...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // 에러 상태
+  if (error) {
+    return (
+      <div className={cn('workspace-container', isDarkMode && 'workspace-container--dark')}>
+        <div className="workspace-error">
+          <span className="workspace-error__icon">⚠️</span>
+          <h2>오류가 발생했습니다</h2>
+          <p>{error}</p>
+          <button onClick={handleGoBack} className="workspace-error__btn">
+            돌아가기
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={cn('workspace-container', isDarkMode && 'workspace-container--dark')}>
-      {/* 메인 컨텐츠 영역 (헤더 + 본문) - member-list에 의해 밀림 */}
+      {/* 메인 컨텐츠 영역 */}
       <div className="workspace-content">
         {/* 상단 헤더 */}
         <WorkspaceHeader
@@ -159,13 +209,14 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
           memberCount={members.length}
           onToggleMembers={handleToggleMembers}
           isMembersVisible={isMembersVisible}
+          onGoBack={handleGoBack}
         />
 
         {/* 본문 영역 */}
         <div className="workspace-body">
           {/* 왼쪽 사이드바 */}
           <WorkspaceSidebar
-            studyId={studyId}
+            studyId={studyId || 0}
             activeMenu={activeMenu}
             onMenuChange={setActiveMenu}
             isDarkMode={isDarkMode}
@@ -178,20 +229,18 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
               <>
                 <ChatArea
                   messages={messages}
-                  isLoading={isLoading}
+                  isLoading={isMessagesLoading}
                   onLoadMore={handleLoadMore}
-                  hasMore={false}
+                  hasMore={hasMoreMessages}
                 />
                 <MessageInput
                   onSend={handleSendMessage}
-                  placeholder={`#${studyName}에 메시지 보내기`}
+                  placeholder={`${studyName}에 메시지 보내기`}
                 />
               </>
             )}
 
-            {activeMenu === 'materials' && studyId && (
-              <MaterialArea studyId={studyId} />
-            )}
+            {activeMenu === 'materials' && studyId && <MaterialArea studyId={studyId} />}
 
             {activeMenu === 'calendar' && (
               <div className="workspace-placeholder">
@@ -202,7 +251,7 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
         </div>
       </div>
 
-      {/* 멤버 목록 사이드바 - 오른쪽에서 슬라이드 인 */}
+      {/* 멤버 목록 사이드바 */}
       <MemberList
         members={members}
         isVisible={isMembersVisible}
