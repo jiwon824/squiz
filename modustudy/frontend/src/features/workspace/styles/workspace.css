@@ -772,3 +772,14 @@
     display: none;
   }
 }
+
+/* 플레이스홀더 (준비 중인 기능) */
+.workspace-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--ws-text-tertiary);
+  font-size: 16px;
+}

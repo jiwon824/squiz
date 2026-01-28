@@ -5,6 +5,7 @@ import { WorkspaceSidebar } from './WorkspaceSidebar';
 import { ChatArea } from './ChatArea';
 import { MessageInput } from './MessageInput';
 import { MemberList, type WorkspaceMember } from './MemberList';
+import { MaterialArea } from '@/features/material';
 import type { MessageResponse } from '../types';
 import '../styles/workspace.css';
 
@@ -171,19 +172,32 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
             onToggleDarkMode={handleToggleDarkMode}
           />
 
-          {/* 메인 채팅 영역 */}
+          {/* 메인 콘텐츠 영역 */}
           <div className="workspace-main">
-            <ChatArea
-              messages={messages}
-              isLoading={isLoading}
-              onLoadMore={handleLoadMore}
-              hasMore={false}
-            />
+            {activeMenu === 'chat' && (
+              <>
+                <ChatArea
+                  messages={messages}
+                  isLoading={isLoading}
+                  onLoadMore={handleLoadMore}
+                  hasMore={false}
+                />
+                <MessageInput
+                  onSend={handleSendMessage}
+                  placeholder={`#${studyName}에 메시지 보내기`}
+                />
+              </>
+            )}
 
-            <MessageInput
-              onSend={handleSendMessage}
-              placeholder={`#${studyName}에 메시지 보내기`}
-            />
+            {activeMenu === 'materials' && studyId && (
+              <MaterialArea studyId={studyId} />
+            )}
+
+            {activeMenu === 'calendar' && (
+              <div className="workspace-placeholder">
+                <span>일정 기능 준비 중...</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
