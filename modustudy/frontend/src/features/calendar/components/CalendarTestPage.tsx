@@ -7,7 +7,6 @@ import { DateScheduleListModal } from './DateScheduleListModal';
 import { UnifiedSchedule } from '../types';
 import { Button } from '@/shared/components';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { DailyGoalsWidget } from '@/features/dashboard/components';
 
 /**
  * 캘린더 컴포넌트 테스트 페이지
@@ -186,23 +185,16 @@ export const CalendarTestPage = () => {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-                    {/* 캘린더 */}
-                    <div className="xl:col-span-3 bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                        <Calendar
-                            currentDate={currentDate}
-                            schedules={mockSchedules}
-                            onDateClick={handleDateClick}
-                            onQuickAdd={handleQuickAdd}
-                            onEventClick={handleEventClick}
-                            viewMode="monthly"
-                        />
-                    </div>
-
-                    {/* 사이드 위젯 영역 */}
-                    <div className="space-y-6 xl:h-full">
-                        <DailyGoalsWidget date={selectedDate || new Date().toISOString().split('T')[0]} />
-                    </div>
+                {/* 캘린더 */}
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                    <Calendar
+                        currentDate={currentDate}
+                        schedules={mockSchedules}
+                        onDateClick={handleDateClick}
+                        onQuickAdd={handleQuickAdd}
+                        onEventClick={handleEventClick}
+                        viewMode="monthly"
+                    />
                 </div>
 
                 {/* Mock 데이터 표시 */}

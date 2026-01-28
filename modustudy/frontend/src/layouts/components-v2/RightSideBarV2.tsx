@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useUIStore } from '@/store/uiStore';
+import { useAuthStore } from '@/store/authStore';
 import { Users, MessageSquare, Video, Calendar, Clock, Play } from 'lucide-react';
 import FriendListMini from '@/features/friend/components/FriendListMini';
 import DMListMini from '@/features/dm/components/DMListMini';
@@ -139,15 +140,17 @@ const MeetingQuickAccess: React.FC = () => {
 
 export const RightSideBarV2: React.FC = () => {
     const { activeRightTab, toggleRightTab } = useUIStore();
+    const { isLoggedIn } = useAuthStore();
     const panelRef = useRef<HTMLDivElement>(null);
     const { unreadCount, fetchUnreadCount } = useDMStore();
     const { receivedRequests, fetchReceivedRequests } = useFriendStore();
 
-    // 초기 데이터 로드
+    // 초기 데이터 로드 (로그인 상태일 때만)
     useEffect(() => {
+        if (!isLoggedIn) return;
         fetchUnreadCount();
         fetchReceivedRequests();
-    }, [fetchUnreadCount, fetchReceivedRequests]);
+    }, [isLoggedIn, fetchUnreadCount, fetchReceivedRequests]);
 
     // 외부 클릭 시 닫기
     useEffect(() => {
