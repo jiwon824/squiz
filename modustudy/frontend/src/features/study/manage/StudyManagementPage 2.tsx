@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { MainLayout } from '@/layouts/MainLayout';
+import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import StudyListContainer from '../components/StudyListContainer';
 import ManagementSidebar from './components/ManagementSidebar';
 import ApplicantManagement from './components/ApplicantManagement';
@@ -48,7 +48,7 @@ const StudyManagementPage: React.FC = () => {
     };
 
     return (
-        <MainLayout>
+        <UserLayoutV2>
             <StudyListContainer>
                 <div className="study-management-container">
                     <header className="management-header">
@@ -75,7 +75,7 @@ const StudyManagementPage: React.FC = () => {
                     </div>
                 </div>
             </StudyListContainer>
-        </MainLayout>
+        </UserLayoutV2>
     );
 };
 

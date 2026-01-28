@@ -10,7 +10,7 @@ import StudyApplyModal from './StudyApplyModal';
 import { StudyReportModal } from './StudyReportModal';
 import LeaderReviewModal from './LeaderReviewModal';
 import StudyListContainer from './StudyListContainer';
-import { MainLayout } from '@/layouts/MainLayout';
+import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { Button, ArrowButton } from '@/shared/components';
 import { cn } from '@/shared/utils/cn';
 import { useDMStore } from '@/features/dm/store/dmStore';
@@ -199,7 +199,7 @@ const StudyDetailPage: React.FC = () => {
     const diffConfig = getDifficultyConfig(study.difficulty);
 
     return (
-        <MainLayout>
+        <UserLayoutV2>
             <StudyListContainer className="px-6">
                 <div className={styles.pageContainer}>
                     {/* 상단 컨트롤 바 */}
@@ -455,7 +455,7 @@ const StudyDetailPage: React.FC = () => {
                 reviews={leaderReviews}
                 averageRating={leaderAvgRating}
             />
-        </MainLayout>
+        </UserLayoutV2>
     );
 };
 
