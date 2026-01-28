@@ -1,5 +1,6 @@
+import { useNavigate } from 'react-router-dom';
 import { cn } from '@/shared/utils/cn';
-import { Users, Search, Pin } from 'lucide-react';
+import { Users, Search, Pin, ChevronLeft } from 'lucide-react';
 
 interface WorkspaceHeaderProps {
   studyName: string;
@@ -14,10 +15,18 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
   onToggleMembers,
   isMembersVisible = true,
 }) => {
+  const navigate = useNavigate();
+
   return (
     <div className="workspace-header">
       <div className="workspace-header__title">
-        <span className="workspace-header__hash">#</span>
+        <button
+          className="workspace-header__back-btn"
+          onClick={() => navigate('/dashboard')}
+          title="대시보드로 돌아가기"
+        >
+          <ChevronLeft size={20} />
+        </button>
         <span>{studyName}</span>
       </div>
 

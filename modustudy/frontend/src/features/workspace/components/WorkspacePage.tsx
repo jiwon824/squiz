@@ -145,16 +145,9 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
     <div className="workspace-container">
       {/* 우주 배경은 CSS로 처리 (.workspace-container::before) */}
 
-      {/* 왼쪽 사이드바 */}
-      <WorkspaceSidebar
-        studyId={studyId}
-        studyName={studyName}
-        activeMenu={activeMenu}
-        onMenuChange={setActiveMenu}
-      />
-
-      {/* 메인 채팅 영역 */}
-      <div className="workspace-main">
+      {/* 메인 컨텐츠 영역 (헤더 + 본문) - member-list에 의해 밀림 */}
+      <div className="workspace-content">
+        {/* 상단 헤더 */}
         <WorkspaceHeader
           studyName={studyName}
           memberCount={members.length}
@@ -162,28 +155,40 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
           isMembersVisible={isMembersVisible}
         />
 
-        <ChatArea
-          messages={messages}
-          isLoading={isLoading}
-          onLoadMore={handleLoadMore}
-          hasMore={false}
-        />
+        {/* 본문 영역 */}
+        <div className="workspace-body">
+          {/* 왼쪽 사이드바 */}
+          <WorkspaceSidebar
+            studyId={studyId}
+            activeMenu={activeMenu}
+            onMenuChange={setActiveMenu}
+          />
 
-        <MessageInput
-          onSend={handleSendMessage}
-          placeholder={`#${studyName}에 메시지 보내기`}
-        />
+          {/* 메인 채팅 영역 */}
+          <div className="workspace-main">
+            <ChatArea
+              messages={messages}
+              isLoading={isLoading}
+              onLoadMore={handleLoadMore}
+              hasMore={false}
+            />
+
+            <MessageInput
+              onSend={handleSendMessage}
+              placeholder={`#${studyName}에 메시지 보내기`}
+            />
+          </div>
+        </div>
       </div>
 
-      {/* 멤버 목록 사이드바 */}
-      {isMembersVisible && (
-        <MemberList
-          members={members}
-          onMemberClick={(member) => {
-            console.log('Member clicked:', member);
-          }}
-        />
-      )}
+      {/* 멤버 목록 사이드바 - 오른쪽에서 슬라이드 인 */}
+      <MemberList
+        members={members}
+        isVisible={isMembersVisible}
+        onMemberClick={(member) => {
+          console.log('Member clicked:', member);
+        }}
+      />
     </div>
   );
 };

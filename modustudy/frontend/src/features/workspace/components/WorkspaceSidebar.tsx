@@ -5,7 +5,6 @@ import {
   FolderOpen,
   Calendar,
   Video,
-  Settings,
   Info,
   UserCog,
   ExternalLink,
@@ -14,7 +13,6 @@ import {
 
 interface WorkspaceSidebarProps {
   studyId?: number;
-  studyName?: string;
   activeMenu?: 'chat' | 'materials' | 'calendar' | 'meeting';
   onMenuChange?: (menu: 'chat' | 'materials' | 'calendar' | 'meeting') => void;
 }
@@ -56,7 +54,6 @@ const menuItems: MenuItem[] = [
 
 export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
   studyId,
-  studyName = '스터디',
   activeMenu = 'chat',
   onMenuChange,
 }) => {
@@ -75,14 +72,6 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
 
   return (
     <div className="workspace-sidebar">
-      {/* 스터디 헤더 */}
-      <div className="workspace-sidebar__header">
-        <div className="workspace-sidebar__study-name">{studyName}</div>
-        <button className="workspace-sidebar__settings-btn" title="스터디 설정">
-          <Settings size={18} />
-        </button>
-      </div>
-
       {/* 메뉴 리스트 */}
       <div className="workspace-sidebar__menu">
         {menuItems.map((item) => {

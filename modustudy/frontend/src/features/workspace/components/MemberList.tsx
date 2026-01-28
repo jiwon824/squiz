@@ -1,3 +1,4 @@
+import { motion } from 'framer-motion';
 import { cn } from '@/shared/utils/cn';
 
 // 멤버 타입 정의
@@ -11,11 +12,13 @@ export interface WorkspaceMember {
 
 interface MemberListProps {
   members: WorkspaceMember[];
+  isVisible: boolean;
   onMemberClick?: (member: WorkspaceMember) => void;
 }
 
 export const MemberList: React.FC<MemberListProps> = ({
   members,
+  isVisible,
   onMemberClick,
 }) => {
   // 역할별 분류
@@ -57,33 +60,40 @@ export const MemberList: React.FC<MemberListProps> = ({
   );
 
   return (
-    <div className="member-list">
-      {/* 리더 섹션 */}
-      {leaders.length > 0 && (
-        <div className="member-list__section">
-          <div className="member-list__title">
-            스터디장 — {leaders.length}
+    <motion.div
+      className="member-list"
+      initial={{ width: 240 }}
+      animate={{ width: isVisible ? 240 : 0 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+    >
+      <div className="member-list__inner">
+        {/* 리더 섹션 */}
+        {leaders.length > 0 && (
+          <div className="member-list__section">
+            <div className="member-list__title">
+              스터디장 — {leaders.length}
+            </div>
+            {sortByOnline(leaders).map(renderMember)}
           </div>
-          {sortByOnline(leaders).map(renderMember)}
-        </div>
-      )}
+        )}
 
-      {/* 일반 멤버 섹션 */}
-      {regularMembers.length > 0 && (
-        <div className="member-list__section">
-          <div className="member-list__title">
-            멤버 — {regularMembers.length}
+        {/* 일반 멤버 섹션 */}
+        {regularMembers.length > 0 && (
+          <div className="member-list__section">
+            <div className="member-list__title">
+              멤버 — {regularMembers.length}
+            </div>
+            {sortByOnline(regularMembers).map(renderMember)}
           </div>
-          {sortByOnline(regularMembers).map(renderMember)}
-        </div>
-      )}
+        )}
 
-      {/* 멤버가 없는 경우 */}
-      {members.length === 0 && (
-        <div className="member-list__section">
-          <div className="member-list__title">멤버 없음</div>
-        </div>
-      )}
-    </div>
+        {/* 멤버가 없는 경우 */}
+        {members.length === 0 && (
+          <div className="member-list__section">
+            <div className="member-list__title">멤버 없음</div>
+          </div>
+        )}
+      </div>
+    </motion.div>
   );
 };
