@@ -1,11 +1,10 @@
-import React, { useCallback, useEffect, useState } from 'react';
+﻿import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { MainLayout } from '@/layouts/MainLayout';
+import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { useAuthStore } from '@/store/authStore';
-import { useUIStore } from '@/store/uiStore';
 import MeetingStartModal from './MeetingStartModal';
 import { meetingApi } from '../services/meetingApi';
-import { MeetingListItemResponse, MeetingRequestPayload, MeetingType } from '../types';
+import { MeetingListItemResponse, MeetingRequestPayload } from '../types';
 import '../styles/MeetingHistory.css';
 import '../styles/MeetingShared.css';
 
@@ -14,10 +13,8 @@ const MeetingHistoryPage: React.FC = () => {
     const numericStudyId = Number(studyId);
     const navigate = useNavigate();
     const { user } = useAuthStore();
-    const showToast = useUIStore((state) => state.showToast);
     const ownerKey = user?.id ?? user?.name ?? 'guest';
     const [meetings, setMeetings] = useState<MeetingListItemResponse[]>([]);
-    const [meetingType, setMeetingType] = useState<MeetingType | 'ALL'>('ALL');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -32,7 +29,6 @@ const MeetingHistoryPage: React.FC = () => {
         setIsLoading(true);
         try {
             const response = await meetingApi.listMeetings(numericStudyId, {
-                meetingType: meetingType === 'ALL' ? undefined : meetingType,
                 startDate: startDate || undefined,
                 endDate: endDate || undefined,
                 page,
@@ -43,7 +39,7 @@ const MeetingHistoryPage: React.FC = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [numericStudyId, meetingType, startDate, endDate, page]);
+    }, [numericStudyId, startDate, endDate, page]);
 
     useEffect(() => {
         fetchMeetings();
@@ -60,21 +56,21 @@ const MeetingHistoryPage: React.FC = () => {
             const status = (error as { response?: { status?: number; data?: { message?: string } } })?.response?.status;
             const message = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
             if (status === 409 && message === 'MEETING_IN_PROGRESS') {
-                showToast('이미 진행 중인 미팅이 있습니다. 기존 미팅을 종료한 뒤 다시 시도해주세요.', 'warning');
+                alert('이미 진행 중인 미팅이 있습니다. 기존 미팅을 종료한 뒤 다시 시도해주세요.');
                 return;
             }
-            showToast('미팅 시작에 실패했습니다. 백엔드 연결과 CORS 설정을 확인해주세요.', 'error');
+            alert('미팅 시작에 실패했습니다. 백엔드 연결과 CORS 설정을 확인해주세요.');
             console.error(error);
         }
     };
 
     return (
-        <MainLayout>
+        <UserLayoutV2>
             <div className="meeting-history">
                 <div className="meeting-history__header">
                     <div>
                         <h1>미팅 기록</h1>
-                        <p>날짜/유형별로 회의를 확인하세요.</p>
+                        <p className="meeting-history__subtitle">날짜별로 미팅을 확인해보세요.</p>
                     </div>
                     <button className="meeting-btn primary" onClick={() => setShowStartModal(true)}>
                         미팅 시작
@@ -82,19 +78,6 @@ const MeetingHistoryPage: React.FC = () => {
                 </div>
 
                 <div className="meeting-history__filters">
-                    <select
-                        value={meetingType}
-                        onChange={(event) => {
-                            setMeetingType(event.target.value as MeetingType | 'ALL');
-                            setPage(0);
-                        }}
-                    >
-                        <option value="ALL">전체 유형</option>
-                        <option value="DAILY">데일리 스탠드업</option>
-                        <option value="WEEKLY">주간 회고</option>
-                        <option value="FREE">자유 회의</option>
-                        <option value="OTHER">기타</option>
-                    </select>
                     <input
                         type="date"
                         value={startDate}
@@ -146,9 +129,6 @@ const MeetingHistoryPage: React.FC = () => {
                                             : '시작 전'}
                                         {meeting.endedAt && ` ~ ${new Date(meeting.endedAt).toLocaleTimeString()}`}
                                     </p>
-                                    <div className="meeting-history__badges">
-                                        <span className="meeting-history__badge">{meeting.meetingType}</span>
-                                    </div>
                                 </div>
                                 <div className="meeting-history__actions">
                                     {meeting.endedAt && (
@@ -164,7 +144,7 @@ const MeetingHistoryPage: React.FC = () => {
                                         onClick={() => navigate(`/study/${numericStudyId}/meetings/${meeting.id}/room`)}
                                         disabled={Boolean(meeting.endedAt)}
                                     >
-                                        {meeting.endedAt ? '회의 종료' : '입장'}
+                                        {meeting.endedAt ? '미팅 종료' : '입장'}
                                     </button>
                                 </div>
                             </div>
@@ -213,8 +193,11 @@ const MeetingHistoryPage: React.FC = () => {
                 onClose={() => setShowStartModal(false)}
                 onStart={handleStartMeeting}
             />
-        </MainLayout>
+        </UserLayoutV2>
     );
 };
 
 export default MeetingHistoryPage;
+
+
+

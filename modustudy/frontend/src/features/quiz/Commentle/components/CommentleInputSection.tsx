@@ -26,29 +26,54 @@ export const CommentleInputSection: React.FC<CommentleInputSectionProps> = ({ on
     };
 
     return (
-        <section className="bg-surface border border-border-light rounded-3xl p-6 shadow-sm mb-8">
-            <h3 className="text-sm font-bold text-text-tertiary uppercase tracking-widest mb-4">단어 제출</h3>
-            <form onSubmit={handleSubmit} className="relative">
-                <input
-                    ref={inputRef}
-                    type="text"
-                    value={word}
-                    onChange={(e) => setWord(e.target.value)}
-                    disabled={loading}
-                    placeholder="정답이라고 생각하는 단어를 입력하세요..."
-                    className="w-full bg-background-secondary border-2 border-transparent focus:border-primary/30 focus:bg-white rounded-2xl px-6 py-4 pr-16 text-lg font-semibold transition-all outline-none placeholder:text-text-tertiary/50"
-                />
+        <section className="bg-gradient-to-br from-primary/5 to-secondary/5 border-2 border-primary/20 rounded-3xl p-8">
+            <div className="flex items-center gap-3 mb-6">
+                <div className="bg-primary/10 p-2 rounded-xl text-primary">
+                    <Send size={20} />
+                </div>
+                <h3 className="text-xl font-bold text-text-primary">단어 제출</h3>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="relative">
+                    <input
+                        ref={inputRef}
+                        type="text"
+                        value={word}
+                        onChange={(e) => setWord(e.target.value)}
+                        disabled={loading}
+                        placeholder="정답이라고 생각하는 단어를 입력하세요..."
+                        className="w-full bg-white border-3 border-primary/30 focus:border-primary focus:ring-4 focus:ring-primary/10 rounded-2xl px-6 py-5 text-xl font-bold text-text-primary transition-all outline-none placeholder:text-text-tertiary/40 placeholder:font-normal shadow-sm"
+                    />
+                </div>
+
                 <button
                     type="submit"
                     disabled={!word.trim() || loading}
-                    className="absolute right-2 top-2 bottom-2 px-4 rounded-xl bg-primary text-white hover:bg-primary-dark disabled:bg-border-light disabled:text-text-tertiary transition-all flex items-center justify-center min-w-[56px]"
+                    className="w-full bg-gradient-to-r from-primary to-primary-dark text-white font-bold text-lg py-4 rounded-2xl hover:shadow-xl hover:shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed disabled:hover:scale-100 transition-all duration-200 flex items-center justify-center gap-3"
                 >
-                    {loading ? <Loader2 size={24} className="animate-spin" /> : <Send size={24} />}
+                    {loading ? (
+                        <>
+                            <Loader2 size={24} className="animate-spin" />
+                            <span>분석 중...</span>
+                        </>
+                    ) : (
+                        <>
+                            <Send size={24} />
+                            <span>제출하기</span>
+                        </>
+                    )}
                 </button>
             </form>
-            <p className="mt-3 text-xs text-text-tertiary">
-                TIP: 한/영 대소문자 및 띄어쓰기 구분 없이 정답이 인정되며, 의미나 맥락이 유사할수록 점수가 높습니다.
-            </p>
+
+            <div className="mt-6 p-5 bg-white/60 backdrop-blur-sm rounded-xl border border-primary/10">
+                <div className="space-y-2">
+                    <p className="text-base font-bold text-primary">💡 TIP</p>
+                    <p className="text-base text-text-secondary font-medium leading-relaxed">
+                        한/영 대소문자 및 띄어쓰기 구분 없이 정답이 인정되며, 의미나 맥락이 유사할수록 점수가 높습니다.
+                    </p>
+                </div>
+            </div>
         </section>
     );
 };

@@ -8,7 +8,7 @@ import { userApi } from '@/api/endpoints/userApi';
 import { ProfileHeader } from './ProfileHeader';
 import { StudyMylist } from './StudyMylist';
 import { LegoActivityGraph } from './LegoActivityGraph';
-import { MainLayout } from '@/layouts/MainLayout';
+import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 
 export const ProfilePage = () => {
     const { user, updateUser } = useAuthStore();
@@ -54,7 +54,7 @@ export const ProfilePage = () => {
     };
 
     return (
-        <MainLayout>
+        <UserLayoutV2>
             <div className="profile-page">
                 <div className="profile-container">
                     {/* 분리된 프로필 헤더 컴포넌트 사용 */}
@@ -357,6 +357,6 @@ export const ProfilePage = () => {
                     />
                 </div>
             </div>
-        </MainLayout>
+        </UserLayoutV2>
     );
 };

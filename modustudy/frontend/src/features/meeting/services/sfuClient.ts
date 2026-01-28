@@ -21,6 +21,7 @@ export const createSfuClient = (baseUrl: string) => {
     let roomId: string | null = null;
     let sendTransport: any = null;
     let recvTransport: any = null;
+    let creatingSendTransport: Promise<any> | null = null;
     const producers = new Map<string, any>();
     const consumers = new Map<string, any>();
 
@@ -119,6 +120,25 @@ export const createSfuClient = (baseUrl: string) => {
         return transport;
     };
 
+    const ensureSendTransport = async () => {
+        if (sendTransport && !sendTransport.closed) {
+            return sendTransport;
+        }
+        if (creatingSendTransport) {
+            return creatingSendTransport;
+        }
+        creatingSendTransport = (async () => {
+            sendTransport = await createSendTransport();
+            producers.clear();
+            return sendTransport;
+        })();
+        try {
+            return await creatingSendTransport;
+        } finally {
+            creatingSendTransport = null;
+        }
+    };
+
     const createRecvTransport = async () => {
         const { params } = await request('createWebRtcTransport', { roomId });
         console.log('[sfu] recv transport params', { iceServers: params.iceServers, iceCandidates: params.iceCandidates?.length });
@@ -139,20 +159,23 @@ export const createSfuClient = (baseUrl: string) => {
         track: MediaStreamTrack | null,
         appData?: Record<string, unknown>
     ) => {
-        console.log('[sfu] produceTrack called', { kind, hasTrack: !!track, trackState: track?.readyState, appData });
-        if (!sendTransport || !track) {
-            console.warn('[sfu] produceTrack abort: no sendTransport or track');
-            return null;
-        }
-        if (track.readyState === 'ended') {
-            console.warn('[sfu] produceTrack abort: track ended');
-            return null;
-        }
+        if (!track) return null;
+        if (track.readyState === 'ended') return null;
+        const transport = await ensureSendTransport();
+        if (!transport) return null;
         if (producers.has(kind)) {
             const existing = producers.get(kind);
             if (existing.track && existing.track.id === track.id) {
                 console.log('[sfu] produceTrack: same track already producing');
                 return existing;
+            }
+            try {
+                if (typeof existing.replaceTrack === 'function') {
+                    await existing.replaceTrack({ track });
+                    return existing;
+                }
+            } catch {
+                // fallback to recreate
             }
             try {
                 await request('closeProducer', { roomId, producerId: existing.id });
@@ -162,8 +185,7 @@ export const createSfuClient = (baseUrl: string) => {
                 // ignore and recreate
             }
         }
-        const producer = await sendTransport.produce({ track, appData });
-        console.log('[sfu] produceTrack success', { kind, producerId: producer.id, trackId: track.id });
+        const producer = await transport.produce({ track, appData });
         producers.set(kind, producer);
         return producer;
     };

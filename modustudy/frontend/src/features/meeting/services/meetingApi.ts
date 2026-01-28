@@ -61,6 +61,18 @@ export const meetingApi = {
         return data.data;
     },
 
+    async updatePlannedDuration(
+        studyId: number,
+        meetingId: number,
+        plannedDurationSeconds: number
+    ): Promise<MeetingDetailResponse> {
+        const { data } = await api.put<ApiResponse<MeetingDetailResponse>>(
+            `${buildMeetingPath(studyId, meetingId)}/duration`,
+            { plannedDurationSeconds }
+        );
+        return data.data;
+    },
+
     async joinMeeting(studyId: number, meetingId: number): Promise<MeetingJoinResponse> {
         const { data } = await api.post<ApiResponse<MeetingJoinResponse>>(
             `${buildMeetingPath(studyId, meetingId)}/join`
@@ -293,6 +305,18 @@ export const meetingApi = {
     async selectPhoto(studyId: number, meetingId: number, photoId: number): Promise<MeetingPhotoResponse> {
         const { data } = await api.put<ApiResponse<MeetingPhotoResponse>>(
             `${buildMeetingPath(studyId, meetingId)}/photos/${photoId}/select`
+        );
+        return data.data;
+    },
+
+    async selectPhotos(
+        studyId: number,
+        meetingId: number,
+        photoIds: number[]
+    ): Promise<MeetingPhotoResponse[]> {
+        const { data } = await api.put<ApiResponse<MeetingPhotoResponse[]>>(
+            `${buildMeetingPath(studyId, meetingId)}/photos/selection`,
+            { photoIds }
         );
         return data.data;
     },

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Info, Calendar, Plus, Trash2, BookOpen, MapPin, AlertCircle, Clock, Users, Target, Shield, Sparkles, Loader2 } from 'lucide-react';
-import { MainLayout } from '@/layouts/MainLayout';
+import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { useUIStore } from '@/store/uiStore';
 import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/shared/components/Button';
@@ -700,7 +700,7 @@ const StudyCreatePage: React.FC = () => {
     };
 
     return (
-        <MainLayout>
+        <UserLayoutV2>
             <div className={styles.container}>
                 {/* 헤더 */}
                 <header className={styles.header}>
@@ -1441,7 +1441,7 @@ const StudyCreatePage: React.FC = () => {
                     </div>
                 </div>
             )}
-        </MainLayout>
+        </UserLayoutV2>
     );
 };
 

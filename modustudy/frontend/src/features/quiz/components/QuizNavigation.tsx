@@ -30,6 +30,10 @@ interface QuizNavigationProps {
     onComplete: () => void;
     /** 로딩 상태 */
     isLoading?: boolean;
+    /** 다음 버튼 비활성화 여부 (현재 문제 답변 미완료 시) */
+    isNextDisabled?: boolean;
+    /** 완료 버튼 비활성화 여부 (현재 문제 답변 미완료 시) */
+    isCompleteDisabled?: boolean;
     /** 추가 CSS 클래스 */
     className?: string;
 }
@@ -44,6 +48,8 @@ export const QuizNavigation: React.FC<QuizNavigationProps> = ({
     onNext,
     onComplete,
     isLoading = false,
+    isNextDisabled = false,
+    isCompleteDisabled = false,
     className,
 }) => {
     // 첫 번째 문제인지 확인
@@ -76,11 +82,17 @@ export const QuizNavigation: React.FC<QuizNavigationProps> = ({
                     variant="primary"
                     size="lg"
                     onClick={onComplete}
+                    disabled={isCompleteDisabled || isLoading}
                     isLoading={isLoading}
                     rightIcon={!isLoading && <CheckCircle size={20} />}
-                    className="min-w-[120px]"
+                    className={cn(
+                        'min-w-[120px]',
+                        isCompleteDisabled && !isLoading && 'opacity-50 cursor-not-allowed'
+                    )}
                     style={{
-                        background: 'linear-gradient(135deg, var(--color-google-green) 0%, var(--color-secondary) 100%)',
+                        background: isCompleteDisabled && !isLoading
+                            ? 'var(--color-text-disabled, #9ca3af)'
+                            : 'linear-gradient(135deg, var(--color-google-green) 0%, var(--color-secondary) 100%)',
                     }}
                 >
                     완료
@@ -90,9 +102,13 @@ export const QuizNavigation: React.FC<QuizNavigationProps> = ({
                     variant="google-primary"
                     size="lg"
                     onClick={onNext}
+                    disabled={isNextDisabled || isLoading}
                     isLoading={isLoading}
                     rightIcon={!isLoading && <ChevronRight size={20} />}
-                    className="min-w-[120px]"
+                    className={cn(
+                        'min-w-[120px]',
+                        isNextDisabled && !isLoading && 'opacity-50 cursor-not-allowed'
+                    )}
                 >
                     다음
                 </Button>

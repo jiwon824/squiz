@@ -83,10 +83,6 @@ const MeetingDetailPage = lazy(() =>
 const MeetingRoomPage = lazy(() =>
     import('../features/meeting').then(m => ({ default: m.MeetingRoomPage }))
 );
-const MeetingRecordingPlaybackPage = lazy(() =>
-    import('../features/meeting').then(m => ({ default: m.MeetingRecordingPlaybackPage }))
-);
-// origin/dev 추가
 const WorkspacePage = lazy(() =>
     import('../features/workspace').then(m => ({ default: m.WorkspacePage }))
 );
@@ -141,7 +137,7 @@ export const AppRouter = () => {
                 <Route path="/dashboard" element={<DashboardV2 />} />
                 <Route path="/dashboard/guest" element={<GuestLayoutV2><GuestDashboardV2 /></GuestLayoutV2>} />
                 <Route path="/dashboard/user" element={<UserLayoutV2><UserDashboardV2 /></UserLayoutV2>} />
-                <Route path="/calendar" element={<CalendarPage />} />
+                <Route path="/calendar" element={<UserLayoutV2><CalendarPage /></UserLayoutV2>} />
                 <Route path="/test-calendar" element={<CalendarTestPage />} />
                 <Route path="/reuse-test" element={<ReuseTest />} />
                 {/* origin/dev 추가 */}
@@ -167,6 +163,10 @@ export const AppRouter = () => {
                     path="/quiz-practice/:courseId/section/:sectionNumber/session"
                     element={<QuizSessionPage />}
                 />
+                <Route
+                    path="/quiz-practice/:courseId/section/:sectionNumber/session/:attemptId"
+                    element={<QuizSessionPage />}
+                />
 
                 {/* 스터디 */}
                 <Route path="/study" element={<StudyPage />} />
@@ -178,14 +178,10 @@ export const AppRouter = () => {
                 {/* origin/dev 추가 */}
                 <Route path="/study/:studyId/workspace" element={<WorkspacePage />} />
 
-                {/* 미팅 */}
-                <Route path="/study/:studyId/meetings" element={<MeetingHistoryPage />} />
-                <Route path="/study/:studyId/meetings/:meetingId" element={<MeetingDetailPage />} />
-                <Route path="/study/:studyId/meetings/:meetingId/room" element={<MeetingRoomPage />} />
-                <Route
-                    path="/study/:studyId/meetings/:meetingId/recording"
-                    element={<MeetingRecordingPlaybackPage />}
-                />
+            {/* 미팅 */}
+            <Route path="/study/:studyId/meetings" element={<MeetingHistoryPage />} />
+            <Route path="/study/:studyId/meetings/:meetingId" element={<MeetingDetailPage />} />
+            <Route path="/study/:studyId/meetings/:meetingId/room" element={<MeetingRoomPage />} />
 
                 {/* 기타 */}
                 <Route path="/recruitment" element={<RecruitmentPage />} />

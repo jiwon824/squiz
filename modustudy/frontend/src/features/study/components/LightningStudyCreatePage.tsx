@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Zap, MapPin, Users, Calendar } from 'lucide-react';
-import { MainLayout } from '@/layouts/MainLayout';
+import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { Button } from '@/shared/components/Button';
 import { Input } from '@/shared/components/Input';
 import { Select } from '@/shared/components/Select';
@@ -183,7 +183,7 @@ const LightningStudyCreatePage: React.FC = () => {
     };
 
     return (
-        <MainLayout>
+        <UserLayoutV2>
             <div className="max-w-6xl mx-auto px-4 py-8">
                 {/* 헤더 */}
                 <div className="mb-8">
@@ -493,7 +493,7 @@ const LightningStudyCreatePage: React.FC = () => {
                     </div>
                 </form>
             </div>
-        </MainLayout>
+        </UserLayoutV2>
     );
 };
 

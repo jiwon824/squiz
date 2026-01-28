@@ -53,7 +53,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.beans.factory.annotation.Value;
 
@@ -65,18 +64,16 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Objects;
-import java.nio.file.Paths;
 
 @Service
 @RequiredArgsConstructor
 public class MeetingService {
 
     private static final Logger log = LoggerFactory.getLogger(MeetingService.class);
+    private static final int MAX_PLANNED_DURATION_SECONDS = 3 * 60 * 60;
 
     private final MeetingRepository meetingRepository;
     private final MeetingParticipantRepository meetingParticipantRepository;
@@ -90,13 +87,12 @@ public class MeetingService {
     private final ObjectMapper objectMapper;
     private final SfuProperties sfuProperties;
     private final LocalFileStorageService localFileStorageService;
-    private final RestTemplate restTemplate;
+    private final org.springframework.web.client.RestTemplate restTemplate;
     @Value("${meeting.pdf.font-path:}")
     private String pdfFontPath;
     @Value("${app.ffmpeg.path:ffmpeg}")
     private String ffmpegPath;
 
-    private static final String MIXED_VOICE_FILENAME = "meetingvoice.webm";
 
     @Transactional(readOnly = true)
     public Page<MeetingListItemResponse> listMeetings(Long studyId, MeetingType meetingType,
@@ -157,6 +153,7 @@ public class MeetingService {
                 meeting.getStartedAt(),
                 meeting.getEndedAt(),
                 meeting.getDurationSeconds(),
+                meeting.getPlannedDurationSeconds(),
                 meeting.getStatus().name(),
                 meeting.getRecordingStatus().name(),
                 meeting.getSttStatus().name(),
@@ -176,13 +173,41 @@ public class MeetingService {
         }
         MeetingType meetingType = request.meetingType() == null ? MeetingType.OTHER : request.meetingType();
         boolean autoShareSummary = Boolean.TRUE.equals(request.autoShareSummary());
+        int plannedDurationSeconds = request.plannedDurationSeconds() == null ? 3600 : request.plannedDurationSeconds();
+        if (plannedDurationSeconds <= 0) {
+            plannedDurationSeconds = 3600;
+        }
+        if (plannedDurationSeconds > MAX_PLANNED_DURATION_SECONDS) {
+            plannedDurationSeconds = MAX_PLANNED_DURATION_SECONDS;
+        }
         Meeting meeting = Meeting.start(studyId, request.sessionId(), request.workspaceId(),
-                request.title(), meetingType, autoShareSummary, request.shareWorkspaceId(), LocalDateTime.now());
+                request.title(), meetingType, autoShareSummary, request.shareWorkspaceId(), LocalDateTime.now(),
+                plannedDurationSeconds);
         Meeting saved = meetingRepository.save(meeting);
-        triggerSfuRecordingStart(saved);
+        triggerSfuRecordingStart(saved.getId());
         return new MeetingResponse(saved.getId(), saved.getTitle(), buildRoomToken(saved), saved.getStatus().name(),
                 saved.getMeetingType().name(), saved.getRecordingStatus().name(), saved.getSttStatus().name(),
                 resolveSummaryStatus(saved).name());
+    }
+
+    @Transactional
+    public MeetingDetailResponse updatePlannedDuration(Long studyId, Long meetingId, Integer plannedDurationSeconds) {
+        if (plannedDurationSeconds == null || plannedDurationSeconds <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "PLANNED_DURATION_REQUIRED");
+        }
+        if (plannedDurationSeconds > MAX_PLANNED_DURATION_SECONDS) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "PLANNED_DURATION_TOO_LONG");
+        }
+        Meeting meeting = getMeetingOrThrow(studyId, meetingId);
+        if (meeting.getStatus() == MeetingStatus.ENDED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "MEETING_ALREADY_ENDED");
+        }
+        Integer current = meeting.getPlannedDurationSeconds();
+        if (current != null && plannedDurationSeconds < current) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "PLANNED_DURATION_CANNOT_DECREASE");
+        }
+        meeting.updatePlannedDurationSeconds(plannedDurationSeconds);
+        return getMeetingDetail(studyId, meetingId);
     }
 
     @Transactional
@@ -201,10 +226,36 @@ public class MeetingService {
         int participantCount = participants.size();
         meeting.end(endedAt, participantCount);
         meeting.updateSummaryStatus(SummaryStatus.PROCESSING);
-        completeSfuRecording(meeting);
         finalizeIndividualVoiceRecordings(meetingId, participants);
+        triggerSfuRecordingStop(meetingId);
         return new MeetingEndResponse(meeting.getDurationSeconds(), meeting.getParticipantCount(),
                 meeting.getSummaryStatus().name());
+    }
+
+    private void triggerSfuRecordingStart(Long meetingId) {
+        if (sfuProperties.getControlUrl() == null || sfuProperties.getControlUrl().isBlank()) {
+            return;
+        }
+        String roomId = "meeting-" + meetingId;
+        try {
+            var payload = java.util.Map.of("roomId", roomId, "meetingId", meetingId);
+            restTemplate.postForEntity(sfuProperties.getControlUrl() + "/recordings/start", payload, String.class);
+        } catch (Exception e) {
+            log.warn("SFU recording start failed. meetingId={} error={}", meetingId, e.toString());
+        }
+    }
+
+    private void triggerSfuRecordingStop(Long meetingId) {
+        if (sfuProperties.getControlUrl() == null || sfuProperties.getControlUrl().isBlank()) {
+            return;
+        }
+        String roomId = "meeting-" + meetingId;
+        try {
+            var payload = java.util.Map.of("roomId", roomId);
+            restTemplate.postForEntity(sfuProperties.getControlUrl() + "/recordings/stop", payload, String.class);
+        } catch (Exception e) {
+            log.warn("SFU recording stop failed. meetingId={} error={}", meetingId, e.toString());
+        }
     }
 
     @Transactional
@@ -213,7 +264,6 @@ public class MeetingService {
         if (meeting.getStatus() == MeetingStatus.ENDED) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "MEETING_ALREADY_ENDED");
         }
-        boolean firstJoin = meeting.getParticipantCount() == null || meeting.getParticipantCount() == 0;
         MeetingParticipant participant = meetingParticipantRepository.findTopByMeetingIdAndUserIdOrderByJoinedAtDesc(meetingId, userId)
                 .orElseGet(() -> MeetingParticipant.join(meetingId, userId, LocalDateTime.now()));
         if (participant.getId() != null) {
@@ -221,9 +271,6 @@ public class MeetingService {
         }
         meetingParticipantRepository.save(participant);
         meeting.updateParticipantCount(meetingParticipantRepository.countByMeetingId(meetingId));
-        if (firstJoin) {
-            triggerSfuRecordingStart(meeting);
-        }
         // Provide ICE servers for WebRTC clients to connect to the SFU.
         List<MeetingIceServerResponse> iceServers = sfuProperties.getIceServers().stream()
                 .filter(server -> server.getUrls() != null && !server.getUrls().isBlank())
@@ -339,9 +386,12 @@ public class MeetingService {
     }
 
     @Transactional(readOnly = true)
-    public List<MeetingPhotoResponse> getPhotos(Long studyId, Long meetingId) {
+    public List<MeetingPhotoResponse> getPhotos(Long studyId, Long meetingId, Long userId) {
         getMeetingOrThrow(studyId, meetingId);
-        return meetingPhotoRepository.findByMeetingIdOrderByCapturedAtDesc(meetingId).stream()
+        if (userId == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "AUTH_REQUIRED");
+        }
+        return meetingPhotoRepository.findByMeetingIdAndUserIdOrderByCapturedAtDesc(meetingId, userId).stream()
                 .map(photo -> new MeetingPhotoResponse(
                         photo.getId(),
                         photo.getImageUrl(),
@@ -351,32 +401,62 @@ public class MeetingService {
     }
 
     @Transactional
-    public MeetingPhotoResponse addPhoto(Long studyId, Long meetingId, MultipartFile image) {
+    public MeetingPhotoResponse addPhoto(Long studyId, Long meetingId, Long userId, MultipartFile image) {
         getMeetingOrThrow(studyId, meetingId);
+        if (userId == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "AUTH_REQUIRED");
+        }
         if (image == null || image.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "IMAGE_REQUIRED");
         }
         // Save to local filesystem and return a public URL path.
         String imageUrl = localFileStorageService.saveMeetingPhoto(meetingId, image);
         MeetingPhoto saved = meetingPhotoRepository.save(
-                MeetingPhoto.capture(meetingId, imageUrl, LocalDateTime.now()));
+                MeetingPhoto.capture(meetingId, userId, imageUrl, LocalDateTime.now()));
         return new MeetingPhotoResponse(saved.getId(), saved.getImageUrl(), saved.getCapturedAt(), saved.getIsSelected());
     }
 
     @Transactional
-    public MeetingPhotoResponse selectPhoto(Long studyId, Long meetingId, Long photoId) {
+    public MeetingPhotoResponse selectPhoto(Long studyId, Long meetingId, Long userId, Long photoId) {
         getMeetingOrThrow(studyId, meetingId);
+        if (userId == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "AUTH_REQUIRED");
+        }
         MeetingPhoto target = meetingPhotoRepository.findById(photoId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "PHOTO_NOT_FOUND"));
         if (!target.getMeetingId().equals(meetingId)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "PHOTO_MEETING_MISMATCH");
         }
-        List<MeetingPhoto> photos = meetingPhotoRepository.findByMeetingIdOrderByCapturedAtDesc(meetingId);
+        if (target.getUserId() == null || !target.getUserId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "PHOTO_FORBIDDEN");
+        }
+        List<MeetingPhoto> photos = meetingPhotoRepository.findByMeetingIdAndUserIdOrderByCapturedAtDesc(meetingId, userId);
         for (MeetingPhoto photo : photos) {
             photo.updateSelected(photo.getId().equals(photoId));
         }
         meetingPhotoRepository.saveAll(photos);
         return new MeetingPhotoResponse(target.getId(), target.getImageUrl(), target.getCapturedAt(), true);
+    }
+
+    @Transactional
+    public List<MeetingPhotoResponse> selectPhotos(Long studyId, Long meetingId, Long userId, List<Long> photoIds) {
+        getMeetingOrThrow(studyId, meetingId);
+        if (userId == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "AUTH_REQUIRED");
+        }
+        List<MeetingPhoto> photos = meetingPhotoRepository.findByMeetingIdAndUserIdOrderByCapturedAtDesc(meetingId, userId);
+        var selectedIds = photoIds == null ? java.util.Set.<Long>of() : new java.util.HashSet<>(photoIds);
+        for (MeetingPhoto photo : photos) {
+            photo.updateSelected(selectedIds.contains(photo.getId()));
+        }
+        meetingPhotoRepository.saveAll(photos);
+        return photos.stream()
+                .map(photo -> new MeetingPhotoResponse(
+                        photo.getId(),
+                        photo.getImageUrl(),
+                        photo.getCapturedAt(),
+                        photo.getIsSelected()))
+                .toList();
     }
 
     @Transactional
@@ -476,12 +556,10 @@ public class MeetingService {
         if (trackType == MeetingAudioTrackType.INDIVIDUAL && userId == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "USER_ID_REQUIRED");
         }
-        if (trackType == MeetingAudioTrackType.MIXED && userId != null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "USER_ID_NOT_ALLOWED");
+        if (trackType == MeetingAudioTrackType.MIXED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "MIXED_AUDIO_NOT_SUPPORTED");
         }
-        String filename = trackType == MeetingAudioTrackType.MIXED
-                ? MIXED_VOICE_FILENAME
-                : buildIndividualVoiceFilename(userId);
+        String filename = buildIndividualVoiceFilename(userId);
         String recordingUrl = localFileStorageService.saveMeetingVoiceFinal(meetingId, filename, audio);
         String format = extractFileExtension(audio.getOriginalFilename());
         MeetingAudioRecording saved = saveOrUpdateAudioRecording(
@@ -890,8 +968,8 @@ public class MeetingService {
         MeetingSttFile transcriptFile = meetingSttFileRepository
                 .findByMeetingIdAndTrackTypeAndUserIdIsNull(meetingId, MeetingTextTrackType.MIXED)
                 .orElse(null);
-        MeetingPhoto selectedPhoto = meetingPhotoRepository.findFirstByMeetingIdAndIsSelectedTrue(meetingId)
-                .orElse(null);
+        List<MeetingPhoto> selectedPhotos = meetingPhotoRepository
+                .findByMeetingIdAndIsSelectedTrueOrderByCapturedAtDesc(meetingId);
         StringBuilder builder = new StringBuilder();
         builder.append("# Meeting Summary").append("\n\n");
         builder.append("- Title: ").append(meeting.getTitle()).append("\n");
@@ -923,9 +1001,11 @@ public class MeetingService {
                 builder.append(transcriptText).append("\n");
             }
         }
-        if (selectedPhoto != null) {
+        if (!selectedPhotos.isEmpty()) {
             builder.append("\n## 회의 사진\n");
-            builder.append("![").append("회의 사진").append("](").append(selectedPhoto.getImageUrl()).append(")\n");
+            for (MeetingPhoto photo : selectedPhotos) {
+                builder.append("![").append("회의 사진").append("](").append(photo.getImageUrl()).append(")\n");
+            }
         }
         return builder.toString();
     }
@@ -933,8 +1013,8 @@ public class MeetingService {
     @Transactional(readOnly = true)
     public byte[] exportMeetingPdf(Long studyId, Long meetingId) {
         String markdown = exportMeetingMarkdown(studyId, meetingId);
-        MeetingPhoto selectedPhoto = meetingPhotoRepository.findFirstByMeetingIdAndIsSelectedTrue(meetingId)
-                .orElse(null);
+        List<MeetingPhoto> selectedPhotos = meetingPhotoRepository
+                .findByMeetingIdAndIsSelectedTrueOrderByCapturedAtDesc(meetingId);
         try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
             Document document = new Document();
             PdfWriter.getInstance(document, outputStream);
@@ -960,7 +1040,7 @@ public class MeetingService {
                     document.add(paragraph);
                 }
             }
-            appendSelectedPhoto(document, sectionFont, bodyFont, selectedPhoto);
+            appendSelectedPhotos(document, sectionFont, bodyFont, selectedPhotos);
             document.close();
             return outputStream.toByteArray();
         } catch (DocumentException e) {
@@ -1013,135 +1093,6 @@ public class MeetingService {
         return meeting.getSummaryStatus() == null ? SummaryStatus.PENDING : meeting.getSummaryStatus();
     }
 
-    private void triggerSfuRecordingStart(Meeting meeting) {
-        String controlUrl = resolveSfuControlUrl();
-        if (controlUrl == null || controlUrl.isBlank()) {
-            log.warn("SFU control URL is not configured. Skip recording start. meetingId={}", meeting.getId());
-            return;
-        }
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("roomId", buildRoomToken(meeting));
-        payload.put("meetingId", meeting.getId());
-        try {
-            Map response = restTemplate.postForObject(controlUrl + "/recordings/start", payload, Map.class);
-            log.info("SFU recording started. meetingId={} response={}", meeting.getId(), response);
-        } catch (Exception e) {
-            log.warn("SFU recording start failed. meetingId={} controlUrl={} error={}", meeting.getId(), controlUrl, e.toString());
-            meeting.updateRecordingStatus(RecordingStatus.FAILED);
-        }
-    }
-
-    private void completeSfuRecording(Meeting meeting) {
-        String controlUrl = resolveSfuControlUrl();
-        if (controlUrl == null || controlUrl.isBlank()) {
-            log.warn("SFU control URL is not configured. Skip recording stop. meetingId={}", meeting.getId());
-            return;
-        }
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("roomId", buildRoomToken(meeting));
-        try {
-            Map response = restTemplate.postForObject(controlUrl + "/recordings/stop", payload, Map.class);
-            if (response == null) {
-                log.warn("SFU recording stop returned null response. meetingId={}", meeting.getId());
-                meeting.updateRecordingStatus(RecordingStatus.FAILED);
-                return;
-            }
-            Object outputPathValue = response.get("outputPath");
-            Object fileSizeValue = response.get("fileSize");
-            log.info("SFU recording stopped. meetingId={} response={}", meeting.getId(), response);
-            String recordingUrl = resolveRecordingUrl(outputPathValue == null ? null : String.valueOf(outputPathValue));
-            Long fileSize = fileSizeValue == null ? null : Long.parseLong(String.valueOf(fileSizeValue));
-            if (recordingUrl == null) {
-                log.warn("SFU recording output path invalid. meetingId={} outputPath={}", meeting.getId(), outputPathValue);
-                meeting.updateRecordingStatus(RecordingStatus.FAILED);
-                return;
-            }
-            MeetingRecordingRequest request = new MeetingRecordingRequest(
-                    recordingUrl,
-                    "webm",
-                    meeting.getDurationSeconds(),
-                    meeting.getStartedAt(),
-                    meeting.getEndedAt(),
-                    fileSize,
-                    RecordingStatus.READY
-            );
-            upsertRecording(meeting.getStudyId(), meeting.getId(), request);
-            extractMixedVoiceFromRecording(meeting.getId(), recordingUrl);
-        } catch (Exception e) {
-            log.warn("SFU recording stop failed. meetingId={} controlUrl={} error={}", meeting.getId(), controlUrl, e.toString());
-            meeting.updateRecordingStatus(RecordingStatus.FAILED);
-        }
-    }
-
-    private void extractMixedVoiceFromRecording(Long meetingId, String recordingUrl) {
-        Path inputPath = localFileStorageService.resolveUploadedPath(recordingUrl);
-        if (inputPath == null || !Files.exists(inputPath)) {
-            log.warn("Mixed voice extract skipped: recording not found. meetingId={} url={}", meetingId, recordingUrl);
-            return;
-        }
-        Path outputPath = localFileStorageService.resolveMeetingVoiceFile(meetingId, MIXED_VOICE_FILENAME);
-        List<String> args = List.of(
-                ffmpegPath,
-                "-y",
-                "-i",
-                inputPath.toAbsolutePath().toString(),
-                "-vn",
-                "-c:a",
-                "libopus",
-                "-b:a",
-                "64k",
-                outputPath.toAbsolutePath().toString()
-        );
-        runFfmpeg(args, "mixed-voice-extract", meetingId);
-        Long fileSize;
-        try {
-            fileSize = Files.size(outputPath);
-        } catch (IOException e) {
-            fileSize = null;
-        }
-        String recordingUrlResolved = localFileStorageService.buildMeetingVoiceUrl(meetingId, MIXED_VOICE_FILENAME);
-        MeetingAudioRecording saved = saveOrUpdateAudioRecording(
-                meetingId,
-                null,
-                MeetingAudioTrackType.MIXED,
-                recordingUrlResolved,
-                "webm",
-                fileSize
-        );
-        log.info("Mixed voice extracted. meetingId={} recordingId={}", meetingId, saved.getId());
-    }
-
-    private String resolveSfuControlUrl() {
-        String controlUrl = sfuProperties.getControlUrl();
-        if (controlUrl != null && !controlUrl.isBlank()) {
-            return controlUrl;
-        }
-        String baseUrl = sfuProperties.getBaseUrl();
-        if (baseUrl == null || baseUrl.isBlank()) {
-            return null;
-        }
-        if (baseUrl.startsWith("wss://")) {
-            return "https://" + baseUrl.substring(6);
-        }
-        if (baseUrl.startsWith("ws://")) {
-            return "http://" + baseUrl.substring(5);
-        }
-        return baseUrl;
-    }
-
-    private String resolveRecordingUrl(String outputPath) {
-        if (outputPath == null || outputPath.isBlank()) {
-            return null;
-        }
-        Path basePath = localFileStorageService.getBasePath().toAbsolutePath().normalize();
-        Path resolved = Paths.get(outputPath).toAbsolutePath().normalize();
-        if (!resolved.startsWith(basePath)) {
-            return null;
-        }
-        Path relative = basePath.relativize(resolved);
-        String normalized = relative.toString().replace("\\", "/");
-        return "/uploads/" + normalized;
-    }
 
     private String buildIndividualVoiceFilename(Long userId) {
         return userId + "voice.webm";
@@ -1250,27 +1201,29 @@ public class MeetingService {
         return BaseFont.createFont(BaseFont.HELVETICA, BaseFont.WINANSI, BaseFont.NOT_EMBEDDED);
     }
 
-    private void appendSelectedPhoto(Document document, Font sectionFont, Font bodyFont, MeetingPhoto selectedPhoto)
+    private void appendSelectedPhotos(Document document, Font sectionFont, Font bodyFont, List<MeetingPhoto> photos)
             throws DocumentException {
-        if (selectedPhoto == null) {
+        if (photos == null || photos.isEmpty()) {
             return;
         }
         Paragraph paragraph = new Paragraph("회의 사진", sectionFont);
         paragraph.setSpacingBefore(10f);
         document.add(paragraph);
-        Path imagePath = localFileStorageService.resolveUploadedPath(selectedPhoto.getImageUrl());
-        if (imagePath == null || !Files.exists(imagePath)) {
-            document.add(new Paragraph(selectedPhoto.getImageUrl(), bodyFont));
-            return;
-        }
-        try {
-            Image image = Image.getInstance(imagePath.toAbsolutePath().toString());
-            float maxWidth = document.getPageSize().getWidth() - document.leftMargin() - document.rightMargin();
-            image.scaleToFit(maxWidth, 360f);
-            image.setSpacingBefore(6f);
-            document.add(image);
-        } catch (Exception e) {
-            document.add(new Paragraph(selectedPhoto.getImageUrl(), bodyFont));
+        for (MeetingPhoto photo : photos) {
+            Path imagePath = localFileStorageService.resolveUploadedPath(photo.getImageUrl());
+            if (imagePath == null || !Files.exists(imagePath)) {
+                document.add(new Paragraph(photo.getImageUrl(), bodyFont));
+                continue;
+            }
+            try {
+                Image image = Image.getInstance(imagePath.toAbsolutePath().toString());
+                float maxWidth = document.getPageSize().getWidth() - document.leftMargin() - document.rightMargin();
+                image.scaleToFit(maxWidth, 360f);
+                image.setSpacingBefore(6f);
+                document.add(image);
+            } catch (Exception e) {
+                document.add(new Paragraph(photo.getImageUrl(), bodyFont));
+            }
         }
     }
 
@@ -1383,3 +1336,5 @@ public class MeetingService {
         }
     }
 }
+
+

@@ -1,75 +1,111 @@
-import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { useUIStore } from '@/store/uiStore';
-import { QuizIcon, StudyIcon, DashboardIcon, CalendarIcon, RecruitmentIcon, SettingIcon } from '@/shared/components/icons/SidebarIcons';
+import { cn } from '@/shared/utils/cn';
+import {
+    QuizIcon,
+    StudyIcon,
+    DashboardIcon,
+    CalendarIcon,
+    RecruitmentIcon,
+    SettingIcon,
+} from '@/shared/components/icons/SidebarIcons';
+
+// 사이드바 너비 상수
+const SIDEBAR_FULL_WIDTH = 280;
+const SIDEBAR_MINI_WIDTH = 96;
+
+// 아이콘 영역 너비 (미니 사이드바와 동일 → 아이콘 위치 고정)
+const ICON_AREA_WIDTH = SIDEBAR_MINI_WIDTH;
+
 export const Sidebar = () => {
-    const { isSidebarOpen } = useUIStore();
+    const sidebarMode = useUIStore((state) => state.sidebarMode);
+    const toggleSidebar = useUIStore((state) => state.toggleSidebar);
     const location = useLocation();
+
+    const isFull = sidebarMode === 'full';
+    const isClosed = sidebarMode === 'closed';
 
     return (
         <aside
-            className="h-screen flex flex-col overflow-hidden bg-slate-200 transition-all duration-300 ease-out"
-            style={{ width: isSidebarOpen ? 280 : 0 }}
+            className={cn(
+                'h-full flex flex-col bg-slate-200 flex-shrink-0',
+                'transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]',
+                isClosed && 'w-0 min-w-0 overflow-hidden'
+            )}
+            style={{
+                width: isClosed ? 0 : isFull ? SIDEBAR_FULL_WIDTH : SIDEBAR_MINI_WIDTH,
+                minWidth: isClosed ? 0 : isFull ? SIDEBAR_FULL_WIDTH : SIDEBAR_MINI_WIDTH,
+            }}
         >
+            {/* 햄버거 토글 버튼 - 항상 ICON_AREA 중앙 고정 */}
+            <div
+                className="flex items-center justify-center pt-5 pb-4 flex-shrink-0"
+                style={{ width: ICON_AREA_WIDTH }}
+            >
+                <button
+                    onClick={toggleSidebar}
+                    className="w-12 h-12 flex items-center justify-center rounded-2xl hover:bg-white/60 transition-colors"
+                    aria-label="Toggle sidebar"
+                >
+                    <span className="material-icons text-gray-600 text-[24px]">
+                        {isFull ? 'menu_open' : 'menu'}
+                    </span>
+                </button>
+            </div>
+
             {/* 메뉴 아이템들 */}
-            <nav className="flex-1 p-4 space-y-2">
-                {/* 대시보드 */}
+            <nav
+                className="flex-1 space-y-3"
+                style={{ width: isFull ? SIDEBAR_FULL_WIDTH : SIDEBAR_MINI_WIDTH }}
+            >
                 <SidebarItem
-                    icon={<DashboardIcon />}
+                    icon={<DashboardIcon className="w-6 h-6" />}
                     label="대시보드"
-                    isOpen={isSidebarOpen}
                     path="/dashboard"
                     isActive={location.pathname === '/dashboard'}
+                    isFull={isFull}
                 />
 
-                {/* 퀴즈 메뉴 */}
                 <SidebarItem
-                    icon={<QuizIcon />}
+                    icon={<QuizIcon className="w-6 h-6" />}
                     label="퀴즈"
-                    isOpen={isSidebarOpen}
                     path="/quiz"
                     isActive={location.pathname === '/quiz'}
+                    isFull={isFull}
                     badge={5}
-                    badgeColor="study-teal"
                 />
 
-                {/* 스터디 메뉴 */}
                 <SidebarItem
-                    icon={<StudyIcon />}
+                    icon={<StudyIcon className="w-6 h-6" />}
                     label="스터디"
-                    isOpen={isSidebarOpen}
                     path="/study"
                     isActive={location.pathname === '/study'}
+                    isFull={isFull}
                     showDot
-                    dotColor="study-green"
                 />
 
-                {/* 팀원 모집 */}
                 <SidebarItem
-                    icon={<RecruitmentIcon />}
+                    icon={<RecruitmentIcon className="w-6 h-6" />}
                     label="팀원 모집"
-                    isOpen={isSidebarOpen}
                     path="/recruitment"
                     isActive={location.pathname === '/recruitment'}
+                    isFull={isFull}
                 />
 
-                {/* 캘린더 */}
                 <SidebarItem
-                    icon={<CalendarIcon />}
+                    icon={<CalendarIcon className="w-6 h-6" />}
                     label="캘린더"
-                    isOpen={isSidebarOpen}
-                    path="/calendar-expand"
-                    isActive={location.pathname === '/calendar-expand'}
+                    path="/calendar"
+                    isActive={location.pathname === '/calendar'}
+                    isFull={isFull}
                 />
 
-                {/*설정*/}
                 <SidebarItem
-                    icon={<SettingIcon />}
+                    icon={<SettingIcon className="w-6 h-6" />}
                     label="설정"
-                    isOpen={isSidebarOpen}
                     path="/setting"
                     isActive={location.pathname === '/setting'}
+                    isFull={isFull}
                 />
             </nav>
         </aside>
@@ -80,96 +116,107 @@ export const Sidebar = () => {
 interface SidebarItemProps {
     icon: React.ReactNode;
     label: string;
-    isOpen: boolean;
     path: string;
     isActive?: boolean;
+    isFull: boolean;
     badge?: number;
-    badgeColor?: string;
     showDot?: boolean;
-    dotColor?: string;
 }
 
 const SidebarItem: React.FC<SidebarItemProps> = ({
     icon,
     label,
-    isOpen,
     path,
     isActive,
+    isFull,
     badge,
-    badgeColor = 'study-blue',
     showDot,
-    dotColor = 'study-green',
 }) => {
-    const [isHovered, setIsHovered] = useState(false);
-
     return (
-        <Link to={path} style={{ textDecoration: 'none', display: 'block' }}>
-            <motion.div
-                className={`w-full flex items-center justify-between p-3 rounded-google transition-colors relative group ${isActive ? 'text-study-blue' : 'text-study-text'
-                    }`}
-                animate={{
-                    x: (isOpen && !isActive && !isHovered) ? -5 : 0,
-                    opacity: isOpen ? 1 : 0,
-                    backgroundColor: isActive
-                        ? '#80A1BA33' // --color-primary with 20% alpha
-                        : (isHovered ? '#80A1BA1A' : 'transparent'), // --color-primary with 10% alpha
-                }}
-                whileTap={{ scale: 0.98 }}
-                onHoverStart={() => setIsHovered(true)}
-                onHoverEnd={() => setIsHovered(false)}
+        <Link to={path} className="block no-underline group">
+            <div
+                className={cn(
+                    'flex items-center h-14 rounded-2xl mx-3 transition-all duration-200 relative',
+                    isActive
+                        ? 'bg-[var(--color-google-blue)]/10 text-[var(--color-google-blue)]'
+                        : 'text-gray-600 hover:bg-white/60 hover:text-gray-900'
+                )}
             >
-                {/* 라벨 (왼쪽) */}
-                {isOpen && (
-                    <motion.span
-                        className="font-medium text-left whitespace-nowrap"
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -10 }}
-                    >
-                        {label}
-                    </motion.span>
+                {/* 활성 상태 인디케이터 바 */}
+                {isActive && (
+                    <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-[var(--color-google-blue)] rounded-r-full" />
                 )}
 
-                {/* 아이콘 + 배지 (오른쪽) */}
-                <div className="flex items-center gap-2">
-                    {/* 배지 */}
-                    {isOpen && badge !== undefined && (
-                        <motion.span
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold text-white shadow-sm`}
-                            style={{ backgroundColor: `var(--color-${badgeColor.replace('study-', '')})` }}
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                        >
-                            {badge}
-                        </motion.span>
-                    )}
+                {/* 아이콘 영역 - 항상 고정 너비, 중앙 정렬 */}
+                <div
+                    className="flex items-center justify-center flex-shrink-0"
+                    style={{ width: ICON_AREA_WIDTH - 20 }}
+                >
+                    <div
+                        className={cn(
+                            'relative w-12 h-12 flex items-center justify-center rounded-2xl transition-colors',
+                            isActive
+                                ? 'text-[var(--color-google-blue)]'
+                                : 'text-gray-500 group-hover:text-gray-700'
+                        )}
+                    >
+                        {icon}
 
-                    {/* 아이콘 - 사이드바가 열려있을 때, 호버 시에만 선명하게 표시 (모든 항목 대상) */}
-                    {isOpen && (
-                        <motion.div
-                            className={isActive ? "text-study-blue" : "text-study-blue/60"}
-                            initial={{ opacity: 0, x: 10 }}
-                            animate={{
-                                opacity: isHovered ? 1 : 0,
-                                x: isHovered ? 0 : 10
-                            }}
-                            transition={{ duration: 0.2 }}
-                        >
-                            {icon}
-                        </motion.div>
-                    )}
+                        {/* 배지 점 (미니 모드) */}
+                        {!isFull && badge !== undefined && (
+                            <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[var(--color-google-blue)] border-2 border-slate-200" />
+                        )}
+
+                        {/* 활성 상태 점 (미니 모드) */}
+                        {!isFull && showDot && !isActive && (
+                            <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[var(--color-google-green)] border-2 border-slate-200" />
+                        )}
+                    </div>
                 </div>
 
-                {/* 활성 상태 점 */}
-                {showDot && isOpen && !isActive && (
-                    <motion.div
-                        className={`absolute right-3 top-3 w-1.5 h-1.5 rounded-full`}
-                        style={{ backgroundColor: `var(--color-${dotColor.replace('study-', '')})` }}
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                    />
+                {/* 라벨 + 배지 영역 (full 모드에서만 표시) */}
+                {isFull && (
+                    <>
+                        <span className={cn(
+                            'text-base whitespace-nowrap overflow-hidden transition-opacity duration-200',
+                            isActive ? 'text-[var(--color-google-blue)] font-semibold' : 'font-medium'
+                        )}>
+                            {label}
+                        </span>
+
+                        {/* 배지 */}
+                        {badge !== undefined && (
+                            <span className="ml-auto mr-4 px-2.5 py-0.5 rounded-full text-[10px] font-bold text-white bg-[var(--color-google-blue)] shadow-sm">
+                                {badge}
+                            </span>
+                        )}
+
+                        {/* 활성 상태 점 */}
+                        {showDot && !isActive && (
+                            <span className="ml-auto mr-4 w-2 h-2 rounded-full bg-[var(--color-google-green)]" />
+                        )}
+                    </>
                 )}
-            </motion.div>
+
+                {/* 스크린 리더 전용 라벨 (미니 모드) */}
+                {!isFull && (
+                    <span className="sr-only">
+                        {label}
+                    </span>
+                )}
+            </div>
+
+            {/* 미니 모드 라벨 (아이템 아래) */}
+            {!isFull && (
+                <div className="flex justify-center mt-1">
+                    <span className={cn(
+                        'text-xs leading-tight font-medium',
+                        isActive ? 'text-[var(--color-google-blue)] font-semibold' : 'text-gray-500'
+                    )}>
+                        {label}
+                    </span>
+                </div>
+            )}
         </Link>
     );
 };

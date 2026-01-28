@@ -1,14 +1,14 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Calendar, Zap, Users, Clock, Target } from 'lucide-react';
-import { MainLayout } from '@/layouts/MainLayout';
+import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { cn } from '@/shared/utils/cn';
 
 const StudyTypeSelectPage: React.FC = () => {
     const navigate = useNavigate();
 
     return (
-        <MainLayout>
+        <UserLayoutV2>
             <div className="max-w-3xl mx-auto px-4 py-8">
                 {/* 헤더 */}
                 <div className="flex items-center gap-3 mb-8">
@@ -112,7 +112,7 @@ const StudyTypeSelectPage: React.FC = () => {
                     </p>
                 </div>
             </div>
-        </MainLayout>
+        </UserLayoutV2>
     );
 };
 
