@@ -45,6 +45,9 @@ const RecruitmentPage = lazy(() =>
 const StudyPage = lazy(() =>
     import('../features/study').then(m => ({ default: m.StudyPage }))
 );
+const StudyPageV2 = lazy(() =>
+    import('../features/study').then(m => ({ default: m.StudyPageV2 }))
+);
 const StudyTypeSelectPage = lazy(() =>
     import('../features/study').then(m => ({ default: m.StudyTypeSelectPage }))
 );
@@ -57,6 +60,13 @@ const LightningStudyCreatePage = lazy(() =>
 const StudyDetailPage = lazy(() =>
     import('../features/study').then(m => ({ default: m.StudyDetailPage }))
 );
+const StudyDetailPageV2 = lazy(() =>
+    import('../features/study').then(m => ({ default: m.StudyDetailPageV2 }))
+);
+const StudyDetailPageV3 = lazy(() =>
+    import('../features/study').then(m => ({ default: m.StudyDetailPageV3 }))
+);
+
 const StudyManagementPage = lazy(() =>
     import('../features/study').then(m => ({ default: m.StudyManagementPage }))
 );
@@ -142,23 +152,22 @@ export const AppRouter = () => {
             <Route path="/calendar" element={<CalendarPage />} />
             <Route path="/test-calendar" element={<CalendarTestPage />} />
             <Route path="/reuse-test" element={<ReuseTest />} />
-            <Route path="/workspace-test" element={<WorkspacePage />} />
 
-            {/* 인증 */}
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/login/callback" element={<LoginCallbackPage />} />
-            <Route path="/signup" element={<SignupPage />} />
-            <Route path="/password/reset" element={<PasswordResetPage />} />
+                {/* 인증 */}
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/login/callback" element={<LoginCallbackPage />} />
+                <Route path="/signup" element={<SignupPage />} />
+                <Route path="/password/reset" element={<PasswordResetPage />} />
 
-            {/* 퀴즈 */}
-            <Route path="/quiz" element={<QuizGameSelection />} />
-            <Route path="/quiz-commentle" element={<CommentleQuiz />} />
-            <Route path="/quiz-practice" element={<QuizCourseList />} />
-            <Route path="/quiz-practice/:courseId" element={<CourseDetail />} />
-            <Route
-                path="/quiz-practice/:courseId/section/:sectionId/session"
-                element={<QuizSessionPage />}
-            />
+                {/* 퀴즈 */}
+                <Route path="/quiz" element={<QuizGameSelection />} />
+                <Route path="/quiz-commentle" element={<CommentleQuiz />} />
+                <Route path="/quiz-practice" element={<QuizCourseList />} />
+                <Route path="/quiz-practice/:courseId" element={<CourseDetail />} />
+                <Route
+                    path="/quiz-practice/:courseId/section/:sectionNumber/session"
+                    element={<QuizSessionPage />}
+                />
 
             {/* 스터디 */}
             <Route path="/study" element={<StudyPage />} />
@@ -167,29 +176,28 @@ export const AppRouter = () => {
             <Route path="/study/create/lightning" element={<LightningStudyCreatePage />} />
             <Route path="/study/:id" element={<StudyDetailPage />} />
             <Route path="/study/manage/:id" element={<StudyManagementPage />} />
-            <Route path="/study/:studyId/workspace" element={<WorkspacePage />} />
 
-            {/* 미팅 */}
-            <Route path="/study/:studyId/meetings" element={<MeetingHistoryPage />} />
-            <Route path="/study/:studyId/meetings/:meetingId" element={<MeetingDetailPage />} />
-            <Route path="/study/:studyId/meetings/:meetingId/room" element={<MeetingRoomPage />} />
-            <Route
-                path="/study/:studyId/meetings/:meetingId/recording"
-                element={<MeetingRecordingPlaybackPage />}
-            />
+                {/* 미팅 */}
+                <Route path="/study/:studyId/meetings" element={<MeetingHistoryPage />} />
+                <Route path="/study/:studyId/meetings/:meetingId" element={<MeetingDetailPage />} />
+                <Route path="/study/:studyId/meetings/:meetingId/room" element={<MeetingRoomPage />} />
+                <Route
+                    path="/study/:studyId/meetings/:meetingId/recording"
+                    element={<MeetingRecordingPlaybackPage />}
+                />
 
-            {/* 기타 */}
-            <Route path="/recruitment" element={<RecruitmentPage />} />
-            <Route path="/setting" element={<SettingPage />} />
-            <Route
-                path="/profile"
-                element={
-                    <Suspense fallback={<ProfileSkeleton />}>
-                        <ProfilePage />
-                    </Suspense>
-                }
-            />
-            <Route path="/admin" element={<AdminDashboardPage />} />
+                {/* 기타 */}
+                <Route path="/recruitment" element={<RecruitmentPage />} />
+                <Route path="/setting" element={<SettingPage />} />
+                <Route
+                    path="/profile"
+                    element={
+                        <Suspense fallback={<ProfileSkeleton />}>
+                            <ProfilePage />
+                        </Suspense>
+                    }
+                />
+                <Route path="/admin" element={<AdminDashboardPage />} />
             </Routes>
         </Suspense>
     );

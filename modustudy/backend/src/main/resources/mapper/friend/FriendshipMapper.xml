@@ -37,36 +37,32 @@
     <select id="findById" resultMap="FriendshipResultMap">
         SELECT f.*,
                r.nickname as requester_nickname,
-               rp.profile_image_url as requester_profile_image,
+               r.profile_image as requester_profile_image,
                r.is_online as requester_is_online,
                r.last_seen_at as requester_last_seen_at,
                a.nickname as addressee_nickname,
-               ap.profile_image_url as addressee_profile_image,
+               a.profile_image as addressee_profile_image,
                a.is_online as addressee_is_online,
                a.last_seen_at as addressee_last_seen_at
         FROM friendship f
         JOIN user r ON f.requester_id = r.id
-        LEFT JOIN profile rp ON r.id = rp.user_id
         JOIN user a ON f.addressee_id = a.id
-        LEFT JOIN profile ap ON a.id = ap.user_id
         WHERE f.id = #{id}
     </select>
 
     <select id="findByUsers" resultMap="FriendshipResultMap">
         SELECT f.*,
                r.nickname as requester_nickname,
-               rp.profile_image_url as requester_profile_image,
+               r.profile_image as requester_profile_image,
                r.is_online as requester_is_online,
                r.last_seen_at as requester_last_seen_at,
                a.nickname as addressee_nickname,
-               ap.profile_image_url as addressee_profile_image,
+               a.profile_image as addressee_profile_image,
                a.is_online as addressee_is_online,
                a.last_seen_at as addressee_last_seen_at
         FROM friendship f
         JOIN user r ON f.requester_id = r.id
-        LEFT JOIN profile rp ON r.id = rp.user_id
         JOIN user a ON f.addressee_id = a.id
-        LEFT JOIN profile ap ON a.id = ap.user_id
         WHERE (f.requester_id = #{userId1} AND f.addressee_id = #{userId2})
            OR (f.requester_id = #{userId2} AND f.addressee_id = #{userId1})
     </select>
@@ -74,36 +70,32 @@
     <select id="findByRequesterAndAddressee" resultMap="FriendshipResultMap">
         SELECT f.*,
                r.nickname as requester_nickname,
-               rp.profile_image_url as requester_profile_image,
+               r.profile_image as requester_profile_image,
                r.is_online as requester_is_online,
                r.last_seen_at as requester_last_seen_at,
                a.nickname as addressee_nickname,
-               ap.profile_image_url as addressee_profile_image,
+               a.profile_image as addressee_profile_image,
                a.is_online as addressee_is_online,
                a.last_seen_at as addressee_last_seen_at
         FROM friendship f
         JOIN user r ON f.requester_id = r.id
-        LEFT JOIN profile rp ON r.id = rp.user_id
         JOIN user a ON f.addressee_id = a.id
-        LEFT JOIN profile ap ON a.id = ap.user_id
         WHERE f.requester_id = #{requesterId} AND f.addressee_id = #{addresseeId}
     </select>
 
     <select id="findReceivedRequests" resultMap="FriendshipResultMap">
         SELECT f.*,
                r.nickname as requester_nickname,
-               rp.profile_image_url as requester_profile_image,
+               r.profile_image as requester_profile_image,
                r.is_online as requester_is_online,
                r.last_seen_at as requester_last_seen_at,
                a.nickname as addressee_nickname,
-               ap.profile_image_url as addressee_profile_image,
+               a.profile_image as addressee_profile_image,
                a.is_online as addressee_is_online,
                a.last_seen_at as addressee_last_seen_at
         FROM friendship f
         JOIN user r ON f.requester_id = r.id
-        LEFT JOIN profile rp ON r.id = rp.user_id
         JOIN user a ON f.addressee_id = a.id
-        LEFT JOIN profile ap ON a.id = ap.user_id
         WHERE f.addressee_id = #{addresseeId} AND f.status = 'PENDING'
         ORDER BY f.created_at DESC
     </select>
@@ -111,18 +103,16 @@
     <select id="findSentRequests" resultMap="FriendshipResultMap">
         SELECT f.*,
                r.nickname as requester_nickname,
-               rp.profile_image_url as requester_profile_image,
+               r.profile_image as requester_profile_image,
                r.is_online as requester_is_online,
                r.last_seen_at as requester_last_seen_at,
                a.nickname as addressee_nickname,
-               ap.profile_image_url as addressee_profile_image,
+               a.profile_image as addressee_profile_image,
                a.is_online as addressee_is_online,
                a.last_seen_at as addressee_last_seen_at
         FROM friendship f
         JOIN user r ON f.requester_id = r.id
-        LEFT JOIN profile rp ON r.id = rp.user_id
         JOIN user a ON f.addressee_id = a.id
-        LEFT JOIN profile ap ON a.id = ap.user_id
         WHERE f.requester_id = #{requesterId} AND f.status = 'PENDING'
         ORDER BY f.created_at DESC
     </select>
@@ -130,18 +120,16 @@
     <select id="findFriends" resultMap="FriendshipResultMap">
         SELECT f.*,
                r.nickname as requester_nickname,
-               rp.profile_image_url as requester_profile_image,
+               r.profile_image as requester_profile_image,
                r.is_online as requester_is_online,
                r.last_seen_at as requester_last_seen_at,
                a.nickname as addressee_nickname,
-               ap.profile_image_url as addressee_profile_image,
+               a.profile_image as addressee_profile_image,
                a.is_online as addressee_is_online,
                a.last_seen_at as addressee_last_seen_at
         FROM friendship f
         JOIN user r ON f.requester_id = r.id
-        LEFT JOIN profile rp ON r.id = rp.user_id
         JOIN user a ON f.addressee_id = a.id
-        LEFT JOIN profile ap ON a.id = ap.user_id
         WHERE (f.requester_id = #{userId} OR f.addressee_id = #{userId})
           AND f.status = 'ACCEPTED'
         ORDER BY f.updated_at DESC
@@ -150,18 +138,16 @@
     <select id="findByIdAndUserId" resultMap="FriendshipResultMap">
         SELECT f.*,
                r.nickname as requester_nickname,
-               rp.profile_image_url as requester_profile_image,
+               r.profile_image as requester_profile_image,
                r.is_online as requester_is_online,
                r.last_seen_at as requester_last_seen_at,
                a.nickname as addressee_nickname,
-               ap.profile_image_url as addressee_profile_image,
+               a.profile_image as addressee_profile_image,
                a.is_online as addressee_is_online,
                a.last_seen_at as addressee_last_seen_at
         FROM friendship f
         JOIN user r ON f.requester_id = r.id
-        LEFT JOIN profile rp ON r.id = rp.user_id
         JOIN user a ON f.addressee_id = a.id
-        LEFT JOIN profile ap ON a.id = ap.user_id
         WHERE f.id = #{friendshipId}
           AND (f.requester_id = #{userId} OR f.addressee_id = #{userId})
     </select>

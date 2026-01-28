@@ -11,6 +11,7 @@ import { SettingSidebar } from './components/SettingSidebar';
 import { NotificationSection } from './components/NotificationSection';
 import { AccountSecuritySection } from './components/AccountSecuritySection';
 import { ProfileSection } from './components/ProfileSection';
+import { StudyPreferenceSection } from './components/StudyPreferenceSection';
 import { ThemeDisplaySection } from './components/ThemeDisplaySection';
 import './styles/SettingPage.css';
 // ProfileSection에서 사용하는 ProfileHeader 스타일
@@ -39,6 +40,8 @@ export const SettingPage = () => {
                 return <AccountSecuritySection />;
             case 'profile':
                 return <ProfileSection />;
+            case 'study':
+                return <StudyPreferenceSection />;
             case 'theme':
                 return <ThemeDisplaySection />;
             default:

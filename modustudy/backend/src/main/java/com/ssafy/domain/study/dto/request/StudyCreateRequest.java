@@ -19,6 +19,9 @@ public class StudyCreateRequest {
     @Size(max = 100, message = "스터디명은 100자 이내여야 합니다")
     private String name;
 
+    @Size(max = 200, message = "한줄 소개는 200자 이내여야 합니다")
+    private String intro;
+
     @Size(max = 1000, message = "설명은 1000자 이내여야 합니다")
     private String description;
 
@@ -95,6 +98,7 @@ public class StudyCreateRequest {
         return Study.builder()
                 .leaderId(leaderId)
                 .name(name)
+                .intro(intro)
                 .description(description)
                 .topic(topic)
                 .format(format)

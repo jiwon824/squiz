@@ -186,6 +186,9 @@ deploy_inactive() {
     # 기존 비활성 환경 정리
     docker compose -p squiz-${inactive} -f docker-compose.${inactive}.yml down --remove-orphans 2>/dev/null || true
 
+    # compose 프로젝트 외부에서 생성된 잔여 컨테이너 강제 제거
+    docker rm -f squiz-backend-${inactive} squiz-nginx-${inactive} squiz-sfu-${inactive} squiz-cs-quiz-ai-${inactive} 2>/dev/null || true
+
     # 새 버전 배포
     docker compose -p squiz-${inactive} -f docker-compose.${inactive}.yml up -d
 
