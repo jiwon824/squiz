@@ -61,6 +61,7 @@ export interface MaterialCreateResponse {
 export interface MaterialCreateRequest {
   title: string;
   description?: string;
+  materialType: MaterialType;
   url: string;
   weekNumber?: number;
 }
@@ -83,9 +84,8 @@ export interface MaterialSearchCondition {
 export interface MaterialCommentResponse {
   id: number;
   content: string;
-  author: UploaderInfo;
+  user: UploaderInfo;
   createdAt: string;
-  updatedAt: string | null;
 }
 
 // 댓글 생성 요청

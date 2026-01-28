@@ -3,7 +3,7 @@
  * 워크스페이스 내에서 자료 목록을 보여줍니다.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { cn } from '@/shared/utils/cn';
 import {
   Search,
@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { MaterialCard } from './MaterialCard';
 import { MaterialUploadModal } from './MaterialUploadModal';
+import { MaterialDetailModal } from './MaterialDetailModal';
 import { materialApi } from '@/api/endpoints/materialApi';
 import { useUIStore } from '@/store/uiStore';
 import type { MaterialListResponse, MaterialType, MaterialSortOption } from '../types';
@@ -38,6 +39,7 @@ export const MaterialArea: React.FC<MaterialAreaProps> = ({ studyId }) => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [uploadType, setUploadType] = useState<'file' | 'link'>('file');
+  const [selectedMaterial, setSelectedMaterial] = useState<MaterialListResponse | null>(null);
 
   const showToast = useUIStore((state) => state.showToast);
 
@@ -47,11 +49,9 @@ export const MaterialArea: React.FC<MaterialAreaProps> = ({ studyId }) => {
     setError(null);
     try {
       const data = await materialApi.getMaterials(studyId);
-      console.log('[MaterialArea] 자료 목록 조회 성공:', data);
       setMaterials(data || []);
       setFilteredMaterials(data || []);
     } catch (err: any) {
-      console.error('[MaterialArea] 자료 목록 조회 실패:', err);
       const errorMessage = err?.response?.data?.message || err?.message || '자료를 불러오는데 실패했습니다.';
       setError(errorMessage);
       setMaterials([]);
@@ -128,6 +128,48 @@ export const MaterialArea: React.FC<MaterialAreaProps> = ({ studyId }) => {
     setUploadType('link');
     setIsUploadModalOpen(true);
   };
+
+  // 자료 클릭 핸들러
+  const handleMaterialClick = (material: MaterialListResponse) => {
+    setSelectedMaterial(material);
+  };
+
+  // 상세 모달 닫기
+  const handleDetailClose = () => {
+    setSelectedMaterial(null);
+  };
+
+  // 조회수 업데이트 핸들러
+  const handleViewCountUpdate = useCallback((materialId: number, viewCount: number) => {
+    setMaterials((prev) =>
+      prev.map((m) => (m.id === materialId ? { ...m, viewCount } : m))
+    );
+  }, []);
+
+  // 실시간 조회수 폴링 (30초마다 갱신)
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    // 자료가 있을 때만 폴링 시작
+    if (materials.length > 0) {
+      pollingIntervalRef.current = setInterval(() => {
+        // 조용히 백그라운드에서 갱신 (로딩 표시 없이)
+        materialApi.getMaterials(studyId).then((data) => {
+          if (data && data.length > 0) {
+            setMaterials(data);
+          }
+        }).catch(() => {
+          // 폴링 실패는 무시
+        });
+      }, 30000); // 30초마다
+    }
+
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
+  }, [studyId, materials.length]);
 
   return (
     <div className="material-area">
@@ -262,7 +304,7 @@ export const MaterialArea: React.FC<MaterialAreaProps> = ({ studyId }) => {
               <MaterialCard
                 key={material.id}
                 material={material}
-                onClick={() => console.log('자료 클릭:', material.id)}
+                onClick={() => handleMaterialClick(material)}
               />
             ))}
           </div>
@@ -282,6 +324,16 @@ export const MaterialArea: React.FC<MaterialAreaProps> = ({ studyId }) => {
           type={uploadType}
           onClose={() => setIsUploadModalOpen(false)}
           onComplete={handleUploadComplete}
+        />
+      )}
+
+      {/* 상세 모달 */}
+      {selectedMaterial && (
+        <MaterialDetailModal
+          studyId={studyId}
+          material={selectedMaterial}
+          onClose={handleDetailClose}
+          onViewCountUpdate={handleViewCountUpdate}
         />
       )}
     </div>

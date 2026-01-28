@@ -40,7 +40,7 @@ export const WorkspacePage: React.FC = () => {
   const [isMessagesLoading, setIsMessagesLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeMenu, setActiveMenu] = useState<'chat' | 'materials' | 'calendar' | 'meeting'>('chat');
-  const [isDarkMode, setIsDarkMode] = useState(true);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
 
@@ -58,19 +58,16 @@ export const WorkspacePage: React.FC = () => {
 
       try {
         // 1. 스터디 정보 조회
-        console.log('[Workspace] 스터디 정보 조회:', studyId);
         const studyData = await studyApi.getStudyDetail(studyId);
         setStudyName(studyData.name);
 
         // 2. 워크스페이스 조회 (없으면 생성)
-        console.log('[Workspace] 워크스페이스 조회');
         let workspaceData: WorkspaceResponse;
         try {
           workspaceData = await workspaceApi.getWorkspaceByStudyId(studyId);
         } catch (wsError: any) {
           // 워크스페이스가 없으면 생성
           if (wsError?.response?.status === 400 || wsError?.response?.status === 404) {
-            console.log('[Workspace] 워크스페이스 생성');
             workspaceData = await workspaceApi.createWorkspace(studyId);
           } else {
             throw wsError;
@@ -79,7 +76,6 @@ export const WorkspacePage: React.FC = () => {
         setWorkspace(workspaceData);
 
         // 3. 멤버 목록 조회
-        console.log('[Workspace] 멤버 목록 조회');
         const membersData = await studyApi.getStudyMembers(studyId);
         const workspaceMembers = membersData.content
           .filter((m) => m.status === 'APPROVED')
@@ -87,16 +83,12 @@ export const WorkspacePage: React.FC = () => {
         setMembers(workspaceMembers);
 
         // 4. 메시지 목록 조회
-        console.log('[Workspace] 메시지 목록 조회');
         const messagesData = await workspaceApi.getMessages(workspaceData.id);
         // 최신 메시지가 아래로 가도록 역순 정렬
         setMessages(messagesData.content.reverse());
         setHasMoreMessages(!messagesData.last);
         setCurrentPage(0);
-
-        console.log('[Workspace] 초기 데이터 로드 완료');
       } catch (err: any) {
-        console.error('[Workspace] 초기 데이터 로드 실패:', err);
         const errorMessage =
           err?.response?.data?.message ||
           err?.response?.data?.error ||
@@ -120,7 +112,6 @@ export const WorkspacePage: React.FC = () => {
   const handleSendMessage = useCallback(
     async (content: string) => {
       if (!workspace) {
-        console.error('[Workspace] 워크스페이스가 없습니다.');
         return;
       }
 
@@ -131,7 +122,6 @@ export const WorkspacePage: React.FC = () => {
         });
         setMessages((prev) => [...prev, newMessage]);
       } catch (err: any) {
-        console.error('[Workspace] 메시지 전송 실패:', err);
         showToast?.('메시지 전송에 실패했습니다.', 'error');
       }
     },
@@ -156,7 +146,7 @@ export const WorkspacePage: React.FC = () => {
       setHasMoreMessages(!messagesData.last);
       setCurrentPage(nextPage);
     } catch (err) {
-      console.error('[Workspace] 이전 메시지 로드 실패:', err);
+      // 이전 메시지 로드 실패 시 무시
     } finally {
       setIsMessagesLoading(false);
     }
@@ -255,8 +245,8 @@ export const WorkspacePage: React.FC = () => {
       <MemberList
         members={members}
         isVisible={isMembersVisible}
-        onMemberClick={(member) => {
-          console.log('Member clicked:', member);
+        onMemberClick={() => {
+          // TODO: 멤버 클릭 시 프로필 보기 등 기능 추가
         }}
       />
     </div>

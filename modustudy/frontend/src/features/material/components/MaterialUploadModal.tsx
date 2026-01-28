@@ -169,15 +169,20 @@ export const MaterialUploadModal: React.FC<MaterialUploadModalProps> = ({
         await materialApi.createMaterial(studyId, {
           title: title.trim(),
           description: description.trim() || undefined,
+          materialType: 'LINK',
           url: url.trim(),
           weekNumber: weekNumber ? Number(weekNumber) : undefined,
         });
       }
 
       onComplete();
-    } catch (err) {
-      console.error('업로드 실패:', err);
-      setError('업로드에 실패했습니다. 다시 시도해주세요.');
+    } catch (err: any) {
+      // 에러 메시지 추출
+      const errorMsg = err?.response?.data?.message
+        || err?.response?.data?.error
+        || err?.message
+        || '업로드에 실패했습니다.';
+      setError(errorMsg);
     } finally {
       setIsUploading(false);
     }
