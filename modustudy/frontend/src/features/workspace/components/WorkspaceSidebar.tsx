@@ -1,5 +1,16 @@
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/shared/utils/cn';
+import {
+  MessageSquare,
+  FolderOpen,
+  Calendar,
+  Video,
+  Settings,
+  Info,
+  UserCog,
+  ExternalLink,
+  LucideIcon,
+} from 'lucide-react';
 
 interface WorkspaceSidebarProps {
   studyId?: number;
@@ -12,7 +23,7 @@ interface WorkspaceSidebarProps {
 interface MenuItem {
   id: 'chat' | 'materials' | 'calendar' | 'meeting';
   label: string;
-  icon: string;
+  icon: LucideIcon;
   description?: string;
 }
 
@@ -20,25 +31,25 @@ const menuItems: MenuItem[] = [
   {
     id: 'chat',
     label: '채팅',
-    icon: 'chat',
+    icon: MessageSquare,
     description: '스터디원들과 대화하기',
   },
   {
     id: 'materials',
     label: '자료실',
-    icon: 'folder',
+    icon: FolderOpen,
     description: '스터디 자료 공유',
   },
   {
     id: 'calendar',
     label: '일정',
-    icon: 'calendar_today',
+    icon: Calendar,
     description: '스터디 일정 확인',
   },
   {
     id: 'meeting',
     label: '미팅',
-    icon: 'videocam',
+    icon: Video,
     description: '화상 미팅 참여',
   },
 ];
@@ -68,37 +79,34 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
       <div className="workspace-sidebar__header">
         <div className="workspace-sidebar__study-name">{studyName}</div>
         <button className="workspace-sidebar__settings-btn" title="스터디 설정">
-          <span className="material-icons" style={{ fontSize: '18px' }}>
-            settings
-          </span>
+          <Settings size={18} />
         </button>
       </div>
 
       {/* 메뉴 리스트 */}
       <div className="workspace-sidebar__menu">
-        {menuItems.map((item) => (
-          <button
-            key={item.id}
-            className={cn(
-              'workspace-sidebar__menu-item',
-              activeMenu === item.id && 'workspace-sidebar__menu-item--active'
-            )}
-            onClick={() => handleMenuClick(item.id)}
-            title={item.description}
-          >
-            <span className="material-icons workspace-sidebar__menu-icon">
-              {item.icon}
-            </span>
-            <span className="workspace-sidebar__menu-label">{item.label}</span>
-            {item.id === 'meeting' && (
-              <span className="workspace-sidebar__menu-badge">
-                <span className="material-icons" style={{ fontSize: '14px' }}>
-                  open_in_new
+        {menuItems.map((item) => {
+          const IconComponent = item.icon;
+          return (
+            <button
+              key={item.id}
+              className={cn(
+                'workspace-sidebar__menu-item',
+                activeMenu === item.id && 'workspace-sidebar__menu-item--active'
+              )}
+              onClick={() => handleMenuClick(item.id)}
+              title={item.description}
+            >
+              <IconComponent size={20} className="workspace-sidebar__menu-icon" />
+              <span className="workspace-sidebar__menu-label">{item.label}</span>
+              {item.id === 'meeting' && (
+                <span className="workspace-sidebar__menu-badge">
+                  <ExternalLink size={14} />
                 </span>
-              </span>
-            )}
-          </button>
-        ))}
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* 구분선 */}
@@ -112,7 +120,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
           className="workspace-sidebar__action-btn"
           onClick={() => studyId && navigate(`/study/${studyId}`)}
         >
-          <span className="material-icons">info</span>
+          <Info size={18} />
           <span>스터디 정보</span>
         </button>
 
@@ -120,7 +128,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
           className="workspace-sidebar__action-btn"
           onClick={() => studyId && navigate(`/study/manage/${studyId}`)}
         >
-          <span className="material-icons">manage_accounts</span>
+          <UserCog size={18} />
           <span>스터디 관리</span>
         </button>
       </div>
@@ -131,7 +139,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
           className="workspace-sidebar__meeting-btn"
           onClick={() => studyId && navigate(`/study/${studyId}/meetings`)}
         >
-          <span className="material-icons">videocam</span>
+          <Video size={20} />
           <span>미팅 시작하기</span>
         </button>
       </div>

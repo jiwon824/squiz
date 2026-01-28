@@ -143,6 +143,8 @@ export const WorkspacePage: React.FC<WorkspacePageProps> = ({
 
   return (
     <div className="workspace-container">
+      {/* 우주 배경은 CSS로 처리 (.workspace-container::before) */}
+
       {/* 왼쪽 사이드바 */}
       <WorkspaceSidebar
         studyId={studyId}

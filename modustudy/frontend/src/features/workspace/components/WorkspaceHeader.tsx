@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { cn } from '@/shared/utils/cn';
+import { Users, Search, Pin } from 'lucide-react';
 
 interface WorkspaceHeaderProps {
   studyName: string;
@@ -26,28 +26,22 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
         <button
           className={cn(
             'workspace-header__action-btn',
-            isMembersVisible && 'text-white'
+            isMembersVisible && 'workspace-header__action-btn--active'
           )}
           onClick={onToggleMembers}
           title={isMembersVisible ? '멤버 목록 숨기기' : '멤버 목록 보기'}
         >
-          <span className="material-icons" style={{ fontSize: '24px' }}>
-            people
-          </span>
+          <Users size={22} />
         </button>
 
         {/* 검색 버튼 */}
         <button className="workspace-header__action-btn" title="검색">
-          <span className="material-icons" style={{ fontSize: '24px' }}>
-            search
-          </span>
+          <Search size={22} />
         </button>
 
         {/* 핀 메시지 */}
         <button className="workspace-header__action-btn" title="고정된 메시지">
-          <span className="material-icons" style={{ fontSize: '24px' }}>
-            push_pin
-          </span>
+          <Pin size={22} />
         </button>
       </div>
     </div>
