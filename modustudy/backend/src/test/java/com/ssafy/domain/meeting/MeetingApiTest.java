@@ -4,6 +4,8 @@ import com.ssafy.common.auth.SsafyUserDetails;
 import com.ssafy.config.SfuProperties;
 import com.ssafy.domain.meeting.dto.request.MeetingActionItemRequest;
 import com.ssafy.domain.meeting.dto.request.MeetingKeywordUpdateRequest;
+import com.ssafy.domain.meeting.dto.request.MeetingPhotoSelectionRequest;
+import com.ssafy.domain.meeting.dto.request.MeetingPlannedDurationRequest;
 import com.ssafy.domain.meeting.dto.request.MeetingRecordingRequest;
 import com.ssafy.domain.meeting.dto.request.MeetingRequest;
 import com.ssafy.domain.meeting.dto.request.MeetingSummaryUpdateRequest;
@@ -157,10 +159,11 @@ class MeetingApiTest {
         // given
         MeetingPhotoResponse selected = new MeetingPhotoResponse(3L, "meeting/2/photo-3.png",
                 LocalDateTime.of(2025, 1, 15, 20, 12), true);
-        when(meetingService.selectPhoto(1L, 2L, 3L)).thenReturn(selected);
+        when(meetingService.selectPhoto(1L, 2L, 1L, 3L)).thenReturn(selected);
 
         // when & then
-        mockMvc.perform(put("/api/v1/studies/1/meetings/2/photos/3/select"))
+        mockMvc.perform(put("/api/v1/studies/1/meetings/2/photos/3/select")
+                        .with(authentication(authUser(1L))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.id").value(3))
                 .andExpect(jsonPath("$.data.isSelected").value(true));
@@ -187,6 +190,7 @@ class MeetingApiTest {
                 LocalDateTime.of(2025, 1, 15, 19, 0),
                 LocalDateTime.of(2025, 1, 15, 20, 30),
                 5400,
+                7200,
                 "ENDED",
                 "READY",
                 "DONE",
@@ -224,7 +228,7 @@ class MeetingApiTest {
         when(meetingService.startMeeting(eq(1L), any())).thenReturn(response);
 
         // when & then
-        MeetingRequest request = new MeetingRequest("title", 10L, 2L, MeetingType.DAILY, true, 12L);
+        MeetingRequest request = new MeetingRequest("title", 10L, 2L, MeetingType.DAILY, true, 12L, 3600);
         mockMvc.perform(post("/api/v1/studies/1/meetings")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -243,6 +247,41 @@ class MeetingApiTest {
         mockMvc.perform(put("/api/v1/studies/1/meetings/2/end"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.summaryStatus").value("PROCESSING"));
+    }
+
+    @Test
+    @DisplayName("미팅 예정 시간 업데이트")
+    void updatePlannedDuration() throws Exception {
+        // given
+        MeetingDetailResponse detail = new MeetingDetailResponse(
+                2L,
+                "title",
+                new MeetingSessionResponse(10L, 1, "session"),
+                new MeetingWorkspaceResponse(2L, "voice"),
+                "DAILY",
+                LocalDateTime.of(2025, 1, 15, 19, 0),
+                null,
+                null,
+                7200,
+                "IN_PROGRESS",
+                "RECORDING",
+                "PENDING",
+                "PENDING",
+                false,
+                null,
+                List.of(),
+                List.of(),
+                null
+        );
+        when(meetingService.updatePlannedDuration(1L, 2L, 7200)).thenReturn(detail);
+
+        // when & then
+        MeetingPlannedDurationRequest request = new MeetingPlannedDurationRequest(7200);
+        mockMvc.perform(put("/api/v1/studies/1/meetings/2/duration")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.plannedDurationSeconds").value(7200));
     }
 
     @Test
@@ -365,6 +404,41 @@ class MeetingApiTest {
     }
 
     @Test
+    @DisplayName("오디오 세그먼트 업로드/병합")
+    void audioSegmentEndpoints() throws Exception {
+        // given
+        MeetingAudioRecordingResponse response = new MeetingAudioRecordingResponse(
+                21L,
+                2L,
+                1L,
+                MeetingAudioTrackType.INDIVIDUAL,
+                "/uploads/meetings/2/recordings/audio/users/1/audio.wav",
+                "wav",
+                456L,
+                LocalDateTime.of(2025, 1, 15, 20, 40)
+        );
+        doNothing().when(meetingService).uploadRecordingAudioSegment(eq(1L), eq(2L), eq(1L), any());
+        when(meetingService.concatRecordingAudioSegments(1L, 2L, 1L)).thenReturn(response);
+
+        // when & then
+        MockMultipartFile audio = new MockMultipartFile(
+                "audio",
+                "segment.wav",
+                "audio/wav",
+                "segment".getBytes(StandardCharsets.UTF_8)
+        );
+        mockMvc.perform(multipart("/api/v1/studies/1/meetings/2/recording/audio/segment")
+                        .file(audio))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.message").value("Audio segment uploaded"));
+
+        mockMvc.perform(post("/api/v1/studies/1/meetings/2/recording/audio/concat"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.recordingUrl")
+                        .value("/uploads/meetings/2/recordings/audio/users/1/audio.wav"));
+    }
+
+    @Test
     @DisplayName("STT 파일 업로드/조회")
     void sttFileEndpoints() throws Exception {
         // given
@@ -442,11 +516,12 @@ class MeetingApiTest {
         // given
         MeetingPhotoResponse photo = new MeetingPhotoResponse(1L, "meeting/2/photo.png",
                 LocalDateTime.of(2025, 1, 15, 20, 10), false);
-        when(meetingService.getPhotos(1L, 2L)).thenReturn(List.of(photo));
-        when(meetingService.addPhoto(eq(1L), eq(2L), any())).thenReturn(photo);
+        when(meetingService.getPhotos(1L, 2L, 1L)).thenReturn(List.of(photo));
+        when(meetingService.addPhoto(eq(1L), eq(2L), eq(1L), any())).thenReturn(photo);
 
         // when & then
-        mockMvc.perform(get("/api/v1/studies/1/meetings/2/photos"))
+        mockMvc.perform(get("/api/v1/studies/1/meetings/2/photos")
+                        .with(authentication(authUser(1L))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data[0].imageUrl").value("meeting/2/photo.png"));
 
@@ -457,9 +532,28 @@ class MeetingApiTest {
                 "png".getBytes(StandardCharsets.UTF_8)
         );
         mockMvc.perform(multipart("/api/v1/studies/1/meetings/2/photos")
-                        .file(file))
+                        .file(file)
+                        .with(authentication(authUser(1L))))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.id").value(1));
+    }
+
+    @Test
+    @DisplayName("사진 다중 선택")
+    void selectPhotosEndpoint() throws Exception {
+        // given
+        MeetingPhotoResponse photo = new MeetingPhotoResponse(1L, "meeting/2/photo.png",
+                LocalDateTime.of(2025, 1, 15, 20, 10), true);
+        when(meetingService.selectPhotos(eq(1L), eq(2L), eq(1L), eq(List.of(1L, 2L))))
+                .thenReturn(List.of(photo));
+
+        // when & then
+        MeetingPhotoSelectionRequest request = new MeetingPhotoSelectionRequest(List.of(1L, 2L));
+        mockMvc.perform(put("/api/v1/studies/1/meetings/2/photos/selection")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].isSelected").value(true));
     }
 
     @Test

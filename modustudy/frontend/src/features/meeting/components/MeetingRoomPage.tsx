@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { MainLayout } from '@/layouts/MainLayout';
 import { useAuthStore } from '@/store/authStore';
+import { useUIStore } from '@/store/uiStore';
 import MeetingControls from './MeetingControls';
 import MeetingParticipants from './MeetingParticipants';
 import MeetingChatPanel from './MeetingChatPanel';
@@ -41,6 +42,7 @@ const MeetingRoomPage: React.FC = () => {
     const meetingListPath =
         Number.isFinite(numericStudyId) && numericStudyId > 0 ? `/study/${numericStudyId}/meetings` : '/study';
     const { user, isLoggedIn } = useAuthStore();
+    const { showToast } = useUIStore();
 
     const getGuestName = useCallback(() => {
         const key = 'meeting-guest-name';
@@ -99,10 +101,13 @@ const MeetingRoomPage: React.FC = () => {
     const sfuRecordingChainRef = useRef<Promise<void>>(Promise.resolve());
     const sfuStopRequestedRef = useRef(false);
     const devicePermissionRequestedRef = useRef(false);
+    const autoEndTriggeredRef = useRef(false);
 
     const [meetingTitle, setMeetingTitle] = useState('');
     const [meetingStartedAt, setMeetingStartedAt] = useState<string | null>(null);
+    const [plannedDurationSeconds, setPlannedDurationSeconds] = useState<number | null>(null);
     const [elapsedSeconds, setElapsedSeconds] = useState(0);
+    const [timeWarning, setTimeWarning] = useState<string | null>(null);
     const [participants, setParticipants] = useState<MeetingRoomParticipant[]>([]);
     const [chatMessages, setChatMessages] = useState<MeetingRoomChatMessage[]>([]);
     const [presenterName, setPresenterName] = useState<string | null>(null);
@@ -133,6 +138,9 @@ const MeetingRoomPage: React.FC = () => {
     const screenSharingRef = useRef(screenSharing);
     const mixedRetryRef = useRef<{ attempts: number; timer: number | null }>({ attempts: 0, timer: null });
     const isPresenterRef = useRef(false);
+    const MAX_PLANNED_DURATION_SECONDS = 3 * 60 * 60;
+    const warningThresholds = useMemo(() => [10 * 60, 5 * 60], []);
+    const warningFlagsRef = useRef<Record<number, boolean>>({});
 
     useEffect(() => {
         displayNameRef.current = getDisplayName();
@@ -163,6 +171,46 @@ const MeetingRoomPage: React.FC = () => {
         return () => window.clearInterval(timerId);
     }, [meetingStartedAt]);
 
+    useEffect(() => {
+        warningFlagsRef.current = {};
+        setTimeWarning(null);
+    }, [plannedDurationSeconds, meetingStartedAt]);
+
+    useEffect(() => {
+        if (!plannedDurationSeconds) {
+            setTimeWarning(null);
+            return;
+        }
+        const remaining = plannedDurationSeconds - elapsedSeconds;
+        if (remaining <= 0) {
+            setTimeWarning(null);
+            return;
+        }
+        if (remaining <= 10 * 60) {
+            const minutesLeft = Math.max(1, Math.ceil(remaining / 60));
+            setTimeWarning(`미팅 종료까지 ${minutesLeft}분 남았습니다.`);
+        } else {
+            setTimeWarning(null);
+        }
+        if (remaining <= 5 * 60) {
+            const threshold = warningThresholds[1];
+            if (!warningFlagsRef.current[threshold]) {
+                warningFlagsRef.current[threshold] = true;
+                showToast('미팅 종료까지 5분 남았습니다.', 'warning');
+            }
+        } else if (remaining <= 10 * 60) {
+            const threshold = warningThresholds[0];
+            if (!warningFlagsRef.current[threshold]) {
+                warningFlagsRef.current[threshold] = true;
+                showToast('미팅 종료까지 10분 남았습니다.', 'warning');
+            }
+        }
+    }, [elapsedSeconds, plannedDurationSeconds, warningThresholds, showToast]);
+
+    useEffect(() => {
+        autoEndTriggeredRef.current = false;
+    }, [meetingStartedAt, plannedDurationSeconds]);
+
     const canEndMeeting = useMemo(() => {
         if (!numericMeetingId) return false;
         return localStorage.getItem(`meeting-owner-${numericMeetingId}`) === String(ownerKey);
@@ -189,6 +237,19 @@ const MeetingRoomPage: React.FC = () => {
         const seconds = safeSeconds % 60;
         const padded = (value: number) => String(value).padStart(2, '0');
         return `${padded(hours)}:${padded(minutes)}:${padded(seconds)}`;
+    };
+
+    const formatPlannedDuration = (totalSeconds: number) => {
+        const safeSeconds = Math.max(0, Math.floor(totalSeconds));
+        const hours = Math.floor(safeSeconds / 3600);
+        const minutes = Math.floor((safeSeconds % 3600) / 60);
+        if (hours <= 0) {
+            return `${minutes}분`;
+        }
+        if (minutes === 0) {
+            return `${hours}시간`;
+        }
+        return `${hours}시간 ${minutes}분`;
     };
 
     const stopTracks = (stream: MediaStream | null) => {
@@ -1478,23 +1539,64 @@ const MeetingRoomPage: React.FC = () => {
         }
     }, [isCapturing, numericMeetingId, numericStudyId]);
 
+    const handleExtendMeeting = useCallback(async () => {
+        if (!numericStudyId || !numericMeetingId || !canEndMeeting) return;
+        const currentSeconds = plannedDurationSeconds ?? 3600;
+        if (currentSeconds >= MAX_PLANNED_DURATION_SECONDS) {
+            return;
+        }
+        const nextSeconds = Math.min(currentSeconds + 1800, MAX_PLANNED_DURATION_SECONDS);
+        try {
+            const detail = await meetingApi.updatePlannedDuration(numericStudyId, numericMeetingId, nextSeconds);
+            setPlannedDurationSeconds(detail.plannedDurationSeconds ?? nextSeconds);
+        } catch (error) {
+            console.error('Failed to extend meeting duration', error);
+        }
+    }, [
+        MAX_PLANNED_DURATION_SECONDS,
+        canEndMeeting,
+        numericMeetingId,
+        numericStudyId,
+        plannedDurationSeconds,
+    ]);
+
     const presenterLabel = presenterName ? '발표자: ' + presenterName : '발표자';
 
-    const handleEndMeeting = useCallback(async () => {
-        if (!numericStudyId || !numericMeetingId || !canEndMeeting) return;
-        const confirmed = window.confirm('미팅을 종료하시겠습니까?');
-        if (!confirmed) return;
-        try {
-            sfuStopRequestedRef.current = true;
-            await finalizeVoiceRecording();
-            await meetingApi.endMeeting(numericStudyId, numericMeetingId);
-        } catch (error) {
-            console.error('Failed to end meeting', error);
-        } finally {
-            stopCameraHardware();
-            navigate(`/study/${numericStudyId}/meetings/${numericMeetingId}`);
+    const endMeetingInternal = useCallback(
+        async (requireConfirm: boolean) => {
+            if (!numericStudyId || !numericMeetingId || !canEndMeeting) return;
+            if (requireConfirm) {
+                const confirmed = window.confirm('미팅을 종료하시겠습니까?');
+                if (!confirmed) return;
+            }
+            try {
+                sfuStopRequestedRef.current = true;
+                await finalizeVoiceRecording();
+                await meetingApi.endMeeting(numericStudyId, numericMeetingId);
+            } catch (error) {
+                console.error('Failed to end meeting', error);
+            } finally {
+                stopCameraHardware();
+                navigate(`/study/${numericStudyId}/meetings/${numericMeetingId}`);
+            }
+        },
+        [numericStudyId, numericMeetingId, canEndMeeting, navigate, stopCameraHardware, finalizeVoiceRecording]
+    );
+
+    useEffect(() => {
+        if (!meetingStartedAt) return;
+        if (!plannedDurationSeconds) return;
+        if (!canEndMeeting) return;
+        if (autoEndTriggeredRef.current) return;
+        if (elapsedSeconds >= plannedDurationSeconds) {
+            autoEndTriggeredRef.current = true;
+            void endMeetingInternal(false);
         }
-    }, [numericStudyId, numericMeetingId, canEndMeeting, navigate, stopCameraHardware, finalizeVoiceRecording]);
+    }, [elapsedSeconds, plannedDurationSeconds, meetingStartedAt, canEndMeeting, endMeetingInternal]);
+
+    const handleEndMeeting = useCallback(() => {
+        void endMeetingInternal(true);
+    }, [endMeetingInternal]);
 
     const handleRoomEvent = useCallback(
         (event: MeetingRoomEvent) => {
@@ -1642,6 +1744,7 @@ const MeetingRoomPage: React.FC = () => {
                 }
                 setMeetingTitle(detail.title || `미팅 ${numericMeetingId}`);
                 setMeetingStartedAt(detail.startedAt ?? new Date().toISOString());
+                setPlannedDurationSeconds(detail.plannedDurationSeconds ?? null);
             } catch (error) {
                 if (cancelled) return;
                 if (axios.isAxiosError(error) && error.response?.status === 404) {
@@ -1651,6 +1754,7 @@ const MeetingRoomPage: React.FC = () => {
                 }
                 setMeetingTitle(`미팅 ${numericMeetingId}`);
                 setMeetingStartedAt(new Date().toISOString());
+                setPlannedDurationSeconds(null);
             }
 
             let joinData: MeetingJoinResponse | null = null;
@@ -1859,7 +1963,23 @@ const MeetingRoomPage: React.FC = () => {
                         <div className="meeting-room__meta-left">
                             <div className="meeting-room__meta-title">
                                 <h1>{meetingTitle || '미팅 룸'}</h1>
-                                <div className="meeting-room__timer">진행 시간: {formatDuration(elapsedSeconds)}</div>
+                                <div className="meeting-room__meta-times">
+                                    <div className="meeting-room__meta-time-row">
+                                        <div className="meeting-room__timer">
+                                            진행 시간: {formatDuration(elapsedSeconds)}
+                                        </div>
+                                        {plannedDurationSeconds ? (
+                                            <div className="meeting-room__timer">
+                                                예정 시간: {formatPlannedDuration(plannedDurationSeconds)}
+                                            </div>
+                                        ) : null}
+                                    </div>
+                                    {timeWarning && (
+                                        <div className="meeting-room__timer meeting-room__timer--warning">
+                                            {timeWarning}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                         <div className="meeting-room__meta-right">
@@ -1884,6 +2004,13 @@ const MeetingRoomPage: React.FC = () => {
                         canEndMeeting={canEndMeeting}
                         captureDisabled={isCapturing}
                         onCapture={handleCapture}
+                        canExtendMeeting={canEndMeeting}
+                        extendDisabled={
+                            plannedDurationSeconds !== null
+                                ? plannedDurationSeconds >= MAX_PLANNED_DURATION_SECONDS
+                                : true
+                        }
+                        onExtendMeeting={handleExtendMeeting}
                     />
                 </div>
 

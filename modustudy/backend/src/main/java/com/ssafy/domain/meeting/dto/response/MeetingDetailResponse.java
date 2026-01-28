@@ -12,6 +12,7 @@ public record MeetingDetailResponse(
         LocalDateTime startedAt,
         LocalDateTime endedAt,
         Integer durationSeconds,
+        Integer plannedDurationSeconds,
         String status,
         String recordingStatus,
         String sttStatus,

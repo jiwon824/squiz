@@ -9,6 +9,7 @@ public record MeetingRequest(
         Long workspaceId,
         MeetingType meetingType,
         Boolean autoShareSummary,
-        Long shareWorkspaceId
+        Long shareWorkspaceId,
+        Integer plannedDurationSeconds
 ) {
 }

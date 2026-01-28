@@ -73,6 +73,7 @@ import java.util.Objects;
 public class MeetingService {
 
     private static final Logger log = LoggerFactory.getLogger(MeetingService.class);
+    private static final int MAX_PLANNED_DURATION_SECONDS = 3 * 60 * 60;
 
     private final MeetingRepository meetingRepository;
     private final MeetingParticipantRepository meetingParticipantRepository;
@@ -152,6 +153,7 @@ public class MeetingService {
                 meeting.getStartedAt(),
                 meeting.getEndedAt(),
                 meeting.getDurationSeconds(),
+                meeting.getPlannedDurationSeconds(),
                 meeting.getStatus().name(),
                 meeting.getRecordingStatus().name(),
                 meeting.getSttStatus().name(),
@@ -171,13 +173,41 @@ public class MeetingService {
         }
         MeetingType meetingType = request.meetingType() == null ? MeetingType.OTHER : request.meetingType();
         boolean autoShareSummary = Boolean.TRUE.equals(request.autoShareSummary());
+        int plannedDurationSeconds = request.plannedDurationSeconds() == null ? 3600 : request.plannedDurationSeconds();
+        if (plannedDurationSeconds <= 0) {
+            plannedDurationSeconds = 3600;
+        }
+        if (plannedDurationSeconds > MAX_PLANNED_DURATION_SECONDS) {
+            plannedDurationSeconds = MAX_PLANNED_DURATION_SECONDS;
+        }
         Meeting meeting = Meeting.start(studyId, request.sessionId(), request.workspaceId(),
-                request.title(), meetingType, autoShareSummary, request.shareWorkspaceId(), LocalDateTime.now());
+                request.title(), meetingType, autoShareSummary, request.shareWorkspaceId(), LocalDateTime.now(),
+                plannedDurationSeconds);
         Meeting saved = meetingRepository.save(meeting);
         triggerSfuRecordingStart(saved.getId());
         return new MeetingResponse(saved.getId(), saved.getTitle(), buildRoomToken(saved), saved.getStatus().name(),
                 saved.getMeetingType().name(), saved.getRecordingStatus().name(), saved.getSttStatus().name(),
                 resolveSummaryStatus(saved).name());
+    }
+
+    @Transactional
+    public MeetingDetailResponse updatePlannedDuration(Long studyId, Long meetingId, Integer plannedDurationSeconds) {
+        if (plannedDurationSeconds == null || plannedDurationSeconds <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "PLANNED_DURATION_REQUIRED");
+        }
+        if (plannedDurationSeconds > MAX_PLANNED_DURATION_SECONDS) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "PLANNED_DURATION_TOO_LONG");
+        }
+        Meeting meeting = getMeetingOrThrow(studyId, meetingId);
+        if (meeting.getStatus() == MeetingStatus.ENDED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "MEETING_ALREADY_ENDED");
+        }
+        Integer current = meeting.getPlannedDurationSeconds();
+        if (current != null && plannedDurationSeconds < current) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "PLANNED_DURATION_CANNOT_DECREASE");
+        }
+        meeting.updatePlannedDurationSeconds(plannedDurationSeconds);
+        return getMeetingDetail(studyId, meetingId);
     }
 
     @Transactional

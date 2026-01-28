@@ -8,11 +8,14 @@ interface MeetingControlsProps {
     shareMode: 'camera' | 'screen' | 'mixed' | null;
     canEndMeeting: boolean;
     captureDisabled: boolean;
+    canExtendMeeting: boolean;
+    extendDisabled: boolean;
     onToggleMic: () => void;
     onShareModeChange: (mode: 'camera' | 'screen' | 'mixed') => void;
     onTogglePresenter: () => void;
     onEndMeeting: () => void;
     onCapture: () => void;
+    onExtendMeeting: () => void;
 }
 
 const MeetingControls: React.FC<MeetingControlsProps> = ({
@@ -27,6 +30,9 @@ const MeetingControls: React.FC<MeetingControlsProps> = ({
     onEndMeeting,
     captureDisabled,
     onCapture,
+    canExtendMeeting,
+    extendDisabled,
+    onExtendMeeting,
 }) => {
     return (
         <div className="meeting-controls">
@@ -76,6 +82,20 @@ const MeetingControls: React.FC<MeetingControlsProps> = ({
                     title={captureDisabled ? '캡쳐 중입니다.' : '화면 캡쳐'}
                 >
                     화면 캡쳐
+                </button>
+                <button
+                    className="meeting-control"
+                    onClick={onExtendMeeting}
+                    disabled={!canExtendMeeting || extendDisabled}
+                    title={
+                        canExtendMeeting
+                            ? extendDisabled
+                                ? '최대 3시간까지 연장할 수 있습니다.'
+                                : '미팅 시간을 30분 연장합니다.'
+                            : '미팅을 시작한 사람만 연장할 수 있습니다.'
+                    }
+                >
+                    미팅 30분 추가
                 </button>
                 <button
                     className="meeting-control danger"

@@ -23,6 +23,7 @@ CREATE TABLE `user` (
     `leader_review_count` INT DEFAULT 0,          -- 스터디장 평가 수 (캐싱)
     `last_login_at` TIMESTAMP,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
@@ -402,9 +403,11 @@ CREATE TABLE `meeting` (
     `session_id` BIGINT,                         -- 연결된 스터디 세션
     `workspace_id` BIGINT,                         -- 음성 채널
     `title` VARCHAR(200),
+    `meeting_type` ENUM('DAILY', 'WEEKLY', 'FREE', 'OTHER') NOT NULL,
     `started_at` TIMESTAMP,
     `ended_at` TIMESTAMP,
     `duration_seconds` INT,
+    `planned_duration_seconds` INT,
     `participant_count` INT DEFAULT 0,
     `status` ENUM('WAITING', 'IN_PROGRESS', 'ENDED') DEFAULT 'WAITING',
     `recording_status`	ENUM('WAITING', 'RECORDING', 'READY', 'FAILED'),  -- 녹화 상태

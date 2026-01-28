@@ -8,6 +8,7 @@ import com.ssafy.domain.meeting.dto.request.MeetingActionItemRequest;
 import com.ssafy.domain.meeting.dto.request.MeetingKeywordUpdateRequest;
 import com.ssafy.domain.meeting.dto.request.MeetingMuteRequest;
 import com.ssafy.domain.meeting.dto.request.MeetingPhotoSelectionRequest;
+import com.ssafy.domain.meeting.dto.request.MeetingPlannedDurationRequest;
 import com.ssafy.domain.meeting.dto.request.MeetingRecordingRequest;
 import com.ssafy.domain.meeting.dto.request.MeetingRequest;
 import com.ssafy.domain.meeting.dto.request.MeetingSummaryUpdateRequest;
@@ -83,6 +84,17 @@ public class MeetingController {
         MeetingRoomEvent event = new MeetingRoomEvent(MeetingRoomEvent.Type.MEETING_ENDED, roomId);
         messagingTemplate.convertAndSend("/topic/rooms/" + roomId + "/events", event);
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PutMapping("/{meetingId}/duration")
+    public ResponseEntity<ApiResponse<MeetingDetailResponse>> updatePlannedDuration(
+            @PathVariable Long studyId,
+            @PathVariable Long meetingId,
+            @Valid @RequestBody MeetingPlannedDurationRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                meetingService.updatePlannedDuration(studyId, meetingId, request.plannedDurationSeconds())
+        ));
     }
 
     @PostMapping("/{meetingId}/join")

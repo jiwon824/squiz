@@ -61,6 +61,18 @@ export const meetingApi = {
         return data.data;
     },
 
+    async updatePlannedDuration(
+        studyId: number,
+        meetingId: number,
+        plannedDurationSeconds: number
+    ): Promise<MeetingDetailResponse> {
+        const { data } = await api.put<ApiResponse<MeetingDetailResponse>>(
+            `${buildMeetingPath(studyId, meetingId)}/duration`,
+            { plannedDurationSeconds }
+        );
+        return data.data;
+    },
+
     async joinMeeting(studyId: number, meetingId: number): Promise<MeetingJoinResponse> {
         const { data } = await api.post<ApiResponse<MeetingJoinResponse>>(
             `${buildMeetingPath(studyId, meetingId)}/join`
