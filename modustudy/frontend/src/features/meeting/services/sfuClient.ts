@@ -82,11 +82,19 @@ export const createSfuClient = (baseUrl: string) => {
 
         console.log('[sfu] existingProducers', joinData.existingProducers);
         if (joinData.existingProducers) {
-            for (const info of joinData.existingProducers as Array<{ producerId: string; peerId: string; kind: string }>) {
-                const consumerData = await consume(info.producerId);
-                if (consumerData && onNewConsumer) {
-                    onNewConsumer({ ...consumerData, peerId: info.peerId, kind: info.kind as 'audio' | 'video' });
-                }
+            const producers = joinData.existingProducers as Array<{ producerId: string; peerId: string; kind: string }>;
+            // 기존 producer를 병렬로 consume하여 초기 로딩 시간 단축
+            const results = await Promise.allSettled(
+                producers.map(async (info) => {
+                    const consumerData = await consume(info.producerId);
+                    if (consumerData && onNewConsumer) {
+                        onNewConsumer({ ...consumerData, peerId: info.peerId, kind: info.kind as 'audio' | 'video' });
+                    }
+                })
+            );
+            const failed = results.filter((r) => r.status === 'rejected');
+            if (failed.length > 0) {
+                console.warn('[sfu] some consumers failed', failed.length, '/', producers.length);
             }
         }
     };
