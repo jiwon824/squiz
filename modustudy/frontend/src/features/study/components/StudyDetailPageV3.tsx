@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     Heart, Users, Clock, MapPin,
     Target, Award, AlertTriangle, Share2,
-    BookOpen, ChevronRight, Monitor, Handshake, Layers
+    BookOpen, ChevronRight, Monitor, Handshake, Layers, MoreVertical
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { studyService, Study } from '../services/studyService';
@@ -34,6 +34,8 @@ const StudyDetailPageV3: React.FC = () => {
     const navigate = useNavigate();
     const [study, setStudy] = useState<Study | null>(null);
     const [isBookmarked, setIsBookmarked] = useState(false);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const menuRef = useRef<HTMLDivElement>(null);
 
     // DM 관련 스토어
     const { startConversationWith, fetchConversations } = useDMStore();
@@ -54,6 +56,23 @@ const StudyDetailPageV3: React.FC = () => {
             }
         }
     }, [id]);
+
+    // 메뉴 외부 클릭 감지
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+                setIsMenuOpen(false);
+            }
+        };
+
+        if (isMenuOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [isMenuOpen]);
 
     if (!study) return null;
 
@@ -136,166 +155,194 @@ const StudyDetailPageV3: React.FC = () => {
                                 스터디 상세
                             </span>
                         </div>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setIsReportModalOpen(true)}
-                            className="text-[var(--color-text-tertiary)] hover:text-[var(--color-error)] hover:bg-[var(--color-error-light)]"
-                        >
-                            <AlertTriangle size={16} className="mr-1.5" />
-                            <span className="text-xs font-semibold">신고</span>
-                        </Button>
                     </div>
 
                     {/* 메인 콘텐츠 */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         {/* 좌측: 스터디 정보 (2열) */}
-                        <div className="lg:col-span-2 space-y-6">
-                            {/* 헤더 카드 */}
-                            <div className="bg-white rounded-2xl border border-[var(--color-border)] p-6 md:p-8 shadow-sm">
-                                {/* 상단: 뱃지 + 액션 버튼 */}
-                                <div className="flex justify-between items-start gap-4 mb-4">
-                                    {/* 뱃지 영역 - 해시태그 스타일 */}
-                                    <div className="flex flex-wrap items-center gap-2">
-                                    <span className={cn(
-                                        "px-3 py-1 rounded-full text-xs font-bold",
-                                        statusConfig.color
-                                    )}>
-                                        {statusConfig.text}
-                                    </span>
-                                    <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[var(--color-primary-alpha-10)] text-[var(--color-primary)]">
-                                        # {getMeetingTypeText(study.meetingType)}
-                                    </span>
-                                    <span className={cn(
-                                        "px-3 py-1 rounded-full text-xs font-semibold",
-                                        study.difficulty === 'ADVANCED' && "bg-[#FCE8E6] text-[#EA4335]",
-                                        study.difficulty === 'INTERMEDIATE' && "bg-[#E8F0FE] text-[#4285F4]",
-                                        (study.difficulty === 'BEGINNER' || study.difficulty === 'ELEMENTARY') && "bg-[#E6F4EA] text-[#34A853]"
-                                    )}>
-                                        # {study.difficulty === 'ADVANCED' ? '고급' : study.difficulty === 'INTERMEDIATE' ? '중급' : '초급'}
-                                    </span>
-                                    <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[var(--color-background-secondary)] text-[var(--color-text-secondary)]">
-                                        # {study.topic}
-                                    </span>
-                                    </div>
+                        <div className="lg:col-span-2">
+                            {/* 통합 카드 */}
+                            <div className="bg-white rounded-2xl border border-[var(--color-border)] shadow-sm overflow-hidden">
+                                {/* 헤더 섹션 */}
+                                <div className="p-6 md:p-8">
+                                    {/* 상단: 뱃지 + 액션 버튼 */}
+                                    <div className="flex justify-between items-start gap-4 mb-4">
+                                        {/* 뱃지 영역 - 해시태그 스타일 */}
+                                        <div className="flex flex-wrap items-center gap-2">
+                                        <span className={cn(
+                                            "px-3 py-1 rounded-full text-xs font-bold",
+                                            statusConfig.color
+                                        )}>
+                                            {statusConfig.text}
+                                        </span>
+                                        <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[var(--color-primary-alpha-10)] text-[var(--color-primary)]">
+                                            # {getMeetingTypeText(study.meetingType)}
+                                        </span>
+                                        <span className={cn(
+                                            "px-3 py-1 rounded-full text-xs font-semibold",
+                                            study.difficulty === 'ADVANCED' && "bg-[#FCE8E6] text-[#EA4335]",
+                                            study.difficulty === 'INTERMEDIATE' && "bg-[#E8F0FE] text-[#4285F4]",
+                                            (study.difficulty === 'BEGINNER' || study.difficulty === 'ELEMENTARY') && "bg-[#E6F4EA] text-[#34A853]"
+                                        )}>
+                                            # {study.difficulty === 'ADVANCED' ? '고급' : study.difficulty === 'INTERMEDIATE' ? '중급' : '입문'}
+                                        </span>
+                                        <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[var(--color-background-secondary)] text-[var(--color-text-secondary)]">
+                                            # {study.topic}
+                                        </span>
+                                        </div>
 
-                                    {/* 액션 버튼 */}
-                                    <div className="flex items-center gap-1 flex-shrink-0">
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={handleBookmarkToggle}
-                                            className={cn(
-                                                "rounded-full",
-                                                isBookmarked
-                                                    ? "text-[var(--color-error)]"
-                                                    : "text-[var(--color-text-tertiary)] hover:text-[var(--color-error)]"
-                                            )}
-                                        >
-                                            <Heart size={20} fill={isBookmarked ? 'currentColor' : 'none'} />
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={handleShareLink}
-                                            className="text-[var(--color-text-tertiary)] hover:text-[var(--color-primary)] rounded-full"
-                                        >
-                                            <Share2 size={20} />
-                                        </Button>
-                                    </div>
-                                </div>
-
-                                {/* 타이틀 */}
-                                <h1 className="text-2xl md:text-3xl font-bold text-[var(--color-text-primary)] mb-3 leading-tight">
-                                    {study.name}
-                                </h1>
-
-                                {/* 설명 */}
-                                <p className="text-[var(--color-text-secondary)] leading-relaxed">
-                                    {study.description}
-                                </p>
-                            </div>
-
-                            {/* 모집 정보 카드 */}
-                            <div className="bg-white rounded-2xl border border-[var(--color-border)] p-6 md:p-8 shadow-sm">
-                                <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--color-text-primary)] mb-6">
-                                    <div className="p-2 bg-[var(--color-primary-alpha-10)] rounded-xl">
-                                        <Target size={18} className="text-[var(--color-primary)]" />
-                                    </div>
-                                    모집 정보
-                                </h2>
-
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                    <InfoRow
-                                        icon={<Users size={18} />}
-                                        label="모집 인원"
-                                        value={`${study.currentMembers} / ${study.maxMembers}명`}
-                                        highlight={study.currentMembers >= study.maxMembers ? '마감' : undefined}
-                                    />
-                                    <InfoRow
-                                        icon={
-                                            study.meetingType === 'ONLINE' ? <Monitor size={18} /> :
-                                            study.meetingType === 'OFFLINE' ? <Handshake size={18} /> :
-                                            <Layers size={18} />
-                                        }
-                                        label="진행 방식"
-                                        value={getMeetingTypeText(study.meetingType)}
-                                    />
-                                    <InfoRow
-                                        icon={<MapPin size={18} />}
-                                        label="활동 지역"
-                                        value={
-                                            study.meetingType === 'ONLINE'
-                                                ? '전국'
-                                                : study.region?.name || getRegionById(study.regionId!)?.name || '미지정'
-                                        }
-                                    />
-                                    <InfoRow
-                                        icon={<Clock size={18} />}
-                                        label="모임 시간"
-                                        value={study.scheduleTime ? study.scheduleTime.substring(0, 5) : '협의 후 결정'}
-                                    />
-                                </div>
-                            </div>
-
-                            {/* 커리큘럼 카드 */}
-                            <div className="bg-white rounded-2xl border border-[var(--color-border)] p-6 md:p-8 shadow-sm">
-                                <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--color-text-primary)] mb-6">
-                                    <div className="p-2 bg-[var(--color-primary-alpha-10)] rounded-xl">
-                                        <BookOpen size={18} className="text-[var(--color-primary)]" />
-                                    </div>
-                                    스터디 커리큘럼
-                                </h2>
-
-                                {study.curriculum && study.curriculum.length > 0 ? (
-                                    <div className="space-y-3">
-                                        {study.curriculum.map((item, index) => (
-                                            <div
-                                                key={index}
-                                                className="flex items-start gap-4 p-4 bg-[var(--color-background)] rounded-xl border border-[var(--color-border-lighter)] hover:border-[var(--color-primary-alpha-20)] transition-colors"
+                                        {/* 액션 버튼 */}
+                                        <div className="flex items-center gap-1 flex-shrink-0">
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={handleBookmarkToggle}
+                                                className={cn(
+                                                    "rounded-full",
+                                                    isBookmarked
+                                                        ? "text-[var(--color-error)]"
+                                                        : "text-[var(--color-text-tertiary)] hover:text-[var(--color-error)]"
+                                                )}
                                             >
-                                                <div className="flex-shrink-0 w-12 h-12 bg-[var(--color-primary-alpha-10)] rounded-xl flex flex-col items-center justify-center">
-                                                    <span className="text-[10px] font-bold text-[var(--color-text-tertiary)] uppercase">Week</span>
-                                                    <span className="text-lg font-bold text-[var(--color-primary)]">{item.week}</span>
-                                                </div>
-                                                <div className="flex-1 pt-1">
-                                                    <p className="text-[var(--color-text-primary)] font-medium leading-relaxed">
-                                                        {item.description}
-                                                    </p>
-                                                </div>
-                                                <ChevronRight size={18} className="text-[var(--color-text-muted)] flex-shrink-0 mt-3" />
+                                                <Heart size={20} fill={isBookmarked ? 'currentColor' : 'none'} />
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={handleShareLink}
+                                                className="text-[var(--color-text-tertiary)] hover:text-[var(--color-primary)] rounded-full"
+                                            >
+                                                <Share2 size={20} />
+                                            </Button>
+
+                                            {/* 케밥 메뉴 */}
+                                            <div className="relative" ref={menuRef}>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => setIsMenuOpen(!isMenuOpen)}
+                                                    className="text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] rounded-full"
+                                                >
+                                                    <MoreVertical size={20} />
+                                                </Button>
+
+                                                {/* 드롭다운 메뉴 */}
+                                                {isMenuOpen && (
+                                                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl border border-[var(--color-border)] shadow-lg z-50 overflow-hidden">
+                                                        <button
+                                                            onClick={() => {
+                                                                setIsReportModalOpen(true);
+                                                                setIsMenuOpen(false);
+                                                            }}
+                                                            className="w-full px-4 py-3 text-left text-sm font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-error-light)] hover:text-[var(--color-error)] transition-colors flex items-center gap-2"
+                                                        >
+                                                            <AlertTriangle size={16} />
+                                                            <span>신고하기</span>
+                                                        </button>
+                                                    </div>
+                                                )}
                                             </div>
-                                        ))}
+                                        </div>
                                     </div>
-                                ) : (
-                                    <div className="text-center py-8 text-[var(--color-text-secondary)]">
-                                        <Award size={40} className="mx-auto mb-3 text-[var(--color-text-muted)]" />
-                                        <p className="font-medium mb-1">아직 커리큘럼이 등록되지 않았습니다.</p>
-                                        <p className="text-sm text-[var(--color-text-tertiary)]">
-                                            스터디 진행 후 커리큘럼이 공개됩니다.
-                                        </p>
+
+                                    {/* 타이틀 */}
+                                    <h1 className="text-2xl md:text-3xl font-bold text-[var(--color-text-primary)] mb-4 leading-tight">
+                                        {study.name}
+                                    </h1>
+
+                                    {/* 설명 */}
+                                    <p className="text-[var(--color-text-secondary)] leading-relaxed">
+                                        {study.description}
+                                    </p>
+                                </div>
+
+                                {/* 구분선 */}
+                                <div className="mx-6 md:mx-8 border-t-2 border-gray-200" />
+
+                                {/* 모집 정보 섹션 */}
+                                <div className="p-6 md:p-8">
+                                    <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--color-text-primary)] mb-8">
+                                        <div className="p-2 bg-[var(--color-primary-alpha-10)] rounded-xl">
+                                            <Target size={18} className="text-[var(--color-primary)]" />
+                                        </div>
+                                        모집 정보
+                                    </h2>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                        <InfoRow
+                                            icon={<Users size={18} />}
+                                            label="모집 인원"
+                                            value={`${study.currentMembers} / ${study.maxMembers}명`}
+                                            highlight={study.currentMembers >= study.maxMembers ? '마감' : undefined}
+                                        />
+                                        <InfoRow
+                                            icon={
+                                                study.meetingType === 'ONLINE' ? <Monitor size={18} /> :
+                                                study.meetingType === 'OFFLINE' ? <Handshake size={18} /> :
+                                                <Layers size={18} />
+                                            }
+                                            label="진행 방식"
+                                            value={getMeetingTypeText(study.meetingType)}
+                                        />
+                                        <InfoRow
+                                            icon={<MapPin size={18} />}
+                                            label="활동 지역"
+                                            value={
+                                                study.meetingType === 'ONLINE'
+                                                    ? '전국'
+                                                    : study.region?.name || getRegionById(study.regionId!)?.name || '미지정'
+                                            }
+                                        />
+                                        <InfoRow
+                                            icon={<Clock size={18} />}
+                                            label="모임 시간"
+                                            value={study.scheduleTime ? study.scheduleTime.substring(0, 5) : '협의 후 결정'}
+                                        />
                                     </div>
-                                )}
+                                </div>
+
+                                {/* 구분선 */}
+                                <div className="mx-6 md:mx-8 border-t-2 border-gray-200" />
+
+                                {/* 커리큘럼 섹션 */}
+                                <div className="p-6 md:p-8">
+                                    <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--color-text-primary)] mb-8">
+                                        <div className="p-2 bg-[var(--color-primary-alpha-10)] rounded-xl">
+                                            <BookOpen size={18} className="text-[var(--color-primary)]" />
+                                        </div>
+                                        스터디 커리큘럼
+                                    </h2>
+
+                                    {study.curriculum && study.curriculum.length > 0 ? (
+                                        <div className="space-y-3">
+                                            {study.curriculum.map((item, index) => (
+                                                <div
+                                                    key={index}
+                                                    className="flex items-start gap-4 p-4 bg-[var(--color-background)] rounded-xl border border-[var(--color-border-lighter)] hover:border-[var(--color-primary-alpha-20)] transition-colors"
+                                                >
+                                                    <div className="flex-shrink-0 w-12 h-12 bg-[var(--color-primary-alpha-10)] rounded-xl flex flex-col items-center justify-center">
+                                                        <span className="text-[10px] font-bold text-[var(--color-text-tertiary)] uppercase">Week</span>
+                                                        <span className="text-lg font-bold text-[var(--color-primary)]">{item.week}</span>
+                                                    </div>
+                                                    <div className="flex-1 pt-1">
+                                                        <p className="text-[var(--color-text-primary)] font-medium leading-relaxed">
+                                                            {item.description}
+                                                        </p>
+                                                    </div>
+                                                    <ChevronRight size={18} className="text-[var(--color-text-muted)] flex-shrink-0 mt-3" />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-8 text-[var(--color-text-secondary)]">
+                                            <Award size={40} className="mx-auto mb-3 text-[var(--color-text-muted)]" />
+                                            <p className="font-medium mb-1">아직 커리큘럼이 등록되지 않았습니다.</p>
+                                            <p className="text-sm text-[var(--color-text-tertiary)]">
+                                                스터디 진행 후 커리큘럼이 공개됩니다.
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
 
