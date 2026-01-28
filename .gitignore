@@ -127,3 +127,4 @@ jacoco.xml
 **/.settings/
 modustudy/backend/src/main/java/com/ssafy/nul
 tmpclaude-*
+modustudy/ai-training/data_collection/nul

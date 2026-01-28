@@ -1,8 +1,13 @@
 package com.ssafy.domain.study.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.domain.study.dto.request.TemplateUsageLogRequest;
 import com.ssafy.domain.study.dto.response.TemplateUsageLogResponse;
 import com.ssafy.domain.study.service.TemplateUsageLogService;
+import com.ssafy.domain.user.entity.Profile;
+import com.ssafy.domain.user.entity.UserSchedule;
+import com.ssafy.domain.user.repository.ProfileRepository;
+import com.ssafy.domain.user.repository.UserScheduleRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -10,8 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * 템플릿 사용 로그 Controller
@@ -24,6 +28,9 @@ import java.util.Map;
 public class TemplateUsageLogController {
 
     private final TemplateUsageLogService templateUsageLogService;
+    private final ProfileRepository profileRepository;
+    private final UserScheduleRepository userScheduleRepository;
+    private final ObjectMapper objectMapper;
 
     /**
      * 템플릿 사용 로그 저장
@@ -36,9 +43,33 @@ public class TemplateUsageLogController {
 
         log.info("API 호출 - 템플릿 사용 로그: userId={}, templateId={}", userId, request.getTemplateId());
 
-        // TODO: 실제 구현 시 UserService에서 tech/schedule 조회
+        // 사용자 기술 스택 스냅샷
         Map<String, Object> userTechStack = null;
+        try {
+            Profile profile = profileRepository.findByUserId(userId).orElse(null);
+            if (profile != null && profile.getTech() != null) {
+                List<String> techList = objectMapper.readValue(profile.getTech(), List.class);
+                userTechStack = Map.of("tech", techList);
+            }
+        } catch (Exception e) {
+            log.warn("기술 스택 조회 실패 - userId: {}, error: {}", userId, e.getMessage());
+        }
+
+        // 사용자 가용 스케줄 스냅샷
         Map<String, Object> userSchedule = null;
+        try {
+            List<UserSchedule> schedules = userScheduleRepository.findByUserIdAndIsAvailableTrue(userId);
+            if (!schedules.isEmpty()) {
+                Map<String, Object> scheduleMap = new LinkedHashMap<>();
+                for (UserSchedule s : schedules) {
+                    scheduleMap.put(s.getDayOfWeek().name(),
+                            Map.of("start", s.getStartTime().toString(), "end", s.getEndTime().toString()));
+                }
+                userSchedule = scheduleMap;
+            }
+        } catch (Exception e) {
+            log.warn("스케줄 조회 실패 - userId: {}, error: {}", userId, e.getMessage());
+        }
 
         TemplateUsageLogResponse response = templateUsageLogService.logUsage(
                 request, userId, userTechStack, userSchedule);

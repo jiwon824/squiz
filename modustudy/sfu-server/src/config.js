@@ -29,6 +29,10 @@ const config = {
   rtcEnableUdp: String(process.env.RTC_ENABLE_UDP ?? 'true').toLowerCase() !== 'false',
   rtcEnableTcp: String(process.env.RTC_ENABLE_TCP ?? 'true').toLowerCase() !== 'false',
   rtcPreferUdp: String(process.env.RTC_PREFER_UDP ?? 'true').toLowerCase() !== 'false',
+  // TURN 서버 설정 (환경변수로 주입)
+  turnUrl: process.env.TURN_URL || '',
+  turnUsername: process.env.TURN_USERNAME || '',
+  turnCredential: process.env.TURN_CREDENTIAL || '',
   mediaCodecs: [
     {
       kind: 'audio',

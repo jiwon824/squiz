@@ -149,12 +149,23 @@ io.on('connection', (socket) => {
         }
       });
 
+      // TURN 서버 설정이 있으면 iceServers에 포함
+      const iceServers = [];
+      if (config.turnUrl) {
+        iceServers.push({
+          urls: config.turnUrl,
+          username: config.turnUsername,
+          credential: config.turnCredential
+        });
+      }
+
       callback({
         params: {
           id: transport.id,
           iceParameters: transport.iceParameters,
           iceCandidates: transport.iceCandidates,
-          dtlsParameters: transport.dtlsParameters
+          dtlsParameters: transport.dtlsParameters,
+          iceServers
         }
       });
     } catch (err) {

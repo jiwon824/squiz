@@ -2,10 +2,13 @@ package com.ssafy.domain.study.controller;
 
 import com.ssafy.domain.study.dto.request.StudyCreateRequest;
 import com.ssafy.domain.study.dto.request.StudyUpdateRequest;
+import com.ssafy.domain.study.dto.response.StudyRecommendDto;
 import com.ssafy.domain.study.dto.response.StudyResponse;
 import com.ssafy.domain.study.entity.Status;
 import com.ssafy.domain.study.entity.Study;
+import com.ssafy.domain.study.entity.StudyRecommendAction;
 import com.ssafy.domain.study.repository.StudySearchCondition;
+import com.ssafy.domain.study.service.StudyRecommendService;
 import com.ssafy.domain.study.service.StudyService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -19,6 +22,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/study")
@@ -26,6 +30,7 @@ import java.time.LocalDate;
 @Slf4j
 public class StudyController {
     private final StudyService studyService;
+    private final StudyRecommendService studyRecommendService;
 
     /**
      * 전체 스터디 목록 조회
@@ -130,11 +135,17 @@ public class StudyController {
      */
     @GetMapping("/{studyId}")
     public ResponseEntity<Study> getStudyDetail(
-            @PathVariable Long studyId) {
+            @PathVariable Long studyId,
+            @RequestHeader(value = "User-Id", required = false) Long userId) {
 
         log.info("API 호출 - 스터디 상세 조회: studyId={}", studyId);
 
         Study study = studyService.getStudyById(studyId);
+
+        // 추천 반응 자동 기록 (로그인 사용자가 추천에서 클릭한 경우)
+        if (userId != null) {
+            studyRecommendService.tryLogAction(userId, studyId, StudyRecommendAction.ActionType.CLICK);
+        }
 
         return ResponseEntity.ok(study);
     }
@@ -251,6 +262,42 @@ public class StudyController {
         StudyResponse response = studyService.extendRecruitment(studyId, request.getNewEndDate(), userId);
 
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 사용자 맞춤 스터디 참여 추천 (규칙 기반)
+     * GET /api/v1/study/recommend?limit=10
+     * 기술스택 + 일정 + 토픽 계층(연관 기술) + 스터디장 평점 기반 매칭
+     */
+    @GetMapping("/recommend")
+    public ResponseEntity<List<StudyRecommendDto>> getRecommendedStudies(
+            @RequestHeader("User-Id") Long userId,
+            @RequestParam(required = false, defaultValue = "10") Integer limit) {
+
+        log.info("API 호출 - 스터디 참여 추천: userId={}, limit={}", userId, limit);
+
+        List<StudyRecommendDto> recommendations = studyRecommendService.getRecommendedStudies(userId, limit);
+
+        log.info("API 응답 - 스터디 참여 추천: userId={}, count={}", userId, recommendations.size());
+
+        return ResponseEntity.ok(recommendations);
+    }
+
+    /**
+     * 특정 토픽 기반 스터디 참여 추천
+     * GET /api/v1/study/recommend/topic/{topicId}?limit=10
+     */
+    @GetMapping("/recommend/topic/{topicId}")
+    public ResponseEntity<List<StudyRecommendDto>> getRecommendedStudiesByTopic(
+            @RequestHeader("User-Id") Long userId,
+            @PathVariable Long topicId,
+            @RequestParam(required = false, defaultValue = "10") Integer limit) {
+
+        log.info("API 호출 - 토픽 기반 스터디 추천: userId={}, topicId={}, limit={}", userId, topicId, limit);
+
+        List<StudyRecommendDto> recommendations = studyRecommendService.getRecommendedStudiesByTopic(userId, topicId, limit);
+
+        return ResponseEntity.ok(recommendations);
     }
 
     /**

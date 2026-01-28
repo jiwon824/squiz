@@ -91,11 +91,37 @@ export interface ThemeSettings {
 }
 
 // ============================================
+// 스터디 선호 설정 타입
+// ============================================
+
+/** 가용 요일 */
+export type DayOfWeek = '월' | '화' | '수' | '목' | '금' | '토' | '일';
+
+/** 가용 시간대 */
+export type TimeSlot = 'morning' | 'afternoon' | 'evening' | 'night';
+
+/** 스터디 선호 설정 */
+export interface StudyPreference {
+    techStack: string[];
+    availableDays: DayOfWeek[];
+    preferredTimeSlot: TimeSlot | null;
+    preferredDurationWeeks: number; // 2~8
+}
+
+/** 스터디 선호 설정 저장 요청 */
+export interface StudyPreferenceUpdateRequest {
+    techStack: string[];
+    availableDays: string[];
+    preferredTimeSlot: string | null;
+    preferredDurationWeeks: number;
+}
+
+// ============================================
 // 설정 페이지 섹션 타입
 // ============================================
 
 /** 설정 섹션 타입 */
-export type SettingSection = 'notification' | 'account' | 'profile' | 'theme';
+export type SettingSection = 'notification' | 'account' | 'profile' | 'study' | 'theme';
 
 /** 사이드바 메뉴 아이템 */
 export interface SettingMenuItem {

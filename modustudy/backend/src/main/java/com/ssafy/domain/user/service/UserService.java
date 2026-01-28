@@ -1,7 +1,9 @@
 package com.ssafy.domain.user.service;
 
 import com.ssafy.domain.user.dto.request.ProfileSetupRequest;
+import com.ssafy.domain.user.dto.request.StudyPreferenceRequest;
 import com.ssafy.domain.user.dto.request.UserUpdateRequest;
+import com.ssafy.domain.user.dto.response.StudyPreferenceResponse;
 import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.dto.response.StatsResponse;
 
@@ -41,6 +43,14 @@ public interface UserService {
 
     StatsResponse getServiceStats();
 
+    /**
+     * 스터디 선호 설정 조회
+     */
+    StudyPreferenceResponse getStudyPreference(Long userId);
 
+    /**
+     * 스터디 선호 설정 수정
+     */
+    StudyPreferenceResponse updateStudyPreference(Long userId, StudyPreferenceRequest request);
 
 }
