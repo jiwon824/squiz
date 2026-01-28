@@ -13,7 +13,8 @@ public record SectionWithProgressDto(
         Boolean isUnlocked, // 해금 여부
         Boolean isPassed, // 통과 여부
         Integer bestScore, // 최고 점수 (null 가능)
-        Integer attemptCount // 시도 횟수
+        Integer attemptCount, // 시도 횟수
+        Long inProgressAttemptId // 진행 중인 시도 ID (null 가능)
 ) {
     /**
      * 기본 섹션 정보로부터 진행 상황이 없는 DTO를 생성한다.
@@ -39,7 +40,8 @@ public record SectionWithProgressDto(
                 isUnlocked,
                 false, // isPassed
                 null, // bestScore
-                0 // attemptCount
+                0, // attemptCount
+                null // inProgressAttemptId
         );
     }
 }

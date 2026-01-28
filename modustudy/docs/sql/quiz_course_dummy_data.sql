@@ -348,11 +348,15 @@ AS new_values ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_tex
 --     (1, 2, 1, 0, FALSE, '2025-01-20 14:00:00')   -- Network 코스: 섹션1 진행 중
 -- ON DUPLICATE KEY UPDATE `current_section` = VALUES(`current_section`);
 
--- 섹션 시도 기록 (완료된 시도)
--- INSERT INTO `user_section_attempt` (`id`, `user_id`, `section_id`, `status`, `score`, `correct_count`, `total_questions`, `is_passed`, `passed_at`, `started_at`, `submitted_at`)
+-- 섹션 시도 기록 (완료된 시도 예시)
+-- INSERT INTO `user_section_attempt` (
+--     `id`, `user_id`, `quiz_course_id`, `section_number`, 
+--     `status`, `score`, `correct_count`, `total_questions`, 
+--     `is_passed`, `completed_at`, `created_at`, `updated_at`, `version`
+-- )
 -- VALUES
---     (1, 1, 1, 1, 'SUBMITTED', 80, 8, 10, TRUE, '2025-01-15 11:30:00', '2025-01-15 10:00:00', '2025-01-15 11:30:00')
--- ON DUPLICATE KEY UPDATE `score` = VALUES(`score`);
+--     (1, 1, 1, 1, 'SUBMITTED', 80, 8, 10, TRUE, '2026-01-15 11:30:00', NOW(), NOW(), 0)
+-- ON DUPLICATE KEY UPDATE `score` = VALUES(`score`), `version` = VALUES(`version`);
 
 -- =============================================================================
 -- 끝 (END)

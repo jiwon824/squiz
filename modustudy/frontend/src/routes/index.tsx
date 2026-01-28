@@ -167,6 +167,10 @@ export const AppRouter = () => {
                     path="/quiz-practice/:courseId/section/:sectionNumber/session"
                     element={<QuizSessionPage />}
                 />
+                <Route
+                    path="/quiz-practice/:courseId/section/:sectionNumber/session/:attemptId"
+                    element={<QuizSessionPage />}
+                />
 
                 {/* 스터디 */}
                 <Route path="/study" element={<StudyPage />} />

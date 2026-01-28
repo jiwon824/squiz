@@ -76,6 +76,7 @@ export interface SectionWithProgress extends SectionInfo {
     isPassed: boolean;
     bestScore: number | null;
     attemptCount: number;
+    inProgressAttemptId: number | null;
 }
 
 /** 사용자 진행 상황 */
@@ -105,7 +106,8 @@ export interface AttemptQuestion {
     questionText: string;
     questionType: 'MULTIPLE_CHOICE' | 'MULTIPLE_CHOICE_MULTIPLE' | 'SHORT_ANSWER';
     options: QuestionOption[] | null;
-    savedAnswer: string | string[] | null;
+    /** 사용자 답안 (임시 저장된 값, null이면 미답변) - Backend field: userAnswer */
+    userAnswer: string | null;
 }
 
 /** 섹션 시도 시작/재개 응답 */
@@ -204,11 +206,11 @@ export interface CourseProgressDetailData {
     sectionDetails: SectionDetail[];
 }
 
-/** 답안 저장 요청 */
+/** 답안 저장 요청 (answer is always serialized as string for backend compatibility) */
 export interface SaveAnswerRequest {
     answer: {
         questionId: number;
-        answer: string | string[];
+        answer: string;
     };
 }
 
@@ -276,6 +278,25 @@ export const startOrResumeAttempt = async (
 };
 
 /**
+ * 특정 시도 재개 (명시적 attemptId 사용)
+ * POST /api/v1/quiz-courses/{courseId}/sections/{sectionNumber}/attempts/{attemptId}
+ * 인증: 필요
+ */
+export const resumeAttempt = async (
+    courseId: number,
+    sectionNumber: number,
+    attemptId: number
+): Promise<AttemptData> => {
+    const response = await api.post<ApiResponse<AttemptData>>(
+        `/api/v1/quiz-courses/${courseId}/sections/${sectionNumber}/attempts/${attemptId}`
+    );
+    if (!response.data.success) {
+        throw new Error(response.data.error?.message || '퀴즈를 재개하는데 실패했습니다.');
+    }
+    return response.data.data;
+};
+
+/**
  * 단일 답안 실시간 저장
  * PATCH /api/v1/quiz-courses/{courseId}/sections/{sectionNumber}/attempts/{attemptId}/answers
  * 인증: 필요
@@ -287,10 +308,16 @@ export const saveAnswer = async (
     questionId: number,
     answer: string | string[]
 ): Promise<void> => {
+    // Backend DTO expects a String, not an Array.
+    // For MULTIPLE_CHOICE_MULTIPLE questions, the frontend stores answers as string[]
+    // (e.g., ["A", "B"]). We must serialize this to a comma-separated string
+    // (e.g., "A,B") before sending to avoid Jackson deserialization failure (500 error).
+    const serializedAnswer = Array.isArray(answer) ? answer.join(',') : answer;
+
     const request: SaveAnswerRequest = {
         answer: {
             questionId,
-            answer,
+            answer: serializedAnswer,
         },
     };
     const response = await api.patch<ApiResponse<null>>(
