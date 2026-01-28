@@ -2,10 +2,7 @@ import { lazy, Suspense, useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { Skeleton } from '../shared/components';
 
-// 즉시 로드: 랜딩 및 핵심 페이지
-import { StartPage } from '../features/start/StartPage';
-import { Dashboard, CalendarExpandWidget, DashboardSkeleton } from '../features/dashboard';
-// Dashboard V2 imports (내 브랜치)
+// Dashboard V2 (메인 대시보드)
 import { DashboardV2, GuestDashboardV2, UserDashboardV2 } from '../features/dashboard-v2';
 import { StudyAfterQuiz } from '../features/dashboard-v2/pages/StudyAfterQuiz';
 import { STTReportPage } from '../features/dashboard-v2/pages/STTReportPage';
@@ -139,22 +136,11 @@ export const AppRouter = () => {
     return (
         <Suspense fallback={<div className="p-6"><Skeleton variant="rect" height="100vh" /></div>}>
             <Routes>
-                {/* 즉시 로드 페이지 */}
-                <Route path="/" element={<StartPage />} />
-                <Route path="/startpage" element={<StartPage />} />
-                <Route
-                    path="/dashboard"
-                    element={
-                        <Suspense fallback={<DashboardSkeleton />}>
-                            <Dashboard />
-                        </Suspense>
-                    }
-                />
-                {/* Dashboard V2 (내 브랜치) */}
-                <Route path="/dashboard-v2" element={<DashboardV2 />} />
-                <Route path="/dashboard-v2/guest" element={<GuestLayoutV2><GuestDashboardV2 /></GuestLayoutV2>} />
-                <Route path="/dashboard-v2/user" element={<UserLayoutV2><UserDashboardV2 /></UserLayoutV2>} />
-                <Route path="/calendar-expand" element={<CalendarExpandWidget />} />
+                {/* 메인 대시보드 (로그인 여부에 따라 Guest/User 자동 분기) */}
+                <Route path="/" element={<DashboardV2 />} />
+                <Route path="/dashboard" element={<DashboardV2 />} />
+                <Route path="/dashboard/guest" element={<GuestLayoutV2><GuestDashboardV2 /></GuestLayoutV2>} />
+                <Route path="/dashboard/user" element={<UserLayoutV2><UserDashboardV2 /></UserLayoutV2>} />
                 <Route path="/calendar" element={<CalendarPage />} />
                 <Route path="/test-calendar" element={<CalendarTestPage />} />
                 <Route path="/reuse-test" element={<ReuseTest />} />
