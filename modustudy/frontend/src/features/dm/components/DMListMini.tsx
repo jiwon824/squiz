@@ -48,48 +48,7 @@ const DMListMini: React.FC = () => {
 
     const [messageInput, setMessageInput] = useState('');
     const messagesRef = useRef<HTMLDivElement>(null);
-    const [showDemoChat, setShowDemoChat] = useState(false); // 데모 채팅방 표시 여부
-
-    // 🎨 임시 데모 데이터 (테스트용)
-    const DEMO_MODE = true;
-    const demoMessages = DEMO_MODE ? [
-        {
-            id: 1,
-            senderId: 100,
-            content: '안녕하세요! 오늘 스터디 몇 시에 시작하나요?',
-            createdAt: new Date(Date.now() - 3600000).toISOString(),
-        },
-        {
-            id: 2,
-            senderId: 999, // 나
-            content: '7시에 시작합니다! 준비 부탁드려요 😊',
-            createdAt: new Date(Date.now() - 3000000).toISOString(),
-        },
-        {
-            id: 3,
-            senderId: 100,
-            content: '네 알겠습니다. 자료는 미리 공유해주실 수 있나요?',
-            createdAt: new Date(Date.now() - 2400000).toISOString(),
-        },
-        {
-            id: 4,
-            senderId: 999,
-            content: '네, 지금 바로 공유해드릴게요. https://example.com/study-materials',
-            createdAt: new Date(Date.now() - 1800000).toISOString(),
-        },
-        {
-            id: 5,
-            senderId: 100,
-            content: '감사합니다! 🙏',
-            createdAt: new Date(Date.now() - 1200000).toISOString(),
-        },
-    ] : messages;
-
-    const demoConversation = DEMO_MODE ? {
-        id: 1,
-        participantId: 100,
-        participantNickname: '김철수',
-    } : conversations.find(c => c.id === currentConversationId);
+    const currentConversation = conversations.find(c => c.id === currentConversationId);
 
     // 메시지 목록 자동 스크롤 (DOM 업데이트 후 실행)
     useEffect(() => {
@@ -101,12 +60,10 @@ const DMListMini: React.FC = () => {
             }
         }, 0);
         return () => clearTimeout(timer);
-    }, [DEMO_MODE ? demoMessages.length : messages.length]);
+    }, [messages.length]);
 
     // 초기 데이터 로드 + WebSocket 연결
     useEffect(() => {
-        if (DEMO_MODE) return; // 데모 모드에서는 API 호출 안함
-
         fetchConversations();
         fetchUnreadCount();
         connectWebSocket();
@@ -119,13 +76,6 @@ const DMListMini: React.FC = () => {
     // 메시지 전송
     const handleSendMessage = async () => {
         if (!messageInput.trim()) return;
-
-        // 🎨 데모 모드: 메시지 전송 안함 (UI 확인용)
-        if (DEMO_MODE) {
-            alert('데모 모드입니다. 실제 메시지는 전송되지 않습니다.');
-            setMessageInput('');
-            return;
-        }
 
         // 새 대화 시작 모드
         if (pendingDMUser) {
@@ -145,9 +95,11 @@ const DMListMini: React.FC = () => {
         }
     };
 
-    // 시간 포맷팅 (백엔드는 서버 로컬 시간 LocalDateTime 반환)
+    // 시간 포맷팅 (백엔드 LocalDateTime은 UTC, 타임존 정보 없이 반환됨)
     const formatTime = (dateString: string) => {
-        const date = new Date(dateString);
+        // 타임존 정보가 없는 경우 UTC로 해석
+        const normalized = dateString.includes('Z') || dateString.includes('+') ? dateString : dateString + 'Z';
+        const date = new Date(normalized);
         const now = new Date();
         const diff = now.getTime() - date.getTime();
         const days = Math.floor(diff / (1000 * 60 * 60 * 24));
@@ -223,8 +175,7 @@ const DMListMini: React.FC = () => {
     }
 
     // 대화방 상세 보기
-    if ((DEMO_MODE && showDemoChat) || (!DEMO_MODE && currentConversationId)) {
-        const currentConversation = DEMO_MODE ? demoConversation : conversations.find(c => c.id === currentConversationId);
+    if (currentConversationId) {
 
         return (
             <div className="p-4 h-full flex flex-col">
@@ -232,7 +183,7 @@ const DMListMini: React.FC = () => {
                 <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-100">
                     <BackButton
                         variant="icon-only"
-                        onClick={() => DEMO_MODE ? setShowDemoChat(false) : setCurrentConversation(null)}
+                        onClick={() => setCurrentConversation(null)}
                     />
                     <div className={cn(
                         'w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs',
@@ -249,8 +200,8 @@ const DMListMini: React.FC = () => {
                         <div className="flex items-center justify-center py-8">
                             <Loader2 size={24} className="animate-spin text-gray-400" />
                         </div>
-                    ) : Array.isArray(DEMO_MODE ? demoMessages : messages) && (DEMO_MODE ? demoMessages : messages).length > 0 ? (
-                        (DEMO_MODE ? demoMessages : messages).map(msg => {
+                    ) : Array.isArray(messages) && messages.length > 0 ? (
+                        messages.map(msg => {
                             const isReceiver = msg.senderId === currentConversation?.participantId;
                             return (
                                 <div
@@ -347,9 +298,6 @@ const DMListMini: React.FC = () => {
     }
 
     // 대화방 목록
-    const displayConversations = DEMO_MODE
-        ? [{ id: 1, participantNickname: '김철수', lastMessage: '감사합니다! 🙏', lastMessageAt: new Date(Date.now() - 1200000).toISOString(), unreadCount: 0 }]
-        : conversations;
 
     return (
         <div className="p-4 h-full flex flex-col">
@@ -366,16 +314,16 @@ const DMListMini: React.FC = () => {
 
             {/* 대화방 목록 */}
             <div className="flex-1 overflow-y-auto">
-                {isLoadingConversations && displayConversations.length === 0 ? (
+                {isLoadingConversations && conversations.length === 0 ? (
                     <div className="flex items-center justify-center py-8">
                         <Loader2 size={24} className="animate-spin text-gray-400" />
                     </div>
-                ) : Array.isArray(displayConversations) && displayConversations.length > 0 ? (
+                ) : Array.isArray(conversations) && conversations.length > 0 ? (
                     <div className="space-y-1">
-                        {displayConversations.map(dm => (
+                        {conversations.map(dm => (
                             <div
                                 key={dm.id}
-                                onClick={() => DEMO_MODE ? setShowDemoChat(true) : setCurrentConversation(dm.id)}
+                                onClick={() => setCurrentConversation(dm.id)}
                                 className={cn(
                                     'flex flex-col p-2 rounded-lg transition-colors cursor-pointer group',
                                     'hover:bg-gray-50'

@@ -2,7 +2,7 @@ import React, { ButtonHTMLAttributes, ReactNode } from 'react';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 
-type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'dark' | 'google-primary' | 'google-outline' | 'google-ghost' | 'back-button' | 'arrow-transparent';
+type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'dark' | 'google-primary' | 'google-outline' | 'google-ghost' | 'back-button' | 'arrow-transparent' | 'text';
 type ButtonSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -39,6 +39,8 @@ const styles = {
         // 전용 네비게이션 버튼
         'back-button': 'bg-transparent text-gray-900 hover:bg-gray-100',
         'arrow-transparent': 'bg-transparent text-gray-700 hover:bg-gray-50 border-none shadow-none',
+        // 텍스트 전용 버튼 (배경 없음, 테두리 없음)
+        'text': 'bg-transparent border-none text-primary hover:text-primary-dark shadow-none',
     },
 };
 

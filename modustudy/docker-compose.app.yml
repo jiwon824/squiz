@@ -1,0 +1,110 @@
+# ===========================================
+# 애플리케이션 서비스
+# ===========================================
+
+services:
+  # ===========================================
+  # Frontend (Nginx + React)
+  # ===========================================
+  frontend:
+    image: tkdgns11/squiz-frontend:latest
+    container_name: squiz-frontend
+    expose:
+      - "80"
+    restart: unless-stopped
+    networks:
+      - squiz-network
+
+  # ===========================================
+  # Backend (Spring Boot - API + WebSocket)
+  # ===========================================
+  backend:
+    image: tkdgns11/squiz-backend:latest
+    container_name: squiz-backend
+    expose:
+      - "8080"
+    volumes:
+      - uploads-data:/app/uploads
+    environment:
+      - TZ=Asia/Seoul
+      - SPRING_PROFILES_ACTIVE=prod
+      - SPRING_DATASOURCE_URL=jdbc:mysql://squiz-mysql:3306/squiz?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul
+      - SPRING_DATASOURCE_USERNAME=${DB_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=squiz-redis
+      - REDIS_PORT=6379
+      - APP_DOMAIN=${APP_DOMAIN:-https://i14d106.p.ssafy.io}
+      - JWT_SECRET=${JWT_SECRET}
+      - KAKAO_REST_API_KEY=${KAKAO_REST_API_KEY}
+      - KAKAO_CLIENT_SECRET_KEY=${KAKAO_CLIENT_SECRET_KEY}
+      - NAVER_CLIENT_ID=${NAVER_CLIENT_ID}
+      - NAVER_CLIENT_SECRET=${NAVER_CLIENT_SECRET}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - APP_SFU_CONTROL_URL=http://squiz-sfu:4000
+      - APP_SFU_BASE_URL=wss://i14d106.p.ssafy.io
+      - APP_TURN_URL=turn:REMOVED_DB_HOST:443?transport=tcp
+      - APP_TURN_USERNAME=squiz
+      - APP_TURN_CREDENTIAL=squiz2025turn
+    restart: unless-stopped
+    networks:
+      - squiz-network
+
+  # ===========================================
+  # SFU Server (Mediasoup)
+  # ===========================================
+  sfu:
+    image: tkdgns11/squiz-sfu:latest
+    container_name: squiz-sfu
+    expose:
+      - "4000"
+      - "20000-21000"
+    volumes:
+      - uploads-data:/app/uploads
+    environment:
+      - NODE_ENV=production
+      - PORT=4000
+      - SFU_USE_HTTPS=false
+      - LISTEN_IP=0.0.0.0
+      # SFU_ANNOUNCED_IP 미설정 → 컨테이너 내부 IP 자동 감지 (TURN relay용)
+      - CORS_ORIGINS=*
+      - FFMPEG_PATH=ffmpeg
+      - RECORDINGS_BASE_PATH=/app/uploads
+      - RECORDING_RTP_IP=127.0.0.1
+      - RTC_ENABLE_UDP=true
+      - RTC_ENABLE_TCP=true
+      - RTC_PREFER_UDP=true
+      - TURN_URL=turn:REMOVED_DB_HOST:443?transport=tcp
+      - TURN_USERNAME=squiz
+      - TURN_CREDENTIAL=squiz2025turn
+    restart: unless-stopped
+    networks:
+      - squiz-network
+
+  # ===========================================
+  # CS Quiz AI Service (Flask)
+  # ===========================================
+  cs-quiz-ai:
+    image: tkdgns11/squiz-cs-quiz-ai:latest
+    container_name: squiz-cs-quiz-ai
+    expose:
+      - "5000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=5000
+      - DEBUG=False
+      - CORS_ORIGINS=https://i14d106.p.ssafy.io,http://localhost:5173
+    restart: unless-stopped
+    networks:
+      - squiz-network
+
+networks:
+  squiz-network:
+    external: true
+    name: squiz-network
+
+volumes:
+  uploads-data:
+    external: true
+    name: squiz-uploads
