@@ -1,0 +1,20 @@
+# AI 추론 서버 의존성
+
+# Web Framework
+fastapi>=0.109.0
+uvicorn>=0.27.0
+pydantic>=2.0.0
+python-multipart>=0.0.6
+
+# LLM 추론 - Dockerfile에서 GPU 버전 별도 설치
+# llama-cpp-python
+
+# Whisper STT - Dockerfile에서 별도 설치
+# faster-whisper
+
+# Redis Queue
+redis>=5.0.0
+rq>=1.16.0
+
+# 유틸리티
+httpx>=0.26.0

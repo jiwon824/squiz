@@ -234,6 +234,13 @@ public class StudyTemplateService {
         if (request.getDifficultyPreference() != null) {
             aiRequest.put("difficulty_preference", request.getDifficultyPreference());
         }
+        // 새로 추가: 사용자 입력 주제, 선호 기간
+        if (request.getTopicInput() != null) {
+            aiRequest.put("topic_input", request.getTopicInput());
+        }
+        if (request.getDurationWeeks() != null) {
+            aiRequest.put("duration_weeks", request.getDurationWeeks());
+        }
 
         try {
             HttpHeaders headers = new HttpHeaders();
@@ -259,6 +266,14 @@ public class StudyTemplateService {
                     .reason((String) result.get("reason"))
                     .tokensUsed(result.containsKey("tokens_used")
                             ? ((Number) result.get("tokens_used")).intValue() : 0)
+                    // 새로 추가된 필드들
+                    .name((String) result.get("name"))
+                    .intro((String) result.get("intro"))
+                    .description((String) result.get("description"))
+                    .prerequisites((String) result.get("prerequisites"))
+                    .processDetail((String) result.get("process_detail"))
+                    .curriculum(result.containsKey("curriculum")
+                            ? (List<Map<String, Object>>) result.get("curriculum") : null)
                     .build();
 
             log.info("AI 템플릿 추천 완료 - type: {}, topic: {}",
