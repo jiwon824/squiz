@@ -38,7 +38,7 @@
   color: var(--ws-text-tertiary);
   background-color: var(--ws-surface-hover);
   padding: 2px 8px;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
 }
 
 .material-area__actions {
@@ -53,7 +53,7 @@
   gap: 6px;
   padding: 8px 14px;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-2xl);
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
@@ -86,7 +86,7 @@
   width: 36px;
   height: 36px;
   border: 1px solid var(--ws-border);
-  border-radius: 6px;
+  border-radius: var(--radius-lg);
   background-color: var(--ws-bg);
   color: var(--ws-text-secondary);
   cursor: pointer;
@@ -125,7 +125,7 @@
   gap: 8px;
   background-color: var(--ws-bg);
   border: 1px solid var(--ws-border);
-  border-radius: 6px;
+  border-radius: var(--radius-xl);
   padding: 6px 12px;
   flex: 1;
   min-width: 200px;
@@ -169,7 +169,7 @@
   gap: 4px;
   background-color: var(--ws-bg);
   padding: 3px;
-  border-radius: 6px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--ws-border);
 }
 
@@ -180,7 +180,7 @@
   font-size: 12px;
   font-weight: 500;
   color: var(--ws-text-tertiary);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -205,7 +205,7 @@
 .material-area__sort {
   padding: 6px 28px 6px 12px;
   border: 1px solid var(--ws-border);
-  border-radius: 6px;
+  border-radius: var(--radius-lg);
   background-color: var(--ws-bg);
   font-size: 12px;
   color: var(--ws-text-secondary);
@@ -221,7 +221,7 @@
   gap: 2px;
   background-color: var(--ws-bg);
   padding: 3px;
-  border-radius: 6px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--ws-border);
 }
 
@@ -230,7 +230,7 @@
   border: none;
   background: none;
   color: var(--ws-text-tertiary);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: all 0.15s ease;
   display: flex;
@@ -332,7 +332,7 @@
 .material-area__error button {
   padding: 8px 16px;
   border: 1px solid #ef4444;
-  border-radius: 6px;
+  border-radius: var(--radius-2xl);
   background-color: transparent;
   color: #ef4444;
   font-size: 13px;
@@ -355,7 +355,7 @@
   flex-direction: column;
   background-color: var(--ws-surface);
   border: 1px solid var(--ws-border);
-  border-radius: 8px;
+  border-radius: var(--radius-2xl);
   padding: 16px;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -406,7 +406,7 @@
   font-size: 12px;
   font-weight: 500;
   padding: 4px 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .material-card__type--link {
@@ -435,7 +435,7 @@
   color: var(--ws-text-tertiary);
   background-color: var(--ws-surface-hover);
   padding: 3px 8px;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
 }
 
 /* 카드 본문 */
@@ -519,7 +519,7 @@
   justify-content: center;
   background-color: var(--ws-surface-hover);
   border: none;
-  border-radius: 6px;
+  border-radius: 50%;
   color: var(--ws-text-secondary);
   cursor: pointer;
   opacity: 0;
@@ -576,7 +576,7 @@
 
 .material-modal {
   background-color: var(--ws-surface, #ffffff);
-  border-radius: 12px;
+  border-radius: var(--radius-2xl);
   width: 100%;
   max-width: 480px;
   max-height: 90vh;
@@ -617,7 +617,7 @@
   justify-content: center;
   background: none;
   border: none;
-  border-radius: 6px;
+  border-radius: 50%;
   color: var(--ws-text-tertiary);
   cursor: pointer;
   transition: all 0.15s ease;
@@ -638,7 +638,7 @@
 /* 드롭존 */
 .material-modal__dropzone {
   border: 2px dashed var(--ws-border);
-  border-radius: 8px;
+  border-radius: var(--radius-xl);
   padding: 32px;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -718,7 +718,7 @@
   justify-content: center;
   background: none;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   color: var(--ws-text-tertiary);
   cursor: pointer;
 }
@@ -745,7 +745,7 @@
 .material-modal__field textarea {
   padding: 10px 12px;
   border: 1px solid var(--ws-border);
-  border-radius: 6px;
+  border-radius: var(--radius-xl);
   background-color: var(--ws-bg);
   font-size: 14px;
   color: var(--ws-text-primary);
@@ -775,7 +775,7 @@
   gap: 8px;
   padding: 10px 12px;
   background-color: rgba(239, 68, 68, 0.1);
-  border-radius: 6px;
+  border-radius: var(--radius-lg);
   color: #ef4444;
   font-size: 13px;
 }
@@ -794,7 +794,7 @@
 .material-modal__actions .btn-submit {
   padding: 10px 20px;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-2xl);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -830,7 +830,7 @@
   gap: 6px;
   padding: 10px 16px;
   border: 1px solid var(--ws-border);
-  border-radius: 6px;
+  border-radius: var(--radius-2xl);
   background-color: var(--ws-surface);
   color: var(--ws-text-secondary);
   font-size: 14px;
@@ -913,7 +913,7 @@
 
 .material-detail__description {
   background-color: var(--ws-bg);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   padding: 16px;
 }
 
@@ -931,7 +931,7 @@
   gap: 10px;
   padding: 12px 16px;
   background-color: var(--ws-bg);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--ws-border);
 }
 
@@ -962,7 +962,7 @@
   gap: 10px;
   padding: 12px 16px;
   background-color: var(--ws-bg);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--ws-border);
 }
 
@@ -986,7 +986,7 @@
 }
 
 .material-detail__image-preview {
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   background-color: var(--ws-bg);
   display: flex;
@@ -1053,7 +1053,7 @@
 
 .comment-item {
   background-color: var(--ws-bg);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   padding: 12px;
 }
 
@@ -1113,7 +1113,7 @@
   height: 24px;
   background: none;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   color: var(--ws-text-tertiary);
   cursor: pointer;
   transition: all 0.15s ease;
@@ -1142,7 +1142,7 @@
   flex: 1;
   padding: 10px 12px;
   border: 1px solid var(--ws-border);
-  border-radius: 6px;
+  border-radius: var(--radius-xl);
   background-color: var(--ws-bg);
   font-size: 13px;
   color: var(--ws-text-primary);
@@ -1171,7 +1171,7 @@
   height: 40px;
   background-color: var(--color-primary);
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-lg);
   color: white;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -1272,7 +1272,7 @@
   color: var(--ws-text-secondary);
   background-color: var(--ws-surface-hover);
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -1299,7 +1299,7 @@
   gap: 8px;
   padding: 8px 12px;
   cursor: pointer;
-  border-radius: 6px;
+  border-radius: var(--radius-lg);
   transition: all 0.15s ease;
   user-select: none;
 }
@@ -1320,7 +1320,7 @@
   height: 24px;
   background: none;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   color: var(--ws-text-tertiary);
   cursor: pointer;
   transition: all 0.15s ease;
@@ -1357,7 +1357,7 @@
   color: var(--ws-text-tertiary);
   background-color: var(--ws-surface-hover);
   padding: 2px 8px;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
 }
 
 /* 폴더 내용 */
@@ -1376,7 +1376,7 @@
   gap: 12px;
   padding: 10px 12px;
   cursor: pointer;
-  border-radius: 6px;
+  border-radius: var(--radius-lg);
   transition: all 0.15s ease;
 }
 
