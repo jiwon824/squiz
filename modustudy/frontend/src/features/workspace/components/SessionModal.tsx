@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Modal, Button, Input, DatePicker, TimePicker } from '@/shared/components';
+import { useState, useEffect, useRef } from 'react';
+import { Modal, Button, Input } from '@/shared/components';
 import { sessionApi, type StudySessionResponse, type SessionCreateRequest } from '@/api/endpoints/sessionApi';
 import { useUIStore } from '@/store/uiStore';
 import { cn } from '@/shared/utils/cn';
@@ -12,6 +12,200 @@ import {
   Globe,
   Monitor,
 } from 'lucide-react';
+
+/**
+ * 세션 모달 전용 네이티브 날짜 선택기
+ * Modal의 overflow-hidden 문제를 피하기 위해 네이티브 input 사용
+ */
+const SessionDatePicker: React.FC<{
+  value: string;
+  onChange: (date: string) => void;
+  disabled?: boolean;
+}> = ({ value, onChange, disabled }) => {
+  return (
+    <div className="relative w-full">
+      <input
+        type="date"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
+        className={cn(
+          'w-full px-3.5 py-2.5 h-[50px] bg-gray-50 border border-gray-200 rounded-2xl',
+          'text-sm font-bold text-gray-800 cursor-pointer',
+          'transition-all hover:bg-white hover:border-blue-300',
+          'focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white outline-none',
+          'disabled:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60',
+          '[&::-webkit-calendar-picker-indicator]:cursor-pointer',
+          '[&::-webkit-calendar-picker-indicator]:text-gray-400',
+          '[&::-webkit-calendar-picker-indicator]:hover:text-blue-500'
+        )}
+      />
+    </div>
+  );
+};
+
+/**
+ * 휠 컬럼 컴포넌트 - 스크롤로 숫자 선택
+ */
+const WheelColumn: React.FC<{
+  label: string;
+  values: number[];
+  selected: number;
+  onChange: (value: number) => void;
+}> = ({ label, values, selected, onChange }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // 휠 이벤트로 값 변경
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const currentIndex = values.indexOf(selected);
+    if (e.deltaY > 0) {
+      // 아래로 스크롤 - 다음 값
+      const nextIndex = Math.min(currentIndex + 1, values.length - 1);
+      onChange(values[nextIndex]);
+    } else {
+      // 위로 스크롤 - 이전 값
+      const prevIndex = Math.max(currentIndex - 1, 0);
+      onChange(values[prevIndex]);
+    }
+  };
+
+  return (
+    <div className="flex-1 flex flex-col items-center">
+      <div className="text-[10px] font-bold text-gray-400 mb-1">{label}</div>
+      <div
+        ref={containerRef}
+        onWheel={handleWheel}
+        className="relative h-[100px] w-full flex flex-col items-center justify-center cursor-ns-resize select-none"
+      >
+        {/* 이전 값 (흐리게) */}
+        <div className="text-gray-300 text-sm h-7 flex items-center">
+          {values[values.indexOf(selected) - 1] !== undefined
+            ? String(values[values.indexOf(selected) - 1]).padStart(2, '0')
+            : ''}
+        </div>
+
+        {/* 현재 선택된 값 */}
+        <div className="bg-blue-500 text-white font-bold text-lg rounded-lg px-4 py-1 min-w-[50px] text-center">
+          {String(selected).padStart(2, '0')}
+        </div>
+
+        {/* 다음 값 (흐리게) */}
+        <div className="text-gray-300 text-sm h-7 flex items-center">
+          {values[values.indexOf(selected) + 1] !== undefined
+            ? String(values[values.indexOf(selected) + 1]).padStart(2, '0')
+            : ''}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/**
+ * 세션 모달 전용 휠 스타일 시간 선택기
+ */
+const SessionTimePicker: React.FC<{
+  value: string;
+  onChange: (time: string) => void;
+  disabled?: boolean;
+}> = ({ value, onChange, disabled }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  // 시간과 분 파싱
+  const [hour, minute] = value ? value.split(':').map(Number) : [19, 0];
+
+  // 시간/분 배열 생성
+  const hours = Array.from({ length: 24 }, (_, i) => i);
+  const minutes = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
+
+  // 분 값이 배열에 없으면 가장 가까운 값으로
+  const closestMinute = minutes.reduce((prev, curr) =>
+    Math.abs(curr - minute) < Math.abs(prev - minute) ? curr : prev
+  );
+
+  const handleHourChange = (h: number) => {
+    const newTime = `${String(h).padStart(2, '0')}:${String(closestMinute).padStart(2, '0')}`;
+    onChange(newTime);
+  };
+
+  const handleMinuteChange = (m: number) => {
+    const newTime = `${String(hour).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    onChange(newTime);
+  };
+
+  const formatTime = (h: number, m: number) => {
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  };
+
+  if (disabled) {
+    return (
+      <div className="w-full px-3.5 py-2.5 h-[50px] bg-gray-100 border border-gray-200 rounded-2xl flex items-center text-sm font-bold text-gray-500 cursor-not-allowed opacity-60">
+        <Clock size={16} className="mr-2 text-gray-400" />
+        {formatTime(hour, closestMinute)}
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative w-full">
+      {/* 트리거 버튼 */}
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={cn(
+          'w-full px-3.5 py-2.5 h-[50px] bg-gray-50 border border-gray-200 rounded-2xl',
+          'flex items-center text-sm font-bold text-gray-800 cursor-pointer',
+          'transition-all hover:bg-white hover:border-blue-300',
+          isOpen && 'ring-2 ring-blue-500/20 border-blue-500 bg-white'
+        )}
+      >
+        <Clock size={16} className={cn('mr-2 transition-colors', isOpen ? 'text-blue-500' : 'text-gray-400')} />
+        {formatTime(hour, closestMinute)}
+      </button>
+
+      {/* 휠 선택기 드롭다운 */}
+      {isOpen && (
+        <>
+          {/* 배경 클릭시 닫기 */}
+          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
+
+          {/* 드롭다운 */}
+          <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-xl shadow-lg p-3 w-full">
+            <div className="flex">
+              {/* 시간 휠 */}
+              <WheelColumn
+                label="시"
+                values={hours}
+                selected={hour}
+                onChange={handleHourChange}
+              />
+
+              {/* 구분선 */}
+              <div className="w-px bg-gray-200 mx-2" />
+
+              {/* 분 휠 */}
+              <WheelColumn
+                label="분"
+                values={minutes}
+                selected={closestMinute}
+                onChange={handleMinuteChange}
+              />
+            </div>
+
+            {/* 확인 버튼 */}
+            <button
+              type="button"
+              onClick={() => setIsOpen(false)}
+              className="w-full mt-3 py-2 bg-blue-500 text-white text-sm font-bold rounded-lg hover:bg-blue-600 transition-colors"
+            >
+              확인
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
 
 interface SessionModalProps {
   isOpen: boolean;
@@ -134,7 +328,8 @@ export const SessionModal: React.FC<SessionModalProps> = ({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} maxWidth="sm">
-      <div className="p-4 sm:p-5">
+      {/* overflow-visible 스타일로 DatePicker 드롭다운 표시 */}
+      <div className="p-4 sm:p-5" style={{ overflow: 'visible' }}>
         {/* 헤더 */}
         <div className="mb-4">
           <h2 className="text-lg font-bold text-gray-900">
@@ -186,12 +381,11 @@ export const SessionModal: React.FC<SessionModalProps> = ({
                 <CalendarIcon size={14} className="text-blue-500" />
                 날짜 *
               </label>
-              <div className={isReadOnly ? 'pointer-events-none opacity-60' : ''}>
-                <DatePicker
-                  value={date}
-                  onChange={(d) => setDate(d)}
-                />
-              </div>
+              <SessionDatePicker
+                value={date}
+                onChange={(d: string) => setDate(d)}
+                disabled={isReadOnly}
+              />
               {errors.date && (
                 <p className="text-xs text-red-500">{errors.date}</p>
               )}
@@ -201,12 +395,11 @@ export const SessionModal: React.FC<SessionModalProps> = ({
                 <Clock size={14} className="text-blue-500" />
                 시간 *
               </label>
-              <div className={isReadOnly ? 'pointer-events-none opacity-60' : ''}>
-                <TimePicker
-                  value={time}
-                  onChange={(t) => setTime(t)}
-                />
-              </div>
+              <SessionTimePicker
+                value={time}
+                onChange={(t: string) => setTime(t)}
+                disabled={isReadOnly}
+              />
               {errors.time && (
                 <p className="text-xs text-red-500">{errors.time}</p>
               )}
