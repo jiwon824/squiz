@@ -294,7 +294,12 @@ io.on('connection', (socket) => {
         await consumer.resume();
       }
       if (consumer.kind === 'video' && typeof consumer.requestKeyFrame === 'function') {
-        await consumer.requestKeyFrame();
+        try {
+          await consumer.requestKeyFrame();
+        } catch (e) {
+          // transport가 아직 연결 중일 때 keyFrame 요청 실패 가능 - 무시
+          console.warn('[webrtc] requestKeyFrame failed (transport may not be connected yet)', e.message);
+        }
       }
       callback({ resumed: true });
     } catch (err) {
@@ -385,6 +390,8 @@ createWorker()
     server.listen(config.port, () => {
       // eslint-disable-next-line no-console
       console.log(`SFU server listening on ${config.port}`);
+      // eslint-disable-next-line no-console
+      console.log(`SFU announcedIp: ${config.announcedIp}, listenIp: ${config.listenIp}`);
     });
   })
   .catch((err) => {
