@@ -1,14 +1,14 @@
 # ===========================================
-# Blue 환경 (Blue/Green 배포)
+# 애플리케이션 서비스
 # ===========================================
 
 services:
   # ===========================================
   # Frontend (Nginx + React)
   # ===========================================
-  nginx-blue:
+  frontend:
     image: tkdgns11/squiz-frontend:latest
-    container_name: squiz-nginx-blue
+    container_name: squiz-frontend
     expose:
       - "80"
     restart: unless-stopped
@@ -18,9 +18,9 @@ services:
   # ===========================================
   # Backend (Spring Boot - API + WebSocket)
   # ===========================================
-  backend-blue:
+  backend:
     image: tkdgns11/squiz-backend:latest
-    container_name: squiz-backend-blue
+    container_name: squiz-backend
     expose:
       - "8080"
     volumes:
@@ -42,7 +42,7 @@ services:
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
-      - APP_SFU_CONTROL_URL=http://squiz-sfu-blue:4000
+      - APP_SFU_CONTROL_URL=http://squiz-sfu:4000
       - APP_SFU_BASE_URL=wss://i14d106.p.ssafy.io
       - APP_TURN_URL=turn:REMOVED_DB_HOST:443?transport=tcp
       - APP_TURN_USERNAME=squiz
@@ -54,9 +54,9 @@ services:
   # ===========================================
   # SFU Server (Mediasoup)
   # ===========================================
-  sfu-blue:
+  sfu:
     image: tkdgns11/squiz-sfu:latest
-    container_name: squiz-sfu-blue
+    container_name: squiz-sfu
     expose:
       - "4000"
     ports:
@@ -87,9 +87,9 @@ services:
   # ===========================================
   # CS Quiz AI Service (Flask)
   # ===========================================
-  cs-quiz-ai-blue:
+  cs-quiz-ai:
     image: tkdgns11/squiz-cs-quiz-ai:latest
-    container_name: squiz-cs-quiz-ai-blue
+    container_name: squiz-cs-quiz-ai
     expose:
       - "5000"
     environment:
