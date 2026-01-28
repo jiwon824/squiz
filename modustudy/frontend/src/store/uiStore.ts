@@ -8,11 +8,15 @@ interface Toast {
     type: 'success' | 'error' | 'info' | 'warning';
 }
 
+// 사이드바 모드: full(전체) | mini(아이콘만) | closed(완전 닫힘)
+export type SidebarMode = 'full' | 'mini' | 'closed';
+
 interface UIState {
-    isSidebarOpen: boolean;
+    sidebarMode: SidebarMode;
     activeRightTab: 'friend' | 'dm' | 'meeting' | null;
     toasts: Toast[];
     toggleSidebar: () => void;
+    setSidebarMode: (mode: SidebarMode) => void;
     closeSidebar: () => void;
     toggleRightTab: (tab: 'friend' | 'dm' | 'meeting') => void;
     setActiveRightTab: (tab: 'friend' | 'dm' | 'meeting' | null) => void;
@@ -21,13 +25,16 @@ interface UIState {
 }
 
 export const useUIStore = create<UIState>((set, get) => ({
-    isSidebarOpen: false, // 기본값: 닫힘
+    sidebarMode: 'mini', // 기본값: 미니 모드
     activeRightTab: null,
     toasts: [],
     toggleSidebar: () => {
-        set({ isSidebarOpen: !get().isSidebarOpen }, false);
+        const current = get().sidebarMode;
+        // full → mini → full 순환
+        set({ sidebarMode: current === 'full' ? 'mini' : 'full' }, false);
     },
-    closeSidebar: () => set({ isSidebarOpen: false }, false),
+    setSidebarMode: (mode) => set({ sidebarMode: mode }, false),
+    closeSidebar: () => set({ sidebarMode: 'closed' }, false),
     toggleRightTab: (tab) =>
         set((state) => ({
             activeRightTab: state.activeRightTab === tab ? null : tab,

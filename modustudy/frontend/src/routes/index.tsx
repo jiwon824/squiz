@@ -137,7 +137,7 @@ export const AppRouter = () => {
                 <Route path="/dashboard" element={<DashboardV2 />} />
                 <Route path="/dashboard/guest" element={<GuestLayoutV2><GuestDashboardV2 /></GuestLayoutV2>} />
                 <Route path="/dashboard/user" element={<UserLayoutV2><UserDashboardV2 /></UserLayoutV2>} />
-                <Route path="/calendar" element={<CalendarPage />} />
+                <Route path="/calendar" element={<UserLayoutV2><CalendarPage /></UserLayoutV2>} />
                 <Route path="/test-calendar" element={<CalendarTestPage />} />
                 <Route path="/reuse-test" element={<ReuseTest />} />
                 {/* origin/dev 추가 */}

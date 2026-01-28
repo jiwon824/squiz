@@ -4,10 +4,12 @@ import { useCalendarData } from '@/features/calendar/hooks';
 import { UnifiedSchedule } from '@/features/calendar/types';
 import { Button } from '@/shared/components';
 import { Plus, Settings, ChevronLeft, ChevronRight } from 'lucide-react';
+import { TodayGoalsCard } from '@/features/dashboard-v2/components/TodayGoalsCard';
 
 /**
  * 캘린더 메인 페이지
  * - 통합 캘린더 (개인 일정 + 스터디 세션 + Google Calendar)
+ * - 하단에 오늘의 목표 위젯 포함
  */
 export const CalendarPage = () => {
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -84,98 +86,99 @@ export const CalendarPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* 헤더 */}
-            <header className="bg-white border-b sticky top-0 z-10">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex items-center justify-between h-16">
-                        <div>
-                            <h1 className="text-2xl font-bold text-gray-900">캘린더</h1>
-                            <p className="text-sm text-gray-500">
-                                모든 일정을 한눈에 관리하세요
-                            </p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <Button
-                                variant="outline"
-                                leftIcon={<Settings size={18} />}
-                                onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-                            >
-                                설정
-                            </Button>
-                            <Button
-                                variant="primary"
-                                leftIcon={<Plus size={18} />}
-                                onClick={handleAddClick}
-                            >
-                                일정 추가
-                            </Button>
-                        </div>
-                    </div>
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
+            {/* 페이지 헤더 - 디자인 시스템 통일 */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-6">
+                <div>
+                    <h2 className="text-3xl font-black text-text-primary tracking-tight mb-2">
+                        캘린더
+                    </h2>
+                    <p className="text-text-secondary font-medium">
+                        모든 일정을 한눈에 관리하세요
+                    </p>
                 </div>
-            </header>
+                <div className="flex items-center gap-3">
+                    <Button
+                        variant="outline"
+                        leftIcon={<Settings size={18} />}
+                        onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+                    >
+                        설정
+                    </Button>
+                    <Button
+                        variant="primary"
+                        leftIcon={<Plus size={20} />}
+                        onClick={handleAddClick}
+                    >
+                        일정 추가
+                    </Button>
+                </div>
+            </div>
 
             {/* 메인 컨텐츠 */}
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="flex gap-6">
-                    {/* 캘린더 영역 */}
-                    <div className="flex-1">
-                        {error && (
-                            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                                <p className="text-sm text-red-800">
-                                    ⚠️ 일정을 불러오는 중 오류가 발생했습니다.
-                                </p>
-                            </div>
-                        )}
-
-                        <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-                            {/* 캘린더 헤더 (월 변경) */}
-                            <div className="flex items-center justify-between p-4 border-b">
-                                <div className="flex items-center gap-2">
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={handlePrevMonth}
-                                        leftIcon={<ChevronLeft size={20} />}
-                                    />
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={handleNextMonth}
-                                        leftIcon={<ChevronRight size={20} />}
-                                    />
-                                </div>
-                                <h2 className="text-lg font-bold text-gray-900">
-                                    {currentDate.getFullYear()}년 {currentDate.getMonth() + 1}월
-                                </h2>
-                                <Button
-                                    variant="google-ghost"
-                                    size="sm"
-                                    onClick={handleToday}
-                                >
-                                    오늘
-                                </Button>
-                            </div>
-
-                            <Calendar
-                                currentDate={currentDate}
-                                schedules={schedules}
-                                onEventClick={handleScheduleClick}
-                                onDateClick={handleDateClick}
-                                onQuickAdd={handleQuickAdd}
-                                loading={loading}
-                            />
-                        </div>
-                    </div>
-
-                    {/* 사이드바 (설정 패널) */}
-                    {isSettingsOpen && (
-                        <div className="w-80 flex-shrink-0">
-                            <GoogleCalendarSync />
+            <div className="flex gap-6">
+                {/* 캘린더 영역 */}
+                <div className="flex-1">
+                    {error && (
+                        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                            <p className="text-sm text-red-800">
+                                일정을 불러오는 중 오류가 발생했습니다.
+                            </p>
                         </div>
                     )}
+
+                    <div className="bg-white rounded-2xl overflow-hidden border border-border-light">
+                        {/* 캘린더 헤더 (월 변경) */}
+                        <div className="flex items-center justify-between p-4 border-b border-border-light">
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={handlePrevMonth}
+                                    leftIcon={<ChevronLeft size={20} />}
+                                />
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={handleNextMonth}
+                                    leftIcon={<ChevronRight size={20} />}
+                                />
+                            </div>
+                            <h2 className="text-lg font-bold text-text-primary">
+                                {currentDate.getFullYear()}년 {currentDate.getMonth() + 1}월
+                            </h2>
+                            <Button
+                                variant="google-ghost"
+                                size="sm"
+                                onClick={handleToday}
+                            >
+                                오늘
+                            </Button>
+                        </div>
+
+                        <Calendar
+                            currentDate={currentDate}
+                            schedules={schedules}
+                            onEventClick={handleScheduleClick}
+                            onDateClick={handleDateClick}
+                            onQuickAdd={handleQuickAdd}
+                            loading={loading}
+                        />
+                    </div>
                 </div>
-            </main>
+
+                {/* 사이드바 (설정 패널) */}
+                {isSettingsOpen && (
+                    <div className="w-80 flex-shrink-0">
+                        <GoogleCalendarSync />
+                    </div>
+                )}
+            </div>
+
+            {/* 하단: 오늘의 목표 위젯 */}
+            <div className="mt-6 max-w-md">
+                <TodayGoalsCard />
+            </div>
 
             {/* 일정 추가/편집 모달 */}
             <ScheduleModal
