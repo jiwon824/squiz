@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { MainLayout } from '@/layouts/MainLayout';
+import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { meetingApi } from '../services/meetingApi';
 import {
     MeetingChatMessageResponse,
@@ -102,7 +102,7 @@ const MeetingRecordingPlaybackPage: React.FC = () => {
     const hasRecording = Boolean(recordingUrl);
 
     return (
-        <MainLayout>
+        <UserLayoutV2>
             <div className="meeting-recording-page">
                 <div className="meeting-recording-header">
                     <div>
@@ -200,7 +200,7 @@ const MeetingRecordingPlaybackPage: React.FC = () => {
                     </section>
                 </div>
             </div>
-        </MainLayout>
+        </UserLayoutV2>
     );
 };
 

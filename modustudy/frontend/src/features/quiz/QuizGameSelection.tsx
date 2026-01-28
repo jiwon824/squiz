@@ -137,7 +137,7 @@ export const QuizGameSelection = () => {
                                 <div className="mt-10 pt-6 border-t border-border-light/50 flex items-center justify-end">
                                     <div className={cn(
                                         "w-10 h-10 rounded-full flex items-center justify-center transform group-hover:translate-x-1 transition-all duration-500",
-                                        "bg-background-secondary group-hover:bg-primary group-hover:text-white"
+                                        "text-text-tertiary group-hover:text-primary"
                                     )}>
                                         <ChevronRight size={20} />
                                     </div>

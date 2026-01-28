@@ -56,7 +56,7 @@ const MeetingQuickAccess: React.FC = () => {
     };
 
     return (
-        <div className="h-full bg-white border-l border-gray-100 flex flex-col">
+        <div className="h-full bg-transparent flex flex-col">
             {/* 헤더 */}
             <div className="p-4 border-b border-gray-100">
                 <div className="flex items-center gap-2 text-study-blue">
@@ -168,26 +168,28 @@ export const RightSideBarV2: React.FC = () => {
     }, [activeRightTab, toggleRightTab]);
 
     return (
-        <div className="flex fixed right-0 top-16 bottom-0 z-40 pointer-events-none" ref={panelRef}>
+        <div className="flex h-full" ref={panelRef}>
             {/* 확장 패널 영역 */}
             <AnimatePresence>
                 {activeRightTab && (
                     <motion.div
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 20 }}
-                        transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-                        className="w-72 pointer-events-auto"
+                        initial={{ width: 0, opacity: 0 }}
+                        animate={{ width: 288, opacity: 1 }}
+                        exit={{ width: 0, opacity: 0 }}
+                        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                        className="overflow-hidden"
                     >
-                        {activeRightTab === 'friend' && <FriendListMini />}
-                        {activeRightTab === 'dm' && <DMListMini />}
-                        {activeRightTab === 'meeting' && <MeetingQuickAccess />}
+                        <div className="w-72 h-full">
+                            {activeRightTab === 'friend' && <FriendListMini />}
+                            {activeRightTab === 'dm' && <DMListMini />}
+                            {activeRightTab === 'meeting' && <MeetingQuickAccess />}
+                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>
 
             {/* 고정 아이콘 바 */}
-            <div className="w-14 h-full flex flex-col items-center py-4 gap-4 pointer-events-auto bg-slate-200">
+            <div className="w-14 h-full flex flex-col items-center py-4 gap-4 bg-slate-200">
                 {/* 미팅 버튼 (새로 추가!) */}
                 <button
                     onClick={() => toggleRightTab('meeting')}

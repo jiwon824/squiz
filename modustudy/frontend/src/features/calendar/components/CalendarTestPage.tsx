@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MainLayout } from '@/layouts/MainLayout';
+import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { Calendar } from './Calendar';
 import { ScheduleModal } from './ScheduleModal';
 import { ScheduleDetailModal } from './ScheduleDetailModal';
@@ -124,7 +124,7 @@ export const CalendarTestPage = () => {
     };
 
     return (
-        <MainLayout>
+        <UserLayoutV2>
             <div className="max-w-7xl mx-auto p-6">
                 {/* 헤더 */}
                 <div className="mb-8">
@@ -257,6 +257,6 @@ export const CalendarTestPage = () => {
                     setIsAddModalOpen(true);
                 }}
             />
-        </MainLayout>
+        </UserLayoutV2>
     );
 };

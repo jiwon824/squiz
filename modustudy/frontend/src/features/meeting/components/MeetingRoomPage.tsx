@@ -1,7 +1,7 @@
 ﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
-import { MainLayout } from '@/layouts/MainLayout';
+import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import MeetingControls from './MeetingControls';
@@ -1421,7 +1421,7 @@ const MeetingRoomPage: React.FC = () => {
 
     if (roomGuardStatus === 'blocked') {
         return (
-            <MainLayout>
+            <UserLayoutV2>
                 <div className="meeting-room meeting-room__blocked">
                     <div className="meeting-room__blocked-card">
                         <h1>회의 입장이 제한되었습니다</h1>
@@ -1439,23 +1439,23 @@ const MeetingRoomPage: React.FC = () => {
                         </div>
                     </div>
                 </div>
-            </MainLayout>
+            </UserLayoutV2>
         );
     }
     if (roomGuardStatus === 'checking') {
         return (
-            <MainLayout>
+            <UserLayoutV2>
                 <div className="meeting-room meeting-room__blocked">
                     <div className="meeting-room__blocked-card">
                         <p>{roomGuardMessage}</p>
                     </div>
                 </div>
-            </MainLayout>
+            </UserLayoutV2>
         );
     }
 
     return (
-        <MainLayout>
+        <UserLayoutV2>
             <div className="meeting-room">
                 <div className="meeting-room__meta">
                     <div className="meeting-room__meta-row">
@@ -1523,7 +1523,7 @@ const MeetingRoomPage: React.FC = () => {
                     </div>
                 </div>
             </div>
-        </MainLayout>
+        </UserLayoutV2>
     );
 };
 

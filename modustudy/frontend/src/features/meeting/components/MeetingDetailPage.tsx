@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { MainLayout } from '@/layouts/MainLayout';
+import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { useUIStore } from '@/store/uiStore';
 import { meetingApi } from '../services/meetingApi';
 import {
@@ -123,7 +123,7 @@ const MeetingDetailPage: React.FC = () => {
     };
 
     return (
-        <MainLayout>
+        <UserLayoutV2>
             <div className="meeting-detail">
                 <div className="meeting-detail__header">
                     <div>
@@ -221,7 +221,7 @@ const MeetingDetailPage: React.FC = () => {
                     </div>
                 </section>
             </div>
-        </MainLayout>
+        </UserLayoutV2>
     );
 };
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { MainLayout } from '@/layouts/MainLayout';
+import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import ManagementSidebar from './components/ManagementSidebar';
 import TeamDashboard from './components/TeamDashboard';
 import ApplicantManagement from './components/ApplicantManagement';
@@ -50,7 +50,7 @@ const StudyManagementPage: React.FC = () => {
     };
 
     return (
-        <MainLayout>
+        <UserLayoutV2>
             <div className="max-w-7xl mx-auto px-4 py-6">
                 {/* 헤더 */}
                 <header className="mb-8">
@@ -86,7 +86,7 @@ const StudyManagementPage: React.FC = () => {
                     </main>
                 </div>
             </div>
-        </MainLayout>
+        </UserLayoutV2>
     );
 };
 

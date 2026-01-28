@@ -198,6 +198,27 @@ function DistanceSpheres() {
 }
 
 /**
+ * 카메라 진동 애니메이션 컴포넌트
+ * 정면 기준 좌우로 부드럽게 왔다갔다
+ */
+interface CameraOscillationProps {
+    controlsRef: React.RefObject<any>;
+}
+
+function CameraOscillation({ controlsRef }: CameraOscillationProps) {
+    useFrame(({ clock }) => {
+        if (controlsRef.current) {
+            const t = clock.getElapsedTime();
+            // 좌우로 -45도 ~ +45도 사이를 부드럽게 왔다갔다 (0.2 = 느린 속도)
+            const angle = Math.sin(t * 0.2) * (Math.PI / 4);
+            controlsRef.current.setAzimuthalAngle(angle);
+            controlsRef.current.update();
+        }
+    });
+    return null;
+}
+
+/**
  * 3D 씬 컴포넌트
  */
 interface SceneProps {
@@ -205,6 +226,8 @@ interface SceneProps {
 }
 
 function Scene({ guesses }: SceneProps) {
+    const controlsRef = useRef<any>(null);
+
     return (
         <>
             <ambientLight intensity={0.6} />
@@ -256,14 +279,22 @@ function Scene({ guesses }: SceneProps) {
                 );
             })}
 
+            {/* 카메라 진동 애니메이션 */}
+            <CameraOscillation controlsRef={controlsRef} />
+
             <OrbitControls
+                ref={controlsRef}
                 enablePan={true}
                 enableZoom={true}
                 enableRotate={true}
-                autoRotate={true}
-                autoRotateSpeed={0.3}
+                autoRotate={false}
                 minDistance={0.5}
                 maxDistance={3}
+                // 회전 범위 제한: 정면 기준 좌우 ±60도, 상하 30도~150도
+                minAzimuthAngle={-Math.PI / 3}
+                maxAzimuthAngle={Math.PI / 3}
+                minPolarAngle={Math.PI / 6}
+                maxPolarAngle={5 * Math.PI / 6}
             />
         </>
     );
@@ -277,65 +308,71 @@ interface Embedding3DViewerProps {
 }
 
 const Embedding3DViewer: React.FC<Embedding3DViewerProps> = ({ guesses = [] }) => {
-    if (guesses.length === 0) {
-        return (
-            <div className="w-full h-[500px] bg-slate-900 rounded-xl flex items-center justify-center text-slate-400">
-                <div className="text-center">
-                    <span className="text-4xl">🌌</span>
-                    <p className="mt-2 text-sm">단어를 입력하면 3D 공간에서<br />정답과의 거리를 확인할 수 있어요!</p>
-                </div>
-            </div>
-        );
-    }
-
     const latestGuess = guesses[0];
-    const proximityMessage = getProximityMessage(latestGuess?.score || 0);
+    const proximityMessage = latestGuess ? getProximityMessage(latestGuess.score) : '';
+    const hasGuesses = guesses.length > 0;
 
     return (
         <div className="w-full">
-            <div className="w-full h-[500px] bg-slate-900 rounded-xl overflow-hidden relative">
+            <div className="w-full h-[400px] lg:h-[550px] bg-slate-900 rounded-2xl lg:rounded-3xl overflow-hidden relative">
+                {/* Canvas는 항상 렌더링 - Three.js 미리 초기화 */}
                 <Canvas camera={{ position: [1.5, 1.5, 1.5], fov: 50 }}>
                     <Scene guesses={guesses} />
                 </Canvas>
 
-                {/* 최신 시도 정보 오버레이 */}
-                <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-sm px-3 py-2 rounded-lg text-white text-sm">
-                    <div className="flex items-center gap-2">
-                        <span className="font-bold">{latestGuess?.word}</span>
-                        <span className="text-slate-300">→</span>
-                        <span style={{ color: getColorByScore(latestGuess?.score || 0) }}>
-                            {latestGuess?.score?.toFixed(1)}점
-                        </span>
+                {/* 데이터 없을 때 안내 오버레이 */}
+                {!hasGuesses && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-slate-900/70 backdrop-blur-sm">
+                        <p className="text-base lg:text-xl font-semibold text-white leading-relaxed text-center px-6">
+                            단어를 입력하면 3D 공간에서<br />정답과의 거리를 확인할 수 있어요!
+                        </p>
                     </div>
-                    <div className="text-xs text-slate-400 mt-1">{proximityMessage}</div>
-                </div>
+                )}
+
+                {/* 최신 시도 정보 오버레이 */}
+                {hasGuesses && (
+                    <div className="absolute bottom-3 lg:bottom-4 left-3 lg:left-4 bg-black/60 backdrop-blur-sm px-3 lg:px-4 py-2 lg:py-3 rounded-lg lg:rounded-xl text-white">
+                        <div className="flex items-center gap-2 lg:gap-3 text-sm lg:text-base">
+                            <span className="font-bold">{latestGuess?.word}</span>
+                            <span className="text-slate-300">→</span>
+                            <span className="font-semibold" style={{ color: getColorByScore(latestGuess?.score || 0) }}>
+                                {latestGuess?.score?.toFixed(1)}점
+                            </span>
+                        </div>
+                        <div className="text-xs lg:text-sm text-slate-400 mt-1">{proximityMessage}</div>
+                    </div>
+                )}
 
                 {/* 범례 */}
-                <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-sm px-2 py-1.5 rounded-lg text-xs text-white">
-                    <div className="flex items-center gap-1.5 mb-1">
-                        <span className="w-2 h-2 rounded-full" style={{ background: COLORS.answer }}></span>
-                        <span>정답 (중심)</span>
+                {hasGuesses && (
+                    <div className="absolute top-3 lg:top-4 right-3 lg:right-4 bg-black/60 backdrop-blur-sm px-3 lg:px-4 py-2 lg:py-3 rounded-lg lg:rounded-xl text-white">
+                        <div className="flex items-center gap-2 mb-1.5 text-xs lg:text-sm">
+                            <span className="w-2.5 h-2.5 lg:w-3 lg:h-3 rounded-full" style={{ background: COLORS.answer }}></span>
+                            <span>정답 (중심)</span>
+                        </div>
+                        <div className="flex items-center gap-2 mb-1.5 text-xs lg:text-sm">
+                            <span className="w-2.5 h-2.5 lg:w-3 lg:h-3 rounded-full" style={{ background: COLORS.user }}></span>
+                            <span>최신 입력</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs lg:text-sm">
+                            <span className="w-2.5 h-2.5 lg:w-3 lg:h-3 rounded-full" style={{ background: COLORS.history }}></span>
+                            <span>이전 시도</span>
+                        </div>
                     </div>
-                    <div className="flex items-center gap-1.5 mb-1">
-                        <span className="w-2 h-2 rounded-full" style={{ background: COLORS.user }}></span>
-                        <span>최신 입력</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full" style={{ background: COLORS.history }}></span>
-                        <span>이전 시도</span>
-                    </div>
-                </div>
+                )}
             </div>
 
             {/* 거리 가이드 - 6단계 */}
-            <div className="flex flex-wrap justify-center gap-3 mt-2 text-xs text-slate-500">
-                <span><span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: COLORS.perfect }}></span>해케르 (95+)</span>
-                <span><span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: COLORS.veryClose }}></span>매우 가까움 (85-94)</span>
-                <span><span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: COLORS.close }}></span>가까움 (70-84)</span>
-                <span><span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: COLORS.medium }}></span>중간 (50-69)</span>
-                <span><span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: COLORS.far }}></span>멀리 (30-49)</span>
-                <span><span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: COLORS.veryFar }}></span>매우 멀리 (0-29)</span>
-            </div>
+            {hasGuesses && (
+                <div className="flex flex-wrap justify-center gap-3 lg:gap-4 mt-3 lg:mt-4 text-xs lg:text-sm text-slate-500">
+                    <span><span className="inline-block w-2.5 h-2.5 lg:w-3 lg:h-3 rounded-full mr-1.5" style={{ background: COLORS.perfect }}></span>해커 (95+)</span>
+                    <span><span className="inline-block w-2.5 h-2.5 lg:w-3 lg:h-3 rounded-full mr-1.5" style={{ background: COLORS.veryClose }}></span>매우 가까움 (85-94)</span>
+                    <span><span className="inline-block w-2.5 h-2.5 lg:w-3 lg:h-3 rounded-full mr-1.5" style={{ background: COLORS.close }}></span>가까움 (70-84)</span>
+                    <span><span className="inline-block w-2.5 h-2.5 lg:w-3 lg:h-3 rounded-full mr-1.5" style={{ background: COLORS.medium }}></span>중간 (50-69)</span>
+                    <span><span className="inline-block w-2.5 h-2.5 lg:w-3 lg:h-3 rounded-full mr-1.5" style={{ background: COLORS.far }}></span>멀리 (30-49)</span>
+                    <span><span className="inline-block w-2.5 h-2.5 lg:w-3 lg:h-3 rounded-full mr-1.5" style={{ background: COLORS.veryFar }}></span>매우 멀리 (0-29)</span>
+                </div>
+            )}
         </div>
     );
 };
@@ -350,7 +387,7 @@ function getProximityMessage(score: number): string {
     if (score >= 70) return "👍 꽤 가까워요!";
     if (score >= 50) return "🤔 조금 멀어요...";
     if (score >= 30) return "❄️ 많이 멀어요...";
-    return "🌌 완전히 다른 방향이에요!";
+    return " 완전히 다른 방향이에요!";
 }
 
 export default Embedding3DViewer;

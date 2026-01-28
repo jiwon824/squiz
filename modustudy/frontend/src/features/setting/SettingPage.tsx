@@ -5,7 +5,7 @@
  */
 
 import { useEffect } from 'react';
-import { MainLayout } from '@/layouts/MainLayout';
+import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { useSettingStore } from './store/settingStore';
 import { SettingSidebar } from './components/SettingSidebar';
 import { NotificationSection } from './components/NotificationSection';
@@ -50,7 +50,7 @@ export const SettingPage = () => {
     };
 
     return (
-        <MainLayout>
+        <UserLayoutV2>
             <div className="setting-page">
                 <div className="setting-container">
                     {/* 좌측 네비게이션 */}
@@ -68,6 +68,6 @@ export const SettingPage = () => {
                     </main>
                 </div>
             </div>
-        </MainLayout>
+        </UserLayoutV2>
     );
 };
