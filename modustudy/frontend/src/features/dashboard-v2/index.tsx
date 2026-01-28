@@ -28,3 +28,9 @@ export { UserDashboardV2 } from './components/UserDashboardV2';
 export { STTReportWidget } from './components/STTReportWidget';
 export { AIQuizWidget } from './components/AIQuizWidget';
 export { LearningArchiveWidget } from './components/LearningArchiveWidget';
+export { TodayGoalsCard } from './components/TodayGoalsCard';
+export { GoalsEditModal } from './components/GoalsEditModal';
+
+// Store export (캘린더 등 다른 페이지에서 사용)
+export { useGoalsStore } from './store/goalsStore';
+export type { Goal } from './store/goalsStore';

@@ -6,6 +6,7 @@ import { useAuthStore } from '@/store/authStore';
 import { STTReportWidget } from './STTReportWidget';
 import { AIQuizWidget } from './AIQuizWidget';
 import { LearningArchiveWidget } from './LearningArchiveWidget';
+import { TodayGoalsCard } from './TodayGoalsCard';
 
 export const UserDashboardV2: React.FC = () => {
     const { user } = useAuthStore();
@@ -63,12 +64,9 @@ export const UserDashboardV2: React.FC = () => {
                 <LearningArchiveWidget />
 
                 {/* 추가 정보 카드 */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <InfoCard
-                        title="오늘 할 일"
-                        items={['React 스터디 준비', '퀴즈 복습', 'TypeScript 과제']}
-                        color="primary"
-                    />
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* 오늘의 목표 - Zustand store로 캘린더와 동기화 */}
+                    <TodayGoalsCard />
                     <InfoCard
                         title="다가오는 일정"
                         items={['React 스터디 (오늘 오후 7시)', 'TypeScript 스터디 (내일 오후 8시)']}
