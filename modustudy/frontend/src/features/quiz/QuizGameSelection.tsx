@@ -134,10 +134,7 @@ export const QuizGameSelection = () => {
                                 </div>
 
                                 {/* 시작하기 버튼부 */}
-                                <div className="mt-10 pt-6 border-t border-border-light/50 flex items-center justify-between">
-                                    <span className="text-xs font-black text-text-tertiary group-hover:text-primary transition-colors uppercase tracking-widest">
-                                        Let's Play
-                                    </span>
+                                <div className="mt-10 pt-6 border-t border-border-light/50 flex items-center justify-end">
                                     <div className={cn(
                                         "w-10 h-10 rounded-full flex items-center justify-center transform group-hover:translate-x-1 transition-all duration-500",
                                         "bg-background-secondary group-hover:bg-primary group-hover:text-white"
