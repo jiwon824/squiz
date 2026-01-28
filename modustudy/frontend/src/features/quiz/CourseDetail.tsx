@@ -68,6 +68,7 @@ const mapAuthenticatedSectionToUiSection = (apiSection: SectionWithProgress): Co
         isPassed: apiSection.isPassed,
         bestScore: apiSection.bestScore,
         attemptCount: apiSection.attemptCount,
+        inProgressAttemptId: apiSection.inProgressAttemptId,
     };
 };
 
@@ -87,6 +88,7 @@ const mapPublicSectionToUiSection = (
         isPassed: false,
         bestScore: null,
         attemptCount: 0,
+        inProgressAttemptId: null,
     };
 };
 
@@ -235,9 +237,20 @@ export const CourseDetail = () => {
             return;
         }
 
+        // 진행 중인 시도가 있는지 확인
+        const section = courseData.sections.find(s => s.sectionNumber === sectionNumber);
+        const attemptId = section?.inProgressAttemptId;
+
         // 로그인 사용자: 퀴즈 세션 페이지로 이동
-        console.log(`[CourseDetail] 퀴즈 시작: 코스 ${courseId}, 섹션 ${sectionNumber}`);
-        navigate(`/quiz-practice/${courseId}/section/${sectionNumber}/session`);
+        if (attemptId) {
+            // 명시적 attemptId로 재개
+            console.log(`[CourseDetail] 퀴즈 재개: 코스 ${courseId}, 섹션 ${sectionNumber}, attemptId ${attemptId}`);
+            navigate(`/quiz-practice/${courseId}/section/${sectionNumber}/session/${attemptId}`);
+        } else {
+            // 새 시도 시작
+            console.log(`[CourseDetail] 퀴즈 시작: 코스 ${courseId}, 섹션 ${sectionNumber}`);
+            navigate(`/quiz-practice/${courseId}/section/${sectionNumber}/session`);
+        }
     };
 
     // =========================================================================

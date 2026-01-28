@@ -428,20 +428,95 @@ class QuizSectionAttemptServiceTest {
                 /**
                  * 성공 케이스: 진행 중인 시도가 여러 개일 때 (중복 시도 자동 복구)
                  *
+                 * [리팩토링 반영] selectBestAttempt() 로직:
+                 * - 1차 기준: 답변한 문제 수가 가장 많은 시도
+                 * - 2차 기준 (동점): 가장 최근 생성된 시도
+                 *
                  * 검증 사항:
                  * - NonUniqueResultException이 발생하지 않아야 함
-                 * - 가장 최근 시도가 반환되어야 함
+                 * - 답변 수가 많은 시도가 반환되어야 함 (createdAt보다 우선)
                  * - 나머지 중복 시도는 포기(ABANDONED) 처리되어야 함
                  */
                 @Test
-                @DisplayName("성공: 진행 중인 시도가 여러 개일 때 - 중복 정리 후 최근 시도 반환")
-                void multipleInProgressAttempts_CleanupDuplicates() {
-                        // Given: 진행 중인 시도가 2개 존재 (오류 상황 시뮬레이션)
+                @DisplayName("성공: 진행 중인 시도가 여러 개일 때 - 답변 수 기준으로 선택")
+                void multipleInProgressAttempts_SelectByAnswerCount() {
+                        // Given: 진행 중인 시도가 2개 존재 (Race condition 시뮬레이션)
                         Long courseId = 1L;
                         Integer sectionNumber = 1;
                         Long userId = 1L;
 
-                        // 시도 1 (오래된 시도 - 중복)
+                        // 시도 1 (오래된 시도이지만 답변이 저장됨 - 보존되어야 함)
+                        UserSectionAttempt oldAttemptWithAnswers = UserSectionAttempt.builder()
+                                        .user(testUser)
+                                        .section(testSection)
+                                        .totalQuestions(10)
+                                        .build();
+                        ReflectionTestUtils.setField(oldAttemptWithAnswers, "id", 1L);
+                        ReflectionTestUtils.setField(oldAttemptWithAnswers, "createdAt",
+                                        java.time.LocalDateTime.now().minusHours(1));
+
+                        // 오래된 시도에 답변 2개 추가
+                        List<UserSectionAttemptQuestion> oldAttemptQuestions = new ArrayList<>();
+                        for (int i = 0; i < 2; i++) {
+                                UserSectionAttemptQuestion aq = UserSectionAttemptQuestion.builder()
+                                                .question(testQuestions.get(i))
+                                                .orderIndex(i + 1)
+                                                .build();
+                                aq.saveAnswer("answer" + i); // 답변 저장됨
+                                oldAttemptQuestions.add(aq);
+                        }
+                        ReflectionTestUtils.setField(oldAttemptWithAnswers, "attemptQuestions", oldAttemptQuestions);
+
+                        // 시도 2 (최신 시도이지만 답변 없음 - Race condition으로 생성된 빈 시도)
+                        UserSectionAttempt newEmptyAttempt = UserSectionAttempt.builder()
+                                        .user(testUser)
+                                        .section(testSection)
+                                        .totalQuestions(10)
+                                        .build();
+                        ReflectionTestUtils.setField(newEmptyAttempt, "id", 2L);
+                        ReflectionTestUtils.setField(newEmptyAttempt, "createdAt", java.time.LocalDateTime.now());
+                        ReflectionTestUtils.setField(newEmptyAttempt, "attemptQuestions", new ArrayList<>()); // 빈 리스트
+
+                        // Repository가 리스트 반환 (최신순 정렬 - 하지만 선택은 답변 수 기준)
+                        List<UserSectionAttempt> attempts = new ArrayList<>();
+                        attempts.add(newEmptyAttempt); // 최신이지만 빈 시도
+                        attempts.add(oldAttemptWithAnswers); // 오래됐지만 답변 있음
+
+                        given(sectionRepository.findByIdWithCourseAndQuestions(courseId, sectionNumber))
+                                        .willReturn(Optional.of(testSection));
+
+                        given(attemptRepository.findAllInProgressAttemptsWithQuestions(userId, courseId, sectionNumber))
+                                        .willReturn(attempts);
+
+                        // When: 시도 시작/재개
+                        SectionAttemptResponse response = quizSectionAttemptService
+                                        .startOrResumeAttempt(courseId, sectionNumber, userId);
+
+                        // Then: 답변이 있는 오래된 시도가 선택되었는지 확인 (데이터 유실 방지)
+                        assertThat(response.attemptId()).isEqualTo(oldAttemptWithAnswers.getId());
+
+                        // 빈 최신 시도는 ABANDONED 상태로 변경되었는지 확인
+                        assertThat(newEmptyAttempt.getStatus()).isEqualTo(AttemptStatus.ABANDONED);
+
+                        // 답변이 있는 시도는 여전히 IN_PROGRESS 상태인지 확인
+                        assertThat(oldAttemptWithAnswers.getStatus()).isEqualTo(AttemptStatus.IN_PROGRESS);
+                }
+
+                /**
+                 * 성공 케이스: 답변 수가 동일할 때 최신 시도 선택
+                 *
+                 * 검증 사항:
+                 * - 답변 수가 같으면 createdAt이 최신인 시도가 선택되어야 함
+                 */
+                @Test
+                @DisplayName("성공: 답변 수 동일 시 최신 시도 선택 (Tie-breaker)")
+                void multipleInProgressAttempts_TieBreaker() {
+                        // Given: 두 시도 모두 답변 수가 동일
+                        Long courseId = 1L;
+                        Integer sectionNumber = 1;
+                        Long userId = 1L;
+
+                        // 시도 1 (오래된 시도, 답변 1개)
                         UserSectionAttempt oldAttempt = UserSectionAttempt.builder()
                                         .user(testUser)
                                         .section(testSection)
@@ -451,7 +526,16 @@ class QuizSectionAttemptServiceTest {
                         ReflectionTestUtils.setField(oldAttempt, "createdAt",
                                         java.time.LocalDateTime.now().minusHours(1));
 
-                        // 시도 2 (최신 시도)
+                        List<UserSectionAttemptQuestion> oldQuestions = new ArrayList<>();
+                        UserSectionAttemptQuestion aq1 = UserSectionAttemptQuestion.builder()
+                                        .question(testQuestions.get(0))
+                                        .orderIndex(1)
+                                        .build();
+                        aq1.saveAnswer("answer1");
+                        oldQuestions.add(aq1);
+                        ReflectionTestUtils.setField(oldAttempt, "attemptQuestions", oldQuestions);
+
+                        // 시도 2 (최신 시도, 답변 1개 - 동일한 답변 수)
                         UserSectionAttempt newAttempt = UserSectionAttempt.builder()
                                         .user(testUser)
                                         .section(testSection)
@@ -460,30 +544,149 @@ class QuizSectionAttemptServiceTest {
                         ReflectionTestUtils.setField(newAttempt, "id", 2L);
                         ReflectionTestUtils.setField(newAttempt, "createdAt", java.time.LocalDateTime.now());
 
-                        // Repository가 리스트 반환 (최신순 정렬)
-                        List<UserSectionAttempt> attempts = new ArrayList<>();
-                        attempts.add(newAttempt);
-                        attempts.add(oldAttempt);
+                        List<UserSectionAttemptQuestion> newQuestions = new ArrayList<>();
+                        UserSectionAttemptQuestion aq2 = UserSectionAttemptQuestion.builder()
+                                        .question(testQuestions.get(0))
+                                        .orderIndex(1)
+                                        .build();
+                        aq2.saveAnswer("answer2");
+                        newQuestions.add(aq2);
+                        ReflectionTestUtils.setField(newAttempt, "attemptQuestions", newQuestions);
+
+                        List<UserSectionAttempt> attempts = List.of(newAttempt, oldAttempt);
 
                         given(sectionRepository.findByIdWithCourseAndQuestions(courseId, sectionNumber))
                                         .willReturn(Optional.of(testSection));
 
-                        // findAllInProgressAttemptsWithQuestions 호출 시 리스트 반환
                         given(attemptRepository.findAllInProgressAttemptsWithQuestions(userId, courseId, sectionNumber))
                                         .willReturn(attempts);
 
-                        // When: 시도 시작/재개
+                        // When
                         SectionAttemptResponse response = quizSectionAttemptService
                                         .startOrResumeAttempt(courseId, sectionNumber, userId);
 
-                        // Then: 최신 시도가 반환되었는지 확인
+                        // Then: 답변 수 동일하므로 최신 시도가 선택됨
                         assertThat(response.attemptId()).isEqualTo(newAttempt.getId());
-
-                        // 오래된 시도는 ABANDONED 상태로 변경되었는지 확인
                         assertThat(oldAttempt.getStatus()).isEqualTo(AttemptStatus.ABANDONED);
-
-                        // 최신 시도는 여전히 IN_PROGRESS 상태인지 확인
                         assertThat(newAttempt.getStatus()).isEqualTo(AttemptStatus.IN_PROGRESS);
+                }
+        }
+
+        // ==========================================================
+        // resumeAttempt() 테스트 (명시적 attemptId 사용 재개)
+        // ==========================================================
+
+        /**
+         * resumeAttempt() 메서드에 대한 중첩 테스트 클래스
+         *
+         * 클라이언트가 이미 알고 있는 attemptId를 사용하여 특정 시도를 재개하는 기능 테스트
+         */
+        @Nested
+        @DisplayName("resumeAttempt 메서드 (명시적 attemptId 사용 재개)")
+        class ResumeAttemptTest {
+
+                @Test
+                @DisplayName("성공: 본인의 진행 중인 시도 재개")
+                void successResumeOwnInProgressAttempt() {
+                        // Given
+                        Long attemptId = 1L;
+                        Long userId = 1L;
+
+                        // 진행 중인 시도 설정
+                        UserSectionAttempt attempt = UserSectionAttempt.builder()
+                                        .user(testUser)
+                                        .section(testSection)
+                                        .totalQuestions(10)
+                                        .build();
+                        ReflectionTestUtils.setField(attempt, "id", attemptId);
+                        ReflectionTestUtils.setField(attempt, "status", AttemptStatus.IN_PROGRESS);
+
+                        // 문제 설정
+                        List<UserSectionAttemptQuestion> attemptQuestions = new ArrayList<>();
+                        UserSectionAttemptQuestion aq = UserSectionAttemptQuestion.builder()
+                                        .question(testQuestions.get(0))
+                                        .orderIndex(1)
+                                        .build();
+                        ReflectionTestUtils.setField(aq, "attempt", attempt);
+                        aq.saveAnswer("A");
+                        attemptQuestions.add(aq);
+                        ReflectionTestUtils.setField(attempt, "attemptQuestions", attemptQuestions);
+
+                        given(attemptRepository.findByIdWithQuestions(attemptId))
+                                        .willReturn(Optional.of(attempt));
+
+                        // When
+                        SectionAttemptResponse response = quizSectionAttemptService.resumeAttempt(attemptId, userId);
+
+                        // Then
+                        assertThat(response.attemptId()).isEqualTo(attemptId);
+                        assertThat(response.questions()).hasSize(1);
+                        assertThat(response.questions().get(0).userAnswer()).isEqualTo("A");
+                }
+
+                @Test
+                @DisplayName("실패: 존재하지 않는 시도")
+                void failWhenAttemptNotFound() {
+                        // Given
+                        Long attemptId = 999L;
+                        Long userId = 1L;
+
+                        given(attemptRepository.findByIdWithQuestions(attemptId))
+                                        .willReturn(Optional.empty());
+
+                        // When & Then
+                        assertThatThrownBy(() -> quizSectionAttemptService.resumeAttempt(attemptId, userId))
+                                        .isInstanceOf(NotFoundException.class);
+                }
+
+                @Test
+                @DisplayName("실패: 본인 시도가 아닐 때")
+                void failWhenNotOwner() {
+                        // Given
+                        Long attemptId = 1L;
+                        Long otherUserId = 999L;
+
+                        UserSectionAttempt attempt = UserSectionAttempt.builder()
+                                        .user(testUser) // userId = 1
+                                        .section(testSection)
+                                        .totalQuestions(10)
+                                        .build();
+                        ReflectionTestUtils.setField(attempt, "id", attemptId);
+                        ReflectionTestUtils.setField(attempt, "status", AttemptStatus.IN_PROGRESS);
+                        ReflectionTestUtils.setField(attempt, "attemptQuestions", new ArrayList<>());
+
+                        given(attemptRepository.findByIdWithQuestions(attemptId))
+                                        .willReturn(Optional.of(attempt));
+
+                        // When & Then
+                        assertThatThrownBy(() -> quizSectionAttemptService.resumeAttempt(attemptId, otherUserId))
+                                        .isInstanceOf(BusinessException.class)
+                                        .hasMessageContaining("본인의 시도만 재개할 수 있습니다");
+                }
+
+                @Test
+                @DisplayName("실패: 이미 완료된 시도")
+                void failWhenAlreadyCompleted() {
+                        // Given
+                        Long attemptId = 1L;
+                        Long userId = 1L;
+
+                        UserSectionAttempt attempt = UserSectionAttempt.builder()
+                                        .user(testUser)
+                                        .section(testSection)
+                                        .totalQuestions(10)
+                                        .build();
+                        ReflectionTestUtils.setField(attempt, "id", attemptId);
+                        ReflectionTestUtils.setField(attempt, "status", AttemptStatus.SUBMITTED);
+                        ReflectionTestUtils.setField(attempt, "attemptQuestions", new ArrayList<>());
+
+                        given(attemptRepository.findByIdWithQuestions(attemptId))
+                                        .willReturn(Optional.of(attempt));
+
+                        // When & Then
+                        assertThatThrownBy(() -> quizSectionAttemptService.resumeAttempt(attemptId, userId))
+                                        .isInstanceOf(BusinessException.class)
+                                        .hasMessageContaining("이미 완료된 시도는 재개할 수 없습니다");
                 }
         }
 
@@ -491,6 +694,14 @@ class QuizSectionAttemptServiceTest {
         // saveAnswer() 테스트 (단일 답안 실시간 저장)
         // ==========================================================
 
+        /**
+         * saveAnswer() 메서드에 대한 중첩 테스트 클래스
+         *
+         * [리팩토링 반영]
+         * - 서비스가 attemptRepository.findById() 대신
+         *   attemptQuestionRepository.findByAttemptIdAndQuestionId() 호출
+         * - UserSectionAttemptQuestion에 attempt 필드 설정 필요 (권한 체크용)
+         */
         @Nested
         @DisplayName("saveAnswer 메서드 (단일 답안 실시간 저장)")
         class SaveAnswerTest {
@@ -508,35 +719,30 @@ class QuizSectionAttemptServiceTest {
                         // Given: 시도와 단일 답안 요청 준비
                         Long attemptId = 1L;
                         Long userId = 1L;
+                        Long questionId = 1L;
 
-                        // 시도에 문제 추가
-                        List<UserSectionAttemptQuestion> attemptQuestions = new ArrayList<>();
+                        // UserSectionAttemptQuestion 생성 및 attempt 연결 설정
                         UserSectionAttemptQuestion aq1 = UserSectionAttemptQuestion.builder()
                                         .question(testQuestions.get(0))
                                         .orderIndex(1)
                                         .build();
-                        UserSectionAttemptQuestion aq2 = UserSectionAttemptQuestion.builder()
-                                        .question(testQuestions.get(1))
-                                        .orderIndex(2)
-                                        .build();
-                        attemptQuestions.add(aq1);
-                        attemptQuestions.add(aq2);
-                        ReflectionTestUtils.setField(testAttempt, "attemptQuestions", attemptQuestions);
+                        // [중요] attempt 필드 설정 (권한 체크에 필요)
+                        ReflectionTestUtils.setField(aq1, "attempt", testAttempt);
 
                         // 단일 답안 요청 데이터 (문제 1번에 대한 답안)
                         SaveAnswerRequest request = new SaveAnswerRequest(
-                                        new SaveAnswerRequest.AnswerItem(1L, "1"));
+                                        new SaveAnswerRequest.AnswerItem(questionId, "1"));
 
-                        // Mock 동작 정의
-                        given(attemptRepository.findById(attemptId))
-                                        .willReturn(Optional.of(testAttempt));
+                        // [수정] attemptQuestionRepository.findByAttemptIdAndQuestionId() Mock
+                        given(attemptQuestionRepository.findByAttemptIdAndQuestionId(attemptId, questionId))
+                                        .willReturn(Optional.of(aq1));
 
                         // When: 단일 답안 저장
                         quizSectionAttemptService.saveAnswer(attemptId, request, userId);
 
                         // Then: 해당 문제의 답안만 저장되었는지 확인
                         assertThat(aq1.getUserAnswer()).isEqualTo("1");
-                        assertThat(aq2.getUserAnswer()).isNull(); // 다른 문제는 영향 없음
+                        then(attemptQuestionRepository).should().save(aq1);
                 }
 
                 /**
@@ -552,22 +758,22 @@ class QuizSectionAttemptServiceTest {
                         // Given: 이미 답안이 저장된 상태
                         Long attemptId = 1L;
                         Long userId = 1L;
+                        Long questionId = 1L;
 
-                        List<UserSectionAttemptQuestion> attemptQuestions = new ArrayList<>();
                         UserSectionAttemptQuestion aq1 = UserSectionAttemptQuestion.builder()
                                         .question(testQuestions.get(0))
                                         .orderIndex(1)
                                         .build();
                         ReflectionTestUtils.setField(aq1, "userAnswer", "OLD_ANSWER"); // 기존 답안
-                        attemptQuestions.add(aq1);
-                        ReflectionTestUtils.setField(testAttempt, "attemptQuestions", attemptQuestions);
+                        ReflectionTestUtils.setField(aq1, "attempt", testAttempt);
 
                         // 새로운 답안으로 덮어쓰기
                         SaveAnswerRequest request = new SaveAnswerRequest(
-                                        new SaveAnswerRequest.AnswerItem(1L, "NEW_ANSWER"));
+                                        new SaveAnswerRequest.AnswerItem(questionId, "NEW_ANSWER"));
 
-                        given(attemptRepository.findById(attemptId))
-                                        .willReturn(Optional.of(testAttempt));
+                        // [수정] attemptQuestionRepository Mock
+                        given(attemptQuestionRepository.findByAttemptIdAndQuestionId(attemptId, questionId))
+                                        .willReturn(Optional.of(aq1));
 
                         // When: 답안 재저장
                         quizSectionAttemptService.saveAnswer(attemptId, request, userId);
@@ -577,27 +783,32 @@ class QuizSectionAttemptServiceTest {
                 }
 
                 /**
-                 * 실패 케이스: 존재하지 않는 시도
+                 * 실패 케이스: 존재하지 않는 문제
                  *
-                 * 예상 동작:
-                 * - NotFoundException이 발생해야 함
+                 * [수정] 서비스 리팩토링 후 동작 변경:
+                 * - 기존: attemptRepository.findById() 실패 → NotFoundException
+                 * - 변경: attemptQuestionRepository.findByAttemptIdAndQuestionId() 실패
+                 *        → BusinessException("QUESTION_NOT_FOUND")
                  */
                 @Test
-                @DisplayName("실패: 존재하지 않는 시도 - NotFoundException 발생")
-                void attemptNotFound_ThrowsException() {
-                        // Given: 존재하지 않는 시도 ID
-                        Long attemptId = 999L;
+                @DisplayName("실패: 존재하지 않는 문제 - BusinessException(QUESTION_NOT_FOUND) 발생")
+                void questionNotFound_ThrowsException() {
+                        // Given: 존재하지 않는 문제 ID
+                        Long attemptId = 1L;
                         Long userId = 1L;
-                        SaveAnswerRequest request = new SaveAnswerRequest(
-                                        new SaveAnswerRequest.AnswerItem(1L, "1"));
+                        Long nonExistentQuestionId = 999L;
 
-                        // Mock 동작 정의
-                        given(attemptRepository.findById(attemptId))
+                        SaveAnswerRequest request = new SaveAnswerRequest(
+                                        new SaveAnswerRequest.AnswerItem(nonExistentQuestionId, "1"));
+
+                        // [수정] attemptQuestionRepository Mock - 문제를 찾을 수 없음
+                        given(attemptQuestionRepository.findByAttemptIdAndQuestionId(attemptId, nonExistentQuestionId))
                                         .willReturn(Optional.empty());
 
-                        // When & Then: 예외 발생 확인
+                        // When & Then: BusinessException 발생 확인
                         assertThatThrownBy(() -> quizSectionAttemptService.saveAnswer(attemptId, request, userId))
-                                        .isInstanceOf(NotFoundException.class);
+                                        .isInstanceOf(BusinessException.class)
+                                        .hasMessageContaining("해당 문제를 찾을 수 없습니다");
                 }
 
                 /**
@@ -613,12 +824,21 @@ class QuizSectionAttemptServiceTest {
                         // Given: 다른 사용자가 시도에 접근
                         Long attemptId = 1L;
                         Long otherUserId = 999L; // 다른 사용자
-                        SaveAnswerRequest request = new SaveAnswerRequest(
-                                        new SaveAnswerRequest.AnswerItem(1L, "1"));
+                        Long questionId = 1L;
 
-                        // Mock 동작 정의
-                        given(attemptRepository.findById(attemptId))
-                                        .willReturn(Optional.of(testAttempt)); // testAttempt는 userId=1L
+                        UserSectionAttemptQuestion aq1 = UserSectionAttemptQuestion.builder()
+                                        .question(testQuestions.get(0))
+                                        .orderIndex(1)
+                                        .build();
+                        // testAttempt는 userId=1L 소유
+                        ReflectionTestUtils.setField(aq1, "attempt", testAttempt);
+
+                        SaveAnswerRequest request = new SaveAnswerRequest(
+                                        new SaveAnswerRequest.AnswerItem(questionId, "1"));
+
+                        // [수정] attemptQuestionRepository Mock
+                        given(attemptQuestionRepository.findByAttemptIdAndQuestionId(attemptId, questionId))
+                                        .willReturn(Optional.of(aq1));
 
                         // When & Then: 예외 발생 확인
                         assertThatThrownBy(() -> quizSectionAttemptService.saveAnswer(attemptId, request, otherUserId))
@@ -639,56 +859,28 @@ class QuizSectionAttemptServiceTest {
                         // Given: 완료된 시도
                         Long attemptId = 1L;
                         Long userId = 1L;
-                        SaveAnswerRequest request = new SaveAnswerRequest(
-                                        new SaveAnswerRequest.AnswerItem(1L, "1"));
+                        Long questionId = 1L;
 
                         // 시도를 완료 상태로 변경
                         testAttempt.complete(7, 70); // 7개 정답, 통과 점수 70
 
-                        // Mock 동작 정의
-                        given(attemptRepository.findById(attemptId))
-                                        .willReturn(Optional.of(testAttempt));
+                        UserSectionAttemptQuestion aq1 = UserSectionAttemptQuestion.builder()
+                                        .question(testQuestions.get(0))
+                                        .orderIndex(1)
+                                        .build();
+                        ReflectionTestUtils.setField(aq1, "attempt", testAttempt);
+
+                        SaveAnswerRequest request = new SaveAnswerRequest(
+                                        new SaveAnswerRequest.AnswerItem(questionId, "1"));
+
+                        // [수정] attemptQuestionRepository Mock
+                        given(attemptQuestionRepository.findByAttemptIdAndQuestionId(attemptId, questionId))
+                                        .willReturn(Optional.of(aq1));
 
                         // When & Then: 예외 발생 확인
                         assertThatThrownBy(() -> quizSectionAttemptService.saveAnswer(attemptId, request, userId))
                                         .isInstanceOf(BusinessException.class)
                                         .hasMessageContaining("완료된 시도는 수정할 수 없습니다");
-                }
-
-                /**
-                 * 성공 케이스: 존재하지 않는 questionId에 대한 답안 저장 시도
-                 *
-                 * 검증 사항:
-                 * - 시도에 포함되지 않은 questionId는 무시되어야 함
-                 * - 예외가 발생하지 않아야 함 (graceful handling)
-                 */
-                @Test
-                @DisplayName("성공: 존재하지 않는 questionId는 무시")
-                void nonExistentQuestionId_Ignored() {
-                        // Given: 시도에 문제 1만 존재
-                        Long attemptId = 1L;
-                        Long userId = 1L;
-
-                        List<UserSectionAttemptQuestion> attemptQuestions = new ArrayList<>();
-                        UserSectionAttemptQuestion aq1 = UserSectionAttemptQuestion.builder()
-                                        .question(testQuestions.get(0)) // questionId = 1
-                                        .orderIndex(1)
-                                        .build();
-                        attemptQuestions.add(aq1);
-                        ReflectionTestUtils.setField(testAttempt, "attemptQuestions", attemptQuestions);
-
-                        // 존재하지 않는 questionId=999에 대한 답안 저장 시도
-                        SaveAnswerRequest request = new SaveAnswerRequest(
-                                        new SaveAnswerRequest.AnswerItem(999L, "1"));
-
-                        given(attemptRepository.findById(attemptId))
-                                        .willReturn(Optional.of(testAttempt));
-
-                        // When & Then: 예외 없이 정상 처리 (무시됨)
-                        quizSectionAttemptService.saveAnswer(attemptId, request, userId);
-
-                        // 기존 답안은 영향 없음
-                        assertThat(aq1.getUserAnswer()).isNull();
                 }
         }
 

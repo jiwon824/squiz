@@ -16,8 +16,8 @@
  * =============================================================================
  */
 
-import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 
 import { QuestionCard } from './components/QuestionCard';
@@ -29,6 +29,7 @@ import { useUIStore } from '@/store/uiStore';
 
 import {
     startOrResumeAttempt,
+    resumeAttempt,
     saveAnswer as saveAnswerApi,
     submitAttempt,
     abandonAttempt,
@@ -41,6 +42,16 @@ import type { QuizQuestion as QuizQuestionType, QuestionType } from './types/Qui
 // =============================================================================
 // HELPER FUNCTIONS
 // =============================================================================
+
+/**
+ * 답변이 유효한지(null이나 비어있지 않은지) 확인하는 헬퍼 함수
+ */
+const isValidAnswer = (answer: string | string[] | null | undefined): answer is string | string[] => {
+    if (answer === null || answer === undefined) return false;
+    if (typeof answer === 'string') return answer.trim() !== '';
+    if (Array.isArray(answer)) return answer.length > 0 && answer.some(a => a.trim() !== '');
+    return false;
+};
 
 /**
  * API 문제 데이터를 UI 컴포넌트가 기대하는 형식으로 변환
@@ -71,10 +82,24 @@ const mapApiQuestionToUiQuestion = (apiQuestion: AttemptQuestion): QuizQuestionT
 // 컴포넌트
 // =============================================================================
 
+/** Location state type for passing attemptId */
+interface LocationState {
+    attemptId?: number;
+}
+
 export const QuizSession = () => {
-    const { courseId, sectionNumber } = useParams<{ courseId: string; sectionNumber: string }>();
+    const { courseId, sectionNumber, attemptId: urlAttemptId } = useParams<{
+        courseId: string;
+        sectionNumber: string;
+        attemptId?: string;
+    }>();
     const navigate = useNavigate();
+    const location = useLocation();
     const showToast = useUIStore((state) => state.showToast);
+
+    // attemptId can come from URL params or location state
+    const stateAttemptId = (location.state as LocationState)?.attemptId;
+    const initialAttemptId = urlAttemptId ? parseInt(urlAttemptId, 10) : stateAttemptId;
 
     // API 상태 관리
     const [attemptData, setAttemptData] = useState<AttemptData | null>(null);
@@ -107,15 +132,18 @@ export const QuizSession = () => {
 
     // 세션 초기화 (API 호출)
     useEffect(() => {
-        const initializeSession = async () => {
+        const initializeSession = async (retryCount = 0) => {
             if (!courseId || !sectionNumber) {
                 setError('코스 ID 또는 섹션 번호가 없습니다.');
                 setIsLoading(false);
                 return;
             }
 
-            setIsLoading(true);
-            setError(null);
+            // 첫 번째 시도일 때만 로딩 상태를 활성화하여 깜빡임 방지
+            if (retryCount === 0) {
+                setIsLoading(true);
+                setError(null);
+            }
 
             try {
                 const numericCourseId = parseInt(courseId, 10);
@@ -125,36 +153,83 @@ export const QuizSession = () => {
                     throw new Error('잘못된 코스 ID 또는 섹션 번호입니다.');
                 }
 
-                const data = await startOrResumeAttempt(numericCourseId, numericSectionNumber);
+                // API 호출: attemptId가 있으면 명시적 재개, 없으면 시작/재개
+                let data: AttemptData;
+                if (initialAttemptId && !isNaN(initialAttemptId)) {
+                    console.log('[QuizSession] Resuming with explicit attemptId:', initialAttemptId);
+                    data = await resumeAttempt(numericCourseId, numericSectionNumber, initialAttemptId);
+                } else {
+                    console.log('[QuizSession] Starting or resuming attempt (auto mode)');
+                    data = await startOrResumeAttempt(numericCourseId, numericSectionNumber);
+                }
+
+                // --- 데이터 처리 로직 시작 ---
                 setAttemptData(data);
 
                 // 문제 변환 및 저장
                 const uiQuestions = data.questions.map(mapApiQuestionToUiQuestion);
                 setQuestions(uiQuestions);
 
-                // 저장된 답안 복원
+                // 저장된 답안 복원 (userAnswer에서 hydrate)
                 const savedAnswers: Record<string, string | string[]> = {};
                 data.questions.forEach(q => {
-                    if (q.savedAnswer !== null) {
-                        savedAnswers[String(q.questionId)] = q.savedAnswer;
+                    if (isValidAnswer(q.userAnswer)) {
+                        // 쉼표로 구분된 복수 선택 답안을 배열로 변환
+                        const answer = q.userAnswer.includes(',')
+                            ? q.userAnswer.split(',')
+                            : q.userAnswer;
+                        savedAnswers[String(q.questionId)] = answer;
                     }
                 });
+
+                // 진행 위치 계산: 첫 번째 미응답 문제 찾기
+                const firstUnansweredIndex = data.questions.findIndex(q => {
+                    const questionId = String(q.questionId);
+                    return !isValidAnswer(savedAnswers[questionId]);
+                });
+
+                const calculatedIndex = firstUnansweredIndex === -1
+                    ? data.questions.length - 1  // 모두 풀었으면 마지막 문제
+                    : firstUnansweredIndex;
+
+                // 상태 업데이트 순서 보장
                 setAnswers(savedAnswers);
+                setCurrentIndex(calculatedIndex);
 
-                // 재개 여부 확인
-                setIsResumed(data.answeredCount > 0);
+                const hasRestoredAnswers = Object.keys(savedAnswers).length > 0;
+                setIsResumed(hasRestoredAnswers);
 
-                console.log('[QuizSession] 세션 시작/재개:', data.attemptId);
-            } catch (err) {
+                console.log('[QuizSession] Session initialized:', {
+                    attemptId: data.attemptId,
+                    startingAt: calculatedIndex + 1,
+                    isResumed: hasRestoredAnswers,
+                    usedExplicitId: !!initialAttemptId,
+                    retryCount
+                });
+
+                // 성공 시 로딩 종료
+                setIsLoading(false);
+
+            } catch (err: any) {
+                // 409 Conflict 발생 시: 백엔드에서 중복 시도를 정리 중인 상태임
+                if (err.response?.status === 409 && retryCount < 2) {
+                    const delay = Math.pow(2, retryCount) * 500; // 500ms, 1000ms 순으로 대기
+
+                    console.warn(`[QuizSession] Conflict(409) 감지. ${delay}ms 후 재시도합니다. (${retryCount + 1}/2)`);
+
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    return initializeSession(retryCount + 1); // 재귀 호출로 재시도
+                }
+
+                // 재시도 횟수를 초과했거나 다른 에러인 경우
                 console.error('[QuizSession] 세션 초기화 실패:', err);
                 setError(err instanceof Error ? err.message : '퀴즈를 시작하는데 실패했습니다.');
-            } finally {
                 setIsLoading(false);
             }
         };
 
         initializeSession();
-    }, [courseId, sectionNumber]);
+    }, [courseId, sectionNumber, initialAttemptId]);
 
     // 현재 문제
     const currentQuestion = questions[currentIndex] || null;
@@ -163,7 +238,9 @@ export const QuizSession = () => {
     const currentAnswer = currentQuestion ? answers[currentQuestion.id] : undefined;
 
     // 답변한 문제 수
-    const answeredCount = Object.keys(answers).length;
+    const answeredCount = useMemo(() => {
+        return Object.values(answers).filter(isValidAnswer).length;
+    }, [answers]);
 
     // 답안 변경 핸들러
     const handleAnswerChange = useCallback(async (answer: string | string[]) => {
@@ -204,13 +281,29 @@ export const QuizSession = () => {
 
     // 다음 문제로 이동
     const handleNext = useCallback(() => {
+        // 1. 현재 문제의 답변 유효성 검사
+        const currentAnswer = currentQuestion ? answers[currentQuestion.id] : undefined;
+
+        if (!isValidAnswer(currentAnswer)) {
+            showToast('답변을 선택해야 다음으로 넘어갈 수 있습니다.', 'info');
+            return; // 유효하지 않으면 여기서 중단
+        }
+
+        // 2. 유효할 때만 다음 인덱스로 이동
         if (currentIndex < questions.length - 1) {
             setCurrentIndex(prev => prev + 1);
         }
-    }, [currentIndex, questions.length]);
+    }, [currentIndex, questions.length, currentQuestion, answers, showToast]);
 
     // 퀴즈 완료 (제출)
     const handleComplete = useCallback(async () => {
+        // 마지막 문제 답변 체크
+        const currentAnswer = currentQuestion ? answers[currentQuestion.id] : undefined;
+
+        if (!isValidAnswer(currentAnswer)) {
+            showToast('마지막 문제의 답변을 선택해주세요.', 'info');
+            return;
+        }
         if (!attemptData || !courseId || !sectionNumber) return;
 
         setIsSubmitting(true);
@@ -234,7 +327,11 @@ export const QuizSession = () => {
         } finally {
             setIsSubmitting(false);
         }
-    }, [attemptData, courseId, sectionNumber, navigate]);
+        // IMPORTANT: currentQuestion, answers, and showToast must be included in the
+        // dependency array. Without them, the callback holds a stale closure referencing
+        // outdated state. When the user answers a question and clicks "Complete", the
+        // validation reads the old `answers` object and incorrectly fails validation.
+    }, [attemptData, courseId, sectionNumber, navigate, currentQuestion, answers, showToast]);
 
     // 임시 저장 후 나가기 (현재 상태 유지, 다시 시작 시 재개)
     const handleSaveAndExit = useCallback(() => {
@@ -436,6 +533,8 @@ export const QuizSession = () => {
                     onNext={handleNext}
                     onComplete={handleComplete}
                     isLoading={isSubmitting}
+                    isNextDisabled={!isValidAnswer(currentAnswer)}
+                    isCompleteDisabled={!isValidAnswer(currentAnswer)}
                 />
             </main>
 

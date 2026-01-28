@@ -8,8 +8,11 @@ import java.util.Optional;
 
 public interface MeetingPhotoRepository extends JpaRepository<MeetingPhoto, Long> {
     List<MeetingPhoto> findByMeetingIdOrderByCapturedAtDesc(Long meetingId);
+    List<MeetingPhoto> findByMeetingIdAndUserIdOrderByCapturedAtDesc(Long meetingId, Long userId);
+    List<MeetingPhoto> findByMeetingIdAndIsSelectedTrueOrderByCapturedAtDesc(Long meetingId);
 
     int countByMeetingId(Long meetingId);
 
     Optional<MeetingPhoto> findFirstByMeetingIdAndIsSelectedTrue(Long meetingId);
+    List<MeetingPhoto> findByMeetingIdAndUserIdAndIsSelectedTrueOrderByCapturedAtDesc(Long meetingId, Long userId);
 }

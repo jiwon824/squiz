@@ -200,10 +200,14 @@ public class QuizCourseService {
                 // 3. 섹션별 시도 요약 정보 구성 (Map 기반 O(n) 조회)
                 Map<Integer, SectionAttemptSummary> summaryMap = buildAttemptSummaryMap(attempts);
 
-                // 4. 섹션 DTO 목록 생성 (해금 로직 적용)
-                List<SectionWithProgressDto> sectionDtos = buildSectionWithProgressDtos(sections, summaryMap);
+                // 4. 진행 중인 시도 ID 조회 (섹션별로 하나만 존재해야 함)
+                Map<Integer, Long> inProgressAttemptMap = buildInProgressAttemptMap(userId, courseId);
 
-                // 5. 전체 진행 상황 계산
+                // 5. 섹션 DTO 목록 생성 (해금 로직 적용)
+                List<SectionWithProgressDto> sectionDtos = buildSectionWithProgressDtos(
+                                sections, summaryMap, inProgressAttemptMap);
+
+                // 6. 전체 진행 상황 계산
                 MyProgressDto myProgress = buildMyProgress(sectionDtos);
 
                 return new SectionsWithProgressResponse(
@@ -243,12 +247,31 @@ public class QuizCourseService {
         }
 
         /**
+         * 진행 중인 시도 ID를 섹션별로 조회하여 Map으로 반환한다.
+         */
+        private Map<Integer, Long> buildInProgressAttemptMap(Long userId, Long courseId) {
+                List<UserSectionAttempt> inProgressAttempts = userSectionAttemptRepository
+                                .findInProgressAttemptsByUserIdAndCourseId(userId, courseId);
+
+                Map<Integer, Long> map = new java.util.HashMap<>();
+                for (UserSectionAttempt attempt : inProgressAttempts) {
+                        Integer sectionNumber = attempt.getSection().getSectionNumber();
+                        // 섹션당 하나의 진행 중 시도만 저장 (최신 것 우선)
+                        if (!map.containsKey(sectionNumber)) {
+                                map.put(sectionNumber, attempt.getId());
+                        }
+                }
+                return map;
+        }
+
+        /**
          * 섹션 DTO 목록을 생성한다 (해금 로직 적용).
          * 규칙: 이전 섹션을 통과해야 다음 섹션이 해금됨.
          */
         private List<SectionWithProgressDto> buildSectionWithProgressDtos(
                         List<QuizCourseSection> sections,
-                        Map<Integer, SectionAttemptSummary> summaryMap) {
+                        Map<Integer, SectionAttemptSummary> summaryMap,
+                        Map<Integer, Long> inProgressAttemptMap) {
 
                 List<SectionWithProgressDto> result = new java.util.ArrayList<>();
                 boolean previousPassed = true; // 첫 번째 섹션은 항상 해금
@@ -260,6 +283,7 @@ public class QuizCourseService {
                         boolean isPassed = summary != null && summary.isPassed();
                         Integer bestScore = summary != null ? summary.bestScore() : null;
                         int attemptCount = summary != null ? summary.attemptCount() : 0;
+                        Long inProgressAttemptId = inProgressAttemptMap.get(section.getSectionNumber());
 
                         result.add(new SectionWithProgressDto(
                                         section.getSectionNumber(),
@@ -269,7 +293,8 @@ public class QuizCourseService {
                                         isUnlocked,
                                         isPassed,
                                         bestScore,
-                                        attemptCount));
+                                        attemptCount,
+                                        inProgressAttemptId));
 
                         // 다음 섹션 해금 조건: 현재 섹션 통과
                         previousPassed = isPassed;

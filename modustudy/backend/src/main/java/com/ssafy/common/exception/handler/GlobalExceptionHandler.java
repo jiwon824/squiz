@@ -3,8 +3,10 @@ package com.ssafy.common.exception.handler;
 import com.ssafy.common.exception.BusinessException;
 import com.ssafy.common.response.ErrorResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -93,6 +95,34 @@ public class GlobalExceptionHandler {
                 message
         );
         return ResponseEntity.status(status).body(response);
+    }
+
+    /**
+     * Optimistic Locking 충돌 처리 (409 Conflict).
+     *
+     * 동시에 같은 데이터를 수정하려 할 때 발생.
+     * 프론트엔드는 이 응답을 받으면 데이터를 다시 로드하고 재시도해야 함.
+     *
+     * 기술적 배경:
+     * - Hibernate의 @Version 필드가 UPDATE 시 WHERE 절에 포함됨
+     * - UPDATE ... WHERE id = ? AND version = ?
+     * - 다른 트랜잭션이 먼저 커밋하여 version이 증가하면 UPDATE 대상이 0건이 됨
+     * - Hibernate가 이를 감지하고 ObjectOptimisticLockingFailureException을 던짐
+     */
+    @ExceptionHandler({
+            ObjectOptimisticLockingFailureException.class,
+            OptimisticLockingFailureException.class
+    })
+    public ResponseEntity<ErrorResponse> handleOptimisticLockingFailure(Exception e) {
+        log.warn("Optimistic locking conflict: {}", e.getMessage());
+
+        ErrorResponse response = ErrorResponse.of(
+                HttpStatus.CONFLICT.value(),
+                "CONCURRENT_MODIFICATION",
+                "다른 요청과 충돌이 발생했습니다. 잠시 후 다시 시도해주세요."
+        );
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }
 
     @ExceptionHandler(Exception.class)
