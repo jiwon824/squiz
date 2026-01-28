@@ -12,6 +12,7 @@ interface WorkspaceCalendarDayProps {
   isToday: boolean;
   onDateClick?: (date: string) => void;
   onQuickAdd?: (date: string) => void;
+  isLeader?: boolean;
 }
 
 /**
@@ -24,6 +25,7 @@ export const WorkspaceCalendarDay: React.FC<WorkspaceCalendarDayProps> = ({
   isToday,
   onDateClick,
   onQuickAdd,
+  isLeader = false,
 }) => {
   const dayOfWeek = new Date(dayInfo.fullDate).getDay();
 
@@ -63,15 +65,18 @@ export const WorkspaceCalendarDay: React.FC<WorkspaceCalendarDayProps> = ({
           >
             {dayInfo.day}
           </span>
-          <Button
-            variant="ghost"
-            size="xs"
-            className="w-5 h-5 !p-0 opacity-0 group-hover:opacity-100 hover:!bg-blue-600 hover:!text-white text-xs"
-            onClick={handleQuickAdd}
-            title="빠른 일정 추가"
-          >
-            +
-          </Button>
+          {/* 빠른 추가 버튼 (리더만 표시) */}
+          {isLeader && (
+            <Button
+              variant="ghost"
+              size="xs"
+              className="w-5 h-5 !p-0 opacity-0 group-hover:opacity-100 hover:!bg-blue-600 hover:!text-white text-xs"
+              onClick={handleQuickAdd}
+              title="빠른 일정 추가"
+            >
+              +
+            </Button>
+          )}
         </div>
 
         {/* 일정 표시 - 라이브 점 + 개수 */}

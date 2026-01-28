@@ -11,6 +11,7 @@ import { MaterialArea } from '@/features/material';
 import { workspaceApi } from '@/api/endpoints/workspaceApi';
 import { studyApi, type StudyMemberResponse } from '@/api/endpoints/studyApi';
 import { useUIStore } from '@/store/uiStore';
+import { useAuthStore } from '@/store/authStore';
 import type { MessageResponse, WorkspaceResponse } from '../types';
 import '../styles/workspace.css';
 
@@ -27,6 +28,7 @@ export const WorkspacePage: React.FC = () => {
   const { studyId: studyIdParam } = useParams<{ studyId: string }>();
   const navigate = useNavigate();
   const showToast = useUIStore((state) => state.showToast);
+  const currentUser = useAuthStore((state) => state.user);
 
   // studyId 파싱 (테스트 모드용 기본값)
   const studyId = studyIdParam ? Number(studyIdParam) : undefined;
@@ -44,6 +46,7 @@ export const WorkspacePage: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
+  const [isLeader, setIsLeader] = useState(false);
 
   // 초기 데이터 로드
   useEffect(() => {
@@ -67,10 +70,17 @@ export const WorkspacePage: React.FC = () => {
         setStudyName(studyData?.name || '스터디');
 
         // 멤버 목록 설정
-        const workspaceMembers = membersData.content
-          .filter((m) => m.status === 'APPROVED')
-          .map(toWorkspaceMember);
+        const approvedMembers = membersData.content.filter((m) => m.status === 'APPROVED');
+        const workspaceMembers = approvedMembers.map(toWorkspaceMember);
         setMembers(workspaceMembers);
+
+        // 현재 사용자가 리더인지 확인
+        if (currentUser?.id) {
+          const currentMember = approvedMembers.find(
+            (m) => String(m.userId) === String(currentUser.id)
+          );
+          setIsLeader(currentMember?.role === 'LEADER');
+        }
 
         // 2. 워크스페이스 조회 (없으면 생성)
         let workspaceData: WorkspaceResponse;
@@ -237,7 +247,7 @@ export const WorkspacePage: React.FC = () => {
             {activeMenu === 'materials' && studyId && <MaterialArea studyId={studyId} />}
 
             {activeMenu === 'calendar' && studyId && (
-              <WorkspaceCalendarArea studyId={studyId} />
+              <WorkspaceCalendarArea studyId={studyId} isLeader={isLeader} />
             )}
           </div>
         </div>

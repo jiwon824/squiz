@@ -5,12 +5,38 @@ import { SessionModal } from './SessionModal';
 import { WorkspaceCalendar } from './WorkspaceCalendar';
 import { useUIStore } from '@/store/uiStore';
 import { Button, Modal } from '@/shared/components';
-import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, X, Trash2 } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 
 interface WorkspaceCalendarAreaProps {
   studyId: number;
+  isLeader?: boolean;
 }
+
+/**
+ * 현재 시간 기준으로 세션 상태 계산
+ */
+const calculateSessionStatus = (
+  session: StudySessionResponse
+): 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' => {
+  // 취소된 세션은 그대로 유지
+  if (session.status === 'CANCELLED') {
+    return 'CANCELLED';
+  }
+
+  const now = new Date();
+  const startTime = new Date(session.scheduledAt);
+  const durationMs = (session.durationMinutes || 60) * 60 * 1000;
+  const endTime = new Date(startTime.getTime() + durationMs);
+
+  if (now < startTime) {
+    return 'SCHEDULED'; // 예정
+  } else if (now >= startTime && now < endTime) {
+    return 'IN_PROGRESS'; // 진행 중
+  } else {
+    return 'COMPLETED'; // 종료
+  }
+};
 
 /**
  * 세션 응답을 UnifiedSchedule로 변환
@@ -20,6 +46,9 @@ const toUnifiedSchedule = (session: StudySessionResponse): UnifiedSchedule => {
   const dt = new Date(session.scheduledAt);
   const dateStr = dt.toISOString().split('T')[0];
   const timeStr = dt.toTimeString().slice(0, 5);
+
+  // 현재 시간 기준 상태 계산
+  const calculatedStatus = calculateSessionStatus(session);
 
   // 상태별 색상
   const statusColors: Record<string, string> = {
@@ -39,10 +68,10 @@ const toUnifiedSchedule = (session: StudySessionResponse): UnifiedSchedule => {
     location: session.location || undefined,
     isOnline: session.isOnline,
     source: 'study',
-    status: session.status,
+    status: calculatedStatus,
     studyId: session.studyId,
     sessionNumber: session.sessionNumber,
-    color: statusColors[session.status] || '#4285F4',
+    color: statusColors[calculatedStatus] || '#4285F4',
     createdAt: session.createdAt,
   };
 };
@@ -52,6 +81,7 @@ const toUnifiedSchedule = (session: StudySessionResponse): UnifiedSchedule => {
  */
 export const WorkspaceCalendarArea: React.FC<WorkspaceCalendarAreaProps> = ({
   studyId,
+  isLeader = false,
 }) => {
   const showToast = useUIStore((state) => state.showToast);
 
@@ -64,6 +94,7 @@ export const WorkspaceCalendarArea: React.FC<WorkspaceCalendarAreaProps> = ({
   const [selectedSession, setSelectedSession] = useState<StudySessionResponse | null>(null);
   const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
   const [isDateModalOpen, setIsDateModalOpen] = useState(false);
+  const [deletingSessionId, setDeletingSessionId] = useState<number | null>(null);
 
   // 세션 목록 로드
   const loadSessions = useCallback(async () => {
@@ -154,6 +185,32 @@ export const WorkspaceCalendarArea: React.FC<WorkspaceCalendarAreaProps> = ({
     loadSessions();
   };
 
+  // 세션 삭제 핸들러 (리더만 가능)
+  const handleDeleteSession = async (e: React.MouseEvent, sessionId: number) => {
+    e.stopPropagation();
+
+    if (!isLeader) {
+      showToast?.('스터디장만 세션을 삭제할 수 있습니다.', 'error');
+      return;
+    }
+
+    if (!window.confirm('정말 이 세션을 삭제하시겠습니까?')) {
+      return;
+    }
+
+    setDeletingSessionId(sessionId);
+    try {
+      await sessionApi.deleteSession(studyId, sessionId);
+      showToast?.('세션이 삭제되었습니다.', 'success');
+      loadSessions();
+    } catch (err: any) {
+      const errorMessage = err?.response?.data?.message || '세션 삭제에 실패했습니다.';
+      showToast?.(errorMessage, 'error');
+    } finally {
+      setDeletingSessionId(null);
+    }
+  };
+
   // 월/년 표시
   const monthYear = currentDate.toLocaleDateString('ko-KR', {
     year: 'numeric',
@@ -196,14 +253,17 @@ export const WorkspaceCalendarArea: React.FC<WorkspaceCalendarAreaProps> = ({
           >
             오늘
           </Button>
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={handleAddSession}
-            className="gap-1"
-          >
-            세션 추가하기
-          </Button>
+          {/* 세션 추가 버튼 (리더만 표시) */}
+          {isLeader && (
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleAddSession}
+              className="gap-1"
+            >
+              세션 추가하기
+            </Button>
+          )}
         </div>
       </div>
 
@@ -216,6 +276,7 @@ export const WorkspaceCalendarArea: React.FC<WorkspaceCalendarAreaProps> = ({
           onQuickAdd={handleQuickAdd}
           loading={loading}
           className="w-full"
+          isLeader={isLeader}
         />
       </div>
 
@@ -282,6 +343,20 @@ export const WorkspaceCalendarArea: React.FC<WorkspaceCalendarAreaProps> = ({
                       {schedule.status === 'COMPLETED' && '완료'}
                       {schedule.status === 'CANCELLED' && '취소됨'}
                     </span>
+                    {/* 삭제 버튼 (리더이고 예정 상태일 때만 표시) */}
+                    {isLeader && schedule.status === 'SCHEDULED' && (
+                      <button
+                        onClick={(e) => handleDeleteSession(e, schedule.id as number)}
+                        disabled={deletingSessionId === schedule.id}
+                        className={cn(
+                          'p-1 rounded hover:bg-red-100 transition-colors',
+                          deletingSessionId === schedule.id && 'opacity-50 cursor-not-allowed'
+                        )}
+                        title="세션 삭제"
+                      >
+                        <Trash2 size={14} className="text-red-500" />
+                      </button>
+                    )}
                   </div>
                 );
               })
@@ -293,17 +368,19 @@ export const WorkspaceCalendarArea: React.FC<WorkspaceCalendarAreaProps> = ({
             )}
           </div>
 
-          {/* 세션 추가 버튼 */}
-          <div className="mt-3 pt-3 border-t">
-            <Button
-              variant="primary"
-              size="sm"
-              className="w-full gap-1.5 text-sm"
-              onClick={() => selectedDate && handleQuickAdd(selectedDate)}
-            >
-              이 날짜에 세션 추가
-            </Button>
-          </div>
+          {/* 세션 추가 버튼 (리더만 표시) */}
+          {isLeader && (
+            <div className="mt-3 pt-3 border-t">
+              <Button
+                variant="primary"
+                size="sm"
+                className="w-full gap-1.5 text-sm"
+                onClick={() => selectedDate && handleQuickAdd(selectedDate)}
+              >
+                이 날짜에 세션 추가
+              </Button>
+            </div>
+          )}
         </div>
       </Modal>
 
@@ -315,6 +392,7 @@ export const WorkspaceCalendarArea: React.FC<WorkspaceCalendarAreaProps> = ({
         session={selectedSession}
         initialDate={selectedDate || undefined}
         onSuccess={handleSessionSuccess}
+        isLeader={isLeader}
       />
     </div>
   );

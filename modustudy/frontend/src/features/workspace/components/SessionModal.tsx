@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Modal, Button, Input, DatePicker, TimePicker } from '@/shared/components';
 import { sessionApi, type StudySessionResponse, type SessionCreateRequest } from '@/api/endpoints/sessionApi';
 import { useUIStore } from '@/store/uiStore';
+import { cn } from '@/shared/utils/cn';
 import {
   Tag,
   AlignLeft,
@@ -19,6 +20,7 @@ interface SessionModalProps {
   session?: StudySessionResponse | null;
   initialDate?: string;
   onSuccess?: () => void;
+  isLeader?: boolean;
 }
 
 /**
@@ -31,9 +33,11 @@ export const SessionModal: React.FC<SessionModalProps> = ({
   session,
   initialDate,
   onSuccess,
+  isLeader = true,
 }) => {
   const showToast = useUIStore((state) => state.showToast);
   const isEditMode = !!session;
+  const isReadOnly = isEditMode && !isLeader; // 수정 모드이면서 리더가 아니면 읽기 전용
 
   // 폼 상태
   const [title, setTitle] = useState('');
@@ -134,10 +138,10 @@ export const SessionModal: React.FC<SessionModalProps> = ({
         {/* 헤더 */}
         <div className="mb-4">
           <h2 className="text-lg font-bold text-gray-900">
-            {isEditMode ? '세션 수정' : '새 세션 추가'}
+            {isReadOnly ? '세션 상세' : isEditMode ? '세션 수정' : '새 세션 추가'}
           </h2>
           <p className="text-xs text-gray-500 mt-0.5">
-            스터디 일정을 설정하세요
+            {isReadOnly ? '세션 정보를 확인하세요' : '스터디 일정을 설정하세요'}
           </p>
         </div>
 
@@ -155,6 +159,7 @@ export const SessionModal: React.FC<SessionModalProps> = ({
               onChange={(e) => setTitle(e.target.value)}
               placeholder="예: 알고리즘 스터디 1회차"
               className="text-sm"
+              disabled={isReadOnly}
             />
           </div>
 
@@ -167,9 +172,10 @@ export const SessionModal: React.FC<SessionModalProps> = ({
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full p-2.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none resize-none"
+              className="w-full p-2.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none resize-none disabled:bg-gray-100 disabled:cursor-not-allowed"
               rows={2}
               placeholder="세션에 대한 상세 내용을 입력하세요"
+              disabled={isReadOnly}
             />
           </div>
 
@@ -180,10 +186,12 @@ export const SessionModal: React.FC<SessionModalProps> = ({
                 <CalendarIcon size={14} className="text-blue-500" />
                 날짜 *
               </label>
-              <DatePicker
-                value={date}
-                onChange={(d) => setDate(d)}
-              />
+              <div className={isReadOnly ? 'pointer-events-none opacity-60' : ''}>
+                <DatePicker
+                  value={date}
+                  onChange={(d) => setDate(d)}
+                />
+              </div>
               {errors.date && (
                 <p className="text-xs text-red-500">{errors.date}</p>
               )}
@@ -193,10 +201,12 @@ export const SessionModal: React.FC<SessionModalProps> = ({
                 <Clock size={14} className="text-blue-500" />
                 시간 *
               </label>
-              <TimePicker
-                value={time}
-                onChange={(t) => setTime(t)}
-              />
+              <div className={isReadOnly ? 'pointer-events-none opacity-60' : ''}>
+                <TimePicker
+                  value={time}
+                  onChange={(t) => setTime(t)}
+                />
+              </div>
               {errors.time && (
                 <p className="text-xs text-red-500">{errors.time}</p>
               )}
@@ -218,6 +228,7 @@ export const SessionModal: React.FC<SessionModalProps> = ({
               placeholder="60"
               min={1}
               className="text-sm"
+              disabled={isReadOnly}
             />
           </div>
 
@@ -227,7 +238,7 @@ export const SessionModal: React.FC<SessionModalProps> = ({
               <Globe size={14} className="text-blue-500" />
               진행 방식
             </label>
-            <div className="flex gap-2">
+            <div className={cn('flex gap-2', isReadOnly && 'pointer-events-none opacity-60')}>
               <button
                 type="button"
                 onClick={() => setIsOnline(true)}
@@ -268,6 +279,7 @@ export const SessionModal: React.FC<SessionModalProps> = ({
                 onChange={(e) => setLocation(e.target.value)}
                 placeholder="모임 장소를 입력하세요"
                 className="text-sm"
+                disabled={isReadOnly}
               />
             </div>
           )}
@@ -281,16 +293,18 @@ export const SessionModal: React.FC<SessionModalProps> = ({
             onClick={onClose}
             disabled={submitting}
           >
-            취소
+            {isReadOnly ? '닫기' : '취소'}
           </Button>
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={handleSave}
-            isLoading={submitting}
-          >
-            {isEditMode ? '수정' : '생성'}
-          </Button>
+          {!isReadOnly && (
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleSave}
+              isLoading={submitting}
+            >
+              {isEditMode ? '수정' : '생성'}
+            </Button>
+          )}
         </div>
       </div>
     </Modal>

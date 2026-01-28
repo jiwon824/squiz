@@ -11,6 +11,7 @@ interface WorkspaceCalendarProps {
   viewMode?: 'monthly' | 'weekly';
   loading?: boolean;
   className?: string;
+  isLeader?: boolean;
 }
 
 // 요일 헤더
@@ -27,6 +28,7 @@ export const WorkspaceCalendar: React.FC<WorkspaceCalendarProps> = ({
   viewMode = 'monthly',
   loading = false,
   className = '',
+  isLeader = false,
 }) => {
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
@@ -87,6 +89,7 @@ export const WorkspaceCalendar: React.FC<WorkspaceCalendarProps> = ({
               isToday={isToday}
               onDateClick={onDateClick}
               onQuickAdd={onQuickAdd}
+              isLeader={isLeader}
             />
           );
         })}
