@@ -3,6 +3,7 @@
  */
 
 import { useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '@/shared/utils/cn';
 import {
   X,
@@ -188,7 +189,7 @@ export const MaterialUploadModal: React.FC<MaterialUploadModalProps> = ({
     }
   };
 
-  return (
+  return createPortal(
     <div className="material-modal-overlay" onClick={onClose}>
       <div className="material-modal" onClick={(e) => e.stopPropagation()}>
         {/* 헤더 */}
@@ -336,6 +337,7 @@ export const MaterialUploadModal: React.FC<MaterialUploadModalProps> = ({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

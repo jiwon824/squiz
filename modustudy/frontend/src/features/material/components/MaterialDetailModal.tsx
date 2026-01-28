@@ -3,6 +3,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   Download,
@@ -112,6 +113,7 @@ export const MaterialDetailModal: React.FC<MaterialDetailModalProps> = ({
   const [detail, setDetail] = useState<MaterialDetailResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const hasFetchedRef = useRef(false);
+  const commentsListRef = useRef<HTMLDivElement>(null);
 
   // 댓글 관련 상태
   const [comments, setComments] = useState<MaterialCommentResponse[]>([]);
@@ -196,6 +198,12 @@ export const MaterialDetailModal: React.FC<MaterialDetailModalProps> = ({
       const updatedComments = await materialApi.getComments(studyId, material.id);
       setComments(Array.isArray(updatedComments) ? updatedComments : []);
       setCommentText('');
+      // 댓글 목록 스크롤을 맨 아래로
+      setTimeout(() => {
+        if (commentsListRef.current) {
+          commentsListRef.current.scrollTop = commentsListRef.current.scrollHeight;
+        }
+      }, 100);
     } catch (err) {
       // 댓글 작성 실패
     } finally {
@@ -217,7 +225,7 @@ export const MaterialDetailModal: React.FC<MaterialDetailModalProps> = ({
 
   const data = detail || material;
 
-  return (
+  return createPortal(
     <div className="material-modal-overlay" onClick={onClose}>
       <div
         className="material-modal material-detail-modal"
@@ -299,19 +307,6 @@ export const MaterialDetailModal: React.FC<MaterialDetailModalProps> = ({
                 </div>
               )}
 
-              {/* 이미지 미리보기 */}
-              {data.materialType === 'IMAGE' && data.fileUrl && (
-                <div className="material-detail__image-preview">
-                  <img
-                    src={materialApi.getFilePreviewUrl(data.fileUrl)}
-                    alt={data.title}
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
-                  />
-                </div>
-              )}
-
               {/* 댓글 섹션 */}
               <div className="material-detail__comments">
                 <div className="comments-header">
@@ -320,7 +315,7 @@ export const MaterialDetailModal: React.FC<MaterialDetailModalProps> = ({
                 </div>
 
                 {/* 댓글 목록 */}
-                <div className="comments-list">
+                <div className="comments-list" ref={commentsListRef}>
                   {comments.length === 0 ? (
                     <p className="comments-empty">아직 댓글이 없습니다.</p>
                   ) : (
@@ -412,6 +407,7 @@ export const MaterialDetailModal: React.FC<MaterialDetailModalProps> = ({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

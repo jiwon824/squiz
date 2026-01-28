@@ -337,6 +337,8 @@
 
 /* 멤버 목록 사이드바 - 오른쪽에서 슬라이드 인 */
 .member-list {
+  position: relative;
+  z-index: 1;
   width: 240px;
   min-width: 0;
   background-color: var(--ws-bg);

@@ -15,10 +15,12 @@ import {
   FolderOpen,
   RefreshCw,
   AlertCircle,
+  FolderTree,
 } from 'lucide-react';
 import { MaterialCard } from './MaterialCard';
 import { MaterialUploadModal } from './MaterialUploadModal';
 import { MaterialDetailModal } from './MaterialDetailModal';
+import { MaterialTreeView } from './MaterialTreeView';
 import { materialApi } from '@/api/endpoints/materialApi';
 import { useUIStore } from '@/store/uiStore';
 import type { MaterialListResponse, MaterialType, MaterialSortOption } from '../types';
@@ -36,7 +38,7 @@ export const MaterialArea: React.FC<MaterialAreaProps> = ({ studyId }) => {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [filterType, setFilterType] = useState<MaterialType | 'ALL'>('ALL');
   const [sortOption, setSortOption] = useState<MaterialSortOption>('latest');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'tree'>('grid');
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [uploadType, setUploadType] = useState<'file' | 'link'>('file');
   const [selectedMaterial, setSelectedMaterial] = useState<MaterialListResponse | null>(null);
@@ -281,6 +283,13 @@ export const MaterialArea: React.FC<MaterialAreaProps> = ({ studyId }) => {
             >
               <List size={16} />
             </button>
+            <button
+              className={cn('view-btn', viewMode === 'tree' && 'active')}
+              onClick={() => setViewMode('tree')}
+              title="트리 뷰"
+            >
+              <FolderTree size={16} />
+            </button>
           </div>
         </div>
       </div>
@@ -299,15 +308,22 @@ export const MaterialArea: React.FC<MaterialAreaProps> = ({ studyId }) => {
             <button onClick={handleRefresh}>다시 시도</button>
           </div>
         ) : filteredMaterials.length > 0 ? (
-          <div className={cn('material-grid', viewMode === 'list' && 'list-view')}>
-            {filteredMaterials.map((material) => (
-              <MaterialCard
-                key={material.id}
-                material={material}
-                onClick={() => handleMaterialClick(material)}
-              />
-            ))}
-          </div>
+          viewMode === 'tree' ? (
+            <MaterialTreeView
+              materials={filteredMaterials}
+              onMaterialClick={handleMaterialClick}
+            />
+          ) : (
+            <div className={cn('material-grid', viewMode === 'list' && 'list-view')}>
+              {filteredMaterials.map((material) => (
+                <MaterialCard
+                  key={material.id}
+                  material={material}
+                  onClick={() => handleMaterialClick(material)}
+                />
+              ))}
+            </div>
+          )
         ) : (
           <div className="material-area__empty">
             <FolderOpen size={48} />
