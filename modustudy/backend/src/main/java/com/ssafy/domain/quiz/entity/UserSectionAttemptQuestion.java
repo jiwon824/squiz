@@ -40,6 +40,14 @@ import com.ssafy.domain.quiz.entity.enums.QuestionType;
 public class UserSectionAttemptQuestion extends BaseEntity {
 
     /**
+     * 낙관적 잠금 버전 (Optimistic Locking).
+     * 동시 답안 저장 충돌 방지를 위해 Hibernate가 자동 관리.
+     */
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version = 0L;
+
+    /**
      * 소속 시도.
      */
     @Setter

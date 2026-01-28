@@ -223,7 +223,7 @@ Authorization: Bearer {accessToken}
 
 **Request**
 ```
-POST /api/v1/quiz-courses/{courseId}/sections/{sectionNumber}/attempts
+POST /api/v1/quiz-courses/{courseId}/sections/{sectionNumber}/attempts/{attemptId}
 Authorization: Bearer {accessToken}
 ```
 
@@ -240,7 +240,7 @@ Authorization: Bearer {accessToken}
     "sectionName": "기본 문법",
     "status": "IN_PROGRESS",
     "totalQuestions": 10,
-    "answeredCount": 0,
+    "answeredCount": 3,
     "passScore": 70,
     "startedAt": "2025-01-20T10:00:00",
     "questions": [
@@ -254,7 +254,7 @@ Authorization: Bearer {accessToken}
           {"id": "C", "text": "num"},
           {"id": "D", "text": "number"}
         ],
-        "savedAnswer": null
+        "userAnswer": "B"
       },
       ...
     ]
@@ -273,6 +273,16 @@ Authorization: Bearer {accessToken}
 }
 ```
 
+**Error Response - 시도 접근 불가**
+```json
+{
+  "success": false,
+  "error": {
+    "code": "ATTEMPT_NOT_FOUND",
+    "message": "해당 시도 기록을 찾을 수 없거나 접근 권한이 없습니다."
+  }
+}
+```
 ---
 
 ### 5. 단일 답안 실시간 저장

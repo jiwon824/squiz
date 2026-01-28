@@ -32,6 +32,14 @@ import java.util.List;
 public class UserSectionAttempt extends BaseEntity {
 
     /**
+     * 낙관적 잠금 버전 (Optimistic Locking).
+     * 동시 수정 충돌 방지를 위해 Hibernate가 자동 관리.
+     */
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version = 0L;
+
+    /**
      * 시도한 사용자.
      */
     @ManyToOne(fetch = FetchType.LAZY)

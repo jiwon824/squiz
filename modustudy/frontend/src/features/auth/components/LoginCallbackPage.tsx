@@ -74,7 +74,8 @@ export const LoginCallbackPage = () => {
                         name: data.user.name,
                         nickname: data.user.nickname || undefined,
                         email: data.user.email,
-                        avatar: data.user.profileImage || undefined
+                        avatar: data.user.profileImage || undefined,
+                        loginProvider: provider.toUpperCase() as 'KAKAO' | 'GOOGLE' | 'NAVER'
                     });
 
                     console.log('[INFO] 기존 소셜 유저 로그인 성공!');
