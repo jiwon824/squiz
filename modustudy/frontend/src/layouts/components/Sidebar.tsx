@@ -8,11 +8,9 @@ export const Sidebar = () => {
     const location = useLocation();
 
     return (
-        <motion.aside
-            className="h-screen flex flex-col overflow-hidden"
-            initial={{ width: 280 }}
-            animate={{ width: isSidebarOpen ? 280 : 0 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        <aside
+            className="h-screen flex flex-col overflow-hidden bg-slate-200 transition-all duration-300 ease-out"
+            style={{ width: isSidebarOpen ? 280 : 0 }}
         >
             {/* 메뉴 아이템들 */}
             <nav className="flex-1 p-4 space-y-2">
@@ -74,7 +72,7 @@ export const Sidebar = () => {
                     isActive={location.pathname === '/setting'}
                 />
             </nav>
-        </motion.aside>
+        </aside>
     );
 };
 

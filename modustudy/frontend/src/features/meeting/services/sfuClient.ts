@@ -50,6 +50,7 @@ export const createSfuClient = (baseUrl: string) => {
         socket = io(baseUrl, { transports: ['websocket'] });
 
         socket.on('newProducer', async ({ producerId, producerPeerId, kind }) => {
+            console.log('[sfu] newProducer event', { producerId, producerPeerId, kind });
             const consumerData = await consume(producerId);
             if (consumerData && onNewConsumer) {
                 onNewConsumer({ ...consumerData, peerId: producerPeerId, kind });
@@ -79,6 +80,7 @@ export const createSfuClient = (baseUrl: string) => {
         sendTransport = await createSendTransport();
         recvTransport = await createRecvTransport();
 
+        console.log('[sfu] existingProducers', joinData.existingProducers);
         if (joinData.existingProducers) {
             for (const info of joinData.existingProducers as Array<{ producerId: string; peerId: string; kind: string }>) {
                 const consumerData = await consume(info.producerId);
@@ -129,11 +131,19 @@ export const createSfuClient = (baseUrl: string) => {
         track: MediaStreamTrack | null,
         appData?: Record<string, unknown>
     ) => {
-        if (!sendTransport || !track) return null;
-        if (track.readyState === 'ended') return null;
+        console.log('[sfu] produceTrack called', { kind, hasTrack: !!track, trackState: track?.readyState, appData });
+        if (!sendTransport || !track) {
+            console.warn('[sfu] produceTrack abort: no sendTransport or track');
+            return null;
+        }
+        if (track.readyState === 'ended') {
+            console.warn('[sfu] produceTrack abort: track ended');
+            return null;
+        }
         if (producers.has(kind)) {
             const existing = producers.get(kind);
             if (existing.track && existing.track.id === track.id) {
+                console.log('[sfu] produceTrack: same track already producing');
                 return existing;
             }
             try {
@@ -145,6 +155,7 @@ export const createSfuClient = (baseUrl: string) => {
             }
         }
         const producer = await sendTransport.produce({ track, appData });
+        console.log('[sfu] produceTrack success', { kind, producerId: producer.id, trackId: track.id });
         producers.set(kind, producer);
         return producer;
     };
@@ -159,33 +170,42 @@ export const createSfuClient = (baseUrl: string) => {
     };
 
     const consume = async (producerId: string) => {
+        console.log('[sfu] consume called', { producerId, hasRecvTransport: !!recvTransport, hasDevice: !!device });
         if (!recvTransport || !device || !device.rtpCapabilities) return null;
-        const { params } = await request('consume', {
-            roomId,
-            consumerTransportId: recvTransport.id,
-            producerId,
-            rtpCapabilities: device.rtpCapabilities,
-        });
-        const consumer = await recvTransport.consume({
-            id: params.id,
-            producerId: params.producerId,
-            kind: params.kind,
-            rtpParameters: params.rtpParameters,
-        });
-        consumers.set(consumer.id, consumer);
-        await request('resume', { roomId, consumerId: consumer.id });
         try {
-            await consumer.resume();
-        } catch {
-            // ignore resume errors when transport state changes quickly
+            const { params } = await request('consume', {
+                roomId,
+                consumerTransportId: recvTransport.id,
+                producerId,
+                rtpCapabilities: device.rtpCapabilities,
+            });
+            console.log('[sfu] consume server response', { id: params.id, kind: params.kind, producerId: params.producerId });
+            const consumer = await recvTransport.consume({
+                id: params.id,
+                producerId: params.producerId,
+                kind: params.kind,
+                rtpParameters: params.rtpParameters,
+            });
+            consumers.set(consumer.id, consumer);
+            console.log('[sfu] consumer created', { consumerId: consumer.id, kind: consumer.kind, trackState: consumer.track?.readyState, trackEnabled: consumer.track?.enabled });
+            await request('resume', { roomId, consumerId: consumer.id });
+            try {
+                await consumer.resume();
+            } catch {
+                // ignore resume errors when transport state changes quickly
+            }
+            if (consumer.kind === 'video') {
+                setTimeout(() => {
+                    request('requestKeyFrame', { roomId, consumerId: consumer.id }).catch(() => {});
+                }, 300);
+            }
+            const stream = new MediaStream([consumer.track]);
+            console.log('[sfu] consume success', { consumerId: consumer.id, kind: consumer.kind, streamActive: stream.active, trackCount: stream.getTracks().length });
+            return { consumerId: consumer.id, producerId, stream, kind: consumer.kind as 'audio' | 'video' };
+        } catch (err) {
+            console.error('[sfu] consume failed', { producerId, error: (err as Error).message });
+            return null;
         }
-        if (consumer.kind === 'video') {
-            setTimeout(() => {
-                request('requestKeyFrame', { roomId, consumerId: consumer.id }).catch(() => {});
-            }, 300);
-        }
-        const stream = new MediaStream([consumer.track]);
-        return { consumerId: consumer.id, producerId, stream, kind: consumer.kind as 'audio' | 'video' };
     };
 
     const close = () => {
