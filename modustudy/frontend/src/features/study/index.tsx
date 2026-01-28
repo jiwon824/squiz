@@ -1,6 +1,6 @@
 // 스터디 피처의 모든 컴포넌트와 서비스를 외부로 노출하는 인덱스 파일
 export { default as StudyPage } from './components/StudyPage';
-export { default as StudyPageV2 } from './components/StudyPageV2';
+export { default as StudyPageV2 } from './components/StudyPage';
 export { default as StudyCreatePage } from './components/StudyCreatePage';
 export { default as StudyTypeSelectPage } from './components/StudyTypeSelectPage';
 export { default as LightningStudyCreatePage } from './components/LightningStudyCreatePage';

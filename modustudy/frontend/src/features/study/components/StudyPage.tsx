@@ -1,13 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Plus, Search, SlidersHorizontal, Grid, List, X } from 'lucide-react';
 import StudyListContainer from './StudyListContainer';
-import StudyCardContent from './StudyCardContent';
+import StudyCardContentV2 from './StudyCardContentV2';
 import StudyFilter, { FilterState } from './StudyFilter';
 import { studyService, Study, SortOption } from '../services/studyService';
 import { MainLayout } from '@/layouts/MainLayout';
-import '../styles/StudyPage.css';
+import { Button } from '@/shared/components';
+import { cn } from '@/shared/utils/cn';
 
-const StudyPage: React.FC = () => {
+/**
+ * StudyPageV2 - Google Material Design 스타일 스터디 목록 페이지
+ *
+ * 특징:
+ * - 깔끔한 헤더 디자인
+ * - 통합 검색 바
+ * - 필터/정렬 컨트롤
+ * - 그리드/리스트 뷰 전환
+ * - CSS 변수 활용
+ */
+const StudyPageV2: React.FC = () => {
     const navigate = useNavigate();
     const [filteredStudies, setFilteredStudies] = useState<Study[]>([]);
     const [searchKeyword, setSearchKeyword] = useState('');
@@ -24,7 +36,8 @@ const StudyPage: React.FC = () => {
         order: 'desc',
     });
     const [currentPage, setCurrentPage] = useState(1);
-    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid'); // 뷰 모드 상태
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+    const [showFilters, setShowFilters] = useState(false);
     const pageSize = 12;
 
     // 초기 데이터 로드
@@ -39,12 +52,9 @@ const StudyPage: React.FC = () => {
             ...filters,
             keyword: searchKeyword,
         });
-
-        // 정렬 적용
         result = studyService.sortStudies(result, sortOption);
-
         setFilteredStudies(result);
-        setCurrentPage(1); // 필터 변경 시 첫 페이지로
+        setCurrentPage(1);
     }, [filters, searchKeyword, sortOption]);
 
     // 필터 변경 핸들러
@@ -53,13 +63,12 @@ const StudyPage: React.FC = () => {
     };
 
     // 검색 핸들러
-    const handleSearch = (keyword: string) => {
-        setSearchKeyword(keyword);
+    const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
     };
 
     // 정렬 변경 핸들러
-    const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const value = e.target.value;
+    const handleSortChange = (value: string) => {
         switch (value) {
             case 'latest':
                 setSortOption({ field: 'createdAt', order: 'desc' });
@@ -81,7 +90,6 @@ const StudyPage: React.FC = () => {
     // 찜하기 토글 핸들러
     const handleBookmarkToggle = (studyId: number) => {
         studyService.toggleBookmark(studyId);
-        // 상태 업데이트
         setFilteredStudies((prev) =>
             prev.map((study) =>
                 study.id === studyId ? { ...study, isBookmarked: !study.isBookmarked } : study
@@ -89,135 +97,204 @@ const StudyPage: React.FC = () => {
         );
     };
 
-    // 스터디 클릭 핸들러
+    // 스터디 클릭 핸들러 (V2 페이지로 이동)
     const handleStudyClick = (studyId: number) => {
-        navigate(`/study/${studyId}`);
+        navigate(`/study/v2/${studyId}`);
+    };
+
+    // 미팅 타입 빠른 필터
+    const handleMeetingTypeFilter = (type: string | null) => {
+        if (type === null) {
+            setFilters(prev => ({ ...prev, meetingType: [] }));
+        } else {
+            setFilters(prev => ({ ...prev, meetingType: [type] }));
+        }
     };
 
     // 페이지네이션
     const paginatedData = studyService.paginateStudies(filteredStudies, currentPage, pageSize);
 
+    // 현재 정렬 옵션 값
+    const currentSortValue =
+        sortOption.field === 'createdAt' && sortOption.order === 'desc' ? 'latest' :
+        sortOption.field === 'createdAt' && sortOption.order === 'asc' ? 'oldest' :
+        sortOption.field === 'currentMembers' ? 'popular' :
+        sortOption.field === 'recruitEndDate' ? 'deadline' : 'latest';
+
     return (
         <MainLayout>
             <StudyListContainer>
-                <div className="study-page">
-                    <div className="study-page-info">
-                        <div className="difficulty-legend">
-                            <span className="legend-item beginner">초급</span>
-                            <span className="legend-item intermediate">중급</span>
-                            <span className="legend-item advanced">고급</span>
+                <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
+                    {/* 헤더 */}
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                        <div>
+                            <h1 className="text-2xl md:text-3xl font-bold text-[var(--color-text-primary)]">
+                                스터디 찾기
+                            </h1>
+                            <p className="text-sm text-[var(--color-text-secondary)] mt-1">
+                                총 <span className="font-bold text-[var(--color-primary)]">{filteredStudies.length}</span>개의 스터디
+                            </p>
                         </div>
-                        <p className="study-count">
-                            총 <strong>{filteredStudies.length}</strong>개의 스터디
-                        </p>
+
+                        <Button
+                            variant="primary"
+                            size="md"
+                            onClick={() => navigate('/study/create')}
+                            leftIcon={<Plus size={18} />}
+                            className="h-11 rounded-xl font-semibold shadow-md shadow-[var(--color-primary-alpha-20)]"
+                        >
+                            스터디 만들기
+                        </Button>
                     </div>
 
-                    {/* 필터 및 검색 */}
-                    <StudyFilter onFilterChange={handleFilterChange} onSearch={handleSearch} />
+                    {/* 검색 및 컨트롤 바 */}
+                    <div className="bg-white rounded-2xl border border-[var(--color-border)] p-4 mb-6 shadow-sm">
+                        <div className="flex flex-col lg:flex-row gap-4">
+                            {/* 검색 바 */}
+                            <form onSubmit={handleSearch} className="flex-1">
+                                <div className="relative">
+                                    <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-text-tertiary)]" />
+                                    <input
+                                        type="text"
+                                        placeholder="스터디 이름, 주제로 검색..."
+                                        value={searchKeyword}
+                                        onChange={(e) => setSearchKeyword(e.target.value)}
+                                        className="w-full h-11 pl-11 pr-4 bg-[var(--color-background)] border border-[var(--color-border-lighter)] rounded-xl text-sm focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary-alpha-10)] transition-all"
+                                    />
+                                    {searchKeyword && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setSearchKeyword('')}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-[var(--color-background-secondary)] text-[var(--color-text-tertiary)]"
+                                        >
+                                            <X size={16} />
+                                        </button>
+                                    )}
+                                </div>
+                            </form>
 
-                    {/* 통합 컨트롤 바 */}
-                    <div className="study-controls">
-                        <div className="view-toggle">
-                            <button
-                                className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
-                                onClick={() => setViewMode('grid')}
-                                title="그리드 뷰"
-                            >
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                    <rect x="3" y="3" width="7" height="7" rx="1" />
-                                    <rect x="14" y="3" width="7" height="7" rx="1" />
-                                    <rect x="3" y="14" width="7" height="7" rx="1" />
-                                    <rect x="14" y="14" width="7" height="7" rx="1" />
-                                </svg>
-                            </button>
-                            <button
-                                className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
-                                onClick={() => setViewMode('list')}
-                                title="리스트 뷰"
-                            >
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                    <line x1="8" y1="6" x2="21" y2="6" />
-                                    <line x1="8" y1="12" x2="21" y2="12" />
-                                    <line x1="8" y1="18" x2="21" y2="18" />
-                                    <rect x="3" y="5" width="2" height="2" rx="0.5" />
-                                    <rect x="3" y="11" width="2" height="2" rx="0.5" />
-                                    <rect x="3" y="17" width="2" height="2" rx="0.5" />
-                                </svg>
-                            </button>
-                        </div>
+                            {/* 컨트롤 버튼들 */}
+                            <div className="flex items-center gap-3">
+                                {/* 미팅 타입 필터 */}
+                                <div className="flex bg-[var(--color-background)] rounded-lg p-1 border border-[var(--color-border-lighter)]">
+                                    {[
+                                        { value: null, label: '전체' },
+                                        { value: 'ONLINE', label: '온라인' },
+                                        { value: 'OFFLINE', label: '오프라인' },
+                                    ].map((option) => (
+                                        <button
+                                            key={option.label}
+                                            onClick={() => handleMeetingTypeFilter(option.value)}
+                                            className={cn(
+                                                "px-3 py-1.5 text-xs font-semibold rounded-md transition-all",
+                                                (option.value === null && filters.meetingType.length === 0) ||
+                                                (option.value && filters.meetingType.includes(option.value))
+                                                    ? "bg-white text-[var(--color-primary)] shadow-sm"
+                                                    : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+                                            )}
+                                        >
+                                            {option.label}
+                                        </button>
+                                    ))}
+                                </div>
 
-                        <div className="meeting-type-group">
-                            <div className="meeting-type-tabs">
-                                <button
-                                    className={`tab-btn ${filters.meetingType.length === 0 ? 'active' : ''}`}
-                                    onClick={() => handleFilterChange({ ...filters, meetingType: [] })}
+                                {/* 정렬 */}
+                                <select
+                                    value={currentSortValue}
+                                    onChange={(e) => handleSortChange(e.target.value)}
+                                    className="h-9 px-3 pr-8 bg-[var(--color-background)] border border-[var(--color-border-lighter)] rounded-lg text-xs font-semibold text-[var(--color-text-primary)] focus:outline-none focus:border-[var(--color-primary)] cursor-pointer appearance-none"
+                                    style={{
+                                        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235F6368' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
+                                        backgroundRepeat: 'no-repeat',
+                                        backgroundPosition: 'right 8px center'
+                                    }}
                                 >
-                                    무관
-                                </button>
-                                <button
-                                    className={`tab-btn ${filters.meetingType.includes('ONLINE') ? 'active' : ''}`}
-                                    onClick={() => handleFilterChange({ ...filters, meetingType: ['ONLINE'] })}
+                                    <option value="latest">최신순</option>
+                                    <option value="popular">인기순</option>
+                                    <option value="deadline">마감임박순</option>
+                                </select>
+
+                                {/* 뷰 모드 전환 */}
+                                <div className="flex bg-[var(--color-background)] rounded-lg p-1 border border-[var(--color-border-lighter)]">
+                                    <button
+                                        onClick={() => setViewMode('grid')}
+                                        className={cn(
+                                            "p-1.5 rounded-md transition-all",
+                                            viewMode === 'grid'
+                                                ? "bg-white text-[var(--color-primary)] shadow-sm"
+                                                : "text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]"
+                                        )}
+                                    >
+                                        <Grid size={16} />
+                                    </button>
+                                    <button
+                                        onClick={() => setViewMode('list')}
+                                        className={cn(
+                                            "p-1.5 rounded-md transition-all",
+                                            viewMode === 'list'
+                                                ? "bg-white text-[var(--color-primary)] shadow-sm"
+                                                : "text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]"
+                                        )}
+                                    >
+                                        <List size={16} />
+                                    </button>
+                                </div>
+
+                                {/* 필터 버튼 */}
+                                <Button
+                                    variant="google-outline"
+                                    size="sm"
+                                    onClick={() => setShowFilters(!showFilters)}
+                                    leftIcon={<SlidersHorizontal size={16} />}
+                                    className={cn(
+                                        "h-9 rounded-lg",
+                                        showFilters && "border-[var(--color-primary)] text-[var(--color-primary)]"
+                                    )}
                                 >
-                                    온라인
-                                </button>
-                                <button
-                                    className={`tab-btn ${filters.meetingType.includes('OFFLINE') ? 'active' : ''}`}
-                                    onClick={() => handleFilterChange({ ...filters, meetingType: ['OFFLINE'] })}
-                                >
-                                    오프라인
-                                </button>
-                                <button
-                                    className={`tab-btn ${filters.meetingType.includes('HYBRID') ? 'active' : ''}`}
-                                    onClick={() => handleFilterChange({ ...filters, meetingType: ['HYBRID'] })}
-                                >
-                                    혼합
-                                </button>
+                                    필터
+                                </Button>
                             </div>
-                            <select
-                                className="meeting-type-select"
-                                value={filters.meetingType.length === 0 ? 'ALL' : filters.meetingType[0]}
-                                onChange={(e) => {
-                                    const val = e.target.value;
-                                    handleFilterChange({
-                                        ...filters,
-                                        meetingType: val === 'ALL' ? [] : [val]
-                                    });
-                                }}
-                            >
-                                <option value="ALL">방식 무관</option>
-                                <option value="ONLINE">온라인</option>
-                                <option value="OFFLINE">오프라인</option>
-                                <option value="HYBRID">혼합</option>
-                            </select>
                         </div>
 
-                        <div className="sort-wrapper">
-                            <select
-                                className="sort-select"
-                                value={
-                                    sortOption.field === 'createdAt' && sortOption.order === 'desc' ? 'latest' :
-                                        sortOption.field === 'createdAt' && sortOption.order === 'asc' ? 'oldest' :
-                                            sortOption.field === 'currentMembers' ? 'popular' :
-                                                sortOption.field === 'recruitEndDate' ? 'deadline' : 'latest'
-                                }
-                                onChange={handleSortChange}
-                            >
-                                <option value="latest">최신순</option>
-                                <option value="oldest">오래된순</option>
-                                <option value="popular">인기순</option>
-                                <option value="deadline">마감임박순</option>
-                            </select>
+                        {/* 확장 필터 */}
+                        {showFilters && (
+                            <div className="mt-4 pt-4 border-t border-[var(--color-border-lighter)]">
+                                <StudyFilter onFilterChange={handleFilterChange} onSearch={() => {}} />
+                            </div>
+                        )}
+                    </div>
+
+                    {/* 난이도 범례 */}
+                    <div className="flex items-center gap-4 mb-4 text-xs">
+                        <span className="text-[var(--color-text-tertiary)] font-medium">난이도:</span>
+                        <div className="flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-sm bg-[var(--color-success)]" />
+                            <span className="text-[var(--color-text-secondary)]">입문</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-sm bg-[var(--color-primary)]" />
+                            <span className="text-[var(--color-text-secondary)]">중급</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-sm bg-[var(--color-error)]" />
+                            <span className="text-[var(--color-text-secondary)]">고급</span>
                         </div>
                     </div>
 
                     {/* 스터디 목록 */}
                     {paginatedData.studies.length > 0 ? (
                         <>
-                            <div className={`study-grid ${viewMode === 'list' ? 'list-view' : ''}`}>
+                            <div className={cn(
+                                "mb-8",
+                                viewMode === 'grid'
+                                    ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"
+                                    : "flex flex-col gap-3"
+                            )}>
                                 {paginatedData.studies.map((study) => (
-                                    <StudyCardContent
+                                    <StudyCardContentV2
                                         key={study.id}
                                         study={study}
+                                        variant={viewMode === 'grid' ? 'card' : 'list'}
                                         onBookmarkToggle={handleBookmarkToggle}
                                         onClick={handleStudyClick}
                                     />
@@ -226,23 +303,27 @@ const StudyPage: React.FC = () => {
 
                             {/* 페이지네이션 */}
                             {paginatedData.totalPages > 1 && (
-                                <div className="pagination">
+                                <div className="flex justify-center items-center gap-2">
                                     <button
-                                        className="pagination-btn arrow"
+                                        className="w-10 h-10 flex items-center justify-center rounded-lg bg-white border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                                         disabled={currentPage === 1}
                                         onClick={() => setCurrentPage((prev) => prev - 1)}
-                                        title="이전 페이지"
                                     >
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                             <path d="m15 18-6-6 6-6" />
                                         </svg>
                                     </button>
 
-                                    <div className="pagination-numbers">
+                                    <div className="flex gap-1">
                                         {Array.from({ length: paginatedData.totalPages }, (_, i) => i + 1).map((pageNum) => (
                                             <button
                                                 key={pageNum}
-                                                className={`pagination-number ${currentPage === pageNum ? 'active' : ''}`}
+                                                className={cn(
+                                                    "w-10 h-10 flex items-center justify-center rounded-lg text-sm font-semibold transition-all",
+                                                    currentPage === pageNum
+                                                        ? "bg-[var(--color-primary)] text-white shadow-md"
+                                                        : "bg-white border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
+                                                )}
                                                 onClick={() => setCurrentPage(pageNum)}
                                             >
                                                 {pageNum}
@@ -251,12 +332,11 @@ const StudyPage: React.FC = () => {
                                     </div>
 
                                     <button
-                                        className="pagination-btn arrow"
+                                        className="w-10 h-10 flex items-center justify-center rounded-lg bg-white border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                                         disabled={currentPage === paginatedData.totalPages}
                                         onClick={() => setCurrentPage((prev) => prev + 1)}
-                                        title="다음 페이지"
                                     >
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                             <path d="m9 18 6-6-6-6" />
                                         </svg>
                                     </button>
@@ -264,9 +344,16 @@ const StudyPage: React.FC = () => {
                             )}
                         </>
                     ) : (
-                        <div className="empty-state">
-                            <p>검색 결과가 없습니다.</p>
-                            <p className="empty-state-subtitle">다른 검색어나 필터를 시도해보세요.</p>
+                        <div className="text-center py-16 bg-white rounded-2xl border border-[var(--color-border)]">
+                            <div className="w-16 h-16 mx-auto mb-4 bg-[var(--color-background-secondary)] rounded-full flex items-center justify-center">
+                                <Search size={28} className="text-[var(--color-text-muted)]" />
+                            </div>
+                            <p className="text-lg font-semibold text-[var(--color-text-primary)] mb-2">
+                                검색 결과가 없습니다
+                            </p>
+                            <p className="text-sm text-[var(--color-text-tertiary)]">
+                                다른 검색어나 필터를 시도해보세요.
+                            </p>
                         </div>
                     )}
                 </div>
@@ -275,4 +362,4 @@ const StudyPage: React.FC = () => {
     );
 };
 
-export default StudyPage;
+export default StudyPageV2;

@@ -1,5 +1,5 @@
 // 캘린더 관련 타입 정의
-import { Schedule } from '../../services/scheduleStore';
+import { Schedule } from '../../dashboard/services/scheduleStore';
 
 // CalendarDay에 표시할 날짜 정보
 export interface CalendarDayInfo {

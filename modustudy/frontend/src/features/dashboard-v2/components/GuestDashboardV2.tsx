@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Brain, Video, TrendingUp, MessageSquare, FileText, BarChart3 } from 'lucide-react';
+import { Sparkles, Brain, Video, TrendingUp, MessageSquare, FileText, BarChart3, ArrowUpRight } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 import { Button } from '@/shared/components/Button';
 
@@ -37,6 +37,7 @@ const HERO_MESSAGES = [
 export const GuestDashboardV2: React.FC = () => {
     const navigate = useNavigate();
     const [currentIndex, setCurrentIndex] = useState(0);
+    const [isLaunching, setIsLaunching] = useState(false);
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -44,6 +45,15 @@ export const GuestDashboardV2: React.FC = () => {
         }, 5000);
         return () => clearInterval(timer);
     }, []);
+
+    // CTA 버튼 클릭 핸들러
+    const handleStartClick = () => {
+        setIsLaunching(true);
+        // 애니메이션 완료 후 페이지 이동
+        setTimeout(() => {
+            navigate('/login');
+        }, 800);
+    };
 
     const currentHero = HERO_MESSAGES[currentIndex];
     const Icon = currentHero.icon;
@@ -147,10 +157,15 @@ export const GuestDashboardV2: React.FC = () => {
             {/* 서비스 특징 섹션 */}
             <section className="py-32 bg-white overflow-hidden">
                 <div className="max-w-6xl mx-auto px-8">
-                    <h3 className="text-6xl font-black text-center text-gray-900 mb-0">
-                        Effortless Learning
-                    </h3>
-                    <div className="space-y-40">
+                    <div className="text-center mb-24">
+                        <h3 className="text-6xl font-black text-gray-900 mb-4">
+                            Effortless Learning
+                        </h3>
+                        <p className="text-xl text-gray-500">
+                            스터디 참여만으로 모든 학습 관리가 자동화됩니다
+                        </p>
+                    </div>
+                    <div className="space-y-32">
                         <FeatureWithMockup
                             title="자동 대화 요약"
                             description="STT 기술로 스터디 대화를 실시간으로 기록하고 핵심 내용을 자동으로 요약합니다. 더 이상 수동으로 노트를 작성할 필요가 없습니다."
@@ -174,22 +189,86 @@ export const GuestDashboardV2: React.FC = () => {
             </section>
 
             {/* 최종 CTA 섹션 */}
-            <section className="py-32 bg-gray-900 text-white">
-                <div className="max-w-4xl mx-auto px-8 text-center">
-                    <h3 className="text-6xl font-black mb-0 leading-tight">
-                        지금 바로<br />시작하세요
-                    </h3>
-                    <p className="text-xl text-gray-300 mb-12 leading-relaxed">
-                        복잡한 학습 관리는 이제 그만.<br />스터디에만 집중하세요.
-                    </p>
-                    <Button
-                        variant="secondary"
-                        size="xl"
-                        onClick={() => navigate('/login')}
-                        className="bg-white hover:bg-gray-100 text-gray-900 shadow-xl hover:shadow-2xl"
+            <section className="relative py-40 overflow-hidden">
+                {/* 배경 그라데이션 */}
+                <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/90 to-secondary" />
+
+                {/* 배경 패턴 */}
+                <div className="absolute inset-0 opacity-10">
+                    <div className="absolute top-20 left-20 w-72 h-72 bg-white rounded-full blur-3xl" />
+                    <div className="absolute bottom-20 right-20 w-96 h-96 bg-white rounded-full blur-3xl" />
+                </div>
+
+                <div className="relative max-w-4xl mx-auto px-8 text-center">
+                    <motion.div
+                        initial={{ opacity: 0, y: 40 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.8 }}
+                        className="space-y-8"
                     >
-                        시작하기
-                    </Button>
+                        {/* 화살표 + 타이틀 */}
+                        <div>
+                            {/* 화살표 아이콘 - 가로 중앙 */}
+                            <motion.div
+                                animate={isLaunching
+                                    ? { x: 150, y: -120, opacity: 0, scale: 0.5 }
+                                    : { x: 0, y: 0, opacity: 1, scale: 1 }
+                                }
+                                transition={{
+                                    duration: 0.7,
+                                    ease: [0.4, 0, 0.2, 1]
+                                }}
+                                className="flex justify-center mb-6"
+                            >
+                                <ArrowUpRight
+                                    className="text-white"
+                                    size={48}
+                                    strokeWidth={2.5}
+                                />
+                            </motion.div>
+
+                            <h3 className="text-5xl md:text-6xl font-black text-white mb-4 leading-tight">
+                                지금 바로
+                            </h3>
+                            <h3 className="text-5xl md:text-6xl font-black text-white/90 mb-0 leading-tight">
+                                시작하세요
+                            </h3>
+                        </div>
+
+                        {/* 설명 */}
+                        <p className="text-xl text-white/80 max-w-xl mx-auto leading-relaxed">
+                            복잡한 학습 관리는 이제 그만.
+                            <br />
+                            스터디에만 집중하세요.
+                        </p>
+
+                        {/* CTA 버튼 */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ delay: 0.3, duration: 0.6 }}
+                        >
+                            <Button
+                                variant="secondary"
+                                size="xl"
+                                onClick={handleStartClick}
+                                disabled={isLaunching}
+                                className={cn(
+                                    "bg-white hover:bg-gray-50 text-primary font-bold px-10 py-4 shadow-2xl transition-all",
+                                    !isLaunching && "hover:shadow-white/25 hover:scale-105"
+                                )}
+                            >
+                                무료로 시작하기
+                            </Button>
+                        </motion.div>
+
+                        {/* 부가 정보 */}
+                        <p className="text-sm text-white/60">
+                            가입 후 모든 기능을 무료로 이용하세요
+                        </p>
+                    </motion.div>
                 </div>
             </section>
         </div>
@@ -239,197 +318,271 @@ const FeatureWithMockup: React.FC<FeatureWithMockupProps> = ({ title, descriptio
     </motion.div>
 );
 
-// STT 대화 요약 목업
+// STT 미팅 리포트 목업 - 실제 위젯 스타일
 const STTMockup: React.FC = () => (
-    <div className="mockup-browser max-w-md mx-auto">
-        <div className="mockup-browser-header">
-            <div className="mockup-browser-dot red" />
-            <div className="mockup-browser-dot yellow" />
-            <div className="mockup-browser-dot green" />
-            <div className="mockup-browser-url">modustudy.com/meeting/summary</div>
+    <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden max-w-lg mx-auto">
+        {/* 헤더 */}
+        <div className="px-6 pt-6 pb-4 flex items-center gap-3 border-b border-gray-50">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <FileText className="text-primary" size={20} />
+            </div>
+            <div>
+                <h4 className="text-lg font-bold text-gray-900 mb-0">STT 미팅 리포트</h4>
+                <p className="text-xs text-gray-500">최근 스터디 요약</p>
+            </div>
         </div>
-        <div className="p-6 space-y-4 bg-gray-50">
-            {/* 대화 내용 */}
-            <div className="space-y-3">
+
+        <div className="flex">
+            {/* 좌측: 미팅 리스트 */}
+            <div className="w-1/3 border-r border-gray-100 bg-gray-50/50">
                 {[
-                    { name: '김민수', text: 'React의 useEffect는 사이드 이펙트 처리에 사용돼요', time: '14:23' },
-                    { name: '이지현', text: '의존성 배열에 뭘 넣어야 하는지 헷갈려요', time: '14:25' },
-                    { name: '김민수', text: '변경을 감지하고 싶은 값만 넣으면 됩니다', time: '14:26' },
-                ].map((chat, i) => (
+                    { study: 'React 스터디', meeting: '주간 회의', active: true },
+                    { study: 'TypeScript', meeting: '제네릭 학습', active: false },
+                ].map((item, i) => (
                     <motion.div
                         key={i}
-                        initial={{ opacity: 0, x: -20 }}
+                        initial={{ opacity: 0, x: -10 }}
                         whileInView={{ opacity: 1, x: 0 }}
                         viewport={{ once: true }}
-                        transition={{ delay: i * 0.15 }}
-                        className="flex items-start gap-3"
+                        transition={{ delay: i * 0.1 }}
+                        className={cn(
+                            'p-4 border-b border-gray-100 cursor-pointer',
+                            item.active ? 'bg-primary/5 border-l-4 border-l-primary' : 'hover:bg-gray-100'
+                        )}
                     >
-                        <div className="mockup-avatar flex-shrink-0" style={{
-                            background: i % 2 === 0
-                                ? 'linear-gradient(135deg, #4285F4, #34A853)'
-                                : 'linear-gradient(135deg, #EA4335, #FBBC04)'
-                        }} />
-                        <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                                <span className="font-semibold text-sm text-gray-900">{chat.name}</span>
-                                <span className="text-xs text-gray-400">{chat.time}</span>
-                            </div>
-                            <p className="text-sm text-gray-600 mt-0.5">{chat.text}</p>
-                        </div>
+                        <div className="font-bold text-sm text-gray-900">{item.study}</div>
+                        <div className="text-xs text-gray-500 truncate">{item.meeting}</div>
                     </motion.div>
                 ))}
             </div>
-            {/* AI 요약 */}
+
+            {/* 우측: 리포트 상세 */}
+            <div className="flex-1 p-5">
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    whileInView={{ opacity: 1 }}
+                    viewport={{ once: true }}
+                >
+                    <h5 className="text-lg font-bold text-gray-900 mb-1">주간 회의 - React Hooks</h5>
+                    <div className="flex items-center gap-3 text-xs text-gray-500 mb-4">
+                        <span>2024-01-25</span>
+                        <span>5명 참여</span>
+                    </div>
+
+                    {/* 요약 */}
+                    <div className="bg-gray-50 rounded-xl p-4 mb-4">
+                        <div className="font-bold text-sm text-gray-700 mb-1">📝 요약</div>
+                        <p className="text-sm text-gray-600">
+                            useEffect 의존성 배열 사용법과 클린업 함수 동작 원리에 대해 논의
+                        </p>
+                    </div>
+
+                    {/* 키워드 */}
+                    <div className="flex flex-wrap gap-2">
+                        {['React Hooks', 'useEffect', '클린업'].map((tag, i) => (
+                            <motion.span
+                                key={i}
+                                initial={{ opacity: 0, scale: 0.8 }}
+                                whileInView={{ opacity: 1, scale: 1 }}
+                                viewport={{ once: true }}
+                                transition={{ delay: 0.2 + i * 0.05 }}
+                                className="px-3 py-1 bg-primary/10 text-primary text-xs font-medium rounded-full"
+                            >
+                                {tag}
+                            </motion.span>
+                        ))}
+                    </div>
+                </motion.div>
+            </div>
+        </div>
+    </div>
+);
+
+// AI 복습 퀴즈 목업 - 실제 위젯 스타일
+const QuizMockup: React.FC = () => (
+    <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden max-w-lg mx-auto">
+        {/* 헤더 */}
+        <div className="px-6 pt-6 pb-4 flex items-center justify-between border-b border-gray-50">
+            <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center">
+                    <Brain className="text-secondary" size={20} />
+                </div>
+                <div>
+                    <h4 className="text-lg font-bold text-gray-900 mb-0">AI 복습 퀴즈</h4>
+                    <p className="text-xs text-gray-500">스터디 내용 기반 자동 생성</p>
+                </div>
+            </div>
+            <div className="text-sm font-bold text-gray-900">2 / 5</div>
+        </div>
+
+        {/* 퀴즈 콘텐츠 */}
+        <div className="p-6">
             <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: 0.5 }}
-                className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-100"
             >
-                <div className="flex items-center gap-2 mb-2">
-                    <Sparkles className="text-blue-500" size={16} />
-                    <span className="font-semibold text-sm text-blue-700">AI 요약</span>
+                {/* 문제 */}
+                <div className="mb-6">
+                    <span className="inline-block px-2 py-1 bg-secondary/10 text-secondary text-xs font-medium rounded-lg mb-3">
+                        객관식
+                    </span>
+                    <p className="text-lg font-medium text-gray-900">
+                        useEffect의 클린업 함수는 언제 실행되나요?
+                    </p>
                 </div>
-                <p className="text-sm text-blue-600">
-                    React useEffect 훅의 의존성 배열 사용법에 대해 논의. 변경 감지가 필요한 값만 배열에 포함하면 됨.
-                </p>
+
+                {/* 선택지 */}
+                <div className="space-y-3 mb-6">
+                    {[
+                        { text: '컴포넌트 마운트 시', selected: false },
+                        { text: '언마운트 시 또는 다음 effect 실행 전', selected: true, correct: true },
+                        { text: '렌더링 직후', selected: false },
+                        { text: '상태 변경 시', selected: false },
+                    ].map((option, i) => (
+                        <motion.div
+                            key={i}
+                            initial={{ opacity: 0, x: -10 }}
+                            whileInView={{ opacity: 1, x: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ delay: i * 0.08 }}
+                            className={cn(
+                                'p-4 rounded-xl border-2 transition-all cursor-pointer',
+                                option.correct
+                                    ? 'border-accent bg-accent/5'
+                                    : 'border-gray-100 hover:border-gray-200'
+                            )}
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className={cn(
+                                    'w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-bold',
+                                    option.correct
+                                        ? 'border-accent bg-accent text-white'
+                                        : 'border-gray-300 text-gray-400'
+                                )}>
+                                    {option.correct ? '✓' : String.fromCharCode(65 + i)}
+                                </div>
+                                <span className={cn(
+                                    'text-sm',
+                                    option.correct ? 'text-accent font-medium' : 'text-gray-700'
+                                )}>
+                                    {option.text}
+                                </span>
+                            </div>
+                        </motion.div>
+                    ))}
+                </div>
+
+                {/* 진행률 */}
+                <div className="flex items-center gap-3">
+                    <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <motion.div
+                            className="h-full bg-secondary rounded-full"
+                            initial={{ width: 0 }}
+                            whileInView={{ width: '40%' }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.8, delay: 0.3 }}
+                        />
+                    </div>
+                    <span className="text-xs text-gray-500 font-medium">40%</span>
+                </div>
             </motion.div>
         </div>
     </div>
 );
 
-// AI 퀴즈 목업
-const QuizMockup: React.FC = () => (
-    <div className="mockup-browser max-w-md mx-auto">
-        <div className="mockup-browser-header">
-            <div className="mockup-browser-dot red" />
-            <div className="mockup-browser-dot yellow" />
-            <div className="mockup-browser-dot green" />
-            <div className="mockup-browser-url">modustudy.com/quiz</div>
-        </div>
-        <div className="p-6 bg-gray-50">
-            <div className="space-y-4">
-                <div className="flex items-center gap-2 mb-4">
-                    <Brain className="text-purple-500" size={20} />
-                    <span className="font-bold text-gray-900">AI 생성 퀴즈</span>
-                    <span className="ml-auto text-sm text-gray-500">Q1 / 5</span>
-                </div>
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    whileInView={{ opacity: 1 }}
-                    viewport={{ once: true }}
-                    className="p-4 bg-white rounded-xl shadow-sm"
-                >
-                    <p className="font-medium text-gray-900 mb-4">
-                        React useEffect의 의존성 배열이 비어있을 때 어떻게 동작하나요?
-                    </p>
-                    <div className="space-y-2">
-                        {[
-                            '컴포넌트가 마운트될 때만 실행',
-                            '모든 렌더링마다 실행',
-                            '아무 때도 실행되지 않음',
-                            '에러 발생',
-                        ].map((option, i) => (
-                            <motion.button
-                                key={i}
-                                initial={{ opacity: 0, x: -10 }}
-                                whileInView={{ opacity: 1, x: 0 }}
-                                viewport={{ once: true }}
-                                transition={{ delay: i * 0.1 }}
-                                className={cn(
-                                    'w-full p-3 text-left rounded-lg border transition-all text-sm',
-                                    i === 0
-                                        ? 'border-green-500 bg-green-50 text-green-700'
-                                        : 'border-gray-200 hover:border-gray-300 text-gray-700'
-                                )}
-                            >
-                                <span className="font-medium mr-2">{String.fromCharCode(65 + i)}.</span>
-                                {option}
-                                {i === 0 && <span className="ml-2 text-green-600">✓</span>}
-                            </motion.button>
-                        ))}
-                    </div>
-                </motion.div>
-                {/* 진행 바 */}
-                <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                    <motion.div
-                        className="h-full bg-gradient-to-r from-purple-500 to-blue-500"
-                        initial={{ width: 0 }}
-                        whileInView={{ width: '20%' }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.8, delay: 0.3 }}
-                    />
-                </div>
-            </div>
-        </div>
-    </div>
-);
-
-// 학습 아카이브 목업
+// 학습 아카이브 목업 - 실제 위젯 스타일
 const ArchiveMockup: React.FC = () => (
-    <div className="mockup-browser max-w-md mx-auto">
-        <div className="mockup-browser-header">
-            <div className="mockup-browser-dot red" />
-            <div className="mockup-browser-dot yellow" />
-            <div className="mockup-browser-dot green" />
-            <div className="mockup-browser-url">modustudy.com/archive</div>
-        </div>
-        <div className="p-6 bg-gray-50">
-            {/* 통계 카드 */}
-            <div className="grid grid-cols-3 gap-3 mb-4">
-                {[
-                    { label: '총 학습 시간', value: '127h', icon: BarChart3, color: 'blue' },
-                    { label: '완료한 퀴즈', value: '89개', icon: Brain, color: 'purple' },
-                    { label: '참여 스터디', value: '12개', icon: MessageSquare, color: 'green' },
-                ].map((stat, i) => (
-                    <motion.div
-                        key={i}
-                        initial={{ opacity: 0, y: 10 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ delay: i * 0.1 }}
-                        className="p-3 bg-white rounded-xl shadow-sm text-center"
-                    >
-                        <stat.icon className={cn(
-                            'mx-auto mb-1',
-                            stat.color === 'blue' && 'text-blue-500',
-                            stat.color === 'purple' && 'text-purple-500',
-                            stat.color === 'green' && 'text-green-500',
-                        )} size={18} />
-                        <div className="text-lg font-bold text-gray-900">{stat.value}</div>
-                        <div className="text-xs text-gray-500">{stat.label}</div>
-                    </motion.div>
-                ))}
-            </div>
-            {/* 최근 기록 */}
-            <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                    <span className="font-semibold text-sm text-gray-900">최근 학습 기록</span>
-                    <FileText className="text-gray-400" size={16} />
+    <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden max-w-lg mx-auto">
+        {/* 헤더 */}
+        <div className="px-6 pt-6 pb-4 flex items-center justify-between border-b border-gray-50">
+            <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
+                    <BarChart3 className="text-accent" size={20} />
                 </div>
+                <div>
+                    <h4 className="text-lg font-bold text-gray-900 mb-0">학습 보관함</h4>
+                    <p className="text-xs text-gray-500">과거 스터디 기록</p>
+                </div>
+            </div>
+            <div className="flex items-center gap-1">
+                <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                    <BarChart3 size={16} />
+                </div>
+                <div className="p-2 rounded-lg text-gray-400">
+                    <FileText size={16} />
+                </div>
+            </div>
+        </div>
+
+        <div className="p-6">
+            {/* 검색창 */}
+            <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                className="relative mb-4"
+            >
+                <MessageSquare className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                <div className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-400">
+                    제목, 내용 검색...
+                </div>
+            </motion.div>
+
+            {/* 태그 필터 */}
+            <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.1 }}
+                className="flex flex-wrap gap-2 mb-5"
+            >
+                {['전체', 'React', 'TypeScript', 'Zustand'].map((tag, i) => (
+                    <span
+                        key={tag}
+                        className={cn(
+                            'px-3 py-1.5 rounded-full text-xs font-medium',
+                            i === 0
+                                ? 'bg-primary text-white'
+                                : 'bg-gray-100 text-gray-600'
+                        )}
+                    >
+                        {tag}
+                    </span>
+                ))}
+            </motion.div>
+
+            {/* 아카이브 아이템 */}
+            <div className="space-y-3">
                 {[
-                    { title: 'React Hooks 심화', date: '오늘', score: 95 },
-                    { title: 'TypeScript 기초', date: '어제', score: 88 },
-                    { title: 'Next.js 라우팅', date: '2일 전', score: 92 },
-                ].map((record, i) => (
+                    { title: 'React Hooks 정리', study: 'React 스터디', date: '01-25', tags: ['React', 'Hooks'], keyPoints: 5 },
+                    { title: 'TypeScript 제네릭', study: 'TypeScript 스터디', date: '01-24', tags: ['TypeScript'], keyPoints: 7 },
+                ].map((archive, i) => (
                     <motion.div
                         key={i}
                         initial={{ opacity: 0, x: -10 }}
                         whileInView={{ opacity: 1, x: 0 }}
                         viewport={{ once: true }}
                         transition={{ delay: 0.2 + i * 0.1 }}
-                        className="flex items-center justify-between p-3 bg-white rounded-lg shadow-sm"
+                        className="bg-gray-50 rounded-xl p-4 border border-gray-100 hover:shadow-md hover:bg-white transition-all cursor-pointer"
                     >
-                        <div>
-                            <div className="font-medium text-sm text-gray-900">{record.title}</div>
-                            <div className="text-xs text-gray-500">{record.date}</div>
+                        <div className="flex items-start justify-between mb-2">
+                            <h5 className="font-bold text-gray-900 mb-0">{archive.title}</h5>
+                            <span className="text-xs text-gray-500">{archive.date}</span>
                         </div>
-                        <div className={cn(
-                            'px-2 py-1 rounded-full text-xs font-semibold',
-                            record.score >= 90 ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
-                        )}>
-                            {record.score}점
+                        <p className="text-xs text-gray-500 mb-3">{archive.study}</p>
+                        <div className="flex items-center justify-between">
+                            <div className="flex gap-1.5">
+                                {archive.tags.map((tag) => (
+                                    <span
+                                        key={tag}
+                                        className="px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full"
+                                    >
+                                        {tag}
+                                    </span>
+                                ))}
+                            </div>
+                            <span className="text-xs text-gray-500">키포인트 {archive.keyPoints}</span>
                         </div>
                     </motion.div>
                 ))}
