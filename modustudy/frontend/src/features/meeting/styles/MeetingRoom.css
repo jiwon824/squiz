@@ -31,8 +31,27 @@
 
 .meeting-room__meta-title {
     display: flex;
-    align-items: baseline;
+    align-items: flex-end;
     gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.meeting-room__meta-title h1 {
+    margin: 0;
+    display: flex;
+    align-items: center;
+}
+
+.meeting-room__meta-times {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.meeting-room__meta-time-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
     flex-wrap: wrap;
 }
 
@@ -54,6 +73,11 @@
     margin-top: 0;
     font-size: var(--font-size-xs);
     color: var(--color-text-secondary);
+}
+
+.meeting-room__timer--warning {
+    color: #d64545;
+    font-weight: var(--font-weight-semibold);
 }
 
 .meeting-room__recording {

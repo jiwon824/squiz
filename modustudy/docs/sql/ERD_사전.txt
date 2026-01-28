@@ -1,4 +1,4 @@
-================================================================================
+﻿================================================================================
 ModuStudy ERD 용어 사전
 ================================================================================
 
@@ -197,6 +197,7 @@ meeting_id                미팅ID
 started_at                시작일시
 ended_at                  종료일시
 duration_seconds          진행시간(초)
+planned_duration_seconds          예정시간(초)
 participant_count         참여자수
 is_muted                  음소거여부
 is_camera_on              카메라켜짐여부
@@ -374,6 +375,13 @@ LIGHTNING                 번개스터디
 ONLINE                    온라인
 OFFLINE                   오프라인
 HYBRID                    혼합
+
+--- meeting.meeting_type (미팅 유형) ---
+DAILY                     일일
+WEEKLY                    주간
+FREE                      자유
+OTHER                     기타
+
 
 --- study.status (스터디상태) ---
 DRAFT                     임시저장

@@ -1,22 +1,14 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { useUIStore } from '@/store/uiStore';
 import { meetingApi } from '../services/meetingApi';
 import {
-    MeetingActionItemRequest,
-    MeetingActionItemResponse,
-    MeetingAudioRecordingResponse,
     MeetingChatMessageResponse,
     MeetingDetailResponse,
     MeetingPhotoResponse,
-    MeetingRecordingResponse,
-    MeetingSttFileResponse,
-    MeetingSttSummaryResponse,
 } from '../types';
-import MeetingActionItems from './MeetingActionItems';
 import MeetingSummaryPanel from './MeetingSummaryPanel';
-import MeetingRecordingPanel from './MeetingRecordingPanel';
 import '../styles/MeetingDetail.css';
 import '../styles/MeetingShared.css';
 
@@ -27,16 +19,13 @@ const MeetingDetailPage: React.FC = () => {
     const navigate = useNavigate();
     const showToast = useUIStore((state) => state.showToast);
     const [detail, setDetail] = useState<MeetingDetailResponse | null>(null);
-    const [actionItems, setActionItems] = useState<MeetingActionItemResponse[]>([]);
-    const [recording, setRecording] = useState<MeetingRecordingResponse | null>(null);
-    const [audioRecordings, setAudioRecordings] = useState<MeetingAudioRecordingResponse[]>([]);
-    const [sttFile, setSttFile] = useState<MeetingSttFileResponse | null>(null);
-    const [summaryFile, setSummaryFile] = useState<MeetingSttSummaryResponse | null>(null);
     const [chatMessages, setChatMessages] = useState<MeetingChatMessageResponse[]>([]);
     const [photos, setPhotos] = useState<MeetingPhotoResponse[]>([]);
-    const [selectingPhotoId, setSelectingPhotoId] = useState<number | null>(null);
-    const selectedPhotoId = photos.find((photo) => photo.isSelected)?.id ?? null;
+    const [selectedPhotoIds, setSelectedPhotoIds] = useState<Set<number>>(new Set());
+    const [isSavingSelection, setIsSavingSelection] = useState(false);
+    const [isDownloading, setIsDownloading] = useState(false);
     const canSelectPhotos = detail?.status === 'ENDED';
+    const selectAllRef = useRef<HTMLInputElement | null>(null);
     const apiBaseUrl = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
     const resolveImageUrl = (url: string) => {
         if (!url) return url;
@@ -51,25 +40,10 @@ const MeetingDetailPage: React.FC = () => {
         const load = async () => {
             const meetingDetail = await meetingApi.getMeetingDetail(numericStudyId, numericMeetingId);
             setDetail(meetingDetail);
-            setActionItems(meetingDetail.summary?.actionItems ?? []);
-
-            const [recordingData, audioData, chatData] = await Promise.all([
-                meetingApi.getRecording(numericStudyId, numericMeetingId).catch(() => null),
-                meetingApi.listAudioRecordings(numericStudyId, numericMeetingId).catch(() => []),
-                meetingApi.getChatHistory(numericStudyId, numericMeetingId, { page: 0, size: 100 }).catch(() => null),
-            ]);
-            if (recordingData) setRecording(recordingData);
-            if (audioData) setAudioRecordings(audioData);
+            const chatData = await meetingApi
+                .getChatHistory(numericStudyId, numericMeetingId, { page: 0, size: 100 })
+                .catch(() => null);
             if (chatData) setChatMessages(chatData.content);
-
-            const stt = await meetingApi
-                .getSttFile(numericStudyId, numericMeetingId, { trackType: 'MIXED' })
-                .catch(() => null);
-            const summary = await meetingApi
-                .getSummaryFile(numericStudyId, numericMeetingId, { trackType: 'MIXED' })
-                .catch(() => null);
-            if (stt) setSttFile(stt);
-            if (summary) setSummaryFile(summary);
 
             const photoList = await meetingApi.getPhotos(numericStudyId, numericMeetingId).catch(() => []);
             setPhotos(photoList);
@@ -77,22 +51,23 @@ const MeetingDetailPage: React.FC = () => {
         load();
     }, [numericStudyId, numericMeetingId]);
 
-    const handleAddActionItem = async (payload: MeetingActionItemRequest) => {
-        if (!numericStudyId || !numericMeetingId) return;
-        const created = await meetingApi.addActionItem(numericStudyId, numericMeetingId, payload);
-        setActionItems((prev) => [...prev, created]);
-    };
+    useEffect(() => {
+        const selectedIds = new Set(photos.filter((photo) => photo.isSelected).map((photo) => photo.id));
+        setSelectedPhotoIds(selectedIds);
+    }, [photos]);
 
-    const handleUpdateActionItem = async (id: number, payload: MeetingActionItemRequest) => {
-        if (!numericStudyId || !numericMeetingId) return;
-        const updated = await meetingApi.updateActionItem(numericStudyId, numericMeetingId, id, payload);
-        setActionItems((prev) => prev.map((item) => (item.id === id ? updated : item)));
-    };
+    useEffect(() => {
+        if (!selectAllRef.current) return;
+        const total = photos.length;
+        const selectedCount = selectedPhotoIds.size;
+        selectAllRef.current.indeterminate = selectedCount > 0 && selectedCount < total;
+    }, [photos.length, selectedPhotoIds]);
 
     const handleExport = async (format: 'MARKDOWN' | 'PDF') => {
         if (!numericStudyId || !numericMeetingId) return;
-        if (photos.length > 0 && !selectedPhotoId) {
-            showToast('회의 사진을 선택해 주세요.', 'warning');
+        const savedSelection = photos.filter((photo) => photo.isSelected);
+        if (photos.length > 0 && savedSelection.length === 0) {
+            window.alert('보고서용 이미지로 선택한 사진이 없습니다.');
             return;
         }
         const blob = await meetingApi.exportMeeting(numericStudyId, numericMeetingId, format);
@@ -104,21 +79,76 @@ const MeetingDetailPage: React.FC = () => {
         URL.revokeObjectURL(url);
     };
 
-    const handleSelectPhoto = async (photoId: number) => {
-        if (!numericStudyId || !numericMeetingId || selectingPhotoId !== null || !canSelectPhotos) return;
-        setSelectingPhotoId(photoId);
+    const handleTogglePhoto = (photoId: number) => {
+        setSelectedPhotoIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(photoId)) {
+                next.delete(photoId);
+            } else {
+                next.add(photoId);
+            }
+            return next;
+        });
+    };
+
+    const handleToggleAll = () => {
+        setSelectedPhotoIds((prev) => {
+            if (prev.size === photos.length) {
+                return new Set();
+            }
+            return new Set(photos.map((photo) => photo.id));
+        });
+    };
+
+    const handleSaveSelection = async () => {
+        if (!numericStudyId || !numericMeetingId || !canSelectPhotos || isSavingSelection) return;
+        setIsSavingSelection(true);
         try {
-            const selected = await meetingApi.selectPhoto(numericStudyId, numericMeetingId, photoId);
-            setPhotos((prev) =>
-                prev.map((photo) => ({
-                    ...photo,
-                    isSelected: photo.id === selected.id,
-                }))
+            const updated = await meetingApi.selectPhotos(
+                numericStudyId,
+                numericMeetingId,
+                Array.from(selectedPhotoIds)
             );
+            setPhotos(updated);
         } catch (error) {
-            console.error('Failed to select meeting photo', error);
+            console.error('Failed to save report photo selection', error);
         } finally {
-            setSelectingPhotoId(null);
+            setIsSavingSelection(false);
+        }
+    };
+
+    const handleDownloadSelected = async () => {
+        if (isDownloading) return;
+        const selected = photos.filter((photo) => selectedPhotoIds.has(photo.id));
+        if (selected.length === 0) {
+            window.alert('다운로드할 이미지를 선택해주세요.');
+            return;
+        }
+        setIsDownloading(true);
+        try {
+            for (const photo of selected) {
+                const url = resolveImageUrl(photo.imageUrl);
+                try {
+                    const response = await fetch(url, { credentials: 'include' });
+                    const blob = await response.blob();
+                    const extension = (() => {
+                        const dotIndex = url.lastIndexOf('.');
+                        return dotIndex !== -1 ? url.slice(dotIndex) : '.png';
+                    })();
+                    const filename = `meeting-${numericMeetingId}-photo-${photo.id}${extension}`;
+                    const linkUrl = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = linkUrl;
+                    link.download = filename;
+                    link.click();
+                    URL.revokeObjectURL(linkUrl);
+                } catch (error) {
+                    window.open(url, '_blank', 'noopener,noreferrer');
+                    console.error('Failed to download meeting photo', error);
+                }
+            }
+        } finally {
+            setIsDownloading(false);
         }
     };
 
@@ -150,51 +180,69 @@ const MeetingDetailPage: React.FC = () => {
                 </div>
 
                 <MeetingSummaryPanel summary={detail?.summary ?? null} />
-                <MeetingActionItems
-                    actionItems={actionItems}
-                    participants={detail?.participants ?? []}
-                    onAdd={handleAddActionItem}
-                    onUpdate={handleUpdateActionItem}
-                />
-                <MeetingRecordingPanel
-                    studyId={Number.isFinite(numericStudyId) ? numericStudyId : null}
-                    meetingId={Number.isFinite(numericMeetingId) ? numericMeetingId : null}
-                    recording={recording}
-                    audioRecordings={audioRecordings}
-                    sttFile={sttFile}
-                    summaryFile={summaryFile}
-                />
 
                 <section className="meeting-detail-card">
                     <div className="meeting-detail-card__header">
                         <h3>미팅 사진</h3>
-                        {selectedPhotoId ? <span className="meeting-status-chip">선택됨</span> : null}
+                        {canSelectPhotos && photos.length > 0 && (
+                            <div className="meeting-photo-actions">
+                                <label className="meeting-photo-selectall">
+                                    <input
+                                        ref={selectAllRef}
+                                        type="checkbox"
+                                        checked={photos.length > 0 && selectedPhotoIds.size === photos.length}
+                                        onChange={handleToggleAll}
+                                    />
+                                    전체 선택
+                                </label>
+                                <button
+                                    type="button"
+                                    className="meeting-btn ghost"
+                                    onClick={handleSaveSelection}
+                                    disabled={isSavingSelection}
+                                >
+                                    보고서용 이미지
+                                </button>
+                                <button
+                                    type="button"
+                                    className="meeting-btn ghost"
+                                    onClick={handleDownloadSelected}
+                                    disabled={isDownloading || selectedPhotoIds.size === 0}
+                                >
+                                    이미지 다운로드
+                                </button>
+                            </div>
+                        )}
                     </div>
                     <div className="meeting-detail-card__body">
                         {!canSelectPhotos && (
-                            <p className="meeting-detail-empty">미팅 종료 후에 사진을 선택할 수 있습니다.</p>
+                            <p className="meeting-detail-empty">미팅이 종료된 뒤 사진을 선택할 수 있습니다.</p>
                         )}
                         {canSelectPhotos && photos.length === 0 && (
-                            <p className="meeting-detail-empty">저장된 캡처가 없습니다.</p>
+                            <p className="meeting-detail-empty">저장된 캡쳐가 없습니다.</p>
                         )}
                         {canSelectPhotos && photos.length > 0 && (
                             <div className="meeting-photo-grid">
-                                {photos.map((photo) => (
-                                    <button
-                                        key={photo.id}
-                                        type="button"
-                                        className={`meeting-photo-card ${photo.isSelected ? 'selected' : ''}`}
-                                        onClick={() => handleSelectPhoto(photo.id)}
-                                        disabled={selectingPhotoId === photo.id}
-                                        title={photo.isSelected ? '선택된 사진' : '사진 선택'}
-                                    >
-                                        <img src={resolveImageUrl(photo.imageUrl)} alt="미팅 캡처" />
-                                        <div className="meeting-photo-card__footer">
-                                            <span>{new Date(photo.capturedAt).toLocaleTimeString()}</span>
-                                            <span>{photo.isSelected ? '선택됨' : '선택'}</span>
-                                        </div>
-                                    </button>
-                                ))}
+                                {photos.map((photo) => {
+                                    const isSelected = selectedPhotoIds.has(photo.id);
+                                    return (
+                                        <label
+                                            key={photo.id}
+                                            className={`meeting-photo-card ${isSelected ? 'selected' : ''}`}
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                checked={isSelected}
+                                                onChange={() => handleTogglePhoto(photo.id)}
+                                            />
+                                            <img src={resolveImageUrl(photo.imageUrl)} alt="미팅 캡쳐" />
+                                            <div className="meeting-photo-card__footer">
+                                                <span>{new Date(photo.capturedAt).toLocaleTimeString()}</span>
+                                                <span>{isSelected ? '선택됨' : '선택'}</span>
+                                            </div>
+                                        </label>
+                                    );
+                                })}
                             </div>
                         )}
                     </div>

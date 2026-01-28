@@ -11,13 +11,24 @@ interface MeetingStartModalProps {
 
 const MeetingStartModal: React.FC<MeetingStartModalProps> = ({ open, initialTitle, onClose, onStart }) => {
     const [title, setTitle] = useState(initialTitle ?? '');
+    const [plannedDurationSeconds, setPlannedDurationSeconds] = useState(3600);
     const meetingType: MeetingType = 'DAILY';
     const autoShareSummary = false;
     const shareWorkspaceId = null;
+    const durationOptions = [
+        { label: '2분 (테스트)', value: 120 },
+        { label: '6분 (테스트)', value: 360 },
+        { label: '1시간', value: 3600 },
+        { label: '1시간 30분', value: 5400 },
+        { label: '2시간', value: 7200 },
+        { label: '2시간 30분', value: 9000 },
+        { label: '3시간', value: 10800 },
+    ];
 
     useEffect(() => {
         if (open) {
             setTitle(initialTitle ?? '');
+            setPlannedDurationSeconds(3600);
         }
     }, [open, initialTitle]);
 
@@ -29,6 +40,7 @@ const MeetingStartModal: React.FC<MeetingStartModalProps> = ({ open, initialTitl
             meetingType,
             autoShareSummary,
             shareWorkspaceId,
+            plannedDurationSeconds,
         });
     };
 
@@ -51,6 +63,20 @@ const MeetingStartModal: React.FC<MeetingStartModalProps> = ({ open, initialTitl
                             onChange={(event) => setTitle(event.target.value)}
                             placeholder="미팅 제목을 입력하세요"
                         />
+                    </label>
+                    <label className="meeting-modal__label">
+                        미팅 시간
+                        <select
+                            className="meeting-modal__input"
+                            value={plannedDurationSeconds}
+                            onChange={(event) => setPlannedDurationSeconds(Number(event.target.value))}
+                        >
+                            {durationOptions.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                    {option.label}
+                                </option>
+                            ))}
+                        </select>
                     </label>
 
                 </div>
