@@ -16,7 +16,7 @@
  * =============================================================================
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 
@@ -41,6 +41,16 @@ import type { QuizQuestion as QuizQuestionType, QuestionType } from './types/Qui
 // =============================================================================
 // HELPER FUNCTIONS
 // =============================================================================
+
+/**
+ * 답변이 유효한지(null이나 비어있지 않은지) 확인하는 헬퍼 함수
+ */
+const isValidAnswer = (answer: string | string[] | null | undefined): answer is string | string[] => {
+    if (answer === null || answer === undefined) return false;
+    if (typeof answer === 'string') return answer.trim() !== '';
+    if (Array.isArray(answer)) return answer.length > 0 && answer.some(a => a.trim() !== '');
+    return false;
+};
 
 /**
  * API 문제 데이터를 UI 컴포넌트가 기대하는 형식으로 변환
@@ -135,11 +145,13 @@ export const QuizSession = () => {
                 // 저장된 답안 복원
                 const savedAnswers: Record<string, string | string[]> = {};
                 data.questions.forEach(q => {
-                    if (q.savedAnswer !== null) {
+                    // 여기서 isValidAnswer가 true를 반환하면 q.savedAnswer는 string | string[]로 추론됩니다.
+                    if (isValidAnswer(q.savedAnswer)) {
                         savedAnswers[String(q.questionId)] = q.savedAnswer;
                     }
                 });
                 setAnswers(savedAnswers);
+
 
                 // 재개 여부 확인
                 setIsResumed(data.answeredCount > 0);
@@ -163,7 +175,9 @@ export const QuizSession = () => {
     const currentAnswer = currentQuestion ? answers[currentQuestion.id] : undefined;
 
     // 답변한 문제 수
-    const answeredCount = Object.keys(answers).length;
+    const answeredCount = useMemo(() => {
+        return Object.values(answers).filter(isValidAnswer).length;
+    }, [answers]);
 
     // 답안 변경 핸들러
     const handleAnswerChange = useCallback(async (answer: string | string[]) => {
