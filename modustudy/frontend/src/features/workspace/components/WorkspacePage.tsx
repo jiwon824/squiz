@@ -6,6 +6,7 @@ import { WorkspaceSidebar } from './WorkspaceSidebar';
 import { ChatArea } from './ChatArea';
 import { MessageInput } from './MessageInput';
 import { MemberList, type WorkspaceMember } from './MemberList';
+import { WorkspaceCalendarArea } from './WorkspaceCalendarArea';
 import { MaterialArea } from '@/features/material';
 import { workspaceApi } from '@/api/endpoints/workspaceApi';
 import { studyApi, type StudyMemberResponse } from '@/api/endpoints/studyApi';
@@ -57,9 +58,19 @@ export const WorkspacePage: React.FC = () => {
       setError(null);
 
       try {
-        // 1. 스터디 정보 조회
-        const studyData = await studyApi.getStudyDetail(studyId);
+        // 1. 스터디 정보 + 멤버 목록 병렬 조회
+        const [studyData, membersData] = await Promise.all([
+          studyApi.getStudyDetail(studyId),
+          studyApi.getStudyMembers(studyId),
+        ]);
+
         setStudyName(studyData?.name || '스터디');
+
+        // 멤버 목록 설정
+        const workspaceMembers = membersData.content
+          .filter((m) => m.status === 'APPROVED')
+          .map(toWorkspaceMember);
+        setMembers(workspaceMembers);
 
         // 2. 워크스페이스 조회 (없으면 생성)
         let workspaceData: WorkspaceResponse;
@@ -75,14 +86,7 @@ export const WorkspacePage: React.FC = () => {
         }
         setWorkspace(workspaceData);
 
-        // 3. 멤버 목록 조회
-        const membersData = await studyApi.getStudyMembers(studyId);
-        const workspaceMembers = membersData.content
-          .filter((m) => m.status === 'APPROVED')
-          .map(toWorkspaceMember);
-        setMembers(workspaceMembers);
-
-        // 4. 메시지 목록 조회
+        // 3. 메시지 목록 조회
         const messagesData = await workspaceApi.getMessages(workspaceData.id);
         // 최신 메시지가 아래로 가도록 역순 정렬
         setMessages(messagesData.content.reverse());
@@ -232,10 +236,8 @@ export const WorkspacePage: React.FC = () => {
 
             {activeMenu === 'materials' && studyId && <MaterialArea studyId={studyId} />}
 
-            {activeMenu === 'calendar' && (
-              <div className="workspace-placeholder">
-                <span>일정 기능 준비 중...</span>
-              </div>
+            {activeMenu === 'calendar' && studyId && (
+              <WorkspaceCalendarArea studyId={studyId} />
             )}
           </div>
         </div>
