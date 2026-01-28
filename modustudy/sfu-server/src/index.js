@@ -9,6 +9,23 @@ const fs = require('fs');
 const { createRecordingManager } = require('./recordingManager');
 
 const app = express();
+const corsOrigins = config.corsOrigins.includes('*') ? '*' : config.corsOrigins;
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (corsOrigins === '*') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  } else if (origin && corsOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(204);
+    return;
+  }
+  next();
+});
 app.use(express.json({ limit: '1mb' }));
 const useHttps = String(process.env.SFU_USE_HTTPS ?? 'true').toLowerCase() !== 'false';
 let server;
@@ -29,7 +46,6 @@ if (useHttps) {
 } else {
   server = http.createServer(app);
 }
-const corsOrigins = config.corsOrigins.includes('*') ? '*' : config.corsOrigins;
 const io = new Server(server, {
   cors: {
     origin: corsOrigins,
@@ -39,6 +55,7 @@ const io = new Server(server, {
 });
 
 const rooms = new Map();
+const emptyRoomStopTimers = new Map();
 let worker;
 let recordingManager;
 
@@ -94,6 +111,11 @@ io.on('connection', (socket) => {
   }
   socket.on('joinRoom', async ({ roomId, displayName }, callback) => {
     try {
+      const pending = emptyRoomStopTimers.get(roomId);
+      if (pending) {
+        clearTimeout(pending);
+        emptyRoomStopTimers.delete(roomId);
+      }
       const room = await getOrCreateRoom(roomId);
       room.peers.set(socket.id, {
         id: socket.id,
@@ -333,8 +355,27 @@ io.on('connection', (socket) => {
       if (recordingManager) {
         recordingManager.onProducersChanged(roomId);
       }
-      if (room.peers.size === 0 && !(recordingManager && recordingManager.recordings.has(roomId))) {
-        rooms.delete(roomId);
+      if (room.peers.size === 0) {
+        if (recordingManager && recordingManager.recordings.has(roomId)) {
+          if (emptyRoomStopTimers.has(roomId)) return;
+          const timer = setTimeout(() => {
+            emptyRoomStopTimers.delete(roomId);
+            recordingManager
+              .stopRecording({ roomId })
+              .catch((err) => {
+                // eslint-disable-next-line no-console
+                console.error('[recording] auto-stop failed', err);
+              })
+              .finally(() => {
+                if (room.peers.size === 0) {
+                  rooms.delete(roomId);
+                }
+              });
+          }, 5000);
+          emptyRoomStopTimers.set(roomId, timer);
+        } else {
+          rooms.delete(roomId);
+        }
       }
     });
   });

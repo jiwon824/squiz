@@ -85,6 +85,7 @@ export interface MeetingDetailResponse {
     startedAt: string | null;
     endedAt: string | null;
     durationSeconds: number | null;
+    plannedDurationSeconds: number | null;
     status: MeetingStatus;
     recordingStatus: RecordingStatus | null;
     sttStatus: SttStatus | null;
@@ -253,6 +254,7 @@ export interface MeetingRequestPayload {
     meetingType: MeetingType;
     autoShareSummary?: boolean;
     shareWorkspaceId?: number | null;
+    plannedDurationSeconds?: number | null;
 }
 
 export interface MeetingActionItemRequest {
