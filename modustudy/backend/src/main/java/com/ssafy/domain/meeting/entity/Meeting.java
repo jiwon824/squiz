@@ -34,6 +34,9 @@ public class Meeting extends BaseEntity {
     @Column(name = "duration_seconds")
     private Integer durationSeconds;
 
+    @Column(name = "planned_duration_seconds")
+    private Integer plannedDurationSeconds;
+
     @Column(name = "participant_count")
     private Integer participantCount;
 
@@ -62,7 +65,7 @@ public class Meeting extends BaseEntity {
     @Builder
     private Meeting(Long studyId, Long sessionId, Long workspaceId, String title, MeetingType meetingType,
                     java.time.LocalDateTime startedAt, java.time.LocalDateTime endedAt,
-                    Integer durationSeconds, Integer participantCount, MeetingStatus status,
+                    Integer durationSeconds, Integer plannedDurationSeconds, Integer participantCount, MeetingStatus status,
                     RecordingStatus recordingStatus, SttStatus sttStatus, SummaryStatus summaryStatus,
                     Boolean autoShareSummary, Long shareWorkspaceId) {
         this.studyId = studyId;
@@ -73,6 +76,7 @@ public class Meeting extends BaseEntity {
         this.startedAt = startedAt;
         this.endedAt = endedAt;
         this.durationSeconds = durationSeconds;
+        this.plannedDurationSeconds = plannedDurationSeconds;
         this.participantCount = participantCount;
         this.status = status;
         this.recordingStatus = recordingStatus;
@@ -83,7 +87,8 @@ public class Meeting extends BaseEntity {
     }
 
     public static Meeting start(Long studyId, Long sessionId, Long workspaceId, String title, MeetingType meetingType,
-                                boolean autoShareSummary, Long shareWorkspaceId, java.time.LocalDateTime startedAt) {
+                                boolean autoShareSummary, Long shareWorkspaceId, java.time.LocalDateTime startedAt,
+                                Integer plannedDurationSeconds) {
         return Meeting.builder()
                 .studyId(studyId)
                 .sessionId(sessionId)
@@ -92,6 +97,7 @@ public class Meeting extends BaseEntity {
                 .meetingType(meetingType)
                 .startedAt(startedAt)
                 .participantCount(0)
+                .plannedDurationSeconds(plannedDurationSeconds)
                 .status(MeetingStatus.IN_PROGRESS)
                 .recordingStatus(RecordingStatus.RECORDING)
                 .sttStatus(SttStatus.PENDING)
@@ -129,5 +135,9 @@ public class Meeting extends BaseEntity {
     public void updateShareOption(boolean autoShareSummary, Long shareWorkspaceId) {
         this.autoShareSummary = autoShareSummary;
         this.shareWorkspaceId = shareWorkspaceId;
+    }
+
+    public void updatePlannedDurationSeconds(Integer plannedDurationSeconds) {
+        this.plannedDurationSeconds = plannedDurationSeconds;
     }
 }
