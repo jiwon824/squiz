@@ -91,6 +91,7 @@ export const createSfuClient = (baseUrl: string) => {
 
     const createSendTransport = async () => {
         const { params } = await request('createWebRtcTransport', { roomId });
+        console.log('[sfu] send transport params', { iceServers: params.iceServers, iceCandidates: params.iceCandidates?.length });
         const transport = device.createSendTransport(params);
         transport.on('connect', ({ dtlsParameters }, callback, errback) => {
             request('connectWebRtcTransport', { roomId, transportId: transport.id, dtlsParameters })
@@ -110,6 +111,7 @@ export const createSfuClient = (baseUrl: string) => {
 
     const createRecvTransport = async () => {
         const { params } = await request('createWebRtcTransport', { roomId });
+        console.log('[sfu] recv transport params', { iceServers: params.iceServers, iceCandidates: params.iceCandidates?.length });
         const transport = device.createRecvTransport(params);
         transport.on('connect', ({ dtlsParameters }, callback, errback) => {
             request('connectWebRtcTransport', { roomId, transportId: transport.id, dtlsParameters })
