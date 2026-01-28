@@ -83,6 +83,9 @@ const MeetingDetailPage = lazy(() =>
 const MeetingRoomPage = lazy(() =>
     import('../features/meeting').then(m => ({ default: m.MeetingRoomPage }))
 );
+const WorkspacePage = lazy(() =>
+    import('../features/workspace').then(m => ({ default: m.WorkspacePage }))
+);
 
 const ProfileSkeleton = lazy(() =>
     import('@/features/profile/components/ProfileSkeleton').then(module => ({ default: module.ProfileSkeleton }))
