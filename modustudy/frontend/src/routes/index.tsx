@@ -152,6 +152,7 @@ export const AppRouter = () => {
             <Route path="/calendar" element={<CalendarPage />} />
             <Route path="/test-calendar" element={<CalendarTestPage />} />
             <Route path="/reuse-test" element={<ReuseTest />} />
+            <Route path="/workspace-test" element={<WorkspacePage />} />
 
                 {/* 인증 */}
                 <Route path="/login" element={<LoginPage />} />
@@ -176,6 +177,7 @@ export const AppRouter = () => {
             <Route path="/study/create/lightning" element={<LightningStudyCreatePage />} />
             <Route path="/study/:id" element={<StudyDetailPage />} />
             <Route path="/study/manage/:id" element={<StudyManagementPage />} />
+            <Route path="/study/:studyId/workspace" element={<WorkspacePage />} />
 
                 {/* 미팅 */}
                 <Route path="/study/:studyId/meetings" element={<MeetingHistoryPage />} />
