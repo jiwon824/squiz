@@ -132,9 +132,24 @@
 .workspace-header__title {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   font-weight: 600;
   color: var(--ws-text-primary);
+}
+
+.workspace-header__study-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ws-text-primary);
+}
+
+.workspace-header__member-count {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ws-text-tertiary);
+  background-color: var(--ws-surface-hover);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
 }
 
 .workspace-header__back-btn {

@@ -59,7 +59,7 @@ export const WorkspacePage: React.FC = () => {
       try {
         // 1. 스터디 정보 조회
         const studyData = await studyApi.getStudyDetail(studyId);
-        setStudyName(studyData.name);
+        setStudyName(studyData?.name || '스터디');
 
         // 2. 워크스페이스 조회 (없으면 생성)
         let workspaceData: WorkspaceResponse;
