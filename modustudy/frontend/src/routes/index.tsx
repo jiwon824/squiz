@@ -5,6 +5,13 @@ import { Skeleton } from '../shared/components';
 // 즉시 로드: 랜딩 및 핵심 페이지
 import { StartPage } from '../features/start/StartPage';
 import { Dashboard, CalendarExpandWidget, DashboardSkeleton } from '../features/dashboard';
+// Dashboard V2 imports (내 브랜치)
+import { DashboardV2, GuestDashboardV2, UserDashboardV2 } from '../features/dashboard-v2';
+import { StudyAfterQuiz } from '../features/dashboard-v2/pages/StudyAfterQuiz';
+import { STTReportPage } from '../features/dashboard-v2/pages/STTReportPage';
+import { LearningArchivePage } from '../features/dashboard-v2/pages/LearningArchivePage';
+import { GuestLayoutV2 } from '@/layouts/GuestLayoutV2';
+import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { CalendarTestPage } from '../features/calendar/components/CalendarTestPage';
 import { CalendarPage } from '../features/calendar/components/CalendarPage';
 import { authApi } from '@/api/endpoints/authApi';
@@ -45,9 +52,6 @@ const RecruitmentPage = lazy(() =>
 const StudyPage = lazy(() =>
     import('../features/study').then(m => ({ default: m.StudyPage }))
 );
-const StudyPageV2 = lazy(() =>
-    import('../features/study').then(m => ({ default: m.StudyPageV2 }))
-);
 const StudyTypeSelectPage = lazy(() =>
     import('../features/study').then(m => ({ default: m.StudyTypeSelectPage }))
 );
@@ -60,13 +64,10 @@ const LightningStudyCreatePage = lazy(() =>
 const StudyDetailPage = lazy(() =>
     import('../features/study').then(m => ({ default: m.StudyDetailPage }))
 );
-const StudyDetailPageV2 = lazy(() =>
-    import('../features/study').then(m => ({ default: m.StudyDetailPageV2 }))
-);
+// origin/dev 추가
 const StudyDetailPageV3 = lazy(() =>
     import('../features/study').then(m => ({ default: m.StudyDetailPageV3 }))
 );
-
 const StudyManagementPage = lazy(() =>
     import('../features/study').then(m => ({ default: m.StudyManagementPage }))
 );
@@ -88,6 +89,7 @@ const MeetingRoomPage = lazy(() =>
 const MeetingRecordingPlaybackPage = lazy(() =>
     import('../features/meeting').then(m => ({ default: m.MeetingRecordingPlaybackPage }))
 );
+// origin/dev 추가
 const WorkspacePage = lazy(() =>
     import('../features/workspace').then(m => ({ default: m.WorkspacePage }))
 );
@@ -121,7 +123,7 @@ export const AppRouter = () => {
                 });
             } catch (error) {
                 console.error('[AUTH] Session restoration failed:', error);
-                logout(); // 토큰이 만료되었거나 잘못된 경우 로그아웃 처리
+                logout();
             } finally {
                 setInitialized(true);
             }
@@ -137,22 +139,27 @@ export const AppRouter = () => {
     return (
         <Suspense fallback={<div className="p-6"><Skeleton variant="rect" height="100vh" /></div>}>
             <Routes>
-            {/* 즉시 로드 페이지 */}
-            <Route path="/" element={<StartPage />} />
-            <Route path="/startpage" element={<StartPage />} />
-            <Route
-                path="/dashboard"
-                element={
-                    <Suspense fallback={<DashboardSkeleton />}>
-                        <Dashboard />
-                    </Suspense>
-                }
-            />
-            <Route path="/calendar-expand" element={<CalendarExpandWidget />} />
-            <Route path="/calendar" element={<CalendarPage />} />
-            <Route path="/test-calendar" element={<CalendarTestPage />} />
-            <Route path="/reuse-test" element={<ReuseTest />} />
-            <Route path="/workspace-test" element={<WorkspacePage />} />
+                {/* 즉시 로드 페이지 */}
+                <Route path="/" element={<StartPage />} />
+                <Route path="/startpage" element={<StartPage />} />
+                <Route
+                    path="/dashboard"
+                    element={
+                        <Suspense fallback={<DashboardSkeleton />}>
+                            <Dashboard />
+                        </Suspense>
+                    }
+                />
+                {/* Dashboard V2 (내 브랜치) */}
+                <Route path="/dashboard-v2" element={<DashboardV2 />} />
+                <Route path="/dashboard-v2/guest" element={<GuestLayoutV2><GuestDashboardV2 /></GuestLayoutV2>} />
+                <Route path="/dashboard-v2/user" element={<UserLayoutV2><UserDashboardV2 /></UserLayoutV2>} />
+                <Route path="/calendar-expand" element={<CalendarExpandWidget />} />
+                <Route path="/calendar" element={<CalendarPage />} />
+                <Route path="/test-calendar" element={<CalendarTestPage />} />
+                <Route path="/reuse-test" element={<ReuseTest />} />
+                {/* origin/dev 추가 */}
+                <Route path="/workspace-test" element={<WorkspacePage />} />
 
                 {/* 인증 */}
                 <Route path="/login" element={<LoginPage />} />
@@ -162,22 +169,28 @@ export const AppRouter = () => {
 
                 {/* 퀴즈 */}
                 <Route path="/quiz" element={<QuizGameSelection />} />
+                {/* 내 브랜치 추가 */}
+                <Route path="/quiz/review" element={<StudyAfterQuiz />} />
+                <Route path="/stt-report" element={<STTReportPage />} />
+                <Route path="/learning-archive" element={<LearningArchivePage />} />
                 <Route path="/quiz-commentle" element={<CommentleQuiz />} />
                 <Route path="/quiz-practice" element={<QuizCourseList />} />
                 <Route path="/quiz-practice/:courseId" element={<CourseDetail />} />
+                {/* origin/dev: sectionId -> sectionNumber 변경 */}
                 <Route
                     path="/quiz-practice/:courseId/section/:sectionNumber/session"
                     element={<QuizSessionPage />}
                 />
 
-            {/* 스터디 */}
-            <Route path="/study" element={<StudyPage />} />
-            <Route path="/study/create" element={<StudyTypeSelectPage />} />
-            <Route path="/study/create/planned" element={<StudyCreatePage />} />
-            <Route path="/study/create/lightning" element={<LightningStudyCreatePage />} />
-            <Route path="/study/:id" element={<StudyDetailPage />} />
-            <Route path="/study/manage/:id" element={<StudyManagementPage />} />
-            <Route path="/study/:studyId/workspace" element={<WorkspacePage />} />
+                {/* 스터디 */}
+                <Route path="/study" element={<StudyPage />} />
+                <Route path="/study/create" element={<StudyTypeSelectPage />} />
+                <Route path="/study/create/planned" element={<StudyCreatePage />} />
+                <Route path="/study/create/lightning" element={<LightningStudyCreatePage />} />
+                <Route path="/study/:id" element={<StudyDetailPage />} />
+                <Route path="/study/manage/:id" element={<StudyManagementPage />} />
+                {/* origin/dev 추가 */}
+                <Route path="/study/:studyId/workspace" element={<WorkspacePage />} />
 
                 {/* 미팅 */}
                 <Route path="/study/:studyId/meetings" element={<MeetingHistoryPage />} />
