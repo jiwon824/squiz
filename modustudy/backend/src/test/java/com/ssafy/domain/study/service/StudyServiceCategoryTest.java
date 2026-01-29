@@ -372,16 +372,14 @@ class StudyServiceCategoryTest {
             entityManager.clear();
 
             // when
-            Study found = studyService.getStudyById(study.getId());
+            StudyResponse found = studyService.getStudyById(study.getId());
 
             // then
             assertThat(found.getTopic()).isNotNull();
             assertThat(found.getTopic().getName()).isEqualTo("백준");
-            assertThat(found.getTopicName()).isEqualTo("백준");
 
             assertThat(found.getFormat()).isNotNull();
             assertThat(found.getFormat().getName()).isEqualTo("문제 풀이");
-            assertThat(found.getFormatName()).isEqualTo("문제 풀이");
         }
     }
 }
