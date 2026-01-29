@@ -444,11 +444,23 @@ const StudyCreatePage: React.FC = () => {
             };
             const scheduleTime = preferredTimeSlot ? timeSlotToTime[preferredTimeSlot] : '19:00';
 
+            // 총 회차 계산: 요일수 × 주수 (요일 선택 없으면 주당 1회)
+            const daysPerWeek = availableDays.length || 1;
+            const totalSessions = daysPerWeek * preferredDurationWeeks;
+
+            console.log('[회차 계산]', {
+                선호요일: availableDays,
+                요일수: daysPerWeek,
+                기간주: preferredDurationWeeks,
+                총회차: totalSessions,
+            });
+
             const result: AiStudyPlanResponse = await generateStudyPlan({
                 topic: aiTopicInput.trim(),
                 techStack,
                 schedule,
                 durationWeeks: preferredDurationWeeks,
+                totalSessions,  // AI에게 총 회차 전달
             });
 
             // 디버깅: AI 응답 확인
@@ -774,8 +786,8 @@ const StudyCreatePage: React.FC = () => {
                     }
                 }
 
-                // 선호 기간(주) → 총 회차 반영
-                updated.totalSessions = preferredDurationWeeks;
+                // 총 회차 반영 (요일수 × 주수)
+                updated.totalSessions = totalSessions;
 
                 // AI 일정 제안은 사용자 선호가 없을 때만 적용
                 if (result.scheduleSuggestion && availableDays.length === 0) {
@@ -788,61 +800,83 @@ const StudyCreatePage: React.FC = () => {
                     }
                 }
 
-                // 커리큘럼 생성 (AI 응답 또는 기본 틀)
-                // 커리큘럼 날짜는 스터디 시작일 기준으로 계산
+                // 커리큘럼 생성 - 요일 순환 매핑
+                // 예: 토,일 선택 + 4주 = 8회차 (토,일,토,일,토,일,토,일)
                 updated.hasCurriculum = true;
                 const curriculum: CurriculumItem[] = [];
 
-                if (result.curriculum && result.curriculum.length > 0) {
-                    // AI가 생성한 커리큘럼 사용
-                    for (let i = 0; i < result.curriculum.length; i++) {
-                        const aiCurr = result.curriculum[i];
-                        const sessionDate = new Date(studyStartDate);
-                        sessionDate.setDate(sessionDate.getDate() + i * 7);
+                // 요일 → 숫자 매핑
+                const dayToNum: Record<string, number> = {
+                    '일': 0, '월': 1, '화': 2, '수': 3, '목': 4, '금': 5, '토': 6,
+                    'SUN': 0, 'MON': 1, 'TUE': 2, 'WED': 3, 'THU': 4, 'FRI': 5, 'SAT': 6,
+                };
 
-                        // AI 커리큘럼 내용을 description에 통합
-                        let desc = aiCurr.title || `${i + 1}주차 학습`;
-                        if (aiCurr.description) {
-                            desc += `\n${aiCurr.description}`;
-                        }
-                        if (aiCurr.learning_goals && aiCurr.learning_goals.length > 0) {
-                            desc += `\n\n학습 목표:\n${aiCurr.learning_goals.map(g => `- ${g}`).join('\n')}`;
-                        }
-                        if (aiCurr.assignments && aiCurr.assignments.length > 0) {
-                            desc += `\n\n과제:\n${aiCurr.assignments.map(a => `- ${a}`).join('\n')}`;
-                        }
-                        if (aiCurr.resources && aiCurr.resources.length > 0) {
-                            desc += `\n\n참고 자료:\n${aiCurr.resources.map(r => `- ${r}`).join('\n')}`;
-                        }
+                // 선택된 요일들의 숫자값
+                const selectedDayNums = availableDays.map(d => dayToNum[d] ?? 0);
+                const firstDayNum = selectedDayNums[0] ?? studyStartDate.getDay();
 
-                        curriculum.push({
-                            session: i + 1,
-                            description: desc,
-                            type: 'ONLINE',
-                            date: formatDate(sessionDate),
-                        });
+                // 회차별 날짜 계산 함수
+                const calculateSessionDate = (sessionIndex: number): Date => {
+                    const date = new Date(studyStartDate);
+                    if (daysPerWeek === 1 || selectedDayNums.length === 0) {
+                        // 요일 하나만 선택하거나 선택 없으면 매주 반복
+                        date.setDate(date.getDate() + sessionIndex * 7);
+                    } else {
+                        // 여러 요일 선택: 순환 매핑
+                        const weekIndex = Math.floor(sessionIndex / daysPerWeek);
+                        const dayIndex = sessionIndex % daysPerWeek;
+                        const targetDayNum = selectedDayNums[dayIndex];
+
+                        // 첫 요일에서 현재 요일까지의 오프셋 계산
+                        let daysFromFirst = targetDayNum - firstDayNum;
+                        if (daysFromFirst < 0) daysFromFirst += 7;
+
+                        date.setDate(date.getDate() + weekIndex * 7 + daysFromFirst);
                     }
-                } else {
-                    // AI 커리큘럼이 없으면 기본 틀 생성
-                    for (let i = 1; i <= preferredDurationWeeks; i++) {
-                        const sessionDate = new Date(studyStartDate);
-                        sessionDate.setDate(sessionDate.getDate() + (i - 1) * 7);
-                        curriculum.push({
-                            session: i,
-                            description: `${i}주차 학습`,
-                            type: 'ONLINE',
-                            date: formatDate(sessionDate),
-                        });
+                    return date;
+                };
+
+                // AI 커리큘럼 또는 기본 틀 생성
+                const curriculumCount = result.curriculum?.length || totalSessions;
+                for (let i = 0; i < curriculumCount; i++) {
+                    const aiCurr = result.curriculum?.[i];
+                    const sessionDate = calculateSessionDate(i);
+
+                    let desc = aiCurr?.title || `${i + 1}회차 학습`;
+                    if (aiCurr?.description) {
+                        desc += `\n${aiCurr.description}`;
                     }
+                    if (aiCurr?.learning_goals && aiCurr.learning_goals.length > 0) {
+                        desc += `\n\n학습 목표:\n${aiCurr.learning_goals.map(g => `- ${g}`).join('\n')}`;
+                    }
+                    if (aiCurr?.assignments && aiCurr.assignments.length > 0) {
+                        desc += `\n\n과제:\n${aiCurr.assignments.map(a => `- ${a}`).join('\n')}`;
+                    }
+                    if (aiCurr?.resources && aiCurr.resources.length > 0) {
+                        desc += `\n\n참고 자료:\n${aiCurr.resources.map(r => `- ${r}`).join('\n')}`;
+                    }
+
+                    curriculum.push({
+                        session: i + 1,
+                        description: desc,
+                        type: 'ONLINE',
+                        date: formatDate(sessionDate),
+                    });
                 }
                 updated.curriculum = curriculum;
+
+                // 스터디 종료일 = 마지막 회차 날짜
+                if (curriculum.length > 0) {
+                    updated.endDate = curriculum[curriculum.length - 1].date;
+                }
 
                 console.log('[커리큘럼 생성 완료]', {
                     회차수: curriculum.length,
                     시작일: studyStart,
-                    종료일: studyEnd,
+                    종료일: updated.endDate,
                     첫회차: curriculum[0]?.date,
                     마지막회차: curriculum[curriculum.length - 1]?.date,
+                    요일순환: availableDays,
                 });
 
                 return updated;

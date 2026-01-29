@@ -24,4 +24,7 @@ public class TemplateRecommendRequest {
 
     @Schema(description = "선호 스터디 기간 (주)", example = "4")
     private Integer durationWeeks;
+
+    @Schema(description = "총 회차 (요일수 × 주수)", example = "8")
+    private Integer totalSessions;
 }
