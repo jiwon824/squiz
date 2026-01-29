@@ -427,6 +427,7 @@ async def generate_quiz(request: QuizRequest):
 class TemplateRecommendRequest(BaseModel):
     topic_input: Optional[str] = None  # 사용자 입력 주제 (필수!)
     duration_weeks: Optional[int] = 4
+    total_sessions: Optional[int] = None  # 총 회차 (요일수 × 주수)
     user_tech: Optional[list] = []
     user_schedule: Optional[dict] = {}
     study_type: Optional[str] = None
@@ -464,6 +465,8 @@ async def recommend_template(request: TemplateRecommendRequest):
     # 사용자 입력 주제 (필수)
     topic_input = request.topic_input or "IT 스터디"
     duration_weeks = request.duration_weeks or 4
+    # 총 회차: 전달받은 값 사용, 없으면 주수 기본값
+    total_sessions = request.total_sessions or duration_weeks
     user_tech = request.user_tech or []
     user_schedule = request.user_schedule or {}
 
@@ -557,6 +560,7 @@ async def recommend_template(request: TemplateRecommendRequest):
 2. format 필드는 반드시 아래 목록에서 정확히 일치하는 값을 선택하세요.
 3. 목록에 없는 값을 임의로 만들지 마세요.
 4. JSON만 출력하고, 설명이나 부가 텍스트를 추가하지 마세요.
+5. curriculum 배열은 반드시 요청된 총 회차 수만큼 생성하세요.
 
 선택 가능한 topic 목록:
 {topic_list}
@@ -566,43 +570,37 @@ async def recommend_template(request: TemplateRecommendRequest):
 <|im_end|>
 <|im_start|>user
 사용자 입력 주제: {topic_input}
-스터디 기간: {duration_weeks}주
+총 회차: {total_sessions}회
 사용자 기술 스택: {tech_str}
 {schedule_str}
 
 위 정보를 바탕으로 스터디 계획을 JSON으로 작성해주세요.
 topic은 위 목록에서 가장 적합한 것을 정확히 선택하고,
 format도 주제에 맞는 것을 위 목록에서 정확히 선택해주세요.
+curriculum은 반드시 {total_sessions}개의 회차를 생성해주세요.
 
 예를 들어:
 - "스프링 학습" → topic: "Java/Spring"
 - "리액트 공부" → topic: "React"
 - "알고리즘 문제풀이" → topic: "알고리즘 이론" 또는 "백준", format: "문제 풀이"
-- "클린코드 독서" → format: "독서/책 스터디"
 
 출력할 JSON 형식:
 {{
-  "name": "스터디 제목 (예: Java/Spring 심화 스터디)",
+  "name": "스터디 제목",
   "intro": "한 줄 소개 (15자 내외)",
   "description": "스터디 상세 설명 (2-3문장)",
-  "topic": "목록에서 정확히 선택 (예: Java/Spring)",
-  "format": "목록에서 정확히 선택 (예: 강의 수강)",
+  "topic": "목록에서 정확히 선택",
+  "format": "목록에서 정확히 선택",
   "difficulty": "BEGINNER 또는 INTERMEDIATE 또는 ADVANCED",
-  "goal": "스터디 목표 (1-2문장)",
+  "goal": "스터디 목표",
   "textbook": "추천 교재 또는 참고 자료",
   "prerequisites": "선수 지식 요건",
   "process_detail": "스터디 진행 방식 설명",
   "curriculum": [
-    {{
-      "week": 1,
-      "title": "1주차 제목",
-      "description": "1주차에 학습할 내용"
-    }},
-    {{
-      "week": 2,
-      "title": "2주차 제목",
-      "description": "2주차에 학습할 내용"
-    }}
+    {{"session": 1, "title": "1회차 제목", "description": "학습 내용"}},
+    {{"session": 2, "title": "2회차 제목", "description": "학습 내용"}},
+    ...
+    {{"session": {total_sessions}, "title": "{total_sessions}회차 제목", "description": "학습 내용"}}
   ]
 }}
 <|im_end|>
@@ -831,6 +829,296 @@ def process_meeting_job(job_id: str, file_path: str, generate_quiz_flag: bool):
     finally:
         if os.path.exists(file_path):
             os.unlink(file_path)
+
+
+# ===== Claude API 설정 =====
+CLAUDE_API_KEY = os.getenv("CLAUDE_API_KEY", "")
+CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-3-haiku-20240307")
+
+
+def call_claude(prompt: str, max_tokens: int = 2048) -> str:
+    """Claude API 호출"""
+    if not CLAUDE_API_KEY:
+        return None
+
+    import httpx
+
+    response = httpx.post(
+        "https://api.anthropic.com/v1/messages",
+        headers={
+            "x-api-key": CLAUDE_API_KEY,
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+        },
+        json={
+            "model": CLAUDE_MODEL,
+            "max_tokens": max_tokens,
+            "messages": [{"role": "user", "content": prompt}],
+        },
+        timeout=120.0,
+    )
+
+    if response.status_code == 200:
+        return response.json()["content"][0]["text"]
+    else:
+        print(f"[WARNING] Claude API 오류: {response.status_code} - {response.text}")
+        return None
+
+
+# ===== 회의 전체 처리 (Claude 검증 포함) =====
+
+class MeetingFullRequest(BaseModel):
+    meeting_id: int
+    user_ids: Optional[list] = []  # 화자별 음성의 user_id 목록
+
+
+class MeetingFullResponse(BaseModel):
+    transcript: str
+    summary: str
+    keywords: list
+    action_items: list  # [{"user_id": 1, "content": "..."}, ...]
+    quiz: Optional[str] = None
+
+
+@app.post("/api/process-meeting-full")
+async def process_meeting_full(
+    background_tasks: BackgroundTasks,
+    mixed_audio: UploadFile = File(...),
+    individual_audios: list[UploadFile] = File(default=[]),
+    user_ids: str = "",  # comma-separated user IDs
+    generate_quiz: bool = True,
+):
+    """
+    회의 전체 처리 파이프라인 (Claude 검증 포함)
+    1. 전체 음성 STT
+    2. 로컬 LLM 요약
+    3. Claude로 요약 검증/보완 + 키워드 추출
+    4. 화자별 STT + 액션아이템 추천
+    5. 복습 퀴즈 생성
+    """
+    if whisper_model is None:
+        raise HTTPException(status_code=503, detail="Whisper 모델이 로드되지 않았습니다")
+    if llm is None:
+        raise HTTPException(status_code=503, detail="LLM 모델이 로드되지 않았습니다")
+
+    # user_ids 파싱
+    user_id_list = [int(x.strip()) for x in user_ids.split(",") if x.strip().isdigit()]
+
+    # 임시 파일로 저장 - 전체 음성
+    suffix = Path(mixed_audio.filename).suffix if mixed_audio.filename else ".webm"
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+        content = await mixed_audio.read()
+        tmp.write(content)
+        mixed_path = tmp.name
+
+    # 화자별 음성 저장
+    individual_paths = []
+    for i, audio in enumerate(individual_audios):
+        suffix = Path(audio.filename).suffix if audio.filename else ".webm"
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            content = await audio.read()
+            tmp.write(content)
+            individual_paths.append({
+                "path": tmp.name,
+                "user_id": user_id_list[i] if i < len(user_id_list) else None
+            })
+
+    # Job 생성
+    job_id = str(uuid.uuid4())
+    jobs[job_id] = {
+        "status": "pending",
+        "result": None,
+        "error": None,
+    }
+
+    # 백그라운드 작업 등록
+    background_tasks.add_task(
+        process_meeting_full_job,
+        job_id,
+        mixed_path,
+        individual_paths,
+        generate_quiz
+    )
+
+    return JobResponse(
+        job_id=job_id,
+        status="pending",
+        message="회의 전체 처리 작업이 등록되었습니다.",
+    )
+
+
+def process_meeting_full_job(job_id: str, mixed_path: str, individual_paths: list, generate_quiz: bool):
+    """회의 전체 처리 백그라운드 작업 (Claude 검증 포함)"""
+    try:
+        jobs[job_id]["status"] = "processing"
+
+        import json
+        import re
+
+        # 1. 전체 음성 STT
+        segments, info = whisper_model.transcribe(
+            mixed_path,
+            language="ko",
+            beam_size=5,
+            vad_filter=True,
+        )
+        full_text = " ".join([seg.text.strip() for seg in segments])
+
+        # 2. 로컬 LLM 요약
+        summary_prompt = f"""<|im_start|>system
+당신은 IT 스터디 회의록을 요약하는 전문가입니다. 핵심 내용을 정확하게 정리합니다.<|im_end|>
+<|im_start|>user
+다음 IT 스터디 회의 내용을 요약해주세요.
+
+회의 내용:
+{full_text}<|im_end|>
+<|im_start|>assistant
+"""
+        summary_output = llm(summary_prompt, max_tokens=512, temperature=0.7,
+                             stop=["<|im_end|>", "<|im_start|>"], echo=False)
+        local_summary = summary_output["choices"][0]["text"].strip()
+
+        # 3. Claude로 요약 검증/보완 + 키워드 추출
+        claude_prompt = f"""다음은 IT 스터디 회의록입니다.
+
+## 원본 회의 내용:
+{full_text[:3000]}
+
+## AI 요약 초안:
+{local_summary}
+
+위 내용을 바탕으로:
+1. 요약을 검토하고 필요하면 보완해주세요 (3-5문장)
+2. 핵심 키워드 5개를 추출해주세요
+
+JSON 형식으로 응답해주세요:
+{{"summary": "보완된 요약", "keywords": ["키워드1", "키워드2", ...]}}
+"""
+
+        claude_response = call_claude(claude_prompt)
+
+        final_summary = local_summary
+        keywords = []
+
+        if claude_response:
+            json_match = re.search(r'\{[\s\S]*\}', claude_response)
+            if json_match:
+                try:
+                    result = json.loads(json_match.group())
+                    final_summary = result.get("summary", local_summary)
+                    keywords = result.get("keywords", [])
+                except:
+                    pass
+
+        # 4. 화자별 STT + 액션아이템 추천
+        action_items = []
+        for item in individual_paths:
+            if not item["user_id"]:
+                continue
+
+            try:
+                segments, _ = whisper_model.transcribe(
+                    item["path"],
+                    language="ko",
+                    beam_size=5,
+                    vad_filter=True,
+                )
+                user_text = " ".join([seg.text.strip() for seg in segments])
+
+                if user_text.strip():
+                    # Claude로 액션아이템 추천
+                    action_prompt = f"""다음은 스터디 참가자의 발언 내용입니다:
+
+{user_text[:2000]}
+
+이 참가자에게 적합한 액션 아이템(할 일, 과제)을 1-2개 추천해주세요.
+JSON 형식으로 응답: {{"actions": ["액션1", "액션2"]}}
+"""
+                    action_response = call_claude(action_prompt, max_tokens=256)
+
+                    if action_response:
+                        json_match = re.search(r'\{[\s\S]*\}', action_response)
+                        if json_match:
+                            try:
+                                result = json.loads(json_match.group())
+                                for action in result.get("actions", []):
+                                    action_items.append({
+                                        "user_id": item["user_id"],
+                                        "content": action
+                                    })
+                            except:
+                                pass
+            except Exception as e:
+                print(f"[WARNING] 화자별 처리 실패: {e}")
+
+        # 5. 퀴즈 생성 (선택) - 핵심 개념 모두 커버
+        quiz = None
+        if generate_quiz and final_summary:
+            quiz_prompt = f"""다음 IT 스터디 내용을 바탕으로 복습 퀴즈를 생성해주세요.
+
+## 요구사항:
+- 스터디에서 다룬 핵심 개념을 빠뜨리지 말고 모두 출제
+- 문제 유형: MULTIPLE_CHOICE(객관식 단일정답), SHORT_ANSWER(단답형) 혼합
+- 난이도는 EASY, MEDIUM, HARD 섞어서 출제
+- 각 문제에 정답과 간단한 해설 포함
+- 최소 5문제 이상, 중요한 내용이 많으면 더 많이 출제
+
+## 스터디 내용:
+{full_text[:4000]}
+
+## 스터디 요약:
+{final_summary}
+
+JSON 형식으로 응답 (DB 스키마에 맞춤):
+{{"questions": [
+  {{
+    "question_text": "문제 내용",
+    "question_type": "MULTIPLE_CHOICE",
+    "options": [
+      {{"label": "A", "text": "보기1", "is_correct": true}},
+      {{"label": "B", "text": "보기2", "is_correct": false}},
+      {{"label": "C", "text": "보기3", "is_correct": false}},
+      {{"label": "D", "text": "보기4", "is_correct": false}}
+    ],
+    "correct_answer": ["A"],
+    "explanation": "해설",
+    "difficulty": "MEDIUM"
+  }},
+  {{
+    "question_text": "문제 내용",
+    "question_type": "SHORT_ANSWER",
+    "options": [],
+    "correct_answer": ["정답"],
+    "explanation": "해설",
+    "difficulty": "EASY"
+  }}
+]}}
+"""
+            quiz_response = call_claude(quiz_prompt, max_tokens=2048)
+            if quiz_response:
+                quiz = quiz_response
+
+        jobs[job_id]["status"] = "completed"
+        jobs[job_id]["result"] = {
+            "transcript": full_text,
+            "summary": final_summary,
+            "keywords": keywords,
+            "action_items": action_items,
+            "quiz": quiz,
+        }
+
+    except Exception as e:
+        jobs[job_id]["status"] = "failed"
+        jobs[job_id]["error"] = str(e)
+        print(f"[ERROR] 회의 처리 실패: {e}")
+
+    finally:
+        # 임시 파일 정리
+        if os.path.exists(mixed_path):
+            os.unlink(mixed_path)
+        for item in individual_paths:
+            if os.path.exists(item["path"]):
+                os.unlink(item["path"])
 
 
 if __name__ == "__main__":

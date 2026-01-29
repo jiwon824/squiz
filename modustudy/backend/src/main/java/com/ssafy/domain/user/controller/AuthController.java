@@ -16,8 +16,13 @@ import com.ssafy.domain.user.dto.request.LoginRequest;
 import com.ssafy.common.response.MessageResponse;
 import com.ssafy.domain.user.dto.request.PasswordResetRequest;
 import com.ssafy.domain.user.dto.request.PasswordResetConfirmRequest;
-import java.util.HashMap;
-import java.util.Map;
+
+import com.ssafy.common.auth.SsafyUserDetails;
+import org.springframework.security.core.Authentication;
+import com.ssafy.domain.user.dto.request.SocialLinkRequest;
+import com.ssafy.domain.user.dto.response.LinkedAccountsResponse;
+import com.ssafy.domain.user.dto.response.SocialAccountResponse;
+import com.ssafy.domain.user.entity.SocialProvider;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -179,6 +184,99 @@ public class AuthController {
 
         return ResponseEntity.ok(
                 ApiResponse.success("비밀번호가 성공적으로 변경되었습니다.")
+        );
+    }
+    /**
+     * 8. 연동된 소셜 계정 목록 조회
+     * GET /api/v1/auth/social/my
+     */
+    @GetMapping("/social/my")
+    public ResponseEntity<ApiResponse<LinkedAccountsResponse>> getLinkedAccounts(
+            Authentication authentication) {
+
+        SsafyUserDetails userDetails = (SsafyUserDetails) authentication.getPrincipal();
+        Long userId = userDetails.getUser().getId();
+
+        LinkedAccountsResponse response = oAuth2Service.getLinkedSocialAccounts(userId);
+
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    /**
+     * 9. 소셜 계정 연동 추가
+     * POST /api/v1/auth/social/{provider}/link
+     */
+    @PostMapping("/social/{provider}/link")
+    public ResponseEntity<ApiResponse<SocialAccountResponse>> linkSocialAccount(
+            Authentication authentication,
+            @PathVariable String provider,
+            @RequestBody SocialLinkRequest request) {
+
+        SsafyUserDetails userDetails = (SsafyUserDetails) authentication.getPrincipal();
+        Long userId = userDetails.getUser().getId();
+
+        // provider 문자열을 enum으로 변환
+        SocialProvider socialProvider;
+        try {
+            socialProvider = SocialProvider.valueOf(provider.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(ApiResponse.error("INVALID_PROVIDER", "지원하지 않는 OAuth 제공자입니다."));
+        }
+
+        SocialAccountResponse response = oAuth2Service.linkSocialAccount(
+                userId,
+                socialProvider,
+                request.getCode()
+        );
+
+        // 메시지 없이 data만 반환
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+
+    /**
+     * 10. 소셜 계정 연동 해제
+     * DELETE /api/v1/auth/social/{provider}
+     */
+    @DeleteMapping("/social/{provider}")
+    public ResponseEntity<ApiResponse<MessageResponse>> unlinkSocialAccount(
+            Authentication authentication,
+            @PathVariable String provider) {
+
+        SsafyUserDetails userDetails = (SsafyUserDetails) authentication.getPrincipal();
+        Long userId = userDetails.getUser().getId();
+
+        // provider 문자열을 enum으로 변환
+        SocialProvider socialProvider;
+        try {
+            socialProvider = SocialProvider.valueOf(provider.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(ApiResponse.error("INVALID_PROVIDER", "지원하지 않는 OAuth 제공자입니다."));
+        }
+
+        oAuth2Service.unlinkSocialAccount(userId, socialProvider);
+
+        String providerName;
+        switch (socialProvider) {
+            case GOOGLE:
+                providerName = "구글";
+                break;
+            case KAKAO:
+                providerName = "카카오";
+                break;
+            case NAVER:
+                providerName = "네이버";
+                break;
+            default:
+                providerName = provider;
+        }
+
+        return ResponseEntity.ok(
+                ApiResponse.success(providerName + " 계정 연동이 해제되었습니다.")
         );
     }
 }

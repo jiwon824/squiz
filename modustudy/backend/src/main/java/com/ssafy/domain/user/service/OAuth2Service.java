@@ -23,6 +23,10 @@ import com.ssafy.domain.user.entity.PasswordResetToken;
 import com.ssafy.domain.user.repository.PasswordResetTokenRepository;
 import java.util.List;
 
+import com.ssafy.domain.user.dto.request.SocialLinkRequest;
+import com.ssafy.domain.user.dto.response.SocialAccountResponse;
+import com.ssafy.domain.user.dto.response.LinkedAccountsResponse;
+
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Optional;
@@ -776,5 +780,127 @@ public class OAuth2Service {
 
         // 5. 해당 사용자의 모든 리프레시 토큰 삭제 (보안)
         refreshTokenRepository.deleteByUserId(user.getId());
+    }
+    /**
+     * 연동된 소셜 계정 목록 조회
+     */
+    @Transactional(readOnly = true)
+    public LinkedAccountsResponse getLinkedSocialAccounts(Long userId) {
+        // 1. 사용자 조회
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        // 2. 연동된 소셜 계정 목록 조회
+        List<UserSocialAccount> socialAccounts = socialAccountRepository.findByUserId(userId);
+
+        // 3. DTO 변환
+        List<SocialAccountResponse> linkedAccounts = socialAccounts.stream()
+                .map(SocialAccountResponse::from)
+                .toList();
+
+        // 4. 비밀번호 설정 여부 확인
+        boolean hasPassword = (user.getPassword() != null && !user.getPassword().isEmpty());
+
+        return LinkedAccountsResponse.builder()
+                .linkedAccounts(linkedAccounts)
+                .hasPassword(hasPassword)
+                .build();
+    }
+    /**
+     * 소셜 계정 연동 추가
+     */
+    public SocialAccountResponse linkSocialAccount(Long userId, SocialProvider provider, String code) {
+        log.info("소셜 계정 연동 시작: userId={}, provider={}", userId, provider);
+
+        // 1. 현재 사용자 조회
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        // 2. OAuth code로 소셜 사용자 정보 가져오기
+        OAuth2UserInfo userInfo = getOAuth2UserInfo(provider, code);
+
+        // 3. 이미 연동되어 있는지 확인 (같은 provider + provider_user_id)
+        Optional<UserSocialAccount> existingSocial = socialAccountRepository
+                .findByProviderAndProviderUserId(provider, userInfo.getProviderId());
+
+        if (existingSocial.isPresent()) {
+            UserSocialAccount social = existingSocial.get();
+
+            // 3-1. 본인의 계정인 경우
+            if (social.getUser().getId().equals(userId)) {
+                throw new IllegalStateException("이미 연동된 소셜 계정입니다.");
+            }
+
+            // 3-2. 다른 사람의 계정인 경우
+            throw new IllegalStateException("해당 소셜 계정은 다른 사용자에게 연동되어 있습니다.");
+        }
+
+        // 4. 새로운 소셜 계정 연동
+        UserSocialAccount newSocialAccount = UserSocialAccount.builder()
+                .user(user)
+                .provider(provider)
+                .providerUserId(userInfo.getProviderId())
+                .email(userInfo.getEmail())
+                .isPrimary(false)  // 추가 연동이므로 primary 아님
+                .linkedAt(LocalDateTime.now())
+                .build();
+
+        socialAccountRepository.save(newSocialAccount);
+        log.info("소셜 계정 연동 완료: userId={}, provider={}", userId, provider);
+
+        return SocialAccountResponse.from(newSocialAccount);
+    }
+
+    /**
+     * OAuth code로 소셜 사용자 정보 가져오기 (헬퍼 메서드)
+     */
+    private OAuth2UserInfo getOAuth2UserInfo(SocialProvider provider, String code) {
+        switch (provider) {
+            case KAKAO:
+                String kakaoAccessToken = getKakaoAccessToken(code);
+                return getKakaoUserInfo(kakaoAccessToken);
+
+            case NAVER:
+                String naverAccessToken = getNaverAccessToken(code, "random_state_string");
+                return getNaverUserInfo(naverAccessToken);
+
+            case GOOGLE:
+                Map<String, Object> googleTokens = getGoogleTokens(code);
+                String googleAccessToken = (String) googleTokens.get("access_token");
+                return getGoogleUserInfo(googleAccessToken);
+
+            default:
+                throw new IllegalArgumentException("지원하지 않는 OAuth 제공자입니다.");
+        }
+    }
+    /**
+     * 소셜 계정 연동 해제
+     */
+    public void unlinkSocialAccount(Long userId, SocialProvider provider) {
+        log.info("소셜 계정 연동 해제 시작: userId={}, provider={}", userId, provider);
+
+        // 1. 사용자 조회
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        // 2. 해당 provider의 소셜 계정 조회
+        UserSocialAccount socialAccount = socialAccountRepository
+                .findByUserIdAndProvider(userId, provider)
+                .orElseThrow(() -> new IllegalArgumentException("연동된 소셜 계정을 찾을 수 없습니다."));
+
+        // 3. 연동 해제 가능한지 확인 (최소 1개의 로그인 수단 필요)
+        boolean hasPassword = (user.getPassword() != null && !user.getPassword().isEmpty());
+        long linkedAccountCount = socialAccountRepository.countByUserId(userId);
+
+        if (!hasPassword && linkedAccountCount <= 1) {
+            throw new IllegalStateException(
+                    "최소 1개의 로그인 수단이 필요합니다. " +
+                            "비밀번호를 설정하거나 다른 소셜 계정을 연동해주세요."
+            );
+        }
+
+        // 4. 연동 해제
+        socialAccountRepository.delete(socialAccount);
+        log.info("소셜 계정 연동 해제 완료: userId={}, provider={}", userId, provider);
     }
 }

@@ -25,4 +25,7 @@ public interface UserSocialAccountRepository extends JpaRepository<UserSocialAcc
     boolean existsByUserAndProvider(User user, SocialProvider provider);
 
     boolean existsByProviderAndProviderUserId(SocialProvider provider, String providerUserId);
+
+    // 특정 사용자의 연동된 소셜 계정 개수
+    long countByUserId(Long userId);
 }
