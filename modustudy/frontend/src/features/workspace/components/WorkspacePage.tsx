@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { cn } from '@/shared/utils/cn';
 import { WorkspaceHeader } from './WorkspaceHeader';
@@ -10,10 +10,27 @@ import { WorkspaceCalendarArea } from './WorkspaceCalendarArea';
 import { MaterialArea } from '@/features/material';
 import { workspaceApi } from '@/api/endpoints/workspaceApi';
 import { studyApi, type StudyMemberResponse } from '@/api/endpoints/studyApi';
+import { sessionApi, type StudySessionResponse } from '@/api/endpoints/sessionApi';
 import { useUIStore } from '@/store/uiStore';
 import { useAuthStore } from '@/store/authStore';
+import { workspaceWebSocket } from '@/api/websocket/workspaceWebSocketService';
+import type { WorkspaceWebSocketEvent } from '@/api/websocket/workspaceWebSocketTypes';
 import type { MessageResponse, WorkspaceResponse } from '../types';
 import '../styles/workspace.css';
+
+/**
+ * 현재 시간 기준으로 세션이 진행 중인지 확인
+ */
+const isSessionInProgress = (session: StudySessionResponse): boolean => {
+  if (session.status === 'CANCELLED') return false;
+
+  const now = new Date();
+  const startTime = new Date(session.scheduledAt);
+  const durationMs = (session.durationMinutes || 60) * 60 * 1000;
+  const endTime = new Date(startTime.getTime() + durationMs);
+
+  return now >= startTime && now < endTime;
+};
 
 // 스터디 멤버를 워크스페이스 멤버 형식으로 변환
 const toWorkspaceMember = (member: StudyMemberResponse): WorkspaceMember => ({
@@ -47,6 +64,13 @@ export const WorkspacePage: React.FC = () => {
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const [isLeader, setIsLeader] = useState(false);
+  const [sessions, setSessions] = useState<StudySessionResponse[]>([]);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [isWebSocketConnected, setIsWebSocketConnected] = useState(false);
+
+  // WebSocket 핸들러를 위한 ref (상태 변경 시에도 최신 값 참조)
+  const messagesRef = useRef<MessageResponse[]>([]);
+  messagesRef.current = messages;
 
   // 초기 데이터 로드
   useEffect(() => {
@@ -117,29 +141,165 @@ export const WorkspacePage: React.FC = () => {
     loadInitialData();
   }, [studyId]);
 
+  // WebSocket 연결 관리
+  useEffect(() => {
+    if (!workspace || !currentUser?.id || !currentUser?.nickname) return;
+
+    const userId = typeof currentUser.id === 'string' ? parseInt(currentUser.id, 10) : currentUser.id;
+    const nickname = currentUser.nickname;
+
+    // WebSocket 핸들러 설정
+    workspaceWebSocket.connect(workspace.id, userId, nickname, {
+      onMessage: (event: WorkspaceWebSocketEvent) => {
+        // 서버에서 받은 메시지를 채팅에 추가
+        if (event.message) {
+          const newMessage: MessageResponse = {
+            id: event.message.id,
+            content: event.message.content,
+            messageType: event.message.messageType,
+            createdAt: event.message.createdAt,
+            author: {
+              id: event.message.userId,
+              nickname: event.message.nickname,
+              profileImageUrl: event.message.profileImageUrl || null,
+            },
+          };
+
+          // 중복 메시지 방지 (같은 ID 메시지가 이미 있는지 확인)
+          setMessages((prev) => {
+            const exists = prev.some((m) => m.id === newMessage.id);
+            if (exists) return prev;
+            return [...prev, newMessage];
+          });
+        }
+      },
+      onJoin: (event: WorkspaceWebSocketEvent) => {
+        // 사용자 입장 시 멤버 온라인 상태 업데이트
+        if (event.senderId) {
+          setMembers((prev) =>
+            prev.map((m) =>
+              m.id === event.senderId ? { ...m, isOnline: true } : m
+            )
+          );
+        }
+      },
+      onLeave: (event: WorkspaceWebSocketEvent) => {
+        // 사용자 퇴장 시 멤버 오프라인 상태 업데이트
+        if (event.senderId) {
+          setMembers((prev) =>
+            prev.map((m) =>
+              m.id === event.senderId ? { ...m, isOnline: false } : m
+            )
+          );
+        }
+      },
+      onDelete: (event: WorkspaceWebSocketEvent) => {
+        // 메시지 삭제 시
+        if (event.messageId) {
+          setMessages((prev) => prev.filter((m) => m.id !== event.messageId));
+        }
+      },
+      onUpdate: (event: WorkspaceWebSocketEvent) => {
+        // 메시지 수정 시
+        if (event.message && event.messageId) {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === event.messageId
+                ? { ...m, content: event.message!.content }
+                : m
+            )
+          );
+        }
+      },
+      onConnectionChange: (status) => {
+        setIsWebSocketConnected(status === 'CONNECTED');
+        if (status === 'CONNECTED') {
+          console.log('[Workspace] WebSocket 연결 완료');
+        }
+      },
+      onError: (errorMessage) => {
+        console.error('[Workspace] WebSocket 에러:', errorMessage);
+      },
+    });
+
+    // 컴포넌트 언마운트 시 연결 해제
+    return () => {
+      workspaceWebSocket.disconnect();
+      setIsWebSocketConnected(false);
+    };
+  }, [workspace?.id, currentUser?.id, currentUser?.nickname]);
+
+  // 세션 목록 로드
+  const loadSessions = useCallback(async () => {
+    if (!studyId) return;
+    try {
+      const data = await sessionApi.getSessions(studyId);
+      setSessions(data);
+    } catch {
+      setSessions([]);
+    }
+  }, [studyId]);
+
+  // 초기 세션 로드
+  useEffect(() => {
+    loadSessions();
+  }, [loadSessions]);
+
+  // 10초마다 현재 시간 갱신 (진행 중 세션 실시간 감지)
+  useEffect(() => {
+    // 초기 체크
+    setCurrentTime(new Date());
+
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 10000); // 10초마다 체크
+    return () => clearInterval(interval);
+  }, []);
+
+  // 5분마다 세션 목록 갱신 (새 세션 반영)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadSessions();
+    }, 300000); // 5분마다 세션 목록 갱신
+    return () => clearInterval(interval);
+  }, [loadSessions]);
+
+  // 현재 진행 중인 세션 찾기
+  const activeSession = useMemo(() => {
+    // currentTime을 의존성으로 사용해 주기적으로 재계산
+    void currentTime;
+    return sessions.find(isSessionInProgress) || null;
+  }, [sessions, currentTime]);
+
   // 다크모드 토글
   const handleToggleDarkMode = useCallback(() => {
     setIsDarkMode((prev) => !prev);
   }, []);
 
-  // 메시지 전송 핸들러
+  // 메시지 전송 핸들러 (WebSocket 사용)
   const handleSendMessage = useCallback(
-    async (content: string) => {
+    (content: string) => {
       if (!workspace) {
         return;
       }
 
-      try {
-        const newMessage = await workspaceApi.sendMessage(workspace.id, {
-          content,
-          messageType: 'TEXT',
-        });
-        setMessages((prev) => [...prev, newMessage]);
-      } catch (err: any) {
-        showToast?.('메시지 전송에 실패했습니다.', 'error');
+      // WebSocket 연결 상태 확인
+      if (isWebSocketConnected) {
+        // WebSocket으로 메시지 전송
+        workspaceWebSocket.sendMessage(content, 'TEXT');
+      } else {
+        // WebSocket 미연결 시 REST API 폴백
+        workspaceApi
+          .sendMessage(workspace.id, { content, messageType: 'TEXT' })
+          .then((newMessage) => {
+            setMessages((prev) => [...prev, newMessage]);
+          })
+          .catch(() => {
+            showToast?.('메시지 전송에 실패했습니다.', 'error');
+          });
       }
     },
-    [workspace, showToast]
+    [workspace, isWebSocketConnected, showToast]
   );
 
   // 멤버 목록 토글
@@ -225,6 +385,7 @@ export const WorkspacePage: React.FC = () => {
             onMenuChange={setActiveMenu}
             isDarkMode={isDarkMode}
             onToggleDarkMode={handleToggleDarkMode}
+            activeSession={activeSession}
           />
 
           {/* 메인 콘텐츠 영역 */}
@@ -236,6 +397,7 @@ export const WorkspacePage: React.FC = () => {
                   isLoading={isMessagesLoading}
                   onLoadMore={handleLoadMore}
                   hasMore={hasMoreMessages}
+                  currentUserId={currentUser?.id}
                 />
                 <MessageInput
                   onSend={handleSendMessage}
@@ -247,7 +409,7 @@ export const WorkspacePage: React.FC = () => {
             {activeMenu === 'materials' && studyId && <MaterialArea studyId={studyId} />}
 
             {activeMenu === 'calendar' && studyId && (
-              <WorkspaceCalendarArea studyId={studyId} isLeader={isLeader} />
+              <WorkspaceCalendarArea studyId={studyId} isLeader={isLeader} onSessionChange={loadSessions} />
             )}
           </div>
         </div>

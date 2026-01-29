@@ -293,6 +293,62 @@
   font-style: italic;
 }
 
+/* =============================================
+   메시지 말풍선 스타일 (DM 스타일 통일)
+   ============================================= */
+
+/* 상대방 메시지 말풍선 - 다크모드 */
+[data-theme="dark"] .chat-area .bg-gray-100,
+.workspace-container--dark .chat-area .bg-gray-100 {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  color: var(--ws-text-primary) !important;
+}
+
+/* 상대방 메시지 텍스트 색상 - 다크모드 */
+[data-theme="dark"] .chat-area .text-gray-800,
+.workspace-container--dark .chat-area .text-gray-800 {
+  color: var(--ws-text-primary) !important;
+}
+
+/* 아바타 배경 - 다크모드 */
+[data-theme="dark"] .chat-area .bg-gray-200,
+.workspace-container--dark .chat-area .bg-gray-200 {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* 이름/시간 텍스트 - 다크모드 */
+[data-theme="dark"] .chat-area .text-gray-700,
+.workspace-container--dark .chat-area .text-gray-700 {
+  color: var(--ws-text-secondary) !important;
+}
+
+[data-theme="dark"] .chat-area .text-gray-400,
+.workspace-container--dark .chat-area .text-gray-400 {
+  color: var(--ws-text-tertiary) !important;
+}
+
+/* 시스템 메시지 - 다크모드 */
+[data-theme="dark"] .chat-area .bg-gray-100.rounded-full,
+.workspace-container--dark .chat-area .bg-gray-100.rounded-full {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* 전송됨 슬라이드 애니메이션 */
+@keyframes slide-down {
+  0% {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-down {
+  animation: slide-down 0.3s ease-out forwards;
+}
+
 /* 메시지 입력 */
 .message-input {
   padding: 0 16px 24px;
@@ -750,6 +806,59 @@
   flex-shrink: 0;
 }
 
+/* 진행 중 세션 미팅 버튼 - 애니메이션 효과 */
+.workspace-sidebar__meeting-btn--active {
+  background: linear-gradient(135deg, #EA4335 0%, #FF6B6B 100%);
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.workspace-sidebar__meeting-btn--active:hover {
+  background: linear-gradient(135deg, #D33426 0%, #EA4335 100%);
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(234, 67, 53, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(234, 67, 53, 0);
+  }
+}
+
+/* 세션 정보 표시 */
+.workspace-sidebar__session-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin-top: 8px;
+  padding: 8px;
+  background-color: var(--ws-surface-hover);
+  border-radius: var(--radius-md);
+}
+
+.workspace-sidebar__session-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ws-text-primary);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.workspace-sidebar__session-time {
+  font-size: 11px;
+  color: var(--ws-text-tertiary);
+}
+
+/* 다크모드 세션 정보 */
+[data-theme="dark"] .workspace-sidebar__session-info,
+.workspace-container--dark .workspace-sidebar__session-info {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
 /* 반응형 */
 @media (max-width: 1024px) {
   .workspace-sidebar {
@@ -777,6 +886,10 @@
 
   .workspace-sidebar__meeting-btn {
     padding: 12px;
+  }
+
+  .workspace-sidebar__session-info {
+    display: none;
   }
 }
 

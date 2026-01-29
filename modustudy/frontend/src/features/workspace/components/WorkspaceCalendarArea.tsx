@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { type UnifiedSchedule } from '@/features/calendar';
 import { sessionApi, type StudySessionResponse } from '@/api/endpoints/sessionApi';
 import { SessionModal } from './SessionModal';
@@ -11,6 +11,8 @@ import { cn } from '@/shared/utils/cn';
 interface WorkspaceCalendarAreaProps {
   studyId: number;
   isLeader?: boolean;
+  /** 세션 변경 시 부모 컴포넌트에 알림 (사이드바 미팅 버튼 갱신용) */
+  onSessionChange?: () => void;
 }
 
 /**
@@ -60,7 +62,7 @@ const toUnifiedSchedule = (session: StudySessionResponse): UnifiedSchedule => {
 
   return {
     id: session.id,
-    title: session.title || `${session.sessionNumber}회차`,
+    title: session.title || '스터디 세션',
     description: session.description || undefined,
     startDate: dateStr,
     startTime: timeStr,
@@ -82,19 +84,20 @@ const toUnifiedSchedule = (session: StudySessionResponse): UnifiedSchedule => {
 export const WorkspaceCalendarArea: React.FC<WorkspaceCalendarAreaProps> = ({
   studyId,
   isLeader = false,
+  onSessionChange,
 }) => {
   const showToast = useUIStore((state) => state.showToast);
 
   // 상태
   const [currentDate, setCurrentDate] = useState(new Date());
   const [sessions, setSessions] = useState<StudySessionResponse[]>([]);
-  const [schedules, setSchedules] = useState<UnifiedSchedule[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedSession, setSelectedSession] = useState<StudySessionResponse | null>(null);
   const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
   const [isDateModalOpen, setIsDateModalOpen] = useState(false);
   const [deletingSessionId, setDeletingSessionId] = useState<number | null>(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   // 세션 목록 로드
   const loadSessions = useCallback(async () => {
@@ -102,11 +105,9 @@ export const WorkspaceCalendarArea: React.FC<WorkspaceCalendarAreaProps> = ({
     try {
       const data = await sessionApi.getSessions(studyId);
       setSessions(data);
-      setSchedules(data.map(toUnifiedSchedule));
-    } catch (err: any) {
+    } catch {
       // 세션이 없는 경우 빈 배열로 처리
       setSessions([]);
-      setSchedules([]);
     } finally {
       setLoading(false);
     }
@@ -115,6 +116,20 @@ export const WorkspaceCalendarArea: React.FC<WorkspaceCalendarAreaProps> = ({
   useEffect(() => {
     loadSessions();
   }, [loadSessions]);
+
+  // 10초마다 현재 시간 갱신 (세션 상태 실시간 업데이트)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // 세션 상태를 실시간으로 계산 (currentTime이 바뀔 때마다 재계산)
+  const schedules = useMemo(() => {
+    void currentTime; // 의존성으로 사용
+    return sessions.map(toUnifiedSchedule);
+  }, [sessions, currentTime]);
 
   // 이전/다음 달 이동
   const goToPrevMonth = () => {
@@ -183,6 +198,7 @@ export const WorkspaceCalendarArea: React.FC<WorkspaceCalendarAreaProps> = ({
   // 세션 저장 성공 시
   const handleSessionSuccess = () => {
     loadSessions();
+    onSessionChange?.(); // 부모에게 세션 변경 알림
   };
 
   // 세션 삭제 핸들러 (리더만 가능)
@@ -203,6 +219,7 @@ export const WorkspaceCalendarArea: React.FC<WorkspaceCalendarAreaProps> = ({
       await sessionApi.deleteSession(studyId, sessionId);
       showToast?.('세션이 삭제되었습니다.', 'success');
       loadSessions();
+      onSessionChange?.(); // 부모에게 세션 변경 알림
     } catch (err: any) {
       const errorMessage = err?.response?.data?.message || '세션 삭제에 실패했습니다.';
       showToast?.(errorMessage, 'error');

@@ -55,27 +55,34 @@ const WheelColumn: React.FC<{
 }> = ({ label, values, selected, onChange }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // 휠 이벤트로 값 변경
-  const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
-    const currentIndex = values.indexOf(selected);
-    if (e.deltaY > 0) {
-      // 아래로 스크롤 - 다음 값
-      const nextIndex = Math.min(currentIndex + 1, values.length - 1);
-      onChange(values[nextIndex]);
-    } else {
-      // 위로 스크롤 - 이전 값
-      const prevIndex = Math.max(currentIndex - 1, 0);
-      onChange(values[prevIndex]);
-    }
-  };
+  // 휠 이벤트 리스너 - passive: false로 등록해야 preventDefault 가능
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const currentIndex = values.indexOf(selected);
+      if (e.deltaY > 0) {
+        // 아래로 스크롤 - 다음 값
+        const nextIndex = Math.min(currentIndex + 1, values.length - 1);
+        onChange(values[nextIndex]);
+      } else {
+        // 위로 스크롤 - 이전 값
+        const prevIndex = Math.max(currentIndex - 1, 0);
+        onChange(values[prevIndex]);
+      }
+    };
+
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => container.removeEventListener('wheel', handleWheel);
+  }, [values, selected, onChange]);
 
   return (
     <div className="flex-1 flex flex-col items-center">
       <div className="text-[10px] font-bold text-gray-400 mb-1">{label}</div>
       <div
         ref={containerRef}
-        onWheel={handleWheel}
         className="relative h-[100px] w-full flex flex-col items-center justify-center cursor-ns-resize select-none"
       >
         {/* 이전 값 (흐리게) */}
@@ -264,8 +271,26 @@ export const SessionModal: React.FC<SessionModalProps> = ({
         // 생성 모드: 초기값
         setTitle('');
         setDescription('');
-        setDate(initialDate || new Date().toISOString().split('T')[0]);
-        setTime('19:00');
+        const today = new Date().toISOString().split('T')[0];
+        const selectedDate = initialDate || today;
+        setDate(selectedDate);
+
+        // 오늘 날짜면 현재 시간(5분 단위 올림), 다른 날짜면 00:00
+        if (selectedDate === today) {
+          const now = new Date();
+          const minutes = now.getMinutes();
+          const roundedMinutes = Math.ceil(minutes / 5) * 5;
+          now.setMinutes(roundedMinutes);
+          now.setSeconds(0);
+          if (roundedMinutes >= 60) {
+            now.setHours(now.getHours() + 1);
+            now.setMinutes(0);
+          }
+          const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+          setTime(currentTime);
+        } else {
+          setTime('00:00');
+        }
         setDurationMinutes(60);
         setLocation('');
         setIsOnline(true);
