@@ -19,6 +19,9 @@ import ReuseTest from '../features/reuseTest';
 const QuizGameSelection = lazy(() =>
     import('../features/quiz').then(m => ({ default: m.QuizGameSelection }))
 );
+const ReviewQuizPage = lazy(() =>
+    import('../features/quiz').then(m => ({ default: m.ReviewQuizPage }))
+);
 const CommentleQuiz = lazy(() =>
     import('../features/quiz').then(m => ({ default: m.CommentleQuiz }))
 );
@@ -147,6 +150,7 @@ export const AppRouter = () => {
 
                 {/* 퀴즈 */}
                 <Route path="/quiz" element={<QuizGameSelection />} />
+                <Route path="/test/quiz" element={<ReviewQuizPage />} />
                 {/* 내 브랜치 추가 */}
                 <Route path="/quiz/review" element={<StudyAfterQuiz />} />
                 <Route path="/stt-report" element={<STTReportPage />} />
@@ -175,10 +179,10 @@ export const AppRouter = () => {
                 {/* origin/dev 추가 */}
                 <Route path="/study/:studyId/workspace" element={<WorkspacePage />} />
 
-            {/* 미팅 */}
-            <Route path="/study/:studyId/meetings" element={<MeetingHistoryPage />} />
-            <Route path="/study/:studyId/meetings/:meetingId" element={<MeetingDetailPage />} />
-            <Route path="/study/:studyId/meetings/:meetingId/room" element={<MeetingRoomPage />} />
+                {/* 미팅 */}
+                <Route path="/study/:studyId/meetings" element={<MeetingHistoryPage />} />
+                <Route path="/study/:studyId/meetings/:meetingId" element={<MeetingDetailPage />} />
+                <Route path="/study/:studyId/meetings/:meetingId/room" element={<MeetingRoomPage />} />
 
                 {/* 기타 */}
                 <Route path="/recruitment" element={<RecruitmentPage />} />
