@@ -1,7 +1,8 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useUIStore } from '@/store/uiStore';
 import { cn } from '@/shared/utils/cn';
+import { useCallback } from 'react';
 import {
     QuizIcon,
     StudyIcon,
@@ -21,8 +22,29 @@ export const Sidebar = () => {
     const sidebarMode = useUIStore((state) => state.sidebarMode);
     const toggleSidebar = useUIStore((state) => state.toggleSidebar);
     const location = useLocation();
+    const navigate = useNavigate();
 
     const isClosed = sidebarMode === 'closed';
+
+    // 대시보드에서 다른 페이지로 전환 시 애니메이션 처리
+    const handleTransitionNavigate = useCallback((path: string) => {
+        // 대시보드가 아닌 경우 바로 이동
+        if (location.pathname !== '/dashboard') {
+            navigate(path);
+            return;
+        }
+
+        // sessionStorage에 플래그 설정
+        sessionStorage.setItem('fromDashboard', 'true');
+
+        // 퇴장 애니메이션을 위한 이벤트 발생
+        window.dispatchEvent(new CustomEvent('dashboardExit'));
+
+        // 애니메이션 완료 후 네비게이션 (500ms)
+        setTimeout(() => {
+            navigate(path);
+        }, 500);
+    }, [location.pathname, navigate]);
 
     return (
         <motion.aside
@@ -64,6 +86,8 @@ export const Sidebar = () => {
                     path="/quiz"
                     isActive={location.pathname === '/quiz'}
                     badge={5}
+                    useTransition
+                    onTransitionNavigate={handleTransitionNavigate}
                 />
 
                 <SidebarItem
@@ -107,6 +131,10 @@ interface SidebarItemProps {
     isActive?: boolean;
     badge?: number;
     showDot?: boolean;
+    /** 페이지 전환 애니메이션 사용 여부 */
+    useTransition?: boolean;
+    /** 전환 애니메이션 네비게이션 핸들러 */
+    onTransitionNavigate?: (path: string) => void;
 }
 
 const SidebarItem: React.FC<SidebarItemProps> = ({
@@ -116,9 +144,19 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
     isActive,
     badge,
     showDot,
+    useTransition,
+    onTransitionNavigate,
 }) => {
-    return (
-        <Link to={path} className="block no-underline group">
+    // 전환 애니메이션이 필요한 경우 버튼 클릭 핸들러
+    const handleClick = () => {
+        if (onTransitionNavigate) {
+            onTransitionNavigate(path);
+        }
+    };
+
+    // 내부 컨텐츠
+    const content = (
+        <>
             <div
                 className={cn(
                     'flex items-center justify-center h-14 rounded-2xl mx-3 relative',
@@ -169,6 +207,25 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
                     {label}
                 </span>
             </div>
+        </>
+    );
+
+    // 전환 애니메이션 사용 시 버튼, 아니면 Link
+    if (useTransition) {
+        return (
+            <button
+                type="button"
+                onClick={handleClick}
+                className="block no-underline group w-full text-left bg-transparent border-none cursor-pointer p-0"
+            >
+                {content}
+            </button>
+        );
+    }
+
+    return (
+        <Link to={path} className="block no-underline group">
+            {content}
         </Link>
     );
 };

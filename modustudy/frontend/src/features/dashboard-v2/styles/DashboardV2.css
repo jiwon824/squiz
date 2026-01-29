@@ -317,3 +317,399 @@
     background: linear-gradient(90deg, #3a3a3a 25%, #4a4a4a 50%, #3a3a3a 75%);
     background-size: 200% 100%;
 }
+
+/* ============================================
+   워크스페이스 → 미팅 페이지 진입 애니메이션
+   ============================================ */
+
+/* 전체 레이아웃 진입 */
+.layout-entering-from-workspace {
+    animation: layout-fade-in 0.6s ease-out forwards;
+}
+
+/* 헤더 - 위에서 슬라이드 다운 */
+.layout-header-enter {
+    opacity: 0;
+    transform: translateY(-30px);
+    animation: slide-down-enter 0.5s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+    animation-delay: 0.1s;
+}
+
+/* 왼쪽 사이드바 - 왼쪽에서 슬라이드 인 */
+.layout-sidebar-enter {
+    opacity: 0;
+    transform: translateX(-50px);
+    animation: slide-in-left 0.5s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+    animation-delay: 0.15s;
+}
+
+/* 메인 영역 */
+.layout-main-enter {
+    opacity: 0;
+    transform: translateY(10px);
+    animation: fade-in-up 0.5s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+    animation-delay: 0.05s;
+}
+
+/* 메인 콘텐츠 - 줌인 효과 */
+.layout-content-enter {
+    opacity: 0;
+    transform: scale(1.08);
+    animation: content-zoom-in 0.6s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+    animation-delay: 0.2s;
+    transform-origin: center center;
+}
+
+/* 오른쪽 사이드바 - 오른쪽에서 슬라이드 인 */
+.layout-right-sidebar-enter {
+    opacity: 0;
+    transform: translateX(50px);
+    animation: slide-in-right 0.5s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+    animation-delay: 0.2s;
+}
+
+/* 키프레임 정의 */
+@keyframes layout-fade-in {
+    0% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+@keyframes slide-down-enter {
+    0% {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slide-in-left {
+    0% {
+        opacity: 0;
+        transform: translateX(-50px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slide-in-right {
+    0% {
+        opacity: 0;
+        transform: translateX(50px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes fade-in-up {
+    0% {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes content-zoom-in {
+    0% {
+        opacity: 0;
+        transform: scale(1.1);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* ============================================
+   미팅 페이지 → 워크스페이스 퇴장 애니메이션
+   ============================================ */
+
+/* 전체 레이아웃 퇴장 */
+.layout-exiting-to-workspace {
+    animation: layout-fade-out 0.5s ease-in forwards;
+    pointer-events: none;
+}
+
+/* 퇴장 시 사이드바들이 먼저 사라짐 */
+.layout-exiting-to-workspace header {
+    animation: slide-up-exit 0.3s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+.layout-exiting-to-workspace .flex-1.flex > div:first-child {
+    animation: slide-out-left 0.3s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+.layout-exiting-to-workspace .flex-1.flex > div:last-child {
+    animation: slide-out-right 0.3s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+/* 메인 콘텐츠 - 줌아웃 효과 (사이드바보다 조금 늦게) */
+.layout-exiting-to-workspace main {
+    animation: content-zoom-out 0.5s cubic-bezier(0.4, 0, 1, 1) forwards;
+    transform-origin: center center;
+}
+
+/* 퇴장 키프레임 정의 */
+@keyframes layout-fade-out {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+@keyframes slide-up-exit {
+    0% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+}
+
+@keyframes slide-out-left {
+    0% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    100% {
+        opacity: 0;
+        transform: translateX(-50px);
+    }
+}
+
+@keyframes slide-out-right {
+    0% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    100% {
+        opacity: 0;
+        transform: translateX(50px);
+    }
+}
+
+@keyframes content-zoom-out {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0.92);
+    }
+}
+
+/* ============================================
+   대시보드 → 다른 페이지 진입 애니메이션
+   ============================================ */
+
+/* 대시보드에서 진입 시 전체 레이아웃 */
+.layout-entering-from-dashboard {
+    animation: dashboard-enter-fade 0.5s ease-out forwards;
+}
+
+/* 대시보드에서 진입 시 콘텐츠 줌인 */
+.layout-entering-from-dashboard main section {
+    opacity: 0;
+    transform: scale(0.95);
+    animation: dashboard-content-enter 0.5s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+    animation-delay: 0.1s;
+    transform-origin: center center;
+}
+
+/* 대시보드에서 진입 시 사이드바 슬라이드 */
+.layout-entering-from-dashboard .flex-1.flex > div:first-child {
+    opacity: 0;
+    transform: translateX(-30px);
+    animation: slide-in-left 0.4s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+    animation-delay: 0.15s;
+}
+
+.layout-entering-from-dashboard .flex-1.flex > div:last-child {
+    opacity: 0;
+    transform: translateX(30px);
+    animation: slide-in-right 0.4s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+    animation-delay: 0.15s;
+}
+
+@keyframes dashboard-enter-fade {
+    0% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+@keyframes dashboard-content-enter {
+    0% {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* ============================================
+   대시보드 → 퀴즈 페이지 진입 애니메이션
+   ============================================ */
+
+/* 퀴즈 페이지 전체 진입 애니메이션 */
+.quiz-entering-from-dashboard {
+    animation: quiz-page-enter 0.6s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+}
+
+/* 퀴즈 페이지 헤더 - 위에서 슬라이드 */
+.quiz-entering-from-dashboard header {
+    opacity: 0;
+    transform: translateY(-30px);
+    animation: slide-down-enter 0.5s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+    animation-delay: 0.15s;
+}
+
+/* 퀴즈 카드 그리드 - 아래에서 fade up */
+.quiz-entering-from-dashboard .grid {
+    opacity: 0;
+    transform: translateY(40px);
+    animation: quiz-cards-enter 0.6s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+    animation-delay: 0.25s;
+}
+
+/* 퀴즈 페이지 푸터 - fade in */
+.quiz-entering-from-dashboard footer {
+    opacity: 0;
+    animation: fade-in-simple 0.5s ease-out forwards;
+    animation-delay: 0.4s;
+}
+
+@keyframes quiz-page-enter {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+@keyframes quiz-cards-enter {
+    0% {
+        opacity: 0;
+        transform: translateY(40px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fade-in-simple {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+/* ============================================
+   퀴즈 페이지 → 대시보드 퇴장 애니메이션
+   ============================================ */
+
+/* 퀴즈 페이지 퇴장 */
+.quiz-exiting-to-dashboard {
+    animation: quiz-page-exit 0.5s ease-in forwards;
+    pointer-events: none;
+}
+
+/* 퇴장 시 헤더 위로 슬라이드 */
+.quiz-exiting-to-dashboard header {
+    animation: slide-up-exit 0.3s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+/* 퇴장 시 카드 그리드 아래로 슬라이드 */
+.quiz-exiting-to-dashboard .grid {
+    animation: quiz-cards-exit 0.4s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+/* 퇴장 시 푸터 fade out */
+.quiz-exiting-to-dashboard footer {
+    animation: fade-out-simple 0.3s ease-in forwards;
+}
+
+@keyframes quiz-page-exit {
+    0% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+    }
+}
+
+@keyframes quiz-cards-exit {
+    0% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(40px);
+    }
+}
+
+@keyframes fade-out-simple {
+    0% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+    }
+}
+
+/* ============================================
+   퀴즈 페이지 → 대시보드 진입 애니메이션
+   ============================================ */
+
+/* 퀴즈에서 돌아올 때 대시보드 진입 */
+.layout-entering-from-quiz {
+    animation: dashboard-from-quiz-enter 0.6s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+}
+
+/* 사이드바 슬라이드 인 */
+.layout-entering-from-quiz .flex-1.flex > div:first-child {
+    opacity: 0;
+    transform: translateX(-30px);
+    animation: slide-in-left 0.4s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+    animation-delay: 0.1s;
+}
+
+.layout-entering-from-quiz .flex-1.flex > div:last-child {
+    opacity: 0;
+    transform: translateX(30px);
+    animation: slide-in-right 0.4s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+    animation-delay: 0.1s;
+}
+
+/* 메인 콘텐츠 줌인 */
+.layout-entering-from-quiz main {
+    opacity: 0;
+    transform: scale(0.95);
+    animation: dashboard-content-enter 0.5s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+    animation-delay: 0.15s;
+    transform-origin: center center;
+}
+
+@keyframes dashboard-from-quiz-enter {
+    0% {
+        opacity: 0.5;
+    }
+    100% {
+        opacity: 1;
+    }
+}
