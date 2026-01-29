@@ -84,6 +84,7 @@ public class MeetingService {
     private final MeetingChatMessageRepository meetingChatMessageRepository;
     private final MeetingSttFileRepository meetingSttFileRepository;
     private final MeetingSttSummaryRepository meetingSttSummaryRepository;
+    private final com.ssafy.domain.meeting.repository.MeetingTranscriptRepository meetingTranscriptRepository;
     private final ObjectMapper objectMapper;
     private final SfuProperties sfuProperties;
     private final LocalFileStorageService localFileStorageService;
@@ -1463,6 +1464,77 @@ public class MeetingService {
         }
 
         return result.getStatus();
+    }
+
+    // ============================================================
+    // 실시간 STT 트랜스크립트 관련
+    // ============================================================
+
+    /**
+     * 실시간 STT 결과 저장 (화자별 발언 단위)
+     */
+    @Transactional
+    public MeetingTranscriptItemResponse addTranscript(
+            Long studyId, Long meetingId, com.ssafy.domain.meeting.dto.request.MeetingTranscriptRequest request) {
+        Meeting meeting = meetingRepository.findByIdAndStudyId(meetingId, studyId)
+                .orElseThrow(() -> new IllegalArgumentException("미팅을 찾을 수 없습니다."));
+
+        if (meeting.getStatus() != MeetingStatus.IN_PROGRESS) {
+            throw new IllegalStateException("진행 중인 미팅에만 트랜스크립트를 추가할 수 있습니다.");
+        }
+
+        com.ssafy.domain.meeting.entity.MeetingTranscript transcript =
+                com.ssafy.domain.meeting.entity.MeetingTranscript.create(
+                        meetingId,
+                        request.userId(),
+                        request.content(),
+                        request.timestampSeconds()
+                );
+
+        transcript = meetingTranscriptRepository.save(transcript);
+
+        MeetingUserResponse userResponse = new MeetingUserResponse(request.userId(), null);
+
+        return new MeetingTranscriptItemResponse(
+                transcript.getId(),
+                userResponse,
+                transcript.getContent(),
+                transcript.getTimestampSeconds(),
+                request.startMs(),
+                request.endMs(),
+                transcript.getCreatedAt()
+        );
+    }
+
+    /**
+     * 미팅의 전체 트랜스크립트 조회
+     */
+    @Transactional(readOnly = true)
+    public java.util.List<MeetingTranscriptItemResponse> getTranscripts(Long studyId, Long meetingId) {
+        meetingRepository.findByIdAndStudyId(meetingId, studyId)
+                .orElseThrow(() -> new IllegalArgumentException("미팅을 찾을 수 없습니다."));
+
+        return meetingTranscriptRepository.findByMeetingIdOrderByTimestampSecondsAsc(meetingId)
+                .stream()
+                .map(t -> new MeetingTranscriptItemResponse(
+                        t.getId(),
+                        new MeetingUserResponse(t.getUserId(), null),
+                        t.getContent(),
+                        t.getTimestampSeconds(),
+                        null,
+                        null,
+                        t.getCreatedAt()
+                ))
+                .toList();
+    }
+
+    /**
+     * 미팅의 전체 트랜스크립트 텍스트 조회 (요약용)
+     */
+    @Transactional(readOnly = true)
+    public String getTranscriptText(Long meetingId) {
+        java.util.List<String> contents = meetingTranscriptRepository.findAllContentByMeetingId(meetingId);
+        return String.join(" ", contents);
     }
 }
 

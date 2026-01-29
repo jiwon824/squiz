@@ -1,7 +1,7 @@
 // STT 미팅 리포트 페이지
 // 서브컴포넌트로 분리된 대시보드형 레이아웃
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -13,6 +13,11 @@ import {
     ListChecks,
     BarChart3,
     Search,
+    Download,
+    ChevronDown,
+    AArrowUp,
+    AArrowDown,
+    Type,
 } from 'lucide-react';
 import { cn, conditionalClasses } from '@/shared/utils/cn';
 import { PageNavHeader } from '@/shared/components/layouts';
@@ -22,8 +27,9 @@ import {
     ActionItemsView,
     StatsView,
     MOCK_REPORTS,
+    exportReports,
 } from '../components/stt-report';
-import type { TabType, MeetingReport, TranscriptItem } from '../components/stt-report';
+import type { TabType, MeetingReport, TranscriptItem, ExportScope } from '../components/stt-report';
 import '../styles/DashboardV2.css';
 
 // 탭 정의
@@ -41,11 +47,35 @@ const TAB_ANIMATION = {
     exit: { opacity: 0, x: -10 },
 };
 
+// 다운로드 드롭다운 옵션
+const EXPORT_OPTIONS: { scope: ExportScope; label: string; desc: string }[] = [
+    { scope: 'current', label: '현재 미팅', desc: '선택된 미팅 1건' },
+    { scope: 'byStudy', label: '스터디별', desc: '스터디 그룹으로 묶어서' },
+    { scope: 'byDate', label: '일자별', desc: '날짜순 정렬' },
+    { scope: 'all', label: '전체', desc: '스터디별 + 일자별 통합' },
+];
+
 export const STTReportPage: React.FC = () => {
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState<TabType>('summary');
     const [selectedReport, setSelectedReport] = useState<MeetingReport>(MOCK_REPORTS[0]);
     const [searchQuery, setSearchQuery] = useState('');
+    const [showExportMenu, setShowExportMenu] = useState(false);
+    const [textSize, setTextSize] = useState<'sm' | 'base' | 'lg'>('base');
+    const exportRef = useRef<HTMLDivElement>(null);
+
+    // 드롭다운 외부 클릭 시 닫기
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (exportRef.current && !exportRef.current.contains(e.target as Node)) {
+                setShowExportMenu(false);
+            }
+        };
+        if (showExportMenu) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [showExportMenu]);
 
     // 검색 필터링
     const filteredReports = MOCK_REPORTS.filter(report =>
@@ -65,10 +95,16 @@ export const STTReportPage: React.FC = () => {
         setSelectedReport(prev => ({ ...prev, transcript: updatedTranscript }));
     }, []);
 
+    // JSON 다운로드 핸들러
+    const handleExport = useCallback((scope: ExportScope) => {
+        exportReports(scope, MOCK_REPORTS, selectedReport);
+        setShowExportMenu(false);
+    }, [selectedReport]);
+
     return (
         <div className="py-8">
-            <div className="max-w-[1400px] mx-auto px-8">
-                {/* 브레드크럼 + 뒤로가기 헤더 */}
+            <div className="max-w-[1600px] mx-auto px-8">
+                {/* 브레드크럼 + 뒤로가기 헤더 + 우측 다운로드 */}
                 <PageNavHeader
                     title="STT 미팅 리포트"
                     breadcrumbs={[
@@ -76,6 +112,66 @@ export const STTReportPage: React.FC = () => {
                         { label: 'STT 미팅 리포트' },
                     ]}
                     onBack={() => navigate(-1)}
+                    rightActions={
+                        <div ref={exportRef} className="relative">
+                            <button
+                                onClick={() => setShowExportMenu(prev => !prev)}
+                                className={cn(
+                                    'inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-google',
+                                    'border border-border text-text-secondary',
+                                    'hover:bg-surface-hover hover:text-text-primary transition-colors',
+                                    showExportMenu && 'bg-surface-hover text-text-primary'
+                                )}
+                            >
+                                <Download size={15} />
+                                JSON 내보내기
+                                <ChevronDown size={14} className={cn(
+                                    'transition-transform',
+                                    showExportMenu && 'rotate-180'
+                                )} />
+                            </button>
+
+                            {/* 드롭다운 메뉴 */}
+                            <AnimatePresence>
+                                {showExportMenu && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: -4 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -4 }}
+                                        transition={{ duration: 0.15 }}
+                                        className={cn(
+                                            'absolute right-0 top-full mt-1 w-56 z-50',
+                                            'bg-surface rounded-google-lg shadow-lg',
+                                            'border border-border overflow-hidden'
+                                        )}
+                                    >
+                                        <div className="px-3 py-2 border-b border-border">
+                                            <p className="text-[10px] text-text-tertiary">
+                                                LLM 활용에 최적화된 JSON 형식
+                                            </p>
+                                        </div>
+                                        {EXPORT_OPTIONS.map(opt => (
+                                            <button
+                                                key={opt.scope}
+                                                onClick={() => handleExport(opt.scope)}
+                                                className={cn(
+                                                    'w-full px-3 py-2.5 text-left transition-colors',
+                                                    'hover:bg-surface-hover'
+                                                )}
+                                            >
+                                                <span className="block text-sm font-medium text-text-primary">
+                                                    {opt.label}
+                                                </span>
+                                                <span className="block text-[11px] text-text-tertiary mt-0.5">
+                                                    {opt.desc}
+                                                </span>
+                                            </button>
+                                        ))}
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+                    }
                 />
 
                 {/* 좌측 사이드바 + 우측 콘텐츠 */}
@@ -86,7 +182,7 @@ export const STTReportPage: React.FC = () => {
                     <div className="flex">
                         {/* 좌측: 미팅 리스트 + 탭 */}
                         <div className={cn(
-                            'w-72 flex-shrink-0 relative flex flex-col',
+                            'w-80 flex-shrink-0 relative flex flex-col',
                             'bg-background/70'
                         )}>
                             {/* 검색 */}
@@ -177,9 +273,57 @@ export const STTReportPage: React.FC = () => {
                         <div className="flex-1 p-8">
                             {/* 선택된 미팅 헤더 */}
                             <div className="mb-6 pb-6 border-b border-border">
-                                <h2 className="text-xl font-bold text-text-primary mb-2">
-                                    {selectedReport.meetingTitle}
-                                </h2>
+                                <div className="flex items-center justify-between mb-2">
+                                    <h2 className="text-xl font-bold text-text-primary">
+                                        {selectedReport.meetingTitle}
+                                    </h2>
+
+                                    {/* 텍스트 크기 조절 */}
+                                    <div className={cn(
+                                        'flex items-center gap-0.5 p-0.5 rounded-google',
+                                        'bg-background border border-border'
+                                    )}>
+                                        <button
+                                            onClick={() => setTextSize('sm')}
+                                            className={cn(
+                                                'p-1.5 rounded transition-colors',
+                                                textSize === 'sm'
+                                                    ? 'bg-surface text-primary shadow-sm'
+                                                    : 'text-text-tertiary hover:text-text-secondary'
+                                            )}
+                                            aria-label="작은 글씨"
+                                            title="작게"
+                                        >
+                                            <AArrowDown size={14} />
+                                        </button>
+                                        <button
+                                            onClick={() => setTextSize('base')}
+                                            className={cn(
+                                                'p-1.5 rounded transition-colors',
+                                                textSize === 'base'
+                                                    ? 'bg-surface text-primary shadow-sm'
+                                                    : 'text-text-tertiary hover:text-text-secondary'
+                                            )}
+                                            aria-label="보통 글씨"
+                                            title="보통"
+                                        >
+                                            <Type size={14} />
+                                        </button>
+                                        <button
+                                            onClick={() => setTextSize('lg')}
+                                            className={cn(
+                                                'p-1.5 rounded transition-colors',
+                                                textSize === 'lg'
+                                                    ? 'bg-surface text-primary shadow-sm'
+                                                    : 'text-text-tertiary hover:text-text-secondary'
+                                            )}
+                                            aria-label="큰 글씨"
+                                            title="크게"
+                                        >
+                                            <AArrowUp size={14} />
+                                        </button>
+                                    </div>
+                                </div>
                                 <div className="flex items-center gap-5 text-sm text-text-secondary">
                                     <div className="flex items-center gap-1.5">
                                         <Calendar size={14} />
@@ -210,7 +354,8 @@ export const STTReportPage: React.FC = () => {
                                 </div>
                             </div>
 
-                            {/* 탭 콘텐츠 */}
+                            {/* 탭 콘텐츠 (zoom으로 텍스트 크기 조절) */}
+                            <div style={{ zoom: textSize === 'sm' ? 0.9 : textSize === 'base' ? 1 : 1.12 }}>
                             <AnimatePresence mode="wait">
                                 {activeTab === 'summary' && (
                                     <motion.div key="summary" {...TAB_ANIMATION}>
@@ -243,6 +388,7 @@ export const STTReportPage: React.FC = () => {
                                     </motion.div>
                                 )}
                             </AnimatePresence>
+                            </div>
                         </div>
                     </div>
                 </div>
