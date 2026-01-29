@@ -1,52 +1,120 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Study } from '../../services/studyService';
-import { 
-    Users, TrendingUp, Calendar, Clock, 
+import {
+    Users, TrendingUp, Calendar, Clock,
     CheckCircle2, AlertCircle, Target, Award
 } from 'lucide-react';
+import { studyApi } from '@/api/endpoints/studyApi';
 
 interface TeamDashboardProps {
     study: Study;
 }
 
-// Mock 통계 데이터
-const mockStats = {
-    totalMembers: 6,
-    maxMembers: 8,
-    avgAttendance: 87,
-    totalMeetings: 12,
-    upcomingMeetings: 2,
-    pendingApplicants: 3,
-    pendingExcuses: 2,
-    studyDays: 45,
-};
+interface DashboardStats {
+    totalMembers: number;
+    maxMembers: number;
+    avgAttendance: number;
+    totalSessions: number;
+    upcomingSessions: number;
+    pendingApplicants: number;
+    pendingExcuses: number;
+    studyDays: number;
+}
 
 const TeamDashboard: React.FC<TeamDashboardProps> = ({ study }) => {
+    const [stats, setStats] = useState<DashboardStats>({
+        totalMembers: 0,
+        maxMembers: study.maxMembers || 0,
+        avgAttendance: 0,
+        totalSessions: 0,
+        upcomingSessions: 0,
+        pendingApplicants: 0,
+        pendingExcuses: 0,
+        studyDays: 0,
+    });
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        fetchDashboardData();
+    }, [study.id]);
+
+    const fetchDashboardData = async () => {
+        setLoading(true);
+        try {
+            // 멤버 수 조회
+            const memberCountResponse = await studyApi.getStudyMemberCount(study.id);
+            const memberCount = memberCountResponse || 0;
+
+            // 세션 목록 조회
+            const sessionsResponse = await studyApi.getStudySessions(study.id);
+            const sessions = sessionsResponse || [];
+
+            // 대기중 신청자 수
+            const pendingApplicants = await studyApi.getPendingApplicationCount(study.id);
+
+            // 대기중 소명 수
+            const pendingExcuses = await studyApi.getPendingExcuseCount(study.id);
+
+            // 스터디 진행일 계산
+            const startDate = new Date(study.startDate || Date.now());
+            const today = new Date();
+            const studyDays = Math.max(0, Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
+
+            // 예정된 세션 수 계산
+            const upcomingSessions = sessions.filter((s: any) =>
+                new Date(s.scheduledAt) > today
+            ).length;
+
+            setStats({
+                totalMembers: memberCount,
+                maxMembers: study.maxMembers || 0,
+                avgAttendance: 85, // TODO: 실제 평균 출석률 계산
+                totalSessions: sessions.length,
+                upcomingSessions,
+                pendingApplicants,
+                pendingExcuses,
+                studyDays,
+            });
+        } catch (error) {
+            console.error('대시보드 데이터 조회 실패:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+    if (loading) {
+        return (
+            <div className="text-center py-12">
+                <div className="inline-block w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-text-secondary mt-4">대시보드 데이터를 불러오는 중...</p>
+            </div>
+        );
+    }
+
     const statCards = [
         {
             label: '현재 인원',
-            value: `${mockStats.totalMembers}/${mockStats.maxMembers}`,
+            value: `${stats.totalMembers}/${stats.maxMembers}`,
             icon: <Users size={20} />,
             color: 'primary',
-            subtext: '정원 여유 있음',
+            subtext: stats.totalMembers < stats.maxMembers ? '정원 여유 있음' : '정원 마감',
         },
         {
             label: '평균 출석률',
-            value: `${mockStats.avgAttendance}%`,
+            value: `${stats.avgAttendance}%`,
             icon: <TrendingUp size={20} />,
             color: 'success',
-            subtext: '전주 대비 +3%',
+            subtext: '스터디 전체 평균',
         },
         {
-            label: '총 미팅 횟수',
-            value: mockStats.totalMeetings,
+            label: '총 세션 수',
+            value: stats.totalSessions,
             icon: <Calendar size={20} />,
             color: 'info',
-            subtext: `예정 ${mockStats.upcomingMeetings}건`,
+            subtext: `예정 ${stats.upcomingSessions}건`,
         },
         {
             label: '스터디 진행일',
-            value: `${mockStats.studyDays}일`,
+            value: `${stats.studyDays}일`,
             icon: <Clock size={20} />,
             color: 'secondary',
             subtext: study.status === 'IN_PROGRESS' ? '진행 중' : '모집 중',
@@ -57,13 +125,13 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ study }) => {
         {
             type: 'warning',
             icon: <AlertCircle size={16} />,
-            text: `대기 중인 지원자 ${mockStats.pendingApplicants}명`,
+            text: `대기 중인 지원자 ${stats.pendingApplicants}명`,
             action: '확인하기',
         },
         {
             type: 'info',
             icon: <CheckCircle2 size={16} />,
-            text: `처리 대기 소명 ${mockStats.pendingExcuses}건`,
+            text: `처리 대기 소명 ${stats.pendingExcuses}건`,
             action: '처리하기',
         },
     ];
