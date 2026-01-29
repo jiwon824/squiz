@@ -3,7 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
     Heart, Users, Clock, MapPin,
     Target, Award, AlertTriangle, Share2,
-    BookOpen, ChevronRight, Monitor, Handshake, Layers, MoreVertical
+    BookOpen, ChevronRight, Monitor, Handshake, Layers, MoreVertical,
+    Calendar, CalendarDays, Bookmark, FileText, GraduationCap, Info
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { studyService, Study } from '../services/studyService';
@@ -134,6 +135,28 @@ const StudyDetailPageV3: React.FC = () => {
             case 'HYBRID': return '온/오프라인 혼합';
             default: return meetingType;
         }
+    };
+
+    // 요일 포맷팅 (MON,WED,FRI -> 월, 수, 금)
+    const formatScheduleDays = (days: string) => {
+        if (!days) return '협의 후 결정';
+        const dayMap: Record<string, string> = {
+            'MON': '월', 'TUE': '화', 'WED': '수',
+            'THU': '목', 'FRI': '금', 'SAT': '토', 'SUN': '일'
+        };
+        return days.split(',').map(d => dayMap[d.trim()] || d).join(', ');
+    };
+
+    // 날짜 범위 포맷팅
+    const formatDateRange = (start?: string, end?: string) => {
+        if (!start && !end) return '미정';
+        const formatDate = (d: string) => {
+            const date = new Date(d);
+            return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
+        };
+        if (start && end) return `${formatDate(start)} ~ ${formatDate(end)}`;
+        if (start) return `${formatDate(start)} ~`;
+        return `~ ${formatDate(end!)}`;
     };
 
     const statusConfig = getStatusConfig(study.status);
@@ -298,11 +321,81 @@ const StudyDetailPageV3: React.FC = () => {
                                             label="모임 시간"
                                             value={study.scheduleTime ? study.scheduleTime.substring(0, 5) : '협의 후 결정'}
                                         />
+                                        <InfoRow
+                                            icon={<CalendarDays size={18} />}
+                                            label="모임 요일"
+                                            value={formatScheduleDays(study.scheduleDays)}
+                                        />
+                                        <InfoRow
+                                            icon={<Bookmark size={18} />}
+                                            label="모집 기간"
+                                            value={formatDateRange(study.recruitStartDate, study.recruitEndDate)}
+                                        />
                                     </div>
                                 </div>
 
                                 {/* 구분선 */}
                                 <div className="mx-6 md:mx-8 border-t-2 border-gray-200" />
+
+                                {/* 스터디 상세 정보 섹션 */}
+                                {(study.goal || study.textbook || study.format || study.studyType || study.startDate || study.locationDetail) && (
+                                    <>
+                                        <div className="p-6 md:p-8">
+                                            <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--color-text-primary)] mb-8">
+                                                <div className="p-2 bg-[var(--color-primary-alpha-10)] rounded-xl">
+                                                    <Info size={18} className="text-[var(--color-primary)]" />
+                                                </div>
+                                                스터디 상세 정보
+                                            </h2>
+
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                                <InfoRow
+                                                    icon={<Calendar size={18} />}
+                                                    label="스터디 기간"
+                                                    value={formatDateRange(study.startDate, study.endDate)}
+                                                />
+                                                {study.locationDetail && study.meetingType !== 'ONLINE' && (
+                                                    <InfoRow
+                                                        icon={<MapPin size={18} />}
+                                                        label="상세 위치"
+                                                        value={study.locationDetail}
+                                                    />
+                                                )}
+                                                {study.format && (
+                                                    <InfoRow
+                                                        icon={<FileText size={18} />}
+                                                        label="진행 형식"
+                                                        value={study.format}
+                                                    />
+                                                )}
+                                                {study.studyType && (
+                                                    <InfoRow
+                                                        icon={<Layers size={18} />}
+                                                        label="스터디 타입"
+                                                        value={study.studyType === 'PLANNED' ? '계획형' : '자유형'}
+                                                    />
+                                                )}
+                                                {study.goal && (
+                                                    <InfoRow
+                                                        icon={<GraduationCap size={18} />}
+                                                        label="스터디 목표"
+                                                        value={study.goal}
+                                                    />
+                                                )}
+                                                {study.textbook && (
+                                                    <InfoRow
+                                                        icon={<BookOpen size={18} />}
+                                                        label="교재 / 자료"
+                                                        value={study.textbook}
+                                                    />
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* 구분선 */}
+                                        <div className="mx-6 md:mx-8 border-t-2 border-gray-200" />
+                                    </>
+                                )}
 
                                 {/* 커리큘럼 섹션 */}
                                 <div className="p-6 md:p-8">
