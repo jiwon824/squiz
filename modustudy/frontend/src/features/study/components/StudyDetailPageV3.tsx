@@ -158,9 +158,9 @@ const StudyDetailPageV3: React.FC = () => {
                     </div>
 
                     {/* 메인 콘텐츠 */}
-                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-1 2xl:grid-cols-4 gap-6">
                         {/* 좌측: 스터디 정보 (3열) */}
-                        <div className="lg:col-span-3">
+                        <div className="2xl:col-span-3">
                             {/* 통합 카드 */}
                             <div className="bg-white rounded-2xl border border-[var(--color-border)] shadow-sm overflow-hidden">
                                 {/* 헤더 섹션 */}
