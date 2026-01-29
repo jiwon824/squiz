@@ -44,6 +44,7 @@ const StudyCreatePage: React.FC = () => {
     const [savedTemplates, setSavedTemplates] = useState<StudyTemplateItem[]>([]);
     const [showTemplateModal, setShowTemplateModal] = useState(false);
     const [isSavingTemplate, setIsSavingTemplate] = useState(false);
+    const [showPreferenceModal, setShowPreferenceModal] = useState(false);
 
     // 오늘 날짜 계산 (YYYY-MM-DD)
     const today = new Date();
@@ -321,21 +322,14 @@ const StudyCreatePage: React.FC = () => {
 
     // AI 스터디 계획 생성
     const handleAiGenerate = async () => {
-        if (!aiTopicInput.trim()) {
-            showToast('스터디 주제를 입력해주세요.', 'error');
+        // 선호 설정 체크를 먼저 수행
+        if (!hasStudyPreference) {
+            setShowPreferenceModal(true);
             return;
         }
 
-        // 선호 설정 안한 경우 안내
-        if (!hasStudyPreference) {
-            const confirmed = window.confirm(
-                '스터디 선호 설정을 먼저 완료해주세요.\n\n' +
-                '선호 설정을 하면 AI가 맞춤형 스터디 계획을 생성할 수 있습니다.\n\n' +
-                '설정 페이지로 이동하시겠습니까?'
-            );
-            if (confirmed) {
-                navigate('/settings/study-preference');
-            }
+        if (!aiTopicInput.trim()) {
+            showToast('스터디 주제를 입력해주세요.', 'error');
             return;
         }
 
@@ -408,22 +402,38 @@ const StudyCreatePage: React.FC = () => {
             // 모집 종료 다음날부터 스터디 시작 가능 (선호 요일에 맞춰 조정)
             const studyStartDate = new Date(recruitEndDate);
             studyStartDate.setDate(studyStartDate.getDate() + 1); // 모집 종료 다음날
-            // 선호 요일이 있으면 그 요일에 맞춰 시작일 조정
+            // 선호 요일이 있으면 그 요일에 맞춰 시작일 조정 (한글/영문 모두 지원)
             if (availableDays.length > 0) {
-                const dayMap: Record<string, number> = { SUN: 0, MON: 1, TUE: 2, WED: 3, THU: 4, FRI: 5, SAT: 6 };
+                const dayMap: Record<string, number> = {
+                    // 영문
+                    SUN: 0, MON: 1, TUE: 2, WED: 3, THU: 4, FRI: 5, SAT: 6,
+                    // 한글
+                    '일': 0, '월': 1, '화': 2, '수': 3, '목': 4, '금': 5, '토': 6,
+                };
                 const targetDay = dayMap[availableDays[0]];
                 if (targetDay !== undefined) {
                     const currentDay = studyStartDate.getDay();
-                    const daysToAdd = (targetDay - currentDay + 7) % 7;
-                    if (daysToAdd > 0 && daysToAdd <= 7) {
-                        studyStartDate.setDate(studyStartDate.getDate() + daysToAdd);
-                    }
+                    let daysToAdd = (targetDay - currentDay + 7) % 7;
+                    // 같은 요일이면 다음 주로
+                    if (daysToAdd === 0) daysToAdd = 7;
+                    studyStartDate.setDate(studyStartDate.getDate() + daysToAdd);
                 }
             }
             const studyStart = formatDate(studyStartDate);
             const studyEndDate = new Date(studyStartDate);
-            studyEndDate.setDate(studyEndDate.getDate() + preferredDurationWeeks * 7);
+            // 스터디 종료일 = 마지막 회차 날짜 (시작일 + (회차-1) * 7일)
+            studyEndDate.setDate(studyEndDate.getDate() + (preferredDurationWeeks - 1) * 7);
             const studyEnd = formatDate(studyEndDate);
+
+            // 디버깅: 날짜 계산 확인
+            console.log('[날짜 계산]', {
+                모집시작: recruitStart,
+                모집종료: recruitEnd,
+                스터디시작: studyStart,
+                스터디종료: studyEnd,
+                선호요일: availableDays,
+                기간주: preferredDurationWeeks,
+            });
 
             // 시간대 → 시간 변환
             const timeSlotToTime: Record<string, string> = {
@@ -440,6 +450,12 @@ const StudyCreatePage: React.FC = () => {
                 schedule,
                 durationWeeks: preferredDurationWeeks,
             });
+
+            // 디버깅: AI 응답 확인
+            console.log('[AI 응답]', result);
+            console.log('[AI topic]', result.topic, '[AI format]', result.format);
+            console.log('[DB topics]', topics);
+            console.log('[DB formats]', formats);
 
             // AI 결과를 폼에 반영
             setFormData(prev => {
@@ -469,21 +485,155 @@ const StudyCreatePage: React.FC = () => {
                     updated.difficulty = result.difficulty;
                 }
 
-                // 토픽 매칭 (세부주제명으로 검색 - 정확 매칭 → 부분 매칭)
+                // 토픽 매칭 (키워드 기반 매칭)
                 if (result.topic && topics.length > 0) {
                     let found = false;
-                    const topicLower = result.topic.toLowerCase();
-                    // 1차: 정확 매칭
+                    const topicLower = result.topic.toLowerCase().trim();
+
+                    // 키워드 매핑 (AI 응답 키워드 → DB 세부주제 키워드)
+                    // DB에 있는 세부주제와 매칭될 수 있는 모든 키워드를 나열
+                    const keywordMap: Record<string, string[]> = {
+                        // 알고리즘/코딩테스트
+                        'spring': ['java/spring'],
+                        '스프링': ['java/spring'],
+                        'java/spring': ['java/spring'],
+                        'react': ['react'],
+                        '리액트': ['react'],
+                        'vue': ['vue'],
+                        '뷰': ['vue'],
+                        'next': ['next.js'],
+                        'next.js': ['next.js'],
+                        'nextjs': ['next.js'],
+                        'docker': ['docker'],
+                        '도커': ['docker'],
+                        'python': ['python/django', 'python/fastapi'],
+                        '파이썬': ['python/django', 'python/fastapi'],
+                        'django': ['python/django'],
+                        '장고': ['python/django'],
+                        'fastapi': ['python/fastapi'],
+                        'java': ['java/spring'],
+                        '자바': ['java/spring'],
+                        'node': ['node.js/express'],
+                        '노드': ['node.js/express'],
+                        'node.js': ['node.js/express'],
+                        'express': ['node.js/express'],
+                        'algorithm': ['알고리즘 이론'],
+                        '알고리즘': ['알고리즘 이론'],
+                        '알고리즘 이론': ['알고리즘 이론'],
+                        'baekjoon': ['백준'],
+                        '백준': ['백준'],
+                        'programmers': ['프로그래머스'],
+                        '프로그래머스': ['프로그래머스'],
+                        'leetcode': ['leetcode'],
+                        '리트코드': ['leetcode'],
+                        'swea': ['swea'],
+                        '코딩테스트': ['코딩테스트 대비'],
+                        'coding test': ['코딩테스트 대비'],
+                        '자료구조': ['자료구조'],
+                        'data structure': ['자료구조'],
+                        'kotlin': ['kotlin', 'android (kotlin)'],
+                        '코틀린': ['kotlin', 'android (kotlin)'],
+                        'android': ['android (kotlin)', 'android (java)'],
+                        '안드로이드': ['android (kotlin)', 'android (java)'],
+                        'ios': ['ios (swift)'],
+                        'swift': ['ios (swift)'],
+                        '스위프트': ['ios (swift)'],
+                        'flutter': ['flutter'],
+                        '플러터': ['flutter'],
+                        'react native': ['react native'],
+                        'aws': ['aws'],
+                        'gcp': ['gcp'],
+                        'kubernetes': ['kubernetes'],
+                        '쿠버네티스': ['kubernetes'],
+                        'k8s': ['kubernetes'],
+                        'ci/cd': ['ci/cd'],
+                        'cicd': ['ci/cd'],
+                        'linux': ['linux'],
+                        '리눅스': ['linux'],
+                        'go': ['go'],
+                        '고랭': ['go'],
+                        'golang': ['go'],
+                        'typescript': ['typescript'],
+                        '타입스크립트': ['typescript'],
+                        'javascript': ['javascript'],
+                        '자바스크립트': ['javascript'],
+                        'html': ['html/css'],
+                        'css': ['html/css'],
+                        'html/css': ['html/css'],
+                        '운영체제': ['운영체제'],
+                        'os': ['운영체제'],
+                        'operating system': ['운영체제'],
+                        '네트워크': ['네트워크'],
+                        'network': ['네트워크'],
+                        '데이터베이스': ['데이터베이스'],
+                        'database': ['데이터베이스'],
+                        'db': ['데이터베이스'],
+                        '컴퓨터구조': ['컴퓨터구조'],
+                        'computer architecture': ['컴퓨터구조'],
+                        '디자인패턴': ['디자인패턴'],
+                        'design pattern': ['디자인패턴'],
+                        '시스템 설계': ['시스템 설계'],
+                        'system design': ['시스템 설계'],
+                        'api': ['api 설계'],
+                        'api 설계': ['api 설계'],
+                        '모니터링': ['모니터링'],
+                        'monitoring': ['모니터링'],
+                        '머신러닝': ['머신러닝 기초'],
+                        'machine learning': ['머신러닝 기초'],
+                        'ml': ['머신러닝 기초'],
+                        '딥러닝': ['딥러닝'],
+                        'deep learning': ['딥러닝'],
+                        'dl': ['딥러닝'],
+                        'nlp': ['nlp'],
+                        '자연어처리': ['nlp'],
+                        '컴퓨터 비전': ['컴퓨터 비전'],
+                        'computer vision': ['컴퓨터 비전'],
+                        'cv': ['컴퓨터 비전'],
+                        'mlops': ['mlops'],
+                        '논문': ['논문 리뷰'],
+                        'paper': ['논문 리뷰'],
+                        '논문 리뷰': ['논문 리뷰'],
+                        '웹 접근성': ['웹 접근성/성능'],
+                        '웹 성능': ['웹 접근성/성능'],
+                        'web accessibility': ['웹 접근성/성능'],
+                    };
+
+                    // 1차: 정확 매칭 (대소문자 무시)
                     for (const parent of topics) {
-                        const child = parent.children.find(c => c.name === result.topic);
+                        const child = parent.children.find(c =>
+                            c.name.toLowerCase() === topicLower
+                        );
                         if (child) {
                             updated.topicParentId = parent.id;
                             updated.topicId = child.id;
                             found = true;
+                            console.log('[Topic 정확매칭]', result.topic, '→', child.name);
                             break;
                         }
                     }
-                    // 2차: 부분 매칭 (포함 검색)
+
+                    // 2차: 키워드 기반 매칭
+                    if (!found) {
+                        for (const [keyword, dbNames] of Object.entries(keywordMap)) {
+                            if (topicLower.includes(keyword) || keyword.includes(topicLower)) {
+                                for (const parent of topics) {
+                                    const child = parent.children.find(c =>
+                                        dbNames.some(dbName => c.name.toLowerCase() === dbName.toLowerCase())
+                                    );
+                                    if (child) {
+                                        updated.topicParentId = parent.id;
+                                        updated.topicId = child.id;
+                                        found = true;
+                                        console.log('[Topic 키워드매칭]', keyword, '→', child.name);
+                                        break;
+                                    }
+                                }
+                                if (found) break;
+                            }
+                        }
+                    }
+
+                    // 3차: 부분 매칭 (포함 검색)
                     if (!found) {
                         for (const parent of topics) {
                             const child = parent.children.find(c =>
@@ -493,24 +643,134 @@ const StudyCreatePage: React.FC = () => {
                             if (child) {
                                 updated.topicParentId = parent.id;
                                 updated.topicId = child.id;
+                                found = true;
+                                console.log('[Topic 부분매칭]', result.topic, '→', child.name);
                                 break;
                             }
                         }
                     }
+
+                    // 4차: 단어 단위 매칭 (각 단어를 분리해서 검색)
+                    if (!found) {
+                        const words = topicLower.split(/[\s\/\-_]+/);
+                        for (const word of words) {
+                            if (word.length < 2) continue;
+                            for (const parent of topics) {
+                                const child = parent.children.find(c =>
+                                    c.name.toLowerCase().includes(word)
+                                );
+                                if (child) {
+                                    updated.topicParentId = parent.id;
+                                    updated.topicId = child.id;
+                                    found = true;
+                                    console.log('[Topic 단어매칭]', word, '→', child.name);
+                                    break;
+                                }
+                            }
+                            if (found) break;
+                        }
+                    }
+
+                    if (!found) {
+                        console.log('[Topic 매칭 실패]', result.topic, '- 매칭되는 topic 없음');
+                    }
                 }
 
-                // 형식 매칭 (형식명으로 검색 - 정확 매칭 → 부분 매칭)
+                // 형식 매칭 (키워드 기반 매칭)
                 if (result.format && formats.length > 0) {
-                    const formatLower = result.format.toLowerCase();
-                    let matched = formats.find(f => f.name === result.format);
+                    const formatLower = result.format.toLowerCase().trim();
+
+                    // 키워드 매핑 (AI 응답 키워드 → DB 형식)
+                    // 형식 목록: 문제 풀이, 독서/책 스터디, 강의 수강, 프로젝트, 모의 면접, 코드 리뷰, 발표/세미나, 토론
+                    const formatKeywordMap: Record<string, string> = {
+                        // 문제 풀이
+                        '문제 풀이': '문제 풀이',
+                        '문제': '문제 풀이',
+                        '풀이': '문제 풀이',
+                        '알고리즘': '문제 풀이',
+                        '코딩테스트': '문제 풀이',
+                        'problem': '문제 풀이',
+                        'solve': '문제 풀이',
+                        // 독서/책 스터디
+                        '독서/책 스터디': '독서/책 스터디',
+                        '독서': '독서/책 스터디',
+                        '책': '독서/책 스터디',
+                        '도서': '독서/책 스터디',
+                        '북': '독서/책 스터디',
+                        'book': '독서/책 스터디',
+                        'reading': '독서/책 스터디',
+                        // 강의 수강
+                        '강의 수강': '강의 수강',
+                        '강의': '강의 수강',
+                        '수강': '강의 수강',
+                        '온라인 강의': '강의 수강',
+                        '인강': '강의 수강',
+                        'lecture': '강의 수강',
+                        'course': '강의 수강',
+                        // 프로젝트
+                        '프로젝트': '프로젝트',
+                        '개발': '프로젝트',
+                        '사이드 프로젝트': '프로젝트',
+                        'project': '프로젝트',
+                        'develop': '프로젝트',
+                        // 모의 면접
+                        '모의 면접': '모의 면접',
+                        '면접': '모의 면접',
+                        '기술 면접': '모의 면접',
+                        'interview': '모의 면접',
+                        'mock': '모의 면접',
+                        // 코드 리뷰
+                        '코드 리뷰': '코드 리뷰',
+                        '리뷰': '코드 리뷰',
+                        '코드리뷰': '코드 리뷰',
+                        'code review': '코드 리뷰',
+                        'review': '코드 리뷰',
+                        // 발표/세미나
+                        '발표/세미나': '발표/세미나',
+                        '발표': '발표/세미나',
+                        '세미나': '발표/세미나',
+                        '프레젠테이션': '발표/세미나',
+                        'presentation': '발표/세미나',
+                        'seminar': '발표/세미나',
+                        // 토론
+                        '토론': '토론',
+                        '토의': '토론',
+                        '디스커션': '토론',
+                        'discussion': '토론',
+                        'debate': '토론',
+                    };
+
+                    // 1차: 정확 매칭 (대소문자 무시)
+                    let matched = formats.find(f => f.name.toLowerCase() === formatLower);
+
+                    // 2차: 키워드 기반 매칭
+                    if (!matched) {
+                        for (const [keyword, dbFormat] of Object.entries(formatKeywordMap)) {
+                            if (formatLower.includes(keyword) || keyword.includes(formatLower)) {
+                                matched = formats.find(f => f.name === dbFormat);
+                                if (matched) {
+                                    console.log('[Format 키워드매칭]', keyword, '→', dbFormat);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    // 3차: 부분 매칭
                     if (!matched) {
                         matched = formats.find(f =>
                             f.name.toLowerCase().includes(formatLower) ||
                             formatLower.includes(f.name.toLowerCase())
                         );
+                        if (matched) {
+                            console.log('[Format 부분매칭]', result.format, '→', matched.name);
+                        }
                     }
+
                     if (matched) {
                         updated.formatId = matched.id;
+                    } else {
+                        console.log('[Format 매칭 실패]', result.format, '- 매칭되는 format 없음');
                     }
                 }
 
@@ -529,6 +789,7 @@ const StudyCreatePage: React.FC = () => {
                 }
 
                 // 커리큘럼 생성 (AI 응답 또는 기본 틀)
+                // 커리큘럼 날짜는 스터디 시작일 기준으로 계산
                 updated.hasCurriculum = true;
                 const curriculum: CurriculumItem[] = [];
 
@@ -536,7 +797,7 @@ const StudyCreatePage: React.FC = () => {
                     // AI가 생성한 커리큘럼 사용
                     for (let i = 0; i < result.curriculum.length; i++) {
                         const aiCurr = result.curriculum[i];
-                        const sessionDate = new Date(recruitEndDate);
+                        const sessionDate = new Date(studyStartDate);
                         sessionDate.setDate(sessionDate.getDate() + i * 7);
 
                         // AI 커리큘럼 내용을 description에 통합
@@ -545,13 +806,13 @@ const StudyCreatePage: React.FC = () => {
                             desc += `\n${aiCurr.description}`;
                         }
                         if (aiCurr.learning_goals && aiCurr.learning_goals.length > 0) {
-                            desc += `\n\n📌 학습 목표:\n${aiCurr.learning_goals.map(g => `• ${g}`).join('\n')}`;
+                            desc += `\n\n학습 목표:\n${aiCurr.learning_goals.map(g => `- ${g}`).join('\n')}`;
                         }
                         if (aiCurr.assignments && aiCurr.assignments.length > 0) {
-                            desc += `\n\n📝 과제:\n${aiCurr.assignments.map(a => `• ${a}`).join('\n')}`;
+                            desc += `\n\n과제:\n${aiCurr.assignments.map(a => `- ${a}`).join('\n')}`;
                         }
                         if (aiCurr.resources && aiCurr.resources.length > 0) {
-                            desc += `\n\n📚 참고 자료:\n${aiCurr.resources.map(r => `• ${r}`).join('\n')}`;
+                            desc += `\n\n참고 자료:\n${aiCurr.resources.map(r => `- ${r}`).join('\n')}`;
                         }
 
                         curriculum.push({
@@ -564,7 +825,7 @@ const StudyCreatePage: React.FC = () => {
                 } else {
                     // AI 커리큘럼이 없으면 기본 틀 생성
                     for (let i = 1; i <= preferredDurationWeeks; i++) {
-                        const sessionDate = new Date(recruitEndDate);
+                        const sessionDate = new Date(studyStartDate);
                         sessionDate.setDate(sessionDate.getDate() + (i - 1) * 7);
                         curriculum.push({
                             session: i,
@@ -575,6 +836,14 @@ const StudyCreatePage: React.FC = () => {
                     }
                 }
                 updated.curriculum = curriculum;
+
+                console.log('[커리큘럼 생성 완료]', {
+                    회차수: curriculum.length,
+                    시작일: studyStart,
+                    종료일: studyEnd,
+                    첫회차: curriculum[0]?.date,
+                    마지막회차: curriculum[curriculum.length - 1]?.date,
+                });
 
                 return updated;
             });
@@ -772,7 +1041,7 @@ const StudyCreatePage: React.FC = () => {
                                             type="button"
                                             variant="primary"
                                             onClick={handleAiGenerate}
-                                            disabled={isAiGenerating || !aiTopicInput.trim()}
+                                            disabled={isAiGenerating}
                                             leftIcon={isAiGenerating ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
                                             className="shrink-0"
                                         >
@@ -1436,6 +1705,47 @@ const StudyCreatePage: React.FC = () => {
                                 onClick={() => setShowTemplateModal(false)}
                             >
                                 새로 작성
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* 스터디 선호 설정 필요 모달 */}
+            {showPreferenceModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                    <div className="bg-white rounded-2xl shadow-xl max-w-md w-full mx-4 overflow-hidden">
+                        <div className="p-6">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">
+                                    <AlertCircle size={24} className="text-amber-500" />
+                                </div>
+                                <h3 className="text-lg font-bold text-gray-900">
+                                    스터디 선호 설정이 필요합니다
+                                </h3>
+                            </div>
+                            <p className="text-sm text-gray-600 mb-2">
+                                AI가 맞춤형 스터디 계획을 생성하려면 먼저 스터디 선호 설정을 완료해주세요.
+                            </p>
+                            <p className="text-sm text-gray-500">
+                                기술 스택, 가용 일정, 선호 기간 등을 설정하면 더 정확한 추천을 받을 수 있습니다.
+                            </p>
+                        </div>
+                        <div className="px-6 py-4 bg-gray-50 flex justify-end gap-2">
+                            <Button
+                                variant="ghost"
+                                onClick={() => setShowPreferenceModal(false)}
+                            >
+                                취소
+                            </Button>
+                            <Button
+                                variant="primary"
+                                onClick={() => {
+                                    setShowPreferenceModal(false);
+                                    navigate('/setting', { state: { section: 'study' } });
+                                }}
+                            >
+                                설정하러 가기
                             </Button>
                         </div>
                     </div>
