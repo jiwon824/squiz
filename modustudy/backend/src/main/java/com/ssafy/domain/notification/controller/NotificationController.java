@@ -1,5 +1,6 @@
 package com.ssafy.domain.notification.controller;
 
+import com.ssafy.common.response.ApiResponse;
 import com.ssafy.domain.notification.dto.request.FcmTokenDeleteRequest;
 import com.ssafy.domain.notification.dto.request.FcmTokenRequest;
 import com.ssafy.domain.notification.dto.request.NotificationSettingUpdateRequest;
@@ -16,8 +17,6 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
-
 @RestController
 @RequestMapping("/api/v1/notifications")
 @RequiredArgsConstructor
@@ -33,7 +32,7 @@ public class NotificationController {
      * GET /api/v1/notifications?page=0&size=20&type=SCHEDULE
      */
     @GetMapping
-    public ResponseEntity<NotificationListResponse> getNotifications(
+    public ResponseEntity<ApiResponse<NotificationListResponse>> getNotifications(
             @RequestHeader("User-Id") Long userId,
             @RequestParam(required = false) NotificationType type,
             @PageableDefault(size = 20) Pageable pageable) {
@@ -46,7 +45,7 @@ public class NotificationController {
         log.info("API 응답 - 알림 목록: userId={}, count={}, unreadCount={}",
                 userId, response.getContent().size(), response.getUnreadCount());
 
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     /**
@@ -54,7 +53,7 @@ public class NotificationController {
      * GET /api/v1/notifications/unread-count
      */
     @GetMapping("/unread-count")
-    public ResponseEntity<UnreadCountResponse> getUnreadCount(
+    public ResponseEntity<ApiResponse<UnreadCountResponse>> getUnreadCount(
             @RequestHeader("User-Id") Long userId) {
 
         log.info("API 호출 - 읽지 않은 알림 수 조회: userId={}", userId);
@@ -63,7 +62,7 @@ public class NotificationController {
 
         log.info("API 응답 - 읽지 않은 알림 수: userId={}, unreadCount={}", userId, response.getUnreadCount());
 
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     /**
@@ -71,7 +70,7 @@ public class NotificationController {
      * PUT /api/v1/notifications/{notificationId}/read
      */
     @PutMapping("/{notificationId}/read")
-    public ResponseEntity<Map<String, Object>> markAsRead(
+    public ResponseEntity<ApiResponse<?>> markAsRead(
             @RequestHeader("User-Id") Long userId,
             @PathVariable Long notificationId) {
 
@@ -81,10 +80,7 @@ public class NotificationController {
 
         log.info("API 응답 - 알림 읽음 처리 완료: notificationId={}", notificationId);
 
-        return ResponseEntity.ok(Map.of(
-                "success", true,
-                "message", "알림을 읽음 처리했습니다."
-        ));
+        return ResponseEntity.ok(ApiResponse.success("알림을 읽음 처리했습니다."));
     }
 
     /**
@@ -92,7 +88,7 @@ public class NotificationController {
      * PUT /api/v1/notifications/read-all
      */
     @PutMapping("/read-all")
-    public ResponseEntity<Map<String, Object>> markAllAsRead(
+    public ResponseEntity<ApiResponse<ReadAllResponse>> markAllAsRead(
             @RequestHeader("User-Id") Long userId) {
 
         log.info("API 호출 - 전체 읽음 처리: userId={}", userId);
@@ -101,11 +97,7 @@ public class NotificationController {
 
         log.info("API 응답 - 전체 읽음 처리 완료: userId={}, readCount={}", userId, response.getReadCount());
 
-        return ResponseEntity.ok(Map.of(
-                "success", true,
-                "message", "모든 알림을 읽음 처리했습니다.",
-                "data", response
-        ));
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     /**
@@ -113,7 +105,7 @@ public class NotificationController {
      * GET /api/v1/notifications/settings
      */
     @GetMapping("/settings")
-    public ResponseEntity<NotificationSettingListResponse> getSettings(
+    public ResponseEntity<ApiResponse<NotificationSettingListResponse>> getSettings(
             @RequestHeader("User-Id") Long userId) {
 
         log.info("API 호출 - 알림 설정 조회: userId={}", userId);
@@ -123,7 +115,7 @@ public class NotificationController {
         log.info("API 응답 - 알림 설정 조회 완료: userId={}, settingCount={}",
                 userId, response.getSettings().size());
 
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     /**
@@ -131,7 +123,7 @@ public class NotificationController {
      * PUT /api/v1/notifications/settings
      */
     @PutMapping("/settings")
-    public ResponseEntity<Map<String, Object>> updateSettings(
+    public ResponseEntity<ApiResponse<?>> updateSettings(
             @RequestHeader("User-Id") Long userId,
             @Valid @RequestBody NotificationSettingUpdateRequest request) {
 
@@ -141,10 +133,7 @@ public class NotificationController {
 
         log.info("API 응답 - 알림 설정 수정 완료: userId={}", userId);
 
-        return ResponseEntity.ok(Map.of(
-                "success", true,
-                "message", "알림 설정이 저장되었습니다."
-        ));
+        return ResponseEntity.ok(ApiResponse.success("알림 설정이 저장되었습니다."));
     }
 
     /**
@@ -152,7 +141,7 @@ public class NotificationController {
      * POST /api/v1/notifications/fcm-token
      */
     @PostMapping("/fcm-token")
-    public ResponseEntity<Map<String, Object>> registerFcmToken(
+    public ResponseEntity<ApiResponse<?>> registerFcmToken(
             @RequestHeader("User-Id") Long userId,
             @Valid @RequestBody FcmTokenRequest request) {
 
@@ -162,10 +151,7 @@ public class NotificationController {
 
         log.info("API 응답 - FCM 토큰 등록 완료: userId={}", userId);
 
-        return ResponseEntity.ok(Map.of(
-                "success", true,
-                "message", "FCM 토큰이 등록되었습니다."
-        ));
+        return ResponseEntity.ok(ApiResponse.success("FCM 토큰이 등록되었습니다."));
     }
 
     /**
@@ -173,7 +159,7 @@ public class NotificationController {
      * DELETE /api/v1/notifications/fcm-token
      */
     @DeleteMapping("/fcm-token")
-    public ResponseEntity<Map<String, Object>> deleteFcmToken(
+    public ResponseEntity<ApiResponse<?>> deleteFcmToken(
             @RequestHeader("User-Id") Long userId,
             @Valid @RequestBody FcmTokenDeleteRequest request) {
 
@@ -183,9 +169,6 @@ public class NotificationController {
 
         log.info("API 응답 - FCM 토큰 삭제 완료: userId={}", userId);
 
-        return ResponseEntity.ok(Map.of(
-                "success", true,
-                "message", "FCM 토큰이 삭제되었습니다."
-        ));
+        return ResponseEntity.ok(ApiResponse.success("FCM 토큰이 삭제되었습니다."));
     }
 }

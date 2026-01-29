@@ -19,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
+@WithMockUser(username = "testuser", roles = {"USER"})
 class NotificationControllerTest {
 
     @Autowired
@@ -142,9 +144,10 @@ class NotificationControllerTest {
                         .header("User-Id", userId))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content.length()").value(3))
-                .andExpect(jsonPath("$.totalElements").value(3))
-                .andExpect(jsonPath("$.unreadCount").value(2));
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.content.length()").value(3))
+                .andExpect(jsonPath("$.data.totalElements").value(3))
+                .andExpect(jsonPath("$.data.unreadCount").value(2));
     }
 
     @Test
@@ -155,8 +158,9 @@ class NotificationControllerTest {
                         .param("type", "CHAT"))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content.length()").value(1))
-                .andExpect(jsonPath("$.content[0].type").value("CHAT"));
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.content.length()").value(1))
+                .andExpect(jsonPath("$.data.content[0].type").value("CHAT"));
     }
 
     @Test
@@ -168,8 +172,9 @@ class NotificationControllerTest {
                         .param("size", "2"))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content.length()").value(2))
-                .andExpect(jsonPath("$.totalElements").value(3));
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.content.length()").value(2))
+                .andExpect(jsonPath("$.data.totalElements").value(3));
     }
 
     // ============================================================
@@ -183,10 +188,11 @@ class NotificationControllerTest {
                         .header("User-Id", userId))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.unreadCount").value(2))
-                .andExpect(jsonPath("$.byType.CHAT").value(1))
-                .andExpect(jsonPath("$.byType.SCHEDULE").value(1))
-                .andExpect(jsonPath("$.byType.ATTENDANCE").value(0));
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.unreadCount").value(2))
+                .andExpect(jsonPath("$.data.byType.CHAT").value(1))
+                .andExpect(jsonPath("$.data.byType.SCHEDULE").value(1))
+                .andExpect(jsonPath("$.data.byType.ATTENDANCE").value(0));
     }
 
     // ============================================================
@@ -201,7 +207,7 @@ class NotificationControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("알림을 읽음 처리했습니다."));
+                .andExpect(jsonPath("$.data.message").value("알림을 읽음 처리했습니다."));
 
         entityManager.flush();
         entityManager.clear();
@@ -209,7 +215,7 @@ class NotificationControllerTest {
         // 읽지 않은 알림 수 확인
         mockMvc.perform(get("/api/v1/notifications/unread-count")
                         .header("User-Id", userId))
-                .andExpect(jsonPath("$.unreadCount").value(1));
+                .andExpect(jsonPath("$.data.unreadCount").value(1));
     }
 
     @Test
@@ -224,7 +230,6 @@ class NotificationControllerTest {
     @Test
     @DisplayName("다른 사용자의 알림 읽음 처리 시 404 반환")
     void markAsRead_NotOwner() throws Exception {
-        // given
         User otherUser = userRepository.save(User.builder()
                 .userId("otheruser")
                 .email("other@test.com")
@@ -259,16 +264,14 @@ class NotificationControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("모든 알림을 읽음 처리했습니다."))
                 .andExpect(jsonPath("$.data.readCount").value(2));
 
         entityManager.flush();
         entityManager.clear();
 
-        // 읽지 않은 알림 수 확인
         mockMvc.perform(get("/api/v1/notifications/unread-count")
                         .header("User-Id", userId))
-                .andExpect(jsonPath("$.unreadCount").value(0));
+                .andExpect(jsonPath("$.data.unreadCount").value(0));
     }
 
     // ============================================================
@@ -282,7 +285,8 @@ class NotificationControllerTest {
                         .header("User-Id", userId))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.settings.length()").value(NotificationType.values().length));
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.settings.length()").value(NotificationType.values().length));
     }
 
     // ============================================================
@@ -312,7 +316,7 @@ class NotificationControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("알림 설정이 저장되었습니다."));
+                .andExpect(jsonPath("$.data.message").value("알림 설정이 저장되었습니다."));
     }
 
     @Test
@@ -354,14 +358,14 @@ class NotificationControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("FCM 토큰이 등록되었습니다."));
+                .andExpect(jsonPath("$.data.message").value("FCM 토큰이 등록되었습니다."));
     }
 
     @Test
     @DisplayName("FCM 토큰 등록 - 유효성 검사 실패")
     void registerFcmToken_ValidationFail() throws Exception {
         FcmTokenRequest request = FcmTokenRequest.builder()
-                .token("")  // 빈 토큰
+                .token("")
                 .deviceType(DeviceType.ANDROID)
                 .build();
 
@@ -391,7 +395,7 @@ class NotificationControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("FCM 토큰이 삭제되었습니다."));
+                .andExpect(jsonPath("$.data.message").value("FCM 토큰이 삭제되었습니다."));
     }
 
     @Test
@@ -412,7 +416,6 @@ class NotificationControllerTest {
     @Test
     @DisplayName("FCM 토큰 삭제 - 다른 사용자의 토큰")
     void deleteFcmToken_NotOwner() throws Exception {
-        // given
         User otherUser = userRepository.save(User.builder()
                 .userId("otheruser2")
                 .email("other2@test.com")
@@ -430,7 +433,7 @@ class NotificationControllerTest {
         userRepository.flush();
 
         FcmTokenDeleteRequest request = FcmTokenDeleteRequest.builder()
-                .token("fcm_token_android_001")  // user의 토큰
+                .token("fcm_token_android_001")
                 .build();
 
         mockMvc.perform(delete("/api/v1/notifications/fcm-token")
