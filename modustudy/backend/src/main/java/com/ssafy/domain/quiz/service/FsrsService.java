@@ -1,5 +1,8 @@
 package com.ssafy.domain.quiz.service;
 
+import com.ssafy.common.exception.BusinessException;
+import com.ssafy.domain.quiz.dto.response.ReviewHistoryResponse;
+import com.ssafy.domain.quiz.dto.response.ReviewStatsResponse;
 import com.ssafy.domain.quiz.entity.ReviewContentType;
 import com.ssafy.domain.quiz.entity.UserReviewItem;
 import com.ssafy.domain.quiz.entity.UserReviewLog;
@@ -7,6 +10,7 @@ import com.ssafy.domain.quiz.repository.UserReviewItemRepository;
 import com.ssafy.domain.quiz.repository.UserReviewLogRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -89,8 +93,8 @@ public class FsrsService {
      * </ol>
      */
     @Transactional
-    public void processReview(Long userId, ReviewContentType contentType,
-                              Long contentId, boolean isCorrect, long responseTimeMs) {
+    public UserReviewItem processReview(Long userId, ReviewContentType contentType,
+                                        Long contentId, boolean isCorrect, long responseTimeMs) {
 
         int rating = calculateRating(isCorrect, responseTimeMs);
 
@@ -124,6 +128,8 @@ public class FsrsService {
                         "stability: {}, nextReview: {}",
                 userId, contentType, contentId, rating,
                 String.format("%.2f", item.getStability()), item.getNextReviewAt());
+
+        return item;
     }
 
     /**
@@ -131,6 +137,56 @@ public class FsrsService {
      */
     public List<UserReviewItem> getDueItems(Long userId) {
         return reviewItemRepository.findDueItems(userId, LocalDateTime.now());
+    }
+
+    // ── 복습 통계 조회 ──
+
+    /**
+     * 사용자의 전체 복습 통계를 조회한다.
+     * <p>
+     * 상태별 항목 수, 평균 안정성, 총 복습/오답 횟수, 숙련도 등을 집계한다.
+     *
+     * @param userId 사용자 ID
+     * @return 복습 통계 응답 DTO
+     */
+    public ReviewStatsResponse getStats(Long userId) {
+        List<UserReviewItem> allItems = reviewItemRepository.findAllByUserId(userId);
+        long dueCount = reviewItemRepository
+                .countByUserIdAndNextReviewAtBefore(userId, LocalDateTime.now());
+
+        return ReviewStatsResponse.from(allItems, (int) dueCount);
+    }
+
+    // ── 복습 항목 이력 조회 ──
+
+    /**
+     * 특정 복습 항목의 상세 정보와 최근 복습 이력을 조회한다.
+     * <p>
+     * 본인의 복습 항목만 조회할 수 있으며, 타인의 항목 접근 시 403을 반환한다.
+     *
+     * @param userId       사용자 ID
+     * @param reviewItemId 복습 항목 ID
+     * @return 복습 항목 상세 및 최근 10건 이력
+     * @throws BusinessException 항목 미존재(404) 또는 접근 권한 없음(403)
+     */
+    public ReviewHistoryResponse getReviewHistory(Long userId, Long reviewItemId) {
+        UserReviewItem item = reviewItemRepository.findById(reviewItemId)
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND, "REVIEW_ITEM_NOT_FOUND",
+                        "복습 항목을 찾을 수 없습니다. id=" + reviewItemId));
+
+        // 본인 소유 검증
+        if (!item.getUserId().equals(userId)) {
+            throw new BusinessException(
+                    HttpStatus.FORBIDDEN, "REVIEW_ACCESS_DENIED",
+                    "해당 복습 항목에 접근 권한이 없습니다.");
+        }
+
+        // 최근 10건 복습 이력 조회
+        List<UserReviewLog> logs = reviewLogRepository
+                .findTop10ByReviewItemIdOrderByReviewedAtDesc(reviewItemId);
+
+        return ReviewHistoryResponse.from(item, logs);
     }
 
     // ══════════════════════════════════════════════════════
