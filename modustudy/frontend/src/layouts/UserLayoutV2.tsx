@@ -11,6 +11,9 @@ import { SquizLogoNew } from '@/shared/components/SquizLogoNew';
 import { Bell, User, Settings, LogOut } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 
+// 기본 프로필 이미지 경로
+const DEFAULT_PROFILE_IMAGE = '/images/default-profile.png';
+
 // 반응형 브레이크포인트 기준값 (CSS 논리 픽셀 기준, 브라우저 확대/축소 자동 반영)
 const BREAKPOINTS = {
     MOBILE: 600,        // 모바일: 좌측 사이드바 닫힘, 우측 사이드바 숨김
@@ -267,15 +270,11 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEntering
                                 aria-label="Profile menu"
                             >
                                 <div className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-gradient-to-br from-study-blue to-study-blue-dark flex items-center justify-center text-white text-sm font-bold overflow-hidden">
-                                    {user?.avatar ? (
-                                        <img
-                                            src={user.avatar}
-                                            alt="Profile"
-                                            className="w-full h-full object-cover"
-                                        />
-                                    ) : (
-                                        (user?.nickname || user?.name)?.charAt(0) || 'U'
-                                    )}
+                                    <img
+                                        src={user?.avatar || DEFAULT_PROFILE_IMAGE}
+                                        alt="Profile"
+                                        className="w-full h-full object-cover"
+                                    />
                                 </div>
                             </button>
 
@@ -288,15 +287,11 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEntering
                                     {/* 헤더 */}
                                     <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
                                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-study-blue to-study-blue-dark flex items-center justify-center text-white text-sm font-bold overflow-hidden">
-                                            {user?.avatar ? (
-                                                <img
-                                                    src={user.avatar}
-                                                    alt="Profile"
-                                                    className="w-full h-full object-cover"
-                                                />
-                                            ) : (
-                                                (user?.nickname || user?.name)?.charAt(0) || 'U'
-                                            )}
+                                            <img
+                                                src={user?.avatar || DEFAULT_PROFILE_IMAGE}
+                                                alt="Profile"
+                                                className="w-full h-full object-cover"
+                                            />
                                         </div>
                                         <div>
                                             <h6 className="text-base font-semibold text-gray-900">

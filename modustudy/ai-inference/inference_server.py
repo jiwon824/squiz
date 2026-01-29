@@ -66,16 +66,11 @@ def load_whisper():
 
         compute_type = "float32" if WHISPER_DEVICE == "cpu" else "float16"
 
-        # large-v3 모델은 128 mel bins 사용 (기본값 80과 다름)
-        # CT2 변환된 파인튜닝 모델의 경우 num_mels=128 필요
-        is_large_v3 = "large-v3" in WHISPER_MODEL or "whisper-it" in WHISPER_MODEL
-
         whisper_model = WhisperModel(
             WHISPER_MODEL,
             device=WHISPER_DEVICE,
             compute_type=compute_type,
             num_workers=2,
-            feature_size=128 if is_large_v3 else 80,  # large-v3: 128, 기타: 80
         )
         print("Whisper 모델 로드 완료!")
         return whisper_model

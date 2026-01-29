@@ -1,5 +1,8 @@
 import React from 'react';
-import { User, Mail, Calendar, Edit2, Loader2 } from 'lucide-react';
+import { Mail, Calendar, Edit2, Loader2 } from 'lucide-react';
+
+// 기본 프로필 이미지 경로
+const DEFAULT_PROFILE_IMAGE = '/images/default-profile.png';
 
 interface ProfileHeaderProps {
     userData: {
@@ -25,17 +28,11 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     return (
         <div className="profile-header">
             <div className="profile-avatar-wrapper">
-                {userData.avatar ? (
-                    <img
-                        src={userData.avatar}
-                        alt="프로필 이미지"
-                        className={`profile-avatar ${isImageUploading ? 'opacity-50' : ''}`}
-                    />
-                ) : (
-                    <div className="profile-avatar-placeholder">
-                        <User size={48} />
-                    </div>
-                )}
+                <img
+                    src={userData.avatar || DEFAULT_PROFILE_IMAGE}
+                    alt="프로필 이미지"
+                    className={`profile-avatar ${isImageUploading ? 'opacity-50' : ''}`}
+                />
 
                 {isImageUploading && (
                     <div className="absolute inset-0 flex items-center justify-center">

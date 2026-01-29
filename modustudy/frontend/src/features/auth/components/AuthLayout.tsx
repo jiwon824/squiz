@@ -1,6 +1,5 @@
 import React from 'react';
-import { Target, Users, Zap } from 'lucide-react';
-import SquizLogoSvg from '@/assets/logos/SQUIZ_LOGO.svg';
+import { SquizLogoNew } from '@/shared/components/SquizLogoNew';
 import '../styles/AuthLayout.css';
 
 interface AuthLayoutProps {
@@ -20,16 +19,15 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, pageState = '', hideB
     return (
         <div className={`auth-page ${pageState} ${isLoaded ? 'loaded' : ''}`}>
             <div className="auth-wrapper">
-                {/* Left Side - Visual Branding */}
+                {/* 왼쪽: 브랜딩 영역 */}
                 {!hideBranding && (
                     <div className="auth-visual">
-                        <div className="visual-content">
-                            <div className="visual-logo-wrapper">
-                                <div className="logo-glow"></div>
-                                <img src={SquizLogoSvg} alt="SQUIZ" className="visual-logo-svg" />
+                        <div className="visual-content visual-content--centered">
+                            <div className="visual-logo-wrapper visual-logo-wrapper--large">
+                                <SquizLogoNew width={240} height={80} />
                             </div>
 
-                            <div className="slogan-group">
+                            <div className="slogan-group slogan-group--centered">
                                 <div className="primary-slogan-wrapper">
                                     <h2 className="primary-line-1">
                                         가장 밀도 높은 <span className="text-highlight">몰입</span>
@@ -40,38 +38,8 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, pageState = '', hideB
                                 </div>
                                 <div className="slogan-divider"></div>
                                 <p className="secondary-slogan">
-                                    Squeeze your Brain, Absorb the Growth.<br />
+                                    Squeeze your Brain, Absorb the Growth.
                                 </p>
-                            </div>
-
-                            <div className="value-cards">
-                                <div className="value-card">
-                                    <div className="value-icon-wrapper">
-                                        <Target size={20} />
-                                    </div>
-                                    <div className="value-card-content">
-                                        <h4>몰입</h4>
-                                        <span>Study Tool</span>
-                                    </div>
-                                </div>
-                                <div className="value-card">
-                                    <div className="value-icon-wrapper">
-                                        <Users size={20} />
-                                    </div>
-                                    <div className="value-card-content">
-                                        <h4>협동</h4>
-                                        <span>Quiz Platform</span>
-                                    </div>
-                                </div>
-                                <div className="value-card">
-                                    <div className="value-icon-wrapper">
-                                        <Zap size={20} />
-                                    </div>
-                                    <div className="value-card-content">
-                                        <h4>편리</h4>
-                                        <span>AI Record</span>
-                                    </div>
-                                </div>
                             </div>
                         </div>
                         <div className="visual-background">
@@ -82,7 +50,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, pageState = '', hideB
                     </div>
                 )}
 
-                {/* Right Side - Form Container */}
+                {/* 오른쪽: 폼 영역 */}
                 <div className="auth-form-container">
                     <div className="form-content">
                         {children}

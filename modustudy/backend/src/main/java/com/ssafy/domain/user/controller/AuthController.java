@@ -17,8 +17,6 @@ import com.ssafy.common.response.MessageResponse;
 import com.ssafy.domain.user.dto.request.PasswordResetRequest;
 import com.ssafy.domain.user.dto.request.PasswordResetConfirmRequest;
 
-import com.ssafy.common.auth.SsafyUserDetails;
-import org.springframework.security.core.Authentication;
 import com.ssafy.domain.user.dto.request.SocialLinkRequest;
 import com.ssafy.domain.user.dto.response.LinkedAccountsResponse;
 import com.ssafy.domain.user.dto.response.SocialAccountResponse;
@@ -192,10 +190,13 @@ public class AuthController {
      */
     @GetMapping("/social/my")
     public ResponseEntity<ApiResponse<LinkedAccountsResponse>> getLinkedAccounts(
-            Authentication authentication) {
+            @org.springframework.security.core.annotation.AuthenticationPrincipal Long userId) {
 
-        SsafyUserDetails userDetails = (SsafyUserDetails) authentication.getPrincipal();
-        Long userId = userDetails.getUser().getId();
+        if (userId == null) {
+            return ResponseEntity
+                    .status(401)
+                    .body(ApiResponse.error("UNAUTHORIZED", "인증이 필요합니다."));
+        }
 
         LinkedAccountsResponse response = oAuth2Service.getLinkedSocialAccounts(userId);
 
@@ -208,12 +209,9 @@ public class AuthController {
      */
     @PostMapping("/social/{provider}/link")
     public ResponseEntity<ApiResponse<SocialAccountResponse>> linkSocialAccount(
-            Authentication authentication,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal Long userId,
             @PathVariable String provider,
             @RequestBody SocialLinkRequest request) {
-
-        SsafyUserDetails userDetails = (SsafyUserDetails) authentication.getPrincipal();
-        Long userId = userDetails.getUser().getId();
 
         // provider 문자열을 enum으로 변환
         SocialProvider socialProvider;
@@ -242,11 +240,8 @@ public class AuthController {
      */
     @DeleteMapping("/social/{provider}")
     public ResponseEntity<ApiResponse<MessageResponse>> unlinkSocialAccount(
-            Authentication authentication,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal Long userId,
             @PathVariable String provider) {
-
-        SsafyUserDetails userDetails = (SsafyUserDetails) authentication.getPrincipal();
-        Long userId = userDetails.getUser().getId();
 
         // provider 문자열을 enum으로 변환
         SocialProvider socialProvider;

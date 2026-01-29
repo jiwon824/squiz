@@ -48,7 +48,7 @@ const MeetingChatPanel: React.FC<MeetingChatPanelProps> = ({
                                 message.userId === currentUserId) ||
                             message.sender === currentSender;
                         return (
-                            <div key={`${message.sentAt}-${index}`} className="meeting-chat__message">
+                            <div key={message.id ?? `${message.sentAt}-${index}`} className="meeting-chat__message">
                                 <div className="meeting-chat__meta">
                                     <span
                                         className={`meeting-chat__sender ${isOwn ? 'meeting-chat__sender--own' : ''}`}
