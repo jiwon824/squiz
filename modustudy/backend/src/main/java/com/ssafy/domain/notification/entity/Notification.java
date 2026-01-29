@@ -1,13 +1,14 @@
 package com.ssafy.domain.notification.entity;
 
-import com.ssafy.common.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
-import org.checkerframework.checker.units.qual.C;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
+/**
+ * 알림 엔티티
+ */
 @Entity
 @Table(name = "notification")
 @Getter
@@ -27,7 +28,7 @@ public class Notification {
     @Column(nullable = false)
     private NotificationType type;
 
-    @Column(length = 200, nullable = false)
+    @Column(nullable = false, length = 200)
     private String title;
 
     @Column(columnDefinition = "TEXT")
@@ -37,7 +38,7 @@ public class Notification {
     private String referenceType;
 
     @Column(name = "reference_id")
-    private String referenceId;
+    private Long referenceId;
 
     @Column(name = "is_read")
     @Builder.Default

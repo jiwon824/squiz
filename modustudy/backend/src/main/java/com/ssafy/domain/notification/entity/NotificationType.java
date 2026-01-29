@@ -1,10 +1,18 @@
 package com.ssafy.domain.notification.entity;
 
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+
+@Getter
+@RequiredArgsConstructor
 public enum NotificationType {
-    CHAT,
-    SCHEDULE,
-    ATTENDANCE,
-    STUDY_UPDATE,
-    QUIZ,
-    SYSTEM
+
+    CHAT("채팅 알림"),
+    SCHEDULE("일정 알림"),
+    ATTENDANCE("출석 알림"),
+    STUDY_UPDATE("스터디 업데이트"),
+    QUIZ("퀴즈 알림"),
+    SYSTEM("시스템 알림");
+
+    private final String displayName;
 }
