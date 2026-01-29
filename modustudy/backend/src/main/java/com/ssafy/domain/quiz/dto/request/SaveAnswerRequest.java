@@ -29,7 +29,11 @@ public record SaveAnswerRequest(
             Long questionId,
 
             @Schema(description = "사용자 답안", example = "A")
-            String answer
+            String answer,
+
+            @Schema(description = "응답 시간(ms)", example = "1500")
+            @NotNull
+            Long responseTimeMs // 필드 추가
     ) {
     }
 }

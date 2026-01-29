@@ -211,6 +211,7 @@ export interface SaveAnswerRequest {
     answer: {
         questionId: number;
         answer: string;
+        responseTimeMs: number;
     };
 }
 
@@ -306,7 +307,8 @@ export const saveAnswer = async (
     sectionNumber: number,
     attemptId: number,
     questionId: number,
-    answer: string | string[]
+    answer: string | string[],
+    responseTimeMs: number
 ): Promise<void> => {
     // Backend DTO expects a String, not an Array.
     // For MULTIPLE_CHOICE_MULTIPLE questions, the frontend stores answers as string[]
@@ -318,8 +320,12 @@ export const saveAnswer = async (
         answer: {
             questionId,
             answer: serializedAnswer,
+            responseTimeMs,
         },
     };
+
+    console.log(`[quizCourseApi] 답안 저장 요청: questionId=${questionId}, responseTimeMs=${responseTimeMs}ms`);
+
     const response = await api.patch<ApiResponse<null>>(
         `/api/v1/quiz-courses/${courseId}/sections/${sectionNumber}/attempts/${attemptId}/answers`,
         request
@@ -327,6 +333,8 @@ export const saveAnswer = async (
     if (!response.data.success) {
         throw new Error(response.data.error?.message || '답안 저장에 실패했습니다.');
     }
+
+    console.log(`[quizCourseApi] 답안 저장 성공: questionId=${questionId}`);
 };
 
 /**
