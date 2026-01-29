@@ -287,11 +287,31 @@ const MeetingRoomPage: React.FC = () => {
     }, []);
 
     const updateOutgoingAudio = useCallback(async (nextTrack: MediaStreamTrack | null) => {
-        if (!sfuClientRef.current) return;
-        if (!nextTrack || nextTrack.readyState !== 'live') return;
-        if (publishedAudioTrackIdRef.current === nextTrack.id) return;
+        console.log('[audio] updateOutgoingAudio called', {
+            hasTrack: !!nextTrack,
+            trackId: nextTrack?.id,
+            trackReadyState: nextTrack?.readyState,
+            trackEnabled: nextTrack?.enabled,
+            trackMuted: nextTrack?.muted,
+            publishedTrackId: publishedAudioTrackIdRef.current,
+            hasSfuClient: !!sfuClientRef.current,
+        });
+        if (!sfuClientRef.current) {
+            console.warn('[audio] updateOutgoingAudio: no SFU client');
+            return;
+        }
+        if (!nextTrack || nextTrack.readyState !== 'live') {
+            console.warn('[audio] updateOutgoingAudio: track not live', { hasTrack: !!nextTrack, state: nextTrack?.readyState });
+            return;
+        }
+        if (publishedAudioTrackIdRef.current === nextTrack.id) {
+            console.log('[audio] updateOutgoingAudio: same track already published');
+            return;
+        }
+        console.log('[audio] updateOutgoingAudio: producing audio track');
         await sfuClientRef.current.produceTrack('audio', nextTrack);
         publishedAudioTrackIdRef.current = nextTrack.id;
+        console.log('[audio] updateOutgoingAudio: audio track published successfully');
     }, []);
 
     const stopMixedAudioTrack = useCallback(() => {
@@ -354,6 +374,10 @@ const MeetingRoomPage: React.FC = () => {
 
     const ensureMicProcessedTrack = useCallback(() => {
         if (micProcessedTrackRef.current && micProcessedTrackRef.current.readyState === 'live') {
+            console.log('[mic] ensureMicProcessedTrack: using existing track', {
+                trackId: micProcessedTrackRef.current.id,
+                readyState: micProcessedTrackRef.current.readyState,
+            });
             return micProcessedTrackRef.current;
         }
         stopMicProcessedTrack();
@@ -368,6 +392,11 @@ const MeetingRoomPage: React.FC = () => {
         micDestinationRef.current = destination;
         micConstantSourceRef.current = constantSource;
         micProcessedTrackRef.current = destination.stream.getAudioTracks()[0] ?? null;
+        console.log('[mic] ensureMicProcessedTrack: created new track', {
+            trackId: micProcessedTrackRef.current?.id,
+            readyState: micProcessedTrackRef.current?.readyState,
+            contextState: context.state,
+        });
         return micProcessedTrackRef.current;
     }, [stopMicProcessedTrack]);
 
@@ -385,7 +414,17 @@ const MeetingRoomPage: React.FC = () => {
     }, []);
 
     const attachMicStreamToMixer = useCallback((stream: MediaStream) => {
-        if (!micAudioContextRef.current || !micDestinationRef.current) return;
+        console.log('[mic] attachMicStreamToMixer called', {
+            hasContext: !!micAudioContextRef.current,
+            hasDestination: !!micDestinationRef.current,
+            contextState: micAudioContextRef.current?.state,
+            streamActive: stream?.active,
+            streamTracks: stream?.getTracks().length,
+        });
+        if (!micAudioContextRef.current || !micDestinationRef.current) {
+            console.warn('[mic] attachMicStreamToMixer: missing context or destination!');
+            return;
+        }
         micAudioContextRef.current.resume().catch(() => {});
         if (micSourceNodeRef.current) {
             try {
@@ -1236,11 +1275,15 @@ const MeetingRoomPage: React.FC = () => {
 
     const startScreenShare = useCallback(
         async (cameraEnabledOverride?: boolean, publishOnStart = true) => {
-            const needsAudio = shareModeRef.current === 'screen' || shareModeRef.current === 'mixed';
+            // 화면 공유 시 항상 오디오 요청 (시스템 오디오)
+            const needsAudio = true;
             if (localScreenStreamRef.current) {
                 const videoTrack = localScreenStreamRef.current.getVideoTracks()[0];
-                const hasAudio = localScreenStreamRef.current.getAudioTracks().length > 0;
-                if (!videoTrack || videoTrack.readyState !== 'live' || (needsAudio && !hasAudio)) {
+                if (!videoTrack || videoTrack.readyState !== 'live') {
+                    // 화면 공유 오디오 프로듀서 종료
+                    if (sfuClientRef.current) {
+                        await sfuClientRef.current.closeProducer('screen-audio');
+                    }
                     stopTracks(localScreenStreamRef.current);
                     localScreenStreamRef.current = null;
                 } else {
@@ -1255,11 +1298,33 @@ const MeetingRoomPage: React.FC = () => {
                 setScreenSharing(true);
                 screenSharingRef.current = true;
                 updateVoiceRecordingSource();
+
+                // 화면 공유 비디오 트랙에 contentHint 설정 (화면 공유 최적화)
+                const screenVideoTrack = stream.getVideoTracks()[0];
+                if (screenVideoTrack && 'contentHint' in screenVideoTrack) {
+                    // 'motion': 영상 콘텐츠에 적합, 'detail': 텍스트/정적 화면에 적합
+                    (screenVideoTrack as any).contentHint = 'motion';
+                }
+
+                // 화면 공유 오디오 트랙이 있으면 SFU로 전송
+                const screenAudioTrack = stream.getAudioTracks()[0];
+                if (screenAudioTrack && sfuClientRef.current) {
+                    console.log('[screen] publishing screen audio track', {
+                        trackId: screenAudioTrack.id,
+                        trackReadyState: screenAudioTrack.readyState,
+                    });
+                    await sfuClientRef.current.produceTrack('screen-audio', screenAudioTrack, { source: 'screen' });
+                }
+
                 const [track] = stream.getVideoTracks();
                 if (track) {
                     track.onended = () => {
                         setScreenSharing(false);
                         screenSharingRef.current = false;
+                        // 화면 공유 오디오 프로듀서 종료
+                        if (sfuClientRef.current) {
+                            sfuClientRef.current.closeProducer('screen-audio').catch(() => {});
+                        }
                         localScreenStreamRef.current = null;
                         if (shareModeRef.current === 'mixed' || shareModeRef.current === 'screen') {
                             setShareMode('camera');
@@ -1288,6 +1353,10 @@ const MeetingRoomPage: React.FC = () => {
     );
 
     const stopScreenShare = useCallback(async () => {
+        // 화면 공유 오디오 프로듀서 종료
+        if (sfuClientRef.current) {
+            await sfuClientRef.current.closeProducer('screen-audio').catch(() => {});
+        }
         stopTracks(localScreenStreamRef.current);
         localScreenStreamRef.current = null;
         setScreenSharing(false);
@@ -1670,13 +1739,30 @@ const MeetingRoomPage: React.FC = () => {
 
     const handleNewConsumer = useCallback(
         (payload: SfuConsumerPayload) => {
+            console.log('[consumer] handleNewConsumer', {
+                kind: payload.kind,
+                producerId: payload.producerId,
+                consumerId: payload.consumerId,
+                peerId: payload.peerId,
+                streamActive: payload.stream?.active,
+                trackCount: payload.stream?.getTracks().length,
+            });
             if (payload.kind === 'audio') {
                 const audio = new Audio();
                 audio.srcObject = payload.stream;
                 audio.autoplay = true;
-                audio.play().catch(() => {});
-                remoteAudioElementsRef.current.set(payload.producerId, audio);
                 const track = payload.stream.getAudioTracks()?.[0] ?? null;
+                console.log('[consumer] audio consumer details', {
+                    producerId: payload.producerId,
+                    trackId: track?.id,
+                    trackReadyState: track?.readyState,
+                    trackEnabled: track?.enabled,
+                    trackMuted: track?.muted,
+                });
+                audio.play()
+                    .then(() => console.log('[consumer] audio play success', { producerId: payload.producerId }))
+                    .catch((err) => console.error('[consumer] audio play failed', { producerId: payload.producerId, error: err.message }));
+                remoteAudioElementsRef.current.set(payload.producerId, audio);
                 if (track) {
                     remoteAudioTracksRef.current.set(payload.producerId, track);
                     setRemoteAudioVersion((prev) => prev + 1);

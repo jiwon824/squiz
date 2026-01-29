@@ -347,7 +347,7 @@ const probeDurationSeconds = (ffmpegPath, targetPath) =>
     proc.on('error', () => resolve(null));
   });
 
-const repairSegment = (ffmpegPath, segmentPath, repairedPath, durationSeconds = null) =>
+const repairSegment = (ffmpegPath, segmentPath, repairedPath, durationSeconds = null, audioBitrateKbps = 64) =>
   new Promise((resolve, reject) => {
     const args = [
       '-y',
@@ -355,7 +355,7 @@ const repairSegment = (ffmpegPath, segmentPath, repairedPath, durationSeconds = 
       '-i', segmentPath,
       '-af', 'asetpts=N/SR/TB',
       '-c:a', 'libopus',
-      '-b:a', `${config.recordingAudioBitrate}k`,
+      '-b:a', `${audioBitrateKbps}k`,
       '-f', 'webm',
       repairedPath
     ];
@@ -878,6 +878,41 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
         });
       }
 
+      // 요청한 오디오 producer 수와 실제 생성된 consumer 수가 다르면 재시도
+      // 일부 producer가 아직 준비되지 않았을 수 있음
+      if (audioProducerIds.length > 0 && audioConsumerInfos.length < audioProducerIds.length) {
+        // eslint-disable-next-line no-console
+        console.warn('[recording] not all audio consumers created', {
+          roomId,
+          attempt,
+          expected: audioProducerIds.length,
+          actual: audioConsumerInfos.length,
+        });
+        // 생성된 consumer/transport 정리
+        consumers.forEach((consumer) => {
+          try {
+            consumer.close();
+          } catch {
+            // ignore
+          }
+        });
+        transports.forEach((transport) => {
+          try {
+            transport.close();
+          } catch {
+            // ignore
+          }
+        });
+        releaseUdpPorts(Array.from(usedPorts));
+        if (attempt < maxAttempts) {
+          await delay(400);
+          continue;
+        }
+        // 최대 재시도 후에도 실패하면 현재 가진 consumer로 진행
+        // eslint-disable-next-line no-console
+        console.warn('[recording] proceeding with partial audio consumers after max retries');
+      }
+
       let sdpContent = null;
       if (videoConsumerInfo || audioConsumerInfos.length > 0) {
         sdpContent = buildSdp({
@@ -975,6 +1010,22 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
           if (!state.firstVideoAt && videoConsumerInfo) {
             state.firstVideoAt = Date.now();
           }
+          // 오디오 consumer가 있으면 패킷 수신 여부 확인 (실패해도 계속 진행)
+          if (audioConsumerRef && !videoConsumerInfo) {
+            const audioReady = await waitForConsumerPackets(
+              audioConsumerRef,
+              audioTransportRef,
+              800, // 오디오는 더 짧은 타임아웃
+              100
+            );
+            if (!audioReady) {
+              // eslint-disable-next-line no-console
+              console.warn('[recording] audio packets not received yet, but continuing', {
+                roomId,
+                audioCount: audioConsumerInfos.length,
+              });
+            }
+          }
         const nextSegment = {
           ffmpeg: proc,
           consumers,
@@ -989,6 +1040,14 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
         };
         state.currentSegment = nextSegment;
         state.segments.push(segmentPath);
+        // eslint-disable-next-line no-console
+        console.log('[recording] segment started successfully', {
+          roomId,
+          segmentIndex: state.segments.length - 1,
+          audioCount: audioConsumerInfos.length,
+          hasVideo: Boolean(videoConsumerInfo),
+          key: nextSegment.key,
+        });
         return nextSegment;
       }
 
@@ -1075,7 +1134,16 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
         return;
       }
       if (state.currentSegment.key !== nextKey) {
+        // eslint-disable-next-line no-console
+        console.log('[recording] segment key changed, switching', {
+          roomId,
+          oldKey: state.currentSegment.key,
+          newKey: nextKey,
+          audioCount: nextAudio.length,
+        });
         await stopSegment(state);
+        // 세그먼트 전환 시 안정성을 위해 짧은 지연 추가
+        await delay(200);
         if (!state.pendingGapStartedAt) {
           state.pendingGapStartedAt = Date.now();
         }
@@ -1197,7 +1265,7 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
       if (shouldRepair) {
         const repairedPath = segmentPath.replace(/\.webm$/, '.fixed.webm');
         try {
-          await repairSegment(config.ffmpegPath, segmentPath, repairedPath, wallDurationSec);
+          await repairSegment(config.ffmpegPath, segmentPath, repairedPath, wallDurationSec, config.recordingAudioBitrate);
           repairedSegments.push(repairedPath);
           cleanedSegments.push(repairedPath);
           // eslint-disable-next-line no-console
@@ -1300,6 +1368,10 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
     }
   };
 
+  // 디바운스 타이머 저장 (roomId -> timer)
+  const refreshDebounceTimers = new Map();
+  const REFRESH_DEBOUNCE_MS = 500; // 500ms 내에 여러 변경이 있으면 마지막 것만 처리
+
   const onProducersChanged = async (roomId) => {
     // 녹음이 시작되지 않았으면 자동으로 시작 (meeting-{id} 형식일 때만)
     if (!recordings.has(roomId) && roomId.startsWith('meeting-')) {
@@ -1317,7 +1389,17 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
       }
     }
     if (!recordings.has(roomId)) return;
-    enqueue(roomId, () => refreshRecording(roomId));
+
+    // 디바운스: 빠른 연속 변경 시 마지막 것만 처리
+    const existingTimer = refreshDebounceTimers.get(roomId);
+    if (existingTimer) {
+      clearTimeout(existingTimer);
+    }
+    const timer = setTimeout(() => {
+      refreshDebounceTimers.delete(roomId);
+      enqueue(roomId, () => refreshRecording(roomId));
+    }, REFRESH_DEBOUNCE_MS);
+    refreshDebounceTimers.set(roomId, timer);
   };
 
   return {
