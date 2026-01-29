@@ -286,6 +286,23 @@ class StudyService {
     getMembersByStudyId(studyId: number): StudyMember[] {
         return mockMembers.filter(member => member.studyId === studyId);
     }
+
+    // 유저가 가입한 스터디 목록 조회
+    getStudiesByUserId(userId: number): Study[] {
+        // 유저가 멤버로 참여 중인 스터디 ID 목록
+        const memberStudyIds = mockMembers
+            .filter(member => member.userId === userId)
+            .map(member => member.studyId);
+
+        // 유저가 리더인 스터디 ID 목록
+        const leaderStudyIds = mockStudies
+            .filter((study: Study) => study.leaderId === userId)
+            .map(study => study.id);
+
+        // 중복 제거 후 스터디 정보 반환
+        const allStudyIds = [...new Set([...memberStudyIds, ...leaderStudyIds])];
+        return mockStudies.filter((study: Study) => allStudyIds.includes(study.id));
+    }
 }
 
 // 싱글톤 인스턴스 export
