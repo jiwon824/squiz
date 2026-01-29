@@ -1,7 +1,8 @@
 // AI 요약 편집 컴포넌트
+// "AI 분석 결과(수정 가능)" 배지로 수정 가능성을 명시적으로 안내
 
 import React, { useState } from 'react';
-import { Pencil, Check, X } from 'lucide-react';
+import { Pencil, Check, X, Sparkles } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 
 interface EditableSummaryProps {
@@ -70,24 +71,42 @@ export const EditableSummary: React.FC<EditableSummaryProps> = ({
                     </div>
                 </>
             ) : (
-                <div className="group relative">
-                    <p className="text-text-secondary text-sm leading-relaxed pr-8">
-                        {summary}
-                    </p>
-                    <button
+                <div className="group">
+                    {/* AI 분석 안내 */}
+                    <div className="flex items-center gap-2 mb-3">
+                        <h3 className="text-base font-semibold text-[var(--color-primary)] mb-0 inline-flex items-center gap-1.5">
+                            <Sparkles size={14} />
+                            AI 분석 결과
+                        </h3>
+                        <span className="text-xs text-text-tertiary">
+                            클릭하여 수정할 수 있습니다
+                        </span>
+                    </div>
+
+                    {/* 요약 텍스트 + 편집 버튼 */}
+                    <div
                         onClick={() => {
                             setEditText(summary);
                             setIsEditing(true);
                         }}
                         className={cn(
-                            'absolute top-0 right-0 p-1.5 rounded-google',
-                            'text-text-tertiary hover:text-primary hover:bg-primary/10',
-                            'opacity-0 group-hover:opacity-100 transition-all'
+                            'relative p-3 rounded-google cursor-pointer min-h-[80px]',
+                            'border border-transparent',
+                            'hover:border-border hover:bg-surface-hover',
+                            'transition-all'
                         )}
-                        aria-label="요약 수정"
                     >
-                        <Pencil size={14} />
-                    </button>
+                        <p className="text-text-secondary text-sm leading-relaxed pr-8">
+                            {summary}
+                        </p>
+                        <div className={cn(
+                            'absolute top-3 right-3 p-1 rounded-google',
+                            'text-text-tertiary group-hover:text-primary',
+                            'transition-colors'
+                        )}>
+                            <Pencil size={14} />
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
