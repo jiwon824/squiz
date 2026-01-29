@@ -67,6 +67,16 @@ export const WorkspacePage: React.FC = () => {
   const [sessions, setSessions] = useState<StudySessionResponse[]>([]);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isWebSocketConnected, setIsWebSocketConnected] = useState(false);
+  const [isExiting, setIsExiting] = useState(false);
+
+  // 미팅에서 진입 시 애니메이션 플래그 (최초 렌더 시 한 번만 확인)
+  const isEnteringFromMeeting = useMemo(() => {
+    const flag = sessionStorage.getItem('fromMeeting') === 'true';
+    if (flag) {
+      sessionStorage.removeItem('fromMeeting');
+    }
+    return flag;
+  }, []);
 
   // WebSocket 핸들러를 위한 ref (상태 변경 시에도 최신 값 참조)
   const messagesRef = useRef<MessageResponse[]>([]);
@@ -155,9 +165,11 @@ export const WorkspacePage: React.FC = () => {
         if (event.message) {
           const newMessage: MessageResponse = {
             id: event.message.id,
+            workspaceId: workspace.id,
             content: event.message.content,
             messageType: event.message.messageType,
             createdAt: event.message.createdAt,
+            updatedAt: null,
             author: {
               id: event.message.userId,
               nickname: event.message.nickname,
@@ -326,13 +338,31 @@ export const WorkspacePage: React.FC = () => {
     }
   }, [workspace, isMessagesLoading, hasMoreMessages, currentPage]);
 
-  // 뒤로가기
+  // 뒤로가기 (대시보드로 이동, 전환 애니메이션 포함)
   const handleGoBack = useCallback(() => {
-    if (studyId) {
-      navigate(`/study/${studyId}`);
-    } else {
-      navigate('/study');
-    }
+    // 퇴장 애니메이션 시작
+    setIsExiting(true);
+
+    // 애니메이션 완료 후 네비게이션 (500ms)
+    setTimeout(() => {
+      navigate('/dashboard');
+    }, 500);
+  }, [navigate]);
+
+  // 미팅으로 이동 (전환 애니메이션 포함)
+  const handleNavigateToMeeting = useCallback(() => {
+    if (!studyId) return;
+
+    // 퇴장 애니메이션 시작
+    setIsExiting(true);
+
+    // 미팅 페이지에서 진입 애니메이션을 위한 플래그 설정
+    sessionStorage.setItem('fromWorkspace', 'true');
+
+    // 애니메이션 완료 후 네비게이션 (500ms)
+    setTimeout(() => {
+      navigate(`/study/${studyId}/meetings`);
+    }, 500);
   }, [navigate, studyId]);
 
   // 로딩 상태
@@ -364,7 +394,12 @@ export const WorkspacePage: React.FC = () => {
   }
 
   return (
-    <div className={cn('workspace-container', isDarkMode && 'workspace-container--dark')}>
+    <div className={cn(
+      'workspace-container',
+      isDarkMode && 'workspace-container--dark',
+      isExiting && 'workspace-container--exiting',
+      isEnteringFromMeeting && 'workspace-container--entering'
+    )}>
       {/* 메인 컨텐츠 영역 */}
       <div className="workspace-content">
         {/* 상단 헤더 */}
@@ -386,6 +421,7 @@ export const WorkspacePage: React.FC = () => {
             isDarkMode={isDarkMode}
             onToggleDarkMode={handleToggleDarkMode}
             activeSession={activeSession}
+            onNavigateToMeeting={handleNavigateToMeeting}
           />
 
           {/* 메인 콘텐츠 영역 */}
