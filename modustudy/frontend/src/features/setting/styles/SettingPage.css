@@ -565,6 +565,76 @@
     color: #92400e;
 }
 
+/* ============================================
+   Google 캘린더 연동 카드
+   ============================================ */
+.calendar-integration-section {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #e2e8f0;
+}
+
+.calendar-integration-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    background: #f8fafc;
+    border-radius: 16px;
+    border: 1px solid #f1f5f9;
+    transition: all 0.2s ease;
+}
+
+.calendar-integration-card:hover {
+    background: white;
+    border-color: #e2e8f0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.calendar-integration-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: white;
+    border: 1px solid #e2e8f0;
+}
+
+.calendar-integration-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.calendar-integration-status {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: #94a3b8;
+}
+
+.calendar-integration-status.connected {
+    color: #16a34a;
+}
+
+.calendar-integration-email {
+    font-size: 0.8125rem;
+    color: #64748b;
+}
+
+.calendar-integration-desc {
+    font-size: 0.8125rem;
+    color: #94a3b8;
+}
+
+.calendar-integration-action {
+    flex-shrink: 0;
+}
+
 /* TODO 섹션 */
 .todo-section {
     opacity: 0.6;
@@ -687,6 +757,20 @@
     }
 
     .social-account-action button {
+        width: 100%;
+    }
+
+    .calendar-integration-card {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .calendar-integration-action {
+        width: 100%;
+        margin-top: 0.5rem;
+    }
+
+    .calendar-integration-action button {
         width: 100%;
     }
 

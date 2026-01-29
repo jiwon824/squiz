@@ -301,8 +301,9 @@ public class StudyService {
 
     /**
      * 내가 참여 중인 스터디 목록 조회
+     * - 순환참조 방지를 위해 StudyResponse DTO로 반환
      */
-    public Page<Study> getMyStudies(Long userId, Pageable pageable) {
+    public Page<StudyResponse> getMyStudies(Long userId, Pageable pageable) {
         log.info("내 스터디 목록 조회 - userId: {}", userId);
 
         // 1. 내가 멤버인 스터디 ID 목록 조회
@@ -324,15 +325,17 @@ public class StudyService {
         Set<Study> allStudies = new HashSet<>(leaderStudies.getContent());
         allStudies.addAll(memberStudies);
 
-        List<Study> sortedStudies = allStudies.stream()
+        // 5. 정렬 및 페이징 후 DTO 변환
+        List<StudyResponse> sortedResponses = allStudies.stream()
                 .sorted(Comparator.comparing(Study::getCreatedAt).reversed())
                 .skip(pageable.getOffset())
                 .limit(pageable.getPageSize())
+                .map(StudyResponse::from)
                 .toList();
 
         log.info("내 스터디 목록 조회 완료 - userId: {}, count: {}", userId, allStudies.size());
 
-        return new PageImpl<>(sortedStudies, pageable, allStudies.size());
+        return new PageImpl<>(sortedResponses, pageable, allStudies.size());
     }
 
     // ============================================================

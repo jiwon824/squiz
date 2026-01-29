@@ -36,6 +36,15 @@ const MeetingDetailPage: React.FC = () => {
     };
 
     useEffect(() => {
+        if (!numericMeetingId) return;
+        const key = `meeting-end-reload-${numericMeetingId}`;
+        if (sessionStorage.getItem(key) === '1') {
+            sessionStorage.removeItem(key);
+            window.location.reload();
+        }
+    }, [numericMeetingId]);
+
+    useEffect(() => {
         if (!numericStudyId || !numericMeetingId) return;
         const load = async () => {
             const meetingDetail = await meetingApi.getMeetingDetail(numericStudyId, numericMeetingId);

@@ -1,21 +1,31 @@
 // 로그인 사용자 전용 레이아웃 V2 - 학습 관리 중심
 
 import '@/features/dashboard-v2/styles/DashboardV2.css';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Sidebar } from './components/Sidebar';
 import { RightSideBarV2 } from './components-v2/RightSideBarV2';
-import { useUIStore } from '@/store/uiStore';
+import { useUIStore, SidebarMode } from '@/store/uiStore';
 import { useAuthStore } from '@/store/authStore';
 import { SquizLogoNew } from '@/shared/components/SquizLogoNew';
 import { Bell, User, Settings, LogOut } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 
+// 반응형 브레이크포인트 기준값 (CSS 논리 픽셀 기준, 브라우저 확대/축소 자동 반영)
+const BREAKPOINTS = {
+    MOBILE: 600,        // 모바일: 좌측 사이드바 닫힘, 우측 사이드바 숨김
+    TABLET: 1000,       // 태블릿 이상: 좌측 사이드바 mini 모드
+} as const;
+
 interface UserLayoutV2Props {
     children: React.ReactNode;
+    /** 워크스페이스에서 진입 시 애니메이션 적용 */
+    isEnteringFromWorkspace?: boolean;
+    /** 워크스페이스로 퇴장 시 애니메이션 적용 */
+    isExitingToWorkspace?: boolean;
 }
 
-export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children }) => {
+export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEnteringFromWorkspace = false, isExitingToWorkspace = false }) => {
     const sidebarMode = useUIStore((state) => state.sidebarMode);
     const activeRightTab = useUIStore((state) => state.activeRightTab);
     const setSidebarMode = useUIStore((state) => state.setSidebarMode);
@@ -24,27 +34,88 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children }) => {
     const [windowWidth, setWindowWidth] = useState(window.innerWidth);
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
+    const [isDashboardExiting, setIsDashboardExiting] = useState(false);
     const notificationRef = useRef<HTMLDivElement>(null);
     const profileRef = useRef<HTMLDivElement>(null);
+    const prevSidebarModeRef = useRef<SidebarMode | null>(null);
     const location = useLocation();
 
-    // 반응형 리사이즈 감지
+    // 대시보드에서 진입 시 애니메이션 플래그 (최초 렌더 시 한 번만 확인)
+    const isEnteringFromDashboard = useMemo(() => {
+        const flag = sessionStorage.getItem('fromDashboard') === 'true';
+        if (flag) {
+            sessionStorage.removeItem('fromDashboard');
+        }
+        return flag;
+    }, []);
+
+    // 퀴즈 페이지에서 돌아올 때 애니메이션 플래그
+    const isEnteringFromQuiz = useMemo(() => {
+        const flag = sessionStorage.getItem('fromQuiz') === 'true';
+        if (flag) {
+            sessionStorage.removeItem('fromQuiz');
+        }
+        return flag;
+    }, []);
+
+    // 대시보드 퇴장 이벤트 리스너
+    useEffect(() => {
+        const handleDashboardExit = () => {
+            setIsDashboardExiting(true);
+        };
+
+        window.addEventListener('dashboardExit', handleDashboardExit);
+        return () => {
+            window.removeEventListener('dashboardExit', handleDashboardExit);
+        };
+    }, []);
+
+    // 반응형 리사이즈 + 브라우저 확대/축소 감지
+    // window.innerWidth는 CSS 논리 픽셀 기준이므로 확대 시 값이 줄어듦
     useEffect(() => {
         const handleResize = () => setWindowWidth(window.innerWidth);
         window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
+
+        // visualViewport: 핀치 줌 등 시각적 뷰포트 변경 감지 (모바일 대응)
+        const vv = window.visualViewport;
+        if (vv) {
+            vv.addEventListener('resize', handleResize);
+        }
+
+        return () => {
+            window.removeEventListener('resize', handleResize);
+            if (vv) {
+                vv.removeEventListener('resize', handleResize);
+            }
+        };
     }, []);
 
-    // 반응형 1000px 이하에서 사이드바 미니 모드로 전환
+    // 반응형 사이드바 자동 모드 전환 (화면 크기 변경 시에만 동작)
+    const prevWidthRef = useRef(windowWidth);
     useEffect(() => {
-        if (windowWidth <= 1000 && sidebarMode === 'full') {
+        const prevWidth = prevWidthRef.current;
+        prevWidthRef.current = windowWidth;
+
+        // 화면 크기가 실제로 변경되지 않았으면 무시 (수동 토글 보호)
+        if (prevWidth === windowWidth) return;
+
+        const isMeetingRoom = /^\/study\/\d+\/meetings\/\d+\/room/.test(location.pathname);
+        if (isMeetingRoom) return;
+
+        if (windowWidth <= BREAKPOINTS.MOBILE) {
+            // 모바일로 축소: 완전 닫기
+            if (sidebarMode !== 'closed') {
+                setSidebarMode('closed');
+            }
+        } else if (prevWidth <= BREAKPOINTS.MOBILE) {
+            // 모바일에서 벗어남: mini로 복원
             setSidebarMode('mini');
         }
-    }, [windowWidth, sidebarMode, setSidebarMode]);
+    }, [windowWidth, sidebarMode, setSidebarMode, location.pathname]);
 
-    // 반응형 600px 이하에서 우측 사이드바 자동 닫기
+    // 모바일에서 우측 사이드바 자동 닫기
     useEffect(() => {
-        if (windowWidth <= 600 && activeRightTab) {
+        if (windowWidth <= BREAKPOINTS.MOBILE && activeRightTab) {
             setActiveRightTab(null);
         }
     }, [windowWidth, activeRightTab, setActiveRightTab]);
@@ -53,7 +124,16 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children }) => {
     useEffect(() => {
         const isMeetingRoom = /^\/study\/\d+\/meetings\/\d+\/room/.test(location.pathname);
         if (isMeetingRoom && sidebarMode !== 'closed') {
+            prevSidebarModeRef.current = sidebarMode;
             setSidebarMode('closed');
+        }
+    }, [location.pathname, sidebarMode, setSidebarMode]);
+    useEffect(() => {
+        const isMeetingRoom = /^\/study\/\d+\/meetings\/\d+\/room/.test(location.pathname);
+        if (isMeetingRoom) return;
+        if (sidebarMode === 'closed') {
+            setSidebarMode(prevSidebarModeRef.current ?? 'mini');
+            prevSidebarModeRef.current = null;
         }
     }, [location.pathname, sidebarMode, setSidebarMode]);
 
@@ -72,24 +152,53 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children }) => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const isCompactMode = windowWidth <= 600;
+    const isCompactMode = windowWidth <= BREAKPOINTS.MOBILE;
     const isMeetingRoom = /^\/study\/\d+\/meetings\/\d+\/room/.test(location.pathname);
     const shouldHideHeader = isMeetingRoom;
 
     return (
-        <div className="flex flex-col h-screen bg-slate-200 overflow-hidden">
+        <div className={cn(
+            "flex flex-col h-screen bg-slate-200 overflow-hidden",
+            isEnteringFromWorkspace && "layout-entering-from-workspace",
+            isExitingToWorkspace && "layout-exiting-to-workspace",
+            isDashboardExiting && "layout-exiting-to-workspace",
+            isEnteringFromDashboard && "layout-entering-from-dashboard",
+            isEnteringFromQuiz && "layout-entering-from-quiz"
+        )}>
             {/* 헤더 - 회의 룸에서는 숨김 */}
             {!shouldHideHeader && (
-                <header className="h-16 w-full bg-slate-200 flex items-center justify-between px-6 flex-shrink-0 z-50">
-                    <div className="flex items-center gap-4">
-                        {/* 로고 영역 */}
+                <header className={cn(
+                    "h-16 w-full bg-slate-200 flex items-center flex-shrink-0 z-50",
+                    isEnteringFromWorkspace && "layout-header-enter"
+                )}>
+                    {/* 좌측 영역: 사이드바와 동일 너비 — closed 시 햄버거 버튼 표시 */}
+                    <div
+                        className="flex-shrink-0 flex items-center justify-center transition-all duration-300 ease-out"
+                        style={{
+                            width: sidebarMode === 'closed' ? 64 : 80,
+                            height: 64,
+                        }}
+                    >
+                        {sidebarMode === 'closed' && (
+                            <button
+                                onClick={() => setSidebarMode('mini')}
+                                className="w-12 h-12 flex items-center justify-center rounded-2xl hover:bg-white/60 transition-colors"
+                                aria-label="사이드바 열기"
+                            >
+                                <span className="material-icons text-gray-600 text-[24px]">menu</span>
+                            </button>
+                        )}
+                    </div>
+
+                    {/* 콘텐츠 영역: 흰색 메인 시작점과 x축 정렬 */}
+                    <div className="flex-1 flex items-center justify-between pr-14">
+                        {/* 로고 — 흰색 콘텐츠 시작 위치와 일치 */}
                         <Link to="/dashboard" className="flex items-center">
                             <SquizLogoNew width={160} height={55} className="scale-110 origin-left" />
                         </Link>
-                    </div>
 
-                    {/* 우측 인증 영역 */}
-                    <div className="flex items-center gap-2 md:gap-4 pr-14">
+                        {/* 우측 인증 영역 */}
+                        <div className="flex items-center gap-2 md:gap-4">
                         {/* 알림 드롭다운 */}
                         <div ref={notificationRef} className="relative">
                             <button
@@ -246,32 +355,44 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children }) => {
                                 </div>
                             )}
                         </div>
+                        </div>
                     </div>
                 </header>
             )}
 
             <div className="flex flex-1 overflow-hidden">
-                <Sidebar />
+                <div className={cn(isEnteringFromWorkspace && "layout-sidebar-enter")}>
+                    <Sidebar />
+                </div>
 
-                {/* 페이지 콘텐츠 */}
+                {/* 페이지 콘텐츠 - 사이드바 닫힘 시 왼쪽 패딩으로 벽 붙음 방지 */}
                 <main
                     className={cn(
                         'flex-1 flex flex-col overflow-hidden',
-                        'pb-6 pr-0 pl-0 bg-slate-200 transition-all duration-300 ease-out',
-                        shouldHideHeader ? 'pt-0' : 'pt-2'
+                        'pb-6 pr-0 bg-slate-200 transition-all duration-300 ease-out',
+                        shouldHideHeader ? 'pt-0' : 'pt-2',
+                        sidebarMode === 'closed' ? 'pl-4' : 'pl-0',
+                        isEnteringFromWorkspace && 'layout-main-enter'
                     )}
                 >
                     {/* 둥근 메인 컨테이너 섹션 */}
                     <section
                         id="main-content-scroll"
-                        className="bg-white rounded-3xl h-full overflow-auto scrollbar-hide"
+                        className={cn(
+                            "bg-white rounded-3xl h-full overflow-auto scrollbar-hide",
+                            isEnteringFromWorkspace && "layout-content-enter"
+                        )}
                         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                     >
                         {children}
                     </section>
                 </main>
 
-                {!isCompactMode && <RightSideBarV2 />}
+                {!isCompactMode && (
+                    <div className={cn(isEnteringFromWorkspace && "layout-right-sidebar-enter")}>
+                        <RightSideBarV2 />
+                    </div>
+                )}
             </div>
         </div>
     );

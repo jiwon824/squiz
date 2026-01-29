@@ -237,7 +237,19 @@ export const studyApi = {
    */
   getStudyDetail: async (studyId: number) => {
     const response = await api.get<any>(`/api/v1/study/${studyId}`);
-    return response.data as StudyDetailResponse;
+    let data = response.data;
+
+    // 백엔드 순환참조로 인해 JSON이 문자열로 올 수 있음 - name 필드만 추출
+    if (typeof data === 'string') {
+      const nameMatch = data.match(/"name"\s*:\s*"([^"]+)"/);
+      const idMatch = data.match(/"id"\s*:\s*(\d+)/);
+      data = {
+        id: idMatch ? parseInt(idMatch[1]) : 0,
+        name: nameMatch ? nameMatch[1] : '스터디',
+      };
+    }
+
+    return data as StudyDetailResponse;
   },
 
   /**

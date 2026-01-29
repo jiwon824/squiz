@@ -124,6 +124,7 @@ const MeetingRoomPage: React.FC = () => {
     const [roomGuardStatus, setRoomGuardStatus] = useState<'checking' | 'ok' | 'blocked'>('checking');
     const [roomGuardMessage, setRoomGuardMessage] = useState('회의 정보를 확인 중입니다.');
     const [sfuReady, setSfuReady] = useState(false);
+    const [isEnding, setIsEnding] = useState(false);
 
     const aiVideoRef = useRef<HTMLVideoElement | null>(null);
     const videoStageRef = useRef<HTMLDivElement | null>(null);
@@ -1570,6 +1571,7 @@ const MeetingRoomPage: React.FC = () => {
                 if (!confirmed) return;
             }
             try {
+                setIsEnding(true);
                 sfuStopRequestedRef.current = true;
                 await finalizeVoiceRecording();
                 await meetingApi.endMeeting(numericStudyId, numericMeetingId);
@@ -1577,6 +1579,7 @@ const MeetingRoomPage: React.FC = () => {
                 console.error('Failed to end meeting', error);
             } finally {
                 stopCameraHardware();
+                sessionStorage.setItem(`meeting-end-reload-${numericMeetingId}`, '1');
                 navigate(`/study/${numericStudyId}/meetings/${numericMeetingId}`);
             }
         },
@@ -1601,10 +1604,12 @@ const MeetingRoomPage: React.FC = () => {
     const handleRoomEvent = useCallback(
         (event: MeetingRoomEvent) => {
             if (event.type === 'MEETING_ENDED') {
+                setIsEnding(true);
                 sfuStopRequestedRef.current = true;
                 void (async () => {
                     await finalizeVoiceRecording();
                     stopCameraHardware();
+                    sessionStorage.setItem(`meeting-end-reload-${numericMeetingId}`, '1');
                     navigate(`/study/${numericStudyId}/meetings/${numericMeetingId}`);
                 })();
                 return;
@@ -1958,6 +1963,13 @@ const MeetingRoomPage: React.FC = () => {
     return (
         <UserLayoutV2>
             <div className="meeting-room">
+                {isEnding && (
+                    <div className="meeting-room__ending-overlay">
+                        <div className="meeting-room__ending-text">
+                            미팅 종료중입니다. 잠시만 기다려주세요.
+                        </div>
+                    </div>
+                )}
                 <div className="meeting-room__meta">
                     <div className="meeting-room__meta-row">
                         <div className="meeting-room__meta-left">
