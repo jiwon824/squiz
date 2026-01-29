@@ -475,32 +475,134 @@ async def recommend_template(request: TemplateRecommendRequest):
 
     tech_str = ", ".join(user_tech) if user_tech else "없음"
 
+    # 정확한 topic/format 목록 (DB와 일치 - 반드시 이 목록에서만 선택해야 함)
+    topic_list = """
+[알고리즘/코딩테스트]
+- 백준
+- 프로그래머스
+- SWEA
+- LeetCode
+- 코딩테스트 대비
+- 자료구조
+- 알고리즘 이론
+
+[CS 기초]
+- 운영체제
+- 네트워크
+- 데이터베이스
+- 컴퓨터구조
+- 디자인패턴
+- 시스템 설계
+
+[프론트엔드]
+- HTML/CSS
+- JavaScript
+- TypeScript
+- React
+- Vue
+- Next.js
+- 웹 접근성/성능
+
+[백엔드]
+- Java/Spring
+- Python/Django
+- Python/FastAPI
+- Node.js/Express
+- Go
+- Kotlin
+- API 설계
+
+[DevOps/인프라]
+- Docker
+- Kubernetes
+- CI/CD
+- AWS
+- GCP
+- Linux
+- 모니터링
+
+[AI/데이터]
+- 머신러닝 기초
+- 딥러닝
+- NLP
+- 컴퓨터 비전
+- MLOps
+- 논문 리뷰
+
+[모바일]
+- Android (Kotlin)
+- Android (Java)
+- iOS (Swift)
+- Flutter
+- React Native
+"""
+
+    format_list = """
+- 문제 풀이: 알고리즘/코딩테스트 문제를 함께 풀어보는 형식
+- 독서/책 스터디: 기술 서적을 함께 읽고 토론하는 형식
+- 강의 수강: 온라인 강의를 함께 수강하고 토론하는 형식
+- 프로젝트: 실제 프로젝트를 함께 개발하는 형식
+- 모의 면접: 기술 면접 대비 연습을 하는 형식
+- 코드 리뷰: 서로의 코드를 리뷰하고 피드백하는 형식
+- 발표/세미나: 각자 학습한 내용을 발표하는 형식
+- 토론: 특정 주제에 대해 토론하는 형식
+"""
+
     prompt = f"""<|im_start|>system
-당신은 IT 스터디 계획을 설계하는 전문가입니다. 사용자가 입력한 주제를 기반으로 스터디 계획을 생성합니다.
-반드시 JSON 형식으로만 응답하세요.<|im_end|>
+당신은 IT 스터디 계획을 작성하는 전문가입니다.
+사용자의 학습 주제를 분석하여 체계적인 스터디 계획을 JSON 형식으로 작성합니다.
+
+중요 규칙:
+1. topic 필드는 반드시 아래 목록에서 정확히 일치하는 값을 선택하세요.
+2. format 필드는 반드시 아래 목록에서 정확히 일치하는 값을 선택하세요.
+3. 목록에 없는 값을 임의로 만들지 마세요.
+4. JSON만 출력하고, 설명이나 부가 텍스트를 추가하지 마세요.
+
+선택 가능한 topic 목록:
+{topic_list}
+
+선택 가능한 format 목록:
+{format_list}
+<|im_end|>
 <|im_start|>user
-다음 조건으로 스터디 계획을 생성해주세요:
+사용자 입력 주제: {topic_input}
+스터디 기간: {duration_weeks}주
+사용자 기술 스택: {tech_str}
+{schedule_str}
 
-**사용자 입력 주제**: {topic_input}
-**기간**: {duration_weeks}주
-**사용자 기술스택**: {tech_str}
-**{schedule_str}**
+위 정보를 바탕으로 스터디 계획을 JSON으로 작성해주세요.
+topic은 위 목록에서 가장 적합한 것을 정확히 선택하고,
+format도 주제에 맞는 것을 위 목록에서 정확히 선택해주세요.
 
-아래 JSON 형식으로 응답해주세요:
+예를 들어:
+- "스프링 학습" → topic: "Java/Spring"
+- "리액트 공부" → topic: "React"
+- "알고리즘 문제풀이" → topic: "알고리즘 이론" 또는 "백준", format: "문제 풀이"
+- "클린코드 독서" → format: "독서/책 스터디"
+
+출력할 JSON 형식:
 {{
-  "name": "스터디 제목 (사용자 입력 주제 반영)",
-  "intro": "한줄 소개",
-  "description": "상세 설명 (2-3문장)",
-  "topic": "주제 카테고리 (예: Python, React, Docker, 알고리즘 등)",
-  "format": "스터디 형식 (예: 프로젝트, 강의 학습, 문제 풀이, 책 스터디)",
+  "name": "스터디 제목 (예: Java/Spring 심화 스터디)",
+  "intro": "한 줄 소개 (15자 내외)",
+  "description": "스터디 상세 설명 (2-3문장)",
+  "topic": "목록에서 정확히 선택 (예: Java/Spring)",
+  "format": "목록에서 정확히 선택 (예: 강의 수강)",
   "difficulty": "BEGINNER 또는 INTERMEDIATE 또는 ADVANCED",
-  "goal": "스터디 목표",
-  "textbook": "예: 공식 문서, 추천 강의, 교재명",
-  "prerequisites": "선수 지식",
-  "process_detail": "진행 방식 상세",
+  "goal": "스터디 목표 (1-2문장)",
+  "textbook": "추천 교재 또는 참고 자료",
+  "prerequisites": "선수 지식 요건",
+  "process_detail": "스터디 진행 방식 설명",
   "curriculum": [
-    {{"week": 1, "title": "1주차 제목", "description": "학습 내용", "learning_goals": ["목표1"], "assignments": ["과제1"]}},
-    {{"week": 2, "title": "2주차 제목", "description": "학습 내용", "learning_goals": ["목표1"], "assignments": ["과제1"]}}
+    {{
+      "week": 1,
+      "title": "1주차 제목",
+      "description": "1주차에 학습할 내용"
+    }},
+    {{
+      "week": 2,
+      "title": "2주차 제목",
+      "description": "2주차에 학습할 내용"
+    }}
   ]
 }}
 <|im_end|>
