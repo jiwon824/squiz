@@ -8,7 +8,7 @@ import com.ssafy.domain.quiz.dto.response.ContinuousSubmitResponse;
 import com.ssafy.domain.quiz.entity.QuizCourseQuestion;
 import com.ssafy.domain.quiz.entity.ReviewContentType;
 import com.ssafy.domain.quiz.entity.UserReviewItem;
-import com.ssafy.domain.quiz.repository.ContinuousLearningRepository;
+import com.ssafy.domain.quiz.repository.ContinuousQuizRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -45,7 +45,7 @@ import java.util.Optional;
 @Transactional(readOnly = true)
 public class ContinuousQuizService {
 
-    private final ContinuousLearningRepository learningRepository;
+    private final ContinuousQuizRepository learningRepository;
     private final FsrsService fsrsService;
 
     /**
