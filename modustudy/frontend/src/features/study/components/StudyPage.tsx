@@ -9,6 +9,38 @@ import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { Button } from '@/shared/components';
 import { cn } from '@/shared/utils/cn';
 
+// 반짝이는 shimmer 효과 CSS
+const shimmerStyles = `
+@keyframes shimmer {
+  0% {
+    background-position: 200% center;
+  }
+  100% {
+    background-position: -200% center;
+  }
+}
+
+.shimmer-text {
+  background: linear-gradient(
+    90deg,
+    var(--color-text-primary) 0%,
+    var(--color-text-primary) 40%,
+    #4285f4 50%,
+    var(--color-text-primary) 60%,
+    var(--color-text-primary) 100%
+  );
+  background-size: 200% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 5s ease-in-out infinite;
+}
+
+.shimmer-text:hover {
+  animation: shimmer 2.5s ease-in-out infinite;
+}
+`;
+
 /**
  * StudyPageV2 - Google Material Design 스타일 스터디 목록 페이지
  *
@@ -124,13 +156,14 @@ const StudyPageV2: React.FC = () => {
 
     return (
         <UserLayoutV2>
+            <style>{shimmerStyles}</style>
             <StudyListContainer>
                 <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
                     {/* 헤더 */}
                     <div className="flex justify-between mb-2">
                         <div className="flex items-center pt-2">
                             <div>
-                                <h1 className="text-2xl md:text-3xl font-bold text-[var(--color-text-primary)]">
+                                <h1 className="shimmer-text text-2xl md:text-3xl font-bold text-[var(--color-text-primary)]">
                                     성장의 시작, 스터디 둘러보기
                                 </h1>
                                 <p className="text-sm text-[var(--color-text-secondary)] mt-1">
@@ -153,7 +186,7 @@ const StudyPageV2: React.FC = () => {
                     </div>
 
                     {/* 검색 및 컨트롤 바 */}
-                    <div className="bg-white rounded-2xl border border-[var(--color-border)] p-4 mb-6 shadow-sm">
+                    <div className="mb-6">
                         <div className="flex flex-col lg:flex-row gap-4">
                             {/* 검색 바 */}
                             <form onSubmit={handleSearch} className="flex-1">
@@ -164,7 +197,7 @@ const StudyPageV2: React.FC = () => {
                                         placeholder="스터디 이름, 주제로 검색..."
                                         value={searchKeyword}
                                         onChange={(e) => setSearchKeyword(e.target.value)}
-                                        className="w-full h-11 pl-11 pr-4 bg-[var(--color-background)] border border-[var(--color-border-lighter)] rounded-xl text-sm focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary-alpha-10)] transition-all"
+                                        className="w-full h-11 pl-11 pr-4 bg-[var(--color-background)] rounded-xl text-sm focus:outline-none ring-0 focus:ring-2 ring-[var(--color-primary-alpha-10)] transition-all duration-300 ease-in-out"
                                     />
                                     {searchKeyword && (
                                         <button
@@ -181,7 +214,7 @@ const StudyPageV2: React.FC = () => {
                             {/* 컨트롤 버튼들 */}
                             <div className="flex items-center gap-3">
                                 {/* 미팅 타입 필터 */}
-                                <div className="flex items-center h-11 bg-[var(--color-background)] rounded-xl px-1 border border-[var(--color-border-lighter)]">
+                                <div className="flex items-center h-11 bg-[var(--color-background)] rounded-xl px-1">
                                     {[
                                         { value: null, label: '전체' },
                                         { value: 'ONLINE', label: '온라인' },
@@ -207,7 +240,7 @@ const StudyPageV2: React.FC = () => {
                                 <select
                                     value={currentSortValue}
                                     onChange={(e) => handleSortChange(e.target.value)}
-                                    className="h-11 px-3 pr-8 bg-[var(--color-background)] border border-[var(--color-border-lighter)] rounded-xl text-xs font-semibold text-[var(--color-text-primary)] focus:outline-none focus:border-[var(--color-primary)] cursor-pointer appearance-none"
+                                    className="h-11 px-3 pr-8 bg-[var(--color-background)] rounded-xl text-xs font-semibold text-[var(--color-text-primary)] focus:outline-none cursor-pointer appearance-none"
                                     style={{
                                         backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235F6368' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
                                         backgroundRepeat: 'no-repeat',
@@ -220,7 +253,7 @@ const StudyPageV2: React.FC = () => {
                                 </select>
 
                                 {/* 뷰 모드 전환 */}
-                                <div className="flex items-center h-11 bg-[var(--color-background)] rounded-xl px-1 border border-[var(--color-border-lighter)]">
+                                <div className="flex items-center h-11 bg-[var(--color-background)] rounded-xl px-1">
                                     <button
                                         onClick={() => setViewMode('grid')}
                                         className={cn(
