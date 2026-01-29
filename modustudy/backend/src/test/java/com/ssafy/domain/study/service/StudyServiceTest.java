@@ -604,7 +604,11 @@ class StudyServiceTest {
             given(studyRepository.findByLeaderId(userId, pageable)).willReturn(leaderStudies);
             given(studyRepository.findAllById(List.of(2L))).willReturn(List.of(memberStudy));
 
+<<<<<<< HEAD
             // when - 반환 타입이 Page<StudyResponse>로 변경됨
+=======
+            // when
+>>>>>>> 3cd0b74c832a784b2779f3acfb76cfc10e69ae08
             Page<StudyResponse> result = studyService.getMyStudies(userId, pageable);
 
             // then
@@ -628,7 +632,11 @@ class StudyServiceTest {
             given(studyRepository.findByLeaderId(userId, pageable))
                     .willReturn(new PageImpl<>(List.of()));
 
+<<<<<<< HEAD
             // when - 반환 타입이 Page<StudyResponse>로 변경됨
+=======
+            // when
+>>>>>>> 3cd0b74c832a784b2779f3acfb76cfc10e69ae08
             Page<StudyResponse> result = studyService.getMyStudies(userId, pageable);
 
             // then
