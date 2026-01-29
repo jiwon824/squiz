@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     FileText,
-    ChevronLeft,
     ChevronRight,
     Calendar,
     Users,
@@ -16,6 +15,7 @@ import {
     Search
 } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
+import { PageNavHeader } from '@/shared/components/layouts';
 import '../styles/DashboardV2.css';
 
 // 미팅 리포트 타입
@@ -144,33 +144,15 @@ export const STTReportPage: React.FC = () => {
     return (
         <div className="py-8">
             <div className="max-w-[1400px] mx-auto px-8">
-                {/* 브레드크럼 + 미니멀 헤더 */}
-                <div className="mb-6">
-                    {/* 브레드크럼 */}
-                    <nav className="flex items-center gap-1.5 text-sm mb-2">
-                        <button
-                            onClick={() => navigate('/dashboard')}
-                            className="text-text-tertiary hover:text-primary transition-colors"
-                        >
-                            대시보드
-                        </button>
-                        <ChevronRight size={14} className="text-text-tertiary" />
-                        <span className="text-text-primary font-medium">STT 미팅 리포트</span>
-                    </nav>
-
-                    {/* 페이지 타이틀 + 뒤로가기 */}
-                    <div className="flex items-center gap-3">
-                        <button
-                            onClick={handleBack}
-                            className="text-text-tertiary hover:text-text-primary transition-colors"
-                        >
-                            <ChevronLeft size={24} strokeWidth={1.5} />
-                        </button>
-                        <h1 className="text-2xl font-bold text-text-primary mb-0">
-                            STT 미팅 리포트
-                        </h1>
-                    </div>
-                </div>
+                {/* 브레드크럼 + 뒤로가기 헤더 */}
+                <PageNavHeader
+                    title="STT 미팅 리포트"
+                    breadcrumbs={[
+                        { label: '대시보드', path: '/dashboard' },
+                        { label: 'STT 미팅 리포트' },
+                    ]}
+                    onBack={handleBack}
+                />
 
                 {/* 좌측 탭 + 우측 콘텐츠 통합 레이아웃 */}
                 <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
