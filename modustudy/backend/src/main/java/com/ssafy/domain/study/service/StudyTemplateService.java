@@ -241,6 +241,10 @@ public class StudyTemplateService {
         if (request.getDurationWeeks() != null) {
             aiRequest.put("duration_weeks", request.getDurationWeeks());
         }
+        // 총 회차 (요일수 × 주수)
+        if (request.getTotalSessions() != null) {
+            aiRequest.put("total_sessions", request.getTotalSessions());
+        }
 
         try {
             HttpHeaders headers = new HttpHeaders();
