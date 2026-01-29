@@ -1,0 +1,205 @@
+package com.ssafy.domain.quiz.repository;
+
+import com.ssafy.domain.quiz.entity.QuizCourseQuestion;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import java.util.List;
+import java.util.Optional;
+
+/**
+ * Continuous Learning 모드를 위한 가중치 기반 문제 선택 Repository.
+ *
+ * <p>섹션 클릭 시 가중치 기반 랜덤으로 문제를 출제한다.</p>
+ *
+ * <h3>가중치 로직</h3>
+ * <ul>
+ *   <li>풀지 않은 문제 (reps=0): 가중치 1.0 (가장 높음)</li>
+ *   <li>1번 푼 문제: 가중치 0.5</li>
+ *   <li>2번 푼 문제: 가중치 0.33</li>
+ *   <li>n번 푼 문제: 가중치 1/(n+1)</li>
+ * </ul>
+ *
+ * <p>가중치가 높을수록 선택될 확률이 높지만, 낮은 문제도 선택될 수 있음 (랜덤성 유지)</p>
+ */
+public interface ContinuousLearningRepository extends JpaRepository<QuizCourseQuestion, Long> {
+
+    /**
+     * 특정 섹션에서 가중치 기반 랜덤으로 다음 문제를 선택한다.
+     *
+     * <p>가중치 공식: weight = 1 / (reps + 1)</p>
+     * <p>랜덤 선택: ORDER BY -LOG(1 - RAND()) / weight (지수 분포 활용)</p>
+     *
+     * @param courseId      코스 ID
+     * @param sectionNumber 섹션 번호
+     * @param userId        사용자 ID
+     * @return 선택된 문제 (Optional)
+     */
+    @Query(value = """
+            SELECT q.*
+            FROM quiz_course_question q
+            LEFT JOIN user_review_items uri
+                ON uri.content_type = 'COURSE_QUESTION'
+                AND uri.content_id = q.id
+                AND uri.user_id = :userId
+            WHERE q.quiz_course_id = :courseId
+              AND q.section_number = :sectionNumber
+            ORDER BY -LOG(1 - RAND()) / (1.0 / (COALESCE(uri.reps, 0) + 1))
+            LIMIT 1
+            """, nativeQuery = true)
+    Optional<QuizCourseQuestion> findNextQuestionWeightedRandom(
+            @Param("courseId") Long courseId,
+            @Param("sectionNumber") Integer sectionNumber,
+            @Param("userId") Long userId);
+
+    /**
+     * 특정 섹션에서 가중치 기반 랜덤으로 여러 문제를 선택한다.
+     *
+     * @param courseId      코스 ID
+     * @param sectionNumber 섹션 번호
+     * @param userId        사용자 ID
+     * @param limit         선택할 문제 수
+     * @return 선택된 문제 목록
+     */
+    @Query(value = """
+            SELECT q.*
+            FROM quiz_course_question q
+            LEFT JOIN user_review_items uri
+                ON uri.content_type = 'COURSE_QUESTION'
+                AND uri.content_id = q.id
+                AND uri.user_id = :userId
+            WHERE q.quiz_course_id = :courseId
+              AND q.section_number = :sectionNumber
+            ORDER BY -LOG(1 - RAND()) / (1.0 / (COALESCE(uri.reps, 0) + 1))
+            LIMIT :limit
+            """, nativeQuery = true)
+    List<QuizCourseQuestion> findQuestionsWeightedRandom(
+            @Param("courseId") Long courseId,
+            @Param("sectionNumber") Integer sectionNumber,
+            @Param("userId") Long userId,
+            @Param("limit") int limit);
+
+    /**
+     * 특정 코스 전체에서 가중치 기반 랜덤으로 다음 문제를 선택한다.
+     * (섹션 무관)
+     *
+     * @param courseId 코스 ID
+     * @param userId   사용자 ID
+     * @return 선택된 문제 (Optional)
+     */
+    @Query(value = """
+            SELECT q.*
+            FROM quiz_course_question q
+            LEFT JOIN user_review_items uri
+                ON uri.content_type = 'COURSE_QUESTION'
+                AND uri.content_id = q.id
+                AND uri.user_id = :userId
+            WHERE q.quiz_course_id = :courseId
+            ORDER BY -LOG(1 - RAND()) / (1.0 / (COALESCE(uri.reps, 0) + 1))
+            LIMIT 1
+            """, nativeQuery = true)
+    Optional<QuizCourseQuestion> findNextQuestionWeightedRandomByCourse(
+            @Param("courseId") Long courseId,
+            @Param("userId") Long userId);
+
+    // ────────────────────────────────────────────────────────────────────────────
+    // 통계 조회
+    // ────────────────────────────────────────────────────────────────────────────
+
+    /**
+     * 섹션 내 전체 문제 수
+     */
+    @Query(value = """
+            SELECT COUNT(*)
+            FROM quiz_course_question q
+            WHERE q.quiz_course_id = :courseId
+              AND q.section_number = :sectionNumber
+            """, nativeQuery = true)
+    long countTotalQuestions(
+            @Param("courseId") Long courseId,
+            @Param("sectionNumber") Integer sectionNumber);
+
+    /**
+     * 섹션 내 한 번도 풀지 않은 문제 수
+     */
+    @Query(value = """
+            SELECT COUNT(*)
+            FROM quiz_course_question q
+            WHERE q.quiz_course_id = :courseId
+              AND q.section_number = :sectionNumber
+              AND NOT EXISTS (
+                  SELECT 1 FROM user_review_items uri
+                  WHERE uri.user_id = :userId
+                    AND uri.content_type = 'COURSE_QUESTION'
+                    AND uri.content_id = q.id
+              )
+            """, nativeQuery = true)
+    long countUnstudiedQuestions(
+            @Param("courseId") Long courseId,
+            @Param("sectionNumber") Integer sectionNumber,
+            @Param("userId") Long userId);
+
+    /**
+     * 섹션 내 학습한 문제 수 (1번 이상 푼 문제)
+     */
+    @Query(value = """
+            SELECT COUNT(*)
+            FROM quiz_course_question q
+            INNER JOIN user_review_items uri
+                ON uri.content_type = 'COURSE_QUESTION'
+                AND uri.content_id = q.id
+                AND uri.user_id = :userId
+            WHERE q.quiz_course_id = :courseId
+              AND q.section_number = :sectionNumber
+            """, nativeQuery = true)
+    long countStudiedQuestions(
+            @Param("courseId") Long courseId,
+            @Param("sectionNumber") Integer sectionNumber,
+            @Param("userId") Long userId);
+
+    // ────────────────────────────────────────────────────────────────────────────
+    // Priority 기반 선택 (New > Due > Random)
+    // ────────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Priority 기반 다음 문제 선택.
+     *
+     * <p>우선순위:</p>
+     * <ol>
+     *   <li>Priority 1 (New): user_review_items에 없는 문제</li>
+     *   <li>Priority 2 (Due): next_review_at <= NOW()</li>
+     *   <li>같은 priority 내에서는 랜덤 선택</li>
+     * </ol>
+     *
+     * @param courseId      코스 ID
+     * @param sectionNumber 섹션 번호
+     * @param userId        사용자 ID
+     * @param excludeId     제외할 문제 ID (방금 푼 문제)
+     * @return 선택된 문제 (Optional)
+     */
+    @Query(value = """
+            SELECT q.*
+            FROM quiz_course_question q
+            LEFT JOIN user_review_items uri
+                ON uri.content_type = 'COURSE_QUESTION'
+                AND uri.content_id = q.id
+                AND uri.user_id = :userId
+            WHERE q.quiz_course_id = :courseId
+              AND q.section_number = :sectionNumber
+              AND (:excludeId IS NULL OR q.id != :excludeId)
+            ORDER BY
+                CASE
+                    WHEN uri.id IS NULL THEN 0
+                    WHEN uri.next_review_at <= NOW() THEN 1
+                    ELSE 2
+                END,
+                RAND()
+            LIMIT 1
+            """, nativeQuery = true)
+    Optional<QuizCourseQuestion> findNextQuestionByPriority(
+            @Param("courseId") Long courseId,
+            @Param("sectionNumber") Integer sectionNumber,
+            @Param("userId") Long userId,
+            @Param("excludeId") Long excludeId);
+}
