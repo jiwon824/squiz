@@ -118,11 +118,11 @@ export const updateStudyPreference = async (
 
 /**
  * Google 캘린더 연동 상태 조회
- * GET /api/v1/calendar/google/status
+ * GET /api/v1/calendar/status
  */
 export const getGoogleCalendarStatus = async (): Promise<GoogleCalendarStatus> => {
     const response = await api.get<{ success: boolean; data: GoogleCalendarStatus }>(
-        '/api/v1/calendar/google/status'
+        '/api/v1/calendar/status'
     );
     return response.data.data;
 };
@@ -140,10 +140,10 @@ export const getGoogleCalendarAuthUrl = async (): Promise<string> => {
 
 /**
  * Google 캘린더 연동 해제
- * DELETE /api/v1/calendar/google/disconnect
+ * POST /api/v1/calendar/disconnect
  */
 export const disconnectGoogleCalendar = async (): Promise<void> => {
-    await api.delete('/api/v1/calendar/google/disconnect');
+    await api.post('/api/v1/calendar/disconnect');
 };
 
 // ============================================
