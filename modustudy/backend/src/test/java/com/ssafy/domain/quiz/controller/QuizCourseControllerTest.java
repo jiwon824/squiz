@@ -442,7 +442,7 @@ class QuizCourseControllerTest {
                 void saveAnswerSuccessfully() throws Exception {
                         // given
                         SaveAnswerRequest request = new SaveAnswerRequest(
-                                        new SaveAnswerRequest.AnswerItem(101L, "B"));
+                                        new SaveAnswerRequest.AnswerItem(101L, "B", 1000L));
 
                         doNothing().when(attemptService).saveAnswer(eq(ATTEMPT_ID), any(SaveAnswerRequest.class),
                                         anyLong());
@@ -466,7 +466,7 @@ class QuizCourseControllerTest {
                 void overwritesPreviousAnswer() throws Exception {
                         // given - same question, different answer
                         SaveAnswerRequest request = new SaveAnswerRequest(
-                                        new SaveAnswerRequest.AnswerItem(101L, "C") // Changed from B to C
+                                        new SaveAnswerRequest.AnswerItem(101L, "C", 1000L) // Changed from B to C
                         );
 
                         doNothing().when(attemptService).saveAnswer(eq(ATTEMPT_ID), any(SaveAnswerRequest.class),
