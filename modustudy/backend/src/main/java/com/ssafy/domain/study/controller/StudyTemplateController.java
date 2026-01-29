@@ -126,7 +126,7 @@ public class StudyTemplateController {
             @RequestParam(required = false) String topicInput,
             @RequestParam(required = false, defaultValue = "4") Integer durationWeeks,
             @RequestParam(required = false) Integer totalSessions,
-            @RequestHeader("user-id") Long userId) {
+            @RequestHeader(value = "user-id", required = false) Long userId) {
 
         log.info("API 호출 - AI 템플릿 추천 (스트리밍): userId={}, topic={}", userId, topicInput);
 
