@@ -174,12 +174,12 @@ export const RightSideBarV2: React.FC = () => {
                 {activeRightTab && (
                     <motion.div
                         initial={{ width: 0, opacity: 0 }}
-                        animate={{ width: 288, opacity: 1 }}
+                        animate={{ width: 256, opacity: 1 }}
                         exit={{ width: 0, opacity: 0 }}
                         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                         className="overflow-hidden"
                     >
-                        <div className="w-72 h-full">
+                        <div className="w-64 h-full">
                             {activeRightTab === 'friend' && <FriendListMini />}
                             {activeRightTab === 'dm' && <DMListMini />}
                             {activeRightTab === 'meeting' && <MeetingQuickAccess />}

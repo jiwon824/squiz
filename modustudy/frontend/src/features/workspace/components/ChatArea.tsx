@@ -7,6 +7,8 @@ interface ChatAreaProps {
   isLoading?: boolean;
   onLoadMore?: () => void;
   hasMore?: boolean;
+  /** 현재 로그인한 사용자 ID (내 메시지 구분용) - string 또는 number */
+  currentUserId?: string | number;
 }
 
 // 날짜 포맷 (구분선용)
@@ -54,6 +56,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
   isLoading = false,
   onLoadMore,
   hasMore = false,
+  currentUserId,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -111,12 +114,19 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
         lastDate = messageDate;
       }
 
-      // 메시지 렌더링
+      // 메시지 렌더링 (타입이 다를 수 있으므로 문자열로 비교)
+      const isOwn = currentUserId !== undefined && String(message.author.id) === String(currentUserId);
+      const nextMessage = index < messages.length - 1 ? messages[index + 1] : null;
+      // 다음 메시지가 없거나 다음 메시지가 다른 사용자면 그룹의 마지막
+      const isLastInGroup = !nextMessage || String(nextMessage.author.id) !== String(message.author.id);
+
       elements.push(
         <MessageItem
           key={message.id}
           message={message}
           isGrouped={isGroupedMessage(message, previousMessage)}
+          isOwnMessage={isOwn}
+          isLastInGroup={isLastInGroup}
         />
       );
     });

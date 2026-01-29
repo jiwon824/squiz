@@ -117,6 +117,17 @@ export interface StudyPreferenceUpdateRequest {
 }
 
 // ============================================
+// Google 캘린더 연동 타입
+// ============================================
+
+/** Google 캘린더 연동 상태 */
+export interface GoogleCalendarStatus {
+    connected: boolean;
+    email: string | null;
+    lastSyncAt: string | null;
+}
+
+// ============================================
 // 설정 페이지 섹션 타입
 // ============================================
 

@@ -8,8 +8,8 @@ interface Toast {
     type: 'success' | 'error' | 'info' | 'warning';
 }
 
-// 사이드바 모드: full(전체) | mini(아이콘만) | closed(완전 닫힘)
-export type SidebarMode = 'full' | 'mini' | 'closed';
+// 사이드바 모드: mini(아이콘+라벨) | closed(완전 닫힘)
+export type SidebarMode = 'mini' | 'closed';
 
 interface UIState {
     sidebarMode: SidebarMode;
@@ -30,8 +30,8 @@ export const useUIStore = create<UIState>((set, get) => ({
     toasts: [],
     toggleSidebar: () => {
         const current = get().sidebarMode;
-        // full → mini → full 순환
-        set({ sidebarMode: current === 'full' ? 'mini' : 'full' }, false);
+        // mini ↔ closed 토글
+        set({ sidebarMode: current === 'mini' ? 'closed' : 'mini' }, false);
     },
     setSidebarMode: (mode) => set({ sidebarMode: mode }, false),
     closeSidebar: () => set({ sidebarMode: 'closed' }, false),

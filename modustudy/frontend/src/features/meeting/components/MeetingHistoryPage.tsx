@@ -1,5 +1,6 @@
-﻿import React, { useCallback, useEffect, useState } from 'react';
+﻿import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { ChevronLeft } from 'lucide-react';
 import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { useAuthStore } from '@/store/authStore';
 import MeetingStartModal from './MeetingStartModal';
@@ -14,6 +15,17 @@ const MeetingHistoryPage: React.FC = () => {
     const navigate = useNavigate();
     const { user } = useAuthStore();
     const ownerKey = user?.id ?? user?.name ?? 'guest';
+
+    // 워크스페이스에서 진입 시 애니메이션 플래그 (최초 렌더 시 한 번만 확인)
+    const isEnteringFromWorkspace = useMemo(() => {
+        const flag = sessionStorage.getItem('fromWorkspace') === 'true';
+        if (flag) {
+            sessionStorage.removeItem('fromWorkspace');
+        }
+        return flag;
+    }, []);
+
+    const [isExiting, setIsExiting] = useState(false);
     const [meetings, setMeetings] = useState<MeetingListItemResponse[]>([]);
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
@@ -45,6 +57,22 @@ const MeetingHistoryPage: React.FC = () => {
         fetchMeetings();
     }, [fetchMeetings]);
 
+    // 워크스페이스로 돌아가기 (전환 애니메이션 포함)
+    const handleNavigateToWorkspace = useCallback(() => {
+        if (!numericStudyId) return;
+
+        // 퇴장 애니메이션 시작
+        setIsExiting(true);
+
+        // 워크스페이스 페이지에서 진입 애니메이션을 위한 플래그 설정
+        sessionStorage.setItem('fromMeeting', 'true');
+
+        // 애니메이션 완료 후 네비게이션 (500ms)
+        setTimeout(() => {
+            navigate(`/study/${numericStudyId}/workspace`);
+        }, 500);
+    }, [navigate, numericStudyId]);
+
     const handleStartMeeting = async (payload: MeetingRequestPayload) => {
         if (!numericStudyId) return;
         try {
@@ -65,12 +93,21 @@ const MeetingHistoryPage: React.FC = () => {
     };
 
     return (
-        <UserLayoutV2>
+        <UserLayoutV2 isEnteringFromWorkspace={isEnteringFromWorkspace} isExitingToWorkspace={isExiting}>
             <div className="meeting-history">
                 <div className="meeting-history__header">
-                    <div>
-                        <h1>미팅 기록</h1>
-                        <p className="meeting-history__subtitle">날짜별로 미팅을 확인해보세요.</p>
+                    <div className="meeting-history__header-left">
+                        <button
+                            className="meeting-history__back-btn"
+                            onClick={handleNavigateToWorkspace}
+                            title="워크스페이스로 돌아가기"
+                        >
+                            <ChevronLeft size={24} />
+                        </button>
+                        <div>
+                            <h1>미팅 기록</h1>
+                            <p className="meeting-history__subtitle">날짜별로 미팅을 확인해보세요.</p>
+                        </div>
                     </div>
                     <button className="meeting-btn primary" onClick={() => setShowStartModal(true)}>
                         미팅 시작

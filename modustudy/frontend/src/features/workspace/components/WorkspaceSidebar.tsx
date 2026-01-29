@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/shared/utils/cn';
+import { type StudySessionResponse } from '@/api/endpoints/sessionApi';
 import {
   MessageSquare,
   FolderOpen,
@@ -11,6 +12,7 @@ import {
   Sun,
   Moon,
   LucideIcon,
+  Play,
 } from 'lucide-react';
 
 interface WorkspaceSidebarProps {
@@ -19,6 +21,10 @@ interface WorkspaceSidebarProps {
   onMenuChange?: (menu: 'chat' | 'materials' | 'calendar' | 'meeting') => void;
   isDarkMode?: boolean;
   onToggleDarkMode?: () => void;
+  /** 현재 진행 중인 세션 (있으면 미팅 참여 버튼 표시) */
+  activeSession?: StudySessionResponse | null;
+  /** 미팅으로 이동 시 콜백 (애니메이션 처리용) */
+  onNavigateToMeeting?: () => void;
 }
 
 // 메뉴 아이템 타입
@@ -62,14 +68,20 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
   onMenuChange,
   isDarkMode = true,
   onToggleDarkMode,
+  activeSession,
+  onNavigateToMeeting,
 }) => {
   const navigate = useNavigate();
 
   // 메뉴 클릭 핸들러
   const handleMenuClick = (menuId: MenuItem['id']) => {
     if (menuId === 'meeting' && studyId) {
-      // 미팅은 별도 페이지로 이동
-      navigate(`/study/${studyId}/meetings`);
+      // 애니메이션 콜백이 있으면 사용, 없으면 직접 이동
+      if (onNavigateToMeeting) {
+        onNavigateToMeeting();
+      } else {
+        navigate(`/study/${studyId}/meetings`);
+      }
       return;
     }
 
@@ -149,16 +161,30 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
         </button>
       </div>
 
-      {/* 하단 미팅 시작 버튼 */}
-      <div className="workspace-sidebar__footer">
-        <button
-          className="workspace-sidebar__meeting-btn"
-          onClick={() => studyId && navigate(`/study/${studyId}/meetings`)}
-        >
-          <Video size={20} />
-          <span>미팅 시작하기</span>
-        </button>
-      </div>
+      {/* 하단 미팅 시작 버튼 - 진행 중인 세션이 있을 때만 표시 */}
+      {activeSession && (
+        <div className="workspace-sidebar__footer">
+          <button
+            className="workspace-sidebar__meeting-btn workspace-sidebar__meeting-btn--active"
+            onClick={() => onNavigateToMeeting ? onNavigateToMeeting() : studyId && navigate(`/study/${studyId}/meetings`)}
+          >
+            <Play size={20} />
+            <span>미팅 참여하기</span>
+          </button>
+          <div className="workspace-sidebar__session-info">
+            <span className="workspace-sidebar__session-title">
+              {activeSession.title || '스터디 세션'}
+            </span>
+            <span className="workspace-sidebar__session-time">
+              {new Date(activeSession.scheduledAt).toLocaleTimeString('ko-KR', {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+              {activeSession.durationMinutes && ` (${activeSession.durationMinutes}분)`}
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
