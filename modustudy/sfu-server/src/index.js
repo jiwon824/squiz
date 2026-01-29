@@ -56,27 +56,56 @@ const io = new Server(server, {
 
 const rooms = new Map();
 const emptyRoomStopTimers = new Map();
-let worker;
+// 멀티 Worker 배열 및 라운드로빈 인덱스
+const workers = [];
+let nextWorkerIdx = 0;
 let recordingManager;
 
-async function createWorker() {
-  worker = await mediasoup.createWorker({
+// 개별 Worker 생성 및 재시작 로직
+async function createSingleWorker(index) {
+  const worker = await mediasoup.createWorker({
     rtcMinPort: config.rtcMinPort,
     rtcMaxPort: config.rtcMaxPort,
     logLevel: 'warn'
   });
 
-  worker.on('died', () => {
+  worker.on('died', async () => {
     // eslint-disable-next-line no-console
-    console.error('mediasoup worker died, exiting');
-    process.exit(1);
+    console.error(`mediasoup worker[${index}] died, restarting...`);
+    workers[index] = null;
+    try {
+      workers[index] = await createSingleWorker(index);
+      // eslint-disable-next-line no-console
+      console.log(`mediasoup worker[${index}] restarted`);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error(`Failed to restart worker[${index}]`, err);
+    }
   });
+
+  return worker;
+}
+
+// 멀티 Worker 생성
+async function createWorkers() {
+  const numWorkers = config.numWorkers;
+  // eslint-disable-next-line no-console
+  console.log(`Creating ${numWorkers} mediasoup workers...`);
+  for (let i = 0; i < numWorkers; i++) {
+    const worker = await createSingleWorker(i);
+    workers.push(worker);
+  }
+  // eslint-disable-next-line no-console
+  console.log(`${workers.length} mediasoup workers created`);
 }
 
 async function getOrCreateRoom(roomId) {
   if (rooms.has(roomId)) {
     return rooms.get(roomId);
   }
+  // 라운드로빈으로 Worker 배정
+  const worker = workers[nextWorkerIdx % workers.length];
+  nextWorkerIdx++;
   const router = await worker.createRouter({ mediaCodecs: config.mediaCodecs });
   const room = { id: roomId, router, peers: new Map() };
   rooms.set(roomId, room);
@@ -212,14 +241,14 @@ io.on('connection', (socket) => {
       const room = await getOrCreateRoom(roomId);
       const peer = getPeer(room, socket.id);
       const transport = peer.transports.get(transportId);
+
+      // 기존 video Producer 찾기 (교체 시 끊김 최소화를 위해)
+      let existingVideoEntry = null;
       if (kind === 'video') {
-        const existingVideoProducer = Array.from(peer.producers.values()).find((item) => item.kind === 'video');
-        if (existingVideoProducer) {
-          existingVideoProducer.producer.close();
-          peer.producers.delete(existingVideoProducer.producer.id);
-          socket.to(roomId).emit('producerClosed', { producerId: existingVideoProducer.producer.id, peerId: socket.id });
-        }
+        existingVideoEntry = Array.from(peer.producers.values()).find((item) => item.kind === 'video');
       }
+
+      // 새 Producer 먼저 생성
       const producer = await transport.produce({ kind, rtpParameters, appData });
       peer.producers.set(producer.id, {
         producer,
@@ -236,10 +265,27 @@ io.on('connection', (socket) => {
         }
       });
 
+      // 새 Producer 알림 먼저 전송
       socket.to(roomId).emit('newProducer', { producerId: producer.id, producerPeerId: socket.id, kind });
       if (recordingManager) {
         recordingManager.onProducersChanged(roomId);
       }
+
+      // 기존 video Producer가 있으면 딜레이 후 정리 (끊김 최소화)
+      if (existingVideoEntry) {
+        const oldProducerId = existingVideoEntry.producer.id;
+        setTimeout(() => {
+          if (peer.producers.has(oldProducerId)) {
+            existingVideoEntry.producer.close();
+            peer.producers.delete(oldProducerId);
+            socket.to(roomId).emit('producerClosed', { producerId: oldProducerId, peerId: socket.id });
+            if (recordingManager) {
+              recordingManager.onProducersChanged(roomId);
+            }
+          }
+        }, 300);
+      }
+
       callback({ producerId: producer.id });
     } catch (err) {
       callback({ error: err.message });
@@ -425,7 +471,7 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-createWorker()
+createWorkers()
   .then(() => {
     recordingManager = createRecordingManager({ getOrCreateRoom, rooms, config });
     server.listen(config.port, () => {

@@ -14,6 +14,7 @@ const RECORDING_VIDEO_READY_POLL_MS = Number(process.env.RECORDING_VIDEO_READY_P
 const RECORDING_STOP_GRACE_MS = Number(process.env.RECORDING_STOP_GRACE_MS || 1500);
 const RECORDING_VIDEO_ENABLED =
   String(process.env.RECORDING_VIDEO_ENABLED ?? 'true').toLowerCase() !== 'false';
+console.log('[recording] RECORDING_VIDEO_ENABLED:', RECORDING_VIDEO_ENABLED, 'env:', process.env.RECORDING_VIDEO_ENABLED);
 const reservedPorts = new Set();
 const RECORDING_RTP_PORT_MIN = Number(process.env.RECORDING_RTP_PORT_MIN || 45000);
 const RECORDING_RTP_PORT_MAX = Number(process.env.RECORDING_RTP_PORT_MAX || 47000);
@@ -1299,7 +1300,22 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
     }
   };
 
-  const onProducersChanged = (roomId) => {
+  const onProducersChanged = async (roomId) => {
+    // 녹음이 시작되지 않았으면 자동으로 시작 (meeting-{id} 형식일 때만)
+    if (!recordings.has(roomId) && roomId.startsWith('meeting-')) {
+      const meetingIdStr = roomId.replace('meeting-', '');
+      const meetingId = parseInt(meetingIdStr, 10);
+      if (!isNaN(meetingId)) {
+        // eslint-disable-next-line no-console
+        console.log('[recording] auto-start triggered by producer change', { roomId, meetingId });
+        try {
+          await startRecording({ roomId, meetingId });
+        } catch (err) {
+          // eslint-disable-next-line no-console
+          console.error('[recording] auto-start failed', { roomId, meetingId, error: err.message });
+        }
+      }
+    }
     if (!recordings.has(roomId)) return;
     enqueue(roomId, () => refreshRecording(roomId));
   };

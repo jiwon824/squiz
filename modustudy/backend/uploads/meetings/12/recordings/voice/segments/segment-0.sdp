@@ -1,0 +1,14 @@
+v=0
+o=- 0 0 IN IP4 127.0.0.1
+s=mediasoup-recording
+c=IN IP4 127.0.0.1
+t=0 0
+a=msid-semantic: WMS *
+m=audio 45000 RTP/AVPF 100
+c=IN IP4 127.0.0.1
+a=rtpmap:100 OPUS/48000/2
+a=fmtp:100 minptime=10;useinbandfec=1
+a=rtcp-mux
+a=recvonly
+a=mid:a0
+a=ssrc:740166129 cname:mediasoup-record

@@ -14,7 +14,15 @@ import com.ssafy.domain.meeting.dto.request.MeetingRequest;
 import com.ssafy.domain.meeting.dto.request.MeetingSummaryUpdateRequest;
 import com.ssafy.domain.meeting.dto.response.*;
 import com.ssafy.domain.meeting.entity.MeetingType;
+import com.ssafy.domain.meeting.service.MeetingActionItemService;
+import com.ssafy.domain.meeting.service.MeetingAudioService;
+import com.ssafy.domain.meeting.service.MeetingChatService;
+import com.ssafy.domain.meeting.service.MeetingExportService;
+import com.ssafy.domain.meeting.service.MeetingPhotoService;
+import com.ssafy.domain.meeting.service.MeetingRecordingService;
 import com.ssafy.domain.meeting.service.MeetingService;
+import com.ssafy.domain.meeting.service.MeetingSttService;
+import com.ssafy.domain.meeting.service.MeetingTranscriptService;
 import com.ssafy.common.websocket.MeetingRoomEvent;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -43,6 +51,14 @@ import java.util.List;
 public class MeetingController {
 
     private final MeetingService meetingService;
+    private final MeetingTranscriptService meetingTranscriptService;
+    private final MeetingChatService meetingChatService;
+    private final MeetingPhotoService meetingPhotoService;
+    private final MeetingActionItemService meetingActionItemService;
+    private final MeetingExportService meetingExportService;
+    private final MeetingAudioService meetingAudioService;
+    private final MeetingRecordingService meetingRecordingService;
+    private final MeetingSttService meetingSttService;
     private final SimpMessagingTemplate messagingTemplate;
 
     @GetMapping
@@ -123,7 +139,7 @@ public class MeetingController {
             @PathVariable Long studyId,
             @PathVariable Long meetingId
     ) {
-        return ResponseEntity.ok(ApiResponse.success(meetingService.getSummary(studyId, meetingId)));
+        return ResponseEntity.ok(ApiResponse.success(meetingSttService.getSummary(studyId, meetingId)));
     }
 
     @PutMapping("/{meetingId}/summary")
@@ -132,10 +148,10 @@ public class MeetingController {
             @PathVariable Long meetingId,
             @RequestBody MeetingSummaryUpdateRequest request
     ) {
-        return ResponseEntity.ok(ApiResponse.success(meetingService.upsertSummary(studyId, meetingId, request)));
+        return ResponseEntity.ok(ApiResponse.success(meetingSttService.upsertSummary(studyId, meetingId, request)));
     }
 
- 
+
 
     @GetMapping("/{meetingId}/chat")
     @Operation(summary = "미팅 채팅 조회", description = "미팅 채팅 히스토리를 페이지 형태로 조회합니다.")
@@ -144,7 +160,7 @@ public class MeetingController {
             @PathVariable Long meetingId,
             Pageable pageable
     ) {
-        return ResponseEntity.ok(ApiResponse.success(meetingService.getChatMessages(studyId, meetingId, pageable)));
+        return ResponseEntity.ok(ApiResponse.success(meetingChatService.getChatMessages(studyId, meetingId, pageable)));
     }
 
     @GetMapping("/{meetingId}/recording")
@@ -152,7 +168,7 @@ public class MeetingController {
             @PathVariable Long studyId,
             @PathVariable Long meetingId
     ) {
-        return ResponseEntity.ok(ApiResponse.success(meetingService.getRecording(studyId, meetingId)));
+        return ResponseEntity.ok(ApiResponse.success(meetingRecordingService.getRecording(studyId, meetingId)));
     }
 
     @PutMapping("/{meetingId}/recording")
@@ -161,7 +177,7 @@ public class MeetingController {
             @PathVariable Long meetingId,
             @RequestBody MeetingRecordingRequest request
     ) {
-        return ResponseEntity.ok(ApiResponse.success(meetingService.upsertRecording(studyId, meetingId, request)));
+        return ResponseEntity.ok(ApiResponse.success(meetingRecordingService.upsertRecording(studyId, meetingId, request)));
     }
 
     @PostMapping("/{meetingId}/recording/video")
@@ -172,7 +188,7 @@ public class MeetingController {
             @RequestPart("video") MultipartFile video
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success(meetingService.uploadRecordingVideo(studyId, meetingId, video)));
+                .body(ApiResponse.success(meetingRecordingService.uploadRecordingVideo(studyId, meetingId, video)));
     }
 
     @PostMapping("/{meetingId}/recording/audio")
@@ -193,7 +209,7 @@ public class MeetingController {
         }
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(
-                        meetingService.uploadRecordingAudio(studyId, meetingId, trackType, userId, audio)));
+                        meetingAudioService.uploadRecordingAudio(studyId, meetingId, trackType, userId, audio)));
     }
 
     @PostMapping("/{meetingId}/recording/audio/segment")
@@ -205,7 +221,7 @@ public class MeetingController {
             @RequestPart("audio") MultipartFile audio
     ) {
         Long userId = userDetails == null ? null : userDetails.getUser().getId();
-        meetingService.uploadRecordingAudioSegment(studyId, meetingId, requireUserId(userId), audio);
+        meetingAudioService.uploadRecordingAudioSegment(studyId, meetingId, requireUserId(userId), audio);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Audio segment uploaded"));
     }
@@ -219,7 +235,7 @@ public class MeetingController {
     ) {
         Long userId = userDetails == null ? null : userDetails.getUser().getId();
         return ResponseEntity.ok(ApiResponse.success(
-                meetingService.concatRecordingAudioSegments(studyId, meetingId, requireUserId(userId))));
+                meetingAudioService.concatRecordingAudioSegments(studyId, meetingId, requireUserId(userId))));
     }
 
     @GetMapping("/{meetingId}/recording/audio")
@@ -235,18 +251,18 @@ public class MeetingController {
         Long authUserId = userDetails == null ? null : userDetails.getUser().getId();
         if (trackType == com.ssafy.domain.meeting.entity.MeetingAudioTrackType.INDIVIDUAL) {
             return ResponseEntity.ok(ApiResponse.success(
-                    meetingService.getAudioRecordings(studyId, meetingId, trackType, requireUserId(authUserId))));
+                    meetingAudioService.getAudioRecordings(studyId, meetingId, trackType, requireUserId(authUserId))));
         }
         if (trackType == com.ssafy.domain.meeting.entity.MeetingAudioTrackType.MIXED) {
             return ResponseEntity.ok(ApiResponse.success(
-                    meetingService.getAudioRecordings(studyId, meetingId, trackType, null)));
+                    meetingAudioService.getAudioRecordings(studyId, meetingId, trackType, null)));
         }
         if (authUserId != null) {
             return ResponseEntity.ok(ApiResponse.success(
-                    meetingService.getAudioRecordingsForUser(studyId, meetingId, authUserId)));
+                    meetingAudioService.getAudioRecordingsForUser(studyId, meetingId, authUserId)));
         }
         return ResponseEntity.ok(ApiResponse.success(
-                meetingService.getAudioRecordings(studyId, meetingId,
+                meetingAudioService.getAudioRecordings(studyId, meetingId,
                         com.ssafy.domain.meeting.entity.MeetingAudioTrackType.MIXED, null)));
     }
 
@@ -261,7 +277,7 @@ public class MeetingController {
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(
-                        meetingService.uploadSttTextFile(studyId, meetingId, trackType, userId, file)));
+                        meetingSttService.uploadSttTextFile(studyId, meetingId, trackType, userId, file)));
     }
 
     @PostMapping("/{meetingId}/summary/file")
@@ -275,7 +291,7 @@ public class MeetingController {
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(
-                        meetingService.uploadSummaryTextFile(studyId, meetingId, trackType, userId, file)));
+                        meetingSttService.uploadSummaryTextFile(studyId, meetingId, trackType, userId, file)));
     }
 
     @GetMapping("/{meetingId}/stt/file")
@@ -287,7 +303,7 @@ public class MeetingController {
             @RequestParam(value = "userId", required = false) Long userId
     ) {
         return ResponseEntity.ok(ApiResponse.success(
-                meetingService.getMeetingSttFile(studyId, meetingId, trackType, userId)));
+                meetingSttService.getMeetingSttFile(studyId, meetingId, trackType, userId)));
     }
 
     @GetMapping("/{meetingId}/summary/file")
@@ -299,7 +315,7 @@ public class MeetingController {
             @RequestParam(value = "userId", required = false) Long userId
     ) {
         return ResponseEntity.ok(ApiResponse.success(
-                meetingService.getMeetingSttSummary(studyId, meetingId, trackType, userId)));
+                meetingSttService.getMeetingSttSummary(studyId, meetingId, trackType, userId)));
     }
 
     @GetMapping("/{meetingId}/photos")
@@ -309,7 +325,7 @@ public class MeetingController {
             @AuthenticationPrincipal SsafyUserDetails userDetails
     ) {
         Long userId = userDetails == null ? null : userDetails.getUser().getId();
-        return ResponseEntity.ok(ApiResponse.success(meetingService.getPhotos(studyId, meetingId, requireUserId(userId))));
+        return ResponseEntity.ok(ApiResponse.success(meetingPhotoService.getPhotos(studyId, meetingId, requireUserId(userId))));
     }
 
     @PostMapping("/{meetingId}/photos")
@@ -321,7 +337,7 @@ public class MeetingController {
     ) {
         Long userId = userDetails == null ? null : userDetails.getUser().getId();
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success(meetingService.addPhoto(studyId, meetingId, requireUserId(userId), image)));
+                .body(ApiResponse.success(meetingPhotoService.addPhoto(studyId, meetingId, requireUserId(userId), image)));
     }
 
     @PutMapping("/{meetingId}/photos/{photoId}/select")
@@ -333,7 +349,7 @@ public class MeetingController {
     ) {
         Long userId = userDetails == null ? null : userDetails.getUser().getId();
         return ResponseEntity.ok(ApiResponse.success(
-                meetingService.selectPhoto(studyId, meetingId, requireUserId(userId), photoId)));
+                meetingPhotoService.selectPhoto(studyId, meetingId, requireUserId(userId), photoId)));
     }
 
     @PutMapping("/{meetingId}/photos/selection")
@@ -345,7 +361,7 @@ public class MeetingController {
     ) {
         Long userId = userDetails == null ? null : userDetails.getUser().getId();
         return ResponseEntity.ok(ApiResponse.success(
-                meetingService.selectPhotos(studyId, meetingId, requireUserId(userId), request.photoIds())));
+                meetingPhotoService.selectPhotos(studyId, meetingId, requireUserId(userId), request.photoIds())));
     }
 
     @PutMapping("/{meetingId}/keywords")
@@ -354,7 +370,7 @@ public class MeetingController {
             @PathVariable Long meetingId,
             @Valid @RequestBody MeetingKeywordUpdateRequest request
     ) {
-        meetingService.updateKeywords(studyId, meetingId, request);
+        meetingSttService.updateKeywords(studyId, meetingId, request);
         return ResponseEntity.ok(ApiResponse.success("Keywords updated"));
     }
 
@@ -376,7 +392,7 @@ public class MeetingController {
             @PathVariable Long studyId,
             @PathVariable Long meetingId
     ) {
-        return ResponseEntity.ok(ApiResponse.success(meetingService.getActionItems(studyId, meetingId)));
+        return ResponseEntity.ok(ApiResponse.success(meetingActionItemService.getActionItems(studyId, meetingId)));
     }
 
     @PostMapping("/{meetingId}/action-items")
@@ -387,7 +403,7 @@ public class MeetingController {
             @RequestBody MeetingActionItemRequest request
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success(meetingService.addActionItem(studyId, meetingId, request)));
+                .body(ApiResponse.success(meetingActionItemService.addActionItem(studyId, meetingId, request)));
     }
 
     @PutMapping("/{meetingId}/action-items/{actionItemId}")
@@ -399,7 +415,7 @@ public class MeetingController {
             @RequestBody MeetingActionItemRequest request
     ) {
         return ResponseEntity.ok(ApiResponse.success(
-                meetingService.updateActionItem(studyId, meetingId, actionItemId, request)));
+                meetingActionItemService.updateActionItem(studyId, meetingId, actionItemId, request)));
     }
 
     @GetMapping("/{meetingId}/export")
@@ -410,14 +426,14 @@ public class MeetingController {
     ) {
         String normalized = format.toUpperCase();
         if ("MARKDOWN".equals(normalized)) {
-            byte[] bytes = meetingService.exportMeetingMarkdown(studyId, meetingId).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            byte[] bytes = meetingExportService.exportMeetingMarkdown(studyId, meetingId).getBytes(java.nio.charset.StandardCharsets.UTF_8);
             return ResponseEntity.ok()
                     .contentType(MediaType.valueOf("text/markdown"))
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=meeting-" + meetingId + ".md")
                     .body(bytes);
         }
         if ("PDF".equals(normalized)) {
-            byte[] bytes = meetingService.exportMeetingPdf(studyId, meetingId);
+            byte[] bytes = meetingExportService.exportMeetingPdf(studyId, meetingId);
             return ResponseEntity.ok()
                     .contentType(MediaType.APPLICATION_PDF)
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=meeting-" + meetingId + ".pdf")
@@ -444,7 +460,7 @@ public class MeetingController {
             @PathVariable Long meetingId,
             @Valid @RequestBody com.ssafy.domain.meeting.dto.request.MeetingTranscriptRequest request
     ) {
-        MeetingTranscriptItemResponse response = meetingService.addTranscript(studyId, meetingId, request);
+        MeetingTranscriptItemResponse response = meetingTranscriptService.addTranscript(studyId, meetingId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
     }
 
@@ -454,8 +470,7 @@ public class MeetingController {
             @PathVariable Long studyId,
             @PathVariable Long meetingId
     ) {
-        List<MeetingTranscriptItemResponse> response = meetingService.getTranscripts(studyId, meetingId);
+        List<MeetingTranscriptItemResponse> response = meetingTranscriptService.getTranscripts(studyId, meetingId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 }
-
