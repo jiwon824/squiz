@@ -30,8 +30,10 @@ VALUES
     (22, 'COMPUTER_ARCH', '컴퓨터 구조', 'CPU, 메모리 계층, 병렬 처리를 학습합니다.', 'ARCH_MASTER', 3, TRUE, 22),
     (23, 'LINUX', 'Linux', '리눅스 명령어, 시스템 관리, 셸 스크립트를 학습합니다.', 'LINUX_MASTER', 3, TRUE, 23),
     (24, 'CERT_EIP', '정보처리기사', '정보처리기사 실기 대비 - 데이터통신, 보안, OS, 프로그래밍을 학습합니다.', 'EIP_MASTER', 3, TRUE, 24),
-    (25, 'CERT_SQLD', 'SQLD', 'SQLD 자격증 대비 - 데이터 모델링, SQL 활용, 최적화를 학습합니다.', 'SQLD_MASTER', 3, TRUE, 25) AS new_values
-ON DUPLICATE KEY UPDATE `name` = new_values.`name`;
+    (25, 'CERT_SQLD', 'SQLD', 'SQLD 자격증 대비 - 데이터 모델링, SQL 활용, 최적화를 학습합니다.', 'SQLD_MASTER', 3, TRUE, 25)
+AS new
+ON DUPLICATE KEY UPDATE
+    `name` = new.`name`;
 
 -- =============================================================================
 -- 2. 퀴즈 코스 섹션 (Quiz Course Sections)
@@ -106,8 +108,10 @@ VALUES
     (24, 3, '프로그래밍', 'C, Java, Python 코드 해석, 출력 예측을 학습합니다.', 62, 70),
     (25, 1, '데이터 모델링', 'ERD, 정규화, 식별자, 무결성을 학습합니다.', 38, 70),
     (25, 2, 'SQL 활용', 'JOIN, 서브쿼리, 윈도우 함수, 집합 연산을 학습합니다.', 47, 70),
-    (25, 3, 'SQL 최적화', '옵티마이저, 실행 계획, 인덱스 설계를 학습합니다.', 42, 70) AS new_values
-ON DUPLICATE KEY UPDATE `name` = new_values.`name`;
+    (25, 3, 'SQL 최적화', '옵티마이저, 실행 계획, 인덱스 설계를 학습합니다.', 42, 70)
+AS new
+ON DUPLICATE KEY UPDATE
+    `name` = new.`name`;
 
 -- =============================================================================
 -- 3. 퀴즈 문제 (Quiz Course Questions)
@@ -1261,8 +1265,10 @@ END', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "학생의 점수를 기
     (493, 3, 1, 433, '다음 SQL 문은 무엇을 수행하는가? CREATE INDEX idx_name ON employees(name);', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "employees 테이블의 name 열에 인덱스를 생성한다."}, {"id": "B", "text": "employees 테이블을 삭제한다."}, {"id": "C", "text": "employees 테이블의 모든 데이터를 업데이트한다."}, {"id": "D", "text": "employees 테이블을 선택한다."}]', 'A', '이 SQL 문은 employees 테이블의 name 열에 인덱스를 생성하여 검색 성능을 향상시킵니다.'),
     (494, 3, 1, 434, '다음 SQL 쿼리의 실행 계획을 확인하기 위해 사용할 수 있는 명령어는 무엇인가? SELECT * FROM employees WHERE name = ''John'';', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "EXPLAIN SELECT * FROM employees WHERE name = ''John'';"}, {"id": "B", "text": "SHOW PLAN SELECT * FROM employees WHERE name = ''John'';"}, {"id": "C", "text": "PLAN SELECT * FROM employees WHERE name = ''John'';"}, {"id": "D", "text": "DESCRIBE SELECT * FROM employees WHERE name = ''John'';"}]', 'A', 'EXPLAIN 명령어를 사용하면 해당 쿼리의 실행 계획을 확인할 수 있습니다.'),
     (495, 3, 1, 435, '다음 SQL 문에서 빈칸에 들어갈 알맞은 키워드는 무엇인가? ___ INDEX idx_age ON employees(age);', 'SHORT_ANSWER', NULL, 'CREATE', 'CREATE 키워드는 새로운 인덱스를 생성하는데 사용됩니다.'),
-    (496, 3, 1, 436, '인덱스를 생성할 때 고려해야 할 요소는 무엇인가? 다음 중 올바른 것을 모두 선택하세요.', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "데이터의 읽기 성능"}, {"id": "B", "text": "데이터의 쓰기 성능"}, {"id": "C", "text": "인덱스의 크기"}, {"id": "D", "text": "네트워크 속도"}]', '["A", "B", "C"]', '인덱스를 생성할 때 데이터의 읽기 성능, 쓰기 성능, 그리고 인덱스의 크기를 고려해야 합니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (496, 3, 1, 436, '인덱스를 생성할 때 고려해야 할 요소는 무엇인가? 다음 중 올바른 것을 모두 선택하세요.', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "데이터의 읽기 성능"}, {"id": "B", "text": "데이터의 쓰기 성능"}, {"id": "C", "text": "인덱스의 크기"}, {"id": "D", "text": "네트워크 속도"}]', '["A", "B", "C"]', '인덱스를 생성할 때 데이터의 읽기 성능, 쓰기 성능, 그리고 인덱스의 크기를 고려해야 합니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- 데이터베이스 > 정규화와 설계 (137문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -1403,8 +1409,10 @@ VALUES
     (630, 3, 2, 134, '정규표현식이 주로 사용되는 용도는 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "데이터베이스 백업"}, {"id": "B", "text": "문자열 검색 및 처리"}, {"id": "C", "text": "파일 압축"}, {"id": "D", "text": "데이터베이스 인덱스 생성"}]', 'B', '정규표현식은 문자열에서 특정 패턴을 검색하거나 문자열을 처리하는 데 주로 사용됩니다.'),
     (631, 3, 2, 135, 'LATERAL JOIN의 가장 큰 장점은 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "서브쿼리의 결과를 메인 쿼리에서 사용할 수 있음"}, {"id": "B", "text": "더 빠른 인덱스 검색"}, {"id": "C", "text": "데이터를 직접 수정할 수 있음"}, {"id": "D", "text": "복잡한 연산을 단순화할 수 있음"}]', 'A', 'LATERAL JOIN은 서브쿼리의 결과를 메인 쿼리의 각 행에 대해 사용할 수 있게 해줍니다.'),
     (632, 3, 2, 136, 'UNPIVOT 기능의 주요 목적은 무엇인가?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "열을 행으로 변환하기 위해"}, {"id": "B", "text": "데이터를 압축하기 위해"}, {"id": "C", "text": "제약 조건을 설정하기 위해"}, {"id": "D", "text": "쿼리 성능을 향상시키기 위해"}]', '["A"]', 'UNPIVOT은 데이터를 행 방향으로 변환하여 분석이나 보고서 작성에 유용하도록 만드는 기능입니다.'),
-    (633, 3, 2, 137, 'WITH RECURSIVE 구문은 어떤 목적으로 사용되는가?', 'SHORT_ANSWER', NULL, '재귀 쿼리를 작성하여 계층 구조의 데이터를 조회하기 위해 사용된다.', 'WITH RECURSIVE는 재귀적 쿼리를 사용하여 계층적으로 연결된 데이터를 효과적으로 가져오기 위해 사용됩니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (633, 3, 2, 137, 'WITH RECURSIVE 구문은 어떤 목적으로 사용되는가?', 'SHORT_ANSWER', NULL, '재귀 쿼리를 작성하여 계층 구조의 데이터를 조회하기 위해 사용된다.', 'WITH RECURSIVE는 재귀적 쿼리를 사용하여 계층적으로 연결된 데이터를 효과적으로 가져오기 위해 사용됩니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- 데이터베이스 > 트랜잭션과 동시성 (123문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -1531,8 +1539,10 @@ VALUES
     (753, 3, 3, 120, '트랜잭션의 ACID 속성 중 ''일관성''이 의미하는 것은 무엇인가?', 'SHORT_ANSWER', NULL, '데이터베이스가 유효한 상태로 항상 유지되어야 한다.', '일관성은 트랜잭션이 성공적으로 완료되면 데이터베이스가 일관된 상태로 있어야 함을 의미합니다.'),
     (754, 3, 3, 121, '다음 중 데이터베이스의 격리 수준 중 하나가 아닌 것은?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "READ UNCOMMITTED"}, {"id": "B", "text": "STATIC READ"}, {"id": "C", "text": "READ COMMITTED"}, {"id": "D", "text": "SERIALIZABLE"}]', 'B', 'STATIC READ는 데이터베이스의 격리 수준 중 하나가 아닙니다.'),
     (755, 3, 3, 122, 'MVCC의 주된 장점은 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "작성 성능 향상"}, {"id": "B", "text": "읽기 성능 향상"}, {"id": "C", "text": "데이터 안전성 증가"}, {"id": "D", "text": "스냅샷 제공"}]', 'B', 'MVCC는 읽기와 쓰기의 동시성을 향상시켜 읽기 성능을 증가시킵니다.'),
-    (756, 3, 3, 123, '비관적 락과 낙관적 락의 차이는 무엇인가?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "비관적 락은 항상 락을 거는 방식이다."}, {"id": "B", "text": "낙관적 락은 충돌을 가정하지 않는 방식이다."}, {"id": "C", "text": "비관적 락은 성능이 낮다."}, {"id": "D", "text": "낙관적 락은 데이터베이스 접근이 적은 경우에 유리하다."}]', '["A", "B", "D"]', '비관적 락은 항상 락을 거는 방식이고, 낙관적 락은 충돌을 가정하지 않으며, 접근량이 적을 때 성능상 이점이 있습니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (756, 3, 3, 123, '비관적 락과 낙관적 락의 차이는 무엇인가?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "비관적 락은 항상 락을 거는 방식이다."}, {"id": "B", "text": "낙관적 락은 충돌을 가정하지 않는 방식이다."}, {"id": "C", "text": "비관적 락은 성능이 낮다."}, {"id": "D", "text": "낙관적 락은 데이터베이스 접근이 적은 경우에 유리하다."}]', '["A", "B", "D"]', '비관적 락은 항상 락을 거는 방식이고, 낙관적 락은 충돌을 가정하지 않으며, 접근량이 적을 때 성능상 이점이 있습니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- 알고리즘과 자료구조 > 탐색과 정렬 (210문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -1746,8 +1756,10 @@ VALUES
     (963, 4, 1, 207, '벨만-포드 알고리즘의 주요 용도는 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "최단 경로 찾기"}, {"id": "B", "text": "정렬"}, {"id": "C", "text": "탐색"}, {"id": "D", "text": "조합 찾기"}]', 'A', '벨만-포드 알고리즘은 가중치가 있는 그래프에서 최단 경로를 찾는 데 사용됩니다.'),
     (964, 4, 1, 208, '다음 중 DFS에 대한 설명으로 올바른 것은?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "큐를 사용하여 탐색한다."}, {"id": "B", "text": "스택을 사용하여 탐색한다."}, {"id": "C", "text": "최단 경로를 보장한다."}, {"id": "D", "text": "모든 경로를 탐색하지 않는다."}]', 'B', 'DFS(깊이 우선 탐색)는 스택을 사용하여 탐색하는 알고리즘입니다.'),
     (965, 4, 1, 209, '어떤 알고리즘이 위상 정렬을 사용하여 해결할 수 있는 문제에 해당하는가?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "과목 수강 순서"}, {"id": "B", "text": "최단 경로 문제"}, {"id": "C", "text": "작업 스케줄링"}, {"id": "D", "text": "정렬 문제"}]', '["A", "C"]', '위상 정렬은 DAG에서 노드의 순서를 결정하는 데 유용하며, 과목 수강 순서와 작업 스케줄링 문제에 적용됩니다.'),
-    (966, 4, 1, 210, '순차 탐색의 시간 복잡도는 어떻게 되는가?', 'SHORT_ANSWER', NULL, 'O(n)', '순차 탐색은 최악의 경우 모든 요소를 검색해야 하므로 시간 복잡도는 O(n)입니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (966, 4, 1, 210, '순차 탐색의 시간 복잡도는 어떻게 되는가?', 'SHORT_ANSWER', NULL, 'O(n)', '순차 탐색은 최악의 경우 모든 요소를 검색해야 하므로 시간 복잡도는 O(n)입니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- 알고리즘과 자료구조 > DP와 그리디 (188문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -1939,9 +1951,11 @@ VALUES
     (1151, 4, 2, 185, '최장 증가 부분수열 문제에서 DP 테이블의 역할은 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "부분문제의 최적해를 저장"}, {"id": "B", "text": "입력값을 정렬"}, {"id": "C", "text": "문제를 난이도별로 분류"}, {"id": "D", "text": "결과를 출력하는 기능"}]', 'A', 'DP 테이블은 부분문제의 최적해를 저장하여, 중복 계산을 방지하고 효율성을 높입니다.'),
     (1152, 4, 2, 186, '다음 중 동전 교환 문제에서 사용할 수 없는 접근 방법은?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "탑다운 방식"}, {"id": "B", "text": "그리디 알고리즘"}, {"id": "C", "text": "피보나치 수열"}, {"id": "D", "text": "바텀업 방식"}]', 'C', '동전 교환 문제는 피보나치 수열과는 관련이 없으며, 주로 그리디 알고리즘이나 DP를 사용합니다.'),
     (1153, 4, 2, 187, '최장 공통 부분수열 문제는 어떤 방식으로 해결할 수 있는가? (복수 정답 선택)', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "DP 테이블 사용"}, {"id": "B", "text": "탑다운 방식"}, {"id": "C", "text": "그리디 방식"}, {"id": "D", "text": "바텀업 방식"}]', '["A", "D"]', '최장 공통 부분수열 문제는 DP 테이블을 사용하여 바텀업 방식으로 해결할 수 있습니다.'),
-    (1154, 4, 2, 188, '피보나치 수열을 다이나믹 프로그래밍 방식으로 계산할 때, 어떤 기법을 주로 사용하는가?', 'SHORT_ANSWER', NULL, '점화식', '피보나치 수열을 계산할 때는 점화식을 사용하여 이전 값들을 기반으로 현재 값을 계산합니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
-
+    (1154, 4, 2, 188, '피보나치 수열을 다이나믹 프로그래밍 방식으로 계산할 때, 어떤 기법을 주로 사용하는가?', 'SHORT_ANSWER', NULL, '점화식', '피보나치 수열을 계산할 때는 점화식을 사용하여 이전 값들을 기반으로 현재 값을 계산합니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
+    
 -- 알고리즘과 자료구조 > 고급 자료구조와 기법 (262문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
 VALUES
@@ -2206,8 +2220,10 @@ VALUES
     (1413, 4, 3, 259, 'HLD(Heavy Light Decomposition)의 목적은 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "트리를 정렬하기 위해"}, {"id": "B", "text": "쿼리 처리의 최적화"}, {"id": "C", "text": "이진 탐색 수행"}, {"id": "D", "text": "노드 개수 카운트"}]', 'B', 'HLD는 트리를 여러 개의 경량 부분으로 나누어 쿼리 처리를 최적화하는 기법입니다.'),
     (1414, 4, 3, 260, '다음 중 B+트리의 특징이 아닌 것은?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "모든 리프 노드가 같은 깊이에 있다."}, {"id": "B", "text": "데이터가 리프 노드에만 저장된다."}, {"id": "C", "text": "내부 노드는 데이터 저장이 가능하다."}, {"id": "D", "text": "균형을 유지한다."}]', 'C', 'B+트리는 데이터가 리프 노드에만 저장되며, 내부 노드는 오직 키 값만을 저장합니다.'),
     (1415, 4, 3, 261, '트리의 지름을 정의하세요.', 'SHORT_ANSWER', NULL, '두 노드 사이의 최대 거리', '트리의 지름은 두 노드 사이의 최대 거리를 의미합니다.'),
-    (1416, 4, 3, 262, '오일러 투어를 통해 어떤 정보를 쉽게 구할 수 있는가?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "최소 공통 조상"}, {"id": "B", "text": "트리의 깊이"}, {"id": "C", "text": "트리의 사이즈"}, {"id": "D", "text": "트리의 높이"}]', '["A", "B"]', '오일러 투어는 트리를 순회하여 노드를 배열 형태로 나열하고, 이를 통해 최소 공통 조상과 트리의 깊이를 쉽게 구할 수 있습니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (1416, 4, 3, 262, '오일러 투어를 통해 어떤 정보를 쉽게 구할 수 있는가?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "최소 공통 조상"}, {"id": "B", "text": "트리의 깊이"}, {"id": "C", "text": "트리의 사이즈"}, {"id": "D", "text": "트리의 높이"}]', '["A", "B"]', '오일러 투어는 트리를 순회하여 노드를 배열 형태로 나열하고, 이를 통해 최소 공통 조상과 트리의 깊이를 쉽게 구할 수 있습니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- Java와 Spring > Java 기본과 심화 (508문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -2571,7 +2587,7 @@ optionalString.____(s -> System.out.println(s.length()));', 'MULTIPLE_CHOICE', '
 Optional<String> optionalString = Optional.ofNullable(getString()); 
 optionalString.ifPresent(s -> System.out.println(s.length()));', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "0"}, {"id": "B", "text": "null"}, {"id": "C", "text": "Length not available"}, {"id": "D", "text": "아무것도 출력되지 않는다"}]', 'D', 'getString()이 null을 반환하면, ifPresent는 실행되지 않으므로 아무것도 출력되지 않습니다.'),
     (1575, 5, 1, 159, 'Optional을 사용할 때, 값이 없을 경우 기본값을 제공하는 메서드는 무엇인가요? 
-optionalString.orElse(____);', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "\"기본값\""}, {"id": "B", "text": "null"}, {"id": "C", "text": "Optional.empty()"}, {"id": "D", "text": "getString()"}]', 'A', 'orElse 메서드는 Optional이 값이 없을 경우 제공할 기본값을 설정합니다.'),
+optionalString.orElse(____);', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "\\"기본값\\""}, {"id": "B", "text": "null"}, {"id": "C", "text": "Optional.empty()"}, {"id": "D", "text": "getString()"}]', 'A', 'orElse 메서드는 Optional이 값이 없을 경우 제공할 기본값을 설정합니다.'),
     (1576, 5, 1, 160, 'Optional에서 값을 필터링하기 위해 사용하는 메서드는 무엇인가요?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "map"}, {"id": "B", "text": "filter"}, {"id": "C", "text": "flatMap"}, {"id": "D", "text": "ifPresent"}]', '["B"]', 'filter 메서드는 Optional의 값이 특정 조건을 만족할 때만 값이 존재하도록 필터링합니다.'),
     (1577, 5, 1, 161, 'Optional 클래스를 사용하여 null을 안전하게 처리하는 주된 목적은 무엇인가요?', 'SHORT_ANSWER', NULL, 'NullPointerException 방지', 'Optional 클래스는 null 대신 사용하여 NullPointerException을 방지하는 것을 목적으로 합니다.'),
     (1578, 5, 1, 162, '위 코드에서 허용된 공개 URL 패턴은 무엇인가요?', 'SHORT_ANSWER', NULL, '/public/**', '코드에서 .antMatchers(''/public/**'').permitAll()을 통해 ''/public/'' 경로에 접근하는 요청은 인증 없이 허용됩니다.'),
@@ -2609,7 +2625,7 @@ protected void configure(HttpSecurity http) throws Exception {
 
     .logout()
         ._____();', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "permitAll"}, {"id": "B", "text": "authenticated"}, {"id": "C", "text": "denyAll"}, {"id": "D", "text": "authorize"}]', 'A', '로그아웃 설정에서는 ''permitAll''을 사용하여 모든 사용자에게 로그아웃을 허용할 수 있습니다.'),
-    (1586, 5, 1, 170, '다음 중 Spring Security 설정에서 인증을 요구하는 설정을 선택하세요.', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "anyRequest().authenticated()"}, {"id": "B", "text": "antMatchers(\"/public/**\").permitAll()"}, {"id": "C", "text": "formLogin()"}, {"id": "D", "text": "logout()"}]', '["A", "C"]', 'anyRequest().authenticated()는 모든 요청에 대해 인증을 요구하고, formLogin()은 로그인 처리에 관련된 설정이므로 인증을 요구합니다.'),
+    (1586, 5, 1, 170, '다음 중 Spring Security 설정에서 인증을 요구하는 설정을 선택하세요.', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "anyRequest().authenticated()"}, {"id": "B", "text": "antMatchers(\\"/public/**\\").permitAll()"}, {"id": "C", "text": "formLogin()"}, {"id": "D", "text": "logout()"}]', '["A", "C"]', 'anyRequest().authenticated()는 모든 요청에 대해 인증을 요구하고, formLogin()은 로그인 처리에 관련된 설정이므로 인증을 요구합니다.'),
     (1587, 5, 1, 171, '다음 코드의 출력 결과는 무엇인가? 
 Optional<String> optionalString = Optional.ofNullable(getString()); 
 optionalString.ifPresent(s -> System.out.println(s.length()));', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "문자열 길이 출력"}, {"id": "B", "text": "null 출력"}, {"id": "C", "text": "예외 발생"}, {"id": "D", "text": "아무것도 출력하지 않음"}]', 'A', 'getString()이 null이 아닐 경우 문자열의 길이를 출력합니다.'),
@@ -2662,7 +2678,7 @@ switch (day) {
 }
 ', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "TUESDAY"}, {"id": "B", "text": "WEDNESDAY"}, {"id": "C", "text": "THURSDAY"}, {"id": "D", "text": "FRIDAY"}]', 'B', 'MONDAY와 TUESDAY만 switch 문에 사용되어야 합니다.'),
     (1604, 5, 1, 188, 'Enum을 통해 요일에 해당하는 근무 여부를 정의하고 싶습니다. 아래의 선택지 중 올바른 Enum 정의는 무엇인가요?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "public enum Day { SUNDAY(true), MONDAY(false); }"}, {"id": "B", "text": "public enum Day { SUNDAY, MONDAY; }"}, {"id": "C", "text": "public enum Day { SUNDAY, MONDAY; private boolean workday; }"}, {"id": "D", "text": "public enum Day { SUNDAY(false), MONDAY(true); }"}]', '["A", "D"]', 'A와 D는 각 요일에 대해 근무 여부를 설정하는 방식이므로 올바른 정의입니다.'),
-    (1605, 5, 1, 189, '다음 코드에서 ''MyBean'' 클래스가 singleton 스코프로 생성되도록 설정된 어노테이션은 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "@Scope(\"singleton\")"}, {"id": "B", "text": "@Singleton"}, {"id": "C", "text": "@Bean"}, {"id": "D", "text": "@Component"}]', 'A', '''@Scope("singleton")''은 MyBean이 singleton 스코프로 관리되도록 설정합니다.'),
+    (1605, 5, 1, 189, '다음 코드에서 ''MyBean'' 클래스가 singleton 스코프로 생성되도록 설정된 어노테이션은 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "@Scope(\\"singleton\\")"}, {"id": "B", "text": "@Singleton"}, {"id": "C", "text": "@Bean"}, {"id": "D", "text": "@Component"}]', 'A', '''@Scope("singleton")''은 MyBean이 singleton 스코프로 관리되도록 설정합니다.'),
     (1606, 5, 1, 190, 'Spring Bean의 생명주기에서 Bean이 생성된 후 호출되는 메서드는 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "destroy()"}, {"id": "B", "text": "init()"}, {"id": "C", "text": "create()"}, {"id": "D", "text": "start()"}]', 'B', 'Bean이 생성된 후 호출되는 초기화 메서드는 ''init()''입니다.'),
     (1607, 5, 1, 191, '다음 중 Spring의 Bean 스코프에 포함되지 않는 것은 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "singleton"}, {"id": "B", "text": "prototype"}, {"id": "C", "text": "group"}, {"id": "D", "text": "session"}]', 'C', '''group''은 Spring의 Bean 스코프에 포함되지 않습니다.'),
     (1608, 5, 1, 192, 'Spring Bean의 생명주기 중 초기화 후 수행되어야 하는 작업을 모두 선택하세요. (복수 정답)', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "리소스 할당"}, {"id": "B", "text": "듀티 사이클 관리"}, {"id": "C", "text": "이벤트 리스너 등록"}, {"id": "D", "text": "오류 처리"}]', '["A", "C"]', '초기화 후에는 리소스 할당 및 이벤트 리스너 등록과 같은 작업이 수행될 수 있습니다.'),
@@ -2760,7 +2776,7 @@ public class MyBean {
  B. POST 
  C. PUT 
  D. 모두 해당', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "GET"}, {"id": "B", "text": "POST"}, {"id": "C", "text": "PUT"}, {"id": "D", "text": "모두 해당"}]', '["A", "B", "C", "D"]', 'Controller 메소드는 GET, POST, PUT 등 다양한 HTTP 메소드 유형으로 요청을 처리할 수 있습니다.'),
-    (1642, 5, 1, 226, '다음 코드에서 AOP를 사용하여 메소드 실행 전에 로깅을 추가하는 조각(Aspect)을 올바르게 구현한 것은?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "@Before(\"execution(* com.example.service.*.*(..))\")"}, {"id": "B", "text": "@After(\"execution(* com.example.controller.*.*(..))\")"}, {"id": "C", "text": "@Around(\"execution(* com.example.repository.*.*(..))\")"}, {"id": "D", "text": "@Pointcut(\"execution(* com.example.service.*.*(..))\")"}]', 'A', 'A는 메소드 실행 전에 로깅을 추가하기 위한 어노테이션으로 적절합니다.'),
+    (1642, 5, 1, 226, '다음 코드에서 AOP를 사용하여 메소드 실행 전에 로깅을 추가하는 조각(Aspect)을 올바르게 구현한 것은?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "@Before(\\"execution(* com.example.service.*.*(..))\\")"}, {"id": "B", "text": "@After(\\"execution(* com.example.controller.*.*(..))\\")"}, {"id": "C", "text": "@Around(\\"execution(* com.example.repository.*.*(..))\\")"}, {"id": "D", "text": "@Pointcut(\\"execution(* com.example.service.*.*(..))\\")"}]', 'A', 'A는 메소드 실행 전에 로깅을 추가하기 위한 어노테이션으로 적절합니다.'),
     (1643, 5, 1, 227, '다음은 AOP에서 사용되는 어노테이션입니다. 이 어노테이션의 역할은 무엇인가요? @Aspect', 'SHORT_ANSWER', NULL, 'Aspect 지정을 통해 AOP 기능을 사용할 수 있게 해준다.', 'AOP의 핵심 구성 요소 중 하나로, 해당 클래스가 Aspect임을 나타냅니다.'),
     (1644, 5, 1, 228, '다음 의 코드를 완성하시오. @Before("execution(* com.example.service.*.*(..))") public void logBefore(JoinPoint joinPoint) { System.out.println("Executing: " + joinPoint.getSignature().getName()); } // 빈칸: _____', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "public void logAfter()"}, {"id": "B", "text": "public void logBefore()"}, {"id": "C", "text": "public void logEnd()"}, {"id": "D", "text": "public void logAround()"}]', 'B', 'logBefore 메소드의 정의가 올바르게 시작하기 위해서는 B의 형태가 필요합니다.'),
     (1645, 5, 1, 229, 'AOP의 여러 공통 관심사를 처리하기 위해 사용할 수 있는 어노테이션들 중 어떤 것들이 있는가? (복수 선택)', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "@Before"}, {"id": "B", "text": "@After"}, {"id": "C", "text": "@Around"}, {"id": "D", "text": "@RequestMapping"}]', '["A", "B", "C"]', 'AOP에서 사용되는 어노테이션으로 @Before, @After, @Around이 맞습니다.'),
@@ -2775,7 +2791,7 @@ public class MyBean {
 
 Sparrow sparrow = new Sparrow();
 sparrow.fly();
-sparrow.sound();', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "Sparrow flies\nChirp"}, {"id": "B", "text": "Chirp\nSparrow flies"}, {"id": "C", "text": "Chirp\nChirp"}, {"id": "D", "text": "Sparrow flies\nSparrow flies"}]', 'A', 'fly()와 sound() 메서드가 호출되어 ''Sparrow flies''와 ''Chirp''가 출력됩니다.'),
+sparrow.sound();', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "Sparrow flies\\nChirp"}, {"id": "B", "text": "Chirp\\nSparrow flies"}, {"id": "C", "text": "Chirp\\nChirp"}, {"id": "D", "text": "Sparrow flies\\nSparrow flies"}]', 'A', 'fly()와 sound() 메서드가 호출되어 ''Sparrow flies''와 ''Chirp''가 출력됩니다.'),
     (1654, 5, 1, 238, 'Animal 인터페이스에서 정의된 메서드는 몇 개 이상 구현할 수 있나요?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "0"}, {"id": "B", "text": "1"}, {"id": "C", "text": "2"}, {"id": "D", "text": "N개"}]', '["B", "D"]', '인터페이스는 최소 1개 이상의 메서드를 구현해야 하며, 여러 개도 가능합니다.'),
     (1655, 5, 1, 239, '다음 코드의 실행 결과는 무엇인가?
 List<Integer> numbers = Arrays.asList(1, 2, 3, 4, 5);
@@ -2901,7 +2917,7 @@ public static <T> void printArray(T[] array) {
     for (T element : array) {
         System.out.println(element);
     }
-}', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "1\n2\n3"}, {"id": "B", "text": "1\n2"}, {"id": "C", "text": "3\n2\n1"}, {"id": "D", "text": "에러 발생"}]', 'A', 'printArray 메서드는 주어진 배열을 순회하며 각 요소를 출력하므로 1, 2, 3이 차례로 출력됩니다.'),
+}', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "1\\n2\\n3"}, {"id": "B", "text": "1\\n2"}, {"id": "C", "text": "3\\n2\\n1"}, {"id": "D", "text": "에러 발생"}]', 'A', 'printArray 메서드는 주어진 배열을 순회하며 각 요소를 출력하므로 1, 2, 3이 차례로 출력됩니다.'),
     (1689, 5, 1, 273, '다음 코드를 완성하시오: 
 
 public static void printList(List<? ____ Number> list) {
@@ -2923,8 +2939,8 @@ public static void printList(List<? ____ Number> list) {
 4. List<? super Object>는 Object의 모든 상위 타입을 포함할 수 있다.', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "1"}, {"id": "B", "text": "2"}, {"id": "C", "text": "3"}, {"id": "D", "text": "4"}]', '["A", "B", "C"]', '1, 2, 3은 모두 올바른 설명입니다. 그러나 4는 잘못된 설명으로, Object의 모든 상위 타입은 존재하지 않습니다.'),
     (1692, 5, 1, 276, '제네릭을 사용하는 주된 목적은 무엇인가?', 'SHORT_ANSWER', NULL, '타입 안전성과 코드 재사용성을 높이기 위해', '제네릭은 코드의 타입 안전성을 보장하고, 중복된 코드를 줄여 재사용성을 높이는 데 목적이 있습니다.'),
     (1693, 5, 1, 277, '다음 코드에서, /home URL에 대한 접근 권한은 어떻게 설정되어 있나요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "모든 사용자에게 허용된다."}, {"id": "B", "text": "인증된 사용자만 허용된다."}, {"id": "C", "text": "관리자만 허용된다."}, {"id": "D", "text": "허용되지 않는다."}]', 'A', '/home URL은 permitAll() 메서드에 의해 모든 사용자에게 허용됩니다.'),
-    (1694, 5, 1, 278, '다음 코드의 빈칸에 들어갈 알맞은 메서드는 무엇인가요? http.authorizeRequests().___().anyRequest().authenticated();', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "antMatchers(\"/\", \"/home\").permitAll()"}, {"id": "B", "text": "denyAll()"}, {"id": "C", "text": "authenticated()"}, {"id": "D", "text": "permitAll()"}]', 'A', 'antMatchers() 메서드는 특정 URL에 대한 권한을 설정하는 데 사용됩니다.'),
-    (1695, 5, 1, 279, '다음 중 Spring Security에서 인증을 위한 로그인 페이지를 설정하는 방법은?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "loginPage(\"/login\").permitAll()"}, {"id": "B", "text": "permitAll().loginPage(\"/login\")"}, {"id": "C", "text": "security.loginPage(\"/login\")"}, {"id": "D", "text": "setLoginPage(\"/login\")"}]', 'A', 'loginPage() 메서드는 커스텀 로그인 페이지를 설정하는 데 사용됩니다.'),
+    (1694, 5, 1, 278, '다음 코드의 빈칸에 들어갈 알맞은 메서드는 무엇인가요? http.authorizeRequests().___().anyRequest().authenticated();', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "antMatchers(\\"/\\", \\"/home\\").permitAll()"}, {"id": "B", "text": "denyAll()"}, {"id": "C", "text": "authenticated()"}, {"id": "D", "text": "permitAll()"}]', 'A', 'antMatchers() 메서드는 특정 URL에 대한 권한을 설정하는 데 사용됩니다.'),
+    (1695, 5, 1, 279, '다음 중 Spring Security에서 인증을 위한 로그인 페이지를 설정하는 방법은?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "loginPage(\\"/login\\").permitAll()"}, {"id": "B", "text": "permitAll().loginPage(\\"/login\\")"}, {"id": "C", "text": "security.loginPage(\\"/login\\")"}, {"id": "D", "text": "setLoginPage(\\"/login\\")"}]', 'A', 'loginPage() 메서드는 커스텀 로그인 페이지를 설정하는 데 사용됩니다.'),
     (1696, 5, 1, 280, 'Spring Security에서 기본 사용자 저장소를 메모리로 설정할 때 사용하는 메서드는 무엇인가요?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "inMemoryAuthentication()"}, {"id": "B", "text": "jdbcAuthentication()"}, {"id": "C", "text": "customUserDetailsService()"}, {"id": "D", "text": "userDetailsService()"}]', '["A"]', 'inMemoryAuthentication() 메서드는 메모리 기반 사용자 저장소를 설정하는 데 사용됩니다.'),
     (1697, 5, 1, 281, 'Spring Security의 인증 방식 중 하나인 Form Login에 대한 설정을 설명하시오.', 'SHORT_ANSWER', NULL, 'Form Login은 사용자에게 로그인 페이지를 제공하고, 사용자 인증 정보를 받아와서 인증을 처리하는 방식입니다.', 'Form Login은 사용자가 입력한 로그인 정보를 통해 인증을 수행하는 방식입니다.'),
     (1698, 5, 1, 282, 'Spring Bean의 기본 스코프 중 하나로, 애플리케이션 전체에서 단 하나의 인스턴스만 존재하는 스코프는 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "Singleton"}, {"id": "B", "text": "Prototype"}, {"id": "C", "text": "Request"}, {"id": "D", "text": "Session"}]', 'A', 'Singleton 스코프는 애플리케이션 내에서 단 하나의 Bean 인스턴스를 생성하여 사용합니다.'),
@@ -2947,7 +2963,7 @@ String name = null;
 Optional<String> optionalName = Optional.ofNullable(name);
 optionalName.ifPresent(n -> System.out.println("Name: " + n));
 String result = optionalName.orElse("Default Name");
-System.out.println(result);', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "Name: null\nDefault Name"}, {"id": "B", "text": "Name: \nDefault Name"}, {"id": "C", "text": "Name: null\nName: Default Name"}, {"id": "D", "text": "Default Name"}]', 'D', 'optionalName에 값이 없으므로, ifPresent()는 실행되지 않고, orElse()가 호출되어 "Default Name"이 출력됩니다.'),
+System.out.println(result);', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "Name: null\\nDefault Name"}, {"id": "B", "text": "Name: \\nDefault Name"}, {"id": "C", "text": "Name: null\\nName: Default Name"}, {"id": "D", "text": "Default Name"}]', 'D', 'optionalName에 값이 없으므로, ifPresent()는 실행되지 않고, orElse()가 호출되어 "Default Name"이 출력됩니다.'),
     (1704, 5, 1, 288, 'Optional<String> optionalName = Optional.ofNullable(name);에서 name이 null일 경우, optionalName은 어떤 상태인가?', 'SHORT_ANSWER', NULL, '빈 Optional 객체가 된다.', ''),
     (1705, 5, 1, 289, 'Optional 사용 시, 값이 존재할 경우의 처리를 무엇이라고 할 수 있는가? 
 
@@ -3276,7 +3292,7 @@ List<?> list = new ArrayList<Integer>();', 'MULTIPLE_CHOICE', '[{"id": "A", "tex
 List<Number> list = new ArrayList<>(); 
 list.add(10); 
 list.add(20.5); 
-printNumbers(list);', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "10\n20.5"}, {"id": "B", "text": "10.0\n20.5"}, {"id": "C", "text": "20.5\n10"}, {"id": "D", "text": "Number type error"}]', 'A', '정확히 10과 20.5가 출력됩니다.'),
+printNumbers(list);', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "10\\n20.5"}, {"id": "B", "text": "10.0\\n20.5"}, {"id": "C", "text": "20.5\\n10"}, {"id": "D", "text": "Number type error"}]', 'A', '정확히 10과 20.5가 출력됩니다.'),
     (1802, 5, 1, 386, '제네릭과 와일드카드를 통해 얻을 수 있는 이점 중 두 가지를 적으시오.', 'SHORT_ANSWER', NULL, '타입 안정성과 코드 재사용성', '제네릭은 타입 안정성을 제공하고, 다양한 타입에 대해 같은 코드를 재사용할 수 있게 합니다.'),
     (1803, 5, 1, 387, '제네릭 클래스를 정의할 때 사용되는 타입 매개변수의 규칙은 무엇인가?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "대문자로 시작해야 한다."}, {"id": "B", "text": "소문자로 시작해야 한다."}, {"id": "C", "text": "한 글자여야 한다."}, {"id": "D", "text": "숫자를 포함할 수 있다."}]', '["A", "C"]', '제네릭의 타입 매개변수는 대문자로 시작하며 한 글자로 정의하는 것이 일반적입니다.'),
     (1804, 5, 1, 388, '다음 중 Java 인터페이스의 특징이 아닌 것은 무엇인가요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "구현할 수 있는 메서드를 포함할 수 있다."}, {"id": "B", "text": "다중 상속이 가능하다."}, {"id": "C", "text": "인스턴스를 생성할 수 있다."}, {"id": "D", "text": "상수 필드를 가질 수 있다."}]', 'C', 'Java 인터페이스는 인스턴스를 생성할 수 없습니다.'),
@@ -3528,7 +3544,7 @@ public void logBefore(JoinPoint joinPoint) {
 Optional<String> optionalName = Optional.ofNullable(getName());
 String defaultName = optionalName.orElse("Default Name");', 'SHORT_ANSWER', NULL, 'Default Name', 'optionalName이 null일 경우 orElse() 메서드는 기본값인 ''Default Name''을 반환합니다.'),
     (1889, 5, 1, 473, '다음 코드에서 optionalString의 값은 무엇인가? 
-Optional<String> optionalString = Optional.of("Hello");', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "\"Hello\""}, {"id": "B", "text": "null"}, {"id": "C", "text": "\"World\""}, {"id": "D", "text": "Optional.empty()"}]', 'A', 'Optional.of() 메서드는 null이 아닌 값을 감싸기 때문에 optionalString의 값은 "Hello"입니다.'),
+Optional<String> optionalString = Optional.of("Hello");', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "\\"Hello\\""}, {"id": "B", "text": "null"}, {"id": "C", "text": "\\"World\\""}, {"id": "D", "text": "Optional.empty()"}]', 'A', 'Optional.of() 메서드는 null이 아닌 값을 감싸기 때문에 optionalString의 값은 "Hello"입니다.'),
     (1890, 5, 1, 474, '다음 코드에서 name이 출력되는 조건은 무엇인가? 
 optionalName.ifPresent(name -> System.out.println("Name: " + name));', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "optionalName이 비어 있지 않을 때"}, {"id": "B", "text": "optionalName이 null일 때"}, {"id": "C", "text": "optionalName이 빈 문자열일 때"}, {"id": "D", "text": "optionalName이 Optional.empty()일 때"}]', 'A', 'ifPresent() 메서드는 optionalName이 비어 있지 않을 때만 실행됩니다.'),
     (1891, 5, 1, 475, 'Optional을 사용할 때, 값을 직접 꺼내기 전에 먼저 확인할 수 있는 메서드는 어떤 것들이 있는가? 
@@ -3579,7 +3595,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 2. findFirstByOrderByAgeAsc() 
 3. findTopByName(String name) 
 4. findByLastName(String lastName)', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "1"}, {"id": "B", "text": "2"}, {"id": "C", "text": "3"}, {"id": "D", "text": "4"}]', '["A", "D"]', '1번과 4번 메서드는 조건에 맞는 다수의 결과를 반환할 수 있습니다.'),
-    (1904, 5, 1, 488, 'JPA Repository에서 @Query 어노테이션을 사용한 예시로 올바른 구문은?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "@Query(\"SELECT u FROM User u WHERE u.age > ?1\")"}, {"id": "B", "text": "@Query(\"FROM User u WHERE u.age > ?1\")"}, {"id": "C", "text": "@Query(\"SELECT * FROM User WHERE age > ?1\")"}, {"id": "D", "text": "@Query(\"User u WHERE u.age > ?1\")"}]', 'A', 'A는 JPQL 문법에 맞게 잘 작성된 @Query 구문입니다.'),
+    (1904, 5, 1, 488, 'JPA Repository에서 @Query 어노테이션을 사용한 예시로 올바른 구문은?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "@Query(\\"SELECT u FROM User u WHERE u.age > ?1\\")"}, {"id": "B", "text": "@Query(\\"FROM User u WHERE u.age > ?1\\")"}, {"id": "C", "text": "@Query(\\"SELECT * FROM User WHERE age > ?1\\")"}, {"id": "D", "text": "@Query(\\"User u WHERE u.age > ?1\\")"}]', 'A', 'A는 JPQL 문법에 맞게 잘 작성된 @Query 구문입니다.'),
     (1905, 5, 1, 489, '다음 중 JPA Repository에서 자동으로 쿼리를 생성하는 메서드 이름의 예시는 무엇인가요? 
 
 1. findByFirstName
@@ -3589,7 +3605,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     (1906, 5, 1, 490, '다음 중 @Query 어노테이션을 사용하여 JPQL 쿼리를 작성한 메서드의 예시는 무엇인가요? 
 
 1. List<User> findByLastName(String lastName);
-2. @Query("SELECT u FROM User u WHERE u.age > ?1") List<User> findUsersOlderThan(int age);', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "List<User> findByLastName(String lastName);"}, {"id": "B", "text": "@Query(\"SELECT u FROM User u WHERE u.age > ?1\") List<User> findUsersOlderThan(int age);"}, {"id": "C", "text": "List<User> findByAge(int age);"}, {"id": "D", "text": "List<User> findAll();"}]', 'B', '@Query 어노테이션을 사용하여 JPQL 쿼리를 직접 작성한 예입니다.'),
+2. @Query("SELECT u FROM User u WHERE u.age > ?1") List<User> findUsersOlderThan(int age);', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "List<User> findByLastName(String lastName);"}, {"id": "B", "text": "@Query(\\"SELECT u FROM User u WHERE u.age > ?1\\") List<User> findUsersOlderThan(int age);"}, {"id": "C", "text": "List<User> findByAge(int age);"}, {"id": "D", "text": "List<User> findAll();"}]', 'B', '@Query 어노테이션을 사용하여 JPQL 쿼리를 직접 작성한 예입니다.'),
     (1907, 5, 1, 491, '다음 중 UserRepository에서 사용할 수 없는 메서드는 무엇인가요? 
 
 1. findByLastName
@@ -3646,8 +3662,10 @@ class PersonComparator implements Comparator<Person> {
     }
 }', 'SHORT_ANSWER', NULL, 'compare', 'Comparator 인터페이스의 compare 메서드를 오버라이드해야 합니다.'),
     (1923, 5, 1, 507, '다음 중 Comparable과 Comparator의 차이에 해당하는 것은 무엇인가요? (복수선택 가능)', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "Comparable은 객체 자체의 정렬 기준을 정한다."}, {"id": "B", "text": "Comparator는 외부에서 정렬 기준을 정의한다."}, {"id": "C", "text": "Comparable은 여러 기준으로 정렬할 수 있다."}, {"id": "D", "text": "Comparator는 하나의 기준으로만 정렬할 수 있다."}]', '["A", "B"]', 'Comparable은 객체가 자신을 비교할 수 있도록 하며, Comparator는 외부에서 비교 기준을 정의합니다.'),
-    (1924, 5, 1, 508, 'Comparable 인터페이스를 구현하기 위해 필요한 메서드는 무엇인가요?', 'SHORT_ANSWER', NULL, 'compareTo', 'Comparable 인터페이스는 compareTo 메서드를 요구합니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (1924, 5, 1, 508, 'Comparable 인터페이스를 구현하기 위해 필요한 메서드는 무엇인가요?', 'SHORT_ANSWER', NULL, 'compareTo', 'Comparable 인터페이스는 compareTo 메서드를 요구합니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- Java와 Spring > Spring Boot 핵심 (99문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -3750,8 +3768,10 @@ VALUES
     (2020, 5, 2, 96, '다음 중 스프링에서 프록시 패턴의 주요 용도는 무엇인가요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "AOP 구현"}, {"id": "B", "text": "데이터베이스 연결"}, {"id": "C", "text": "로깅 기능 제공"}, {"id": "D", "text": "파일 시스템 접근"}]', 'A', '프록시 패턴은 AOP(관점 지향 프로그래밍)를 구현하기 위한 주요 기법입니다.'),
     (2021, 5, 2, 97, '스프링에서 DI(의존성 주입)의 장점을 두 가지 이상 고르세요.', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "테스트 용이성"}, {"id": "B", "text": "코드 재사용성"}, {"id": "C", "text": "성능 향상"}, {"id": "D", "text": "유지보수 용이성"}]', '["A", "B", "D"]', 'DI는 객체 간의 결합도를 낮추어 테스트 용이성, 코드 재사용성, 유지보수 용이성을 높입니다.'),
     (2022, 5, 2, 98, 'BeanFactory의 역할 중 포함되지 않은 것은 무엇인가요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "객체 생성"}, {"id": "B", "text": "싱글톤 관리"}, {"id": "C", "text": "의존성 주입"}, {"id": "D", "text": "웹 요청 처리"}]', 'D', 'BeanFactory는 객체 생성, 싱글톤 관리, 의존성 주입을 담당하지만 웹 요청 처리는 하지 않습니다.'),
-    (2023, 5, 2, 99, '스프링에서 인터셉터는 주로 어떤 역할을 하나요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "데이터베이스 연결 관리"}, {"id": "B", "text": "HTTP 요청 전처리"}, {"id": "C", "text": "비즈니스 로직 처리"}, {"id": "D", "text": "UI 렌더링"}]', 'B', '인터셉터는 주로 HTTP 요청을 가로채어 전처리하는 역할을 합니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (2023, 5, 2, 99, '스프링에서 인터셉터는 주로 어떤 역할을 하나요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "데이터베이스 연결 관리"}, {"id": "B", "text": "HTTP 요청 전처리"}, {"id": "C", "text": "비즈니스 로직 처리"}, {"id": "D", "text": "UI 렌더링"}]', 'B', '인터셉터는 주로 HTTP 요청을 가로채어 전처리하는 역할을 합니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- Java와 Spring > JPA와 데이터 접근 (52문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -3807,8 +3827,10 @@ VALUES
     (2072, 5, 3, 49, '지연 로딩의 주된 목적은 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "성능 최적화"}, {"id": "B", "text": "데이터베이스의 무결성 유지"}, {"id": "C", "text": "트랜잭션 관리"}, {"id": "D", "text": "엔티티 매핑"}]', 'A', '지연 로딩은 필요한 시점에만 데이터를 로드하여 성능을 최적화하는 기법입니다.'),
     (2073, 5, 3, 50, 'N+1 문제는 어떤 상황에서 발생하는가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "모든 엔티티를 한 번에 로드할 때"}, {"id": "B", "text": "관계를 가진 엔티티를 반복적으로 로드할 때"}, {"id": "C", "text": "엔티티를 업데이트할 때"}, {"id": "D", "text": "쿼리를 잘못 작성할 때"}]', 'B', 'N+1 문제는 부모 엔티티를 조회한 후, 각 부모에 속하는 자식 엔티티를 반복적으로 쿼리하여 발생하는 성능 저하 문제입니다.'),
     (2074, 5, 3, 51, '다음 중 CASCADE의 기능으로 올바른 것은 무엇인가? (복수 선택 가능)', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "부모 엔티티 삭제 시 자식 엔티티도 삭제"}, {"id": "B", "text": "부모 엔티티 업데이트 시 자식 엔티티도 자동 업데이트"}, {"id": "C", "text": "자식 엔티티만 독립적으로 관리"}, {"id": "D", "text": "부모 엔티티에 대한 조회 성능 향상"}]', '["A", "B"]', 'CASCADE는 부모 엔티티의 상태 변화에 따라 자식 엔티티도 자동으로 영향을 받게 하는 기능입니다.'),
-    (2075, 5, 3, 52, 'EntityGraph의 주된 사용 목적은 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "엔티티 간의 관계 설정"}, {"id": "B", "text": "필요한 데이터만 선택적으로 로드"}, {"id": "C", "text": "데이터베이스 트랜잭션 관리"}, {"id": "D", "text": "쿼리 실행 속도 향상"}]', 'B', 'EntityGraph를 사용하면 필요한 필드만 선택적으로 로딩하여 성능을 최적화하고 N+1 문제를 방지할 수 있습니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (2075, 5, 3, 52, 'EntityGraph의 주된 사용 목적은 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "엔티티 간의 관계 설정"}, {"id": "B", "text": "필요한 데이터만 선택적으로 로드"}, {"id": "C", "text": "데이터베이스 트랜잭션 관리"}, {"id": "D", "text": "쿼리 실행 속도 향상"}]', 'B', 'EntityGraph를 사용하면 필요한 필드만 선택적으로 로딩하여 성능을 최적화하고 N+1 문제를 방지할 수 있습니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- 프론트엔드 React > React 기초 (394문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -4784,8 +4806,10 @@ useEffect(() => {
 2. setValue(prev => newValue)
 
 이 중에서 정답이 되는 방법은?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "1"}, {"id": "B", "text": "2"}, {"id": "C", "text": "둘 다 가능"}, {"id": "D", "text": "둘 다 불가능"}]', '["A", "B"]', '두 방법 모두 상태를 업데이트하는 유효한 방법입니다.'),
-    (2469, 6, 1, 394, 'useEffect 훅을 사용하여 데이터를 가져오는 경우, 컴포넌트가 언마운트될 때 어떤 작업을 수행해야 할까요?', 'SHORT_ANSWER', NULL, '정리 함수(클린업 함수)를 반환해야 한다.', 'useEffect 내에서 정리 함수를 반환하여 언마운트 시 필요한 작업을 수행할 수 있습니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (2469, 6, 1, 394, 'useEffect 훅을 사용하여 데이터를 가져오는 경우, 컴포넌트가 언마운트될 때 어떤 작업을 수행해야 할까요?', 'SHORT_ANSWER', NULL, '정리 함수(클린업 함수)를 반환해야 한다.', 'useEffect 내에서 정리 함수를 반환하여 언마운트 시 필요한 작업을 수행할 수 있습니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- 프론트엔드 React > Hooks와 상태관리 (103문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -4892,8 +4916,10 @@ VALUES
     (2569, 6, 2, 100, 'stale closure 문제를 해결하기 위한 방법으로 가장 적절한 것은 무엇인가요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "useMemo 사용하기"}, {"id": "B", "text": "useEffect 사용하기"}, {"id": "C", "text": "useRef 사용하기"}, {"id": "D", "text": "useState 사용하기"}]', 'C', 'stale closure 문제를 해결하기 위해 useRef를 사용하여 외부 변수를 참조할 수 있습니다.'),
     (2570, 6, 2, 101, '다음 중 useMemo 훅의 사용 목적이 아닌 것은 무엇인가요?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "불필요한 리렌더링 방지"}, {"id": "B", "text": "상태 관리"}, {"id": "C", "text": "계산된 값을 메모이제이션"}, {"id": "D", "text": "성능 최적화"}]', '["B"]', 'useMemo는 주로 불필요한 리렌더링을 방지하고 성능을 최적화하는 데 사용되며, 상태 관리는 다른 훅을 통해 이루어집니다.'),
     (2571, 6, 2, 102, 'useEffect 훅에서 클린업 함수의 역할은 무엇인가요?', 'SHORT_ANSWER', NULL, '컴포넌트 언마운트 시 정리 작업 수행', 'useEffect의 클린업 함수는 컴포넌트가 언마운트될 때 필요한 정리 작업을 수행하는 역할을 합니다.'),
-    (2572, 6, 2, 103, '리렌더링 최적화에 도움이 되는 두 가지 훅은 무엇인가요?', 'SHORT_ANSWER', NULL, 'useMemo, useCallback', '리렌더링 최적화를 위해 useMemo와 useCallback 훅을 사용합니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (2572, 6, 2, 103, '리렌더링 최적화에 도움이 되는 두 가지 훅은 무엇인가요?', 'SHORT_ANSWER', NULL, 'useMemo, useCallback', '리렌더링 최적화를 위해 useMemo와 useCallback 훅을 사용합니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- 프론트엔드 React > Next.js와 TypeScript (117문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -4976,7 +5002,7 @@ function isString(value: any): _____ {
 const example: any = "Hello";
 if (isString(example)) {
     console.log(example.length);
-}', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "5"}, {"id": "B", "text": "undefined"}, {"id": "C", "text": "\"Hello\""}, {"id": "D", "text": "오류 발생"}]', 'A', 'example이 문자열이므로, console.log는 5를 출력합니다.'),
+}', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "5"}, {"id": "B", "text": "undefined"}, {"id": "C", "text": "\\"Hello\\""}, {"id": "D", "text": "오류 발생"}]', 'A', 'example이 문자열이므로, console.log는 5를 출력합니다.'),
     (2639, 6, 3, 67, '아래의 인터페이스 예시에 맞는 옵션을 모두 선택하세요.
 
 interface Person {
@@ -5105,15 +5131,17 @@ if (isString(example)) {
     (2679, 6, 3, 107, '다음 빈칸을 채우세요: interface Person { name: string; age: number; } function isPerson(obj: any): ___ { return ''name'' in obj && ''age'' in obj; }', 'SHORT_ANSWER', NULL, 'obj is Person', 'isPerson 함수의 반환 타입은 ''obj is Person''으로, 타입 가드의 형태입니다.'),
     (2680, 6, 3, 108, 'User 객체의 배열을 받아서 모든 사용자의 이름을 출력하는 함수를 작성하세요. 함수에서 사용할 수 있는 타입을 선택하세요: function printUserNames(users: ___) { users.forEach(user => console.log(user.name)); }', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "User[]"}, {"id": "B", "text": "Array<User>"}, {"id": "C", "text": "any[]"}, {"id": "D", "text": "string[]"}]', '["A", "B"]', 'users 매개변수는 User 객체의 배열이어야 하므로 User[] 또는 Array<User>로 정의해야 합니다.'),
     (2681, 6, 3, 109, '조건부 타입의 기본 형식은 무엇인가요? T extends U ? X : Y', 'SHORT_ANSWER', NULL, 'T extends U ? X : Y', '조건부 타입은 T가 U의 서브타입인지에 따라 X 또는 Y를 반환하는 형식입니다.'),
-    (2682, 6, 3, 110, '다음 코드의 Result1의 타입은 무엇인가요? type Result1 = ConditionalType<number>;', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "\"Non-string type\""}, {"id": "B", "text": "\"String type\""}, {"id": "C", "text": "number"}, {"id": "D", "text": "void"}]', 'A', 'number는 string의 서브타입이 아니므로 "Non-string type"이 반환됩니다.'),
+    (2682, 6, 3, 110, '다음 코드의 Result1의 타입은 무엇인가요? type Result1 = ConditionalType<number>;', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "\\"Non-string type\\""}, {"id": "B", "text": "\\"String type\\""}, {"id": "C", "text": "number"}, {"id": "D", "text": "void"}]', 'A', 'number는 string의 서브타입이 아니므로 "Non-string type"이 반환됩니다.'),
     (2683, 6, 3, 111, '아래 코드를 통해 생성된 MappedType의 Result2의 구조는 어떻게 되나요? type Result2 = MappedType<{ a: number; b: string }>; ', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "{ a: boolean; b: boolean }"}, {"id": "B", "text": "{ a: number; b: string }"}, {"id": "C", "text": "boolean"}, {"id": "D", "text": "{ a: string; b: string }"}]', 'A', 'MappedType은 모든 프로퍼티를 boolean으로 변환하여 { a: boolean; b: boolean }을 생성합니다.'),
     (2684, 6, 3, 112, '조건부 타입에서 ''T extends U''의 의미는 무엇인가요?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "T가 U의 서브타입일 때"}, {"id": "B", "text": "T와 U의 타입이 같을 때"}, {"id": "C", "text": "T가 U의 슈퍼타입일 때"}, {"id": "D", "text": "T가 U와 전혀 관련이 없을 때"}]', '["A", "B"]', '''T extends U''는 T가 U의 서브타입이거나 U와 같은 경우에 해당합니다.'),
     (2685, 6, 3, 113, '다음 코드의 출력 결과는 무엇인가요? `type Check<T> = T extends string ? ''String'' : ''Not String''; type Result = Check<number>;`', 'SHORT_ANSWER', NULL, 'Not String', 'number는 string의 서브타입이 아니므로 ''Not String''이 반환됩니다.'),
     (2686, 6, 3, 114, '다음 코드에서 MyReadonly의 정의는 무엇인가요? `type MyReadonly<T> = ?; // 모든 속성을 readonly로 만든다`', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "{ readonly [K in keyof T]: T[K]; }"}, {"id": "B", "text": "{ [K in keyof T]: T[K]; }"}, {"id": "C", "text": "{ readonly T; }"}, {"id": "D", "text": "{ [K in keyof T]: readonly T[K]; }"}]', 'A', '정확히 모든 속성을 읽기 전용으로 만들기 위해 readonly 키워드를 추가한 매핑된 타입입니다.'),
     (2687, 6, 3, 115, '다음 조건부 타입이 True를 반환하는 경우는 무엇인가요? `type Example<T> = T extends string ? true : false;`', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "string"}, {"id": "B", "text": "number"}, {"id": "C", "text": "boolean"}, {"id": "D", "text": "any"}]', 'A', 'T가 string일 경우 True를 반환합니다.'),
     (2688, 6, 3, 116, '다음 중 조건부 타입이 적용되는 경우를 모두 선택하세요. `type IsString<T> = T extends string ? ''String'' : ''Not String'';`', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "string"}, {"id": "B", "text": "number"}, {"id": "C", "text": "''''"}, {"id": "D", "text": "undefined"}]', '["A", "C"]', 'string과 ''''(빈 문자열)는 조건부 타입에 의해 ''String''으로 반환되고, 나머지는 ''Not String''으로 반환됩니다.'),
-    (2689, 6, 3, 117, '매핑된 타입을 사용하여 객체의 모든 속성을 선택적으로 만드는 타입을 정의할 수 있는가?', 'SHORT_ANSWER', NULL, '네', '매핑된 타입을 사용하여 선택적 속성을 가진 타입을 정의할 수 있습니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (2689, 6, 3, 117, '매핑된 타입을 사용하여 객체의 모든 속성을 선택적으로 만드는 타입을 정의할 수 있는가?', 'SHORT_ANSWER', NULL, '네', '매핑된 타입을 사용하여 선택적 속성을 가진 타입을 정의할 수 있습니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- 인프라와 DevOps > Docker와 컨테이너 (72문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -5228,8 +5256,10 @@ RUN apt-get update && apt-get install -y __________', 'SHORT_ANSWER', NULL, 'pyt
     (2760, 7, 1, 71, '다음 중 Dockerfile에서 COPY 명령어의 역할이 아닌 것은 무엇인가요? 
 COPY . /app', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "현재 디렉토리의 파일을 컨테이너로 복사한다."}, {"id": "B", "text": "애플리케이션의 실행 파일을 생성한다."}, {"id": "C", "text": "이미지에 파일을 추가한다."}, {"id": "D", "text": "지정된 경로로 파일을 복사한다."}]', 'B', 'COPY 명령어는 파일을 복사하는 것이지 실행 파일을 생성하지는 않습니다.'),
     (2761, 7, 1, 72, 'Dockerfile에서 CMD 명령어로 설정된 기본 명령어는 무엇인가요? 
-CMD ["python3", "/app/app.py"]', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "컨테이너 실행 시 Python3를 실행한다."}, {"id": "B", "text": "app.py 파일을 실행한다."}, {"id": "C", "text": "앱의 디렉토리를 만들고 실행한다."}, {"id": "D", "text": "이미지를 빌드하는 단계에서 사용된다."}]', '["A", "B"]', 'CMD는 컨테이너 실행 시 기본적으로 실행될 명령어를 설정합니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+CMD ["python3", "/app/app.py"]', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "컨테이너 실행 시 Python3를 실행한다."}, {"id": "B", "text": "app.py 파일을 실행한다."}, {"id": "C", "text": "앱의 디렉토리를 만들고 실행한다."}, {"id": "D", "text": "이미지를 빌드하는 단계에서 사용된다."}]', '["A", "B"]', 'CMD는 컨테이너 실행 시 기본적으로 실행될 명령어를 설정합니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- 인프라와 DevOps > CI/CD와 모니터링 (220문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -5571,8 +5601,10 @@ jobs:
     steps:', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "단계(step) 정의"}, {"id": "B", "text": "이벤트 트리거"}, {"id": "C", "text": "환경 설정"}, {"id": "D", "text": "의존성 관리"}]', 'A', '''jobs'' 섹션은 실행할 단계를 정의하는 부분입니다.'),
     (2980, 7, 2, 219, '워크플로우에서 여러 이벤트를 트리거하고 싶다면 어떤 형식으로 ''on''을 작성해야 하나요? 
 예를 들어, push와 pull_request를 모두 포함해야 합니다.', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "on: push, pull_request"}, {"id": "B", "text": "on: [push, pull_request]"}, {"id": "C", "text": "on: { push, pull_request }"}, {"id": "D", "text": "on: (push, pull_request)"}]', '["B"]', '''on: [push, pull_request]'' 형식으로 여러 이벤트를 배열 형태로 나열해야 합니다.'),
-    (2981, 7, 2, 220, 'GitHub Actions에서 ''npm install''을 실행하는 이유는 무엇인가요?', 'SHORT_ANSWER', NULL, '프로젝트의 의존성을 설치하기 위해서입니다.', '''npm install''은 Node.js 프로젝트의 필요한 패키지를 설치하기 위한 명령어입니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (2981, 7, 2, 220, 'GitHub Actions에서 ''npm install''을 실행하는 이유는 무엇인가요?', 'SHORT_ANSWER', NULL, '프로젝트의 의존성을 설치하기 위해서입니다.', '''npm install''은 Node.js 프로젝트의 필요한 패키지를 설치하기 위한 명령어입니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- 인프라와 DevOps > Kubernetes와 클라우드 (265문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -5843,8 +5875,8 @@ provider "aws" {
   region = "________"
 }', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "us-east-1"}, {"id": "B", "text": "us-west-2"}, {"id": "C", "text": "eu-central-1"}, {"id": "D", "text": "ap-northeast-1"}]', 'A', 'AWS 리전은 ''us-east-1''으로 정의되어 있습니다.'),
     (3238, 7, 3, 257, '위 코드에서 생성할 수 있는 리소스는?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "EC2 인스턴스"}, {"id": "B", "text": "RDS 데이터베이스"}, {"id": "C", "text": "S3 버킷"}, {"id": "D", "text": "Lambda 함수"}]', '["A", "C"]', '주어진 코드에서는 EC2 인스턴스와 S3 버킷이 정의되어 있습니다.'),
-    (3239, 7, 3, 258, '다음 중 AWS EC2 인스턴스를 생성하는 Terraform 코드의 올바른 부분은 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "resource \"aws_instance\" \"my_ec2\" { ami = \"ami-12345678\" instance_type = \"t2.micro\" }"}, {"id": "B", "text": "resource \"aws_ec2_instance\" \"my_ec2\" { ami = \"ami-12345678\" instance_type = \"t2.micro\" }"}, {"id": "C", "text": "resource \"aws_instance\" { ami = \"ami-12345678\" type = \"t2.micro\" }"}, {"id": "D", "text": "resource \"ec2_instance\" \"my_ec2\" { image_id = \"ami-12345678\" instance_type = \"t2.micro\" }"}]', 'A', '올바른 Terraform 코드의 형식에 맞춰 EC2 인스턴스를 생성하는 방법이기 때문이다.'),
-    (3240, 7, 3, 259, '다음 중 S3 버킷을 정의하는 Terraform 코드의 올바른 부분은 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "resource \"aws_s3_bucket\" \"my_bucket\" { bucket = \"my-unique-bucket-name\" acl = \"private\" }"}, {"id": "B", "text": "resource \"aws_s3\" \"my_bucket\" { name = \"my-unique-bucket-name\" access_control = \"private\" }"}, {"id": "C", "text": "resource \"aws_s3_bucket\" { name = \"my-unique-bucket-name\" acl = \"private\" }"}, {"id": "D", "text": "resource \"s3_bucket\" \"my_bucket\" { bucket_name = \"my-unique-bucket-name\" }"}]', 'A', '정확한 리소스 유형과 속성을 사용하여 S3 버킷을 정의하는 방법이다.'),
+    (3239, 7, 3, 258, '다음 중 AWS EC2 인스턴스를 생성하는 Terraform 코드의 올바른 부분은 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "resource \\"aws_instance\\" \\"my_ec2\\" { ami = \\"ami-12345678\\" instance_type = \\"t2.micro\\" }"}, {"id": "B", "text": "resource \\"aws_ec2_instance\\" \\"my_ec2\\" { ami = \\"ami-12345678\\" instance_type = \\"t2.micro\\" }"}, {"id": "C", "text": "resource \\"aws_instance\\" { ami = \\"ami-12345678\\" type = \\"t2.micro\\" }"}, {"id": "D", "text": "resource \\"ec2_instance\\" \\"my_ec2\\" { image_id = \\"ami-12345678\\" instance_type = \\"t2.micro\\" }"}]', 'A', '올바른 Terraform 코드의 형식에 맞춰 EC2 인스턴스를 생성하는 방법이기 때문이다.'),
+    (3240, 7, 3, 259, '다음 중 S3 버킷을 정의하는 Terraform 코드의 올바른 부분은 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "resource \\"aws_s3_bucket\\" \\"my_bucket\\" { bucket = \\"my-unique-bucket-name\\" acl = \\"private\\" }"}, {"id": "B", "text": "resource \\"aws_s3\\" \\"my_bucket\\" { name = \\"my-unique-bucket-name\\" access_control = \\"private\\" }"}, {"id": "C", "text": "resource \\"aws_s3_bucket\\" { name = \\"my-unique-bucket-name\\" acl = \\"private\\" }"}, {"id": "D", "text": "resource \\"s3_bucket\\" \\"my_bucket\\" { bucket_name = \\"my-unique-bucket-name\\" }"}]', 'A', '정확한 리소스 유형과 속성을 사용하여 S3 버킷을 정의하는 방법이다.'),
     (3241, 7, 3, 260, '다음 중 EC2 인스턴스 정의에서 알맞은 빈칸을 채워 넣으세요: resource "aws_instance" "my_ec2" { ami = __________ instance_type = "t2.micro" }', 'SHORT_ANSWER', NULL, 'ami-12345678', '정확한 AMI ID를 입력해야 EC2 인스턴스를 생성할 수 있다.'),
     (3242, 7, 3, 261, '다음 중 Terraform 코드에서 AWS 리소스를 정의할 때 사용하는 리소스 유형의 예를 모두 고르세요.', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "aws_instance"}, {"id": "B", "text": "aws_s3_bucket"}, {"id": "C", "text": "aws_lambda_function"}, {"id": "D", "text": "aws_ec2_instance"}]', '["A", "B", "C"]', 'AWS 인프라를 정의하기 위해 사용되는 적절한 리소스 유형이다.'),
     (3243, 7, 3, 262, '다음 중 AWS EC2 인스턴스를 정의하는 Terraform 코드 블록에서 필수 속성은 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "ami"}, {"id": "B", "text": "key_name"}, {"id": "C", "text": "security_groups"}, {"id": "D", "text": "region"}]', 'A', 'AWS EC2 인스턴스를 정의할 때 ''ami''는 필수 속성으로, 사용될 아마존 머신 이미지의 ID를 지정합니다.'),
@@ -5855,8 +5887,10 @@ resource "aws_instance" "my_instance" {
   instance_type = "______"
 }', 'SHORT_ANSWER', NULL, 't2.micro', '''instance_type''은 EC2 인스턴스의 타입을 지정하는 속성으로, ''t2.micro''가 적절한 값입니다.'),
     (3245, 7, 3, 264, '다음 중 S3 버킷을 정의할 때 사용할 수 있는 ACL 옵션은 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "public-read"}, {"id": "B", "text": "private"}, {"id": "C", "text": "authenticated-read"}, {"id": "D", "text": "all-users"}]', 'B', '''private''는 S3 버킷의 ACL 설정에서 사용할 수 있으며, 기본적으로 버킷 소유자만 접근할 수 있도록 설정됩니다.'),
-    (3246, 7, 3, 265, 'Terraform에서 AWS 리소스 정의를 위해 필요한 제공자는 무엇인가?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "aws"}, {"id": "B", "text": "google"}, {"id": "C", "text": "azurerm"}, {"id": "D", "text": "kubernetes"}]', '["A"]', 'AWS 리소스를 정의하기 위해서는 ''aws'' 제공자가 필요하며, 다른 제공자는 AWS 리소스와 관련이 없습니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (3246, 7, 3, 265, 'Terraform에서 AWS 리소스 정의를 위해 필요한 제공자는 무엇인가?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "aws"}, {"id": "B", "text": "google"}, {"id": "C", "text": "azurerm"}, {"id": "D", "text": "kubernetes"}]', '["A"]', 'AWS 리소스를 정의하기 위해서는 ''aws'' 제공자가 필요하며, 다른 제공자는 AWS 리소스와 관련이 없습니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- 정보보안 기초 > 웹 보안과 방어 (60문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -5920,8 +5954,10 @@ VALUES
     (3303, 8, 1, 57, 'XSS 공격을 방어하기 위한 방법으로 적절한 것은?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "CSP 설정"}, {"id": "B", "text": "비밀번호 길이 증가"}, {"id": "C", "text": "정기적 시스템 업데이트"}, {"id": "D", "text": "서버 로그 모니터링"}]', 'A', 'Content Security Policy(CSP)는 XSS 공격을 방어하는 효과적인 방법 중 하나이다.'),
     (3304, 8, 1, 58, 'CSRF 공격의 주된 방어 기법으로 알맞은 것은?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "HTTP Only 쿠키 사용"}, {"id": "B", "text": "SameSite 쿠키 속성 설정"}, {"id": "C", "text": "SSL 인증서 사용"}, {"id": "D", "text": "정기적 비밀번호 변경"}]', 'B', 'SameSite 속성을 설정하면 CSRF 공격을 예방할 수 있다.'),
     (3305, 8, 1, 59, '웹 보안에서 Command Injection 방어 방법으로 적절한 것은?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "입력값 검증"}, {"id": "B", "text": "명령어 인코딩"}, {"id": "C", "text": "쿠키 암호화"}, {"id": "D", "text": "정적 코드 분석"}]', '["A", "B"]', '입력값 검증과 명령어 인코딩은 Command Injection 공격을 방어하는 데 매우 효과적이다.'),
-    (3306, 8, 1, 60, 'HTTP Only 속성이 적용된 쿠키는 무엇을 방지하는가?', 'SHORT_ANSWER', NULL, 'JavaScript로부터의 접근을 방지한다.', 'HTTP Only 속성을 설정하면 JavaScript가 쿠키에 접근할 수 없어, XSS 공격으로부터 보호할 수 있다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (3306, 8, 1, 60, 'HTTP Only 속성이 적용된 쿠키는 무엇을 방지하는가?', 'SHORT_ANSWER', NULL, 'JavaScript로부터의 접근을 방지한다.', 'HTTP Only 속성을 설정하면 JavaScript가 쿠키에 접근할 수 없어, XSS 공격으로부터 보호할 수 있다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- 정보보안 기초 > 인증과 암호화 (30문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -5955,8 +5991,10 @@ VALUES
     (3333, 8, 2, 27, 'JWT의 주 용도는 무엇인가요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "웹 페이지의 로딩 속도를 증가시킨다."}, {"id": "B", "text": "인증 정보와 사용자 데이터를 안전하게 전송한다."}, {"id": "C", "text": "사용자 권한을 관리한다."}, {"id": "D", "text": "비밀번호를 안전하게 저장한다."}]', 'B', 'JWT는 인증 정보와 사용자 데이터를 안전하게 전송하기 위한 방법으로 사용됩니다.'),
     (3334, 8, 2, 28, '다음 중 MFA의 특징으로 옳은 것은 무엇인가요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "단일 인증 방법만을 사용한다."}, {"id": "B", "text": "여러 인증 방법을 조합하여 보안을 강화한다."}, {"id": "C", "text": "사용자의 비밀번호를 저장하는 기술이다."}, {"id": "D", "text": "권한 관리의 일환으로 사용된다."}]', 'B', 'MFA는 여러 인증 방법을 조합하여 보안을 강화하는 방식입니다.'),
     (3335, 8, 2, 29, 'JWT의 토큰 무효화 방법은 무엇인가요?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "토큰의 만료 시간을 설정한다."}, {"id": "B", "text": "서버에서 블랙리스트에 등록한다."}, {"id": "C", "text": "클라이언트에서 토큰을 삭제한다."}, {"id": "D", "text": "새로운 토큰을 발급한다."}]', '["A", "B", "C"]', 'JWT의 토큰 무효화 방법으로는 만료 시간을 설정하거나 서버에서 블랙리스트에 등록하고, 클라이언트에서 토큰을 삭제하는 방법 등이 있습니다.'),
-    (3336, 8, 2, 30, 'WebAuthn의 주 목적은 무엇인가요?', 'SHORT_ANSWER', NULL, '웹에서의 강력한 사용자 인증을 제공하는 것', 'WebAuthn은 웹에서의 강력한 사용자 인증을 위한 API로, FIDO2의 일환으로 개발되어 비밀번호 없는 인증을 지원합니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (3336, 8, 2, 30, 'WebAuthn의 주 목적은 무엇인가요?', 'SHORT_ANSWER', NULL, '웹에서의 강력한 사용자 인증을 제공하는 것', 'WebAuthn은 웹에서의 강력한 사용자 인증을 위한 API로, FIDO2의 일환으로 개발되어 비밀번호 없는 인증을 지원합니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- 정보보안 기초 > 보안 실무 (50문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -6010,8 +6048,10 @@ VALUES
     (3383, 8, 3, 47, 'ChaCha20 알고리즘의 특징은 무엇인가요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "스트림 암호 알고리즘"}, {"id": "B", "text": "블록 암호 알고리즘"}, {"id": "C", "text": "고정된 키 사이즈만 지원"}, {"id": "D", "text": "암호화 속도가 매우 느림"}]', 'A', 'ChaCha20은 스트림 암호 알고리즘으로서 빠른 암호화 속도를 자랑합니다.'),
     (3384, 8, 3, 48, '해시 함수 사용 시, 보안을 강화하는 방법으로 적절하지 않은 것은?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "솔트 사용"}, {"id": "B", "text": "페퍼 사용"}, {"id": "C", "text": "해시를 여러 번 적용"}, {"id": "D", "text": "해시 함수를 공개하는 것"}]', 'D', '해시 함수를 공개하는 것은 보안을 약화시키는 행동입니다.'),
     (3385, 8, 3, 49, '다음 중 비밀번호 저장 시 보안성을 높이기 위한 방법으로 적절한 것들을 모두 고르세요.', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "솔트 사용"}, {"id": "B", "text": "페퍼 사용"}, {"id": "C", "text": "비밀번호를 평문으로 저장"}, {"id": "D", "text": "해시 함수를 사용하여 저장"}]', '["A", "B", "D"]', '솔트와 페퍼를 사용하고 해시 함수를 적용하는 것은 비밀번호 저장 시 보안성을 높이는 방법입니다.'),
-    (3386, 8, 3, 50, 'CA(인증 기관)의 역할은 무엇인가요?', 'SHORT_ANSWER', NULL, '신뢰할 수 있는 인증서를 발급하여 사용자 또는 서버의 신원을 확인하는 것', 'CA는 인증서를 통해 사용자 또는 서버의 신원 확인을 수행하여 안전한 통신을 가능하게 합니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (3386, 8, 3, 50, 'CA(인증 기관)의 역할은 무엇인가요?', 'SHORT_ANSWER', NULL, '신뢰할 수 있는 인증서를 발급하여 사용자 또는 서버의 신원을 확인하는 것', 'CA는 인증서를 통해 사용자 또는 서버의 신원 확인을 수행하여 안전한 통신을 가능하게 합니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- 디자인 패턴 > 생성 패턴 (52문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -6067,8 +6107,10 @@ VALUES
     (3435, 9, 1, 49, '프로토타입 패턴의 주요 목적은 무엇인가?', 'SHORT_ANSWER', NULL, '기존 객체를 복사하여 새로운 객체를 생성하는 것', '프로토타입 패턴은 객체를 복사하여 새로운 인스턴스를 만드는 데 사용됩니다.'),
     (3436, 9, 1, 50, '다음 중 Singleton 패턴의 특징이 아닌 것은?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "클래스의 인스턴스를 여러 개 생성할 수 있다."}, {"id": "B", "text": "전역 접근을 제공한다."}, {"id": "C", "text": "인스턴스 생성을 지연할 수 있다."}, {"id": "D", "text": "특정 클래스에 대해 오직 하나의 인스턴스만 허용한다."}]', 'A', 'Singleton 패턴은 클래스의 인스턴스를 오직 하나만 생성하도록 보장합니다.'),
     (3437, 9, 1, 51, '빌더 패턴의 주된 장점은 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "단일 객체만 생성할 수 있다."}, {"id": "B", "text": "복잡한 객체를 단계별로 생성할 수 있다."}, {"id": "C", "text": "직접적인 인스턴스 생성을 피할 수 있다."}, {"id": "D", "text": "컴파일 타임에 객체의 형태를 결정한다."}]', 'B', '빌더 패턴은 복잡한 객체를 단계적으로 구성할 수 있는 유연성을 제공합니다.'),
-    (3438, 9, 1, 52, '다음 중 Factory 패턴의 장점으로 올바르지 않은 것은?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "객체 생성 로직을 클라이언트 코드에서 분리한다."}, {"id": "B", "text": "확장성이 좋다."}, {"id": "C", "text": "객체 생성 시 의존성을 줄인다."}, {"id": "D", "text": "항상 인스턴스를 미리 생성한다."}]', '["A", "B", "C"]', 'Factory 패턴은 객체 생성 로직을 은닉하고 유연성을 주지만, D는 올바르지 않은 설명입니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (3438, 9, 1, 52, '다음 중 Factory 패턴의 장점으로 올바르지 않은 것은?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "객체 생성 로직을 클라이언트 코드에서 분리한다."}, {"id": "B", "text": "확장성이 좋다."}, {"id": "C", "text": "객체 생성 시 의존성을 줄인다."}, {"id": "D", "text": "항상 인스턴스를 미리 생성한다."}]', '["A", "B", "C"]', 'Factory 패턴은 객체 생성 로직을 은닉하고 유연성을 주지만, D는 올바르지 않은 설명입니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- 디자인 패턴 > 구조 패턴 (25문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -6097,8 +6139,10 @@ VALUES
     (3460, 9, 2, 22, '데코레이터 패턴의 특징은 무엇인가요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "기존 객체를 감싸서 기능을 추가할 수 있다."}, {"id": "B", "text": "객체를 여러 개로 나누어 관리한다."}, {"id": "C", "text": "객체의 상태를 변경한다."}, {"id": "D", "text": "추가된 기능이 항상 고정되어 있다."}]', 'A', '데코레이터 패턴은 기존 객체를 감싸고 추가적인 책임을 부여하여 기능을 확장할 수 있습니다.'),
     (3461, 9, 2, 23, '다음 중 컴포지트 패턴의 설명으로 옳은 것은?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "복합 객체와 단일 객체를 동일하게 다룰 수 있게 한다."}, {"id": "B", "text": "객체의 생성과 생명을 관리한다."}, {"id": "C", "text": "서로 다른 인터페이스를 가진 객체들을 연결한다."}, {"id": "D", "text": "객체의 상태를 비공유하게 만든다."}]', 'A', '컴포지트 패턴은 복합 객체와 단일 객체를 동일하게 다룰 수 있도록 하는 구조적 패턴입니다.'),
     (3462, 9, 2, 24, '구조 패턴에 속하는 디자인 패턴들을 모두 고르세요.', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "어댑터"}, {"id": "B", "text": "싱글턴"}, {"id": "C", "text": "퍼사드"}, {"id": "D", "text": "프록시"}]', '["A", "C", "D"]', '구조 패턴에는 어댑터, 퍼사드, 프록시가 포함되며, 싱글턴은 생성 패턴입니다.'),
-    (3463, 9, 2, 25, '프록시 패턴의 주 역할은 무엇인가요?', 'SHORT_ANSWER', NULL, '다른 객체에 대한 대리자로서 작동하여 접근을 제어한다.', '프록시 패턴은 실제 객체에 대한 접근을 제어하고 관리하는 역할을 합니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (3463, 9, 2, 25, '프록시 패턴의 주 역할은 무엇인가요?', 'SHORT_ANSWER', NULL, '다른 객체에 대한 대리자로서 작동하여 접근을 제어한다.', '프록시 패턴은 실제 객체에 대한 접근을 제어하고 관리하는 역할을 합니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- 디자인 패턴 > 행위 패턴과 아키텍처 (147문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -6249,8 +6293,10 @@ VALUES
     (3607, 9, 3, 144, 'MVP 패턴에서 ''프리젠터''의 역할은 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "UI와 비즈니스 로직을 연결하는 역할."}, {"id": "B", "text": "데이터베이스와의 직접적인 통신을 담당."}, {"id": "C", "text": "사용자 인터페이스를 직접적으로 그리는 역할."}, {"id": "D", "text": "모델 객체의 상태를 저장하는 역할."}]', 'A', '프리젠터는 UI와 비즈니스 로직을 연결하여 사용자 입력을 처리하고, 모델의 데이터를 UI에 전달하는 역할을 합니다.'),
     (3608, 9, 3, 145, 'SOLID 원칙이란 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "소프트웨어 품질을 높이기 위한 다섯 가지 설계 원칙."}, {"id": "B", "text": "소프트웨어 아키텍처의 유형."}, {"id": "C", "text": "데이터베이스 설계 패턴."}, {"id": "D", "text": "프로그래밍 언어의 문법."}]', 'A', 'SOLID 원칙은 소프트웨어의 품질과 유지보수성을 향상시키기 위한 다섯 가지 설계 원칙의 집합입니다.'),
     (3609, 9, 3, 146, '다음 중 SOLID 원칙에 해당하는 모든 항목은?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "SRP"}, {"id": "B", "text": "OCP"}, {"id": "C", "text": "CQRS"}, {"id": "D", "text": "ISP"}]', '["A", "B", "D"]', 'SRP(단일 책임 원칙), OCP(개방-폐쇄 원칙), ISP(인터페이스 분리 원칙)은 모두 SOLID 원칙의 구성 요소입니다.'),
-    (3610, 9, 3, 147, 'CQRS란 무엇을 의미하는가?', 'SHORT_ANSWER', NULL, '명령-조회 책임 분리', 'CQRS는 명령과 조회를 분리하여 더 나은 성능과 확장성을 제공하는 아키텍처 패턴입니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (3610, 9, 3, 147, 'CQRS란 무엇을 의미하는가?', 'SHORT_ANSWER', NULL, '명령-조회 책임 분리', 'CQRS는 명령과 조회를 분리하여 더 나은 성능과 확장성을 제공하는 아키텍처 패턴입니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- Git과 협업 > Git 기본 (48문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -6302,8 +6348,10 @@ VALUES
     (3655, 10, 1, 45, '''stash'' 명령어는 무엇을 위해 사용되나요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "작업 중인 변경 사항을 임시로 저장하기 위함"}, {"id": "B", "text": "특정 커밋을 선택하여 다른 브랜치에 적용하기 위함"}, {"id": "C", "text": "원격 저장소의 변경 사항을 가져오기 위함"}, {"id": "D", "text": "브랜치를 삭제하기 위함"}]', 'A', '''stash''는 작업 중인 변경 사항을 임시로 저장하고 다른 브랜치로 전환할 때 유용합니다.'),
     (3656, 10, 1, 46, '다음 중 Git 명령어 중에서 원격 저장소의 변경 사항을 가져오는 명령어는 무엇인가요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "push"}, {"id": "B", "text": "pull"}, {"id": "C", "text": "fetch"}, {"id": "D", "text": "commit"}]', 'C', '''fetch''는 원격 저장소의 변경 사항을 가져오는 명령어입니다.'),
     (3657, 10, 1, 47, 'Git에서 ''revert''와 ''reset''의 차이점은 무엇인가요?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "''revert''는 새로운 커밋을 만들어 변경사항을 되돌린다"}, {"id": "B", "text": "''reset''은 커밋 기록을 삭제한다"}, {"id": "C", "text": "''revert''는 현재 브랜치에만 영향을 미친다"}, {"id": "D", "text": "''reset''은 작업 디렉토리와 인덱스 모두를 초기 상태로 되돌린다"}]', '["A", "B", "D"]', '''revert''는 새로운 커밋을 만들어 변경 사항을 되돌리지만, ''reset''은 커밋 기록을 삭제하며 작업 디렉토리와 인덱스 모두를 초기 상태로 되돌리는 방식입니다.'),
-    (3658, 10, 1, 48, 'Git의 브랜치 기능의 주된 이점은 무엇인가요?', 'SHORT_ANSWER', NULL, '여러 개발자가 동시에 독립적으로 작업할 수 있게 해준다.', '브랜치는 여러 개발자가 서로의 작업에 영향을 주지 않고 독립적으로 작업할 수 있게 해주는 기능입니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (3658, 10, 1, 48, 'Git의 브랜치 기능의 주된 이점은 무엇인가요?', 'SHORT_ANSWER', NULL, '여러 개발자가 동시에 독립적으로 작업할 수 있게 해준다.', '브랜치는 여러 개발자가 서로의 작업에 영향을 주지 않고 독립적으로 작업할 수 있게 해주는 기능입니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- Git과 협업 > 브랜치 전략과 협업 (88문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -6395,8 +6443,10 @@ VALUES
     (3743, 10, 2, 85, '트렁크 기반 개발(Trunk Based Development)의 주요 특징은 무엇인가요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "지속적인 통합을 목표로 함"}, {"id": "B", "text": "개별 기능을 오랜 기간 브랜치에 유지"}, {"id": "C", "text": "코드 리뷰 절차 없음"}, {"id": "D", "text": "최대 10개의 브랜치 사용"}]', 'A', '트렁크 기반 개발은 지속적인 통합을 목표로 하여, 자주 메인 브랜치에 통합하는 방식입니다.'),
     (3744, 10, 2, 86, 'Conventional Commits의 장점으로 옳지 않은 것은 무엇인가요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "일관성 있는 커밋 메시지 제공"}, {"id": "B", "text": "자동 버전 관리 가능"}, {"id": "C", "text": "코드 실행 속도 향상"}, {"id": "D", "text": "변경 이력 이해 용이"}]', 'C', 'Conventional Commits는 커밋 메시지의 일관성을 제공하지만, 코드 실행 속도와는 관련이 없습니다.'),
     (3745, 10, 2, 87, 'Pull Request에서 코드 리뷰어는 어떤 역할을 하나요?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "변경 사항 검토"}, {"id": "B", "text": "변경 사항 승인 또는 요청"}, {"id": "C", "text": "코드를 자동으로 병합"}, {"id": "D", "text": "테스트 실행"}]', '["A", "B", "D"]', '코드 리뷰어는 변경 사항을 검토하고, 승인 또는 추가 요청을 할 수 있으며, 필요한 경우 테스트를 실행하여 품질을 보장합니다.'),
-    (3746, 10, 2, 88, '코드의 충돌(conflict)을 해결하는 방법은 무엇인가요?', 'SHORT_ANSWER', NULL, '충돌이 발생한 파일을 수정하고, 다시 병합합니다.', '코드 충돌은 두 개 이상의 변경 사항이 동일한 부분에 적용될 때 발생하며, 이를 해결하기 위해 수동으로 충돌을 수정해야 합니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (3746, 10, 2, 88, '코드의 충돌(conflict)을 해결하는 방법은 무엇인가요?', 'SHORT_ANSWER', NULL, '충돌이 발생한 파일을 수정하고, 다시 병합합니다.', '코드 충돌은 두 개 이상의 변경 사항이 동일한 부분에 적용될 때 발생하며, 이를 해결하기 위해 수동으로 충돌을 수정해야 합니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- 운영체제 심화 > 프로세스와 스케줄링 (89문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -6489,8 +6539,10 @@ VALUES
     (3832, 11, 1, 86, 'MLFQ 스케줄링에서 에이징(Aging) 기능의 목적은 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "장기 대기 중인 프로세스의 우선순위를 높이기 위함이다."}, {"id": "B", "text": "우선순위를 낮추기 위함이다."}, {"id": "C", "text": "프로세스를 종료시키기 위함이다."}, {"id": "D", "text": "CPU 자원의 낭비를 줄이기 위함이다."}]', 'A', '에이징 기능은 장기 대기 중인 프로세스의 우선순위를 높여 주어 starvation을 방지하는 데 목적이 있다.'),
     (3833, 11, 1, 87, 'SJF(SHORT Job First) 방식의 큰 단점은 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "모든 작업의 실행 시간을 정확히 알 수 없다."}, {"id": "B", "text": "대기 시간이 증가한다."}, {"id": "C", "text": "CPU 사용률이 항상 낮다."}, {"id": "D", "text": "모든 프로세스에 대해 공정하다."}]', 'A', 'SJF는 각 작업의 실행 시간을 정확하게 파악해야 하므로, 예상치 못한 긴 프로세스가 발생할 경우 효율성이 떨어질 수 있다.'),
     (3834, 11, 1, 88, '다음 중 CPU 스케줄링 알고리즘에 해당하는 것은?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "라운드 로빈"}, {"id": "B", "text": "에이징"}, {"id": "C", "text": "SJF"}, {"id": "D", "text": "우선순위 스케줄링"}]', '["A", "C", "D"]', '라운드 로빈, SJF, 우선순위 스케줄링은 모두 CPU 스케줄링 알고리즘의 일종이다.'),
-    (3835, 11, 1, 89, 'CPU 스케줄링의 목적은 무엇인가?', 'SHORT_ANSWER', NULL, '프로세스의 효율적인 실행과 자원의 공정한 분배', '') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (3835, 11, 1, 89, 'CPU 스케줄링의 목적은 무엇인가?', 'SHORT_ANSWER', NULL, '프로세스의 효율적인 실행과 자원의 공정한 분배', '')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- 운영체제 심화 > 동기화 (58문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -6552,8 +6604,10 @@ VALUES
     (3890, 11, 2, 55, '다음 중 뮤텍스의 특징이 아닌 것은 무엇인가요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "상호 배제를 보장한다."}, {"id": "B", "text": "다수의 스레드가 동시에 사용할 수 있다."}, {"id": "C", "text": "여러 프로세스 간의 자원 접근을 조절한다."}, {"id": "D", "text": "스레드가 자원에 접근할 수 있는 단독 권한을 가진다."}]', 'B', '뮤텍스는 상호 배제를 보장하기 때문에 다수의 스레드가 동시에 사용할 수 없습니다.'),
     (3891, 11, 2, 56, '조건 변수의 주요 기능은 무엇인가요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "스레드를 강제로 종료한다."}, {"id": "B", "text": "스레드를 대기 상태로 전환한다."}, {"id": "C", "text": "자원에 대한 접근을 허용한다."}, {"id": "D", "text": "스레드를 무작위로 실행한다."}]', 'B', '조건 변수는 스레드가 특정 조건을 만족할 때까지 대기 상태로 전환합니다.'),
     (3892, 11, 2, 57, '뮤텍스와 세마포어의 차이점 중 하나는 무엇인가요?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "뮤텍스는 상호 배제를 보장한다."}, {"id": "B", "text": "세마포어는 여러 스레드가 동시에 접근할 수 있다."}, {"id": "C", "text": "뮤텍스는 수동적으로 자원을 관리한다."}, {"id": "D", "text": "세마포어는 단일 스레드 접근을 제한한다."}]', '["A", "B"]', '뮤텍스는 상호 배제를 보장하고, 세마포어는 여러 스레드가 동시에 자원에 접근할 수 있도록 합니다.'),
-    (3893, 11, 2, 58, '스핀락(spinlock)이란 무엇인가요?', 'SHORT_ANSWER', NULL, '스핀락은 짧은 시간 동안 자원에 접근할 수 있을 때까지 대기하는 잠금 방식입니다.', '스핀락은 다른 스레드가 자원을 사용할 수 있을 때까지 계속 확인하며 대기하는 방식으로 구현됩니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (3893, 11, 2, 58, '스핀락(spinlock)이란 무엇인가요?', 'SHORT_ANSWER', NULL, '스핀락은 짧은 시간 동안 자원에 접근할 수 있을 때까지 대기하는 잠금 방식입니다.', '스핀락은 다른 스레드가 자원을 사용할 수 있을 때까지 계속 확인하며 대기하는 방식으로 구현됩니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- 운영체제 심화 > 메모리 관리 (71문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -6628,8 +6682,10 @@ VALUES
     (3961, 11, 3, 68, 'RAID 6의 특징은 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "데이터 중복성이 없다."}, {"id": "B", "text": "두 개의 패리티 블록을 사용하여 데이터 보호를 강화한다."}, {"id": "C", "text": "성능이 RAID 0보다 낮다."}, {"id": "D", "text": "단일 디스크에서만 작동한다."}]', 'B', 'RAID 6는 두 개의 패리티 블록을 사용하여 데이터 손실로부터 보호하는 특성이 있습니다.'),
     (3962, 11, 3, 69, '디스크 스케줄링 알고리즘 중 FCFS의 특징은 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "요청이 들어온 순서대로 처리한다."}, {"id": "B", "text": "가장 짧은 접근 시간을 가진 요청을 먼저 처리한다."}, {"id": "C", "text": "모든 요청을 무작위로 처리한다."}, {"id": "D", "text": "우선 순위가 높은 요청을 먼저 처리한다."}]', 'A', 'FCFS는 요청이 들어온 순서대로 디스크 작업을 처리합니다.'),
     (3963, 11, 3, 70, '다음 중 RAID 0의 특징으로 올바른 것은 무엇인가?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "성능이 향상된다."}, {"id": "B", "text": "데이터 안전성이 보장된다."}, {"id": "C", "text": "여러 디스크에 데이터가 분산되어 저장된다."}, {"id": "D", "text": "패리티 정보가 제공된다."}]', '["A", "C"]', 'RAID 0은 성능을 향상시키고 데이터가 여러 디스크에 분산 저장됩니다.'),
-    (3964, 11, 3, 71, 'NTFS 파일 시스템의 주된 장점은 무엇인가?', 'SHORT_ANSWER', NULL, '파일 권한 및 암호화 지원', 'NTFS는 파일 및 폴더에 대한 세부적인 권한 설정과 데이터 암호화 기능을 지원합니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (3964, 11, 3, 71, 'NTFS 파일 시스템의 주된 장점은 무엇인가?', 'SHORT_ANSWER', NULL, '파일 권한 및 암호화 지원', 'NTFS는 파일 및 폴더에 대한 세부적인 권한 설정과 데이터 암호화 기능을 지원합니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- 네트워크 심화 > 전송 계층 프로토콜 (111문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -6744,8 +6800,10 @@ VALUES
     (4072, 12, 1, 108, 'OSI 7계층 모델에서 세션 계층의 주요 기능은 무엇인가요?', 'SHORT_ANSWER', NULL, '통신 세션의 관리', '세션 계층은 두 통신 장치 간의 세션을 설정하고 유지하며 종료하는 역할을 합니다.'),
     (4073, 12, 1, 109, '데이터링크 계층에서 스위치의 역할은 무엇인가요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "패킷 전송"}, {"id": "B", "text": "데이터 포맷 변환"}, {"id": "C", "text": "MAC 주소 사용"}, {"id": "D", "text": "IP 주소 지정"}]', 'C', '스위치는 MAC 주소를 사용하여 LAN 내에서 데이터 프레임을 전달합니다.'),
     (4074, 12, 1, 110, 'OSI 모델에서 응용 계층과 가장 밀접한 장비는 무엇인가요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "라우터"}, {"id": "B", "text": "스위치"}, {"id": "C", "text": "웹 브라우저"}, {"id": "D", "text": "모뎀"}]', 'C', '응용 계층은 사용자가 직접 상호작용하는 계층으로, 웹 브라우저와 같은 응용 프로그램과 밀접합니다.'),
-    (4075, 12, 1, 111, 'OSI 모델의 물리적 계층에서 사용되는 주소를 무엇이라고 하나요?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "IP 주소"}, {"id": "B", "text": "MAC 주소"}, {"id": "C", "text": "서브넷 마스크"}, {"id": "D", "text": "포트 번호"}]', '["B"]', '물리적 계층에서는 데이터가 전송될 물리적 주소로 MAC 주소를 사용합니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (4075, 12, 1, 111, 'OSI 모델의 물리적 계층에서 사용되는 주소를 무엇이라고 하나요?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "IP 주소"}, {"id": "B", "text": "MAC 주소"}, {"id": "C", "text": "서브넷 마스크"}, {"id": "D", "text": "포트 번호"}]', '["B"]', '물리적 계층에서는 데이터가 전송될 물리적 주소로 MAC 주소를 사용합니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- 네트워크 심화 > HTTP와 웹 (92문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -6841,8 +6899,10 @@ VALUES
     (4164, 12, 2, 89, 'JWT는 무엇의 약자로, 어떤 용도로 사용되나요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "JavaScript Web Token"}, {"id": "B", "text": "JSON Web Token"}, {"id": "C", "text": "Java Web Token"}, {"id": "D", "text": "JQuery Web Token"}]', 'B', 'JWT는 JSON Web Token의 약자로, 인증 및 정보 교환을 위해 사용됩니다.'),
     (4165, 12, 2, 90, 'HTTP 상태 코드 404의 의미는?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "서버 내부 오류"}, {"id": "B", "text": "요청한 자원이 없음"}, {"id": "C", "text": "요청이 성공적으로 처리됨"}, {"id": "D", "text": "영구 이동됨"}]', 'B', 'HTTP 상태 코드 404는 요청한 자원이 서버에 존재하지 않음을 의미합니다.'),
     (4166, 12, 2, 91, '다음 중 REST API의 HTTP 메서드에 해당하는 것은?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "GET"}, {"id": "B", "text": "POST"}, {"id": "C", "text": "PUT"}, {"id": "D", "text": "SAVE"}]', '["A", "B", "C"]', 'REST API에서 사용되는 HTTP 메서드는 GET, POST, PUT 등이 있으며, SAVE는 해당되지 않습니다.'),
-    (4167, 12, 2, 92, 'HTTP 상태 코드 301은 무엇을 의미하나요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "일시적 이동"}, {"id": "B", "text": "영구적 이동"}, {"id": "C", "text": "서버 오류"}, {"id": "D", "text": "허용되지 않음"}]', 'B', 'HTTP 상태 코드 301은 요청한 리소스가 영구적으로 다른 위치로 이동했음을 나타냅니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (4167, 12, 2, 92, 'HTTP 상태 코드 301은 무엇을 의미하나요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "일시적 이동"}, {"id": "B", "text": "영구적 이동"}, {"id": "C", "text": "서버 오류"}, {"id": "D", "text": "허용되지 않음"}]', 'B', 'HTTP 상태 코드 301은 요청한 리소스가 영구적으로 다른 위치로 이동했음을 나타냅니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- 네트워크 심화 > 네트워크 인프라 (88문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -6934,8 +6994,10 @@ VALUES
     (4252, 12, 3, 85, 'Zero Trust 모델의 주된 원칙은 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "모든 사용자와 장치는 기본적으로 신뢰할 수 없다."}, {"id": "B", "text": "모든 네트워크 장치는 신뢰할 수 있다."}, {"id": "C", "text": "사용자에게 무제한 접근을 허용한다."}, {"id": "D", "text": "서버는 항상 안전하다."}]', 'A', 'Zero Trust 보안 모델은 모든 사용자와 장치를 의심하며 접근 통제를 강화한다.'),
     (4253, 12, 3, 86, 'IPSec과 VPN의 관계는 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "IPSec은 VPN의 한 유형이다."}, {"id": "B", "text": "VPN은 IPSec을 사용하지 않는다."}, {"id": "C", "text": "IPSec은 웹 트래픽을 보호하는 프로토콜이다."}, {"id": "D", "text": "VPN은 IPSec에 의존하지 않는다."}]', 'A', 'IPSec은 주로 VPN에서 데이터의 안전한 송수신을 위해 사용된다.'),
     (4254, 12, 3, 87, '다음 중 DNS over TLS(DoT)의 목적에 해당하는 것은?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "DNS 쿼리를 암호화한다."}, {"id": "B", "text": "DNS 서버의 성능을 개선한다."}, {"id": "C", "text": "사용자의 개인정보를 보호한다."}, {"id": "D", "text": "DNS 쿼리를 캐시한다."}]', '["A", "C"]', 'DoT는 DNS 쿼리를 암호화하여 사용자의 개인정보를 보호한다.'),
-    (4255, 12, 3, 88, 'DDoS 공격 방어를 위한 주요 기술은 무엇인가?', 'SHORT_ANSWER', NULL, '트래픽 필터링 및 부하 분산', 'DDoS 공격 방어를 위해서는 트래픽 필터링과 부하 분산 기술이 주요하게 사용된다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (4255, 12, 3, 88, 'DDoS 공격 방어를 위한 주요 기술은 무엇인가?', 'SHORT_ANSWER', NULL, '트래픽 필터링 및 부하 분산', 'DDoS 공격 방어를 위해서는 트래픽 필터링과 부하 분산 기술이 주요하게 사용된다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- 소프트웨어 공학 > 테스트 (127문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -7066,8 +7128,10 @@ VALUES
     (4379, 13, 1, 124, 'Pytest에서 테스트 픽스처의 주된 목적은 무엇인가요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "테스트 환경을 설정하고 정리하는 것"}, {"id": "B", "text": "테스트 데이터를 관리하는 것"}, {"id": "C", "text": "테스트 결과를 기록하는 것"}, {"id": "D", "text": "네트워크 요청을 처리하는 것"}]', 'A', '테스트 픽스처는 테스트 환경을 설정하고 정리하는 데 사용됩니다.'),
     (4380, 13, 1, 125, 'AAA 패턴에서 ''Act'' 단계는 무엇을 의미하나요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "테스트할 코드를 실행하는 것"}, {"id": "B", "text": "테스트를 설정하는 것"}, {"id": "C", "text": "결과를 비교하는 것"}, {"id": "D", "text": "오류를 처리하는 것"}]', 'A', '''Act'' 단계에서는 테스트할 코드를 실행합니다.'),
     (4381, 13, 1, 126, 'Mock 객체를 사용한 테스트에서 spy와 stub의 차이점은 무엇인가요?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "spy는 호출된 정보를 기록하고, stub은 가짜 응답을 제공한다."}, {"id": "B", "text": "spy는 테스트를 위한 객체이고, stub은 실제 객체이다."}, {"id": "C", "text": "spy는 테스트를 단순화하고, stub은 테스트를 복잡하게 만든다."}, {"id": "D", "text": "spy와 stub은 같은 기능을 한다."}]', '["A"]', 'spy는 호출된 정보를 기록하며, stub은 특정 값을 반환하도록 설정된 가짜 객체입니다.'),
-    (4382, 13, 1, 127, 'Pytest에서 테스트를 정의하는 데 사용하는 데코레이터는 무엇인가요?', 'SHORT_ANSWER', NULL, '@pytest.mark.parametrize', '@pytest.mark.parametrize는 Pytest에서 매개변수를 사용하여 여러 테스트 케이스를 정의하는 데 활용됩니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (4382, 13, 1, 127, 'Pytest에서 테스트를 정의하는 데 사용하는 데코레이터는 무엇인가요?', 'SHORT_ANSWER', NULL, '@pytest.mark.parametrize', '@pytest.mark.parametrize는 Pytest에서 매개변수를 사용하여 여러 테스트 케이스를 정의하는 데 활용됩니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- 소프트웨어 공학 > SW 공학 (79문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -7150,8 +7214,10 @@ VALUES
     (4458, 13, 2, 76, '벨로시티는 무엇을 측정하는 지표인가요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "팀의 작업 속도"}, {"id": "B", "text": "문서화 속도"}, {"id": "C", "text": "회의 시간"}, {"id": "D", "text": "고객 만족도"}]', 'A', '벨로시티는 팀이 각 스프린트에서 완료한 작업량, 즉 작업 속도를 측정하는 지표입니다.'),
     (4459, 13, 2, 77, '칸반의 주요 목표는 무엇인가요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "작업 흐름 개선"}, {"id": "B", "text": "제품 디자인"}, {"id": "C", "text": "테스트 자동화"}, {"id": "D", "text": "고객 피드백 수집"}]', 'A', '칸반의 주요 목표는 시각적 작업 관리 시스템을 통해 작업 흐름을 지속적으로 개선하는 것입니다.'),
     (4460, 13, 2, 78, '다음 중 스프린트 리뷰와 회고에서 팀원들이 수행하는 작업은 무엇인가요?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "성과 평가"}, {"id": "B", "text": "향후 계획 수립"}, {"id": "C", "text": "버그 수정"}, {"id": "D", "text": "작업량 측정"}]', '["A", "B"]', '스프린트 리뷰와 회고에서 팀원들은 완료된 작업의 성과를 평가하고 향후 계획을 수립합니다.'),
-    (4461, 13, 2, 79, '데일리 스탠드업 회의의 주요 목적은 무엇인가요?', 'SHORT_ANSWER', NULL, '업무 공유 및 문제 해결', '데일리 스탠드업 회의는 팀원들이 그날의 업무를 공유하고 발생하는 문제를 빠르게 해결하는 것을 목표로 합니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (4461, 13, 2, 79, '데일리 스탠드업 회의의 주요 목적은 무엇인가요?', 'SHORT_ANSWER', NULL, '업무 공유 및 문제 해결', '데일리 스탠드업 회의는 팀원들이 그날의 업무를 공유하고 발생하는 문제를 빠르게 해결하는 것을 목표로 합니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- AI와 머신러닝 > 머신러닝과 데이터분석 (52문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -7207,8 +7273,10 @@ VALUES
     (4510, 14, 1, 49, 'EDA란 무엇의 약자인가?', 'SHORT_ANSWER', NULL, '탐색적 데이터 분석', 'EDA는 Exploratory Data Analysis의 약자로, 데이터의 특성을 이해하고 통찰력을 얻기 위한 분석 방법입니다.'),
     (4511, 14, 1, 50, 'Pandas를 사용하여 데이터 프레임을 생성하는 방법은?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "pd.DataFrame(data)"}, {"id": "B", "text": "pd.createFrame(data)"}, {"id": "C", "text": "pd.makeFrame(data)"}, {"id": "D", "text": "pd.newFrame(data)"}]', 'A', 'Pandas에서는 pd.DataFrame(data) 함수를 사용하여 데이터 프레임을 생성할 수 있습니다.'),
     (4512, 14, 1, 51, '정규화와 스케일링의 차이는 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "정규화는 0~1 범위로 변환, 스케일링은 평균과 표준편차를 사용"}, {"id": "B", "text": "정규화는 이상치 제거, 스케일링은 결측치 처리"}, {"id": "C", "text": "정규화는 데이터 변환, 스케일링은 데이터 정리"}, {"id": "D", "text": "정규화와 스케일링은 동일한 개념"}]', 'A', '정규화는 데이터를 0과 1 사이로 변환하는 과정이고, 스케일링은 평균과 표준편차를 기준으로 데이터를 조정하는 과정입니다.'),
-    (4513, 14, 1, 52, '다음 중 원-핫 인코딩의 목적에 해당하는 것은?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "범주형 변수를 수치형으로 변환"}, {"id": "B", "text": "결측치 처리"}, {"id": "C", "text": "데이터 시각화"}, {"id": "D", "text": "모델의 성능 향상"}]', '["A", "D"]', '원-핫 인코딩은 범주형 변수를 수치형으로 변환하여 모델의 성능을 향상시키기 위해 사용됩니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (4513, 14, 1, 52, '다음 중 원-핫 인코딩의 목적에 해당하는 것은?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "범주형 변수를 수치형으로 변환"}, {"id": "B", "text": "결측치 처리"}, {"id": "C", "text": "데이터 시각화"}, {"id": "D", "text": "모델의 성능 향상"}]', '["A", "D"]', '원-핫 인코딩은 범주형 변수를 수치형으로 변환하여 모델의 성능을 향상시키기 위해 사용됩니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- AI와 머신러닝 > 딥러닝과 NLP (98문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -7310,8 +7378,10 @@ VALUES
     (4608, 14, 2, 95, 'BERT 모델의 특징으로 옳지 않은 것은?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "양방향으로 문맥을 이해함"}, {"id": "B", "text": "주로 순차적 데이터에 최적화됨"}, {"id": "C", "text": "사전 훈련된 후 파인튜닝 가능"}, {"id": "D", "text": "Self-Attention 메커니즘을 사용함"}]', 'B', 'BERT는 비순차적 데이터에 대해서도 잘 작동하며, 양방향으로 문맥을 이해하는 데 최적화되어 있습니다.'),
     (4609, 14, 2, 96, '딥러닝 모델에서 드롭아웃의 주요 목적은 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "모델의 과적합 방지"}, {"id": "B", "text": "모델의 학습 속도 증가"}, {"id": "C", "text": "데이터 전처리 향상"}, {"id": "D", "text": "모델의 복잡성 증가"}]', 'A', '드롭아웃은 신경망의 특정 뉴런을 무작위로 비활성화하여 과적합을 방지하는 데 도움을 줍니다.'),
     (4610, 14, 2, 97, '다음 중 활성화 함수로 사용할 수 있는 것은?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "ReLU"}, {"id": "B", "text": "Softmax"}, {"id": "C", "text": "Linear"}, {"id": "D", "text": "Average"}]', '["A", "B", "C"]', 'ReLU, Softmax, Linear 모두 신경망의 활성화 함수로 사용될 수 있습니다.'),
-    (4611, 14, 2, 98, 'LoRA의 목적은 무엇인가?', 'SHORT_ANSWER', NULL, '파라미터 효율적인 훈련을 가능하게 하는 것', '') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (4611, 14, 2, 98, 'LoRA의 목적은 무엇인가?', 'SHORT_ANSWER', NULL, '파라미터 효율적인 훈련을 가능하게 하는 것', '')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- AI와 머신러닝 > AI 실무와 MLOps (35문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -7350,8 +7420,10 @@ VALUES
     (4643, 14, 3, 32, 'A/B 테스트의 주된 목적은 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "모델 성능 비교"}, {"id": "B", "text": "데이터 정제"}, {"id": "C", "text": "하드웨어 최적화"}, {"id": "D", "text": "코드 최적화"}]', 'A', 'A/B 테스트는 두 가지 이상의 모델을 비교하여 성능을 평가하고 최적의 모델을 선택하는 데 사용됩니다.'),
     (4644, 14, 3, 33, 'Kubeflow의 주요 사용 목적은 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "모델 서빙"}, {"id": "B", "text": "머신러닝 워크플로 관리"}, {"id": "C", "text": "데이터 저장"}, {"id": "D", "text": "피처 엔지니어링"}]', 'B', 'Kubeflow는 Kubernetes 기반의 플랫폼으로 복잡한 머신러닝 워크플로를 관리하는 데 초점을 맞추고 있습니다.'),
     (4645, 14, 3, 34, '데이터 드리프트를 모니터링하는 이유는 무엇인가?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "모델 성능 유지"}, {"id": "B", "text": "하드웨어 업그레이드"}, {"id": "C", "text": "데이터 전처리 개선"}, {"id": "D", "text": "비즈니스 의사결정 지원"}]', '["A", "D"]', '데이터 드리프트를 모니터링하면 모델의 성능을 유지하고 비즈니스 의사결정을 지원할 수 있습니다.'),
-    (4646, 14, 3, 35, 'TensorRT의 주된 기능은 무엇인가?', 'SHORT_ANSWER', NULL, '고성능 딥러닝 추론 엔진', 'TensorRT는 NVIDIA의 고성능 딥러닝 추론 엔진으로, 빠른 모델 서빙 속도를 제공하는 기능이 있습니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (4646, 14, 3, 35, 'TensorRT의 주된 기능은 무엇인가?', 'SHORT_ANSWER', NULL, '고성능 딥러닝 추론 엔진', 'TensorRT는 NVIDIA의 고성능 딥러닝 추론 엔진으로, 빠른 모델 서빙 속도를 제공하는 기능이 있습니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- Python > Python 기초 (433문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -7390,7 +7462,7 @@ class Dog(Animal):
         return "Woof!"
 
 dog = Dog()
-print(dog.speak())', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "\"Woof!\""}, {"id": "B", "text": "\"I am an animal\""}, {"id": "C", "text": "None"}, {"id": "D", "text": "\"Bark!\""}]', 'A', 'Dog 클래스가 speak 메소드를 오버라이드했기 때문에, 출력은 "Woof!" 입니다.'),
+print(dog.speak())', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "\\"Woof!\\""}, {"id": "B", "text": "\\"I am an animal\\""}, {"id": "C", "text": "None"}, {"id": "D", "text": "\\"Bark!\\""}]', 'A', 'Dog 클래스가 speak 메소드를 오버라이드했기 때문에, 출력은 "Woof!" 입니다.'),
     (4668, 15, 1, 22, '클래스를 정의할 때 사용하는 키워드는 무엇인가요?', 'SHORT_ANSWER', NULL, 'class', '클래스를 정의할 때는 ''class'' 키워드를 사용합니다.'),
     (4669, 15, 1, 23, '상속을 통해 자식 클래스가 부모 클래스의 어떤 특성을 받아올 수 있나요?
 
@@ -7478,7 +7550,7 @@ A. 파일
 B. 데이터베이스 연결
 C. 네트워크 소켓
 D. 위의 모든 것', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "파일"}, {"id": "B", "text": "데이터베이스 연결"}, {"id": "C", "text": "네트워크 소켓"}, {"id": "D", "text": "위의 모든 것"}]', '["A", "B", "C", "D"]', '모든 예시가 자원 관리에 적합하며, 컨텍스트 매니저로 사용할 수 있다.'),
-    (4689, 15, 1, 43, '다음 코드에서 main() 함수가 출력하는 결과는 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "Task 1 Completed\nTask 2 Completed"}, {"id": "B", "text": "Task 2 Completed\nTask 1 Completed"}, {"id": "C", "text": "Task 1 Completed"}, {"id": "D", "text": "Task 2 Completed"}]', 'A', 'main() 함수는 task1()과 task2()를 순차적으로 실행하므로, task1이 먼저 완료되고 그 결과가 출력됩니다.'),
+    (4689, 15, 1, 43, '다음 코드에서 main() 함수가 출력하는 결과는 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "Task 1 Completed\\nTask 2 Completed"}, {"id": "B", "text": "Task 2 Completed\\nTask 1 Completed"}, {"id": "C", "text": "Task 1 Completed"}, {"id": "D", "text": "Task 2 Completed"}]', 'A', 'main() 함수는 task1()과 task2()를 순차적으로 실행하므로, task1이 먼저 완료되고 그 결과가 출력됩니다.'),
     (4690, 15, 1, 44, 'asyncio의 코루틴을 정의할 때 사용하는 키워드는 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "async def"}, {"id": "B", "text": "def"}, {"id": "C", "text": "await"}, {"id": "D", "text": "async"}]', 'A', '코루틴은 ''async def''를 사용하여 정의됩니다.'),
     (4691, 15, 1, 45, '다음 코드의 빈칸에 들어갈 내용은 무엇인가? 
 
@@ -7512,7 +7584,7 @@ re.findall(r''____'', ''There are 2 apples and 3 oranges.'')', 'SHORT_ANSWER', N
     (4702, 15, 1, 56, '다음 중 문자열 ''Hello World!''에서 ''World''가 포함된 경우를 찾는 정규 표현식 패턴은?
 
 import re
-result = re.findall(____, ''Hello World!'')', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "''World''"}, {"id": "B", "text": "''\\bWorld\\b''"}, {"id": "C", "text": "''W.*?''"}, {"id": "D", "text": "''\\d+''"}]', '["A", "B", "C"]', 'A, B, C는 모두 ''World''를 찾는 패턴으로 사용될 수 있으며, D는 숫자를 찾는 패턴입니다.'),
+result = re.findall(____, ''Hello World!'')', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "''World''"}, {"id": "B", "text": "''\\\\bWorld\\\\b''"}, {"id": "C", "text": "''W.*?''"}, {"id": "D", "text": "''\\\\d+''"}]', '["A", "B", "C"]', 'A, B, C는 모두 ''World''를 찾는 패턴으로 사용될 수 있으며, D는 숫자를 찾는 패턴입니다.'),
     (4703, 15, 1, 57, '다음 코드를 실행했을 때 출력되는 결과는 무엇인가?
 
 squares = [x**2 for x in range(5)]
@@ -8090,7 +8162,7 @@ print(result)  # 결과: ___', 'SHORT_ANSWER', NULL, '[''123'', ''456'']', 're.f
 1. ''[a-z]''
 2. ''\\d''
 3. ''\\w''
-4. ''[A-Z]''', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "[a-z]"}, {"id": "B", "text": "\\d"}, {"id": "C", "text": "\\w"}, {"id": "D", "text": "[A-Z]"}]', '["B"]', '''\\d''는 정규표현식에서 숫자를 의미하는 패턴입니다.'),
+4. ''[A-Z]''', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "[a-z]"}, {"id": "B", "text": "\\\\d"}, {"id": "C", "text": "\\\\w"}, {"id": "D", "text": "[A-Z]"}]', '["B"]', '''\\d''는 정규표현식에서 숫자를 의미하는 패턴입니다.'),
     (4886, 15, 1, 240, '위 코드에서 스택에 1, 2, 3을 추가한 후 pop()을 호출하면 어떤 값이 출력되는가?', 'SHORT_ANSWER', NULL, '3', '스택은 LIFO 구조이므로 마지막으로 추가된 3이 출력됨.'),
     (4887, 15, 1, 241, '큐의 pop(0) 메서드는 어떤 값을 반환하는가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "1"}, {"id": "B", "text": "2"}, {"id": "C", "text": "3"}, {"id": "D", "text": "오류 발생"}]', 'A', '큐는 FIFO 구조이므로 처음 추가된 1이 반환됨.'),
     (4888, 15, 1, 242, '다음 중 스택에 데이터를 추가하는 방법으로 올바른 것은?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "stack.add(1)"}, {"id": "B", "text": "stack.append(1)"}, {"id": "C", "text": "stack.insert(1)"}, {"id": "D", "text": "stack.push(1)"}]', 'B', 'Python의 리스트에서 데이터를 추가하는 방법은 append() 사용.'),
@@ -8176,13 +8248,13 @@ async def main():
     result = await asyncio.gather(foo(), bar())
     print(result)
 
-asyncio.run(main())', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "foo\nbar"}, {"id": "B", "text": "[''foo'', ''bar'']"}, {"id": "C", "text": "bar\nfoo"}, {"id": "D", "text": "에러가 발생한다"}]', 'B', 'asyncio.gather() 함수는 여러 코루틴을 동시에 실행하고, 모든 결과를 리스트로 반환합니다.'),
+asyncio.run(main())', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "foo\\nbar"}, {"id": "B", "text": "[''foo'', ''bar'']"}, {"id": "C", "text": "bar\\nfoo"}, {"id": "D", "text": "에러가 발생한다"}]', 'B', 'asyncio.gather() 함수는 여러 코루틴을 동시에 실행하고, 모든 결과를 리스트로 반환합니다.'),
     (4911, 15, 1, 265, '비동기 프로그래밍에서 사용되는 ''코루틴''의 정의는 무엇인가요?', 'SHORT_ANSWER', NULL, '비동기적으로 실행될 수 있는 함수', '코루틴은 async def로 정의된 함수로, await 키워드를 통해 다른 코루틴이 완료될 때까지 대기할 수 있습니다.'),
     (4912, 15, 1, 266, 'asyncio를 사용하여 비동기 함수를 실행할 때, 어떤 키워드를 사용하여 함수를 정의하나요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "async"}, {"id": "B", "text": "await"}, {"id": "C", "text": "define"}, {"id": "D", "text": "function"}]', 'A', '비동기 함수는 ''async'' 키워드를 사용하여 정의됩니다.'),
     (4913, 15, 1, 267, 'FastAPI에서 엔드포인트를 정의하기 위한 데코레이터는 무엇인가요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "@app.post()"}, {"id": "B", "text": "@app.get()"}, {"id": "C", "text": "@app.put()"}, {"id": "D", "text": "@app.delete()"}]', 'A', 'FastAPI에서 POST 요청을 처리하는 엔드포인트를 정의할 때는 @app.post() 데코레이터를 사용합니다.'),
     (4914, 15, 1, 268, '다음 코드에서 User 모델의 email 필드는 어떤 타입인가요? class User(BaseModel): username: str; email: ___', 'SHORT_ANSWER', NULL, 'str', 'User 모델에서 email 필드는 문자열 타입으로 정의되어 있습니다.'),
     (4915, 15, 1, 269, 'Pydantic 모델을 사용하여 검증할 수 있는 데이터의 특성은 무엇인가요?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "데이터 타입"}, {"id": "B", "text": "유효성 검사"}, {"id": "C", "text": "기본값 설정"}, {"id": "D", "text": "메서드 정의"}]', '["A", "B", "C"]', 'Pydantic 모델은 데이터 타입, 유효성 검사, 기본값 설정 기능을 제공하지만 메서드 정의는 포함되지 않습니다.'),
-    (4916, 15, 1, 270, '다음과 같이 FastAPI의 사용자 생성 엔드포인트에서 반환되는 JSON 구조는 무엇인가요? return {"username": user.username, "email": user.email}', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "{\"username\": \"user1\", \"email\": \"user1@example.com\"}"}, {"id": "B", "text": "{\"name\": \"user1\", \"mail\": \"user1@example.com\"}"}, {"id": "C", "text": "{\"user\": \"user1\", \"contact\": \"user1@example.com\"}"}, {"id": "D", "text": "{\"username\": \"user1\", \"contact\": \"user1@example.com\"}"}]', 'A', '정확한 반환 형식은 username과 email 필드를 포함하는 JSON 객체입니다.'),
+    (4916, 15, 1, 270, '다음과 같이 FastAPI의 사용자 생성 엔드포인트에서 반환되는 JSON 구조는 무엇인가요? return {"username": user.username, "email": user.email}', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "{\\"username\\": \\"user1\\", \\"email\\": \\"user1@example.com\\"}"}, {"id": "B", "text": "{\\"name\\": \\"user1\\", \\"mail\\": \\"user1@example.com\\"}"}, {"id": "C", "text": "{\\"user\\": \\"user1\\", \\"contact\\": \\"user1@example.com\\"}"}, {"id": "D", "text": "{\\"username\\": \\"user1\\", \\"contact\\": \\"user1@example.com\\"}"}]', 'A', '정확한 반환 형식은 username과 email 필드를 포함하는 JSON 객체입니다.'),
     (4917, 15, 1, 271, '위 코드의 사용 예에서 max_sum_subarray 함수의 출력값은 무엇인가요?', 'SHORT_ANSWER', NULL, '9', '주어진 배열 [2, 1, 5, 1, 3, 2]에서 크기 3인 부분 배열의 최대 합은 9입니다.'),
     (4918, 15, 1, 272, '슬라이딩 윈도우 기법을 사용하여 배열의 부분 합을 계산할 때 사용하는 주된 장점은 무엇인가요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "시간 복잡도를 줄일 수 있다."}, {"id": "B", "text": "모든 원소를 다시 계산해야 한다."}, {"id": "C", "text": "코드가 항상 더 복잡해진다."}, {"id": "D", "text": "메모리 사용량이 항상 증가한다."}]', 'A', '슬라이딩 윈도우 기법은 반복적으로 계산하는 대신 이전 결과를 활용하므로 시간 복잡도를 줄일 수 있습니다.'),
     (4919, 15, 1, 273, '다음 코드의 빈칸에 들어갈 알맞은 코드는 무엇인가요? 
@@ -8388,7 +8460,7 @@ print(result[''p''])', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "1"}, {"id": "B"
 
 name = "Alice"
 age = 30
-print(f"My name is {name} and I''m {age} years old.")', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "\"My name is Alice and I''m 30 years old.\""}, {"id": "B", "text": "\"My name is Bob and I''m 25 years old.\""}, {"id": "C", "text": "\"Name: Alice, Age: 30\""}, {"id": "D", "text": "\"Alice, 30\""}]', 'A', 'f-string을 사용하여 문자열에 변수를 삽입했기 때문에 출력 결과는 ''My name is Alice and I''m 30 years old.''입니다.'),
+print(f"My name is {name} and I''m {age} years old.")', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "\\"My name is Alice and I''m 30 years old.\\""}, {"id": "B", "text": "\\"My name is Bob and I''m 25 years old.\\""}, {"id": "C", "text": "\\"Name: Alice, Age: 30\\""}, {"id": "D", "text": "\\"Alice, 30\\""}]', 'A', 'f-string을 사용하여 문자열에 변수를 삽입했기 때문에 출력 결과는 ''My name is Alice and I''m 30 years old.''입니다.'),
     (4959, 15, 1, 313, '다음 코드의 빈칸을 채우세요:
 
 import re
@@ -8405,7 +8477,7 @@ print(result)  # 출력 결과: ___', 'SHORT_ANSWER', NULL, '[''2023'']', 're.fi
 import re
 pattern = ___
 result = re.findall(pattern, ''abc123def456'')
-print(result)', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "''\\d+''"}, {"id": "B", "text": "''[a-z]''"}, {"id": "C", "text": "''\\w+''"}, {"id": "D", "text": "''\\s+''"}]', '["A", "C"]', '''\\d+''는 숫자를 찾고, ''\\w+''는 모든 단어 문자를 찾으므로 유효한 패턴입니다.'),
+print(result)', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "''\\\\d+''"}, {"id": "B", "text": "''[a-z]''"}, {"id": "C", "text": "''\\\\w+''"}, {"id": "D", "text": "''\\\\s+''"}]', '["A", "C"]', '''\\d+''는 숫자를 찾고, ''\\w+''는 모든 단어 문자를 찾으므로 유효한 패턴입니다.'),
     (4962, 15, 1, 316, 'Python의 문자열 포매팅 방법 중 f-string은 어떤 버전에서 처음 도입되었나요?', 'SHORT_ANSWER', NULL, 'Python 3.6', 'f-string은 Python 3.6부터 도입된 문자열 포매팅 방법입니다.'),
     (4963, 15, 1, 317, '다음 코드에서 ''example.txt'' 파일이 없는 경우 출력되는 메시지는?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "파일을 찾을 수 없습니다."}, {"id": "B", "text": "파일을 열 수 없습니다."}, {"id": "C", "text": "오류가 발생했습니다."}, {"id": "D", "text": "일반적인 오류입니다."}]', 'A', '''except FileNotFoundError'' 구문으로 인해 파일이 없을 경우 ''파일을 찾을 수 없습니다.''가 출력됩니다.'),
     (4964, 15, 1, 318, '다음 코드의 ''finally'' 블록의 역할은 무엇인가요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "코드 실행을 중단한다."}, {"id": "B", "text": "예외가 발생하든 발생하지 않든 실행된다."}, {"id": "C", "text": "오류 메시지를 출력한다."}, {"id": "D", "text": "변수를 초기화한다."}]', 'B', '''finally'' 블록은 예외 발생 여부와 관계없이 항상 실행됩니다.'),
@@ -8566,7 +8638,7 @@ class Dog(Animal):
         return "Bark"
 
 my_dog = Dog()
-print(my_dog.sound())', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "\"Bark\""}, {"id": "B", "text": "\"Some sound\""}, {"id": "C", "text": "오류 발생"}, {"id": "D", "text": "\"Woof\""}]', 'A', 'Dog 클래스에서 sound 메서드를 오버라이드하여 ''Bark''를 반환하므로 출력은 ''Bark''입니다.'),
+print(my_dog.sound())', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "\\"Bark\\""}, {"id": "B", "text": "\\"Some sound\\""}, {"id": "C", "text": "오류 발생"}, {"id": "D", "text": "\\"Woof\\""}]', 'A', 'Dog 클래스에서 sound 메서드를 오버라이드하여 ''Bark''를 반환하므로 출력은 ''Bark''입니다.'),
     (5005, 15, 1, 359, '다음 코드에서 빈칸에 들어갈 단어는 무엇인가요?
 
 class Animal:
@@ -8786,7 +8858,7 @@ except Exception:
     # 예외 처리
 finally:
     # 항상 실행되는 코드', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "예외가 발생할 경우만 실행된다."}, {"id": "B", "text": "예외가 발생하지 않을 경우만 실행된다."}, {"id": "C", "text": "항상 실행된다."}, {"id": "D", "text": "실행되지 않는다."}]', 'C', 'finally 블록은 예외 발생 여부와 상관없이 항상 실행됩니다.'),
-    (5069, 15, 1, 423, '다음 중 예외 처리 문법이 올바른 것은 무엇인가요?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "try:\n    # 코드\nexcept Exception:\n    # 처리"}, {"id": "B", "text": "try:\n    # 코드\nelse:\n    # 처리"}, {"id": "C", "text": "try:\n    # 코드\nfinally:\n    # 처리"}, {"id": "D", "text": "try:\n    # 코드\ncatch Exception:\n    # 처리"}]', '["A", "C"]', 'A와 C는 올바른 예외 처리 문법입니다. B는 else가 잘못 사용되었고, D는 catch가 Python 문법에 맞지 않습니다.'),
+    (5069, 15, 1, 423, '다음 중 예외 처리 문법이 올바른 것은 무엇인가요?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "try:\\n    # 코드\\nexcept Exception:\\n    # 처리"}, {"id": "B", "text": "try:\\n    # 코드\\nelse:\\n    # 처리"}, {"id": "C", "text": "try:\\n    # 코드\\nfinally:\\n    # 처리"}, {"id": "D", "text": "try:\\n    # 코드\\ncatch Exception:\\n    # 처리"}]', '["A", "C"]', 'A와 C는 올바른 예외 처리 문법입니다. B는 else가 잘못 사용되었고, D는 catch가 Python 문법에 맞지 않습니다.'),
     (5070, 15, 1, 424, '위 코드에서 ''print_numbers'' 함수는 몇 개의 숫자를 출력하는가?', 'SHORT_ANSWER', NULL, '5', 'print_numbers 함수는 0부터 4까지의 숫자를 출력하므로 총 5개의 숫자를 출력하게 됩니다.'),
     (5071, 15, 1, 425, '위 코드에서 ''thread.start()'' 호출 후에 어떤 일이 발생합니까?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "스레드가 생성되고 실행된다."}, {"id": "B", "text": "스레드가 생성되지만 실행되지 않는다."}, {"id": "C", "text": "스레드가 실행된 후 즉시 종료된다."}, {"id": "D", "text": "예외가 발생한다."}]', 'A', '''thread.start()''를 호출하면 스레드가 생성되고, 해당 스레드가 실행됩니다.'),
     (5072, 15, 1, 426, '멀티스레딩을 사용할 때 GIL의 영향을 받을 수 있는 작업은 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "I/O 바운드 작업"}, {"id": "B", "text": "CPU 바운드 작업"}, {"id": "C", "text": "네트워크 요청"}, {"id": "D", "text": "파일 읽기"}]', 'B', 'GIL은 CPU 바운드 작업에서 성능 저하를 초래할 수 있습니다.'),
@@ -8819,8 +8891,10 @@ from collections import Counter
 def count_elements(seq):
     return ________(seq)
 
-print(count_elements([''apple'', ''banana'', ''apple'']))', 'SHORT_ANSWER', NULL, 'Counter', 'Counter를 사용하여 리스트의 요소 빈도를 세어야 합니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+print(count_elements([''apple'', ''banana'', ''apple'']))', 'SHORT_ANSWER', NULL, 'Counter', 'Counter를 사용하여 리스트의 요소 빈도를 세어야 합니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- Python > Python 심화 (30문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -8854,8 +8928,10 @@ VALUES
     (5106, 15, 2, 27, 'pydantic의 주된 목적은 무엇인가요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "모델링을 위해 데이터 검증을 제공한다."}, {"id": "B", "text": "웹 서버 구축을 돕는다."}, {"id": "C", "text": "데이터베이스 연결을 쉽게 한다."}, {"id": "D", "text": "API 문서 생성을 자동화한다."}]', 'A', 'pydantic은 데이터 검증 및 설정 관리를 제공하여 데이터 모델링을 보다 쉽게 할 수 있게 합니다.'),
     (5107, 15, 2, 28, '다음 중 abc 모듈의 기능이 아닌 것은?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "추상 클래스 정의"}, {"id": "B", "text": "인터페이스 자동 생성"}, {"id": "C", "text": "구현 강제화"}, {"id": "D", "text": "다중 상속 지원"}]', 'B', 'abc 모듈은 추상 클래스와 메서드를 정의하고 구현을 강제화하지만, 인터페이스 자동 생성 기능은 없습니다.'),
     (5108, 15, 2, 29, '다음 중 동시성 프로그래밍에서 사용할 수 있는 방법은 무엇인가요?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "코루틴"}, {"id": "B", "text": "디스크립터"}, {"id": "C", "text": "멀티프로세싱"}, {"id": "D", "text": "제너레이터"}]', '["A", "C"]', '코루틴과 멀티프로세싱은 동시성 프로그래밍의 기법으로 사용됩니다.'),
-    (5109, 15, 2, 30, 'Python에서 타입힌트의 주된 목적은 무엇인가요?', 'SHORT_ANSWER', NULL, '코드의 가독성과 타입 검사를 향상시키기 위함이다.', '타입힌트는 코드의 가독성을 높이고 IDE에서 타입 검사를 통해 오류를 사전에 발견할 수 있도록 돕습니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (5109, 15, 2, 30, 'Python에서 타입힌트의 주된 목적은 무엇인가요?', 'SHORT_ANSWER', NULL, '코드의 가독성과 타입 검사를 향상시키기 위함이다.', '타입힌트는 코드의 가독성을 높이고 IDE에서 타입 검사를 통해 오류를 사전에 발견할 수 있도록 돕습니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- Python > Python 라이브러리 (20문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -8879,8 +8955,10 @@ VALUES
     (5126, 15, 3, 17, 'HTTP 요청을 처리하는 데 가장 많이 사용되는 라이브러리는 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "Flask"}, {"id": "B", "text": "requests"}, {"id": "C", "text": "FastAPI"}, {"id": "D", "text": "pytest"}]', 'B', 'requests 라이브러리는 HTTP 요청을 간편하게 처리할 수 있도록 도와주는 라이브러리입니다.'),
     (5127, 15, 3, 18, '다음 중 웹 프레임워크가 아닌 것은 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "Flask"}, {"id": "B", "text": "FastAPI"}, {"id": "C", "text": "pytest"}, {"id": "D", "text": "Django"}]', 'C', 'pytest는 테스트 프레임워크이지 웹 프레임워크가 아닙니다.'),
     (5128, 15, 3, 19, '다음 라이브러리 중에서 타입 힌팅을 지원하는 것은 무엇인가?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "typing"}, {"id": "B", "text": "re"}, {"id": "C", "text": "argparse"}, {"id": "D", "text": "requests"}]', '["A"]', 'typing 모듈은 타입 힌팅을 제공하여 코드의 가독성과 유지보수성을 높여줍니다.'),
-    (5129, 15, 3, 20, 'Flask와 FastAPI의 주요 차이점 중 하나는 무엇인가?', 'SHORT_ANSWER', NULL, 'FastAPI는 비동기 프로그래밍을 지원하는 반면 Flask는 동기 방식이다.', 'FastAPI는 비동기 프로그래밍을 지원하여 더 높은 성능을 제공할 수 있습니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (5129, 15, 3, 20, 'Flask와 FastAPI의 주요 차이점 중 하나는 무엇인가?', 'SHORT_ANSWER', NULL, 'FastAPI는 비동기 프로그래밍을 지원하는 반면 Flask는 동기 방식이다.', 'FastAPI는 비동기 프로그래밍을 지원하여 더 높은 성능을 제공할 수 있습니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- Node.js > Node.js 기본 (42문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -8926,8 +9004,10 @@ VALUES
     (5168, 16, 1, 39, 'Node.js의 논블로킹 I/O 처리 방식의 장점은 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "서버의 응답 속도를 높인다."}, {"id": "B", "text": "코드의 길이를 줄인다."}, {"id": "C", "text": "모든 작업을 동기적으로 처리한다."}, {"id": "D", "text": "메모리 사용량을 증가시킨다."}]', 'A', '논블로킹 I/O는 서버의 응답 속도를 높이고, 동시에 여러 작업을 처리할 수 있게 해줍니다.'),
     (5169, 16, 1, 40, '다음 중 Node.js의 이벤트 루프에 대한 설명으로 올바른 것은?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "비동기 처리를 위한 실행 주기이다."}, {"id": "B", "text": "CPU 집약적인 작업을 수행한다."}, {"id": "C", "text": "모듈 시스템을 정의한다."}, {"id": "D", "text": "서버를 종료시키는 기능이다."}]', 'A', '이벤트 루프는 Node.js의 비동기 처리를 위한 실행 주기입니다.'),
     (5170, 16, 1, 41, 'Node.js에서 비동기 작업의 결과를 처리하기 위해 사용하는 주된 방법은 무엇인가?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "프라미스"}, {"id": "B", "text": "콜백"}, {"id": "C", "text": "동기 처리"}, {"id": "D", "text": "이벤트 리스너"}]', '["A", "B", "D"]', '비동기 작업의 결과를 처리하기 위해서는 프라미스, 콜백, 이벤트 리스너 등의 방법을 사용합니다.'),
-    (5171, 16, 1, 42, 'Node.js의 런타임 환경에서 사용하는 프로세스를 제어하는 객체의 이름은 무엇인가?', 'SHORT_ANSWER', NULL, 'process', 'Node.js의 런타임 환경에서 사용하는 프로세스를 제어하는 객체는 ''process''입니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (5171, 16, 1, 42, 'Node.js의 런타임 환경에서 사용하는 프로세스를 제어하는 객체의 이름은 무엇인가?', 'SHORT_ANSWER', NULL, 'process', 'Node.js의 런타임 환경에서 사용하는 프로세스를 제어하는 객체는 ''process''입니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- Node.js > Express와 NestJS (39문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -8970,8 +9050,10 @@ VALUES
     (5207, 16, 2, 36, 'TypeORM의 주요 기능 중 하나는 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "SQL 쿼리를 직접 작성해야 한다."}, {"id": "B", "text": "데이터베이스와 객체 간의 매핑을 제공한다."}, {"id": "C", "text": "비동기 처리를 지원하지 않는다."}, {"id": "D", "text": "REST API를 자동으로 생성한다."}]', 'B', 'TypeORM은 데이터베이스와 객체 간의 매핑을 제공하여 개발자가 ORM으로 데이터베이스를 쉽게 관리할 수 있도록 합니다.'),
     (5208, 16, 2, 37, '다음 중 Passport의 주요 기능이 아닌 것은 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "사용자 인증을 관리한다."}, {"id": "B", "text": "세션 관리를 제공한다."}, {"id": "C", "text": "SQL 쿼리를 최적화한다."}, {"id": "D", "text": "다양한 인증 전략을 지원한다."}]', 'C', 'Passport는 사용자 인증 및 세션 관리, 다양한 인증 전략을 지원하지만 SQL 쿼리 최적화와는 관련이 없습니다.'),
     (5209, 16, 2, 38, 'Express에서 라우팅의 역할은 무엇인가?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "요청 URL에 따라 적절한 핸들러를 호출한다."}, {"id": "B", "text": "정적 파일을 서빙한다."}, {"id": "C", "text": "미들웨어를 관리한다."}, {"id": "D", "text": "비즈니스 로직을 처리한다."}]', '["A", "B", "C"]', '라우팅은 요청 URL에 따라 적절한 핸들러를 호출하고, 정적 파일을 서빙하며, 미들웨어를 관리하는 역할을 합니다.'),
-    (5210, 16, 2, 39, 'Fastify는 무엇을 주로 개선하기 위해 설계되었는가?', 'SHORT_ANSWER', NULL, '성능', 'Fastify는 Express에 비해 더 나은 성능을 제공하기 위해 설계된 웹 프레임워크입니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (5210, 16, 2, 39, 'Fastify는 무엇을 주로 개선하기 위해 설계되었는가?', 'SHORT_ANSWER', NULL, '성능', 'Fastify는 Express에 비해 더 나은 성능을 제공하기 위해 설계된 웹 프레임워크입니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- Node.js > Node.js 실무 (58문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -9036,7 +9118,7 @@ VALUES
     (5234, 16, 3, 24, '위 코드에서 Animal 인터페이스를 구현한 구조체는 무엇인가요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "Dog"}, {"id": "B", "text": "Animal"}, {"id": "C", "text": "Speak"}, {"id": "D", "text": "Cat"}]', 'A', 'Dog 구조체는 Animal 인터페이스를 구현하는 구조체입니다.'),
     (5235, 16, 3, 25, '다음 코드를 완성하세요: a = ___{}; // 출력: Meow!', 'SHORT_ANSWER', NULL, 'Cat', 'Cat 구조체의 인스턴스를 할당해야 ''Meow!''가 출력됩니다.'),
     (5236, 16, 3, 26, '위 코드는 어떤 메서드를 호출하여 동물을 이야기하게 하나요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "Speak"}, {"id": "B", "text": "Bark"}, {"id": "C", "text": "Meow"}, {"id": "D", "text": "Talk"}]', 'A', 'Speak 메서드가 호출되어 동물의 소리를 출력합니다.'),
-    (5237, 16, 3, 27, '다음 중 Animal 인터페이스의 메서드를 올바르게 구현한 것은 무엇인가요?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "func (d Dog) Speak() string { return \"Woof!\" }"}, {"id": "B", "text": "func (d Dog) Bark() string { return \"Woof!\" }"}, {"id": "C", "text": "func (c Cat) Speak() string { return \"Meow!\" }"}, {"id": "D", "text": "func (c Cat) Purr() string { return \"Purr!\" }"}]', '["A", "C"]', 'A와 C는 Animal 인터페이스의 Speak 메서드를 올바르게 구현하고 있습니다.'),
+    (5237, 16, 3, 27, '다음 중 Animal 인터페이스의 메서드를 올바르게 구현한 것은 무엇인가요?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "func (d Dog) Speak() string { return \\"Woof!\\" }"}, {"id": "B", "text": "func (d Dog) Bark() string { return \\"Woof!\\" }"}, {"id": "C", "text": "func (c Cat) Speak() string { return \\"Meow!\\" }"}, {"id": "D", "text": "func (c Cat) Purr() string { return \\"Purr!\\" }"}]', '["A", "C"]', 'A와 C는 Animal 인터페이스의 Speak 메서드를 올바르게 구현하고 있습니다.'),
     (5238, 16, 3, 28, '위 코드에서 Dog 구조체의 Speak 메서드가 반환하는 문자열은 무엇인가요?', 'SHORT_ANSWER', NULL, 'Woof!', 'Dog 구조체의 Speak 메서드는 ''Woof!''를 반환합니다.'),
     (5239, 16, 3, 29, '위 코드에서 Shape 인터페이스의 메서드는 무엇인가요?', 'SHORT_ANSWER', NULL, 'Area', 'Shape 인터페이스는 Area() 메서드를 정의합니다.'),
     (5240, 16, 3, 30, '위 코드의 main 함수에서 출력되는 값은 무엇인가요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "50"}, {"id": "B", "text": "15"}, {"id": "C", "text": "25"}, {"id": "D", "text": "30"}]', 'A', 'Rectangle의 면적은 Width * Height = 10 * 5 = 50입니다.'),
@@ -9084,8 +9166,10 @@ ages := map[string]int{___: 25, "Bob": 30}', 'SHORT_ANSWER', NULL, 'Alice', '맵
 4. 슬라이스는 해시 테이블이다.', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "1"}, {"id": "B", "text": "2"}, {"id": "C", "text": "3"}, {"id": "D", "text": "4"}]', '["B", "C"]', '슬라이스는 동적으로 크기를 변경할 수 있고 원본 배열과 데이터를 공유합니다.'),
     (5268, 16, 3, 58, '다음 코드의 출력 결과를 예상하시오: 
 ages := map[string]int{"Alice": 25, "Bob": 30}
-fmt.Println(ages["Bob"]) ', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "25"}, {"id": "B", "text": "30"}, {"id": "C", "text": "Alice"}, {"id": "D", "text": "모른다"}]', 'B', '주어진 키 ''Bob''에 대한 값은 30이므로 30이 출력됩니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+fmt.Println(ages["Bob"]) ', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "25"}, {"id": "B", "text": "30"}, {"id": "C", "text": "Alice"}, {"id": "D", "text": "모른다"}]', 'B', '주어진 키 ''Bob''에 대한 값은 30이므로 30이 출력됩니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- 웹 기초 > HTML/CSS와 접근성 (30문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -9119,8 +9203,10 @@ VALUES
     (5295, 17, 1, 27, '접근성을 높이기 위해 사용할 수 있는 ARIA 속성의 역할은 무엇인가요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "웹 페이지의 색상을 변경한다."}, {"id": "B", "text": "시각적 콘텐츠를 대체하는 설명을 제공한다."}, {"id": "C", "text": "스크린 리더와 함께 작동하여 인터페이스를 더 이해하기 쉽게 한다."}, {"id": "D", "text": "페이지 로딩 속도를 개선한다."}]', 'C', 'ARIA 속성은 스크린 리더와 함께 작동하여 사용자 인터페이스를 더 이해하기 쉽게 만들어 접근성을 향상시킵니다.'),
     (5296, 17, 1, 28, 'SEO 최적화를 위한 meta 태그의 주된 목적은 무엇인가요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "서버의 성능을 향상시키기 위해 사용된다."}, {"id": "B", "text": "웹 페이지의 제목을 정의하는 데 사용된다."}, {"id": "C", "text": "검색 엔진에 페이지의 정보를 제공하여 검색 결과를 개선한다."}, {"id": "D", "text": "사용자 데이터 수집을 위한 것이다."}]', 'C', 'meta 태그는 검색 엔진에 페이지의 정보를 제공하여 검색 결과를 개선하는 역할을 합니다.'),
     (5297, 17, 1, 29, '다음 중 접근성과 관련된 웹 표준 기구는 무엇인가요?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "WAI"}, {"id": "B", "text": "W3C"}, {"id": "C", "text": "IETF"}, {"id": "D", "text": "ISO"}]', '["A", "B"]', 'WAI(Web Accessibility Initiative)와 W3C(World Wide Web Consortium)는 웹 접근성 관련 표준을 정립하는 기구입니다.'),
-    (5298, 17, 1, 30, 'HTML5에서 시맨틱 마크업이 중요한 이유는 무엇인가요?', 'SHORT_ANSWER', NULL, '웹 콘텐츠의 구조를 명확히 하고, SEO와 접근성을 향상시킨다.', '시맨틱 마크업은 웹 콘텐츠의 구조를 명확히 하여 검색 엔진 최적화와 접근성을 높이는 데 기여합니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (5298, 17, 1, 30, 'HTML5에서 시맨틱 마크업이 중요한 이유는 무엇인가요?', 'SHORT_ANSWER', NULL, '웹 콘텐츠의 구조를 명확히 하고, SEO와 접근성을 향상시킨다.', '시맨틱 마크업은 웹 콘텐츠의 구조를 명확히 하여 검색 엔진 최적화와 접근성을 높이는 데 기여합니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- 웹 기초 > 브라우저와 렌더링 (39문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -9163,8 +9249,10 @@ VALUES
     (5334, 17, 2, 36, '리플로우(Reflow)와 리페인트(Repaint)의 차이는 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "리플로우는 레이아웃 변경, 리페인트는 시각적 변경"}, {"id": "B", "text": "리플로우는 시각적 변경, 리페인트는 레이아웃 변경"}, {"id": "C", "text": "둘 다 동일한 의미이다"}, {"id": "D", "text": "리플로우는 DOM 영향, 리페인트는 CSS 영향"}]', 'A', '리플로우는 요소의 위치나 크기가 변경될 때 발생하며, 리페인트는 색상이나 배경 등이 변경될 때 발생합니다.'),
     (5335, 17, 2, 37, '브라우저에서 페이지가 완전히 로드된 후 ''DOMContentLoaded'' 이벤트가 발생하는 시점은 언제인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "HTML 문서가 완전히 파싱될 때"}, {"id": "B", "text": "모든 이미지가 로드될 때"}, {"id": "C", "text": "CSS 파일이 모두 로드될 때"}, {"id": "D", "text": "JavaScript 파일이 모두 실행될 때"}]', 'A', '''DOMContentLoaded'' 이벤트는 HTML 문서가 완전히 파싱된 후에 발생하며, 이는 페이지가 사용자와 상호작용할 준비가 되었음을 알리는 신호입니다.'),
     (5336, 17, 2, 38, '다음 중 SessionStorage와 Cache API의 특징으로 올바른 것을 모두 고르세요.', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "SessionStorage는 세션 단위로 데이터를 저장한다."}, {"id": "B", "text": "Cache API는 오프라인 브라우징을 지원한다."}, {"id": "C", "text": "SessionStorage는 데이터가 브라우저를 닫으면 사라진다."}, {"id": "D", "text": "Cache API는 서버 응답을 캐시할 수 있다."}]', '["A", "B", "C", "D"]', 'SessionStorage는 세션 단위로 데이터를 저장하며, 브라우저를 닫으면 사라집니다. Cache API는 서버 응답을 캐시하여 오프라인 브라우징을 지원합니다.'),
-    (5337, 17, 2, 39, 'Service Worker의 주요 역할은 무엇인가?', 'SHORT_ANSWER', NULL, '웹 애플리케이션의 오프라인 지원 및 백그라운드 데이터 동기화', 'Service Worker는 웹 애플리케이션이 오프라인에서도 작동할 수 있도록 지원하며, 백그라운드에서 데이터를 동기화할 수 있는 기능을 제공합니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (5337, 17, 2, 39, 'Service Worker의 주요 역할은 무엇인가?', 'SHORT_ANSWER', NULL, '웹 애플리케이션의 오프라인 지원 및 백그라운드 데이터 동기화', 'Service Worker는 웹 애플리케이션이 오프라인에서도 작동할 수 있도록 지원하며, 백그라운드에서 데이터를 동기화할 수 있는 기능을 제공합니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- 웹 기초 > 성능 최적화와 API (129문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -9297,8 +9385,10 @@ VALUES
     (5463, 17, 3, 126, 'Core Web Vitals에서 LCP는 무엇을 의미하나요?', 'SHORT_ANSWER', NULL, '최대 콘텐츠 적시 표시', 'LCP는 사용자가 페이지를 로드할 때 화면에 표시되는 최대 콘텐츠의 로딩 시간이 얼마나 걸리는지를 측정합니다.'),
     (5464, 17, 3, 127, '다음 중 웹 성능 최적화를 위한 캐싱 전략으로 사용할 수 있는 것은?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "CDN"}, {"id": "B", "text": "HTML 마크업"}, {"id": "C", "text": "CSS 스타일"}, {"id": "D", "text": "자바스크립트 로직"}]', 'A', 'CDN은 에지 서버를 통해 콘텐츠를 빠르게 제공하고 캐싱 전략을 최적화하는 데 도움을 줍니다.'),
     (5465, 17, 3, 128, 'Brotli는 어떤 용도로 사용되나요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "이미지 최적화"}, {"id": "B", "text": "파일 압축"}, {"id": "C", "text": "네트워크 보안"}, {"id": "D", "text": "서버 모니터링"}]', 'B', 'Brotli는 웹 페이지의 파일 크기를 줄여서 로딩 시간을 개선하는 데 사용되는 압축 알고리즘입니다.'),
-    (5466, 17, 3, 129, '다음 중 LCP, FID, CLS와 관련된 Core Web Vitals 지표는 무엇인가요?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "LCP"}, {"id": "B", "text": "TTFB"}, {"id": "C", "text": "FID"}, {"id": "D", "text": "CLS"}]', '["A", "C", "D"]', 'LCP, FID, CLS는 모두 Core Web Vitals의 지표로, 웹 성능을 평가하는 데 중요한 역할을 합니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (5466, 17, 3, 129, '다음 중 LCP, FID, CLS와 관련된 Core Web Vitals 지표는 무엇인가요?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "LCP"}, {"id": "B", "text": "TTFB"}, {"id": "C", "text": "FID"}, {"id": "D", "text": "CLS"}]', '["A", "C", "D"]', 'LCP, FID, CLS는 모두 Core Web Vitals의 지표로, 웹 성능을 평가하는 데 중요한 역할을 합니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- 모바일 개발 > Android (85문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -9387,8 +9477,10 @@ VALUES
     (5548, 18, 1, 82, 'Hilt의 주된 용도는 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "의존성 주입"}, {"id": "B", "text": "네트워크 요청"}, {"id": "C", "text": "UI 구성"}, {"id": "D", "text": "데이터베이스 관리"}]', 'A', 'Hilt는 의존성 주입을 통해 코드의 가독성과 재사용성을 높여주는 라이브러리입니다.'),
     (5549, 18, 1, 83, 'Flow와 Coroutines의 주요 기능은 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "비동기 프로그래밍"}, {"id": "B", "text": "UI 디자인"}, {"id": "C", "text": "데이터베이스 쿼리"}, {"id": "D", "text": "API 문서화"}]', 'A', 'Flow와 Coroutines는 비동기 프로그래밍을 쉽게 구현할 수 있도록 도와줍니다.'),
     (5550, 18, 1, 84, '안드로이드 앱에서 필요한 권한은 어디에 설정해야 하는가?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "Activity"}, {"id": "B", "text": "재사용 가능한 클래스"}, {"id": "C", "text": "매니페스트 파일"}, {"id": "D", "text": "UI 레이아웃"}]', '["C"]', '앱에서 필요한 권한은 매니페스트 파일에 설정해야 합니다.'),
-    (5551, 18, 1, 85, 'Retrofit의 주된 역할은 무엇인가?', 'SHORT_ANSWER', NULL, 'RESTful API와의 통신을 간편하게 해주는 HTTP 클라이언트', 'Retrofit은 RESTful API와의 통신을 쉽게 해주는 HTTP 클라이언트입니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (5551, 18, 1, 85, 'Retrofit의 주된 역할은 무엇인가?', 'SHORT_ANSWER', NULL, 'RESTful API와의 통신을 간편하게 해주는 HTTP 클라이언트', 'Retrofit은 RESTful API와의 통신을 쉽게 해주는 HTTP 클라이언트입니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- 모바일 개발 > iOS (61문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -9453,8 +9545,10 @@ VALUES
     (5609, 18, 2, 58, 'Swift에서 Optional이란 무엇인가요?', 'SHORT_ANSWER', NULL, '값이 있을 수도 있고 없을 수도 있는 변수를 나타내는 기능', 'Optional은 nil이 될 수 있는 변수를 정의하여 값의 존재 여부를 안전하게 처리할 수 있게 해줍니다.'),
     (5610, 18, 2, 59, 'Swift에서 GCD는 무엇을 위한 것인가요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "비동기 작업 및 멀티스레딩 관리"}, {"id": "B", "text": "뷰의 애니메이션 처리"}, {"id": "C", "text": "데이터베이스와의 상호작용"}, {"id": "D", "text": "UI 디자인 도구"}]', 'A', 'GCD는 비동기 작업 및 멀티스레딩을 쉽게 관리할 수 있도록 도와주는 기능입니다.'),
     (5611, 18, 2, 60, 'Core Data는 어떤 용도로 사용되나요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "비동기 작업 관리"}, {"id": "B", "text": "애니메이션 효과 적용"}, {"id": "C", "text": "데이터 저장 및 관리"}, {"id": "D", "text": "UI 디자인"}]', 'C', 'Core Data는 애플리케이션의 데이터를 효율적으로 저장하고 관리하는 데 사용됩니다.'),
-    (5612, 18, 2, 61, '다음 중 UserDefaults에 대한 설명으로 옳은 것은 무엇인가요?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "간단한 설정을 저장하는 데 사용된다."}, {"id": "B", "text": "대규모 데이터 관리를 위해 설계되었다."}, {"id": "C", "text": "키-값 쌍 형태로 데이터를 저장한다."}, {"id": "D", "text": "비동기 작업에 사용된다."}]', '["A", "C"]', 'UserDefaults는 간단한 설정을 저장하는 데 사용되며, 데이터를 키-값 쌍 형태로 저장합니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (5612, 18, 2, 61, '다음 중 UserDefaults에 대한 설명으로 옳은 것은 무엇인가요?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "간단한 설정을 저장하는 데 사용된다."}, {"id": "B", "text": "대규모 데이터 관리를 위해 설계되었다."}, {"id": "C", "text": "키-값 쌍 형태로 데이터를 저장한다."}, {"id": "D", "text": "비동기 작업에 사용된다."}]', '["A", "C"]', 'UserDefaults는 간단한 설정을 저장하는 데 사용되며, 데이터를 키-값 쌍 형태로 저장합니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- 모바일 개발 > 크로스 플랫폼 (105문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -9563,8 +9657,10 @@ VALUES
     (5714, 18, 3, 102, 'StatelessWidget의 특징은 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "상태를 변경할 수 없다."}, {"id": "B", "text": "상태를 내부에 저장한다."}, {"id": "C", "text": "애니메이션을 지원한다."}, {"id": "D", "text": "UI가 동적으로 변경된다."}]', 'A', 'StatelessWidget은 생성 후 상태를 변경할 수 없는 위젯입니다.'),
     (5715, 18, 3, 103, 'Flutter에서 Firebase와 통신하기 위한 기능은 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "플랫폼 채널"}, {"id": "B", "text": "위젯 트리"}, {"id": "C", "text": "라우팅"}, {"id": "D", "text": "API 호출"}]', 'D', 'Firebase와 통신하기 위해 API 호출을 사용합니다.'),
     (5716, 18, 3, 104, 'Flutter에서 상태 관리 라이브러리 중 하나로, 선언적 방법을 사용하는 것은?', 'SHORT_ANSWER', NULL, 'Riverpod', 'Riverpod은 선언적 방식으로 상태 관리를 할 수 있는 라이브러리입니다.'),
-    (5717, 18, 3, 105, 'Flutter에서 StatefulWidget의 특징은 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "상태를 유지할 수 있다."}, {"id": "B", "text": "상태를 변경할 수 없다."}, {"id": "C", "text": "비동기 처리를 지원하지 않는다."}, {"id": "D", "text": "단일 위젯으로만 사용할 수 있다."}]', 'A', 'StatefulWidget은 상태를 유지하고 변경할 수 있는 위젯입니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (5717, 18, 3, 105, 'Flutter에서 StatefulWidget의 특징은 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "상태를 유지할 수 있다."}, {"id": "B", "text": "상태를 변경할 수 없다."}, {"id": "C", "text": "비동기 처리를 지원하지 않는다."}, {"id": "D", "text": "단일 위젯으로만 사용할 수 있다."}]', 'A', 'StatefulWidget은 상태를 유지하고 변경할 수 있는 위젯입니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- Kotlin > Kotlin 기본 (204문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -9607,7 +9703,7 @@ val flow = flow {
     emit(3)
 }
 
-flow.collect { value -> println(value) }', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "1\n2\n3"}, {"id": "B", "text": "1, 2, 3"}, {"id": "C", "text": "3\n2\n1"}, {"id": "D", "text": "3, 2, 1"}]', 'A', 'Flow.collect는 방출된 값을 순차적으로 출력합니다.'),
+flow.collect { value -> println(value) }', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "1\\n2\\n3"}, {"id": "B", "text": "1, 2, 3"}, {"id": "C", "text": "3\\n2\\n1"}, {"id": "D", "text": "3, 2, 1"}]', 'A', 'Flow.collect는 방출된 값을 순차적으로 출력합니다.'),
     (5749, 19, 1, 32, 'StateFlow의 주요 특징은 무엇인가요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "상태를 항상 최신으로 유지한다."}, {"id": "B", "text": "다중 스레드에서 안전하게 사용된다."}, {"id": "C", "text": "비동기 처리가 필요 없다."}, {"id": "D", "text": "Flow보다 느리다."}]', 'A', 'StateFlow는 항상 최신 상태를 유지하는 특징이 있습니다.'),
     (5750, 19, 1, 33, '다음 코드의 빈칸을 채우세요:
 
@@ -9661,7 +9757,7 @@ runBlocking {
     flowExample.collect { value ->
         println(value)
     }
-}', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "1\n2\n3"}, {"id": "B", "text": "1 2 3"}, {"id": "C", "text": "123"}, {"id": "D", "text": "0"}]', 'A', 'Flow는 emit된 값을 개별적으로 방출하므로 값이 각각 새로운 줄에 출력됩니다.'),
+}', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "1\\n2\\n3"}, {"id": "B", "text": "1 2 3"}, {"id": "C", "text": "123"}, {"id": "D", "text": "0"}]', 'A', 'Flow는 emit된 값을 개별적으로 방출하므로 값이 각각 새로운 줄에 출력됩니다.'),
     (5758, 19, 1, 41, 'StateFlow의 초기 값은 ''0''으로 설정되었다고 할 때, 다음 코드의 최종 값은 무엇인가요?
 
 val stateFlowExample = MutableStateFlow(0)
@@ -9843,7 +9939,7 @@ fun main() = runBlocking {
     } 
     println("Hello,") 
     job.join()  // job이 완료될 때까지 대기 
-}', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "Hello,\nWorld!"}, {"id": "B", "text": "World!\nHello,"}, {"id": "C", "text": "Hello,\n"}, {"id": "D", "text": "World!"}]', 'A', '코드 실행 시 먼저 ''Hello,''가 출력되고, 1초 후에 ''World!''가 출력되므로 정답은 A입니다.'),
+}', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "Hello,\\nWorld!"}, {"id": "B", "text": "World!\\nHello,"}, {"id": "C", "text": "Hello,\\n"}, {"id": "D", "text": "World!"}]', 'A', '코드 실행 시 먼저 ''Hello,''가 출력되고, 1초 후에 ''World!''가 출력되므로 정답은 A입니다.'),
     (5804, 19, 1, 87, '다음 중 코루틴을 생성하는 메소드가 아닌 것은 무엇인가? 
 - launch() 
 - runBlocking() 
@@ -10199,7 +10295,7 @@ flow.collect { value ->
     println(value)
 }
 
-이 코드의 출력 결과는?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "Hello\nWorld"}, {"id": "B", "text": "World\nHello"}, {"id": "C", "text": "Hello World"}, {"id": "D", "text": "HelloWorld"}]', 'A', 'Flow는 emit 순서대로 값을 방출하므로, ''Hello''와 ''World''가 순서대로 출력됩니다.'),
+이 코드의 출력 결과는?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "Hello\\nWorld"}, {"id": "B", "text": "World\\nHello"}, {"id": "C", "text": "Hello World"}, {"id": "D", "text": "HelloWorld"}]', 'A', 'Flow는 emit 순서대로 값을 방출하므로, ''Hello''와 ''World''가 순서대로 출력됩니다.'),
     (5905, 19, 1, 188, 'StateFlow는 어떤 특징을 가지고 있는가? 다음 중 모두 선택하시오.
 1. 상태를 방출한다.
 2. 최신 상태를 유지한다.
@@ -10228,8 +10324,10 @@ fun main() {
     (5918, 19, 1, 201, '다음 중 Kotlin의 확장 함수 정의 방식으로 올바른 것은 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "fun 클래스명.함수명() {}"}, {"id": "B", "text": "클래스명.함수명() = {}"}, {"id": "C", "text": "함수명(클래스명) {}"}, {"id": "D", "text": "class 클래스명.함수명() {}"}]', 'A', 'Kotlin에서 확장 함수는 ''fun 클래스명.함수명() {}'' 형태로 정의합니다.'),
     (5919, 19, 1, 202, '''let'' 스코프 함수를 사용한 예시로 올바른 것은 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "name?.let { println(it) }"}, {"id": "B", "text": "name.let { println(it) }"}, {"id": "C", "text": "let(name) { println(it) }"}, {"id": "D", "text": "name!!let { println(it) }"}]', 'A', '''let''은 null이 아닐 때만 실행할 수 있도록 하는 스코프 함수입니다.'),
     (5920, 19, 1, 203, 'Kotlin의 스코프 함수 중, 호출한 객체를 반환하는 것은 무엇인가?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "apply"}, {"id": "B", "text": "let"}, {"id": "C", "text": "run"}, {"id": "D", "text": "also"}]', '["A", "C", "D"]', '''apply'', ''run'', ''also''는 호출한 객체를 반환합니다.'),
-    (5921, 19, 1, 204, 'Kotlin에서 ''with'' 스코프 함수를 사용할 때, 첫 번째 인자는 무엇이어야 하는가?', 'SHORT_ANSWER', NULL, '객체', '''with'' 함수의 첫 번째 인자는 스코프가 적용될 객체여야 합니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (5921, 19, 1, 204, 'Kotlin에서 ''with'' 스코프 함수를 사용할 때, 첫 번째 인자는 무엇이어야 하는가?', 'SHORT_ANSWER', NULL, '객체', '''with'' 함수의 첫 번째 인자는 스코프가 적용될 객체여야 합니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- Kotlin > 코루틴 (15문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -10248,8 +10346,10 @@ VALUES
     (5933, 19, 2, 12, '다음 중 SharedFlow의 특징이 아닌 것은?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "핫 스트림"}, {"id": "B", "text": "구독자가 없으면 데이터가 손실된다"}, {"id": "C", "text": "여러 코루틴 간의 상태를 공유할 수 있다"}, {"id": "D", "text": "다양한 구독자가 동일한 데이터를 수신한다"}]', 'B', 'SharedFlow는 구독자가 없는 경우에도 데이터가 손실되지 않는 특성을 가집니다.'),
     (5934, 19, 2, 13, '코루틴에서 특정 스레드에서 작업을 수행하도록 변경할 때 사용하는 함수는?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "withContext"}, {"id": "B", "text": "switchContext"}, {"id": "C", "text": "changeThread"}, {"id": "D", "text": "runOn"}]', 'A', '''withContext''는 특정 스레드에서 작업을 수행하도록 코루틴의 컨텍스트를 변경하는 함수입니다.'),
     (5935, 19, 2, 14, '코루틴의 실행 시간을 제한하는 방법은 무엇인가요?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "타임아웃"}, {"id": "B", "text": "Delay"}, {"id": "C", "text": "Job"}, {"id": "D", "text": "CoroutineScope"}]', '["A", "C"]', '코루틴의 실행 시간을 제한할 때 ''타임아웃'' 설정과 ''Job'' 객체를 활용할 수 있습니다.'),
-    (5936, 19, 2, 15, 'Kotlin 코루틴에서 비동기 작업의 결과를 받아올 때 사용하는 키워드는 무엇인가요?', 'SHORT_ANSWER', NULL, 'await', '''await''는 async로 정의된 비동기 작업의 결과를 기다리는 함수입니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (5936, 19, 2, 15, 'Kotlin 코루틴에서 비동기 작업의 결과를 받아올 때 사용하는 키워드는 무엇인가요?', 'SHORT_ANSWER', NULL, 'await', '''await''는 async로 정의된 비동기 작업의 결과를 기다리는 함수입니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- NoSQL과 메시지큐 > MongoDB (29문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -10282,8 +10382,10 @@ VALUES
     (5962, 20, 1, 26, 'MongoDB에서 데이터의 고가용성을 보장하기 위해 사용하는 기능은 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "샤딩"}, {"id": "B", "text": "Replica Set"}, {"id": "C", "text": "$lookup"}, {"id": "D", "text": "Collection"}]', 'B', 'Replica Set은 MongoDB의 고가용성을 보장하는 기능으로, 복제된 데이터베이스를 통해 장애가 발생해도 서비스가 지속될 수 있도록 한다.'),
     (5963, 20, 1, 27, '다음 중 MongoDB에서 쿼리를 수행하는 데 사용하는 메소드는 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "find()"}, {"id": "B", "text": "$project"}, {"id": "C", "text": "$lookup"}, {"id": "D", "text": "insert()"}]', 'A', 'MongoDB에서 데이터를 검색하는 메소드는 find()이며, 이를 통해 조건에 맞는 문서를 검색할 수 있다.'),
     (5964, 20, 1, 28, 'MongoDB에서 사용할 수 있는 인덱스의 종류는 무엇인지 모두 선택하시오.', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "기본 인덱스"}, {"id": "B", "text": "복합 인덱스"}, {"id": "C", "text": "단일 필드 인덱스"}, {"id": "D", "text": "해시 인덱스"}]', '["A", "B", "C", "D"]', 'MongoDB에서는 기본 인덱스, 복합 인덱스, 단일 필드 인덱스, 해시 인덱스 등 다양한 인덱스를 사용할 수 있다.'),
-    (5965, 20, 1, 29, 'MongoDB에서 데이터 샤딩의 목적은 무엇인가?', 'SHORT_ANSWER', NULL, '데이터의 분산 처리와 성능 향상', '샤딩은 MongoDB에서 대량의 데이터를 효과적으로 분산 처리하여 성능을 향상시키기 위한 기법이다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (5965, 20, 1, 29, 'MongoDB에서 데이터 샤딩의 목적은 무엇인가?', 'SHORT_ANSWER', NULL, '데이터의 분산 처리와 성능 향상', '샤딩은 MongoDB에서 대량의 데이터를 효과적으로 분산 처리하여 성능을 향상시키기 위한 기법이다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- NoSQL과 메시지큐 > Redis와 Elasticsearch (82문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -10369,8 +10471,10 @@ VALUES
     (6044, 20, 2, 79, 'Elasticsearch에서 복잡한 검색 요청을 수행하기 위해 사용하는 언어는 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "SQL"}, {"id": "B", "text": "쿼리 DSL"}, {"id": "C", "text": "JSON"}, {"id": "D", "text": "XML"}]', 'B', '쿼리 DSL은 Elasticsearch에서 복잡한 검색 요청을 작성하는 데 사용되는 언어입니다.'),
     (6045, 20, 2, 80, 'ELK 스택의 구성 요소가 아닌 것은?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "Kibana"}, {"id": "B", "text": "Beats"}, {"id": "C", "text": "Redis"}, {"id": "D", "text": "Elasticsearch"}]', 'C', 'Redis는 ELK 스택의 구성 요소가 아닙니다.'),
     (6046, 20, 2, 81, 'Elasticsearch에서 사용되는 분석기를 통해 주로 어떤 작업을 수행하나요?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "데이터 저장"}, {"id": "B", "text": "텍스트 데이터 처리"}, {"id": "C", "text": "클러스터 관리"}, {"id": "D", "text": "검색 성능 최적화"}]', '["B", "D"]', '분석기는 텍스트 데이터를 처리하고 검색 성능을 최적화하는 데 사용됩니다.'),
-    (6047, 20, 2, 82, 'Elasticsearch에서 역인덱스의 주요 기능은 무엇인가?', 'SHORT_ANSWER', NULL, '검색 성능 향상', '역인덱스는 데이터 검색의 효율성을 높여주는 구조입니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (6047, 20, 2, 82, 'Elasticsearch에서 역인덱스의 주요 기능은 무엇인가?', 'SHORT_ANSWER', NULL, '검색 성능 향상', '역인덱스는 데이터 검색의 효율성을 높여주는 구조입니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- NoSQL과 메시지큐 > Kafka와 RabbitMQ (103문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -10477,8 +10581,10 @@ VALUES
     (6147, 20, 3, 100, 'KSQL을 사용하면 무엇을 할 수 있나요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "데이터를 저장한다"}, {"id": "B", "text": "실시간 데이터 분석을 수행한다"}, {"id": "C", "text": "클러스터를 관리한다"}, {"id": "D", "text": "메시지를 전송한다"}]', 'B', 'KSQL은 스트리밍 데이터를 SQL 쿼리를 통해 실시간으로 분석할 수 있게 해줍니다.'),
     (6148, 20, 3, 101, '다음 중 Kafka의 리텐션 설정에 대한 설명으로 올바른 것은?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "데이터를 무제한으로 저장한다."}, {"id": "B", "text": "특정 기간 동안만 데이터를 저장한다."}, {"id": "C", "text": "데이터를 소비한 후 제거한다."}, {"id": "D", "text": "데이터를 암호화한다."}]', 'B', '리텐션 설정은 데이터를 특정 기간 동안만 저장하도록 지정합니다.'),
     (6149, 20, 3, 102, 'Kafka의 ISR은 무엇을 의미하나요?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "In-Sync Replicas"}, {"id": "B", "text": "In-Stream Replication"}, {"id": "C", "text": "Instant Synchronization Records"}, {"id": "D", "text": "Internal System Reliability"}]', '["A"]', 'ISR은 In-Sync Replicas의 약자로, 모든 복제본의 일관성을 유지하는 데 중요한 역할을 합니다.'),
-    (6150, 20, 3, 103, 'Kafka에서 오프셋이란 무엇을 의미하나요?', 'SHORT_ANSWER', NULL, '컨슈머가 메시지를 소비할 위치를 나타내는 값입니다.', '오프셋은 Kafka에서 각 메시지의 위치를 추적하는 데 사용됩니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (6150, 20, 3, 103, 'Kafka에서 오프셋이란 무엇을 의미하나요?', 'SHORT_ANSWER', NULL, '컨슈머가 메시지를 소비할 위치를 나타내는 값입니다.', '오프셋은 Kafka에서 각 메시지의 위치를 추적하는 데 사용됩니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- 시스템 디자인 > 시스템 설계 기본 (35문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -10517,8 +10623,10 @@ VALUES
     (6182, 21, 1, 32, '샤딩의 주요 장점은 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "데이터의 중앙 집중화"}, {"id": "B", "text": "성능 향상 및 확장성 증가"}, {"id": "C", "text": "보안 강화"}, {"id": "D", "text": "비용 절감"}]', 'B', '샤딩은 데이터를 여러 서버에 나누어 저장함으로써 성능을 향상시키고 확장성을 증가시킵니다.'),
     (6183, 21, 1, 33, 'API Gateway의 역할은 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "서버의 하드웨어 성능 향상"}, {"id": "B", "text": "클라이언트와 백엔드 서비스 간의 통신 관리"}, {"id": "C", "text": "데이터베이스의 데이터 복제"}, {"id": "D", "text": "사용자 인터페이스 설계"}]', 'B', 'API Gateway는 클라이언트와 여러 백엔드 서비스 간의 인터페이스 역할을 하여 통신을 관리합니다.'),
     (6184, 21, 1, 34, '다음 중 시스템 설계에서 일관성을 유지하기 위한 방법은 무엇인가?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "데이터베이스 복제"}, {"id": "B", "text": "수평적 확장"}, {"id": "C", "text": "Rate Limiter 사용"}, {"id": "D", "text": "CDN 활용"}]', '["A", "C"]', '일관성을 유지하기 위해 데이터베이스 복제와 Rate Limiter 사용이 효과적입니다.'),
-    (6185, 21, 1, 35, '수직적 확장과 수평적 확장의 차이를 설명하시오.', 'SHORT_ANSWER', NULL, '수직적 확장은 기존 서버의 성능을 높이는 것이고, 수평적 확장은 더 많은 서버를 추가하여 시스템의 처리 능력을 증가시키는 것이다.', '') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (6185, 21, 1, 35, '수직적 확장과 수평적 확장의 차이를 설명하시오.', 'SHORT_ANSWER', NULL, '수직적 확장은 기존 서버의 성능을 높이는 것이고, 수평적 확장은 더 많은 서버를 추가하여 시스템의 처리 능력을 증가시키는 것이다.', '')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- 시스템 디자인 > 설계 사례와 MSA (75문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -10597,8 +10705,10 @@ VALUES
     (6257, 21, 2, 72, '이커머스 플랫폼에서 유일 ID 생성기의 주요 기능은 무엇인가요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "사용자 인증"}, {"id": "B", "text": "주문 추적"}, {"id": "C", "text": "데이터베이스 관리"}, {"id": "D", "text": "거래의 고유성 보장"}]', 'D', '유일 ID 생성기는 각 거래나 사용자를 위한 고유한 식별자를 생성하여 데이터 일관성을 유지합니다.'),
     (6258, 21, 2, 73, '소셜 미디어의 주요 기능으로 옳지 않은 것은?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "사용자 간 상호작용"}, {"id": "B", "text": "실시간 메시징"}, {"id": "C", "text": "데이터 수집"}, {"id": "D", "text": "비공식 거래 지원"}]', 'D', '소셜 미디어의 주요 기능은 사용자 간의 상호작용과 정보 공유이며, 비공식 거래는 그 본질과 맞지 않습니다.'),
     (6259, 21, 2, 74, '알림 시스템이 주로 사용하는 기술은 무엇인가요?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "푸시 알림"}, {"id": "B", "text": "이메일 전송"}, {"id": "C", "text": "SMS 발송"}, {"id": "D", "text": "웹 크롤링"}]', '["A", "B", "C"]', '알림 시스템은 다양한 채널을 통해 사용자에게 정보를 전달하는데 푸시 알림, 이메일 전송, SMS 발송이 사용됩니다.'),
-    (6260, 21, 2, 75, '파일 저장소에서 주로 다루는 데이터의 특성은 무엇인가요?', 'SHORT_ANSWER', NULL, '대용량 데이터 관리', '파일 저장소는 주로 대규모의 비정형 데이터를 저장하고 관리하는 데 적합합니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (6260, 21, 2, 75, '파일 저장소에서 주로 다루는 데이터의 특성은 무엇인가요?', 'SHORT_ANSWER', NULL, '대용량 데이터 관리', '파일 저장소는 주로 대규모의 비정형 데이터를 저장하고 관리하는 데 적합합니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- 시스템 디자인 > DDD와 이벤트 드리븐 (35문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -10637,8 +10747,10 @@ VALUES
     (6292, 21, 3, 32, '값 객체의 특징으로 옳은 것은?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "식별자를 가지지 않는다."}, {"id": "B", "text": "상태 변화를 추적한다."}, {"id": "C", "text": "불변성을 유지한다."}, {"id": "D", "text": "유일한 인스턴스를 가진다."}]', 'C', '값 객체는 불변성을 유지하여 상태가 변경되지 않습니다.'),
     (6293, 21, 3, 33, '전술적 설계에서 팩토리의 주요 목적은 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "도메인 이벤트를 발생시키기 위해."}, {"id": "B", "text": "객체 생성을 캡슐화하기 위해."}, {"id": "C", "text": "유비쿼터스 언어의 표준화를 위해."}, {"id": "D", "text": "값 객체의 불변성을 보장하기 위해."}]', 'B', '팩토리는 객체 생성을 캡슐화하여 클라이언트가 객체 생성의 복잡성을 알지 못하게 합니다.'),
     (6294, 21, 3, 34, '다음 중 도메인 주도 설계의 전술적 패턴에 해당하는 것은?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "바운디드 컨텍스트"}, {"id": "B", "text": "값 객체"}, {"id": "C", "text": "도메인 이벤트"}, {"id": "D", "text": "컨텍스트 맵"}]', '["B", "C"]', '값 객체와 도메인 이벤트는 DDD에서 전술적 패턴으로, 구체적인 구현을 다룹니다.'),
-    (6295, 21, 3, 35, '유비쿼터스 언어의 정의는 무엇인가?', 'SHORT_ANSWER', NULL, '개발팀과 비즈니스 팀이 동일하게 이해하고 사용할 수 있는 언어.', '') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (6295, 21, 3, 35, '유비쿼터스 언어의 정의는 무엇인가?', 'SHORT_ANSWER', NULL, '개발팀과 비즈니스 팀이 동일하게 이해하고 사용할 수 있는 언어.', '')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- 컴퓨터 구조 > CPU와 명령어 (234문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -10801,7 +10913,7 @@ int main() {
     (6420, 22, 1, 125, '함수 포인터를 사용할 때의 장점은 무엇인가요? (복수 선택 가능)', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "동적으로 함수 호출할 수 있다."}, {"id": "B", "text": "메모리 사용을 줄인다."}, {"id": "C", "text": "코드를 더 읽기 쉽게 만든다."}, {"id": "D", "text": "다양한 함수에 대한 포인터를 저장할 수 있다."}]', '["A", "C", "D"]', '함수 포인터를 사용하면 동적으로 함수 호출이 가능하고, 코드의 가독성을 높이며, 다양한 함수를 저장할 수 있는 장점이 있습니다.'),
     (6421, 22, 1, 126, '위의 코드에서 ''malloc'' 함수는 무엇을 하는가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "메모리를 동적으로 할당한다."}, {"id": "B", "text": "변수를 초기화한다."}, {"id": "C", "text": "메모리를 해제한다."}, {"id": "D", "text": "배열을 선언한다."}]', 'A', '''malloc'' 함수는 주어진 크기만큼 메모리를 동적으로 할당하고 그 주소를 반환한다.'),
     (6422, 22, 1, 127, '위 코드에서 arr 배열의 요소는 어떻게 초기화되는가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "모두 0으로 초기화된다."}, {"id": "B", "text": "각 요소는 i * 2로 초기화된다."}, {"id": "C", "text": "정수형 포인터로 초기화된다."}, {"id": "D", "text": "할당된 메모리의 크기로 초기화된다."}]', 'B', 'arr[i]는 i * 2로 초기화되어 각 인덱스에 따라 값을 설정한다.'),
-    (6423, 22, 1, 128, '다음 코드에서 빈칸에 들어갈 적절한 코드는 무엇인가? ''if (arr == NULL) { ___; }''', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "free(arr);"}, {"id": "B", "text": "return 0;"}, {"id": "C", "text": "printf(\"Error allocating memory\");"}, {"id": "D", "text": "malloc(n * sizeof(int));"}]', 'C', '메모리 할당이 실패했을 경우 오류 메시지를 출력해야 한다.'),
+    (6423, 22, 1, 128, '다음 코드에서 빈칸에 들어갈 적절한 코드는 무엇인가? ''if (arr == NULL) { ___; }''', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "free(arr);"}, {"id": "B", "text": "return 0;"}, {"id": "C", "text": "printf(\\"Error allocating memory\\");"}, {"id": "D", "text": "malloc(n * sizeof(int));"}]', 'C', '메모리 할당이 실패했을 경우 오류 메시지를 출력해야 한다.'),
     (6424, 22, 1, 129, '포인터를 사용하여 메모리를 동적으로 할당하고 해제하는 함수 또는 개념을 모두 고르시오.', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "malloc"}, {"id": "B", "text": "calloc"}, {"id": "C", "text": "free"}, {"id": "D", "text": "sizeof"}]', '["A", "B", "C"]', 'malloc과 calloc은 메모리를 할당하는 함수이고, free는 해제하는 함수이다.'),
     (6425, 22, 1, 130, 'C에서 포인터를 사용하여 메모리를 해제하는 방법은 무엇인가?', 'SHORT_ANSWER', NULL, 'free() 함수 사용', '동적으로 할당된 메모리는 free() 함수를 사용하여 해제해야 한다.'),
     (6426, 22, 1, 131, '다음 코드에서 ''func_ptr''은 어떤 타입의 포인터인가요?
@@ -10896,7 +11008,7 @@ p.print = ________;
     (6444, 22, 1, 149, 'fread() 함수에 의해 읽힌 데이터는 _________에 저장된다.
 
  fread(buffer, sizeof(char), sizeof(data), fp);', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "buffer"}, {"id": "B", "text": "data"}, {"id": "C", "text": "fp"}, {"id": "D", "text": "example.txt"}]', 'A', 'fread() 함수는 읽은 데이터를 buffer에 저장합니다.'),
-    (6445, 22, 1, 150, '파일쓰기 모드로 파일을 열 때 사용하는 함수와 모드는 어떤 것인가요? (복수 선택 가능)', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "fopen"}, {"id": "B", "text": "\"w\""}, {"id": "C", "text": "\"r\""}, {"id": "D", "text": "\"a\""}]', '["A", "B"]', '파일 쓰기 모드로 파일을 열기 위해서는 fopen() 함수와 "w" 모드를 사용해야 합니다.'),
+    (6445, 22, 1, 150, '파일쓰기 모드로 파일을 열 때 사용하는 함수와 모드는 어떤 것인가요? (복수 선택 가능)', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "fopen"}, {"id": "B", "text": "\\"w\\""}, {"id": "C", "text": "\\"r\\""}, {"id": "D", "text": "\\"a\\""}]', '["A", "B"]', '파일 쓰기 모드로 파일을 열기 위해서는 fopen() 함수와 "w" 모드를 사용해야 합니다.'),
     (6446, 22, 1, 151, '파일을 닫는 함수는 무엇인가요?', 'SHORT_ANSWER', NULL, 'fclose', 'fclose() 함수를 사용하여 열린 파일을 닫습니다.'),
     (6447, 22, 1, 152, '위 코드에서 ''arr'' 포인터가 가리키는 메모리의 크기는 몇 바이트인가요?', 'SHORT_ANSWER', NULL, '20', '''malloc(5 * sizeof(int))''에서 int의 크기가 4바이트라면 5개 int의 메모리 크기는 5 * 4 = 20바이트입니다.'),
     (6448, 22, 1, 153, '위 코드에서 ''malloc''이 제대로 메모리를 할당하지 못했을 경우 출력되는 메시지는 무엇인가요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "Memory allocation failed"}, {"id": "B", "text": "Allocation error"}, {"id": "C", "text": "Unable to allocate memory"}, {"id": "D", "text": "Error during allocation"}]', 'A', '''if (arr == NULL)'' 조건에서 출력되는 메시지는 ''Memory allocation failed''입니다.'),
@@ -11190,8 +11302,10 @@ void sharedPtrExample() {
 int main() {
     sharedPtrExample();
     return 0;
-}', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "20"}, {"id": "B", "text": "0"}, {"id": "C", "text": "nullptr"}, {"id": "D", "text": "메모리 오류"}]', 'A', 'ptr2가 scope를 벗어나도 ptr1이 여전히 메모리를 관리하므로 20이 출력됩니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+}', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "20"}, {"id": "B", "text": "0"}, {"id": "C", "text": "nullptr"}, {"id": "D", "text": "메모리 오류"}]', 'A', 'ptr2가 scope를 벗어나도 ptr1이 여전히 메모리를 관리하므로 20이 출력됩니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- 컴퓨터 구조 > 메모리 체계 (45문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -11240,8 +11354,10 @@ VALUES
     (6571, 22, 2, 42, '가상 메모리의 주 목적은 무엇인가요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "메모리 용량을 확장한다."}, {"id": "B", "text": "CPU의 속도를 증가시킨다."}, {"id": "C", "text": "데이터를 암호화한다."}, {"id": "D", "text": "메모리 오류를 방지한다."}]', 'A', '가상 메모리는 프로그램이 사용할 수 있는 메모리의 양을 확장하는 것입니다.'),
     (6572, 22, 2, 43, 'TLB의 주 역할은 무엇인가요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "데이터를 암호화한다."}, {"id": "B", "text": "페이지 테이블을 캐시하여 접근 속도를 높인다."}, {"id": "C", "text": "주소 버스를 관리한다."}, {"id": "D", "text": "메모리 오류를 수정한다."}]', 'B', 'TLB는 가상 메모리에서 페이지 테이블을 캐시하여 메모리 접근 속도를 높이는 역할을 합니다.'),
     (6573, 22, 2, 44, '리틀 엔디안과 빅 엔디안의 차이는 무엇인가요?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "바이트 순서의 차이이다."}, {"id": "B", "text": "데이터 전송 속도의 차이다."}, {"id": "C", "text": "메모리 관리 방법의 차이다."}, {"id": "D", "text": "CPU 아키텍처의 차이다."}]', '["A", "D"]', '리틀 엔디안과 빅 엔디안은 데이터의 바이트 순서를 정의하며, CPU 아키텍처와 관련이 있습니다.'),
-    (6574, 22, 2, 45, '주소 버스의 역할은 무엇인가요?', 'SHORT_ANSWER', NULL, '메모리 주소를 전송하는 통로이다.', '주소 버스는 CPU가 메모리에 접근하기 위해 필요한 주소를 전송하는 역할을 합니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (6574, 22, 2, 45, '주소 버스의 역할은 무엇인가요?', 'SHORT_ANSWER', NULL, '메모리 주소를 전송하는 통로이다.', '주소 버스는 CPU가 메모리에 접근하기 위해 필요한 주소를 전송하는 역할을 합니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- 컴퓨터 구조 > 병렬 처리 (67문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -11312,8 +11428,10 @@ VALUES
     (6638, 22, 3, 64, 'MESI 프로토콜의 주된 역할은 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "캐시 데이터의 일관성을 유지하기 위함"}, {"id": "B", "text": "프로세서 간의 통신을 강화하기 위함"}, {"id": "C", "text": "메모리 속도를 증가시키기 위함"}, {"id": "D", "text": "동적 메모리 할당을 관리하기 위함"}]', 'A', 'MESI 프로토콜은 여러 코어 간의 캐시 데이터 일관성을 관리하여, 데이터 충돌을 방지합니다.'),
     (6639, 22, 3, 65, '병렬 처리 성능의 한계를 설명하는 법칙은 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "암달의 법칙"}, {"id": "B", "text": "구스타프슨의 법칙"}, {"id": "C", "text": "테일러의 법칙"}, {"id": "D", "text": "모스의 법칙"}]', 'A', '암달의 법칙은 프로그램의 일부분만을 병렬 처리할 수 있는 경우 성능 향상의 한계를 설명합니다.'),
     (6640, 22, 3, 66, '병렬 처리에서 원자적 연산의 중요한 역할은 무엇인가?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "데이터 경쟁을 방지한다"}, {"id": "B", "text": "프로세서 간의 메시징 속도를 높인다"}, {"id": "C", "text": "스레드의 실행 순서를 보장한다"}, {"id": "D", "text": "자원 접근의 안전성을 보장한다"}]', '["A", "D"]', '원자적 연산은 여러 스레드가 동시에 접근할 때 데이터 무결성을 유지하고, 동시성 문제를 방지하는 데 도움이 됩니다.'),
-    (6641, 22, 3, 67, 'SIMD의 의미는 무엇인가요?', 'SHORT_ANSWER', NULL, 'Single Instruction, Multiple Data', 'SIMD는 단일 명령어로 여러 데이터 요소를 동시에 처리하는 아키텍처를 의미합니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (6641, 22, 3, 67, 'SIMD의 의미는 무엇인가요?', 'SHORT_ANSWER', NULL, 'Single Instruction, Multiple Data', 'SIMD는 단일 명령어로 여러 데이터 요소를 동시에 처리하는 아키텍처를 의미합니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- Linux > 기본 명령어 (75문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -11392,8 +11510,10 @@ VALUES
     (6713, 23, 1, 72, '`kill` 명령어의 사용 목적은 무엇인가요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "파일을 이동한다."}, {"id": "B", "text": "프로세스를 종료한다."}, {"id": "C", "text": "디렉토리를 생성한다."}, {"id": "D", "text": "파일 목록을 확인한다."}]', 'B', '`kill` 명령어는 지정한 프로세스를 종료하는 데 사용됩니다.'),
     (6714, 23, 1, 73, '다음 중 여러 개의 정답이 가능한 명령어는 무엇인가요?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "`grep`"}, {"id": "B", "text": "`mv`"}, {"id": "C", "text": "`find`"}, {"id": "D", "text": "`mkdir`"}]', '["A", "C"]', '`grep`과 `find`는 모두 특정 문자열이나 파일을 검색하는 데 사용되는 명령어입니다.'),
     (6715, 23, 1, 74, '리눅스에서 새로운 디렉토리를 생성하는 명령어는 무엇인가요?', 'SHORT_ANSWER', NULL, 'mkdir', '`mkdir` 명령어를 사용하여 새로운 디렉토리를 생성할 수 있습니다.'),
-    (6716, 23, 1, 75, '웹에서 파일을 다운로드할 때 사용하는 명령어는 무엇인가요?', 'SHORT_ANSWER', NULL, 'wget', '`wget` 명령어는 웹에서 파일을 다운로드하는 데 사용됩니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (6716, 23, 1, 75, '웹에서 파일을 다운로드할 때 사용하는 명령어는 무엇인가요?', 'SHORT_ANSWER', NULL, 'wget', '`wget` 명령어는 웹에서 파일을 다운로드하는 데 사용됩니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- Linux > 시스템 관리 (85문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -11482,8 +11602,10 @@ VALUES
     (6798, 23, 2, 82, 'dnf는 주로 어떤 작업에 사용되는가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "패키지 설치 및 관리"}, {"id": "B", "text": "시스템 로그 확인"}, {"id": "C", "text": "네트워크 모니터링"}, {"id": "D", "text": "사용자 추가"}]', 'A', 'dnf는 리눅스 배포판에서 소프트웨어 패키지를 설치, 업데이트, 삭제할 수 있도록 도와주는 패키지 관리 도구입니다.'),
     (6799, 23, 2, 83, 'SELinux는 무엇을 위한 기술인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "시스템 보안"}, {"id": "B", "text": "데이터베이스 관리"}, {"id": "C", "text": "웹 서버 관리"}, {"id": "D", "text": "네트워크 설정"}]', 'A', 'SELinux는 Security-Enhanced Linux의 약자로, 리눅스 시스템에서 보안을 강화하기 위한 기술입니다.'),
     (6800, 23, 2, 84, '다음 중 패키지 관리 도구인 것은 무엇인가?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "apt"}, {"id": "B", "text": "ufw"}, {"id": "C", "text": "dnf"}, {"id": "D", "text": "iptables"}]', '["A", "C"]', 'apt와 dnf는 각각 Debian 계열과 Red Hat 계열의 패키지 관리 도구로, 소프트웨어의 설치 및 관리를 도와줍니다.'),
-    (6801, 23, 2, 85, '리눅스에서 백그라운드 프로세스를 시작하는 명령어는 무엇인가?', 'SHORT_ANSWER', NULL, 'nohup', 'nohup 명령어를 사용하면 백그라운드에서 작업을 계속 실행할 수 있도록 합니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (6801, 23, 2, 85, '리눅스에서 백그라운드 프로세스를 시작하는 명령어는 무엇인가?', 'SHORT_ANSWER', NULL, 'nohup', 'nohup 명령어를 사용하면 백그라운드에서 작업을 계속 실행할 수 있도록 합니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- Linux > 셸 스크립트 (219문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -11556,7 +11678,7 @@ awk ''BEGIN {FS=";"} {print $___}'' data.txt', 'SHORT_ANSWER', NULL, '1', 'FS는
 for i in {1..3}
 do
   echo "Count: $i"
-done', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "Count: 1\nCount: 2\nCount: 3"}, {"id": "B", "text": "Count: 1\nCount: 1\nCount: 1"}, {"id": "C", "text": "Count: 3\nCount: 2\nCount: 1"}, {"id": "D", "text": "Count: 1\nCount: 2"}]', 'A', 'for 루프는 1부터 3까지 반복하며 각 반복에서 해당 숫자를 출력합니다.'),
+done', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "Count: 1\\nCount: 2\\nCount: 3"}, {"id": "B", "text": "Count: 1\\nCount: 1\\nCount: 1"}, {"id": "C", "text": "Count: 3\\nCount: 2\\nCount: 1"}, {"id": "D", "text": "Count: 1\\nCount: 2"}]', 'A', 'for 루프는 1부터 3까지 반복하며 각 반복에서 해당 숫자를 출력합니다.'),
     (6859, 23, 3, 58, '다음 코드에서 빈칸에 들어갈 적절한 조건 연산자는 무엇인가요?
 
 if [ __ ]; then
@@ -11757,17 +11879,17 @@ D. VAR:=10', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "VAR=10"}, {"id":
     (6987, 23, 3, 186, '다음 명령어의 기능을 설명하세요: `command 2>&1`', 'SHORT_ANSWER', NULL, '표준 오류를 표준 출력으로 리다이렉션', '2>&1은 표준 오류(2)를 표준 출력(1)으로 리다이렉션하여 에러 메시지를 캡처합니다.'),
     (6988, 23, 3, 187, '다음 중 파이프와 리다이렉션에 대한 설명으로 올바른 것은 무엇인가요?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "파이프는 명령어를 연결하는 데 사용된다."}, {"id": "B", "text": "리다이렉션은 출력을 파일로 전송할 수 있다."}, {"id": "C", "text": "리다이렉션은 입력만 수정할 수 있다."}, {"id": "D", "text": "파이프와 리다이렉션은 오류처리에 사용되지 않는다."}]', '["A", "B"]', 'A와 B는 파이프와 리다이렉션의 실제 용도와 일치합니다.'),
     (6989, 23, 3, 188, '다음 리다이렉션 명령어 중 파일에 내용을 추가하는 데 사용되는 것은?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": ">"}, {"id": "B", "text": ">>"}, {"id": "C", "text": "|"}, {"id": "D", "text": "2>&1"}]', 'B', '''>>''는 기존 파일에 내용을 추가하는 리다이렉션 기호입니다.'),
-    (6990, 23, 3, 189, '다음 명령어의 출력 결과는 무엇인가요? `ls -l | grep "txt"`', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "\"txt\"가 포함된 파일 목록"}, {"id": "B", "text": "모든 파일 목록"}, {"id": "C", "text": "에러 메시지"}, {"id": "D", "text": "빈 문자열"}]', 'A', '`ls -l`의 결과 중 ''txt''가 포함된 파일만 필터링하여 출력됩니다.'),
+    (6990, 23, 3, 189, '다음 명령어의 출력 결과는 무엇인가요? `ls -l | grep "txt"`', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "\\"txt\\"가 포함된 파일 목록"}, {"id": "B", "text": "모든 파일 목록"}, {"id": "C", "text": "에러 메시지"}, {"id": "D", "text": "빈 문자열"}]', 'A', '`ls -l`의 결과 중 ''txt''가 포함된 파일만 필터링하여 출력됩니다.'),
     (6991, 23, 3, 190, '다음 코드의 빈칸에 들어갈 알맞은 명령어는 무엇인가요? `command > output.txt`에서 output.txt에 덮어쓰기를 원치 않는 경우, `command ___ output.txt`를 사용하여 추가할 수 있습니다.', 'SHORT_ANSWER', NULL, '>>', '`>>`를 사용하면 파일에 내용을 추가할 수 있습니다.'),
     (6992, 23, 3, 191, '다음 중 리다이렉션 설명으로 올바른 것은 무엇인가요? `command > output.txt 2>&1`', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "표준 출력과 표준 에러를 output.txt로 보낸다."}, {"id": "B", "text": "오직 표준 출력만 output.txt로 보낸다."}, {"id": "C", "text": "output.txt 파일을 생성하지 않는다."}, {"id": "D", "text": "명령어의 입력을 output.txt로 보낸다."}]', 'A', '이 명령어는 표준 출력과 표준 에러를 모두 output.txt 파일로 보냅니다.'),
     (6993, 23, 3, 192, '다음 중 파이프(`|`)의 올바른 사용 예시로 가장 적절한 것은 무엇인가요?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "ls -l | more"}, {"id": "B", "text": "cat file.txt | sort"}, {"id": "C", "text": "echo hello | grep h"}, {"id": "D", "text": "command > output.txt"}]', '["A", "B", "C"]', 'A, B, C 모두 파이프를 사용하여 명령어의 출력을 다음 명령어의 입력으로 전달합니다.'),
-    (6994, 23, 3, 193, '다음 명령어의 결과는 무엇입니까? `ls -l | grep "txt"`', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "\"txt\"가 포함된 파일 목록"}, {"id": "B", "text": "모든 파일 목록"}, {"id": "C", "text": "오류 메시지"}, {"id": "D", "text": "빈 출력"}]', 'A', '"ls -l"의 결과 중에서 ''txt''가 포함된 줄만 보여줍니다.'),
+    (6994, 23, 3, 193, '다음 명령어의 결과는 무엇입니까? `ls -l | grep "txt"`', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "\\"txt\\"가 포함된 파일 목록"}, {"id": "B", "text": "모든 파일 목록"}, {"id": "C", "text": "오류 메시지"}, {"id": "D", "text": "빈 출력"}]', 'A', '"ls -l"의 결과 중에서 ''txt''가 포함된 줄만 보여줍니다.'),
     (6995, 23, 3, 194, '아래 명령어는 어떤 작업을 수행합니까? `echo "Hello, World!" > output.txt`', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "output.txt를 생성하고 내용을 쓴다."}, {"id": "B", "text": "output.txt의 내용을 추가한다."}, {"id": "C", "text": "출력을 화면에 표시한다."}, {"id": "D", "text": "오류 메시지를 출력한다."}]', 'A', '이 명령은 output.txt 파일을 생성하고 ''Hello, World!''라는 내용을 씁니다.'),
     (6996, 23, 3, 195, '다음 빈칸에 들어갈 올바른 내용을 채우세요: `command1 2>&1 | command2`에서 `command1`의 에러 출력이 `command2`로 보내집니다.', 'SHORT_ANSWER', NULL, '표준 출력', '2>&1는 에러 출력을 표준 출력으로 리다이렉션합니다.'),
     (6997, 23, 3, 196, '아래 명령어에서 어떤 파일에 내용을 추가할까요? `echo "New line" >> existing_file.txt`', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "existing_file.txt"}, {"id": "B", "text": "output.txt"}, {"id": "C", "text": "New line"}, {"id": "D", "text": "빈 파일"}]', '["A"]', '이 명령은 existing_file.txt에 ''New line''을 추가합니다.'),
     (6998, 23, 3, 197, '다음 중 cron 표현식의 올바른 형식은 무엇인가요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "분 시 일 월 요일"}, {"id": "B", "text": "시 분 월 일 요일"}, {"id": "C", "text": "일 월 시 분 요일"}, {"id": "D", "text": "요일 월 시 일 분"}]', 'A', 'cron 표현식은 ''분 시 일 월 요일''의 형식을 따릅니다.'),
     (6999, 23, 3, 198, '다음 스크립트에서 빈칸에 들어갈 명령어는 무엇인가요? `tar -czf /backup/backup_$(date +%F).tar.gz __`', 'SHORT_ANSWER', NULL, '/home/user/data', '빈칸에는 백업할 데이터의 경로인 ''/home/user/data''가 들어갑니다.'),
-    (7000, 23, 3, 199, '다음 중 자동화 스크립트의 예시로 맞는 것은 무엇인가요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "#!/bin/bash\necho Hello World\n"}, {"id": "B", "text": "echo Hello World\n"}, {"id": "C", "text": "date\n"}, {"id": "D", "text": "#!/bin/bash\ndate; echo Hello World\n"}]', 'D', '예시 D는 Bash 스크립트 헤더와 함께 여러 명령을 포함하고 있어 자동화 스크립트의 형태입니다.'),
+    (7000, 23, 3, 199, '다음 중 자동화 스크립트의 예시로 맞는 것은 무엇인가요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "#!/bin/bash\\necho Hello World\\n"}, {"id": "B", "text": "echo Hello World\\n"}, {"id": "C", "text": "date\\n"}, {"id": "D", "text": "#!/bin/bash\\ndate; echo Hello World\\n"}]', 'D', '예시 D는 Bash 스크립트 헤더와 함께 여러 명령을 포함하고 있어 자동화 스크립트의 형태입니다.'),
     (7001, 23, 3, 200, '다음 중 cron탭에서 매일 오후 3시에 스크립트를 실행하도록 예약하는 표현식은 무엇인가요?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "0 15 * * *"}, {"id": "B", "text": "15 3 * * *"}, {"id": "C", "text": "0 3 * * *"}, {"id": "D", "text": "0 15 * * 1"}]', '["A", "B"]', 'A와 B는 모두 매일 오후 3시에 실행되는 cron 표현식입니다.'),
     (7002, 23, 3, 201, '다음 `sed` 명령어의 결과는 무엇인가요? `echo ''apple banana cherry'' | sed ''s/banana/kiwi/''`', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "apple kiwi cherry"}, {"id": "B", "text": "apple banana cherry"}, {"id": "C", "text": "kiwi cherry"}, {"id": "D", "text": "banana cherry"}]', 'A', '`sed`는 ''banana''를 ''kiwi''로 치환하므로 출력은 ''apple kiwi cherry''입니다.'),
     (7003, 23, 3, 202, '다음 `awk` 명령어의 결과는 무엇인가요? `echo ''one two three'' | awk ''{print $2}''`', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "one"}, {"id": "B", "text": "two"}, {"id": "C", "text": "three"}, {"id": "D", "text": "one two"}]', 'B', '`awk`는 각 행에서 두 번째 필드를 출력하므로 ''two''가 출력됩니다.'),
@@ -11787,8 +11909,10 @@ D. VAR:=10', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "VAR=10"}, {"id":
     (7017, 23, 3, 216, '다음 `awk` 명령의 결과는 무엇인가요? <br> `echo ''1 2 3'' | awk ''{print $2}''`', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "1"}, {"id": "B", "text": "2"}, {"id": "C", "text": "3"}, {"id": "D", "text": "1 2 3"}]', 'B', '`awk` 명령은 두 번째 필드인 ''2''를 출력하기 때문에 결과는 ''2''입니다.'),
     (7018, 23, 3, 217, '다음 `sed` 명령에서 빈칸에 들어갈 적절한 명령어는 무엇인가요? <br> `sed ''s/old/new/g'' <blank>`', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "example.txt"}, {"id": "B", "text": "Hello World"}, {"id": "C", "text": "This is old"}, {"id": "D", "text": "new old"}]', 'A', '`sed`는 입력 파일을 지정해야 하므로, ''example.txt''가 적절합니다.'),
     (7019, 23, 3, 218, '다음 중 `awk`로 여러 필드를 출력하는 방법으로 올바른 것은 무엇인가요?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "awk ''{print $1, $2}''"}, {"id": "B", "text": "awk ''{print $3}''"}, {"id": "C", "text": "awk ''{print $1 + $2}''"}, {"id": "D", "text": "awk ''{print $*}''"}]', '["A", "B"]', '`awk ''{print $1, $2}''`와 `awk ''{print $3}''`는 각각 첫 두 필드와 세 번째 필드를 출력하는 올바른 방법입니다.'),
-    (7020, 23, 3, 219, '`sed`와 `awk`의 차이점은 무엇인가요?', 'SHORT_ANSWER', NULL, 'sed는 스트림 편집기이고, awk는 데이터 처리 및 보고서 생성에 특화된 프로그래밍 언어입니다.', '`sed`는 텍스트를 직접 수정하는 데 사용되며, `awk`는 필드를 기반으로 데이터를 처리하는 데 강력합니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (7020, 23, 3, 219, '`sed`와 `awk`의 차이점은 무엇인가요?', 'SHORT_ANSWER', NULL, 'sed는 스트림 편집기이고, awk는 데이터 처리 및 보고서 생성에 특화된 프로그래밍 언어입니다.', '`sed`는 텍스트를 직접 수정하는 데 사용되며, `awk`는 필드를 기반으로 데이터를 처리하는 데 강력합니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- 정보처리기사 > 데이터통신과 OS (90문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -11882,8 +12006,10 @@ VALUES
     (7107, 24, 1, 87, 'UNIX 운영체제의 주요 특징이 아닌 것은?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "다중 사용자 지원"}, {"id": "B", "text": "단일 사용자 전용"}, {"id": "C", "text": "안정성"}, {"id": "D", "text": "멀티태스킹"}]', 'B', 'UNIX는 다중 사용자를 지원하는 운영체제입니다.'),
     (7108, 24, 1, 88, '파일 시스템에서 디렉토리 구조의 주요 이점은 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "데이터 중복 방지"}, {"id": "B", "text": "파일 접근 속도 향상"}, {"id": "C", "text": "파일의 계층적 관리"}, {"id": "D", "text": "하드웨어 효율성 개선"}]', 'C', '디렉토리 구조는 파일을 계층적으로 관리하여 조직적으로 저장할 수 있게 해줍니다.'),
     (7109, 24, 1, 89, '메모리 관리 기법 중 페이징에 대해 설명하시오.', 'SHORT_ANSWER', NULL, '메모리를 페이지 단위로 나누어 관리하는 기법으로, 프로세스가 필요한 페이지만 메모리에 로드하여 효율적인 메모리 사용을 가능하게 한다.', ''),
-    (7110, 24, 1, 90, '스래싱의 원인으로 올바른 것을 모두 고르시오.', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "프로세스의 페이지 수가 많다."}, {"id": "B", "text": "메모리 공간이 부족하다."}, {"id": "C", "text": "CPU 스케줄링이 비효율적이다."}, {"id": "D", "text": "페이지 교체 알고리즘이 잘못되었다."}]', '["A", "B", "D"]', '스래싱은 프로세스가 너무 많은 페이지를 가지고 있어서 페이지 교체가 빈번하게 발생할 때 발생하며, 이는 메모리 부족과 관련이 있습니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (7110, 24, 1, 90, '스래싱의 원인으로 올바른 것을 모두 고르시오.', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "프로세스의 페이지 수가 많다."}, {"id": "B", "text": "메모리 공간이 부족하다."}, {"id": "C", "text": "CPU 스케줄링이 비효율적이다."}, {"id": "D", "text": "페이지 교체 알고리즘이 잘못되었다."}]', '["A", "B", "D"]', '스래싱은 프로세스가 너무 많은 페이지를 가지고 있어서 페이지 교체가 빈번하게 발생할 때 발생하며, 이는 메모리 부족과 관련이 있습니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- 정보처리기사 > 정보보안 (28문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -11915,8 +12041,10 @@ VALUES
     (7135, 24, 2, 25, '디지털 서명의 주요 역할은 무엇인가?', 'SHORT_ANSWER', NULL, '데이터의 무결성과 출처 보장', '디지털 서명은 문서가 변경되지 않았음을 증명하고, 서명자의 신원을 확인하는 역할을 합니다.'),
     (7136, 24, 2, 26, 'SSL의 주된 목적은 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "데이터의 안전한 전송"}, {"id": "B", "text": "파일 압축"}, {"id": "C", "text": "시스템 성능 향상"}, {"id": "D", "text": "데이터 분석"}]', 'A', 'SSL은 클라이언트와 서버 간의 데이터를 안전하게 암호화하여 전송하는 프로토콜입니다.'),
     (7137, 24, 2, 27, 'RSA와 AES의 주요 차이점은 무엇인가?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "RSA는 대칭키, AES는 비대칭키"}, {"id": "B", "text": "RSA는 비대칭키, AES는 대칭키"}, {"id": "C", "text": "둘 다 대칭키"}, {"id": "D", "text": "둘 다 비대칭키"}]', 'B', 'RSA는 비대칭키 암호화 방식이고, AES는 대칭키 암호화 방식입니다.'),
-    (7138, 24, 2, 28, '다음 중 IDS와 IPS의 공통된 기능은 무엇인가? (복수 선택 가능)', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "네트워크 트래픽 모니터링"}, {"id": "B", "text": "신규 사용자의 인증"}, {"id": "C", "text": "침입 탐지"}, {"id": "D", "text": "침입 방지"}]', '["A", "C"]', 'IDS와 IPS 모두 네트워크 트래픽을 모니터링하며 침입 탐지 기능을 수행합니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (7138, 24, 2, 28, '다음 중 IDS와 IPS의 공통된 기능은 무엇인가? (복수 선택 가능)', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "네트워크 트래픽 모니터링"}, {"id": "B", "text": "신규 사용자의 인증"}, {"id": "C", "text": "침입 탐지"}, {"id": "D", "text": "침입 방지"}]', '["A", "C"]', 'IDS와 IPS 모두 네트워크 트래픽을 모니터링하며 침입 탐지 기능을 수행합니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- 정보처리기사 > 프로그래밍 (62문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -11985,8 +12113,10 @@ printf(''%d'', arr[1]);', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "1"}, {"id": 
     (7197, 24, 3, 59, 'C언어에서 포인터의 주요 역할은?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "메모리 주소를 직접 가리킨다."}, {"id": "B", "text": "데이터를 암호화한다."}, {"id": "C", "text": "함수의 오버로딩을 지원한다."}, {"id": "D", "text": "상속을 구현하는 데 사용된다."}]', 'A', '포인터는 메모리의 주소를 가리켜 직접적으로 메모리 데이터를 조작할 수 있게 해줍니다.'),
     (7198, 24, 3, 60, 'Python과 Java의 차이점 중 맞는 것은?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "Python은 정적 타이핑 언어이다."}, {"id": "B", "text": "Java는 인터프리터 언어이다."}, {"id": "C", "text": "Python은 동적 타이핑 언어이다."}, {"id": "D", "text": "Java는 구조체를 지원한다."}]', 'C', 'Python은 동적 타이핑 언어로, 변수의 타입을 실행 시간에 결정합니다.'),
     (7199, 24, 3, 61, '재귀 함수를 사용하여 피보나치 수열을 계산할 때, 올바른 함수 호출 경로는?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "fib(n) = fib(n-1) + fib(n-2)"}, {"id": "B", "text": "fib(n) = n * fib(n-1)"}, {"id": "C", "text": "fib(n) = fib(n-2) + fib(n-3)"}, {"id": "D", "text": "fib(n) = 0 if n = 0; 1 if n = 1"}]', '["A", "D"]', '피보나치 수열의 재귀적 정의는 fib(n) = fib(n-1) + fib(n-2)이며, 기본 조건으로 fib(0) = 0, fib(1) = 1을 사용합니다.'),
-    (7200, 24, 3, 62, 'C언어에서 구조체를 정의하는 키워드는?', 'SHORT_ANSWER', NULL, 'struct', 'C언어에서 구조체는 ''struct'' 키워드를 사용하여 정의합니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (7200, 24, 3, 62, 'C언어에서 구조체를 정의하는 키워드는?', 'SHORT_ANSWER', NULL, 'struct', 'C언어에서 구조체는 ''struct'' 키워드를 사용하여 정의합니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- SQLD > 데이터 모델링 (38문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -12028,8 +12158,10 @@ VALUES
     (7235, 25, 1, 35, '데이터 모델링에서 NULL은 무엇을 의미하나요?', 'SHORT_ANSWER', NULL, '데이터가 존재하지 않음을 나타내는 특수한 값', 'NULL은 데이터베이스에서 값이 없음을 표현하는 용도로 사용됩니다.'),
     (7236, 25, 1, 36, 'ERD에서 엔티티란 무엇을 의미하나요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "데이터베이스에서 저장되는 객체"}, {"id": "B", "text": "데이터베이스의 관계"}, {"id": "C", "text": "데이터의 무결성 규칙"}, {"id": "D", "text": "SQL 쿼리 구조"}]', 'A', '엔티티는 데이터베이스에서 구체적인 데이터를 저장하기 위해 정의된 객체를 의미합니다.'),
     (7237, 25, 1, 37, '반정규화의 목적은 무엇인가요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "데이터 일관성 유지"}, {"id": "B", "text": "데이터베이스 성능 향상"}, {"id": "C", "text": "데이터 중복 최소화"}, {"id": "D", "text": "데이터 모델 복잡성 증가"}]', 'B', '반정규화는 데이터베이스의 성능을 향상시키기 위해 데이터 구조를 간소화하는 과정입니다.'),
-    (7238, 25, 1, 38, '다음 중 도메인 무결성에 해당하는 규칙은 무엇인가요?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "이메일 형식 검증"}, {"id": "B", "text": "방금 입력된 데이터의 고유성"}, {"id": "C", "text": "날짜 형식 검증"}, {"id": "D", "text": "데이터 입력 순서 보장"}]', '["A", "C"]', '도메인 무결성은 데이터의 유효성을 보장하기 위한 규칙으로 특정 형식이나 값의 범위를 제한합니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (7238, 25, 1, 38, '다음 중 도메인 무결성에 해당하는 규칙은 무엇인가요?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "이메일 형식 검증"}, {"id": "B", "text": "방금 입력된 데이터의 고유성"}, {"id": "C", "text": "날짜 형식 검증"}, {"id": "D", "text": "데이터 입력 순서 보장"}]', '["A", "C"]', '도메인 무결성은 데이터의 유효성을 보장하기 위한 규칙으로 특정 형식이나 값의 범위를 제한합니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- SQLD > SQL 활용 (47문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -12080,8 +12212,10 @@ VALUES
     (7282, 25, 2, 44, 'HAVING 절의 사용 목적은 무엇인가요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "그룹화된 데이터에 필터를 적용하기 위함"}, {"id": "B", "text": "모든 데이터를 출력하기 위함"}, {"id": "C", "text": "데이터를 정렬하기 위함"}, {"id": "D", "text": "데이터를 결합하기 위함"}]', 'A', 'HAVING 절은 GROUP BY에 의해 그룹화된 결과에 필터를 적용하기 위해 사용됩니다.'),
     (7283, 25, 2, 45, 'LEAD 함수는 무엇을 수행하나요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "이전 행의 값을 가져온다"}, {"id": "B", "text": "다음 행의 값을 가져온다"}, {"id": "C", "text": "특정 행을 삭제한다"}, {"id": "D", "text": "행의 개수를 계산한다"}]', 'B', 'LEAD 함수는 데이터의 다음 행의 값을 가져오는 데 유용합니다.'),
     (7284, 25, 2, 46, 'CASE 또는 DECODE 함수의 사용 예시는 무엇인가요?', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "조건에 따라 다른 값을 반환하기 위해"}, {"id": "B", "text": "데이터를 삽입하기 위해"}, {"id": "C", "text": "NULL 값을 처리하기 위해"}, {"id": "D", "text": "데이터를 삭제하기 위해"}]', '["A", "C"]', 'CASE 또는 DECODE 함수는 조건에 따라 다른 값을 반환하고, NULL 값을 처리하는 데 사용됩니다.'),
-    (7285, 25, 2, 47, 'NVL 함수의 역할은 무엇인가요?', 'SHORT_ANSWER', NULL, 'NULL 값을 다른 값으로 대체한다.', 'NVL 함수는 NULL 값을 다른 값으로 대체하는 기능을 제공합니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (7285, 25, 2, 47, 'NVL 함수의 역할은 무엇인가요?', 'SHORT_ANSWER', NULL, 'NULL 값을 다른 값으로 대체한다.', 'NVL 함수는 NULL 값을 다른 값으로 대체하는 기능을 제공합니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- SQLD > SQL 최적화 (42문제)
 INSERT INTO `quiz_course_question` (`id`, `quiz_course_id`, `section_number`, `question_number`, `question_text`, `question_type`, `options`, `correct_answer`, `explanation`)
@@ -12127,8 +12261,10 @@ VALUES
     (7324, 25, 3, 39, 'Nested Loop와 Sort Merge 중 어떤 것이 빠른 성능을 보이는 경우가 많나요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "항상 Nested Loop가 빠르다"}, {"id": "B", "text": "Sort Merge가 일반적으로 빠르다"}, {"id": "C", "text": "두 방법의 성능은 동일하다"}, {"id": "D", "text": "항상 Sort Merge가 느리다"}]', 'B', 'Sort Merge 연산은 특정 조건에서 더 빠른 성능을 보여줄 수 있습니다.'),
     (7325, 25, 3, 40, '옵티마이저가 사용하는 실행 계획(Execution Plan)의 역할은 무엇인가요?', 'MULTIPLE_CHOICE', '[{"id": "A", "text": "데이터베이스를 초기화하는 것"}, {"id": "B", "text": "SQL 쿼리를 최적의 경로로 실행하는 것"}, {"id": "C", "text": "사용자에게 결과를 보여주는 것"}, {"id": "D", "text": "디스크 공간을 관리하는 것"}]', 'B', '실행 계획은 SQL 쿼리를 가장 효율적으로 수행하기 위한 경로를 결정합니다.'),
     (7326, 25, 3, 41, '다음 중 SQL 최적화와 관련된 키워드로 올바른 것을 모두 선택하세요.', 'MULTIPLE_CHOICE_MULTIPLE', '[{"id": "A", "text": "카디널리티"}, {"id": "B", "text": "데이터베이스 모델링"}, {"id": "C", "text": "힌트"}, {"id": "D", "text": "정규화"}]', '["A", "C"]', '카디널리티와 힌트는 SQL 성능 최적화에 직접적으로 관련된 요소입니다.'),
-    (7327, 25, 3, 42, 'SQL 최적화에서 ''힌트''란 무엇인가요?', 'SHORT_ANSWER', NULL, '쿼리 실행 시 옵티마이저에게 특정한 경로를 선택하도록 지시하는 메커니즘', '힌트는 옵티마이저에게 실행 계획을 최적화하는 데 도움을 줍니다.') AS new_values
-ON DUPLICATE KEY UPDATE `question_text` = new_values.`question_text`;
+    (7327, 25, 3, 42, 'SQL 최적화에서 ''힌트''란 무엇인가요?', 'SHORT_ANSWER', NULL, '쿼리 실행 시 옵티마이저에게 특정한 경로를 선택하도록 지시하는 메커니즘', '힌트는 옵티마이저에게 실행 계획을 최적화하는 데 도움을 줍니다.')
+AS new
+ON DUPLICATE KEY UPDATE
+    `question_text` = new.`question_text`;
 
 -- =============================================================================
 -- END

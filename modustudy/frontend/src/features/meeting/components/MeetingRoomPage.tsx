@@ -4,10 +4,8 @@ import axios from 'axios';
 import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
-import MeetingControls from './MeetingControls';
-import MeetingParticipants from './MeetingParticipants';
-import MeetingChatPanel from './MeetingChatPanel';
-import MeetingVideoStage from './MeetingVideoStage';
+import MeetingRoomHeader from './MeetingRoomHeader';
+import MeetingRoomContent from './MeetingRoomContent';
 import { meetingApi } from '../services/meetingApi';
 import { createMeetingWebsocket } from '../services/meetingWebsocket';
 import { createSfuClient, SfuConsumerPayload } from '../services/sfuClient';
@@ -22,6 +20,7 @@ import {
 } from '../types';
 import '../styles/MeetingRoom.css';
 import '../styles/MeetingShared.css';
+import { captureFrame, formatDuration, formatPlannedDuration, stopTracks } from './meetingRoomUtils';
 
 type PipPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 type ShareMode = 'camera' | 'screen' | 'mixed';
@@ -66,8 +65,6 @@ const MeetingRoomPage: React.FC = () => {
     const joinSuccessRef = useRef(false);
     const updateTokenRef = useRef(0);
     const roomIdRef = useRef<string>('');
-    const useSfuRecording = true;
-
     const localMicStreamRef = useRef<MediaStream | null>(null);
     const localCameraStreamRef = useRef<MediaStream | null>(null);
     const localScreenStreamRef = useRef<MediaStream | null>(null);
@@ -96,10 +93,6 @@ const MeetingRoomPage: React.FC = () => {
     const micSourceNodeRef = useRef<MediaStreamAudioSourceNode | null>(null);
     const micConstantSourceRef = useRef<ConstantSourceNode | null>(null);
     const sfuBaseUrlRef = useRef<string | null>(null);
-    const sfuRecordingStateRef = useRef<'idle' | 'starting' | 'recording' | 'stopping'>('idle');
-    const sfuRecordingRoomIdRef = useRef<string | null>(null);
-    const sfuRecordingChainRef = useRef<Promise<void>>(Promise.resolve());
-    const sfuStopRequestedRef = useRef(false);
     const devicePermissionRequestedRef = useRef(false);
     const autoEndTriggeredRef = useRef(false);
 
@@ -230,33 +223,6 @@ const MeetingRoomPage: React.FC = () => {
     useEffect(() => {
         isPresenterRef.current = isPresenter;
     }, [isPresenter]);
-
-    const formatDuration = (totalSeconds: number) => {
-        const safeSeconds = Math.max(0, Math.floor(totalSeconds));
-        const hours = Math.floor(safeSeconds / 3600);
-        const minutes = Math.floor((safeSeconds % 3600) / 60);
-        const seconds = safeSeconds % 60;
-        const padded = (value: number) => String(value).padStart(2, '0');
-        return `${padded(hours)}:${padded(minutes)}:${padded(seconds)}`;
-    };
-
-    const formatPlannedDuration = (totalSeconds: number) => {
-        const safeSeconds = Math.max(0, Math.floor(totalSeconds));
-        const hours = Math.floor(safeSeconds / 3600);
-        const minutes = Math.floor((safeSeconds % 3600) / 60);
-        if (hours <= 0) {
-            return `${minutes}분`;
-        }
-        if (minutes === 0) {
-            return `${hours}시간`;
-        }
-        return `${hours}시간 ${minutes}분`;
-    };
-
-    const stopTracks = (stream: MediaStream | null) => {
-        if (!stream) return;
-        stream.getTracks().forEach((track) => track.stop());
-    };
 
     const waitForTrackUnmute = useCallback((track: MediaStreamTrack | null, timeoutMs = 1200) => {
         if (!track) return Promise.resolve();
@@ -411,26 +377,6 @@ const MeetingRoomPage: React.FC = () => {
             trackReadyState: track?.readyState,
         });
     }, []);
-
-    const normalizeSfuHttpBaseUrl = useCallback((baseUrl: string) => {
-        if (baseUrl.startsWith('ws://')) {
-            return `http://${baseUrl.slice(5)}`;
-        }
-        if (baseUrl.startsWith('wss://')) {
-            return `https://${baseUrl.slice(6)}`;
-        }
-        return baseUrl;
-    }, []);
-
-    const getSfuRecordingUrl = useCallback(
-        (path: string) => {
-            const baseUrl = sfuBaseUrlRef.current;
-            if (!baseUrl) return null;
-            const httpBase = normalizeSfuHttpBaseUrl(baseUrl);
-            return `${httpBase.replace(/\/+$/, '')}/${path.replace(/^\/+/, '')}`;
-        },
-        [normalizeSfuHttpBaseUrl]
-    );
 
     const ensureMixedAudioTrack = useCallback(
         (tracks: MediaStreamTrack[]) => {
@@ -621,58 +567,97 @@ const MeetingRoomPage: React.FC = () => {
                 canvasComposer.updatePipPosition(nextPosition);
                 return;
             }
+            // ✅ FIX 1: 토큰 체크를 더 세밀하게 수행
+            const checkToken = () => {
+            if (token !== updateTokenRef.current) {
+                console.warn('[video] Update cancelled - token mismatch', { token, current: updateTokenRef.current });
+                return false;
+            }
+            return true;
+            };
 
             try {
                 if (wantsMixed && hasLiveTracks) {
-                    await Promise.all([waitForTrackUnmute(screenTrack), waitForTrackUnmute(cameraTrack)]);
-                    if (token !== updateTokenRef.current) return;
-                }
-                if (
-                    effectiveCameraStream &&
-                    screenStream &&
-                    cameraTrack &&
-                    screenTrack &&
-                    cameraTrack.readyState === 'live' &&
-                    screenTrack.readyState === 'live'
-                ) {
-                    const composed = await canvasComposer.composeStreams(screenStream, effectiveCameraStream, {
-                        pipPosition: nextPosition,
-                    });
-                    if (token !== updateTokenRef.current) {
-                        if (composed) stopTracks(composed);
-                        return;
-                    }
-                    if (composed) {
-                        if (composedStreamRef.current && composedStreamRef.current !== composed) {
-                            stopTracks(composedStreamRef.current);
-                        }
-                        composedStreamRef.current = composed;
-                        nextStream = composed;
-                        composedSuccess = true;
-                    }
-                }
-
-                if (!nextStream) {
-                    canvasComposer.stopComposing();
-                    if (composedStreamRef.current) {
-                        stopTracks(composedStreamRef.current);
-                        composedStreamRef.current = null;
-                    }
-                    if (screenStream && screenStream.getVideoTracks().length > 0) {
+                    await Promise.all([
+                    waitForTrackUnmute(screenTrack, 500),
+                    waitForTrackUnmute(cameraTrack, 500)
+                    ]);
+                    
+                    if (!checkToken()) {
+                    // 토큰이 변경되었지만 트랙이 살아있으면 fallback 처리
+                    if (screenTrack?.readyState === 'live') {
                         nextStream = screenStream;
-                    } else if (effectiveCameraStream && effectiveCameraStream.getVideoTracks().length > 0) {
+                    } else if (cameraTrack?.readyState === 'live') {
                         nextStream = effectiveCameraStream;
                     }
+                    // 화면을 완전히 끄지 않고 단일 스트림으로 폴백
+                    console.log('[video] Fallback to single stream on token mismatch');
+                    }
                 }
-            } catch (error) {
-                console.error('Failed to update composed stream', error);
-                canvasComposer.stopComposing();
-                if (screenTrack && screenTrack.readyState === 'live') {
-                    nextStream = screenStream;
-                } else if (cameraTrack && cameraTrack.readyState === 'live') {
-                    nextStream = effectiveCameraStream;
-                }
-            }
+                 // ✅ FIX 3: 트랙 상태 재검증
+                const isTrackLive = (track: MediaStreamTrack | null) => 
+                    track && track.readyState === 'live';
+
+                
+                if (
+        effectiveCameraStream &&
+        screenStream &&
+        isTrackLive(cameraTrack) &&
+        isTrackLive(screenTrack)
+      ) {
+        const composed = await canvasComposer.composeStreams(
+          screenStream,
+          effectiveCameraStream,
+          { pipPosition: nextPosition }
+        );
+
+        if (!checkToken()) {
+          // 토큰 불일치 시에도 composed가 성공했으면 사용
+          if (composed && isTrackLive(composed.getVideoTracks()[0])) {
+            console.log('[video] Using composed stream despite token mismatch');
+            nextStream = composed;
+            composedSuccess = true;
+          } else {
+            if (composed) stopTracks(composed);
+            // 폴백
+            nextStream = isTrackLive(screenTrack) ? screenStream : 
+                        isTrackLive(cameraTrack) ? effectiveCameraStream : null;
+          }
+        } else if (composed) {
+          if (composedStreamRef.current && composedStreamRef.current !== composed) {
+            stopTracks(composedStreamRef.current);
+          }
+          composedStreamRef.current = composed;
+          nextStream = composed;
+          composedSuccess = true;
+        }
+      }
+
+      if (!nextStream) {
+        canvasComposer.stopComposing();
+        if (composedStreamRef.current) {
+          stopTracks(composedStreamRef.current);
+          composedStreamRef.current = null;
+        }
+
+        // ✅ FIX 4: 폴백 우선순위 개선
+        if (isTrackLive(screenTrack)) {
+          nextStream = screenStream;
+        } else if (isTrackLive(cameraTrack)) {
+          nextStream = effectiveCameraStream;
+        }
+      }
+    } catch (error) {
+      console.error('Failed to update composed stream', error);
+      
+      // ✅ FIX 5: 에러 발생 시에도 폴백 보장
+      canvasComposer.stopComposing();
+      if (isTrackLive(screenTrack)) {
+        nextStream = screenStream;
+      } else if (isTrackLive(cameraTrack)) {
+        nextStream = effectiveCameraStream;
+      }
+    }
 
             if (token !== updateTokenRef.current) return;
             if (!wantsMixed) {
@@ -820,28 +805,6 @@ const MeetingRoomPage: React.FC = () => {
     }, []);
 
     const finalizeVoiceRecording = useCallback(async () => {
-        if (useSfuRecording) {
-            if (!sfuStopRequestedRef.current) {
-                return;
-            }
-            sfuRecordingChainRef.current = sfuRecordingChainRef.current.then(async () => {
-                const roomId = sfuRecordingRoomIdRef.current || roomIdRef.current;
-                const url = getSfuRecordingUrl('/recordings/stop');
-                if (!roomId || !url) return;
-                if (sfuRecordingStateRef.current === 'idle') return;
-                sfuRecordingStateRef.current = 'stopping';
-                try {
-                    await axios.post(url, { roomId });
-                } catch (error) {
-                    console.error('Failed to stop SFU recording', error);
-                } finally {
-                    sfuRecordingStateRef.current = 'idle';
-                    sfuRecordingRoomIdRef.current = null;
-                }
-            });
-            await sfuRecordingChainRef.current;
-            return;
-        }
         if (!numericStudyId || !numericMeetingId) return;
         if (!isLoggedIn) return;
         if (!canEndMeeting) return;
@@ -856,36 +819,11 @@ const MeetingRoomPage: React.FC = () => {
         }
     }, [
         canEndMeeting,
-        getSfuRecordingUrl,
         isLoggedIn,
         numericMeetingId,
         numericStudyId,
         stopVoiceRecording,
-        useSfuRecording,
     ]);
-
-    const startSfuRecording = useCallback(async () => {
-        if (!useSfuRecording) return;
-        if (!numericMeetingId) return;
-        const roomId = roomIdRef.current;
-        const url = getSfuRecordingUrl('/recordings/start');
-        if (!roomId || !url) return;
-        sfuRecordingChainRef.current = sfuRecordingChainRef.current.then(async () => {
-            if (sfuRecordingStateRef.current === 'recording' || sfuRecordingStateRef.current === 'starting') {
-                return;
-            }
-            sfuRecordingStateRef.current = 'starting';
-            try {
-                await axios.post(url, { roomId, meetingId: numericMeetingId });
-                sfuRecordingStateRef.current = 'recording';
-                sfuRecordingRoomIdRef.current = roomId;
-            } catch (error) {
-                console.error('Failed to start SFU recording', error);
-                sfuRecordingStateRef.current = 'idle';
-            }
-        });
-        await sfuRecordingChainRef.current;
-    }, [getSfuRecordingUrl, numericMeetingId, useSfuRecording]);
 
     const getVoiceRecordingTrack = useCallback(() => {
         const tracks: MediaStreamTrack[] = [];
@@ -921,7 +859,6 @@ const MeetingRoomPage: React.FC = () => {
 
 
     const updateVoiceRecordingSource = useCallback(() => {
-        if (useSfuRecording) return;
         voiceSourceUpdateChainRef.current = voiceSourceUpdateChainRef.current.then(async () => {
             // 회의 소유주가 아니면 녹음하지 않음
             if (!canEndMeeting) {
@@ -1029,9 +966,6 @@ const MeetingRoomPage: React.FC = () => {
                     );
                 }
                 updateVoiceRecordingSource();
-                if (useSfuRecording && sfuRecordingStateRef.current === 'starting') {
-                    await startSfuRecording();
-                }
                 return;
             }
             try {
@@ -1063,9 +997,6 @@ const MeetingRoomPage: React.FC = () => {
                     });
                 }
                 updateVoiceRecordingSource();
-                if (useSfuRecording && sfuRecordingStateRef.current === 'starting') {
-                    await startSfuRecording();
-                }
                 if (!effectiveSilentMode) {
                     audioDetectionActiveRef.current = Boolean(
                         await audioDetection.startDetection(stream, (isSpeaking) => {
@@ -1089,11 +1020,9 @@ const MeetingRoomPage: React.FC = () => {
             attachMicStreamToMixer,
             ensureMicProcessedTrack,
             resumeMicContext,
-            startSfuRecording,
             updateOutgoingAudio,
             updateSelfParticipant,
             updateVoiceRecordingSource,
-            useSfuRecording,
         ]
     );
 
@@ -1499,25 +1428,11 @@ const MeetingRoomPage: React.FC = () => {
         wsClientRef.current.sendChat(roomIdRef.current, payload);
     }, []);
 
-    const captureFrame = (video: HTMLVideoElement) =>
-        new Promise<Blob | null>((resolve) => {
-            if (video.videoWidth === 0 || video.videoHeight === 0) {
-                resolve(null);
-                return;
-            }
-            const canvas = document.createElement('canvas');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            const ctx = canvas.getContext('2d');
-            if (!ctx) {
-                resolve(null);
-                return;
-            }
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            canvas.toBlob(resolve, 'image/png');
-        });
-
     const handleCapture = useCallback(async () => {
+        if (!isLoggedIn) {
+            showToast('로그인 후 캡처할 수 있습니다.', 'warning');
+            return;
+        }
         if (!numericStudyId || !numericMeetingId || isCapturing) return;
         const video = videoStageRef.current?.querySelector('video');
         if (!video) {
@@ -1538,7 +1453,7 @@ const MeetingRoomPage: React.FC = () => {
         } finally {
             setIsCapturing(false);
         }
-    }, [isCapturing, numericMeetingId, numericStudyId]);
+    }, [isCapturing, isLoggedIn, numericMeetingId, numericStudyId, showToast]);
 
     const handleExtendMeeting = useCallback(async () => {
         if (!numericStudyId || !numericMeetingId || !canEndMeeting) return;
@@ -1562,6 +1477,19 @@ const MeetingRoomPage: React.FC = () => {
     ]);
 
     const presenterLabel = presenterName ? '발표자: ' + presenterName : '발표자';
+    const elapsedLabel = formatDuration(elapsedSeconds);
+    const plannedLabel = plannedDurationSeconds ? formatPlannedDuration(plannedDurationSeconds) : null;
+
+    const safeFinalizeVoiceRecording = useCallback(async (timeoutMs = 2000) => {
+        try {
+            await Promise.race([
+                finalizeVoiceRecording(),
+                new Promise<void>((resolve) => window.setTimeout(resolve, timeoutMs)),
+            ]);
+        } catch (error) {
+            console.warn('Finalize voice recording skipped', error);
+        }
+    }, [finalizeVoiceRecording]);
 
     const endMeetingInternal = useCallback(
         async (requireConfirm: boolean) => {
@@ -1572,8 +1500,7 @@ const MeetingRoomPage: React.FC = () => {
             }
             try {
                 setIsEnding(true);
-                sfuStopRequestedRef.current = true;
-                await finalizeVoiceRecording();
+                await safeFinalizeVoiceRecording();
                 await meetingApi.endMeeting(numericStudyId, numericMeetingId);
             } catch (error) {
                 console.error('Failed to end meeting', error);
@@ -1583,7 +1510,7 @@ const MeetingRoomPage: React.FC = () => {
                 navigate(`/study/${numericStudyId}/meetings/${numericMeetingId}`);
             }
         },
-        [numericStudyId, numericMeetingId, canEndMeeting, navigate, stopCameraHardware, finalizeVoiceRecording]
+        [numericStudyId, numericMeetingId, canEndMeeting, navigate, stopCameraHardware, safeFinalizeVoiceRecording]
     );
 
     useEffect(() => {
@@ -1605,9 +1532,8 @@ const MeetingRoomPage: React.FC = () => {
         (event: MeetingRoomEvent) => {
             if (event.type === 'MEETING_ENDED') {
                 setIsEnding(true);
-                sfuStopRequestedRef.current = true;
                 void (async () => {
-                    await finalizeVoiceRecording();
+                    await safeFinalizeVoiceRecording();
                     stopCameraHardware();
                     sessionStorage.setItem(`meeting-end-reload-${numericMeetingId}`, '1');
                     navigate(`/study/${numericStudyId}/meetings/${numericMeetingId}`);
@@ -1658,12 +1584,12 @@ const MeetingRoomPage: React.FC = () => {
         },
         [
             appendChatMessage,
-            finalizeVoiceRecording,
             mergeParticipants,
             navigate,
             numericStudyId,
             numericMeetingId,
             presenterName,
+            safeFinalizeVoiceRecording,
             stopCameraHardware,
         ]
     );
@@ -1828,16 +1754,9 @@ const MeetingRoomPage: React.FC = () => {
                 await requestDevicePermissions();
                 await refreshOutgoingAudio();
                 if (!cancelled) {
-                    if (useSfuRecording) {
-                        await ensureMicrophoneStream(true);
-                    }
                     if (micEnabledRef.current) {
                         await startMicrophone();
                     }
-                }
-                // SFU 녹음은 첫 오디오 생산 이후에 시작 (무음 세그먼트 방지)
-                if (!cancelled) {
-                    sfuRecordingStateRef.current = 'starting';
                 }
             } catch (error) {
                 console.error('Failed to connect SFU', error);
@@ -1847,9 +1766,7 @@ const MeetingRoomPage: React.FC = () => {
 
         return () => {
             cancelled = true;
-            if (sfuStopRequestedRef.current) {
-                void finalizeVoiceRecording();
-            }
+            void finalizeVoiceRecording();
             wsUnsubscribeRef.current.forEach((unsubscribe) => unsubscribe());
             wsUnsubscribeRef.current = [];
             if (wsClientRef.current) {
@@ -1899,7 +1816,6 @@ const MeetingRoomPage: React.FC = () => {
         ensureMicrophoneStream,
         requestDevicePermissions,
         refreshOutgoingAudio,
-        startSfuRecording,
         stopMicProcessedTrack,
         stopMixedAudioTrack,
         stopRecordingAudioTrack,
@@ -1970,93 +1886,53 @@ const MeetingRoomPage: React.FC = () => {
                         </div>
                     </div>
                 )}
-                <div className="meeting-room__meta">
-                    <div className="meeting-room__meta-row">
-                        <div className="meeting-room__meta-left">
-                            <div className="meeting-room__meta-title">
-                                <h1>{meetingTitle || '미팅 룸'}</h1>
-                                <div className="meeting-room__meta-times">
-                                    <div className="meeting-room__meta-time-row">
-                                        <div className="meeting-room__timer">
-                                            진행 시간: {formatDuration(elapsedSeconds)}
-                                        </div>
-                                        {plannedDurationSeconds ? (
-                                            <div className="meeting-room__timer">
-                                                예정 시간: {formatPlannedDuration(plannedDurationSeconds)}
-                                            </div>
-                                        ) : null}
-                                    </div>
-                                    {timeWarning && (
-                                        <div className="meeting-room__timer meeting-room__timer--warning">
-                                            {timeWarning}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                        <div className="meeting-room__meta-right">
-                            <div className="meeting-room__status">
-                                <span>{isPresenter ? '발표자 모드' : '참가자 모드'}</span>
-                            </div>
-                            <button className="meeting-btn ghost" onClick={() => navigate(meetingListPath)}>
-                                목록으로
-                            </button>
-                        </div>
-                    </div>
+                <MeetingRoomHeader
+                    meetingTitle={meetingTitle}
+                    elapsedLabel={elapsedLabel}
+                    plannedLabel={plannedLabel}
+                    timeWarning={timeWarning}
+                    isPresenter={isPresenter}
+                    onGoList={() => navigate(meetingListPath)}
+                    micEnabled={micEnabled}
+                    micDisabled={false}
+                    shareMode={shareMode}
+                    onToggleMic={handleToggleMic}
+                    onShareModeChange={handleShareModeChange}
+                    onTogglePresenter={handleTogglePresenter}
+                    onEndMeeting={handleEndMeeting}
+                    onCapture={handleCapture}
+                    captureDisabled={isCapturing || !isLoggedIn}
+                    canEndMeeting={canEndMeeting}
+                    canExtendMeeting={canEndMeeting}
+                    extendDisabled={
+                        plannedDurationSeconds !== null
+                            ? plannedDurationSeconds >= MAX_PLANNED_DURATION_SECONDS
+                            : true
+                    }
+                    onExtendMeeting={handleExtendMeeting}
+                />
 
-                    <MeetingControls
-                        isPresenter={isPresenter}
-                        micEnabled={micEnabled}
-                        micDisabled={false}
-                        shareMode={shareMode}
-                        onToggleMic={handleToggleMic}
-                        onShareModeChange={handleShareModeChange}
-                        onTogglePresenter={handleTogglePresenter}
-                        onEndMeeting={handleEndMeeting}
-                        canEndMeeting={canEndMeeting}
-                        captureDisabled={isCapturing}
-                        onCapture={handleCapture}
-                        canExtendMeeting={canEndMeeting}
-                        extendDisabled={
-                            plannedDurationSeconds !== null
-                                ? plannedDurationSeconds >= MAX_PLANNED_DURATION_SECONDS
-                                : true
-                        }
-                        onExtendMeeting={handleExtendMeeting}
-                    />
-                </div>
-
-                <div className="meeting-room__content">
-                    <div className="meeting-room__stage">
-                        <MeetingVideoStage
-                            localStream={localStream}
-                            localLabel={displayNameRef.current}
-                            localIsPresenter={isPresenter}
-                            containerRef={videoStageRef}
-                            remoteVideoStreams={remoteVideoStreams.map((item) => ({
-                                id: item.id,
-                                stream: item.stream,
-                                label: presenterName ? presenterLabel : item.label,
-                                isPresenter: Boolean(presenterName),
-                            }))}
-                        />
-                        <video ref={aiVideoRef} className="meeting-room__hidden-video" muted playsInline />
-                    </div>
-                    <div className="meeting-room__side">
-                        <MeetingParticipants
-                            participants={participants}
-                            presenterId={presenterId}
-                            presenterName={presenterName}
-                        />
-                        <MeetingChatPanel
-                            messages={chatMessages}
-                            onSend={handleSendChat}
-                            onDelete={handleDeleteChat}
-                            currentUserId={user?.id ?? null}
-                            currentSender={displayNameRef.current}
-                        />
-                    </div>
-                </div>
+                <MeetingRoomContent
+                    localStream={localStream}
+                    localLabel={displayNameRef.current}
+                    localIsPresenter={isPresenter}
+                    videoStageRef={videoStageRef}
+                    aiVideoRef={aiVideoRef}
+                    remoteVideoStreams={remoteVideoStreams.map((item) => ({
+                        id: item.id,
+                        stream: item.stream,
+                        label: presenterName ? presenterLabel : item.label,
+                        isPresenter: Boolean(presenterName),
+                    }))}
+                    participants={participants}
+                    presenterId={presenterId}
+                    presenterName={presenterName}
+                    chatMessages={chatMessages}
+                    onSendChat={handleSendChat}
+                    onDeleteChat={handleDeleteChat}
+                    currentUserId={user?.id ?? null}
+                    currentSender={displayNameRef.current}
+                />
             </div>
         </UserLayoutV2>
     );
