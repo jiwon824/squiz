@@ -1,4 +1,11 @@
-﻿class CanvasComposerService {
+﻿// 해상도/프레임 제한 상수
+const MAX_WIDTH = 1920;
+const MAX_HEIGHT = 1080;
+const CAPTURE_FPS = 24;
+const PIP_WIDTH = 160;
+const PIP_HEIGHT = 120;
+
+class CanvasComposerService {
   private canvas!: HTMLCanvasElement;
   private ctx!: CanvasRenderingContext2D;
   private animationFrame: number | null = null;
@@ -13,8 +20,8 @@
 
   private pipPosition: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' = 'bottom-right';
 
-  private pipWidth = 320;
-  private pipHeight = 240;
+  private pipWidth = PIP_WIDTH;
+  private pipHeight = PIP_HEIGHT;
   private pipPadding = 20;
 
   private activeVideos: HTMLVideoElement[] = [];
@@ -47,7 +54,7 @@
     if (this.composedStream) {
       this.composedStream.getTracks().forEach((t) => t.stop());
     }
-    this.composedStream = this.canvas.captureStream(30);
+    this.composedStream = this.canvas.captureStream(CAPTURE_FPS);
   }
 
   private async prepareVideo(stream: MediaStream) {
@@ -102,8 +109,12 @@
       this.screenVideo = await this.prepareVideo(screenStream);
       this.cameraVideo = await this.prepareVideo(cameraStream);
 
-      const width = this.screenVideo.videoWidth || 1920;
-      const height = this.screenVideo.videoHeight || 1080;
+      // 최대 해상도 제한 적용
+      const rawWidth = this.screenVideo.videoWidth || 1920;
+      const rawHeight = this.screenVideo.videoHeight || 1080;
+      const scale = Math.min(1, MAX_WIDTH / rawWidth, MAX_HEIGHT / rawHeight);
+      const width = Math.round(rawWidth * scale);
+      const height = Math.round(rawHeight * scale);
 
       this.ensureCanvas(width, height);
       this.resetComposedStream();
