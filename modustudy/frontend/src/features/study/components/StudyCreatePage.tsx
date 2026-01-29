@@ -11,7 +11,7 @@ import { cn } from '@/shared/utils/cn';
 import { DateRangePicker } from './DateRangePicker';
 import { DatePicker, TimePicker } from '@/shared/components';
 import {
-    getTopics, getFormats, getProvinces, getDistricts, createStudy, generateStudyPlan, getMyTemplates, createTemplate,
+    getTopics, getFormats, getProvinces, getDistricts, createStudy, generateStudyPlan, generateStudyPlanStream, getMyTemplates, createTemplate,
     type TopicParent, type FormatItem, type RegionItem, type StudyCreatePayload, type AiStudyPlanResponse, type StudyTemplateItem
 } from '@/api/endpoints/studyApi';
 import { getStudyPreference } from '@/features/setting/api/settingApi';
@@ -40,6 +40,8 @@ const StudyCreatePage: React.FC = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [aiTopicInput, setAiTopicInput] = useState('');
     const [isAiGenerating, setIsAiGenerating] = useState(false);
+    const [streamingText, setStreamingText] = useState(''); // 스트리밍 중 실시간 텍스트
+    const [generationStep, setGenerationStep] = useState(''); // AI 생성 단계 메시지
     const [showDifficultyInfo, setShowDifficultyInfo] = useState(false);
     const [savedTemplates, setSavedTemplates] = useState<StudyTemplateItem[]>([]);
     const [showTemplateModal, setShowTemplateModal] = useState(false);
@@ -142,44 +144,84 @@ const StudyCreatePage: React.FC = () => {
 
     // 템플릿 선택 시 폼에 적용
     const applyTemplate = (template: StudyTemplateItem) => {
-        setFormData(prev => ({
-            ...prev,
-            name: template.name || prev.name,
-            description: template.description || prev.description,
-            goal: template.goal || prev.goal,
-            textbook: template.textbook || prev.textbook,
-            prerequisites: template.prerequisites || prev.prerequisites,
-            processDetail: template.processDetail || prev.processDetail,
-            difficulty: template.difficulty || prev.difficulty,
-        }));
+        setFormData(prev => {
+            const updated = { ...prev };
+
+            // 기본 필드
+            if (template.name) updated.name = template.name;
+            if (template.intro) updated.intro = template.intro;
+            if (template.description) updated.description = template.description;
+            if (template.goal) updated.goal = template.goal;
+            if (template.textbook) updated.textbook = template.textbook;
+            if (template.prerequisites) updated.prerequisites = template.prerequisites;
+            if (template.processDetail) updated.processDetail = template.processDetail;
+            if (template.difficulty) updated.difficulty = template.difficulty;
+            if (template.meetingType) updated.meetingType = template.meetingType;
+            if (template.penaltyPolicy) updated.penaltyPolicy = template.penaltyPolicy;
+
+            // 토픽 매칭 (이름으로 ID 찾기)
+            if (template.topic && topics.length > 0) {
+                const topicLower = template.topic.toLowerCase().trim();
+                for (const parent of topics) {
+                    const child = parent.children.find(c =>
+                        c.name.toLowerCase() === topicLower ||
+                        c.name.toLowerCase().includes(topicLower) ||
+                        topicLower.includes(c.name.toLowerCase())
+                    );
+                    if (child) {
+                        updated.topicParentId = parent.id;
+                        updated.topicId = child.id;
+                        break;
+                    }
+                }
+            }
+
+            // 형식 매칭 (이름으로 ID 찾기)
+            if (template.format && formats.length > 0) {
+                const formatLower = template.format.toLowerCase().trim();
+                const matched = formats.find(f =>
+                    f.name.toLowerCase() === formatLower ||
+                    f.name.toLowerCase().includes(formatLower) ||
+                    formatLower.includes(f.name.toLowerCase())
+                );
+                if (matched) {
+                    updated.formatId = matched.id;
+                }
+            }
+
+            return updated;
+        });
         setShowTemplateModal(false);
         showToast('템플릿을 불러왔습니다.', 'success');
     };
 
     // 사용자 기술스택 기반 추천
     const [userTechStack, setUserTechStack] = useState<string[]>([]);
+    const [preferenceLoaded, setPreferenceLoaded] = useState(false);
 
     useEffect(() => {
         const loadTechStack = async () => {
             try {
                 // API에서 기술스택 가져오기
                 const pref: any = await getStudyPreference();
+                console.log('[StudyPreference API 응답]', pref);
                 const techStacks = pref.techStacks || pref.techStack || [];
                 if (techStacks.length > 0) {
                     setUserTechStack(techStacks);
-                    return;
                 }
-            } catch { /* API 실패 시 localStorage fallback */ }
-
-            // localStorage fallback
-            try {
-                const saved = localStorage.getItem('studyPreference');
-                if (saved) {
-                    const pref = JSON.parse(saved);
-                    const stack = pref.techStacks || pref.techStack || [];
-                    if (stack.length > 0) setUserTechStack(stack);
-                }
-            } catch { /* 무시 */ }
+            } catch (err) {
+                console.log('[StudyPreference API 실패]', err);
+                // localStorage fallback
+                try {
+                    const saved = localStorage.getItem('studyPreference');
+                    if (saved) {
+                        const pref = JSON.parse(saved);
+                        const stack = pref.techStacks || pref.techStack || [];
+                        if (stack.length > 0) setUserTechStack(stack);
+                    }
+                } catch { /* 무시 */ }
+            }
+            setPreferenceLoaded(true);
         };
         loadTechStack();
     }, []);
@@ -322,8 +364,13 @@ const StudyCreatePage: React.FC = () => {
 
     // AI 스터디 계획 생성
     const handleAiGenerate = async () => {
+        console.log('[AI Generate] preferenceLoaded:', preferenceLoaded);
+        console.log('[AI Generate] userTechStack:', userTechStack);
+        console.log('[AI Generate] hasStudyPreference:', hasStudyPreference);
+
         // 선호 설정 체크를 먼저 수행
         if (!hasStudyPreference) {
+            console.log('[AI Generate] 선호 설정 없음 - 모달 표시');
             setShowPreferenceModal(true);
             return;
         }
@@ -334,6 +381,7 @@ const StudyCreatePage: React.FC = () => {
         }
 
         setIsAiGenerating(true);
+        let stepInterval: ReturnType<typeof setInterval> | null = null;
         try {
             // 사용자 스터디 선호 설정 API에서 로드
             let techStack: string[] | undefined;
@@ -455,439 +503,266 @@ const StudyCreatePage: React.FC = () => {
                 총회차: totalSessions,
             });
 
-            const result: AiStudyPlanResponse = await generateStudyPlan({
-                topic: aiTopicInput.trim(),
-                techStack,
-                schedule,
-                durationWeeks: preferredDurationWeeks,
-                totalSessions,  // AI에게 총 회차 전달
-            });
+            // 스트리밍용 변수
+            let accumulatedText = '';
 
-            // 디버깅: AI 응답 확인
-            console.log('[AI 응답]', result);
-            console.log('[AI topic]', result.topic, '[AI format]', result.format);
-            console.log('[DB topics]', topics);
-            console.log('[DB formats]', formats);
+            // 생성 단계 메시지 (순차적으로 표시)
+            const generationSteps = [
+                '스터디 이름을 생성하고 있습니다...',
+                '한줄 소개를 작성하고 있습니다...',
+                '스터디 설명을 구성하고 있습니다...',
+                '학습 목표를 설정하고 있습니다...',
+                '추천 교재를 선정하고 있습니다...',
+                '진행 방식을 설계하고 있습니다...',
+                '커리큘럼을 구성하고 있습니다...',
+                '마무리 작업 중입니다...',
+            ];
+            let stepIndex = 0;
 
-            // AI 결과를 폼에 반영
-            setFormData(prev => {
-                const updated = { ...prev };
-                updated.name = result.name || `${aiTopicInput.trim()} 스터디`;
-                updated.intro = result.intro || `${aiTopicInput.trim()} 학습을 위한 스터디입니다.`;
-                updated.description = result.description || `${aiTopicInput.trim()}에 대해 함께 학습합니다.`;
-                updated.goal = result.goal || prev.goal;
-                updated.textbook = result.textbook || prev.textbook;
-                updated.prerequisites = result.prerequisites || prev.prerequisites;
-                updated.processDetail = result.processDetail || prev.processDetail;
+            // 첫 번째 메시지 설정
+            setGenerationStep(generationSteps[0]);
 
-                // 날짜 설정
-                updated.recruitStartDate = recruitStart;
-                updated.recruitEndDate = recruitEnd;
-                updated.startDate = studyStart;
-                updated.endDate = studyEnd;
-
-                // 선호 요일/시간 적용
-                if (availableDays.length > 0) {
-                    updated.scheduleDays = availableDays;
+            // 3초마다 다음 단계 메시지로 전환 (마지막에서 멈춤)
+            stepInterval = setInterval(() => {
+                if (stepIndex < generationSteps.length - 1) {
+                    stepIndex++;
+                    setGenerationStep(generationSteps[stepIndex]);
                 }
-                updated.scheduleTime = scheduleTime;
+            }, 3000);
 
-                // 난이도 매핑
-                if (['BEGINNER', 'INTERMEDIATE', 'ADVANCED'].includes(result.difficulty)) {
-                    updated.difficulty = result.difficulty;
-                }
+            // AI 결과를 폼에 반영하는 함수 (스트리밍 완료 시 호출 - 토픽/형식 매칭, 커리큘럼 등)
+            const applyAiResult = (result: AiStudyPlanResponse) => {
+                // 디버깅: AI 응답 확인
+                console.log('[AI 응답]', result);
+                console.log('[AI topic]', result.topic, '[AI format]', result.format);
+                console.log('[DB topics]', topics);
+                console.log('[DB formats]', formats);
 
-                // 토픽 매칭 (키워드 기반 매칭)
-                if (result.topic && topics.length > 0) {
-                    let found = false;
-                    const topicLower = result.topic.toLowerCase().trim();
+                // AI 결과를 폼에 반영
+                setFormData(prev => {
+                    const updated = { ...prev };
+                    updated.name = result.name || `${aiTopicInput.trim()} 스터디`;
+                    updated.intro = result.intro || `${aiTopicInput.trim()} 학습을 위한 스터디입니다.`;
+                    updated.description = result.description || `${aiTopicInput.trim()}에 대해 함께 학습합니다.`;
+                    updated.goal = result.goal || prev.goal;
+                    updated.textbook = result.textbook || prev.textbook;
+                    updated.prerequisites = result.prerequisites || prev.prerequisites;
+                    updated.processDetail = result.processDetail || prev.processDetail;
 
-                    // 키워드 매핑 (AI 응답 키워드 → DB 세부주제 키워드)
-                    // DB에 있는 세부주제와 매칭될 수 있는 모든 키워드를 나열
-                    const keywordMap: Record<string, string[]> = {
-                        // 알고리즘/코딩테스트
-                        'spring': ['java/spring'],
-                        '스프링': ['java/spring'],
-                        'java/spring': ['java/spring'],
-                        'react': ['react'],
-                        '리액트': ['react'],
-                        'vue': ['vue'],
-                        '뷰': ['vue'],
-                        'next': ['next.js'],
-                        'next.js': ['next.js'],
-                        'nextjs': ['next.js'],
-                        'docker': ['docker'],
-                        '도커': ['docker'],
-                        'python': ['python/django', 'python/fastapi'],
-                        '파이썬': ['python/django', 'python/fastapi'],
-                        'django': ['python/django'],
-                        '장고': ['python/django'],
-                        'fastapi': ['python/fastapi'],
-                        'java': ['java/spring'],
-                        '자바': ['java/spring'],
-                        'node': ['node.js/express'],
-                        '노드': ['node.js/express'],
-                        'node.js': ['node.js/express'],
-                        'express': ['node.js/express'],
-                        'algorithm': ['알고리즘 이론'],
-                        '알고리즘': ['알고리즘 이론'],
-                        '알고리즘 이론': ['알고리즘 이론'],
-                        'baekjoon': ['백준'],
-                        '백준': ['백준'],
-                        'programmers': ['프로그래머스'],
-                        '프로그래머스': ['프로그래머스'],
-                        'leetcode': ['leetcode'],
-                        '리트코드': ['leetcode'],
-                        'swea': ['swea'],
-                        '코딩테스트': ['코딩테스트 대비'],
-                        'coding test': ['코딩테스트 대비'],
-                        '자료구조': ['자료구조'],
-                        'data structure': ['자료구조'],
-                        'kotlin': ['kotlin', 'android (kotlin)'],
-                        '코틀린': ['kotlin', 'android (kotlin)'],
-                        'android': ['android (kotlin)', 'android (java)'],
-                        '안드로이드': ['android (kotlin)', 'android (java)'],
-                        'ios': ['ios (swift)'],
-                        'swift': ['ios (swift)'],
-                        '스위프트': ['ios (swift)'],
-                        'flutter': ['flutter'],
-                        '플러터': ['flutter'],
-                        'react native': ['react native'],
-                        'aws': ['aws'],
-                        'gcp': ['gcp'],
-                        'kubernetes': ['kubernetes'],
-                        '쿠버네티스': ['kubernetes'],
-                        'k8s': ['kubernetes'],
-                        'ci/cd': ['ci/cd'],
-                        'cicd': ['ci/cd'],
-                        'linux': ['linux'],
-                        '리눅스': ['linux'],
-                        'go': ['go'],
-                        '고랭': ['go'],
-                        'golang': ['go'],
-                        'typescript': ['typescript'],
-                        '타입스크립트': ['typescript'],
-                        'javascript': ['javascript'],
-                        '자바스크립트': ['javascript'],
-                        'html': ['html/css'],
-                        'css': ['html/css'],
-                        'html/css': ['html/css'],
-                        '운영체제': ['운영체제'],
-                        'os': ['운영체제'],
-                        'operating system': ['운영체제'],
-                        '네트워크': ['네트워크'],
-                        'network': ['네트워크'],
-                        '데이터베이스': ['데이터베이스'],
-                        'database': ['데이터베이스'],
-                        'db': ['데이터베이스'],
-                        '컴퓨터구조': ['컴퓨터구조'],
-                        'computer architecture': ['컴퓨터구조'],
-                        '디자인패턴': ['디자인패턴'],
-                        'design pattern': ['디자인패턴'],
-                        '시스템 설계': ['시스템 설계'],
-                        'system design': ['시스템 설계'],
-                        'api': ['api 설계'],
-                        'api 설계': ['api 설계'],
-                        '모니터링': ['모니터링'],
-                        'monitoring': ['모니터링'],
-                        '머신러닝': ['머신러닝 기초'],
-                        'machine learning': ['머신러닝 기초'],
-                        'ml': ['머신러닝 기초'],
-                        '딥러닝': ['딥러닝'],
-                        'deep learning': ['딥러닝'],
-                        'dl': ['딥러닝'],
-                        'nlp': ['nlp'],
-                        '자연어처리': ['nlp'],
-                        '컴퓨터 비전': ['컴퓨터 비전'],
-                        'computer vision': ['컴퓨터 비전'],
-                        'cv': ['컴퓨터 비전'],
-                        'mlops': ['mlops'],
-                        '논문': ['논문 리뷰'],
-                        'paper': ['논문 리뷰'],
-                        '논문 리뷰': ['논문 리뷰'],
-                        '웹 접근성': ['웹 접근성/성능'],
-                        '웹 성능': ['웹 접근성/성능'],
-                        'web accessibility': ['웹 접근성/성능'],
-                    };
+                    // 날짜 설정
+                    updated.recruitStartDate = recruitStart;
+                    updated.recruitEndDate = recruitEnd;
+                    updated.startDate = studyStart;
+                    updated.endDate = studyEnd;
 
-                    // 1차: 정확 매칭 (대소문자 무시)
-                    for (const parent of topics) {
-                        const child = parent.children.find(c =>
-                            c.name.toLowerCase() === topicLower
-                        );
-                        if (child) {
-                            updated.topicParentId = parent.id;
-                            updated.topicId = child.id;
-                            found = true;
-                            console.log('[Topic 정확매칭]', result.topic, '→', child.name);
-                            break;
-                        }
+                    // 선호 요일/시간 적용
+                    if (availableDays.length > 0) {
+                        updated.scheduleDays = availableDays;
+                    }
+                    updated.scheduleTime = scheduleTime;
+
+                    // 난이도 매핑
+                    if (['BEGINNER', 'INTERMEDIATE', 'ADVANCED'].includes(result.difficulty)) {
+                        updated.difficulty = result.difficulty;
                     }
 
-                    // 2차: 키워드 기반 매칭
-                    if (!found) {
-                        for (const [keyword, dbNames] of Object.entries(keywordMap)) {
-                            if (topicLower.includes(keyword) || keyword.includes(topicLower)) {
-                                for (const parent of topics) {
-                                    const child = parent.children.find(c =>
-                                        dbNames.some(dbName => c.name.toLowerCase() === dbName.toLowerCase())
-                                    );
-                                    if (child) {
-                                        updated.topicParentId = parent.id;
-                                        updated.topicId = child.id;
-                                        found = true;
-                                        console.log('[Topic 키워드매칭]', keyword, '→', child.name);
-                                        break;
-                                    }
-                                }
-                                if (found) break;
-                            }
-                        }
-                    }
+                    // 토픽 매칭 (키워드 기반 매칭)
+                    if (result.topic && topics.length > 0) {
+                        let found = false;
+                        const topicLower = result.topic.toLowerCase().trim();
 
-                    // 3차: 부분 매칭 (포함 검색)
-                    if (!found) {
+                        // 키워드 매핑 (AI 응답 키워드 → DB 세부주제 키워드)
+                        const keywordMap: Record<string, string[]> = {
+                            'spring': ['java/spring'], '스프링': ['java/spring'], 'java/spring': ['java/spring'],
+                            'react': ['react'], '리액트': ['react'], 'vue': ['vue'], '뷰': ['vue'],
+                            'next': ['next.js'], 'next.js': ['next.js'], 'nextjs': ['next.js'],
+                            'docker': ['docker'], '도커': ['docker'],
+                            'python': ['python/django', 'python/fastapi'], '파이썬': ['python/django', 'python/fastapi'],
+                            'django': ['python/django'], '장고': ['python/django'], 'fastapi': ['python/fastapi'],
+                            'java': ['java/spring'], '자바': ['java/spring'],
+                            'node': ['node.js/express'], '노드': ['node.js/express'], 'node.js': ['node.js/express'],
+                            'algorithm': ['알고리즘 이론'], '알고리즘': ['알고리즘 이론'], '알고리즘 이론': ['알고리즘 이론'],
+                            'baekjoon': ['백준'], '백준': ['백준'], 'programmers': ['프로그래머스'], '프로그래머스': ['프로그래머스'],
+                            'leetcode': ['leetcode'], '리트코드': ['leetcode'], 'swea': ['swea'],
+                            '코딩테스트': ['코딩테스트 대비'], '자료구조': ['자료구조'],
+                            'kotlin': ['kotlin', 'android (kotlin)'], '코틀린': ['kotlin', 'android (kotlin)'],
+                            'android': ['android (kotlin)', 'android (java)'], '안드로이드': ['android (kotlin)', 'android (java)'],
+                            'ios': ['ios (swift)'], 'swift': ['ios (swift)'], '스위프트': ['ios (swift)'],
+                            'flutter': ['flutter'], '플러터': ['flutter'], 'react native': ['react native'],
+                            'aws': ['aws'], 'gcp': ['gcp'], 'kubernetes': ['kubernetes'], '쿠버네티스': ['kubernetes'],
+                            'ci/cd': ['ci/cd'], 'linux': ['linux'], '리눅스': ['linux'],
+                            'go': ['go'], '고랭': ['go'], 'golang': ['go'],
+                            'typescript': ['typescript'], '타입스크립트': ['typescript'],
+                            'javascript': ['javascript'], '자바스크립트': ['javascript'],
+                            'html': ['html/css'], 'css': ['html/css'], 'html/css': ['html/css'],
+                            '운영체제': ['운영체제'], 'os': ['운영체제'], '네트워크': ['네트워크'], 'network': ['네트워크'],
+                            '데이터베이스': ['데이터베이스'], 'database': ['데이터베이스'], 'db': ['데이터베이스'],
+                            '컴퓨터구조': ['컴퓨터구조'], '디자인패턴': ['디자인패턴'], '시스템 설계': ['시스템 설계'],
+                            'api': ['api 설계'], 'api 설계': ['api 설계'], '모니터링': ['모니터링'],
+                            '머신러닝': ['머신러닝 기초'], 'machine learning': ['머신러닝 기초'], 'ml': ['머신러닝 기초'],
+                            '딥러닝': ['딥러닝'], 'deep learning': ['딥러닝'], 'dl': ['딥러닝'],
+                            'nlp': ['nlp'], '자연어처리': ['nlp'], '컴퓨터 비전': ['컴퓨터 비전'],
+                            'mlops': ['mlops'], '논문': ['논문 리뷰'], '논문 리뷰': ['논문 리뷰'],
+                            '웹 접근성': ['웹 접근성/성능'], '웹 성능': ['웹 접근성/성능'],
+                        };
+
+                        // 1차: 정확 매칭
                         for (const parent of topics) {
-                            const child = parent.children.find(c =>
-                                c.name.toLowerCase().includes(topicLower) ||
-                                topicLower.includes(c.name.toLowerCase())
-                            );
+                            const child = parent.children.find(c => c.name.toLowerCase() === topicLower);
                             if (child) {
                                 updated.topicParentId = parent.id;
                                 updated.topicId = child.id;
                                 found = true;
-                                console.log('[Topic 부분매칭]', result.topic, '→', child.name);
                                 break;
                             }
                         }
-                    }
-
-                    // 4차: 단어 단위 매칭 (각 단어를 분리해서 검색)
-                    if (!found) {
-                        const words = topicLower.split(/[\s\/\-_]+/);
-                        for (const word of words) {
-                            if (word.length < 2) continue;
-                            for (const parent of topics) {
-                                const child = parent.children.find(c =>
-                                    c.name.toLowerCase().includes(word)
-                                );
-                                if (child) {
-                                    updated.topicParentId = parent.id;
-                                    updated.topicId = child.id;
-                                    found = true;
-                                    console.log('[Topic 단어매칭]', word, '→', child.name);
-                                    break;
+                        // 2차: 키워드 매칭
+                        if (!found) {
+                            for (const [keyword, dbNames] of Object.entries(keywordMap)) {
+                                if (topicLower.includes(keyword) || keyword.includes(topicLower)) {
+                                    for (const parent of topics) {
+                                        const child = parent.children.find(c =>
+                                            dbNames.some(dbName => c.name.toLowerCase() === dbName.toLowerCase())
+                                        );
+                                        if (child) {
+                                            updated.topicParentId = parent.id;
+                                            updated.topicId = child.id;
+                                            found = true;
+                                            break;
+                                        }
+                                    }
+                                    if (found) break;
                                 }
                             }
-                            if (found) break;
                         }
                     }
 
-                    if (!found) {
-                        console.log('[Topic 매칭 실패]', result.topic, '- 매칭되는 topic 없음');
+                    // 형식 매칭
+                    if (result.format && formats.length > 0) {
+                        const formatLower = result.format.toLowerCase().trim();
+                        const formatKeywordMap: Record<string, string> = {
+                            '문제 풀이': '문제 풀이', '문제': '문제 풀이', '알고리즘': '문제 풀이', '코딩테스트': '문제 풀이',
+                            '독서/책 스터디': '독서/책 스터디', '독서': '독서/책 스터디', '책': '독서/책 스터디',
+                            '강의 수강': '강의 수강', '강의': '강의 수강', '수강': '강의 수강',
+                            '프로젝트': '프로젝트', '개발': '프로젝트',
+                            '모의 면접': '모의 면접', '면접': '모의 면접',
+                            '코드 리뷰': '코드 리뷰', '리뷰': '코드 리뷰',
+                            '발표/세미나': '발표/세미나', '발표': '발표/세미나', '세미나': '발표/세미나',
+                            '토론': '토론', '토의': '토론',
+                        };
+
+                        let matched = formats.find(f => f.name.toLowerCase() === formatLower);
+                        if (!matched) {
+                            for (const [keyword, dbFormat] of Object.entries(formatKeywordMap)) {
+                                if (formatLower.includes(keyword) || keyword.includes(formatLower)) {
+                                    matched = formats.find(f => f.name === dbFormat);
+                                    if (matched) break;
+                                }
+                            }
+                        }
+                        if (matched) {
+                            updated.formatId = matched.id;
+                        }
                     }
-                }
 
-                // 형식 매칭 (키워드 기반 매칭)
-                if (result.format && formats.length > 0) {
-                    const formatLower = result.format.toLowerCase().trim();
+                    // 총 회차 반영
+                    updated.totalSessions = totalSessions;
 
-                    // 키워드 매핑 (AI 응답 키워드 → DB 형식)
-                    // 형식 목록: 문제 풀이, 독서/책 스터디, 강의 수강, 프로젝트, 모의 면접, 코드 리뷰, 발표/세미나, 토론
-                    const formatKeywordMap: Record<string, string> = {
-                        // 문제 풀이
-                        '문제 풀이': '문제 풀이',
-                        '문제': '문제 풀이',
-                        '풀이': '문제 풀이',
-                        '알고리즘': '문제 풀이',
-                        '코딩테스트': '문제 풀이',
-                        'problem': '문제 풀이',
-                        'solve': '문제 풀이',
-                        // 독서/책 스터디
-                        '독서/책 스터디': '독서/책 스터디',
-                        '독서': '독서/책 스터디',
-                        '책': '독서/책 스터디',
-                        '도서': '독서/책 스터디',
-                        '북': '독서/책 스터디',
-                        'book': '독서/책 스터디',
-                        'reading': '독서/책 스터디',
-                        // 강의 수강
-                        '강의 수강': '강의 수강',
-                        '강의': '강의 수강',
-                        '수강': '강의 수강',
-                        '온라인 강의': '강의 수강',
-                        '인강': '강의 수강',
-                        'lecture': '강의 수강',
-                        'course': '강의 수강',
-                        // 프로젝트
-                        '프로젝트': '프로젝트',
-                        '개발': '프로젝트',
-                        '사이드 프로젝트': '프로젝트',
-                        'project': '프로젝트',
-                        'develop': '프로젝트',
-                        // 모의 면접
-                        '모의 면접': '모의 면접',
-                        '면접': '모의 면접',
-                        '기술 면접': '모의 면접',
-                        'interview': '모의 면접',
-                        'mock': '모의 면접',
-                        // 코드 리뷰
-                        '코드 리뷰': '코드 리뷰',
-                        '리뷰': '코드 리뷰',
-                        '코드리뷰': '코드 리뷰',
-                        'code review': '코드 리뷰',
-                        'review': '코드 리뷰',
-                        // 발표/세미나
-                        '발표/세미나': '발표/세미나',
-                        '발표': '발표/세미나',
-                        '세미나': '발표/세미나',
-                        '프레젠테이션': '발표/세미나',
-                        'presentation': '발표/세미나',
-                        'seminar': '발표/세미나',
-                        // 토론
-                        '토론': '토론',
-                        '토의': '토론',
-                        '디스커션': '토론',
-                        'discussion': '토론',
-                        'debate': '토론',
+                    // 커리큘럼 생성
+                    updated.hasCurriculum = true;
+                    const curriculum: CurriculumItem[] = [];
+                    const dayToNum: Record<string, number> = {
+                        '일': 0, '월': 1, '화': 2, '수': 3, '목': 4, '금': 5, '토': 6,
+                        'SUN': 0, 'MON': 1, 'TUE': 2, 'WED': 3, 'THU': 4, 'FRI': 5, 'SAT': 6,
+                    };
+                    const selectedDayNums = availableDays.map(d => dayToNum[d] ?? 0);
+                    const firstDayNum = selectedDayNums[0] ?? studyStartDate.getDay();
+
+                    const calculateSessionDate = (sessionIndex: number): Date => {
+                        const date = new Date(studyStartDate);
+                        if (daysPerWeek === 1 || selectedDayNums.length === 0) {
+                            date.setDate(date.getDate() + sessionIndex * 7);
+                        } else {
+                            const weekIndex = Math.floor(sessionIndex / daysPerWeek);
+                            const dayIndex = sessionIndex % daysPerWeek;
+                            const targetDayNum = selectedDayNums[dayIndex];
+                            let daysFromFirst = targetDayNum - firstDayNum;
+                            if (daysFromFirst < 0) daysFromFirst += 7;
+                            date.setDate(date.getDate() + weekIndex * 7 + daysFromFirst);
+                        }
+                        return date;
                     };
 
-                    // 1차: 정확 매칭 (대소문자 무시)
-                    let matched = formats.find(f => f.name.toLowerCase() === formatLower);
+                    const curriculumCount = result.curriculum?.length || totalSessions;
+                    for (let i = 0; i < curriculumCount; i++) {
+                        const aiCurr = result.curriculum?.[i];
+                        const sessionDate = calculateSessionDate(i);
 
-                    // 2차: 키워드 기반 매칭
-                    if (!matched) {
-                        for (const [keyword, dbFormat] of Object.entries(formatKeywordMap)) {
-                            if (formatLower.includes(keyword) || keyword.includes(formatLower)) {
-                                matched = formats.find(f => f.name === dbFormat);
-                                if (matched) {
-                                    console.log('[Format 키워드매칭]', keyword, '→', dbFormat);
-                                    break;
-                                }
-                            }
+                        let desc = aiCurr?.title || `${i + 1}회차 학습`;
+                        if (aiCurr?.description) {
+                            desc += `\n${aiCurr.description}`;
                         }
+
+                        curriculum.push({
+                            session: i + 1,
+                            description: desc,
+                            type: 'ONLINE',
+                            date: formatDate(sessionDate),
+                        });
+                    }
+                    updated.curriculum = curriculum;
+
+                    if (curriculum.length > 0) {
+                        updated.endDate = curriculum[curriculum.length - 1].date;
                     }
 
-                    // 3차: 부분 매칭
-                    if (!matched) {
-                        matched = formats.find(f =>
-                            f.name.toLowerCase().includes(formatLower) ||
-                            formatLower.includes(f.name.toLowerCase())
-                        );
-                        if (matched) {
-                            console.log('[Format 부분매칭]', result.format, '→', matched.name);
-                        }
-                    }
-
-                    if (matched) {
-                        updated.formatId = matched.id;
-                    } else {
-                        console.log('[Format 매칭 실패]', result.format, '- 매칭되는 format 없음');
-                    }
-                }
-
-                // 총 회차 반영 (요일수 × 주수)
-                updated.totalSessions = totalSessions;
-
-                // AI 일정 제안은 사용자 선호가 없을 때만 적용
-                if (result.scheduleSuggestion && availableDays.length === 0) {
-                    if (result.scheduleSuggestion.days?.length > 0) {
-                        updated.scheduleDays = result.scheduleSuggestion.days;
-                    }
-                    if (result.scheduleSuggestion.time) {
-                        const timePart = result.scheduleSuggestion.time.split('-')[0];
-                        if (timePart) updated.scheduleTime = timePart;
-                    }
-                }
-
-                // 커리큘럼 생성 - 요일 순환 매핑
-                // 예: 토,일 선택 + 4주 = 8회차 (토,일,토,일,토,일,토,일)
-                updated.hasCurriculum = true;
-                const curriculum: CurriculumItem[] = [];
-
-                // 요일 → 숫자 매핑
-                const dayToNum: Record<string, number> = {
-                    '일': 0, '월': 1, '화': 2, '수': 3, '목': 4, '금': 5, '토': 6,
-                    'SUN': 0, 'MON': 1, 'TUE': 2, 'WED': 3, 'THU': 4, 'FRI': 5, 'SAT': 6,
-                };
-
-                // 선택된 요일들의 숫자값
-                const selectedDayNums = availableDays.map(d => dayToNum[d] ?? 0);
-                const firstDayNum = selectedDayNums[0] ?? studyStartDate.getDay();
-
-                // 회차별 날짜 계산 함수
-                const calculateSessionDate = (sessionIndex: number): Date => {
-                    const date = new Date(studyStartDate);
-                    if (daysPerWeek === 1 || selectedDayNums.length === 0) {
-                        // 요일 하나만 선택하거나 선택 없으면 매주 반복
-                        date.setDate(date.getDate() + sessionIndex * 7);
-                    } else {
-                        // 여러 요일 선택: 순환 매핑
-                        const weekIndex = Math.floor(sessionIndex / daysPerWeek);
-                        const dayIndex = sessionIndex % daysPerWeek;
-                        const targetDayNum = selectedDayNums[dayIndex];
-
-                        // 첫 요일에서 현재 요일까지의 오프셋 계산
-                        let daysFromFirst = targetDayNum - firstDayNum;
-                        if (daysFromFirst < 0) daysFromFirst += 7;
-
-                        date.setDate(date.getDate() + weekIndex * 7 + daysFromFirst);
-                    }
-                    return date;
-                };
-
-                // AI 커리큘럼 또는 기본 틀 생성
-                const curriculumCount = result.curriculum?.length || totalSessions;
-                for (let i = 0; i < curriculumCount; i++) {
-                    const aiCurr = result.curriculum?.[i];
-                    const sessionDate = calculateSessionDate(i);
-
-                    let desc = aiCurr?.title || `${i + 1}회차 학습`;
-                    if (aiCurr?.description) {
-                        desc += `\n${aiCurr.description}`;
-                    }
-                    if (aiCurr?.learning_goals && aiCurr.learning_goals.length > 0) {
-                        desc += `\n\n학습 목표:\n${aiCurr.learning_goals.map(g => `- ${g}`).join('\n')}`;
-                    }
-                    if (aiCurr?.assignments && aiCurr.assignments.length > 0) {
-                        desc += `\n\n과제:\n${aiCurr.assignments.map(a => `- ${a}`).join('\n')}`;
-                    }
-                    if (aiCurr?.resources && aiCurr.resources.length > 0) {
-                        desc += `\n\n참고 자료:\n${aiCurr.resources.map(r => `- ${r}`).join('\n')}`;
-                    }
-
-                    curriculum.push({
-                        session: i + 1,
-                        description: desc,
-                        type: 'ONLINE',
-                        date: formatDate(sessionDate),
-                    });
-                }
-                updated.curriculum = curriculum;
-
-                // 스터디 종료일 = 마지막 회차 날짜
-                if (curriculum.length > 0) {
-                    updated.endDate = curriculum[curriculum.length - 1].date;
-                }
-
-                console.log('[커리큘럼 생성 완료]', {
-                    회차수: curriculum.length,
-                    시작일: studyStart,
-                    종료일: updated.endDate,
-                    첫회차: curriculum[0]?.date,
-                    마지막회차: curriculum[curriculum.length - 1]?.date,
-                    요일순환: availableDays,
+                    return updated;
                 });
 
-                return updated;
-            });
+                setStreamingText(''); // 스트리밍 텍스트 초기화
+                showToast('AI가 스터디 계획을 생성했습니다! 내용을 확인해주세요.', 'success');
+                setIsAiGenerating(false);
+            };
 
-            showToast('AI가 스터디 계획을 생성했습니다! 내용을 확인해주세요.', 'success');
+            // 스트리밍 API 호출
+            await generateStudyPlanStream(
+                {
+                    topic: aiTopicInput.trim(),
+                    techStack,
+                    schedule,
+                    durationWeeks: preferredDurationWeeks,
+                    totalSessions,
+                },
+                {
+                    onToken: (token) => {
+                        accumulatedText += token;
+                        setStreamingText(accumulatedText);
+                    },
+                    onComplete: (result) => {
+                        if (stepInterval) clearInterval(stepInterval);
+                        setGenerationStep('');
+                        applyAiResult(result);
+                    },
+                    onError: (error) => {
+                        if (stepInterval) clearInterval(stepInterval);
+                        setGenerationStep('');
+                        console.error('스트리밍 오류:', error);
+                        setStreamingText('');
+                        showToast('AI 생성에 실패했습니다. 다시 시도해주세요.', 'error');
+                        setIsAiGenerating(false);
+                    },
+                }
+            );
+
+            // 스트리밍이 완료될 때까지 기다리므로 여기서 return
+            return;
         } catch (err: any) {
+            if (stepInterval) clearInterval(stepInterval);
             const message = err?.response?.data?.error?.message || 'AI 생성에 실패했습니다. 다시 시도해주세요.';
             showToast(message, 'error');
             console.error('AI 스터디 계획 생성 실패:', err);
-        } finally {
+            setGenerationStep('');
+            setStreamingText('');
             setIsAiGenerating(false);
         }
     };
@@ -908,6 +783,7 @@ const StudyCreatePage: React.FC = () => {
 
             await createTemplate({
                 name: formData.name,
+                intro: formData.intro || undefined,
                 templateType: 'CUSTOM',
                 topic: selectedTopic,
                 format: selectedFormat,
@@ -1082,6 +958,28 @@ const StudyCreatePage: React.FC = () => {
                                             {isAiGenerating ? '생성 중...' : 'AI 생성'}
                                         </Button>
                                     </div>
+
+                                    {/* 스트리밍 중 실시간 텍스트 표시 */}
+                                    {isAiGenerating && (
+                                        <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                                            {/* 생성 단계 메시지 */}
+                                            <div className="flex items-center gap-3 mb-3">
+                                                <div className="flex items-center justify-center w-8 h-8 bg-blue-100 rounded-full">
+                                                    <Sparkles size={16} className="text-blue-600 animate-pulse" />
+                                                </div>
+                                                <span className="text-sm font-medium text-blue-700 animate-pulse">
+                                                    {generationStep || 'AI가 스터디 계획을 분석하고 있습니다...'}
+                                                </span>
+                                            </div>
+                                            {/* 스트리밍 텍스트 */}
+                                            {streamingText && (
+                                                <pre className="text-xs text-gray-500 whitespace-pre-wrap font-mono max-h-40 overflow-y-auto bg-white/50 p-3 rounded border border-gray-200">
+                                                    {streamingText}
+                                                    <span className="animate-pulse text-blue-500">▌</span>
+                                                </pre>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 

@@ -338,15 +338,18 @@ export const createStudy = async (data: StudyCreatePayload) => {
 export interface StudyTemplateItem {
   id: number;
   name: string;
+  intro?: string;
   templateType: string;
   topic: string;
   format: string;
+  meetingType?: string;
   difficulty: string;
   goal: string;
   textbook: string;
   description: string;
   prerequisites: string;
   processDetail: string;
+  penaltyPolicy?: string;
   createdAt: string;
 }
 
@@ -358,6 +361,7 @@ export const getMyTemplates = async (): Promise<StudyTemplateItem[]> => {
 // 템플릿 생성 (임시저장)
 export interface CreateTemplatePayload {
   name: string;
+  intro?: string;
   templateType?: string;
   topic?: string;
   format?: string;
@@ -410,4 +414,169 @@ export const generateStudyPlan = async (data: AiStudyPlanRequest): Promise<AiStu
     scheduleSuggestion: res.scheduleSuggestion || res.schedule_suggestion,
     curriculum: res.curriculum,
   };
+};
+
+// ========== AI 스터디 계획 생성 (스트리밍) ==========
+
+// 스트리밍 콜백 타입
+export interface StreamingCallbacks {
+  onToken: (token: string) => void;
+  onComplete: (result: AiStudyPlanResponse) => void;
+  onError: (error: Error) => void;
+}
+
+/**
+ * AI 스터디 계획 생성 (스트리밍)
+ * - SSE(Server-Sent Events)로 실시간 토큰 수신
+ * - 완료 시 파싱된 JSON 결과 반환
+ */
+export const generateStudyPlanStream = async (
+  data: AiStudyPlanRequest,
+  callbacks: StreamingCallbacks
+): Promise<void> => {
+  // 쿼리 파라미터 구성
+  const params = new URLSearchParams();
+  if (data.topic) params.set('topicInput', data.topic);
+  if (data.durationWeeks) params.set('durationWeeks', data.durationWeeks.toString());
+  if (data.totalSessions) params.set('totalSessions', data.totalSessions.toString());
+
+  // user-id 헤더를 위해 로컬스토리지에서 가져오기
+  let userId = '';
+  try {
+    const authStorage = localStorage.getItem('auth-storage');
+    if (authStorage) {
+      const authData = JSON.parse(authStorage);
+      userId = authData?.state?.user?.id?.toString() || '';
+    }
+  } catch (e) {
+    console.warn('userId 가져오기 실패:', e);
+  }
+
+  const baseUrl = import.meta.env.VITE_API_URL || '';
+  const url = `${baseUrl}/api/v1/study-templates/recommend/stream?${params.toString()}`;
+
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'text/event-stream',
+        'user-id': userId,
+      },
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) {
+      throw new Error('ReadableStream not supported');
+    }
+
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let currentEvent = ''; // 청크 간에 이벤트 타입 유지
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+
+      // SSE 이벤트 파싱 (줄바꿈으로 구분)
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || ''; // 마지막 불완전한 줄은 버퍼에 남김
+
+      for (const line of lines) {
+        const trimmedLine = line.trim();
+        if (!trimmedLine) continue; // 빈 줄 무시
+
+        console.log('[SSE 라인]', trimmedLine);
+
+        if (trimmedLine.startsWith('event:')) {
+          currentEvent = trimmedLine.substring(6).trim();
+          console.log('[SSE 이벤트]', currentEvent);
+        } else if (trimmedLine.startsWith('data:')) {
+          const data = trimmedLine.substring(5).trim();
+          console.log('[SSE 데이터]', data.substring(0, 100) + '...');
+
+          try {
+            const parsed = JSON.parse(data);
+
+            if (currentEvent === 'token' && parsed.token !== undefined) {
+              callbacks.onToken(parsed.token);
+            } else if (currentEvent === 'complete') {
+              console.log('[SSE 완료 이벤트 수신]', parsed);
+              // 완료 시 응답 변환
+              const result: AiStudyPlanResponse = {
+                name: parsed.name || '',
+                intro: parsed.intro || '',
+                description: parsed.description || '',
+                topic: parsed.topic || '',
+                format: parsed.format || '',
+                difficulty: parsed.difficulty || 'INTERMEDIATE',
+                goal: parsed.goal || '',
+                textbook: parsed.textbook || '',
+                prerequisites: parsed.prerequisites || '',
+                processDetail: parsed.processDetail || parsed.process_detail || '',
+                durationWeeks: parsed.durationWeeks || parsed.duration_weeks,
+                scheduleSuggestion: parsed.scheduleSuggestion || parsed.schedule_suggestion,
+                curriculum: parsed.curriculum,
+              };
+              console.log('[SSE 완료 결과]', result);
+              callbacks.onComplete(result);
+              return;
+            } else if (currentEvent === 'error') {
+              console.error('[SSE 에러 이벤트]', parsed);
+              callbacks.onError(new Error(parsed.error || 'Unknown error'));
+              return;
+            }
+          } catch (parseError) {
+            // JSON 파싱 실패 시 무시 (부분 데이터일 수 있음)
+            console.warn('[SSE 파싱 실패]', data);
+          }
+
+          currentEvent = ''; // 이벤트 리셋
+        }
+      }
+    }
+
+    // 스트림이 끝났는데 complete 이벤트가 없었던 경우
+    // 버퍼에 남은 데이터가 있으면 처리 시도
+    if (buffer.trim()) {
+      console.log('[SSE 스트림 종료] 남은 버퍼 처리 시도:', buffer.substring(0, 200));
+      try {
+        // complete 이벤트의 data 부분만 남아있을 수 있음
+        const dataMatch = buffer.match(/data:\s*(\{[\s\S]*\})/);
+        if (dataMatch) {
+          const parsed = JSON.parse(dataMatch[1]);
+          console.log('[SSE 버퍼에서 complete 데이터 파싱]', parsed);
+          const result: AiStudyPlanResponse = {
+            name: parsed.name || '',
+            intro: parsed.intro || '',
+            description: parsed.description || '',
+            topic: parsed.topic || '',
+            format: parsed.format || '',
+            difficulty: parsed.difficulty || 'INTERMEDIATE',
+            goal: parsed.goal || '',
+            textbook: parsed.textbook || '',
+            prerequisites: parsed.prerequisites || '',
+            processDetail: parsed.processDetail || parsed.process_detail || '',
+            durationWeeks: parsed.durationWeeks || parsed.duration_weeks,
+            scheduleSuggestion: parsed.scheduleSuggestion || parsed.schedule_suggestion,
+            curriculum: parsed.curriculum,
+          };
+          callbacks.onComplete(result);
+          return;
+        }
+      } catch (e) {
+        console.warn('[SSE 버퍼 파싱 실패]', e);
+      }
+    }
+    console.warn('[SSE 스트림 종료] complete 이벤트 없이 종료됨');
+    callbacks.onError(new Error('스트림이 완료 이벤트 없이 종료되었습니다'));
+  } catch (error) {
+    callbacks.onError(error instanceof Error ? error : new Error(String(error)));
+  }
 };
