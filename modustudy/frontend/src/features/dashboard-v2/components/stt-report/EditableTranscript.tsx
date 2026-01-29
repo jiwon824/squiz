@@ -2,6 +2,7 @@
 // 화자별 색상 구분 + 화자 변경 + 텍스트 편집
 
 import React, { useCallback } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 import type { TranscriptItem } from './types';
 import { getSpeakerClasses } from './constants';
@@ -74,20 +75,29 @@ export const EditableTranscript: React.FC<EditableTranscriptProps> = ({
                         {/* 화자 + 텍스트 */}
                         <div className="flex-1 min-w-0">
                             {/* 화자 이름 (클릭 → 드롭다운) */}
-                            <select
-                                value={item.speaker}
-                                onChange={(e) => handleSpeakerChange(idx, e.target.value)}
-                                className={cn(
-                                    'text-sm font-semibold mb-1 cursor-pointer',
-                                    'bg-transparent border-none outline-none',
-                                    colorClasses.text,
-                                    'hover:bg-surface-hover rounded-google px-1 -ml-1'
-                                )}
-                            >
-                                {participants.map((p) => (
-                                    <option key={p} value={p}>{p}</option>
-                                ))}
-                            </select>
+                            <div className="relative inline-block mb-1">
+                                <select
+                                    value={item.speaker}
+                                    onChange={(e) => handleSpeakerChange(idx, e.target.value)}
+                                    className={cn(
+                                        'text-sm font-semibold cursor-pointer',
+                                        'bg-transparent outline-none',
+                                        colorClasses.text,
+                                        'hover:bg-surface-hover rounded-google',
+                                        'pl-1 pr-5 py-0.5 -ml-1'
+                                    )}
+                                    style={{ appearance: 'none', WebkitAppearance: 'none' }}
+                                >
+                                    {participants.map((p) => (
+                                        <option key={p} value={p}>{p}</option>
+                                    ))}
+                                </select>
+                                {/* 커스텀 화살표 */}
+                                <ChevronDown
+                                    size={12}
+                                    className="absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none text-text-tertiary"
+                                />
+                            </div>
 
                             {/* 대화 텍스트 (편집 가능) */}
                             <p

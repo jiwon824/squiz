@@ -1,7 +1,7 @@
 // 전체 기록 뷰: 검색 + EditableTranscript + 다운로드/재생
 
 import React, { useState, useCallback } from 'react';
-import { Search, Download, Play } from 'lucide-react';
+import { Search, Play } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 import type { MeetingReport, TranscriptItem } from './types';
 import { EditableTranscript } from './EditableTranscript';
@@ -57,16 +57,9 @@ export const TranscriptView: React.FC<TranscriptViewProps> = ({
             <div className="rounded-xl border border-border overflow-hidden">
                 <div className={cn(
                     'px-5 py-4 border-b border-border',
-                    'bg-background/50 flex items-center justify-between'
+                    'bg-background/50'
                 )}>
                     <h3 className="font-semibold text-text-primary mb-0">대화 기록</h3>
-                    <button className={cn(
-                        'flex items-center gap-1.5 text-sm',
-                        'text-text-secondary hover:text-primary transition-colors'
-                    )}>
-                        <Download size={14} />
-                        내보내기
-                    </button>
                 </div>
                 <div className="p-4 max-h-[400px] overflow-y-auto">
                     <EditableTranscript

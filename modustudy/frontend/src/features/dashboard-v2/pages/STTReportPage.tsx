@@ -26,10 +26,10 @@ import {
     TranscriptView,
     ActionItemsView,
     StatsView,
-    MOCK_REPORTS,
     exportReports,
 } from '../components/stt-report';
-import type { TabType, MeetingReport, TranscriptItem, ExportScope } from '../components/stt-report';
+import type { TabType, TranscriptItem, ExportScope } from '../components/stt-report';
+import { useSttStore } from '@/store/sttStore';
 import '../styles/DashboardV2.css';
 
 // 탭 정의
@@ -57,12 +57,28 @@ const EXPORT_OPTIONS: { scope: ExportScope; label: string; desc: string }[] = [
 
 export const STTReportPage: React.FC = () => {
     const navigate = useNavigate();
+
+    // STT 스토어
+    const {
+        reports,
+        selectedReport,
+        selectReport,
+        isLoading,
+        fetchMeetings,
+        updateSummary,
+        updateTranscript,
+    } = useSttStore();
+
     const [activeTab, setActiveTab] = useState<TabType>('summary');
-    const [selectedReport, setSelectedReport] = useState<MeetingReport>(MOCK_REPORTS[0]);
     const [searchQuery, setSearchQuery] = useState('');
     const [showExportMenu, setShowExportMenu] = useState(false);
     const [textSize, setTextSize] = useState<'sm' | 'base' | 'lg'>('base');
     const exportRef = useRef<HTMLDivElement>(null);
+
+    // 마운트 시 미팅 목록 조회
+    useEffect(() => {
+        fetchMeetings();
+    }, [fetchMeetings]);
 
     // 드롭다운 외부 클릭 시 닫기
     useEffect(() => {
@@ -78,7 +94,7 @@ export const STTReportPage: React.FC = () => {
     }, [showExportMenu]);
 
     // 검색 필터링
-    const filteredReports = MOCK_REPORTS.filter(report =>
+    const filteredReports = reports.filter(report =>
         searchQuery === '' ||
         report.meetingTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
         report.studyName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -87,19 +103,23 @@ export const STTReportPage: React.FC = () => {
 
     // 요약 변경 핸들러
     const handleSummaryChange = useCallback((newSummary: string) => {
-        setSelectedReport(prev => ({ ...prev, summary: newSummary }));
-    }, []);
+        if (selectedReport) {
+            updateSummary(selectedReport.id, newSummary);
+        }
+    }, [selectedReport, updateSummary]);
 
     // 대화 기록 변경 핸들러
     const handleTranscriptChange = useCallback((updatedTranscript: TranscriptItem[]) => {
-        setSelectedReport(prev => ({ ...prev, transcript: updatedTranscript }));
-    }, []);
+        if (selectedReport) {
+            updateTranscript(selectedReport.id, updatedTranscript);
+        }
+    }, [selectedReport, updateTranscript]);
 
     // JSON 다운로드 핸들러
     const handleExport = useCallback((scope: ExportScope) => {
-        exportReports(scope, MOCK_REPORTS, selectedReport);
+        exportReports(scope, reports, selectedReport ?? undefined);
         setShowExportMenu(false);
-    }, [selectedReport]);
+    }, [selectedReport, reports]);
 
     return (
         <div className="py-8">
@@ -117,8 +137,8 @@ export const STTReportPage: React.FC = () => {
                             <button
                                 onClick={() => setShowExportMenu(prev => !prev)}
                                 className={cn(
-                                    'inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-google',
-                                    'border border-border text-text-secondary',
+                                    'inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg',
+                                    'text-text-secondary',
                                     'hover:bg-surface-hover hover:text-text-primary transition-colors',
                                     showExportMenu && 'bg-surface-hover text-text-primary'
                                 )}
@@ -126,7 +146,7 @@ export const STTReportPage: React.FC = () => {
                                 <Download size={15} />
                                 JSON 내보내기
                                 <ChevronDown size={14} className={cn(
-                                    'transition-transform',
+                                    'transition-transform duration-200',
                                     showExportMenu && 'rotate-180'
                                 )} />
                             </button>
@@ -135,36 +155,28 @@ export const STTReportPage: React.FC = () => {
                             <AnimatePresence>
                                 {showExportMenu && (
                                     <motion.div
-                                        initial={{ opacity: 0, y: -4 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: -4 }}
-                                        transition={{ duration: 0.15 }}
-                                        className={cn(
-                                            'absolute right-0 top-full mt-1 w-56 z-50',
-                                            'bg-surface rounded-google-lg shadow-lg',
-                                            'border border-border overflow-hidden'
-                                        )}
+                                        initial={{ opacity: 0, scale: 0.95 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        exit={{ opacity: 0, scale: 0.95 }}
+                                        transition={{ duration: 0.1 }}
+                                        className="absolute right-0 top-full mt-1.5 w-40 z-50 py-1 overflow-hidden"
+                                        style={{
+                                            backgroundColor: 'var(--color-surface)',
+                                            borderRadius: '12px',
+                                            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04)',
+                                        }}
                                     >
-                                        <div className="px-3 py-2 border-b border-border">
-                                            <p className="text-[10px] text-text-tertiary">
-                                                LLM 활용에 최적화된 JSON 형식
-                                            </p>
-                                        </div>
                                         {EXPORT_OPTIONS.map(opt => (
                                             <button
                                                 key={opt.scope}
                                                 onClick={() => handleExport(opt.scope)}
                                                 className={cn(
-                                                    'w-full px-3 py-2.5 text-left transition-colors',
-                                                    'hover:bg-surface-hover'
+                                                    'w-full px-3.5 py-2 text-left text-[13px]',
+                                                    'text-text-secondary hover:text-text-primary',
+                                                    'hover:bg-surface-hover transition-colors'
                                                 )}
                                             >
-                                                <span className="block text-sm font-medium text-text-primary">
-                                                    {opt.label}
-                                                </span>
-                                                <span className="block text-[11px] text-text-tertiary mt-0.5">
-                                                    {opt.desc}
-                                                </span>
+                                                {opt.label}
                                             </button>
                                         ))}
                                     </motion.div>
@@ -206,11 +218,11 @@ export const STTReportPage: React.FC = () => {
                             {/* 미팅 리스트 */}
                             <div className="flex-1 overflow-y-auto max-h-[500px]">
                                 {filteredReports.map((report) => {
-                                    const isSelected = selectedReport.id === report.id;
+                                    const isSelected = selectedReport?.id === report.id;
                                     return (
                                         <button
                                             key={report.id}
-                                            onClick={() => setSelectedReport(report)}
+                                            onClick={() => selectReport(report)}
                                             className={cn(
                                                 'w-full p-4 text-left transition-all border-b border-border',
                                                 conditionalClasses.state(
@@ -271,6 +283,12 @@ export const STTReportPage: React.FC = () => {
 
                         {/* 우측 콘텐츠 영역 */}
                         <div className="flex-1 p-8">
+                            {!selectedReport ? (
+                                <div className="flex items-center justify-center h-64 text-text-tertiary">
+                                    {isLoading ? '로딩 중...' : '미팅을 선택해주세요'}
+                                </div>
+                            ) : (
+                            <>
                             {/* 선택된 미팅 헤더 */}
                             <div className="mb-6 pb-6 border-b border-border">
                                 <div className="flex items-center justify-between mb-2">
@@ -384,11 +402,13 @@ export const STTReportPage: React.FC = () => {
 
                                 {activeTab === 'stats' && (
                                     <motion.div key="stats" {...TAB_ANIMATION}>
-                                        <StatsView reports={MOCK_REPORTS} />
+                                        <StatsView reports={reports} />
                                     </motion.div>
                                 )}
                             </AnimatePresence>
                             </div>
+                            </>
+                            )}
                         </div>
                     </div>
                 </div>
