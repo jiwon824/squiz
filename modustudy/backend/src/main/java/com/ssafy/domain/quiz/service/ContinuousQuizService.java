@@ -34,7 +34,7 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class ContinuousLearningService {
+public class ContinuousQuizService {
 
     private final ContinuousLearningRepository learningRepository;
     private final FsrsService fsrsService;
