@@ -208,21 +208,21 @@ const StudyLeaderCard: React.FC<StudyLeaderCardProps> = ({
                             leftIcon={<Send size={16} />}
                             className="h-11 rounded-xl font-semibold text-sm"
                         >
-                            DM 문의
+                            문의하기
                         </Button>
 
                         {/* 카카오톡 문의 버튼 (오른쪽) */}
                         <Button
                             variant="google-outline"
                             onClick={handleKakaoInquiry}
-                            leftIcon={<MessageCircle size={16} />}
+                            leftIcon={<MessageCircle size={16} fill="#3C1E1E" />}
                             className={cn(
                                 'h-11 rounded-xl font-semibold text-sm',
                                 'bg-[#FEE500] hover:bg-[#FDD835]',
                                 'text-[#3C1E1E] border-[#FEE500] hover:border-[#FDD835]'
                             )}
                         >
-                            카톡 문의
+                            카카오톡
                         </Button>
                     </div>
                     </div>

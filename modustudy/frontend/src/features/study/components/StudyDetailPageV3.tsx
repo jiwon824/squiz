@@ -142,7 +142,7 @@ const StudyDetailPageV3: React.FC = () => {
     return (
         <UserLayoutV2>
             <StudyListContainer className="px-4 md:px-6">
-                <div className="max-w-5xl mx-auto py-8 animate-fadeIn">
+                <div className="max-w-8xl mx-auto py-8 animate-fadeIn">
                     {/* 상단 네비게이션 */}
                     <div className="flex justify-between items-center mb-6">
                         <div className="flex items-center gap-3">
@@ -158,9 +158,9 @@ const StudyDetailPageV3: React.FC = () => {
                     </div>
 
                     {/* 메인 콘텐츠 */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        {/* 좌측: 스터디 정보 (2열) */}
-                        <div className="lg:col-span-2">
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                        {/* 좌측: 스터디 정보 (3열) */}
+                        <div className="lg:col-span-3">
                             {/* 통합 카드 */}
                             <div className="bg-white rounded-2xl border border-[var(--color-border)] shadow-sm overflow-hidden">
                                 {/* 헤더 섹션 */}
