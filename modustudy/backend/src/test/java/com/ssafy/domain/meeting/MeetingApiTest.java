@@ -32,6 +32,15 @@ import com.ssafy.domain.meeting.entity.MeetingTextTrackType;
 import com.ssafy.domain.meeting.entity.MeetingType;
 import com.ssafy.domain.meeting.entity.SummaryStatus;
 import com.ssafy.domain.meeting.service.MeetingService;
+import com.ssafy.domain.meeting.service.MeetingChatService;
+import com.ssafy.domain.meeting.service.MeetingAiScheduler;
+import com.ssafy.common.websocket.MeetingRoomStateService;
+import com.ssafy.domain.meeting.service.MeetingAudioService;
+import com.ssafy.domain.meeting.service.MeetingRecordingService;
+import com.ssafy.domain.meeting.service.MeetingPhotoService;
+import com.ssafy.domain.meeting.service.MeetingActionItemService;
+import com.ssafy.domain.meeting.service.MeetingSttService;
+import com.ssafy.domain.meeting.service.MeetingExportService;
 import com.ssafy.domain.user.entity.Role;
 import com.ssafy.domain.user.entity.User;
 import org.junit.jupiter.api.DisplayName;
@@ -58,6 +67,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
@@ -73,6 +83,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -90,6 +101,36 @@ class MeetingApiTest {
 
     @MockBean
     private MeetingService meetingService;
+
+    @MockBean
+    private MeetingChatService meetingChatService;
+
+    @MockBean
+    private MeetingAudioService meetingAudioService;
+
+    @MockBean
+    private MeetingRecordingService meetingRecordingService;
+
+    @MockBean
+    private MeetingPhotoService meetingPhotoService;
+
+    @MockBean
+    private MeetingActionItemService meetingActionItemService;
+
+    @MockBean
+    private MeetingSttService meetingSttService;
+
+    @MockBean
+    private MeetingExportService meetingExportService;
+
+    @MockBean
+    private MeetingRoomStateService meetingRoomStateService;
+
+    @MockBean
+    private SimpMessagingTemplate messagingTemplate;
+
+    @MockBean
+    private MeetingAiScheduler meetingAiScheduler;
 
     @MockBean
     private SfuProperties sfuProperties;
@@ -159,7 +200,7 @@ class MeetingApiTest {
         // given
         MeetingPhotoResponse selected = new MeetingPhotoResponse(3L, "meeting/2/photo-3.png",
                 LocalDateTime.of(2025, 1, 15, 20, 12), true);
-        when(meetingService.selectPhoto(1L, 2L, 1L, 3L)).thenReturn(selected);
+        when(meetingPhotoService.selectPhoto(1L, 2L, 1L, 3L)).thenReturn(selected);
 
         // when & then
         mockMvc.perform(put("/api/v1/studies/1/meetings/2/photos/3/select")
@@ -315,8 +356,8 @@ class MeetingApiTest {
                 "DONE",
                 LocalDateTime.of(2025, 1, 15, 20, 40)
         );
-        when(meetingService.getSummary(1L, 2L)).thenReturn(summary);
-        when(meetingService.upsertSummary(eq(1L), eq(2L), any())).thenReturn(summary);
+        when(meetingSttService.getSummary(1L, 2L)).thenReturn(summary);
+        when(meetingSttService.upsertSummary(eq(1L), eq(2L), any())).thenReturn(summary);
 
         // when & then
         mockMvc.perform(get("/api/v1/studies/1/meetings/2/summary"))
@@ -352,7 +393,7 @@ class MeetingApiTest {
                 1,
                 false
         );
-        when(meetingService.getChatMessages(eq(1L), eq(2L), any())).thenReturn(page);
+        when(meetingChatService.getChatMessages(eq(1L), eq(2L), any())).thenReturn(page);
 
         // when & then
         mockMvc.perform(get("/api/v1/studies/1/meetings/2/chat")
@@ -360,6 +401,20 @@ class MeetingApiTest {
                         .param("size", "20"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.content[0].senderName").value("user"));
+    }
+
+    @Test
+    @DisplayName("채팅 삭제")
+    void deleteChatMessageEndpoint() throws Exception {
+        // given
+        doNothing().when(meetingChatService).deleteChatMessage(eq(1L), eq(2L), eq(3L), eq(1L), any());
+        doNothing().when(meetingRoomStateService).removeChatMessage("meeting-2", 3L);
+
+        // when & then
+        mockMvc.perform(delete("/api/v1/studies/1/meetings/2/chat/3")
+                        .with(authentication(authUser(1L))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.message").value("Chat deleted"));
     }
 
     @Test
@@ -376,9 +431,9 @@ class MeetingApiTest {
                 123L,
                 LocalDateTime.of(2025, 1, 15, 20, 31)
         );
-        when(meetingService.uploadRecordingAudio(eq(1L), eq(2L), eq(MeetingAudioTrackType.INDIVIDUAL), eq(1L), any()))
+        when(meetingAudioService.uploadRecordingAudio(eq(1L), eq(2L), eq(MeetingAudioTrackType.INDIVIDUAL), eq(1L), any()))
                 .thenReturn(response);
-        when(meetingService.getAudioRecordings(1L, 2L, MeetingAudioTrackType.INDIVIDUAL, 1L))
+        when(meetingAudioService.getAudioRecordings(1L, 2L, MeetingAudioTrackType.INDIVIDUAL, 1L))
                 .thenReturn(List.of(response));
 
         // when & then
@@ -417,8 +472,8 @@ class MeetingApiTest {
                 456L,
                 LocalDateTime.of(2025, 1, 15, 20, 40)
         );
-        doNothing().when(meetingService).uploadRecordingAudioSegment(eq(1L), eq(2L), eq(1L), any());
-        when(meetingService.concatRecordingAudioSegments(1L, 2L, 1L)).thenReturn(response);
+        doNothing().when(meetingAudioService).uploadRecordingAudioSegment(eq(1L), eq(2L), eq(1L), any());
+        when(meetingAudioService.concatRecordingAudioSegments(1L, 2L, 1L)).thenReturn(response);
 
         // when & then
         MockMultipartFile audio = new MockMultipartFile(
@@ -451,9 +506,9 @@ class MeetingApiTest {
                 LocalDateTime.of(2025, 1, 15, 20, 31),
                 LocalDateTime.of(2025, 1, 15, 20, 31)
         );
-        when(meetingService.uploadSttTextFile(eq(1L), eq(2L), eq(MeetingTextTrackType.MIXED), eq(null), any()))
+        when(meetingSttService.uploadSttTextFile(eq(1L), eq(2L), eq(MeetingTextTrackType.MIXED), eq(null), any()))
                 .thenReturn(response);
-        when(meetingService.getMeetingSttFile(1L, 2L, MeetingTextTrackType.MIXED, null)).thenReturn(response);
+        when(meetingSttService.getMeetingSttFile(1L, 2L, MeetingTextTrackType.MIXED, null)).thenReturn(response);
 
         // when & then
         MockMultipartFile file = new MockMultipartFile(
@@ -487,9 +542,9 @@ class MeetingApiTest {
                 LocalDateTime.of(2025, 1, 15, 20, 32),
                 LocalDateTime.of(2025, 1, 15, 20, 32)
         );
-        when(meetingService.uploadSummaryTextFile(eq(1L), eq(2L), eq(MeetingTextTrackType.MIXED), eq(null), any()))
+        when(meetingSttService.uploadSummaryTextFile(eq(1L), eq(2L), eq(MeetingTextTrackType.MIXED), eq(null), any()))
                 .thenReturn(response);
-        when(meetingService.getMeetingSttSummary(1L, 2L, MeetingTextTrackType.MIXED, null)).thenReturn(response);
+        when(meetingSttService.getMeetingSttSummary(1L, 2L, MeetingTextTrackType.MIXED, null)).thenReturn(response);
 
         // when & then
         MockMultipartFile file = new MockMultipartFile(
@@ -516,8 +571,8 @@ class MeetingApiTest {
         // given
         MeetingPhotoResponse photo = new MeetingPhotoResponse(1L, "meeting/2/photo.png",
                 LocalDateTime.of(2025, 1, 15, 20, 10), false);
-        when(meetingService.getPhotos(1L, 2L, 1L)).thenReturn(List.of(photo));
-        when(meetingService.addPhoto(eq(1L), eq(2L), eq(1L), any())).thenReturn(photo);
+        when(meetingPhotoService.getPhotos(1L, 2L, 1L)).thenReturn(List.of(photo));
+        when(meetingPhotoService.addPhoto(eq(1L), eq(2L), eq(1L), any())).thenReturn(photo);
 
         // when & then
         mockMvc.perform(get("/api/v1/studies/1/meetings/2/photos")
@@ -544,7 +599,7 @@ class MeetingApiTest {
         // given
         MeetingPhotoResponse photo = new MeetingPhotoResponse(1L, "meeting/2/photo.png",
                 LocalDateTime.of(2025, 1, 15, 20, 10), true);
-        when(meetingService.selectPhotos(eq(1L), eq(2L), eq(1L), eq(List.of(1L, 2L))))
+        when(meetingPhotoService.selectPhotos(eq(1L), eq(2L), eq(1L), eq(List.of(1L, 2L))))
                 .thenReturn(List.of(photo));
 
         // when & then
@@ -560,7 +615,7 @@ class MeetingApiTest {
     @DisplayName("키워드 업데이트/음소거")
     void updateKeywordsAndMute() throws Exception {
         // given
-        doNothing().when(meetingService).updateKeywords(eq(1L), eq(2L), any());
+        doNothing().when(meetingSttService).updateKeywords(eq(1L), eq(2L), any());
         doNothing().when(meetingService).updateParticipantMute(1L, 2L, 1L, true);
 
         // when & then
@@ -593,8 +648,8 @@ class MeetingApiTest {
                 "READY",
                 LocalDateTime.of(2025, 1, 15, 20, 31)
         );
-        when(meetingService.getRecording(1L, 2L)).thenReturn(response);
-        when(meetingService.upsertRecording(eq(1L), eq(2L), any())).thenReturn(response);
+        when(meetingRecordingService.getRecording(1L, 2L)).thenReturn(response);
+        when(meetingRecordingService.upsertRecording(eq(1L), eq(2L), any())).thenReturn(response);
 
         // when & then
         mockMvc.perform(get("/api/v1/studies/1/meetings/2/recording"))
@@ -632,7 +687,7 @@ class MeetingApiTest {
                 "READY",
                 LocalDateTime.of(2025, 1, 15, 20, 31)
         );
-        when(meetingService.uploadRecordingVideo(eq(1L), eq(2L), any())).thenReturn(response);
+        when(meetingRecordingService.uploadRecordingVideo(eq(1L), eq(2L), any())).thenReturn(response);
 
         // when & then
         MockMultipartFile video = new MockMultipartFile(
@@ -658,9 +713,9 @@ class MeetingApiTest {
                 1L,
                 ActionItemStatus.TODO
         );
-        when(meetingService.getActionItems(1L, 2L)).thenReturn(List.of(response));
-        when(meetingService.addActionItem(eq(1L), eq(2L), any())).thenReturn(response);
-        when(meetingService.updateActionItem(eq(1L), eq(2L), eq(11L), any()))
+        when(meetingActionItemService.getActionItems(1L, 2L)).thenReturn(List.of(response));
+        when(meetingActionItemService.addActionItem(eq(1L), eq(2L), any())).thenReturn(response);
+        when(meetingActionItemService.updateActionItem(eq(1L), eq(2L), eq(11L), any()))
                 .thenReturn(new MeetingActionItemResponse(11L, "todo", 2L, ActionItemStatus.DONE));
 
         // when & then
@@ -689,8 +744,8 @@ class MeetingApiTest {
         // given
         String markdown = "# Meeting Summary";
         byte[] pdf = "pdf".getBytes(StandardCharsets.UTF_8);
-        when(meetingService.exportMeetingMarkdown(1L, 2L)).thenReturn(markdown);
-        when(meetingService.exportMeetingPdf(1L, 2L)).thenReturn(pdf);
+        when(meetingExportService.exportMeetingMarkdown(1L, 2L)).thenReturn(markdown);
+        when(meetingExportService.exportMeetingPdf(1L, 2L)).thenReturn(pdf);
 
         // when & then
         mockMvc.perform(get("/api/v1/studies/1/meetings/2/export")

@@ -9,8 +9,10 @@ import com.ssafy.common.websocket.MeetingRoomPresenterRequest;
 import com.ssafy.common.websocket.MeetingRoomSpeakingRequest;
 import com.ssafy.common.websocket.MeetingRoomStateService;
 import com.ssafy.common.websocket.MeetingRoomWebSocketController;
-import com.ssafy.domain.meeting.service.MeetingService;
+import com.ssafy.domain.meeting.service.MeetingChatService;
+import com.ssafy.domain.meeting.entity.MeetingChatMessage;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -29,6 +31,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class MeetingRoomWebSocketControllerTest {
@@ -37,7 +40,7 @@ class MeetingRoomWebSocketControllerTest {
     private SimpMessagingTemplate messagingTemplate;
 
     @Mock
-    private MeetingService meetingService;
+    private MeetingChatService meetingChatService;
 
     private MeetingRoomStateService stateService;
     private MeetingRoomWebSocketController controller;
@@ -45,7 +48,7 @@ class MeetingRoomWebSocketControllerTest {
     @BeforeEach
     void setUp() {
         stateService = new MeetingRoomStateService();
-        controller = new MeetingRoomWebSocketController(stateService, messagingTemplate, meetingService);
+        controller = new MeetingRoomWebSocketController(stateService, messagingTemplate, meetingChatService);
     }
 
     @Test
@@ -86,9 +89,20 @@ class MeetingRoomWebSocketControllerTest {
         message.setText("hello");
         message.setSentAt(Instant.parse("2025-01-01T00:00:00Z"));
 
+        MeetingChatMessage saved = MeetingChatMessage.builder()
+                .meetingId(2L)
+                .userId(5L)
+                .senderName("Alice")
+                .content("hello")
+                .sentAt(LocalDateTime.of(2025, 1, 1, 0, 0))
+                .build();
+        org.springframework.test.util.ReflectionTestUtils.setField(saved, "id", 10L);
+        when(meetingChatService.addChatMessageAndReturn(2L, 5L, "Alice", "hello", message.getSentAt()))
+                .thenReturn(saved);
+
         controller.sendChat("meeting-2", message);
 
-        verify(meetingService).addChatMessage(2L, 5L, "Alice", "hello", message.getSentAt());
+        verify(meetingChatService).addChatMessageAndReturn(2L, 5L, "Alice", "hello", message.getSentAt());
         verify(messagingTemplate).convertAndSend(eq("/topic/rooms/meeting-2/events"), any(MeetingRoomEvent.class));
     }
 
@@ -101,7 +115,7 @@ class MeetingRoomWebSocketControllerTest {
 
         controller.sendChat("room-1", message);
 
-        verify(meetingService, never()).addChatMessage(any(), any(), any(), any(), any());
+        verify(meetingChatService, never()).addChatMessageAndReturn(any(), any(), any(), any(), any());
     }
 
     @Test

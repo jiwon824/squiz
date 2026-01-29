@@ -63,13 +63,18 @@ public class MeetingRoomWebSocketController {
     @MessageMapping("/rooms/{roomId}/chat")
     public void sendChat(@DestinationVariable String roomId, @Valid MeetingRoomChatMessage chatMessage) {
         roomStateService.addChatMessage(roomId, chatMessage);
-        parseMeetingId(roomId).ifPresent(meetingId -> meetingChatService.addChatMessage(
-                meetingId,
-                chatMessage.getUserId(),
-                chatMessage.getSender(),
-                chatMessage.getText(),
-                chatMessage.getSentAt()
-        ));
+        parseMeetingId(roomId).ifPresent(meetingId -> {
+            var saved = meetingChatService.addChatMessageAndReturn(
+                    meetingId,
+                    chatMessage.getUserId(),
+                    chatMessage.getSender(),
+                    chatMessage.getText(),
+                    chatMessage.getSentAt()
+            );
+            if (saved != null) {
+                chatMessage.setId(saved.getId());
+            }
+        });
         MeetingRoomEvent event = new MeetingRoomEvent(MeetingRoomEvent.Type.CHAT, roomId);
         event.setChat(chatMessage);
         messagingTemplate.convertAndSend("/topic/rooms/" + roomId + "/events", event);

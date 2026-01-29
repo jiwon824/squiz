@@ -21,9 +21,11 @@ import com.ssafy.domain.meeting.service.MeetingExportService;
 import com.ssafy.domain.meeting.service.MeetingPhotoService;
 import com.ssafy.domain.meeting.service.MeetingRecordingService;
 import com.ssafy.domain.meeting.service.MeetingService;
+import com.ssafy.domain.meeting.service.MeetingAiScheduler;
 import com.ssafy.domain.meeting.service.MeetingSttService;
 import com.ssafy.domain.meeting.service.MeetingTranscriptService;
 import com.ssafy.common.websocket.MeetingRoomEvent;
+import com.ssafy.common.websocket.MeetingRoomStateService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -60,6 +62,8 @@ public class MeetingController {
     private final MeetingRecordingService meetingRecordingService;
     private final MeetingSttService meetingSttService;
     private final SimpMessagingTemplate messagingTemplate;
+    private final MeetingAiScheduler meetingAiScheduler;
+    private final MeetingRoomStateService roomStateService;
 
     @GetMapping
     public ResponseEntity<PageResponse<MeetingListItemResponse>> list(
@@ -99,6 +103,7 @@ public class MeetingController {
         String roomId = "meeting-" + meetingId;
         MeetingRoomEvent event = new MeetingRoomEvent(MeetingRoomEvent.Type.MEETING_ENDED, roomId);
         messagingTemplate.convertAndSend("/topic/rooms/" + roomId + "/events", event);
+        meetingAiScheduler.triggerProcessing(meetingId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -161,6 +166,30 @@ public class MeetingController {
             Pageable pageable
     ) {
         return ResponseEntity.ok(ApiResponse.success(meetingChatService.getChatMessages(studyId, meetingId, pageable)));
+    }
+
+    @DeleteMapping("/{meetingId}/chat/{messageId}")
+    public ResponseEntity<ApiResponse<MessageResponse>> deleteChatMessage(
+            @PathVariable Long studyId,
+            @PathVariable Long meetingId,
+            @PathVariable Long messageId,
+            @AuthenticationPrincipal SsafyUserDetails userDetails
+    ) {
+        Long userId = userDetails == null ? null : userDetails.getUser().getId();
+        String requesterName = null;
+        if (userDetails != null && userDetails.getUser() != null) {
+            requesterName = userDetails.getUser().getNickname();
+            if (requesterName == null || requesterName.isBlank()) {
+                requesterName = userDetails.getUser().getName();
+            }
+        }
+        meetingChatService.deleteChatMessage(studyId, meetingId, messageId, userId, requesterName);
+        String roomId = "meeting-" + meetingId;
+        roomStateService.removeChatMessage(roomId, messageId);
+        MeetingRoomEvent event = new MeetingRoomEvent(MeetingRoomEvent.Type.CHAT_DELETED, roomId);
+        event.setDeletedChatId(messageId);
+        messagingTemplate.convertAndSend("/topic/rooms/" + roomId + "/events", event);
+        return ResponseEntity.ok(ApiResponse.success("Chat deleted"));
     }
 
     @GetMapping("/{meetingId}/recording")

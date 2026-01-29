@@ -21,6 +21,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import org.springframework.scheduling.annotation.Async;
 
 /**
  * 미팅 AI 처리 스케줄러
@@ -40,6 +41,32 @@ public class MeetingAiScheduler {
 
     // 진행 중인 AI 작업 추적 (meetingId -> jobId)
     private final Map<Long, String> processingJobs = new ConcurrentHashMap<>();
+
+    /**
+     * 미팅 종료 직후 단발성으로 AI 처리를 시도.
+     * (녹음 파일이 아직 준비되지 않았다면 스킵되고, 스케줄러가 재시도함)
+     */
+    @Async
+    public void triggerProcessing(Long meetingId) {
+        Meeting meeting = meetingRepository.findById(meetingId).orElse(null);
+        if (meeting == null) {
+            return;
+        }
+        if (meeting.getStatus() != MeetingStatus.ENDED) {
+            return;
+        }
+        if (meeting.getSummaryStatus() != SummaryStatus.PROCESSING) {
+            return;
+        }
+        if (processingJobs.containsKey(meetingId)) {
+            return;
+        }
+        try {
+            processMeetingIfReady(meeting);
+        } catch (Exception e) {
+            log.error("AI 처리 트리거 실패 - meetingId: {}, error: {}", meetingId, e.getMessage());
+        }
+    }
 
     /**
      * 30초마다 실행 - AI 처리가 필요한 미팅 찾아서 처리 시작

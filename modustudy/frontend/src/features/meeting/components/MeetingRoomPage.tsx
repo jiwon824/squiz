@@ -599,7 +599,7 @@ const MeetingRoomPage: React.FC = () => {
     }, []);
 
     const appendChatMessage = useCallback((message: MeetingRoomChatMessage) => {
-        const key = `${message.sentAt}-${message.sender}-${message.text}`;
+        const key = message.id ? `id:${message.id}` : `${message.sentAt}-${message.sender}-${message.text}`;
         if (chatDedupRef.current.has(key)) {
             return;
         }
@@ -608,17 +608,30 @@ const MeetingRoomPage: React.FC = () => {
     }, []);
 
     const handleDeleteChat = useCallback((target: MeetingRoomChatMessage) => {
-        setChatMessages((prev) =>
-            prev.filter(
-                (message) =>
-                    !(
-                        message.sentAt === target.sentAt &&
-                        message.sender === target.sender &&
-                        message.text === target.text
-                    )
-            )
-        );
-    }, []);
+        if (!numericStudyId || !numericMeetingId) return;
+        if (!target.id) {
+            setChatMessages((prev) =>
+                prev.filter(
+                    (message) =>
+                        !(
+                            message.sentAt === target.sentAt &&
+                            message.sender === target.sender &&
+                            message.text === target.text
+                        )
+                )
+            );
+            return;
+        }
+        meetingApi
+            .deleteChatMessage(numericStudyId, numericMeetingId, target.id)
+            .then(() => {
+                setChatMessages((prev) => prev.filter((message) => message.id !== target.id));
+            })
+            .catch((error) => {
+                console.error('Failed to delete chat message', error);
+                showToast('채팅 삭제에 실패했습니다.', 'error');
+            });
+    }, [numericMeetingId, numericStudyId, showToast]);
 
         const updateOutgoingVideo = useCallback(
         async (options?: {
@@ -1701,6 +1714,9 @@ const MeetingRoomPage: React.FC = () => {
             if (event.type === 'CHAT' && event.chat) {
                 appendChatMessage(event.chat);
             }
+            if (event.type === 'CHAT_DELETED' && event.deletedChatId) {
+                setChatMessages((prev) => prev.filter((message) => message.id !== event.deletedChatId));
+            }
             if (event.type === 'CHAT_HISTORY' && event.chatHistory) {
                 event.chatHistory.forEach((message) => appendChatMessage(message));
             }
@@ -2052,7 +2068,9 @@ const MeetingRoomPage: React.FC = () => {
                 {isEnding && (
                     <div className="meeting-room__ending-overlay">
                         <div className="meeting-room__ending-text">
-                            미팅 종료중입니다. 잠시만 기다려주세요.
+                            미팅 종료 중 입니다. <br/>
+                            미팅 내용을 요약 중 입니다. <br/> 
+                            잠시만 기다려주세요.
                         </div>
                     </div>
                 )}

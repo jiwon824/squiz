@@ -58,4 +58,41 @@ public class MeetingChatService {
                 .sentAt(sentAtTime)
                 .build());
     }
+
+    @Transactional
+    public MeetingChatMessage addChatMessageAndReturn(Long meetingId, Long userId, String senderName, String content, Instant sentAt) {
+        if (meetingRepository.findById(meetingId).isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "MEETING_NOT_FOUND");
+        }
+        LocalDateTime sentAtTime = sentAt == null
+                ? LocalDateTime.now()
+                : LocalDateTime.ofInstant(sentAt, ZoneId.systemDefault());
+        return meetingChatMessageRepository.save(MeetingChatMessage.builder()
+                .meetingId(meetingId)
+                .userId(userId)
+                .senderName(senderName)
+                .content(content)
+                .sentAt(sentAtTime)
+                .build());
+    }
+
+    @Transactional
+    public void deleteChatMessage(Long studyId, Long meetingId, Long messageId, Long userId, String requesterName) {
+        helper.getMeetingOrThrow(studyId, meetingId);
+        MeetingChatMessage message = meetingChatMessageRepository.findById(messageId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "CHAT_NOT_FOUND"));
+        if (!meetingId.equals(message.getMeetingId())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "CHAT_MEETING_MISMATCH");
+        }
+        boolean allowed = false;
+        if (userId != null && message.getUserId() != null && message.getUserId().equals(userId)) {
+            allowed = true;
+        } else if (requesterName != null && requesterName.equals(message.getSenderName())) {
+            allowed = true;
+        }
+        if (!allowed) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "CHAT_DELETE_FORBIDDEN");
+        }
+        meetingChatMessageRepository.delete(message);
+    }
 }
