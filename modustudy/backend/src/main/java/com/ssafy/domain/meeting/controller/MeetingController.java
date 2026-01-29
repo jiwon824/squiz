@@ -432,5 +432,30 @@ public class MeetingController {
         }
         return userId;
     }
+
+    // ============================================================
+    // 실시간 STT 트랜스크립트 API
+    // ============================================================
+
+    @Operation(summary = "실시간 STT 결과 저장", description = "화자 발언 단위로 STT 결과를 저장합니다 (SFU 서버에서 호출)")
+    @PostMapping("/{meetingId}/transcripts")
+    public ResponseEntity<ApiResponse<MeetingTranscriptItemResponse>> addTranscript(
+            @PathVariable Long studyId,
+            @PathVariable Long meetingId,
+            @Valid @RequestBody com.ssafy.domain.meeting.dto.request.MeetingTranscriptRequest request
+    ) {
+        MeetingTranscriptItemResponse response = meetingService.addTranscript(studyId, meetingId, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
+    }
+
+    @Operation(summary = "미팅 트랜스크립트 조회", description = "미팅의 전체 실시간 STT 결과를 조회합니다")
+    @GetMapping("/{meetingId}/transcripts")
+    public ResponseEntity<ApiResponse<List<MeetingTranscriptItemResponse>>> getTranscripts(
+            @PathVariable Long studyId,
+            @PathVariable Long meetingId
+    ) {
+        List<MeetingTranscriptItemResponse> response = meetingService.getTranscripts(studyId, meetingId);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
 }
 
