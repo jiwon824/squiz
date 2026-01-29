@@ -1,7 +1,7 @@
 // 로그인 사용자 전용 레이아웃 V2 - 학습 관리 중심
 
 import '@/features/dashboard-v2/styles/DashboardV2.css';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Sidebar } from './components/Sidebar';
 import { RightSideBarV2 } from './components-v2/RightSideBarV2';
@@ -19,9 +19,13 @@ const BREAKPOINTS = {
 
 interface UserLayoutV2Props {
     children: React.ReactNode;
+    /** 워크스페이스에서 진입 시 애니메이션 적용 */
+    isEnteringFromWorkspace?: boolean;
+    /** 워크스페이스로 퇴장 시 애니메이션 적용 */
+    isExitingToWorkspace?: boolean;
 }
 
-export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children }) => {
+export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEnteringFromWorkspace = false, isExitingToWorkspace = false }) => {
     const sidebarMode = useUIStore((state) => state.sidebarMode);
     const activeRightTab = useUIStore((state) => state.activeRightTab);
     const setSidebarMode = useUIStore((state) => state.setSidebarMode);
@@ -30,9 +34,40 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children }) => {
     const [windowWidth, setWindowWidth] = useState(window.innerWidth);
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
+    const [isDashboardExiting, setIsDashboardExiting] = useState(false);
     const notificationRef = useRef<HTMLDivElement>(null);
     const profileRef = useRef<HTMLDivElement>(null);
     const location = useLocation();
+
+    // 대시보드에서 진입 시 애니메이션 플래그 (최초 렌더 시 한 번만 확인)
+    const isEnteringFromDashboard = useMemo(() => {
+        const flag = sessionStorage.getItem('fromDashboard') === 'true';
+        if (flag) {
+            sessionStorage.removeItem('fromDashboard');
+        }
+        return flag;
+    }, []);
+
+    // 퀴즈 페이지에서 돌아올 때 애니메이션 플래그
+    const isEnteringFromQuiz = useMemo(() => {
+        const flag = sessionStorage.getItem('fromQuiz') === 'true';
+        if (flag) {
+            sessionStorage.removeItem('fromQuiz');
+        }
+        return flag;
+    }, []);
+
+    // 대시보드 퇴장 이벤트 리스너
+    useEffect(() => {
+        const handleDashboardExit = () => {
+            setIsDashboardExiting(true);
+        };
+
+        window.addEventListener('dashboardExit', handleDashboardExit);
+        return () => {
+            window.removeEventListener('dashboardExit', handleDashboardExit);
+        };
+    }, []);
 
     // 반응형 리사이즈 + 브라우저 확대/축소 감지
     // window.innerWidth는 CSS 논리 픽셀 기준이므로 확대 시 값이 줄어듦
@@ -112,10 +147,20 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children }) => {
     const shouldHideHeader = isMeetingRoom;
 
     return (
-        <div className="flex flex-col h-screen bg-slate-200 overflow-hidden">
+        <div className={cn(
+            "flex flex-col h-screen bg-slate-200 overflow-hidden",
+            isEnteringFromWorkspace && "layout-entering-from-workspace",
+            isExitingToWorkspace && "layout-exiting-to-workspace",
+            isDashboardExiting && "layout-exiting-to-workspace",
+            isEnteringFromDashboard && "layout-entering-from-dashboard",
+            isEnteringFromQuiz && "layout-entering-from-quiz"
+        )}>
             {/* 헤더 - 회의 룸에서는 숨김 */}
             {!shouldHideHeader && (
-                <header className="h-16 w-full bg-slate-200 flex items-center justify-between px-6 flex-shrink-0 z-50">
+                <header className={cn(
+                    "h-16 w-full bg-slate-200 flex items-center justify-between px-6 flex-shrink-0 z-50",
+                    isEnteringFromWorkspace && "layout-header-enter"
+                )}>
                     <div className="flex items-center gap-4">
                         {/* 사이드바 닫힘 상태일 때 헤더에 열기 버튼 표시 */}
                         {sidebarMode === 'closed' && (
@@ -297,7 +342,9 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children }) => {
             )}
 
             <div className="flex flex-1 overflow-hidden">
-                <Sidebar />
+                <div className={cn(isEnteringFromWorkspace && "layout-sidebar-enter")}>
+                    <Sidebar />
+                </div>
 
                 {/* 페이지 콘텐츠 - 사이드바 닫힘 시 왼쪽 패딩으로 벽 붙음 방지 */}
                 <main
@@ -305,20 +352,28 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children }) => {
                         'flex-1 flex flex-col overflow-hidden',
                         'pb-6 pr-0 bg-slate-200 transition-all duration-300 ease-out',
                         shouldHideHeader ? 'pt-0' : 'pt-2',
-                        sidebarMode === 'closed' ? 'pl-4' : 'pl-0'
+                        sidebarMode === 'closed' ? 'pl-4' : 'pl-0',
+                        isEnteringFromWorkspace && 'layout-main-enter'
                     )}
                 >
                     {/* 둥근 메인 컨테이너 섹션 */}
                     <section
                         id="main-content-scroll"
-                        className="bg-white rounded-3xl h-full overflow-auto scrollbar-hide"
+                        className={cn(
+                            "bg-white rounded-3xl h-full overflow-auto scrollbar-hide",
+                            isEnteringFromWorkspace && "layout-content-enter"
+                        )}
                         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                     >
                         {children}
                     </section>
                 </main>
 
-                {!isCompactMode && <RightSideBarV2 />}
+                {!isCompactMode && (
+                    <div className={cn(isEnteringFromWorkspace && "layout-right-sidebar-enter")}>
+                        <RightSideBarV2 />
+                    </div>
+                )}
             </div>
         </div>
     );
