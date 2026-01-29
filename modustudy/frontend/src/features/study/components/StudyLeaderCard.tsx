@@ -223,7 +223,7 @@ const StudyLeaderCard: React.FC<StudyLeaderCardProps> = ({
                 </div>
 
                 {/* 모집 마감일 안내 - 카드 바깥, sticky 컨테이너 안 */}
-                {recruitEndDate && studyStatus === 'RECRUITING' && (
+                {recruitEndDate && (studyStatus === 'RECRUITING' || studyStatus === 'PENDING') && (
                     <div className={cn(
                         'mt-3 pt-2 rounded-xl',
                         'bg-[#FCE8E6]',
