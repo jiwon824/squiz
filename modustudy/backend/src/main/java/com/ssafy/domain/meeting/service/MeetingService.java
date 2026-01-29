@@ -15,6 +15,8 @@ import com.ssafy.domain.meeting.repository.MeetingPhotoRepository;
 import com.ssafy.domain.meeting.repository.MeetingRepository;
 import com.ssafy.domain.meeting.repository.MeetingSttFileRepository;
 import com.ssafy.domain.meeting.repository.MeetingSttSummaryRepository;
+import com.ssafy.domain.user.entity.User;
+import com.ssafy.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,6 +30,8 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -41,6 +45,7 @@ public class MeetingService {
     private final MeetingPhotoRepository meetingPhotoRepository;
     private final MeetingSttFileRepository meetingSttFileRepository;
     private final MeetingSttSummaryRepository meetingSttSummaryRepository;
+    private final UserRepository userRepository;
     private final SfuProperties sfuProperties;
     private final MeetingServiceHelper helper;
     private final MeetingRecordingService meetingRecordingService;
@@ -74,10 +79,20 @@ public class MeetingService {
     @Transactional(readOnly = true)
     public MeetingDetailResponse getMeetingDetail(Long studyId, Long meetingId) {
         Meeting meeting = helper.getMeetingOrThrow(studyId, meetingId);
-        List<MeetingParticipantResponse> participants = meetingParticipantRepository.findByMeetingId(meetingId).stream()
+        List<MeetingParticipant> participantEntities = meetingParticipantRepository.findByMeetingId(meetingId);
+
+        // 모든 userId를 수집하여 한번에 User 정보 조회 (N+1 방지)
+        List<Long> userIds = participantEntities.stream()
+                .map(MeetingParticipant::getUserId)
+                .distinct()
+                .toList();
+        Map<Long, String> userNicknameMap = userRepository.findAllById(userIds).stream()
+                .collect(Collectors.toMap(User::getId, User::getNickname));
+
+        List<MeetingParticipantResponse> participants = participantEntities.stream()
                 .map(participant -> new MeetingParticipantResponse(
                         participant.getUserId(),
-                        null,
+                        userNicknameMap.get(participant.getUserId()),
                         participant.getJoinedAt(),
                         participant.getLeftAt()))
                 .toList();

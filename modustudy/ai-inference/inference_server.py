@@ -1188,7 +1188,7 @@ async def process_meeting_full(
 
 
 def process_meeting_full_job(job_id: str, mixed_path: str, individual_paths: list, generate_quiz: bool):
-    """회의 전체 처리 백그라운드 작업 (Claude 검증 포함)"""
+    """회의 전체 처리 백그라운드 작업 (Claude 1회 통합 호출)"""
     try:
         jobs[job_id]["status"] = "processing"
 
@@ -1204,7 +1204,28 @@ def process_meeting_full_job(job_id: str, mixed_path: str, individual_paths: lis
         )
         full_text = " ".join([seg.text.strip() for seg in segments])
 
-        # 2. 로컬 LLM 요약
+        # 2. 화자별 STT (먼저 모두 수행)
+        speaker_texts = []
+        for item in individual_paths:
+            if not item["user_id"]:
+                continue
+            try:
+                segments, _ = whisper_model.transcribe(
+                    item["path"],
+                    language="ko",
+                    beam_size=5,
+                    vad_filter=True,
+                )
+                user_text = " ".join([seg.text.strip() for seg in segments])
+                if user_text.strip():
+                    speaker_texts.append({
+                        "user_id": item["user_id"],
+                        "text": user_text[:1500]
+                    })
+            except Exception as e:
+                print(f"[WARNING] 화자별 STT 실패: {e}")
+
+        # 3. 로컬 LLM 요약 (초안)
         summary_prompt = f"""<|im_start|>system
 당신은 IT 스터디 회의록을 요약하는 전문가입니다. 핵심 내용을 정확하게 정리합니다.<|im_end|>
 <|im_start|>user
@@ -1218,27 +1239,85 @@ def process_meeting_full_job(job_id: str, mixed_path: str, individual_paths: lis
                              stop=["<|im_end|>", "<|im_start|>"], echo=False)
         local_summary = summary_output["choices"][0]["text"].strip()
 
-        # 3. Claude로 요약 검증/보완 + 키워드 추출
-        claude_prompt = f"""다음은 IT 스터디 회의록입니다.
+        # 4. Claude 통합 호출 (요약 보완 + 보충설명 + 키워드 + 액션아이템 + 퀴즈)
+        speaker_info = ""
+        if speaker_texts:
+            speaker_info = "\n\n## 화자별 발언 내용:\n"
+            for s in speaker_texts:
+                speaker_info += f"\n### 화자 ID {s['user_id']}:\n{s['text'][:800]}\n"
+
+        quiz_instruction = ""
+        if generate_quiz:
+            quiz_instruction = """
+5. **퀴즈**: 스터디 내용 복습을 위한 퀴즈를 5문제 이상 생성해주세요.
+   - MULTIPLE_CHOICE(객관식)와 SHORT_ANSWER(단답형) 혼합
+   - 난이도: EASY, MEDIUM, HARD 섞어서
+   - 각 문제에 정답과 해설 포함"""
+
+        claude_prompt = f"""다음은 IT 스터디 회의록입니다. 한 번의 응답으로 모든 분석을 완료해주세요.
 
 ## 원본 회의 내용:
-{full_text[:3000]}
+{full_text[:4000]}
 
 ## AI 요약 초안:
 {local_summary}
+{speaker_info}
 
-위 내용을 바탕으로:
-1. 요약을 검토하고 필요하면 보완해주세요 (3-5문장)
-2. 핵심 키워드 5개를 추출해주세요
+---
 
-JSON 형식으로 응답해주세요:
-{{"summary": "보완된 요약", "keywords": ["키워드1", "키워드2", ...]}}
+위 내용을 바탕으로 다음을 수행해주세요:
+
+1. **요약 보완**: AI 요약 초안을 검토하고, 부족한 부분을 보완해주세요 (3-5문장)
+
+2. **보충 설명**: 회의에서 다룬 기술적 개념에 대해 학습에 도움이 되는 보충 설명을 추가해주세요.
+   - 회의에서 언급된 핵심 개념/기술에 대한 간단한 배경 지식
+   - 더 깊이 학습하면 좋을 관련 주제
+   - 실무 적용 팁 (있다면)
+
+3. **키워드**: 핵심 키워드 5-7개를 추출해주세요.
+
+4. **화자별 액션아이템**: 각 화자(user_id)에게 적합한 과제/할 일을 1-2개씩 추천해주세요.
+{quiz_instruction}
+
+---
+
+반드시 아래 JSON 형식으로만 응답해주세요:
+{{
+  "summary": "보완된 요약 (3-5문장)",
+  "supplementary": "보충 설명 (기술 배경, 관련 주제, 실무 팁 등)",
+  "keywords": ["키워드1", "키워드2", ...],
+  "action_items": [
+    {{"user_id": 1, "content": "액션아이템 내용"}},
+    {{"user_id": 2, "content": "액션아이템 내용"}}
+  ],
+  "quiz": {{
+    "questions": [
+      {{
+        "question_text": "문제 내용",
+        "question_type": "MULTIPLE_CHOICE",
+        "options": [
+          {{"label": "A", "text": "보기1", "is_correct": true}},
+          {{"label": "B", "text": "보기2", "is_correct": false}},
+          {{"label": "C", "text": "보기3", "is_correct": false}},
+          {{"label": "D", "text": "보기4", "is_correct": false}}
+        ],
+        "correct_answer": ["A"],
+        "explanation": "해설",
+        "difficulty": "MEDIUM"
+      }}
+    ]
+  }}
+}}
 """
 
-        claude_response = call_claude(claude_prompt)
+        claude_response = call_claude(claude_prompt, max_tokens=4096)
 
+        # 기본값 설정
         final_summary = local_summary
+        supplementary = ""
         keywords = []
+        action_items = []
+        quiz = None
 
         if claude_response:
             json_match = re.search(r'\{[\s\S]*\}', claude_response)
@@ -1246,97 +1325,17 @@ JSON 형식으로 응답해주세요:
                 try:
                     result = json.loads(json_match.group())
                     final_summary = result.get("summary", local_summary)
+                    supplementary = result.get("supplementary", "")
                     keywords = result.get("keywords", [])
-                except:
-                    pass
+                    action_items = result.get("action_items", [])
+                    if generate_quiz and result.get("quiz"):
+                        quiz = json.dumps(result["quiz"], ensure_ascii=False)
+                except Exception as e:
+                    print(f"[WARNING] Claude 응답 파싱 실패: {e}")
 
-        # 4. 화자별 STT + 액션아이템 추천
-        action_items = []
-        for item in individual_paths:
-            if not item["user_id"]:
-                continue
-
-            try:
-                segments, _ = whisper_model.transcribe(
-                    item["path"],
-                    language="ko",
-                    beam_size=5,
-                    vad_filter=True,
-                )
-                user_text = " ".join([seg.text.strip() for seg in segments])
-
-                if user_text.strip():
-                    # Claude로 액션아이템 추천
-                    action_prompt = f"""다음은 스터디 참가자의 발언 내용입니다:
-
-{user_text[:2000]}
-
-이 참가자에게 적합한 액션 아이템(할 일, 과제)을 1-2개 추천해주세요.
-JSON 형식으로 응답: {{"actions": ["액션1", "액션2"]}}
-"""
-                    action_response = call_claude(action_prompt, max_tokens=256)
-
-                    if action_response:
-                        json_match = re.search(r'\{[\s\S]*\}', action_response)
-                        if json_match:
-                            try:
-                                result = json.loads(json_match.group())
-                                for action in result.get("actions", []):
-                                    action_items.append({
-                                        "user_id": item["user_id"],
-                                        "content": action
-                                    })
-                            except:
-                                pass
-            except Exception as e:
-                print(f"[WARNING] 화자별 처리 실패: {e}")
-
-        # 5. 퀴즈 생성 (선택) - 핵심 개념 모두 커버
-        quiz = None
-        if generate_quiz and final_summary:
-            quiz_prompt = f"""다음 IT 스터디 내용을 바탕으로 복습 퀴즈를 생성해주세요.
-
-## 요구사항:
-- 스터디에서 다룬 핵심 개념을 빠뜨리지 말고 모두 출제
-- 문제 유형: MULTIPLE_CHOICE(객관식 단일정답), SHORT_ANSWER(단답형) 혼합
-- 난이도는 EASY, MEDIUM, HARD 섞어서 출제
-- 각 문제에 정답과 간단한 해설 포함
-- 최소 5문제 이상, 중요한 내용이 많으면 더 많이 출제
-
-## 스터디 내용:
-{full_text[:4000]}
-
-## 스터디 요약:
-{final_summary}
-
-JSON 형식으로 응답 (DB 스키마에 맞춤):
-{{"questions": [
-  {{
-    "question_text": "문제 내용",
-    "question_type": "MULTIPLE_CHOICE",
-    "options": [
-      {{"label": "A", "text": "보기1", "is_correct": true}},
-      {{"label": "B", "text": "보기2", "is_correct": false}},
-      {{"label": "C", "text": "보기3", "is_correct": false}},
-      {{"label": "D", "text": "보기4", "is_correct": false}}
-    ],
-    "correct_answer": ["A"],
-    "explanation": "해설",
-    "difficulty": "MEDIUM"
-  }},
-  {{
-    "question_text": "문제 내용",
-    "question_type": "SHORT_ANSWER",
-    "options": [],
-    "correct_answer": ["정답"],
-    "explanation": "해설",
-    "difficulty": "EASY"
-  }}
-]}}
-"""
-            quiz_response = call_claude(quiz_prompt, max_tokens=2048)
-            if quiz_response:
-                quiz = quiz_response
+        # 요약에 보충설명 추가
+        if supplementary:
+            final_summary = f"{final_summary}\n\n📚 보충 설명:\n{supplementary}"
 
         jobs[job_id]["status"] = "completed"
         jobs[job_id]["result"] = {

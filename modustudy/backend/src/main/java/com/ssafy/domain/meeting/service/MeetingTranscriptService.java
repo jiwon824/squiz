@@ -8,11 +8,15 @@ import com.ssafy.domain.meeting.entity.MeetingStatus;
 import com.ssafy.domain.meeting.entity.MeetingTranscript;
 import com.ssafy.domain.meeting.repository.MeetingRepository;
 import com.ssafy.domain.meeting.repository.MeetingTranscriptRepository;
+import com.ssafy.domain.user.entity.User;
+import com.ssafy.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -20,6 +24,7 @@ public class MeetingTranscriptService {
 
     private final MeetingRepository meetingRepository;
     private final MeetingTranscriptRepository meetingTranscriptRepository;
+    private final UserRepository userRepository;
 
     @Transactional
     public MeetingTranscriptItemResponse addTranscript(Long studyId, Long meetingId, MeetingTranscriptRequest request) {
@@ -39,7 +44,12 @@ public class MeetingTranscriptService {
 
         transcript = meetingTranscriptRepository.save(transcript);
 
-        MeetingUserResponse userResponse = new MeetingUserResponse(request.userId(), null);
+        // 사용자 닉네임 조회
+        String nickname = userRepository.findById(request.userId())
+                .map(User::getNickname)
+                .orElse(null);
+
+        MeetingUserResponse userResponse = new MeetingUserResponse(request.userId(), nickname);
 
         return new MeetingTranscriptItemResponse(
                 transcript.getId(),
@@ -57,11 +67,22 @@ public class MeetingTranscriptService {
         meetingRepository.findByIdAndStudyId(meetingId, studyId)
                 .orElseThrow(() -> new IllegalArgumentException("미팅을 찾을 수 없습니다."));
 
-        return meetingTranscriptRepository.findByMeetingIdOrderByTimestampSecondsAsc(meetingId)
-                .stream()
+        List<MeetingTranscript> transcripts = meetingTranscriptRepository
+                .findByMeetingIdOrderByTimestampSecondsAsc(meetingId);
+
+        // 모든 userId를 수집하여 한번에 User 정보 조회 (N+1 방지)
+        List<Long> userIds = transcripts.stream()
+                .map(MeetingTranscript::getUserId)
+                .distinct()
+                .toList();
+
+        Map<Long, String> userNicknameMap = userRepository.findAllById(userIds).stream()
+                .collect(Collectors.toMap(User::getId, User::getNickname));
+
+        return transcripts.stream()
                 .map(t -> new MeetingTranscriptItemResponse(
                         t.getId(),
-                        new MeetingUserResponse(t.getUserId(), null),
+                        new MeetingUserResponse(t.getUserId(), userNicknameMap.get(t.getUserId())),
                         t.getContent(),
                         t.getTimestampSeconds(),
                         null,
