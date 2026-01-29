@@ -151,6 +151,27 @@ const StudyDetailPageV3: React.FC = () => {
     if (!studyDetail) return null;
 
     // studyDetail을 기존 Study 타입에 맞게 변환 (하위 호환성)
+    // 날짜 기반 상태 보정 (백엔드에서 자동 업데이트 안 될 경우 대비)
+    const computeStatus = (originalStatus: string, recruitStart?: string, recruitEnd?: string): string => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (originalStatus === 'PENDING' && recruitStart) {
+            const startDate = new Date(recruitStart);
+            startDate.setHours(0, 0, 0, 0);
+            const endDate = recruitEnd ? new Date(recruitEnd) : null;
+            if (endDate) endDate.setHours(0, 0, 0, 0);
+
+            // 모집 시작일이 오늘이거나 지났고, 종료일이 안 지났으면 → 모집중
+            if (startDate <= today && (!endDate || endDate >= today)) {
+                return 'RECRUITING';
+            }
+        }
+        return originalStatus;
+    };
+
+    const computedStatus = computeStatus(studyDetail.status, studyDetail.recruitStartDate, studyDetail.recruitEndDate);
+
     const study: Study = {
         id: studyDetail.id,
         leaderId: studyDetail.leader?.id || 0,
@@ -160,7 +181,7 @@ const StudyDetailPageV3: React.FC = () => {
         format: studyDetail.format?.name || '',
         studyType: studyDetail.studyType,
         meetingType: studyDetail.meetingType,
-        status: studyDetail.status,
+        status: computedStatus,
         isPublic: studyDetail.isPublic ?? true,
         maxMembers: studyDetail.maxMembers,
         currentMembers: 1,
