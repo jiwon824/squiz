@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
-import { 
-    Calendar, ChevronLeft, ChevronRight, Check, X, 
-    Clock, AlertCircle, Users, TrendingUp 
+import {
+    Calendar, ChevronLeft, ChevronRight, Check, X,
+    Clock, AlertCircle, Users, TrendingUp
 } from 'lucide-react';
+
+// 기본 프로필 이미지 경로
+const DEFAULT_PROFILE_IMAGE = '/images/default-profile.png';
 
 interface AttendanceManagementProps {
     studyId: number;
@@ -149,8 +152,8 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ studyId }) 
                     {mockMembers.map((member) => (
                         <div key={member.id} className="p-4 flex items-center gap-4 hover:bg-surface/50 transition-colors">
                             {/* 아바타 */}
-                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-                                {member.avatar}
+                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold overflow-hidden">
+                                <img src={DEFAULT_PROFILE_IMAGE} alt={member.name} className="w-full h-full object-cover" />
                             </div>
                             
                             {/* 멤버 정보 */}
