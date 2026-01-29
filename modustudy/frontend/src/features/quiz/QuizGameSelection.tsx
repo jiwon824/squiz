@@ -1,7 +1,9 @@
+import { useMemo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Terminal, Trophy, Dumbbell, ChevronRight, Sparkles } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 import { ArrowButton } from '@/shared/components';
+import '@/features/dashboard-v2/styles/DashboardV2.css';
 
 /**
  * 퀴즈 게임 선택 메인 페이지
@@ -9,6 +11,32 @@ import { ArrowButton } from '@/shared/components';
  */
 export const QuizGameSelection = () => {
     const navigate = useNavigate();
+
+    // 대시보드에서 진입 시 애니메이션 플래그 (최초 렌더 시 한 번만 확인)
+    const isEnteringFromDashboard = useMemo(() => {
+        const flag = sessionStorage.getItem('fromDashboard') === 'true';
+        if (flag) {
+            sessionStorage.removeItem('fromDashboard');
+        }
+        return flag;
+    }, []);
+
+    // 퇴장 애니메이션 상태
+    const [isExiting, setIsExiting] = useState(false);
+
+    // 대시보드로 돌아가기 (전환 애니메이션 포함)
+    const handleNavigateToDashboard = useCallback(() => {
+        // 퇴장 애니메이션 시작
+        setIsExiting(true);
+
+        // 대시보드에서 진입 애니메이션을 위한 플래그 설정
+        sessionStorage.setItem('fromQuiz', 'true');
+
+        // 애니메이션 완료 후 네비게이션 (500ms)
+        setTimeout(() => {
+            navigate('/dashboard');
+        }, 500);
+    }, [navigate]);
 
     const games = [
         {
@@ -46,14 +74,18 @@ export const QuizGameSelection = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-background p-6 md:p-12 lg:p-16">
+        <div className={cn(
+            "min-h-screen bg-background p-6 md:p-12 lg:p-16",
+            isEnteringFromDashboard && "quiz-entering-from-dashboard",
+            isExiting && "quiz-exiting-to-dashboard"
+        )}>
             <div className="max-w-7xl mx-auto">
                 {/* 상단 네비게이션 및 헤더 */}
                 <header className="mb-16 animate-fadeIn">
                     <div className="flex items-center gap-4 mb-10">
                         <ArrowButton
                             direction="left"
-                            onClick={() => navigate('/dashboard')}
+                            onClick={handleNavigateToDashboard}
                             size="md"
                         />
                         <span className="text-sm font-bold text-text-secondary">대시보드로 돌아가기</span>

@@ -11,11 +11,15 @@ import {
     unlinkSocialAccount,
     setPassword,
     changePassword,
+    getGoogleCalendarStatus,
+    getGoogleCalendarAuthUrl,
+    disconnectGoogleCalendar,
 } from '../api/settingApi';
 import type {
     NotificationSetting,
     NotificationType,
     SocialAccount,
+    GoogleCalendarStatus,
     SettingSection,
 } from '../types';
 
@@ -33,6 +37,9 @@ interface SettingState {
     // 소셜 계정 데이터
     socialAccounts: SocialAccount[];
     hasPassword: boolean;
+
+    // Google 캘린더 연동 상태
+    googleCalendarStatus: GoogleCalendarStatus | null;
 
     // 로딩/저장 상태
     isLoading: boolean;
@@ -58,6 +65,11 @@ interface SettingState {
         newPasswordConfirm: string
     ) => Promise<void>;
 
+    // 액션: Google 캘린더
+    fetchGoogleCalendarStatus: () => Promise<void>;
+    connectGoogleCalendar: () => Promise<void>;
+    disconnectGoogleCalendar: () => Promise<void>;
+
     // 액션: 초기화
     resetError: () => void;
 }
@@ -72,6 +84,7 @@ export const useSettingStore = create<SettingState>((set, get) => ({
     notificationSettings: [],
     socialAccounts: [],
     hasPassword: false,
+    googleCalendarStatus: null,
     isLoading: false,
     isSaving: false,
     error: null,
@@ -218,6 +231,54 @@ export const useSettingStore = create<SettingState>((set, get) => ({
                 isSaving: false,
             });
             throw error;
+        }
+    },
+
+    // ============================================
+    // Google 캘린더 액션
+    // ============================================
+
+    /**
+     * Google 캘린더 연동 상태 조회
+     */
+    fetchGoogleCalendarStatus: async () => {
+        try {
+            const status = await getGoogleCalendarStatus();
+            set({ googleCalendarStatus: status });
+        } catch {
+            // 캘린더 상태 조회 실패는 조용히 처리 (미연동 상태로 간주)
+            set({ googleCalendarStatus: { connected: false, email: null, lastSyncAt: null } });
+        }
+    },
+
+    /**
+     * Google 캘린더 연동 (OAuth 팝업)
+     */
+    connectGoogleCalendar: async () => {
+        try {
+            const authUrl = await getGoogleCalendarAuthUrl();
+            window.open(authUrl, 'google-calendar-auth', 'width=500,height=600');
+        } catch {
+            set({ error: 'Google 캘린더 연동 URL을 가져오는데 실패했습니다.' });
+        }
+    },
+
+    /**
+     * Google 캘린더 연동 해제
+     */
+    disconnectGoogleCalendar: async () => {
+        set({ isSaving: true, error: null });
+        try {
+            await disconnectGoogleCalendar();
+            set({
+                googleCalendarStatus: { connected: false, email: null, lastSyncAt: null },
+                isSaving: false,
+            });
+        } catch (error) {
+            set({
+                error: error instanceof Error ? error.message : 'Google 캘린더 연동 해제에 실패했습니다.',
+                isSaving: false,
+            });
         }
     },
 

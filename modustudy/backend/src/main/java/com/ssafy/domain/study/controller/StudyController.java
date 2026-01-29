@@ -64,15 +64,16 @@ public class StudyController {
     /**
      * 내 스터디 목록 조회 (참여 중인 모든 스터디)
      * GET /api/v1/study/my?page=0&size=20
+     * - 순환참조 방지를 위해 StudyResponse DTO로 반환
      */
     @GetMapping("/my")
-    public ResponseEntity<Page<Study>> getMyStudies(
+    public ResponseEntity<Page<StudyResponse>> getMyStudies(
             @RequestHeader("user-id") Long userId,
             @PageableDefault(size = 20) Pageable pageable) {
 
         log.info("API 호출 - 내 스터디 목록 조회: userId={}", userId);
 
-        Page<Study> studies = studyService.getMyStudies(userId, pageable);
+        Page<StudyResponse> studies = studyService.getMyStudies(userId, pageable);
 
         log.info("API 응답 - 내 스터디 목록: userId={}, count={}",
                 userId, studies.getTotalElements());
