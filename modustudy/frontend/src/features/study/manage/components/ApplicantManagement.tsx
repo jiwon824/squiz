@@ -3,6 +3,9 @@ import { studyService } from '../../services/studyService';
 import { Applicant } from '../../mockData';
 import { Check, X, Clock, MessageSquare, User, Filter, ChevronDown, Calendar } from 'lucide-react';
 
+// 기본 프로필 이미지 경로
+const DEFAULT_PROFILE_IMAGE = '/images/default-profile.png';
+
 interface ApplicantManagementProps {
     studyId: number;
 }
@@ -125,8 +128,8 @@ const ApplicantManagement: React.FC<ApplicantManagementProps> = ({ studyId }) =>
                                 onClick={() => setExpandedId(expandedId === app.id ? null : app.id)}
                             >
                                 {/* 아바타 */}
-                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-lg">
-                                    {app.nickname.charAt(0)}
+                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-lg overflow-hidden">
+                                    <img src={app.profileImage || DEFAULT_PROFILE_IMAGE} alt={app.nickname} className="w-full h-full object-cover" />
                                 </div>
 
                                 {/* 정보 */}

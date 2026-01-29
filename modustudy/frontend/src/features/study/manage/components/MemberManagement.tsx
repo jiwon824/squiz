@@ -4,6 +4,9 @@ import { StudyMember } from '../../mockData';
 import { UserMinus, Users, CheckCircle2, Search, TrendingUp, Crown, Shield } from 'lucide-react';
 import RoleBadge from '@/shared/components/RoleBadge';
 
+// 기본 프로필 이미지 경로
+const DEFAULT_PROFILE_IMAGE = '/images/default-profile.png';
+
 interface MemberManagementProps {
     studyId: number;
     maxMembers: number;
@@ -97,8 +100,8 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ studyId, maxMembers
                         <div className="flex items-start gap-4">
                             {/* 아바타 */}
                             <div className="relative">
-                                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-xl">
-                                    {member.nickname.charAt(0)}
+                                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-xl overflow-hidden">
+                                    <img src={member.profileImage || DEFAULT_PROFILE_IMAGE} alt={member.nickname} className="w-full h-full object-cover" />
                                 </div>
                                 {getRoleIcon(member.role) && (
                                     <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-surface border-2 border-background-secondary flex items-center justify-center">

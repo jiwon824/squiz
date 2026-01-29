@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { User } from 'lucide-react';
+
+// 기본 프로필 이미지 경로
+const DEFAULT_PROFILE_IMAGE = '/images/default-profile.png';
 
 interface ProfileImageSelectorProps {
     oauthImageUrl?: string;
@@ -46,8 +48,8 @@ export const ProfileImageSelector = ({ oauthImageUrl, onImageSelect }: ProfileIm
                     className={`image-option ${selectedType === 'default' ? 'selected' : ''}`}
                     onClick={() => handleSelect('default')}
                 >
-                    <div className="image-preview default">
-                        <User size={48} strokeWidth={1.5} />
+                    <div className="image-preview">
+                        <img src={DEFAULT_PROFILE_IMAGE} alt="기본 프로필" />
                     </div>
                     <p className="image-option-label">기본 이미지</p>
                     {selectedType === 'default' && (
