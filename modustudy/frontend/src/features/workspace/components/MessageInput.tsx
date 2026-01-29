@@ -1,4 +1,6 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useCallback } from 'react';
+import { Send } from 'lucide-react';
+import { cn } from '@/shared/utils/cn';
 
 interface MessageInputProps {
   onSend: (content: string) => void;
@@ -12,16 +14,6 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   disabled = false,
 }) => {
   const [content, setContent] = useState('');
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  // 텍스트 영역 높이 자동 조절
-  const adjustHeight = useCallback(() => {
-    const textarea = textareaRef.current;
-    if (textarea) {
-      textarea.style.height = 'auto';
-      textarea.style.height = `${Math.min(textarea.scrollHeight, 144)}px`;
-    }
-  }, []);
 
   // 메시지 전송
   const handleSend = useCallback(() => {
@@ -30,65 +22,52 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 
     onSend(trimmed);
     setContent('');
-
-    // 높이 초기화
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-    }
   }, [content, disabled, onSend]);
 
   // 키보드 이벤트 처리
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Enter로 전송 (Shift+Enter는 줄바꿈)
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Enter로 전송 (Shift+Enter는 줄바꿈 - input에서는 무시)
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
   };
 
-  // 입력 변경 처리
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setContent(e.target.value);
-    adjustHeight();
-  };
-
   return (
-    <div className="message-input">
-      <div className="message-input__wrapper">
-        {/* 파일 첨부 버튼 */}
-        <button
-          type="button"
-          className="message-input__left-btn"
-          title="파일 첨부"
-        >
-          <span className="material-icons" style={{ fontSize: '24px' }}>
-            add_circle
-          </span>
-        </button>
-
+    <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+      <div className="flex gap-2">
         {/* 텍스트 입력 영역 */}
-        <textarea
-          ref={textareaRef}
-          className="message-input__field"
+        <input
+          type="text"
+          className={cn(
+            'flex-1 px-4 py-2.5 text-sm rounded-lg',
+            'border border-gray-200 dark:border-gray-600',
+            'bg-white dark:bg-gray-700',
+            'text-gray-800 dark:text-gray-100',
+            'placeholder-gray-400 dark:placeholder-gray-500',
+            'focus:outline-none focus:border-blue-500 dark:focus:border-blue-400',
+            'disabled:opacity-50 disabled:cursor-not-allowed'
+          )}
           placeholder={placeholder}
           value={content}
-          onChange={handleChange}
+          onChange={(e) => setContent(e.target.value)}
           onKeyDown={handleKeyDown}
           disabled={disabled}
-          rows={1}
         />
 
         {/* 전송 버튼 */}
         <button
           type="button"
-          className="message-input__right-btn"
           onClick={handleSend}
           disabled={!content.trim() || disabled}
+          className={cn(
+            'w-11 h-11 flex items-center justify-center rounded-lg transition-colors',
+            'bg-blue-500 text-white hover:bg-blue-600',
+            'disabled:opacity-50 disabled:cursor-not-allowed'
+          )}
           title="전송"
         >
-          <span className="material-icons" style={{ fontSize: '24px' }}>
-            send
-          </span>
+          <Send size={18} />
         </button>
       </div>
     </div>
