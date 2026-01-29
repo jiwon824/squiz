@@ -5,7 +5,7 @@
  */
 
 import { useState } from 'react';
-import { Shield, Key, AlertTriangle, Link2 } from 'lucide-react';
+import { ShieldUser, Key, AlertTriangle, Link2 } from 'lucide-react';
 import { Button } from '@/shared/components/Button';
 import { useSettingStore } from '../store/settingStore';
 import { useUIStore } from '@/store/uiStore';
@@ -105,7 +105,7 @@ export const AccountSecuritySection = () => {
             {/* 섹션 헤더 */}
             <div className="section-header">
                 <h2 className="section-title">
-                    <Shield className="section-title-icon" />
+                    <ShieldUser className="section-title-icon" />
                     계정 / 보안
                 </h2>
                 <p className="section-description">

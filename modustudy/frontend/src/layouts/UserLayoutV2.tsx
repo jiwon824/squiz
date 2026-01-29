@@ -115,27 +115,35 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children }) => {
         <div className="flex flex-col h-screen bg-slate-200 overflow-hidden">
             {/* 헤더 - 회의 룸에서는 숨김 */}
             {!shouldHideHeader && (
-                <header className="h-16 w-full bg-slate-200 flex items-center justify-between px-6 flex-shrink-0 z-50">
-                    <div className="flex items-center gap-4">
-                        {/* 사이드바 닫힘 상태일 때 헤더에 열기 버튼 표시 */}
+                <header className="h-16 w-full bg-slate-200 flex items-center flex-shrink-0 z-50">
+                    {/* 좌측 영역: 사이드바와 동일 너비 — closed 시 햄버거 버튼 표시 */}
+                    <div
+                        className="flex-shrink-0 flex items-center justify-center transition-all duration-300 ease-out"
+                        style={{
+                            width: sidebarMode === 'closed' ? 64 : 80,
+                            height: 64,
+                        }}
+                    >
                         {sidebarMode === 'closed' && (
                             <button
                                 onClick={() => setSidebarMode('mini')}
-                                className="p-2 rounded-2xl hover:bg-white/60 transition-colors"
+                                className="w-12 h-12 flex items-center justify-center rounded-2xl hover:bg-white/60 transition-colors"
                                 aria-label="사이드바 열기"
                             >
                                 <span className="material-icons text-gray-600 text-[24px]">menu</span>
                             </button>
                         )}
+                    </div>
 
-                        {/* 로고 영역 */}
+                    {/* 콘텐츠 영역: 흰색 메인 시작점과 x축 정렬 */}
+                    <div className="flex-1 flex items-center justify-between pr-14">
+                        {/* 로고 — 흰색 콘텐츠 시작 위치와 일치 */}
                         <Link to="/dashboard" className="flex items-center">
                             <SquizLogoNew width={160} height={55} className="scale-110 origin-left" />
                         </Link>
-                    </div>
 
-                    {/* 우측 인증 영역 */}
-                    <div className="flex items-center gap-2 md:gap-4 pr-14">
+                        {/* 우측 인증 영역 */}
+                        <div className="flex items-center gap-2 md:gap-4">
                         {/* 알림 드롭다운 */}
                         <div ref={notificationRef} className="relative">
                             <button
@@ -291,6 +299,7 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children }) => {
                                     </div>
                                 </div>
                             )}
+                        </div>
                         </div>
                     </div>
                 </header>
