@@ -7,28 +7,60 @@ import ApplicantManagement from './components/ApplicantManagement';
 import MemberManagement from './components/MemberManagement';
 import AttendanceManagement from './components/AttendanceManagement';
 import ExcuseManagement from './components/ExcuseManagement';
-import { studyService, Study } from '../services/studyService';
+import { Study } from '../services/studyService';
+import { studyApi } from '@/api/endpoints/studyApi';
 import { BackButton } from '@/shared/components';
 import { Settings } from 'lucide-react';
+import { useUIStore } from '@/store/uiStore';
 
 export type ManageTab = 'dashboard' | 'applicants' | 'members' | 'attendance' | 'excuse';
 
 const StudyManagementPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const { showToast } = useUIStore();
     const [study, setStudy] = useState<Study | null>(null);
     const [activeTab, setActiveTab] = useState<ManageTab>('dashboard');
+    const [pendingApplicantCount, setPendingApplicantCount] = useState(0);
+    const [pendingExcuseCount, setPendingExcuseCount] = useState(0);
 
     useEffect(() => {
-        if (id) {
-            const data = studyService.getStudyById(Number(id));
-            if (data) {
-                setStudy(data);
-            } else {
+        const fetchStudyData = async () => {
+            if (!id) return;
+
+            try {
+                const data = await studyApi.getStudyDetail(Number(id));
+                if (data) {
+                    setStudy(data as unknown as Study);
+                    // 대기중 인원수 조회
+                    fetchPendingCounts(Number(id));
+                } else {
+                    showToast('스터디를 찾을 수 없습니다.', 'error');
+                    navigate('/study');
+                }
+            } catch (error) {
+                console.error('스터디 정보 조회 실패:', error);
+                showToast('스터디 정보를 불러오는데 실패했습니다.', 'error');
                 navigate('/study');
             }
+        };
+
+        fetchStudyData();
+    }, [id, navigate, showToast]);
+
+    const fetchPendingCounts = async (studyId: number) => {
+        try {
+            // 지원자 대기 중 인원수
+            const applicantCount = await studyApi.getPendingApplicationCount(studyId);
+            setPendingApplicantCount(applicantCount);
+
+            // 소명 대기 중 인원수
+            const excuseCount = await studyApi.getPendingExcuseCount(studyId);
+            setPendingExcuseCount(excuseCount);
+        } catch (error) {
+            console.error('대기 중 인원수 조회 실패:', error);
         }
-    }, [id, navigate]);
+    };
 
     if (!study) return null;
 
@@ -78,6 +110,9 @@ const StudyManagementPage: React.FC = () => {
                         studyId={study.id}
                         activeTab={activeTab}
                         setActiveTab={setActiveTab}
+                        pendingApplicantCount={pendingApplicantCount}
+                        pendingExcuseCount={pendingExcuseCount}
+                        onRefreshCounts={() => fetchPendingCounts(study.id)}
                     />
                     <main className="flex-1 min-w-0">
                         <div className="bg-surface rounded-3xl border border-border-light p-6 shadow-sm">

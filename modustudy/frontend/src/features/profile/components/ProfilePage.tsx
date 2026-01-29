@@ -8,6 +8,7 @@ import { userApi } from '@/api/endpoints/userApi';
 import { ProfileHeader } from './ProfileHeader';
 import { StudyMylist } from './StudyMylist';
 import { LegoActivityGraph } from './LegoActivityGraph';
+import { MyApplicationList } from './MyApplicationList';
 import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 
 export const ProfilePage = () => {
@@ -219,6 +220,11 @@ export const ProfilePage = () => {
                                 </div>
                             </div>
                         </div>
+                    </div>
+
+                    {/* 내 스터디 신청 내역 */}
+                    <div style={{ marginTop: '3rem' }}>
+                        <MyApplicationList />
                     </div>
 
                     {/* 내 스터디 활동 (고도화된 컴포넌트 적용: 그리드/스크롤/상세이동) */}
