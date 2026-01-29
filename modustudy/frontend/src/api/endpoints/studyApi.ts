@@ -195,6 +195,7 @@ export interface AiStudyPlanRequest {
   techStack?: string[];
   schedule?: string[];
   durationWeeks?: number;  // 선호 스터디 기간 (주)
+  totalSessions?: number;  // 총 회차 (요일수 × 주수)
 }
 
 // 주차별 커리큘럼 아이템
@@ -387,6 +388,7 @@ export const generateStudyPlan = async (data: AiStudyPlanRequest): Promise<AiStu
   const requestData = {
     topicInput: data.topic,
     durationWeeks: data.durationWeeks,
+    totalSessions: data.totalSessions,  // 총 회차 (요일수 × 주수)
   };
 
   const response = await api.post('/api/v1/study-templates/recommend', requestData);
