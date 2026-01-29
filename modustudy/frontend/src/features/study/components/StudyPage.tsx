@@ -5,7 +5,7 @@ import StudyListContainer from './StudyListContainer';
 import StudyCardContentV2 from './StudyCardContentV2';
 import StudyFilter, { FilterState } from './StudyFilter';
 import { studyService, Study, SortOption } from '../services/studyService';
-import { MainLayout } from '@/layouts/MainLayout';
+import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { Button } from '@/shared/components';
 import { cn } from '@/shared/utils/cn';
 
@@ -122,7 +122,7 @@ const StudyPageV2: React.FC = () => {
         sortOption.field === 'recruitEndDate' ? 'deadline' : 'latest';
 
     return (
-        <MainLayout>
+        <UserLayoutV2>
             <StudyListContainer>
                 <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
                     {/* 헤더 */}
@@ -358,7 +358,7 @@ const StudyPageV2: React.FC = () => {
                     )}
                 </div>
             </StudyListContainer>
-        </MainLayout>
+        </UserLayoutV2>
     );
 };
 

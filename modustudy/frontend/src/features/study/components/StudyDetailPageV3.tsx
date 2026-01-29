@@ -12,7 +12,7 @@ import { StudyReportModal } from './StudyReportModal';
 import LeaderReviewModal from './LeaderReviewModal';
 import StudyListContainer from './StudyListContainer';
 import StudyLeaderCard from './StudyLeaderCard';
-import { MainLayout } from '@/layouts/MainLayout';
+import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { Button, ArrowButton } from '@/shared/components';
 import { cn } from '@/shared/utils/cn';
 import { useDMStore } from '@/features/dm/store/dmStore';
@@ -121,7 +121,7 @@ const StudyDetailPageV3: React.FC = () => {
     const isOwner = String(user?.id) === String(study.leader.id);
 
     return (
-        <MainLayout>
+        <UserLayoutV2>
             <StudyListContainer className="px-4 md:px-6">
                 <div className="max-w-5xl mx-auto py-8 animate-fadeIn">
                     {/* 상단 네비게이션 */}
@@ -339,7 +339,7 @@ const StudyDetailPageV3: React.FC = () => {
                 reviews={leaderReviews}
                 averageRating={leaderAvgRating}
             />
-        </MainLayout>
+        </UserLayoutV2>
     );
 };
 

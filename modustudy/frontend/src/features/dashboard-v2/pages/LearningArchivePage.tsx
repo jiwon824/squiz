@@ -176,7 +176,7 @@ export const LearningArchivePage: React.FC = () => {
                     {/* 브레드크럼 */}
                     <nav className="flex items-center gap-1.5 text-sm mb-2">
                         <button
-                            onClick={() => navigate('/dashboard-v2')}
+                            onClick={() => navigate('/dashboard')}
                             className="text-text-tertiary hover:text-primary transition-colors"
                         >
                             대시보드

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 import { Button } from '@/shared/components/Button';
@@ -14,8 +14,29 @@ interface DateRangePickerProps {
  * 스터디 기간 선택용 미니 캘린더
  */
 export const DateRangePicker = ({ startDate, endDate, minDate, onRangeChange }: DateRangePickerProps) => {
-    const [currentMonth, setCurrentMonth] = useState(new Date());
+    // 초기 표시 월: endDate가 있으면 endDate 기준, 없으면 startDate 기준, 둘 다 없으면 오늘
+    const getInitialMonth = () => {
+        if (endDate) {
+            return new Date(endDate);
+        } else if (startDate) {
+            return new Date(startDate);
+        }
+        return new Date();
+    };
+
+    const [currentMonth, setCurrentMonth] = useState(getInitialMonth);
     const [hoveredDate, setHoveredDate] = useState<string | null>(null);
+
+    // endDate가 변경되면 해당 월로 이동
+    useEffect(() => {
+        if (endDate) {
+            const endDateObj = new Date(endDate);
+            setCurrentMonth(new Date(endDateObj.getFullYear(), endDateObj.getMonth(), 1));
+        } else if (startDate) {
+            const startDateObj = new Date(startDate);
+            setCurrentMonth(new Date(startDateObj.getFullYear(), startDateObj.getMonth(), 1));
+        }
+    }, [endDate, startDate]);
 
     const weekDays = ['일', '월', '화', '수', '목', '금', '토'];
 

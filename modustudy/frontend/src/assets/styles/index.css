@@ -321,7 +321,6 @@ h6 {
     font-weight: var(--font-weight-bold);
     line-height: var(--line-height-tight);
     color: var(--color-text-primary);
-    margin-bottom: var(--spacing-md);
 }
 
 h1 {

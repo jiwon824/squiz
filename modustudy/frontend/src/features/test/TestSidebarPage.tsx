@@ -1,9 +1,9 @@
 
-import { MainLayout } from '@/layouts/MainLayout';
+import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 
 export const TestSidebarPage = () => {
     return (
-        <MainLayout>
+        <UserLayoutV2>
             <div className="space-y-6">
                 <h2 className="text-3xl font-bold text-study-text">
                     사이드바 테스트 페이지
@@ -54,6 +54,6 @@ export const TestSidebarPage = () => {
                     </ul>
                 </div>
             </div>
-        </MainLayout>
+        </UserLayoutV2>
     );
 };
