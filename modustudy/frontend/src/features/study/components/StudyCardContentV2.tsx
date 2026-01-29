@@ -3,6 +3,9 @@ import { Heart, Users, MapPin, Clock, Star, Zap } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 import { DifficultyBadge } from './DifficultyBadge';
 
+// 기본 프로필 이미지 경로
+const DEFAULT_PROFILE_IMAGE = '/images/default-profile.png';
+
 interface StudyCardContentV2Props {
     study: {
         id: number;
@@ -71,17 +74,11 @@ const StudyCardContentV2: React.FC<StudyCardContentV2Props> = ({ study, variant 
             >
                 {/* 왼쪽: 리더 프로필 */}
                 <div className="flex-shrink-0">
-                    {study.leader.profileImage ? (
-                        <img
-                            src={study.leader.profileImage}
-                            alt={study.leader.nickname}
-                            className="w-12 h-12 rounded-xl object-cover border border-[var(--color-border-lighter)]"
-                        />
-                    ) : (
-                        <div className="w-12 h-12 rounded-xl bg-[var(--color-primary)] text-white flex items-center justify-center text-base font-bold">
-                            {study.leader.nickname.charAt(0)}
-                        </div>
-                    )}
+                    <img
+                        src={study.leader.profileImage || DEFAULT_PROFILE_IMAGE}
+                        alt={study.leader.nickname}
+                        className="w-12 h-12 rounded-xl object-cover border border-[var(--color-border-lighter)]"
+                    />
                 </div>
 
                 {/* 중앙: 정보 */}
@@ -242,17 +239,11 @@ const StudyCardContentV2: React.FC<StudyCardContentV2Props> = ({ study, variant 
 
             {/* 하단: 리더 정보 - 항상 맨 아래 */}
             <div className="flex items-center gap-4 pt-4 mt-4 border-t border-[var(--color-border-lighter)] flex-shrink-0">
-                {study.leader.profileImage ? (
-                    <img
-                        src={study.leader.profileImage}
-                        alt={study.leader.nickname}
-                        className="w-9 h-9 rounded-xl object-cover border border-[var(--color-border-lighter)]"
-                    />
-                ) : (
-                    <div className="w-9 h-9 rounded-xl bg-[var(--color-primary)] text-white flex items-center justify-center text-sm font-bold">
-                        {study.leader.nickname.charAt(0)}
-                    </div>
-                )}
+                <img
+                    src={study.leader.profileImage || DEFAULT_PROFILE_IMAGE}
+                    alt={study.leader.nickname}
+                    className="w-9 h-9 rounded-xl object-cover border border-[var(--color-border-lighter)]"
+                />
                 <span className="text-[15px] font-semibold text-[var(--color-text-primary)] truncate flex-1">
                     {study.leader.nickname}
                 </span>

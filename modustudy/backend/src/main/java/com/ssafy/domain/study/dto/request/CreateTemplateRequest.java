@@ -26,6 +26,10 @@ public class CreateTemplateRequest {
     @Size(max = 100, message = "템플릿 이름은 100자 이내여야 합니다")
     private String name;
 
+    @Schema(description = "한줄 소개", example = "백준 골드를 향해 달려가는 스터디!")
+    @Size(max = 200, message = "한줄 소개는 200자 이내여야 합니다")
+    private String intro;
+
     @Schema(description = "템플릿 타입", example = "ALGORITHM")
     private String templateType;
 

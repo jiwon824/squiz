@@ -38,6 +38,12 @@ public class StudyTemplate {
     private String name;
 
     /**
+     * 한줄 소개 (썸네일용)
+     */
+    @Column(length = 200)
+    private String intro;
+
+    /**
      * 시스템 기본 템플릿 여부
      */
     @Column(name = "is_system")

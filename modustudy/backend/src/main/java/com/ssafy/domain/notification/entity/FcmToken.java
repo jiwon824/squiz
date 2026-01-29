@@ -1,14 +1,15 @@
 package com.ssafy.domain.notification.entity;
 
-import com.ssafy.common.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-import org.springframework.cglib.core.Local;
 
 import java.time.LocalDateTime;
 
+/**
+ * FCM 토큰 엔티티
+ */
 @Entity
 @Table(name = "fcm_token")
 @Getter
@@ -24,7 +25,7 @@ public class FcmToken {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    @Column(length = 500, nullable = false)
+    @Column(nullable = false, length = 500)
     private String token;
 
     @Enumerated(EnumType.STRING)
@@ -42,7 +43,6 @@ public class FcmToken {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-
 
     // ========== 비즈니스 메서드 ==========
 

@@ -17,6 +17,9 @@ import { useDMStore } from '@/features/dm/store/dmStore';
 import { useUIStore } from '@/store/uiStore';
 import { getReviewsByLeaderId, getLeaderAverageRating, LeaderReview } from '../mockData';
 
+// 기본 프로필 이미지 경로
+const DEFAULT_PROFILE_IMAGE = '/images/default-profile.png';
+
 // ============================================
 // 📦 시맨틱 스타일 상수 (Semantic Style Constants)
 // Tailwind 클래스를 의미있는 이름으로 분리하여 가독성 향상
@@ -357,17 +360,11 @@ const StudyDetailPage: React.FC = () => {
                                 {/* 아바타 섹션 */}
                                 <div className={styles.avatarWrapper}>
                                     <div className={styles.avatar}>
-                                        {study.leader.profileImage ? (
-                                            <img
-                                                src={study.leader.profileImage}
-                                                alt={study.leader.nickname}
-                                                className={styles.avatarImage}
-                                            />
-                                        ) : (
-                                            <div className={styles.avatarFallback}>
-                                                {study.leader.nickname.charAt(0)}
-                                            </div>
-                                        )}
+                                        <img
+                                            src={study.leader.profileImage || DEFAULT_PROFILE_IMAGE}
+                                            alt={study.leader.nickname}
+                                            className={styles.avatarImage}
+                                        />
                                     </div>
                                     <div className={styles.onlineIndicator} />
                                 </div>

@@ -185,9 +185,6 @@ export const StudyPreferenceSection = () => {
                 <div className="bg-white rounded-2xl border border-gray-100 p-6">
                     <div className="flex items-center gap-2 mb-4">
                         <h3 className="text-base font-bold text-gray-900">기술 스택</h3>
-                        <span className="text-xs text-gray-400">
-                            ({techStack.length}개 등록)
-                        </span>
                     </div>
 
                     {/* 등록된 기술스택 태그 */}

@@ -15,6 +15,7 @@ import {
     MeetingSttFileResponse,
     MeetingSttSummaryResponse,
     MeetingSummaryResponse,
+    MeetingTranscriptItemResponse,
     MeetingSummaryUpdateRequest,
     PageResponse,
     SfuConfigResponse,
@@ -82,6 +83,14 @@ export const meetingApi = {
 
     async leaveMeeting(studyId: number, meetingId: number): Promise<void> {
         await api.post(`${buildMeetingPath(studyId, meetingId)}/leave`);
+    },
+
+    /** STT 트랜스크립트 조회 */
+    async getTranscripts(studyId: number, meetingId: number): Promise<MeetingTranscriptItemResponse[]> {
+        const { data } = await api.get<ApiResponse<MeetingTranscriptItemResponse[]>>(
+            `${buildMeetingPath(studyId, meetingId)}/transcripts`
+        );
+        return data.data;
     },
 
     async getSummary(studyId: number, meetingId: number): Promise<MeetingSummaryResponse> {

@@ -10,3 +10,5 @@ export { StatsView } from './StatsView';
 
 export type { MeetingReport, TranscriptItem, TabType, SpeakerStats } from './types';
 export { MOCK_REPORTS, SPEAKER_COLORS, getSpeakerColor, getSpeakerClasses } from './constants';
+export { exportReports } from './exportUtils';
+export type { ExportScope } from './exportUtils';

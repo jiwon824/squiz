@@ -19,7 +19,17 @@ export interface Study {
     scheduleTime?: string;
     regionId?: number;
     locationDetail?: string;
+    // 모집 기간
+    recruitStartDate?: string;
     recruitEndDate?: string;
+    // 스터디 진행 기간
+    startDate?: string;
+    endDate?: string;
+    // 추가 정보
+    goal?: string;
+    textbook?: string;
+    prerequisites?: string;
+    processDetail?: string;
     region?: {
         id: number;
         name: string;

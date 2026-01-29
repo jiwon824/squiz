@@ -1,12 +1,14 @@
 package com.ssafy.domain.notification.entity;
 
-import com.ssafy.common.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
+/**
+ * 알림 설정 엔티티
+ */
 @Entity
 @Table(name = "notification_setting",
         uniqueConstraints = @UniqueConstraint(
@@ -41,7 +43,7 @@ public class NotificationSetting {
     /**
      * 알림 설정 변경
      */
-    public void updatedEnabled(Boolean isEnabled) {
+    public void updateEnabled(Boolean isEnabled) {
         this.isEnabled = isEnabled;
     }
 }
