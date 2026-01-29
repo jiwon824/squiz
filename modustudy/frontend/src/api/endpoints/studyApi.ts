@@ -195,6 +195,7 @@ export interface AiStudyPlanRequest {
   techStack?: string[];
   schedule?: string[];
   durationWeeks?: number;  // 선호 스터디 기간 (주)
+  totalSessions?: number;  // 총 회차 (요일수 × 주수)
 }
 
 // 주차별 커리큘럼 아이템
@@ -383,11 +384,11 @@ export const getStudyRecommendations = async (limit: number = 10): Promise<Study
 
 // AI 스터디 계획 생성
 export const generateStudyPlan = async (data: AiStudyPlanRequest): Promise<AiStudyPlanResponse> => {
-  // 백엔드 요청 형식에 맞게 변환 (snake_case)
+  // 백엔드 DTO 필드명에 맞게 camelCase로 전달
   const requestData = {
-    topic_input: data.topic,
-    duration_weeks: data.durationWeeks,
-    // 기존 필드들도 전달 (백엔드에서 DB 조회로 대체하지만 fallback용)
+    topicInput: data.topic,
+    durationWeeks: data.durationWeeks,
+    totalSessions: data.totalSessions,  // 총 회차 (요일수 × 주수)
   };
 
   const response = await api.post('/api/v1/study-templates/recommend', requestData);

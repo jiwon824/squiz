@@ -88,6 +88,7 @@ public class MeetingService {
     private final SfuProperties sfuProperties;
     private final LocalFileStorageService localFileStorageService;
     private final org.springframework.web.client.RestTemplate restTemplate;
+    private final com.ssafy.domain.ai.service.AiService aiService;
     @Value("${meeting.pdf.font-path:}")
     private String pdfFontPath;
     @Value("${app.ffmpeg.path:ffmpeg}")
@@ -1334,6 +1335,134 @@ public class MeetingService {
         } catch (IOException e) {
             return null;
         }
+    }
+
+    /**
+     * 미팅 종료 후 AI 처리 시작
+     * - 전체 음성 + 화자별 음성 → AI 서버 전송
+     * - STT, 요약, 키워드, 액션아이템, 퀴즈 생성
+     *
+     * @param studyId 스터디 ID
+     * @param meetingId 미팅 ID
+     * @return AI 처리 작업 ID (job_id)
+     */
+    @Transactional
+    public String startAiProcessing(Long studyId, Long meetingId) {
+        Meeting meeting = getMeetingOrThrow(studyId, meetingId);
+        if (meeting.getStatus() != MeetingStatus.ENDED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "MEETING_NOT_ENDED");
+        }
+
+        // 1. 전체 음성 파일 찾기 (MIXED)
+        List<MeetingAudioRecording> mixedRecordings = meetingAudioRecordingRepository
+                .findByMeetingIdAndTrackTypeOrderByCreatedAtAsc(meetingId, MeetingAudioTrackType.MIXED);
+        if (mixedRecordings.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "NO_MIXED_AUDIO");
+        }
+        Path mixedAudioPath = localFileStorageService.resolveUploadedPath(mixedRecordings.get(0).getRecordingUrl());
+        if (mixedAudioPath == null || !Files.exists(mixedAudioPath)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "MIXED_AUDIO_NOT_FOUND");
+        }
+
+        // 2. 화자별 음성 파일 찾기 (INDIVIDUAL)
+        List<MeetingAudioRecording> individualRecordings = meetingAudioRecordingRepository
+                .findByMeetingIdAndTrackTypeOrderByCreatedAtAsc(meetingId, MeetingAudioTrackType.INDIVIDUAL);
+        java.util.Map<Long, Path> individualPaths = new java.util.HashMap<>();
+        for (MeetingAudioRecording rec : individualRecordings) {
+            if (rec.getUserId() != null) {
+                Path path = localFileStorageService.resolveUploadedPath(rec.getRecordingUrl());
+                if (path != null && Files.exists(path)) {
+                    individualPaths.put(rec.getUserId(), path);
+                }
+            }
+        }
+
+        // 3. AI 처리 요청
+        meeting.updateSummaryStatus(SummaryStatus.PROCESSING);
+        String jobId = aiService.processMeetingAsync(mixedAudioPath, individualPaths, true);
+
+        log.info("AI 처리 시작 - meetingId: {}, jobId: {}", meetingId, jobId);
+        return jobId;
+    }
+
+    /**
+     * AI 처리 결과 조회 및 저장
+     *
+     * @param studyId 스터디 ID
+     * @param meetingId 미팅 ID
+     * @param jobId AI 작업 ID
+     * @return 처리 상태 (pending, processing, completed, failed)
+     */
+    @Transactional
+    public String checkAndSaveAiResult(Long studyId, Long meetingId, String jobId) {
+        Meeting meeting = getMeetingOrThrow(studyId, meetingId);
+
+        com.ssafy.domain.ai.service.AiService.MeetingProcessResult result = aiService.getMeetingProcessResult(jobId);
+
+        if ("completed".equals(result.getStatus())) {
+            // 1. STT 저장
+            if (result.getTranscript() != null) {
+                String sttFileUrl = localFileStorageService.saveMeetingTextContent(
+                        meetingId, null, true, "stt.txt", result.getTranscript());
+                meetingSttFileRepository.findByMeetingIdAndTrackTypeAndUserIdIsNull(meetingId, MeetingTextTrackType.MIXED)
+                        .ifPresentOrElse(
+                                existing -> existing.updateFileUrl(sttFileUrl),
+                                () -> meetingSttFileRepository.save(MeetingSttFile.builder()
+                                        .meetingId(meetingId)
+                                        .trackType(MeetingTextTrackType.MIXED)
+                                        .fileUrl(sttFileUrl)
+                                        .build())
+                        );
+            }
+
+            // 2. 요약 + 키워드 + 액션아이템 저장
+            MeetingSttSummary summary = meetingSttSummaryRepository
+                    .findByMeetingIdAndTrackTypeAndUserIdIsNull(meetingId, MeetingTextTrackType.MIXED)
+                    .orElseGet(() -> MeetingSttSummary.builder()
+                            .meetingId(meetingId)
+                            .trackType(MeetingTextTrackType.MIXED)
+                            .fileUrl("")
+                            .build());
+
+            if (result.getSummary() != null) {
+                String summaryFileUrl = localFileStorageService.saveMeetingTextContent(
+                        meetingId, null, true, "summary.txt", result.getSummary());
+                summary.updateFileUrl(summaryFileUrl);
+            }
+
+            if (result.getKeywords() != null && !result.getKeywords().isEmpty()) {
+                summary.updateKeywordsJson(writeJson(result.getKeywords()));
+            }
+
+            if (result.getActionItems() != null && !result.getActionItems().isEmpty()) {
+                // JSON으로 저장
+                List<MeetingActionItemResponse> actionItemResponses = new java.util.ArrayList<>();
+                for (var item : result.getActionItems()) {
+                    actionItemResponses.add(new MeetingActionItemResponse(
+                            null, item.getContent(), item.getUserId(), ActionItemStatus.TODO));
+                    // 개별 엔티티로도 저장
+                    meetingActionItemRepository.save(MeetingActionItem.builder()
+                            .meetingId(meetingId)
+                            .content(item.getContent())
+                            .assigneeId(item.getUserId())
+                            .status(ActionItemStatus.TODO)
+                            .build());
+                }
+                summary.updateActionItemsJson(writeJson(actionItemResponses));
+            }
+
+            meetingSttSummaryRepository.save(summary);
+
+            // 3. 상태 업데이트
+            meeting.updateSummaryStatus(SummaryStatus.DONE);
+            log.info("AI 처리 완료 - meetingId: {}", meetingId);
+
+        } else if ("failed".equals(result.getStatus())) {
+            meeting.updateSummaryStatus(SummaryStatus.PENDING);
+            log.error("AI 처리 실패 - meetingId: {}, error: {}", meetingId, result.getError());
+        }
+
+        return result.getStatus();
     }
 }
 

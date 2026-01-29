@@ -1,8 +1,10 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useUIStore } from '@/store/uiStore';
+import { useAuthStore } from '@/store/authStore';
 import { cn } from '@/shared/utils/cn';
-import { useCallback } from 'react';
+import { useCallback, useState, useRef, useEffect } from 'react';
+import { studyApi } from '@/api/endpoints/studyApi';
 import {
     QuizIcon,
     StudyIcon,
@@ -21,10 +23,42 @@ const sidebarSpring = { type: 'spring' as const, damping: 26, stiffness: 300 };
 export const Sidebar = () => {
     const sidebarMode = useUIStore((state) => state.sidebarMode);
     const toggleSidebar = useUIStore((state) => state.toggleSidebar);
+    const { isLoggedIn } = useAuthStore();
     const location = useLocation();
     const navigate = useNavigate();
 
     const isClosed = sidebarMode === 'closed';
+
+    // 유저가 가입한 스터디 목록 (API에서 가져옴)
+    const [userStudies, setUserStudies] = useState<{ id: number; name: string; topic: string }[]>([]);
+
+    // 로그인 상태 변경 시 내 스터디 목록 조회
+    useEffect(() => {
+        if (isLoggedIn) {
+            studyApi.getMyStudies(0, 10)
+                .then((response: any) => {
+                    // 백엔드에서 StudyResponse DTO로 반환하므로 정상 객체 처리
+                    const content = response?.content || [];
+                    const studies = content.map((study: any) => ({
+                        id: study.id,
+                        name: study.name,
+                        topic: study.topic?.name || '스터디',
+                    }));
+                    setUserStudies(studies);
+                })
+                .catch((error) => {
+                    console.error('[Sidebar] 내 스터디 목록 조회 실패:', error);
+                    setUserStudies([]);
+                });
+        } else {
+            setUserStudies([]);
+        }
+    }, [isLoggedIn]);
+
+    // 스터디 팝오버 아이템 클릭 시 워크스페이스로 이동
+    const handleStudyPopoverClick = useCallback((studyId: number) => {
+        navigate(`/study/${studyId}/workspace`);
+    }, [navigate]);
 
     // 대시보드에서 다른 페이지로 전환 시 애니메이션 처리
     const handleTransitionNavigate = useCallback((path: string) => {
@@ -48,7 +82,10 @@ export const Sidebar = () => {
 
     return (
         <motion.aside
-            className="h-full flex flex-col bg-slate-200 flex-shrink-0 overflow-hidden"
+            className={cn(
+                "h-full flex flex-col bg-slate-200 flex-shrink-0",
+                isClosed ? "overflow-hidden" : "overflow-visible"
+            )}
             animate={{ width: isClosed ? 0 : SIDEBAR_WIDTH, minWidth: isClosed ? 0 : SIDEBAR_WIDTH }}
             transition={sidebarSpring}
         >
@@ -95,7 +132,10 @@ export const Sidebar = () => {
                     label="스터디"
                     path="/study"
                     isActive={location.pathname === '/study'}
-                    showDot
+                    showDot={userStudies.length > 0}
+                    showPopover={userStudies.length > 0}
+                    popoverStudies={userStudies}
+                    onPopoverItemClick={handleStudyPopoverClick}
                 />
 
                 <SidebarItem
@@ -123,6 +163,13 @@ export const Sidebar = () => {
     );
 };
 
+// 스터디 팝오버 아이템 타입
+interface StudyPopoverItem {
+    id: number;
+    name: string;
+    topic: string;
+}
+
 // 사이드바 아이템 컴포넌트
 interface SidebarItemProps {
     icon: React.ReactNode;
@@ -135,6 +182,12 @@ interface SidebarItemProps {
     useTransition?: boolean;
     /** 전환 애니메이션 네비게이션 핸들러 */
     onTransitionNavigate?: (path: string) => void;
+    /** 호버 시 팝오버 표시 여부 */
+    showPopover?: boolean;
+    /** 팝오버에 표시할 스터디 목록 */
+    popoverStudies?: StudyPopoverItem[];
+    /** 팝오버 아이템 클릭 핸들러 */
+    onPopoverItemClick?: (studyId: number) => void;
 }
 
 const SidebarItem: React.FC<SidebarItemProps> = ({
@@ -146,7 +199,62 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
     showDot,
     useTransition,
     onTransitionNavigate,
+    showPopover,
+    popoverStudies,
+    onPopoverItemClick,
 }) => {
+    const [isHovered, setIsHovered] = useState(false);
+    const enterTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const leaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const popoverRef = useRef<HTMLDivElement>(null);
+
+    // 호버 시작 시 딜레이 후 팝오버 표시
+    const handleMouseEnter = () => {
+        // leave 타이머가 있으면 취소 (팝오버로 이동 중)
+        if (leaveTimeoutRef.current) {
+            clearTimeout(leaveTimeoutRef.current);
+            leaveTimeoutRef.current = null;
+        }
+
+        if (showPopover && popoverStudies && popoverStudies.length > 0) {
+            enterTimeoutRef.current = setTimeout(() => {
+                setIsHovered(true);
+            }, 150);
+        }
+    };
+
+    // 호버 종료 시 딜레이 후 팝오버 숨김
+    const handleMouseLeave = () => {
+        if (enterTimeoutRef.current) {
+            clearTimeout(enterTimeoutRef.current);
+            enterTimeoutRef.current = null;
+        }
+        // 딜레이를 줘서 팝오버로 이동할 시간 확보
+        leaveTimeoutRef.current = setTimeout(() => {
+            setIsHovered(false);
+        }, 150);
+    };
+
+    // 팝오버에 마우스 진입 시 leave 타이머 취소
+    const handlePopoverEnter = () => {
+        if (leaveTimeoutRef.current) {
+            clearTimeout(leaveTimeoutRef.current);
+            leaveTimeoutRef.current = null;
+        }
+    };
+
+    // 컴포넌트 언마운트 시 타이머 정리
+    useEffect(() => {
+        return () => {
+            if (enterTimeoutRef.current) {
+                clearTimeout(enterTimeoutRef.current);
+            }
+            if (leaveTimeoutRef.current) {
+                clearTimeout(leaveTimeoutRef.current);
+            }
+        };
+    }, []);
+
     // 전환 애니메이션이 필요한 경우 버튼 클릭 핸들러
     const handleClick = () => {
         if (onTransitionNavigate) {
@@ -210,9 +318,75 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
         </>
     );
 
+    // 팝오버 렌더링
+    const renderPopover = () => {
+        if (!showPopover || !isHovered || !popoverStudies || popoverStudies.length === 0) {
+            return null;
+        }
+
+        return (
+            <AnimatePresence>
+                <motion.div
+                    ref={popoverRef}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -10 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute left-full top-0 z-50 flex items-start"
+                    onMouseEnter={handlePopoverEnter}
+                    onMouseLeave={handleMouseLeave}
+                >
+                    {/* 투명한 브릿지 영역 - 아이템과 팝오버 사이 연결 */}
+                    <div className="w-3 h-16 bg-transparent" />
+                    <div className="bg-white rounded-xl shadow-lg border border-gray-100 py-2 min-w-[200px] max-w-[280px]">
+                        <div className="px-4 py-2 border-b border-gray-100">
+                            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                내 스터디
+                            </span>
+                        </div>
+                        <div className="max-h-[300px] overflow-y-auto">
+                            {popoverStudies.map((study) => (
+                                <button
+                                    key={study.id}
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        onPopoverItemClick?.(study.id);
+                                        setIsHovered(false);
+                                    }}
+                                    className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors flex flex-col gap-0.5"
+                                >
+                                    <span className="text-sm font-medium text-gray-800 truncate">
+                                        {study.name}
+                                    </span>
+                                    <span className="text-xs text-gray-500">
+                                        {study.topic}
+                                    </span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </motion.div>
+            </AnimatePresence>
+        );
+    };
+
+    // 팝오버가 있는 경우 wrapper로 감싸기
+    const itemWrapper = (children: React.ReactNode) => (
+        <div
+            className="relative"
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+        >
+            {children}
+            {renderPopover()}
+        </div>
+    );
+
     // 전환 애니메이션 사용 시 버튼, 아니면 Link
     if (useTransition) {
-        return (
+        return itemWrapper(
             <button
                 type="button"
                 onClick={handleClick}
@@ -223,7 +397,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
         );
     }
 
-    return (
+    return itemWrapper(
         <Link to={path} className="block no-underline group">
             {content}
         </Link>

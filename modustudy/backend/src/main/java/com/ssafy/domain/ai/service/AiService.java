@@ -17,8 +17,14 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.http.client.MultipartBodyBuilder;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.File;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -187,6 +193,137 @@ public class AiService {
             errorResult.put("status", "error");
             errorResult.put("message", e.getMessage());
             return errorResult;
+        }
+    }
+
+    // ===== 미팅 음성 처리 =====
+
+    /**
+     * 미팅 전체 처리 작업 등록 (비동기)
+     * - 전체 음성 STT + 요약 + 키워드
+     * - 화자별 STT + 액션아이템 추천
+     * - 복습 퀴즈 생성
+     *
+     * @param mixedAudioPath 전체 음성 파일 경로
+     * @param individualAudioPaths 화자별 음성 파일 경로 목록 (userId -> filePath)
+     * @param generateQuiz 퀴즈 생성 여부
+     * @return job_id (비동기 작업 ID)
+     */
+    public String processMeetingAsync(Path mixedAudioPath, Map<Long, Path> individualAudioPaths, boolean generateQuiz) {
+        log.info("미팅 처리 요청 - mixedAudio: {}, individualCount: {}", mixedAudioPath, individualAudioPaths.size());
+
+        try {
+            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+
+            // 전체 음성
+            body.add("mixed_audio", new FileSystemResource(mixedAudioPath.toFile()));
+
+            // 화자별 음성 및 user_ids
+            StringBuilder userIds = new StringBuilder();
+            for (Map.Entry<Long, Path> entry : individualAudioPaths.entrySet()) {
+                body.add("individual_audios", new FileSystemResource(entry.getValue().toFile()));
+                if (userIds.length() > 0) userIds.append(",");
+                userIds.append(entry.getKey());
+            }
+            body.add("user_ids", userIds.toString());
+            body.add("generate_quiz", generateQuiz);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+            HttpEntity<MultiValueMap<String, Object>> entity = new HttpEntity<>(body, headers);
+
+            ResponseEntity<String> response = restTemplate.postForEntity(
+                    aiServerBaseUrl + "/api/process-meeting-full", entity, String.class);
+
+            @SuppressWarnings("unchecked")
+            Map<String, Object> result = objectMapper.readValue(response.getBody(), Map.class);
+            String jobId = (String) result.get("job_id");
+
+            log.info("미팅 처리 작업 등록 완료 - jobId: {}", jobId);
+            return jobId;
+
+        } catch (Exception e) {
+            log.error("미팅 처리 작업 등록 실패: {}", e.getMessage());
+            throw new RuntimeException("미팅 처리 서비스를 일시적으로 사용할 수 없습니다.", e);
+        }
+    }
+
+    /**
+     * 미팅 처리 작업 상태 조회
+     */
+    public MeetingProcessResult getMeetingProcessResult(String jobId) {
+        log.info("미팅 처리 결과 조회 - jobId: {}", jobId);
+
+        try {
+            ResponseEntity<String> response = restTemplate.getForEntity(
+                    aiServerBaseUrl + "/api/jobs/" + jobId, String.class);
+
+            @SuppressWarnings("unchecked")
+            Map<String, Object> result = objectMapper.readValue(response.getBody(), Map.class);
+            String status = (String) result.get("status");
+
+            MeetingProcessResult processResult = new MeetingProcessResult();
+            processResult.setStatus(status);
+
+            if ("completed".equals(status)) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> data = (Map<String, Object>) result.get("result");
+                if (data != null) {
+                    processResult.setTranscript((String) data.get("transcript"));
+                    processResult.setSummary((String) data.get("summary"));
+
+                    @SuppressWarnings("unchecked")
+                    List<String> keywords = (List<String>) data.get("keywords");
+                    processResult.setKeywords(keywords != null ? keywords : List.of());
+
+                    @SuppressWarnings("unchecked")
+                    List<Map<String, Object>> actionItems = (List<Map<String, Object>>) data.get("action_items");
+                    if (actionItems != null) {
+                        List<MeetingProcessResult.ActionItem> items = new ArrayList<>();
+                        for (Map<String, Object> item : actionItems) {
+                            MeetingProcessResult.ActionItem actionItem = new MeetingProcessResult.ActionItem();
+                            actionItem.setUserId(((Number) item.get("user_id")).longValue());
+                            actionItem.setContent((String) item.get("content"));
+                            items.add(actionItem);
+                        }
+                        processResult.setActionItems(items);
+                    }
+
+                    // 퀴즈 파싱
+                    Object quizData = data.get("quiz");
+                    if (quizData != null) {
+                        processResult.setQuizRaw(quizData.toString());
+                    }
+                }
+            } else if ("failed".equals(status)) {
+                processResult.setError((String) result.get("error"));
+            }
+
+            return processResult;
+
+        } catch (Exception e) {
+            log.error("미팅 처리 결과 조회 실패: {}", e.getMessage());
+            throw new RuntimeException("미팅 처리 결과 조회에 실패했습니다.", e);
+        }
+    }
+
+    /**
+     * 미팅 처리 결과 DTO
+     */
+    @lombok.Data
+    public static class MeetingProcessResult {
+        private String status;  // pending, processing, completed, failed
+        private String transcript;
+        private String summary;
+        private List<String> keywords = new ArrayList<>();
+        private List<ActionItem> actionItems = new ArrayList<>();
+        private String quizRaw;
+        private String error;
+
+        @lombok.Data
+        public static class ActionItem {
+            private Long userId;
+            private String content;
         }
     }
 

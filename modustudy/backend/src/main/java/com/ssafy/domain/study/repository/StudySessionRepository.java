@@ -54,6 +54,8 @@ public interface StudySessionRepository extends JpaRepository<StudySession, Long
             @Param("startDateTime") LocalDateTime startDateTime,
             @Param("endDateTime") LocalDateTime endDateTime);
 
+    List<StudySession> findByScheduledAtBetween(LocalDateTime startDateTime, LocalDateTime endDateTime);
+
     /**
      * 특정 스터디의 다음 예정된 세션 조회
      */
