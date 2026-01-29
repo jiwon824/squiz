@@ -55,10 +55,12 @@ export const StudyPreferenceSection = () => {
     useEffect(() => {
         const loadPreference = async () => {
             try {
-                const pref = await getStudyPreference();
-                setTechStack(pref.techStack || []);
+                const pref: any = await getStudyPreference();
+                // 백엔드 필드명: techStacks, preferredTimeSlots (복수형)
+                setTechStack(pref.techStacks || pref.techStack || []);
                 setAvailableDays((pref.availableDays || []) as DayOfWeek[]);
-                setPreferredTimeSlot(pref.preferredTimeSlot || null);
+                const timeSlots = pref.preferredTimeSlots || [];
+                setPreferredTimeSlot(timeSlots[0] || pref.preferredTimeSlot || null);
                 setPreferredDurationWeeks(pref.preferredDurationWeeks || 4);
             } catch {
                 // API가 아직 없으면 기본값 사용 (localStorage fallback)
@@ -128,10 +130,11 @@ export const StudyPreferenceSection = () => {
         setIsSaving(true);
         setMessage(null);
 
+        // 백엔드 필드명에 맞춤 (techStacks, preferredTimeSlots)
         const data = {
-            techStack,
+            techStacks: techStack,
             availableDays,
-            preferredTimeSlot,
+            preferredTimeSlots: preferredTimeSlot ? [preferredTimeSlot] : [],
             preferredDurationWeeks,
         };
 

@@ -3,7 +3,7 @@
  * 설정 페이지의 좌측 네비게이션 메뉴를 담당합니다.
  */
 
-import { Bell, Shield, User, Palette, BookOpen } from 'lucide-react';
+import { Bell, ShieldUser, User, Palette, BookOpen } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 import { useSettingStore } from '../store/settingStore';
 import type { SettingSection } from '../types';
@@ -25,7 +25,7 @@ const menuItems: Array<{
         id: 'account',
         label: '계정 / 보안',
         description: '비밀번호, 소셜 연동',
-        icon: Shield,
+        icon: ShieldUser,
     },
     {
         id: 'profile',

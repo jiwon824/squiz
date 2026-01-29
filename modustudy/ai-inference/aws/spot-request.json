@@ -1,0 +1,25 @@
+{
+  "InstanceCount": 1,
+  "Type": "persistent",
+  "SpotPrice": "0.20",
+  "LaunchSpecification": {
+    "ImageId": "ami-0c9c942bd7bf113a2",
+    "InstanceType": "g4dn.xlarge",
+    "KeyName": "modustudy-gpu-key",
+    "SecurityGroupIds": ["sg-xxxxxxxxx"],
+    "IamInstanceProfile": {
+      "Name": "modustudy-ec2-role"
+    },
+    "BlockDeviceMappings": [
+      {
+        "DeviceName": "/dev/sda1",
+        "Ebs": {
+          "VolumeSize": 100,
+          "VolumeType": "gp3",
+          "DeleteOnTermination": true
+        }
+      }
+    ],
+    "UserData": ""
+  }
+}

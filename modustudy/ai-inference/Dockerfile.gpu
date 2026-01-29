@@ -1,0 +1,50 @@
+# AI 추론 서버 Dockerfile (GPU 버전)
+# CUDA 12.4 지원
+
+FROM nvidia/cuda:12.4.0-devel-ubuntu22.04
+
+WORKDIR /app
+
+# Python 및 시스템 패키지
+RUN apt-get update && apt-get install -y \
+    python3.11 \
+    python3-pip \
+    build-essential \
+    cmake \
+    ninja-build \
+    git \
+    ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
+# Python 심볼릭 링크
+RUN ln -sf /usr/bin/python3.11 /usr/bin/python
+
+# Python 패키지 (python -m pip으로 Python 3.11에 설치)
+COPY requirements.txt .
+RUN python -m pip install --no-cache-dir -r requirements.txt
+
+# GPU 버전 llama-cpp-python (pre-built wheel)
+RUN python -m pip install llama-cpp-python --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu124 --no-cache-dir
+
+# GPU 버전 faster-whisper
+RUN python -m pip install faster-whisper --no-cache-dir
+
+# 앱 복사
+COPY inference_server.py .
+
+# 모델 디렉토리
+RUN mkdir -p /app/models
+
+# 환경 변수
+ENV MODEL_PATH=/app/models/qwen3-8b-summarizer-q4km.gguf
+ENV WHISPER_MODEL=medium
+ENV WHISPER_DEVICE=cuda
+ENV N_CTX=4096
+ENV N_GPU_LAYERS=-1
+ENV N_THREADS=4
+ENV HOST=0.0.0.0
+ENV PORT=8000
+
+EXPOSE 8000
+
+CMD ["python", "inference_server.py"]

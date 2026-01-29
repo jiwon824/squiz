@@ -61,6 +61,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/gamification/test/**", "/api/v1/gamification/stats").permitAll()
                         // 데일리
                         .requestMatchers("/api/v1/dailies/**").permitAll()
+                        // AI (테스트용 permitAll)
+                        .requestMatchers("/api/v1/ai/**").permitAll()
                         // 나머지는 인증 필요
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

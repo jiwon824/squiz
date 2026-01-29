@@ -18,4 +18,10 @@ public class TemplateRecommendRequest {
 
     @Schema(description = "희망 난이도", example = "INTERMEDIATE")
     private String difficultyPreference;
+
+    @Schema(description = "사용자가 입력한 스터디 주제", example = "React 심화 학습")
+    private String topicInput;
+
+    @Schema(description = "선호 스터디 기간 (주)", example = "4")
+    private Integer durationWeeks;
 }

@@ -194,6 +194,17 @@ export interface AiStudyPlanRequest {
   topic: string;
   techStack?: string[];
   schedule?: string[];
+  durationWeeks?: number;  // 선호 스터디 기간 (주)
+}
+
+// 주차별 커리큘럼 아이템
+export interface AiCurriculumItem {
+  week: number;
+  title: string;
+  description: string;
+  learning_goals?: string[];
+  assignments?: string[];
+  resources?: string[];
 }
 
 export interface AiStudyPlanResponse {
@@ -208,10 +219,12 @@ export interface AiStudyPlanResponse {
   prerequisites: string;
   processDetail: string;
   durationWeeks?: number;
-  scheduleSuggestion: {
+  scheduleSuggestion?: {
     days: string[];
     time: string;
   };
+  // 새로 추가: 주차별 커리큘럼
+  curriculum?: AiCurriculumItem[];
 }
 
 // ========== studyApi 객체 (워크스페이스 등에서 사용) ==========
@@ -223,7 +236,19 @@ export const studyApi = {
    */
   getStudyDetail: async (studyId: number) => {
     const response = await api.get<any>(`/api/v1/study/${studyId}`);
-    return response.data as StudyDetailResponse;
+    let data = response.data;
+
+    // 백엔드 순환참조로 인해 JSON이 문자열로 올 수 있음 - name 필드만 추출
+    if (typeof data === 'string') {
+      const nameMatch = data.match(/"name"\s*:\s*"([^"]+)"/);
+      const idMatch = data.match(/"id"\s*:\s*(\d+)/);
+      data = {
+        id: idMatch ? parseInt(idMatch[1]) : 0,
+        name: nameMatch ? nameMatch[1] : '스터디',
+      };
+    }
+
+    return data as StudyDetailResponse;
   },
 
   /**
@@ -308,6 +333,48 @@ export const createStudy = async (data: StudyCreatePayload) => {
   return response.data;
 };
 
+// 내 스터디 템플릿 목록 조회
+export interface StudyTemplateItem {
+  id: number;
+  name: string;
+  templateType: string;
+  topic: string;
+  format: string;
+  difficulty: string;
+  goal: string;
+  textbook: string;
+  description: string;
+  prerequisites: string;
+  processDetail: string;
+  createdAt: string;
+}
+
+export const getMyTemplates = async (): Promise<StudyTemplateItem[]> => {
+  const response = await api.get('/api/v1/study-templates/my');
+  return response.data;
+};
+
+// 템플릿 생성 (임시저장)
+export interface CreateTemplatePayload {
+  name: string;
+  templateType?: string;
+  topic?: string;
+  format?: string;
+  meetingType?: string;
+  description?: string;
+  textbook?: string;
+  goal?: string;
+  difficulty?: string;
+  prerequisites?: string;
+  processDetail?: string;
+  penaltyPolicy?: string;
+}
+
+export const createTemplate = async (data: CreateTemplatePayload): Promise<StudyTemplateItem> => {
+  const response = await api.post('/api/v1/study-templates', data);
+  return response.data;
+};
+
 // 사용자 맞춤 스터디 추천 목록
 export const getStudyRecommendations = async (limit: number = 10): Promise<StudyRecommendItem[]> => {
   const response = await api.get(`/api/v1/study/recommend?limit=${limit}`);
@@ -316,6 +383,29 @@ export const getStudyRecommendations = async (limit: number = 10): Promise<Study
 
 // AI 스터디 계획 생성
 export const generateStudyPlan = async (data: AiStudyPlanRequest): Promise<AiStudyPlanResponse> => {
-  const response = await api.post('/api/v1/study/template/ai-generate', data);
-  return response.data;
+  // 백엔드 DTO 필드명에 맞게 camelCase로 전달
+  const requestData = {
+    topicInput: data.topic,
+    durationWeeks: data.durationWeeks,
+  };
+
+  const response = await api.post('/api/v1/study-templates/recommend', requestData);
+  const res = response.data;
+
+  // 백엔드 응답을 프론트엔드 타입에 맞게 변환
+  return {
+    name: res.name || '',
+    intro: res.intro || '',
+    description: res.description || '',
+    topic: res.topic || '',
+    format: res.format || '',
+    difficulty: res.difficulty || 'INTERMEDIATE',
+    goal: res.goal || '',
+    textbook: res.textbook || '',
+    prerequisites: res.prerequisites || '',
+    processDetail: res.processDetail || res.process_detail || '',
+    durationWeeks: res.durationWeeks || res.duration_weeks,
+    scheduleSuggestion: res.scheduleSuggestion || res.schedule_suggestion,
+    curriculum: res.curriculum,
+  };
 };
