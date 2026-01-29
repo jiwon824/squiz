@@ -5,7 +5,7 @@ import { useEffect, useState, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Sidebar } from './components/Sidebar';
 import { RightSideBarV2 } from './components-v2/RightSideBarV2';
-import { useUIStore } from '@/store/uiStore';
+import { useUIStore, SidebarMode } from '@/store/uiStore';
 import { useAuthStore } from '@/store/authStore';
 import { SquizLogoNew } from '@/shared/components/SquizLogoNew';
 import { Bell, User, Settings, LogOut } from 'lucide-react';
@@ -26,6 +26,7 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children }) => {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const notificationRef = useRef<HTMLDivElement>(null);
     const profileRef = useRef<HTMLDivElement>(null);
+    const prevSidebarModeRef = useRef<SidebarMode | null>(null);
     const location = useLocation();
 
     // 반응형 리사이즈 감지
@@ -53,7 +54,16 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children }) => {
     useEffect(() => {
         const isMeetingRoom = /^\/study\/\d+\/meetings\/\d+\/room/.test(location.pathname);
         if (isMeetingRoom && sidebarMode !== 'closed') {
+            prevSidebarModeRef.current = sidebarMode;
             setSidebarMode('closed');
+        }
+    }, [location.pathname, sidebarMode, setSidebarMode]);
+    useEffect(() => {
+        const isMeetingRoom = /^\/study\/\d+\/meetings\/\d+\/room/.test(location.pathname);
+        if (isMeetingRoom) return;
+        if (sidebarMode === 'closed') {
+            setSidebarMode(prevSidebarModeRef.current ?? 'mini');
+            prevSidebarModeRef.current = null;
         }
     }, [location.pathname, sidebarMode, setSidebarMode]);
 

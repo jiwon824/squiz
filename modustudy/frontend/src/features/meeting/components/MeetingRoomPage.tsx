@@ -1579,6 +1579,7 @@ const MeetingRoomPage: React.FC = () => {
                 console.error('Failed to end meeting', error);
             } finally {
                 stopCameraHardware();
+                sessionStorage.setItem(`meeting-end-reload-${numericMeetingId}`, '1');
                 navigate(`/study/${numericStudyId}/meetings/${numericMeetingId}`);
             }
         },
@@ -1608,6 +1609,7 @@ const MeetingRoomPage: React.FC = () => {
                 void (async () => {
                     await finalizeVoiceRecording();
                     stopCameraHardware();
+                    sessionStorage.setItem(`meeting-end-reload-${numericMeetingId}`, '1');
                     navigate(`/study/${numericStudyId}/meetings/${numericMeetingId}`);
                 })();
                 return;
