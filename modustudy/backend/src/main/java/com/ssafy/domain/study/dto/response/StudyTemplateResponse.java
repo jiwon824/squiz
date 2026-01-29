@@ -28,6 +28,9 @@ public class StudyTemplateResponse {
     @Schema(description = "템플릿 이름", example = "알고리즘 스터디 템플릿")
     private String name;
 
+    @Schema(description = "한줄 소개", example = "백준 골드를 향해 달려가는 스터디!")
+    private String intro;
+
     @Schema(description = "시스템 템플릿 여부", example = "false")
     private boolean isSystem;
 
@@ -78,6 +81,7 @@ public class StudyTemplateResponse {
                 .id(template.getId())
                 .userId(template.getUserId())
                 .name(template.getName())
+                .intro(template.getIntro())
                 .isSystem(template.isSystem())
                 .templateType(template.getTemplateType())
                 .topic(template.getTopic())

@@ -3,18 +3,12 @@
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
+import { Breadcrumb, type BreadcrumbItem } from './Breadcrumb';
 
-// 브레드크럼 아이템 타입
-export interface BreadcrumbItem {
-    /** 표시할 텍스트 */
-    label: string;
-    /** 클릭 시 이동할 경로 (없으면 현재 페이지) */
-    path?: string;
-    /** 클릭 핸들러 (path보다 우선) */
-    onClick?: () => void;
-}
+// BreadcrumbItem 타입은 Breadcrumb.tsx에서 재export
+export type { BreadcrumbItem } from './Breadcrumb';
 
 export interface PageLayoutProps {
     /** 페이지 제목 */
@@ -64,14 +58,6 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
         }
     };
 
-    const handleBreadcrumbClick = (item: BreadcrumbItem) => {
-        if (item.onClick) {
-            item.onClick();
-        } else if (item.path) {
-            navigate(item.path);
-        }
-    };
-
     return (
         <div className={cn('py-8', className)}>
             <div className="max-w-[1400px] mx-auto px-8">
@@ -79,36 +65,7 @@ export const PageLayout: React.FC<PageLayoutProps> = ({
                 <div className="mb-6">
                     {/* 브레드크럼 */}
                     {breadcrumbs.length > 0 && (
-                        <nav className="flex items-center gap-1.5 text-sm mb-2">
-                            {breadcrumbs.map((item, index) => {
-                                const isLast = index === breadcrumbs.length - 1;
-                                const isClickable = item.path || item.onClick;
-
-                                return (
-                                    <React.Fragment key={index}>
-                                        {index > 0 && (
-                                            <ChevronRight size={14} className="text-text-tertiary" />
-                                        )}
-                                        {isClickable && !isLast ? (
-                                            <button
-                                                onClick={() => handleBreadcrumbClick(item)}
-                                                className="text-text-tertiary hover:text-primary transition-colors"
-                                            >
-                                                {item.label}
-                                            </button>
-                                        ) : (
-                                            <span className={cn(
-                                                isLast
-                                                    ? 'text-text-primary font-medium'
-                                                    : 'text-text-tertiary'
-                                            )}>
-                                                {item.label}
-                                            </span>
-                                        )}
-                                    </React.Fragment>
-                                );
-                            })}
-                        </nav>
+                        <Breadcrumb items={breadcrumbs} className="mb-2" />
                     )}
 
                     {/* 페이지 타이틀 + 뒤로가기 */}
