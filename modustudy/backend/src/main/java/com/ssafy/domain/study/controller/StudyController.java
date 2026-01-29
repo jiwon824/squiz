@@ -35,15 +35,16 @@ public class StudyController {
     /**
      * 전체 스터디 목록 조회
      * GET /api/v1/study?page=0&size=20
+     * - 순환참조 방지를 위해 StudyResponse DTO로 반환
      */
     @GetMapping
-    public ResponseEntity<Page<Study>> getAllStudies(
+    public ResponseEntity<Page<StudyResponse>> getAllStudies(
             @PageableDefault(size = 20) Pageable pageable) {
 
         log.info("API 호출 - 전체 스터디 목록 조회: page={}, size={}",
                 pageable.getPageNumber(), pageable.getPageSize());
 
-        Page<Study> studies = studyService.getAllStudies(pageable);
+        Page<StudyResponse> studies = studyService.getAllStudies(pageable);
 
         return ResponseEntity.ok(studies);
     }
@@ -51,13 +52,14 @@ public class StudyController {
     /**
      * 모집중인 스터디 목록 조회
      * GET /api/v1/study/recruiting?page=0&size=20
+     * - 순환참조 방지를 위해 StudyResponse DTO로 반환
      */
     @GetMapping("/recruiting")
-    public ResponseEntity<Page<Study>> getRecruitingStudies(
+    public ResponseEntity<Page<StudyResponse>> getRecruitingStudies(
             @PageableDefault(size = 20) Pageable pageable) {
         log.info("API 호출 - 모집중인 스터디 목록 조회");
 
-        Page<Study> studies = studyService.getRecruitingStudies(pageable);
+        Page<StudyResponse> studies = studyService.getRecruitingStudies(pageable);
 
         return ResponseEntity.ok(studies);
     }
@@ -83,16 +85,17 @@ public class StudyController {
     /**
      * 스터디 검색/필터링
      * GET /api/v1/study/search?keyword=알고리즘&meetingType=ONLINE&page=0&size=20
+     * - 순환참조 방지를 위해 StudyResponse DTO로 반환
      */
     @GetMapping("/search")
-    public ResponseEntity<Page<Study>> searchStudies(
+    public ResponseEntity<Page<StudyResponse>> searchStudies(
             @ModelAttribute StudySearchCondition condition,
             @PageableDefault(size = 20) Pageable pageable) {
 
         log.info("API 호출 - 스터디 검색 : keyword={}, topic={}",
                 condition.getKeyword(), condition.getTopicId());
 
-        Page<Study> studies = studyService.searchStudies(condition, pageable);
+        Page<StudyResponse> studies = studyService.searchStudies(condition, pageable);
 
         return ResponseEntity.ok(studies);
     }
@@ -100,15 +103,16 @@ public class StudyController {
     /**
      * 스터디장별 스터디 목록 조회
      * GET /api/v1/study/leader/{leaderId}?page=0&size=20
+     * - 순환참조 방지를 위해 StudyResponse DTO로 반환
      */
     @GetMapping("/leader/{leaderId}")
-    public ResponseEntity<Page<Study>> getStudiesByLeader(
+    public ResponseEntity<Page<StudyResponse>> getStudiesByLeader(
             @PathVariable Long leaderId,
             @PageableDefault(size = 20) Pageable pageable) {
 
         log.info("API 호출 - 스터디장별 조회: leaderId={}", leaderId);
 
-        Page<Study> studies = studyService.getStudiesByLeader(leaderId, pageable);
+        Page<StudyResponse> studies = studyService.getStudiesByLeader(leaderId, pageable);
 
         return ResponseEntity.ok(studies);
     }
@@ -116,16 +120,17 @@ public class StudyController {
     /**
      * 스터디장의 특정 상태 스터디 목록 조회
      * GET /api/v1/study/leader/{leaderId}/status/{status}?page=0&size=20
+     * - 순환참조 방지를 위해 StudyResponse DTO로 반환
      */
     @GetMapping("/leader/{leaderId}/status/{status}")
-    public ResponseEntity<Page<Study>> getStudiesByLeaderAndStatus(
+    public ResponseEntity<Page<StudyResponse>> getStudiesByLeaderAndStatus(
             @PathVariable Long leaderId,
             @PathVariable Status status,
             @PageableDefault(size = 20) Pageable pageable) {
 
         log.info("API 호출 - 스터디장 + 상태 조회: leaderId={}, status={}", leaderId, status);
 
-        Page<Study> studies = studyService.getStudiesByLeaderAndStatus(leaderId, status, pageable);
+        Page<StudyResponse> studies = studyService.getStudiesByLeaderAndStatus(leaderId, status, pageable);
 
         return ResponseEntity.ok(studies);
     }
@@ -133,15 +138,16 @@ public class StudyController {
     /**
      * 스터디 상세 조회
      * GET /api/v1/study/{studyId}
+     * - 순환참조 방지를 위해 StudyResponse DTO로 반환
      */
     @GetMapping("/{studyId}")
-    public ResponseEntity<Study> getStudyDetail(
+    public ResponseEntity<StudyResponse> getStudyDetail(
             @PathVariable Long studyId,
             @RequestHeader(value = "User-Id", required = false) Long userId) {
 
         log.info("API 호출 - 스터디 상세 조회: studyId={}", studyId);
 
-        Study study = studyService.getStudyById(studyId);
+        StudyResponse study = studyService.getStudyById(studyId);
 
         // 추천 반응 자동 기록 (로그인 사용자가 추천에서 클릭한 경우)
         if (userId != null) {

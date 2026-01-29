@@ -15,9 +15,11 @@ import tempfile
 from pathlib import Path
 from typing import Optional
 from fastapi import FastAPI, HTTPException, UploadFile, File, BackgroundTasks
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from contextlib import asynccontextmanager
 import uvicorn
+import json
 
 # 설정
 MODEL_PATH = os.getenv("MODEL_PATH", "./models/qwen3-8b-summarizer-q4km.gguf")
@@ -667,6 +669,249 @@ curriculum은 반드시 {total_sessions}개의 회차를 생성해주세요.
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/recommend-template/stream")
+async def recommend_template_stream(request: TemplateRecommendRequest):
+    """
+    스트리밍 방식 스터디 템플릿 생성
+    - SSE(Server-Sent Events) 형식으로 토큰 단위 전송
+    - 완료 시 파싱된 JSON 결과 전송
+    """
+    global recommend_llm
+    if recommend_llm is None:
+        load_recommend_llm()
+    if recommend_llm is None:
+        raise HTTPException(status_code=503, detail="추천 모델이 로드되지 않았습니다")
+
+    # 요청 파라미터 처리 (기존과 동일)
+    topic_input = request.topic_input or "IT 스터디"
+    duration_weeks = request.duration_weeks or 4
+    total_sessions = request.total_sessions or duration_weeks
+    user_tech = request.user_tech or []
+    user_schedule = request.user_schedule or {}
+
+    schedule_str = ""
+    if user_schedule:
+        days = list(user_schedule.keys())
+        schedule_str = f"선호 요일: {', '.join(days)}"
+
+    tech_str = ", ".join(user_tech) if user_tech else "없음"
+
+    # topic/format 목록 (기존과 동일)
+    topic_list = """
+[알고리즘/코딩테스트]
+- 백준
+- 프로그래머스
+- SWEA
+- LeetCode
+- 코딩테스트 대비
+- 자료구조
+- 알고리즘 이론
+
+[CS 기초]
+- 운영체제
+- 네트워크
+- 데이터베이스
+- 컴퓨터구조
+- 디자인패턴
+- 시스템 설계
+
+[프론트엔드]
+- HTML/CSS
+- JavaScript
+- TypeScript
+- React
+- Vue
+- Next.js
+- 웹 접근성/성능
+
+[백엔드]
+- Java/Spring
+- Python/Django
+- Python/FastAPI
+- Node.js/Express
+- Go
+- Kotlin
+- API 설계
+
+[DevOps/인프라]
+- Docker
+- Kubernetes
+- CI/CD
+- AWS
+- GCP
+- Linux
+- 모니터링
+
+[AI/데이터]
+- 머신러닝 기초
+- 딥러닝
+- NLP
+- 컴퓨터 비전
+- MLOps
+- 논문 리뷰
+
+[모바일]
+- Android (Kotlin)
+- Android (Java)
+- iOS (Swift)
+- Flutter
+- React Native
+"""
+
+    format_list = """
+- 문제 풀이: 알고리즘/코딩테스트 문제를 함께 풀어보는 형식
+- 독서/책 스터디: 기술 서적을 함께 읽고 토론하는 형식
+- 강의 수강: 온라인 강의를 함께 수강하고 토론하는 형식
+- 프로젝트: 실제 프로젝트를 함께 개발하는 형식
+- 모의 면접: 기술 면접 대비 연습을 하는 형식
+- 코드 리뷰: 서로의 코드를 리뷰하고 피드백하는 형식
+- 발표/세미나: 각자 학습한 내용을 발표하는 형식
+- 토론: 특정 주제에 대해 토론하는 형식
+"""
+
+    prompt = f"""<|im_start|>system
+당신은 IT 스터디 계획을 작성하는 전문가입니다.
+사용자의 학습 주제를 분석하여 체계적인 스터디 계획을 JSON 형식으로 작성합니다.
+
+중요 규칙:
+1. topic 필드는 반드시 아래 목록에서 정확히 일치하는 값을 선택하세요.
+2. format 필드는 반드시 아래 목록에서 정확히 일치하는 값을 선택하세요.
+3. 목록에 없는 값을 임의로 만들지 마세요.
+4. JSON만 출력하고, 설명이나 부가 텍스트를 추가하지 마세요.
+5. curriculum 배열은 반드시 요청된 총 회차 수만큼 생성하세요.
+
+선택 가능한 topic 목록:
+{topic_list}
+
+선택 가능한 format 목록:
+{format_list}
+<|im_end|>
+<|im_start|>user
+사용자 입력 주제: {topic_input}
+총 회차: {total_sessions}회
+사용자 기술 스택: {tech_str}
+{schedule_str}
+
+위 정보를 바탕으로 스터디 계획을 JSON으로 작성해주세요.
+topic은 위 목록에서 가장 적합한 것을 정확히 선택하고,
+format도 주제에 맞는 것을 위 목록에서 정확히 선택해주세요.
+curriculum은 반드시 {total_sessions}개의 회차를 생성해주세요.
+
+예를 들어:
+- "스프링 학습" → topic: "Java/Spring"
+- "리액트 공부" → topic: "React"
+- "알고리즘 문제풀이" → topic: "알고리즘 이론" 또는 "백준", format: "문제 풀이"
+
+출력할 JSON 형식:
+{{
+  "name": "스터디 제목",
+  "intro": "한 줄 소개 (15자 내외)",
+  "description": "스터디 상세 설명 (2-3문장)",
+  "topic": "목록에서 정확히 선택",
+  "format": "목록에서 정확히 선택",
+  "difficulty": "BEGINNER 또는 INTERMEDIATE 또는 ADVANCED",
+  "goal": "스터디 목표",
+  "textbook": "추천 교재 또는 참고 자료",
+  "prerequisites": "선수 지식 요건",
+  "process_detail": "스터디 진행 방식 설명",
+  "curriculum": [
+    {{"session": 1, "title": "1회차 제목", "description": "학습 내용"}},
+    {{"session": 2, "title": "2회차 제목", "description": "학습 내용"}},
+    ...
+    {{"session": {total_sessions}, "title": "{total_sessions}회차 제목", "description": "학습 내용"}}
+  ]
+}}
+<|im_end|>
+<|im_start|>assistant
+"""
+
+    import re
+
+    async def generate_stream():
+        """토큰 단위 스트리밍 생성기"""
+        full_response = ""
+        tokens_used = 0
+
+        try:
+            # stream=True로 토큰 단위 생성
+            for chunk in recommend_llm(
+                prompt,
+                max_tokens=2048,
+                temperature=0.7,
+                stop=["<|im_end|>", "<|im_start|>"],
+                echo=False,
+                stream=True,
+            ):
+                token = chunk["choices"][0]["text"]
+                full_response += token
+
+                # SSE 형식으로 토큰 전송
+                yield f"event: token\ndata: {json.dumps({'token': token}, ensure_ascii=False)}\n\n"
+
+            # JSON 파싱 시도
+            json_match = re.search(r'\{[\s\S]*\}', full_response)
+            if json_match:
+                try:
+                    result = json.loads(json_match.group())
+                    final_result = {
+                        "name": result.get("name", f"{topic_input} 스터디"),
+                        "intro": result.get("intro", f"{topic_input} 학습을 위한 스터디"),
+                        "description": result.get("description", ""),
+                        "topic": result.get("topic", topic_input),
+                        "format": result.get("format", "강의 수강"),
+                        "difficulty": result.get("difficulty", "INTERMEDIATE"),
+                        "goal": result.get("goal", ""),
+                        "textbook": result.get("textbook", ""),
+                        "prerequisites": result.get("prerequisites", ""),
+                        "process_detail": result.get("process_detail", ""),
+                        "schedule_suggestion": None,
+                        "curriculum": result.get("curriculum", []),
+                        "reason": None,
+                        "tokens_used": 0,
+                    }
+                    yield f"event: complete\ndata: {json.dumps(final_result, ensure_ascii=False)}\n\n"
+                except json.JSONDecodeError:
+                    # JSON 파싱 실패 시 기본값
+                    fallback = {
+                        "name": f"{topic_input} 스터디",
+                        "intro": f"{topic_input} 학습을 위한 스터디입니다.",
+                        "description": f"{topic_input}에 대해 {duration_weeks}주간 함께 학습합니다.",
+                        "topic": topic_input,
+                        "format": "강의 수강",
+                        "difficulty": "INTERMEDIATE",
+                        "goal": f"{topic_input} 마스터하기",
+                        "textbook": "공식 문서 및 온라인 강의",
+                        "prerequisites": "기초 프로그래밍 지식",
+                        "process_detail": "매주 학습 후 토론 및 과제 수행",
+                        "schedule_suggestion": None,
+                        "curriculum": [],
+                        "reason": "JSON 파싱 실패",
+                        "tokens_used": 0,
+                    }
+                    yield f"event: complete\ndata: {json.dumps(fallback, ensure_ascii=False)}\n\n"
+            else:
+                # JSON 블록 없음
+                fallback = {
+                    "name": f"{topic_input} 스터디",
+                    "error": "JSON 형식 응답 없음",
+                    "raw_response": full_response[:500],
+                }
+                yield f"event: complete\ndata: {json.dumps(fallback, ensure_ascii=False)}\n\n"
+
+        except Exception as e:
+            yield f"event: error\ndata: {json.dumps({'error': str(e)}, ensure_ascii=False)}\n\n"
+
+    return StreamingResponse(
+        generate_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",  # Nginx 버퍼링 비활성화
+        }
+    )
 
 
 @app.post("/api/action-items")

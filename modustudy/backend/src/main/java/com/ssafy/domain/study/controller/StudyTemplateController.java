@@ -10,10 +10,13 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * 스터디 템플릿 Controller
@@ -110,6 +113,48 @@ public class StudyTemplateController {
         log.info("API 응답 - AI 추천 완료: type={}, topic={}", response.getTemplateType(), response.getTopic());
 
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * AI 템플릿 추천 (스트리밍)
+     * GET /api/v1/study-templates/recommend/stream
+     * - SSE(Server-Sent Events)로 실시간 토큰 전송
+     * - 완료 시 파싱된 JSON 결과 전송
+     */
+    @GetMapping(value = "/recommend/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter recommendTemplateStream(
+            @RequestParam(required = false) String topicInput,
+            @RequestParam(required = false, defaultValue = "4") Integer durationWeeks,
+            @RequestParam(required = false) Integer totalSessions,
+            @RequestHeader(value = "user-id", required = false) Long userId) {
+
+        log.info("API 호출 - AI 템플릿 추천 (스트리밍): userId={}, topic={}", userId, topicInput);
+
+        // 타임아웃 2분 (AI 생성 최대 시간 고려)
+        SseEmitter emitter = new SseEmitter(120000L);
+
+        // 에러/타임아웃 핸들러
+        emitter.onTimeout(() -> log.warn("SSE 타임아웃: userId={}", userId));
+        emitter.onError(e -> log.error("SSE 에러: userId={}", userId, e));
+        emitter.onCompletion(() -> log.info("SSE 완료: userId={}", userId));
+
+        // 비동기로 AI 서버 스트리밍 호출
+        CompletableFuture.runAsync(() -> {
+            try {
+                studyTemplateService.streamRecommendTemplate(
+                        topicInput, durationWeeks, totalSessions, userId, emitter);
+            } catch (Exception e) {
+                log.error("스트리밍 추천 실패: userId={}", userId, e);
+                try {
+                    emitter.send(SseEmitter.event()
+                            .name("error")
+                            .data("{\"error\": \"" + e.getMessage() + "\"}"));
+                } catch (Exception ignored) {}
+                emitter.completeWithError(e);
+            }
+        });
+
+        return emitter;
     }
 
     // ============================================================

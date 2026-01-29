@@ -90,6 +90,9 @@ public class StudyCreateRequest {
 
     private Map<String, Object> targetOrgCriteria;
 
+    // 상태 (RECRUITING, PENDING 등) - 모집기간 기준으로 프론트에서 설정
+    private Status status;
+
     /**
      * DTO를 Entity로 변환
      * ⚠️ Topic, Format은 Service에서 조회 후 설정해야 함
@@ -111,7 +114,7 @@ public class StudyCreateRequest {
                 .scheduleTime(scheduleTime)
                 .maxMembers(maxMembers)
                 .isPublic(isPublic)
-                .status(Status.DRAFT)
+                .status(status != null ? status : Status.DRAFT)
                 .penaltyPolicy(penaltyPolicy)
                 .startDate(startDate)
                 .endDate(endDate)
