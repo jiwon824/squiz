@@ -44,29 +44,33 @@ export const RecruitmentList: React.FC<RecruitmentListProps> = ({ onDetail, onAd
     return (
         <div className="space-y-6 animate-fadeIn">
             {/* 헤더 */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl md:text-3xl font-bold text-[var(--color-text-primary)]">
-                        팀원 모집 게시판
-                    </h1>
-                    <p className="text-sm text-[var(--color-text-secondary)] mt-1">
-                        총 <span className="font-bold text-[var(--color-primary)]">{filteredPosts.length}</span>개의 모집글
-                    </p>
+            <div className="flex justify-between mb-2">
+                <div className="flex items-center pt-2">
+                    <div>
+                        <h1 className="text-2xl md:text-3xl font-bold text-[var(--color-text-primary)]">
+                            팀원 모집 게시판
+                        </h1>
+                        <p className="text-sm text-[var(--color-text-secondary)] mt-1">
+                            총 <span className="font-bold text-[var(--color-primary)]">{filteredPosts.length}</span>개의 모집글
+                        </p>
+                    </div>
                 </div>
 
-                <Button
-                    onClick={onAdd}
-                    variant="primary"
-                    size="md"
-                    leftIcon={<Plus size={18} />}
-                    className="h-11 rounded-xl font-semibold shadow-md shadow-[var(--color-primary-alpha-20)]"
-                >
-                    모집글 작성하기
-                </Button>
+                <div className="flex items-center">
+                    <Button
+                        onClick={onAdd}
+                        variant="primary"
+                        size="md"
+                        leftIcon={<Plus size={18} />}
+                        className="h-11 rounded-xl font-semibold shadow-md shadow-[var(--color-primary-alpha-20)]"
+                    >
+                        모집글 작성하기
+                    </Button>
+                </div>
             </div>
 
-            {/* 검색 및 필터 바 - 스터디 페이지 스타일 */}
-            <div className="bg-white rounded-2xl border border-[var(--color-border)] p-4 shadow-sm">
+            {/* 검색 및 필터 바 */}
+            <div className="mb-6">
                 <div className="flex flex-col lg:flex-row gap-4">
                     {/* 검색 바 */}
                     <div className="flex-1 relative">
@@ -76,7 +80,7 @@ export const RecruitmentList: React.FC<RecruitmentListProps> = ({ onDetail, onAd
                             placeholder="제목, 기술 스택 등으로 검색..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            className="w-full h-11 pl-11 pr-10 bg-[var(--color-background)] border border-[var(--color-border-lighter)] rounded-xl text-sm focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary-alpha-10)] transition-all"
+                            className="w-full h-11 pl-11 pr-10 bg-[var(--color-background)] rounded-xl text-sm focus:outline-none ring-0 focus:ring-2 ring-[var(--color-primary-alpha-10)] transition-all duration-300 ease-in-out"
                         />
                         {search && (
                             <button
@@ -90,13 +94,13 @@ export const RecruitmentList: React.FC<RecruitmentListProps> = ({ onDetail, onAd
                     </div>
 
                     {/* 카테고리 필터 탭 */}
-                    <div className="flex bg-[var(--color-background)] rounded-lg p-1 border border-[var(--color-border-lighter)]">
+                    <div className="flex items-center h-11 bg-[var(--color-background)] rounded-xl px-1">
                         {(['all', 'study', 'project', 'mentoring'] as const).map((cat) => (
                             <button
                                 key={cat}
                                 onClick={() => setActiveCategory(cat)}
                                 className={cn(
-                                    "px-4 py-1.5 text-xs font-semibold rounded-md transition-all whitespace-nowrap",
+                                    "px-3 py-2 text-xs font-semibold rounded-lg transition-all whitespace-nowrap",
                                     activeCategory === cat
                                         ? "bg-white text-[var(--color-primary)] shadow-sm"
                                         : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
