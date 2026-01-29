@@ -26,9 +26,18 @@ import java.util.Optional;
  * <ul>
  *   <li>Attempt 레코드 생성 없음 — user_review_items 직접 업데이트</li>
  *   <li>Section Locking 없음 — 자유롭게 학습 가능</li>
- *   <li>가중치 기반 랜덤 문제 선택</li>
+ *   <li><b>확률적 가중치</b> 기반 랜덤 문제 선택 (엄격한 우선순위 아님)</li>
  *   <li>FSRS 기반 즉시 상태 갱신</li>
+ *   <li><b>무한 루프</b> — 섹션 완료 개념 없음, 동일 문제 재출제 가능</li>
  * </ul>
+ *
+ * <h3>확률적 가중치 로직</h3>
+ * <ul>
+ *   <li>신규 문제: 가중치 10.0 (가장 높음)</li>
+ *   <li>복습 필요 (Due): 가중치 5.0</li>
+ *   <li>학습 완료: 가중치 1/(reps+1) (반복할수록 감소)</li>
+ * </ul>
+ * <p>모든 문제가 선택될 수 있으며, 100번 푼 문제도 다시 출제될 수 있음.</p>
  */
 @Slf4j
 @Service
@@ -110,17 +119,19 @@ public class ContinuousQuizService {
     }
 
     /**
-     * 다음 문제 조회 (가중치 기반 랜덤 선택).
+     * 다음 문제 조회 (확률적 가중치 기반 랜덤 선택).
+     *
+     * <p>신규/Due 문제가 높은 확률로 선택되지만, 모든 문제가 선택될 수 있음.</p>
      *
      * @param userId        사용자 ID
      * @param courseId      코스 ID
      * @param sectionNumber 섹션 번호
-     * @return 다음 문제 (없으면 예외)
+     * @return 다음 문제 (섹션에 문제가 없으면 예외)
      */
     public ContinuousQuestionResponse getNextQuestion(Long userId, Long courseId,
                                                        Integer sectionNumber) {
         QuizCourseQuestion question = learningRepository
-                .findNextQuestionWeightedRandom(courseId, sectionNumber, userId)
+                .findNextQuestionProbabilisticNoExclude(courseId, sectionNumber, userId)
                 .orElseThrow(() -> new BusinessException(
                         HttpStatus.NOT_FOUND, "NO_QUESTIONS_AVAILABLE",
                         "해당 섹션에 문제가 없습니다."));
@@ -134,14 +145,17 @@ public class ContinuousQuizService {
      * <p>Single API Call로 처리:</p>
      * <ol>
      *   <li>현재 문제 답변 처리 (FSRS 업데이트)</li>
-     *   <li>다음 문제 조회 (Priority 기반: New > Due > Random)</li>
+     *   <li>다음 문제 조회 (확률적 가중치 기반)</li>
      *   <li>통합 응답 반환</li>
      * </ol>
+     *
+     * <p><b>무한 루프:</b> 섹션 완료 개념 없음. 섹션에 문제가 있으면 항상 다음 문제 반환.</p>
+     * <p>방금 푼 문제를 제외하되, 섹션에 문제가 1개뿐이면 같은 문제 재출제.</p>
      *
      * @param userId     사용자 ID
      * @param questionId 현재 문제 ID
      * @param request    답변 요청 (userAnswer, responseTimeMs)
-     * @return 답변 결과 + 다음 문제 (섹션 완료 시 nextQuestion = null)
+     * @return 답변 결과 + 다음 문제 (섹션에 문제가 없을 때만 nextQuestion = null)
      */
     @Transactional
     public ContinuousSubmitResponse processAnswerAndGetNext(Long userId, Long questionId,
@@ -164,12 +178,19 @@ public class ContinuousQuizService {
                 request.getResponseTimeMs()
         );
 
-        // 4. 다음 문제 조회 (Priority 기반, 현재 문제 제외)
+        // 4. 다음 문제 조회 (확률적 가중치 기반, 현재 문제 제외 시도)
         Long courseId = currentQuestion.getSection().getQuizCourseId();
         Integer sectionNumber = currentQuestion.getSection().getSectionNumber();
 
+        // 현재 문제 제외하고 조회
         Optional<QuizCourseQuestion> nextQuestionOpt = learningRepository
-                .findNextQuestionByPriority(courseId, sectionNumber, userId, questionId);
+                .findNextQuestionProbabilistic(courseId, sectionNumber, userId, questionId);
+
+        // 섹션에 문제가 1개뿐이면 같은 문제 재출제 (무한 루프 지원)
+        if (nextQuestionOpt.isEmpty()) {
+            nextQuestionOpt = learningRepository
+                    .findNextQuestionProbabilisticNoExclude(courseId, sectionNumber, userId);
+        }
 
         // 5. 통합 응답 빌드
         ContinuousSubmitResponse.ContinuousSubmitResponseBuilder builder = ContinuousSubmitResponse.builder()
@@ -188,27 +209,27 @@ public class ContinuousQuizService {
                 .reps(reviewItem.getReps())
                 .lapses(reviewItem.getLapses());
 
-        // 다음 문제 설정
+        // 다음 문제 설정 (섹션에 문제가 있으면 항상 존재)
         if (nextQuestionOpt.isPresent()) {
             QuizCourseQuestion next = nextQuestionOpt.get();
             builder.nextQuestion(ContinuousSubmitResponse.NextQuestion.builder()
-                            .questionId(next.getId())
-                            .questionNumber(next.getQuestionNumber())
-                            .questionText(next.getQuestionText())
-                            .questionType(next.getQuestionType().name())
-                            .options(next.getOptions())
-                            .courseId(next.getSection().getQuizCourseId())
-                            .sectionNumber(next.getSection().getSectionNumber())
-                            .build())
-                    .sectionCompleted(false);
+                    .questionId(next.getId())
+                    .questionNumber(next.getQuestionNumber())
+                    .questionText(next.getQuestionText())
+                    .questionType(next.getQuestionType().name())
+                    .options(next.getOptions())
+                    .courseId(next.getSection().getQuizCourseId())
+                    .sectionNumber(next.getSection().getSectionNumber())
+                    .build());
         } else {
-            builder.nextQuestion(null)
-                    .sectionCompleted(true);
+            // 섹션에 문제가 없는 경우 (이론상 발생하지 않음)
+            builder.nextQuestion(null);
         }
 
         log.info("Atomic Submit & Next - userId: {}, questionId: {}, isCorrect: {}, " +
-                        "hasNext: {}, stability: {:.2f}",
-                userId, questionId, isCorrect, nextQuestionOpt.isPresent(),
+                        "nextQuestionId: {}, stability: {:.2f}",
+                userId, questionId, isCorrect,
+                nextQuestionOpt.map(QuizCourseQuestion::getId).orElse(null),
                 reviewItem.getStability());
 
         return builder.build();

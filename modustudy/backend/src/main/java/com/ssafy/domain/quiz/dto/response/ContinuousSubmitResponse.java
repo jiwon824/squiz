@@ -9,6 +9,8 @@ import java.time.LocalDateTime;
  * Continuous Learning 모드 - Submit & Next 통합 응답 DTO.
  *
  * <p>답변 제출 결과와 다음 문제를 한 번에 반환한다.</p>
+ *
+ * <p><b>무한 루프 지원:</b> 섹션 완료 개념 없음. nextQuestion은 섹션에 문제가 있으면 항상 존재.</p>
  */
 @Getter
 @Builder
@@ -39,14 +41,12 @@ public class ContinuousSubmitResponse {
     // ══════════════════════════════════════════════════════
 
     /**
-     * 다음 문제 (없으면 null - 섹션 완료)
+     * 다음 문제.
+     *
+     * <p>무한 루프 지원으로 섹션에 문제가 있으면 항상 존재.
+     * 섹션에 문제가 없는 경우에만 null (이론상 발생하지 않음).</p>
      */
     private NextQuestion nextQuestion;
-
-    /**
-     * 섹션 완료 여부 (다음 문제가 없으면 true)
-     */
-    private boolean sectionCompleted;
 
     @Getter
     @Builder

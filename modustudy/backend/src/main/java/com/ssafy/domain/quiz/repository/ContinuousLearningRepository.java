@@ -159,24 +159,29 @@ public interface ContinuousLearningRepository extends JpaRepository<QuizCourseQu
             @Param("userId") Long userId);
 
     // ────────────────────────────────────────────────────────────────────────────
-    // Priority 기반 선택 (New > Due > Random)
+    // 확률적 가중치 기반 선택 (Probabilistic Weighted Selection)
     // ────────────────────────────────────────────────────────────────────────────
 
     /**
-     * Priority 기반 다음 문제 선택.
+     * 확률적 가중치 기반 다음 문제 선택.
      *
-     * <p>우선순위:</p>
-     * <ol>
-     *   <li>Priority 1 (New): user_review_items에 없는 문제</li>
-     *   <li>Priority 2 (Due): next_review_at <= NOW()</li>
-     *   <li>같은 priority 내에서는 랜덤 선택</li>
-     * </ol>
+     * <p>가중치 로직 (확률적 선택, 엄격한 우선순위 아님):</p>
+     * <ul>
+     *   <li>신규 문제 (uri.id IS NULL): 가중치 10.0 (가장 높음)</li>
+     *   <li>복습 필요 (next_review_at <= NOW): 가중치 5.0</li>
+     *   <li>학습 완료: 가중치 1.0 / (reps + 1) (반복할수록 감소)</li>
+     * </ul>
+     *
+     * <p>지수 분포 랜덤 공식: ORDER BY -LOG(1 - RAND()) / weight</p>
+     * <p>가중치가 높을수록 선택 확률이 높지만, 모든 문제가 선택될 수 있음</p>
+     *
+     * <p><b>무한 루프 지원:</b> 섹션 완료 개념 없음, 문제가 있으면 항상 반환</p>
      *
      * @param courseId      코스 ID
      * @param sectionNumber 섹션 번호
      * @param userId        사용자 ID
-     * @param excludeId     제외할 문제 ID (방금 푼 문제)
-     * @return 선택된 문제 (Optional)
+     * @param excludeId     제외할 문제 ID (방금 푼 문제, null 허용)
+     * @return 선택된 문제 (Optional - 섹션에 문제가 없을 때만 empty)
      */
     @Query(value = """
             SELECT q.*
@@ -188,18 +193,51 @@ public interface ContinuousLearningRepository extends JpaRepository<QuizCourseQu
             WHERE q.quiz_course_id = :courseId
               AND q.section_number = :sectionNumber
               AND (:excludeId IS NULL OR q.id != :excludeId)
-            ORDER BY
+            ORDER BY -LOG(1 - RAND()) / (
                 CASE
-                    WHEN uri.id IS NULL THEN 0
-                    WHEN uri.next_review_at <= NOW() THEN 1
-                    ELSE 2
-                END,
-                RAND()
+                    WHEN uri.id IS NULL THEN 10.0
+                    WHEN uri.next_review_at <= NOW() THEN 5.0
+                    ELSE 1.0 / (COALESCE(uri.reps, 0) + 1)
+                END
+            )
             LIMIT 1
             """, nativeQuery = true)
-    Optional<QuizCourseQuestion> findNextQuestionByPriority(
+    Optional<QuizCourseQuestion> findNextQuestionProbabilistic(
             @Param("courseId") Long courseId,
             @Param("sectionNumber") Integer sectionNumber,
             @Param("userId") Long userId,
             @Param("excludeId") Long excludeId);
+
+    /**
+     * 확률적 가중치 기반 다음 문제 선택 (제외 문제 없음).
+     *
+     * <p>첫 문제 조회 시 사용. excludeId가 필요 없는 경우.</p>
+     *
+     * @param courseId      코스 ID
+     * @param sectionNumber 섹션 번호
+     * @param userId        사용자 ID
+     * @return 선택된 문제 (Optional - 섹션에 문제가 없을 때만 empty)
+     */
+    @Query(value = """
+            SELECT q.*
+            FROM quiz_course_question q
+            LEFT JOIN user_review_items uri
+                ON uri.content_type = 'COURSE_QUESTION'
+                AND uri.content_id = q.id
+                AND uri.user_id = :userId
+            WHERE q.quiz_course_id = :courseId
+              AND q.section_number = :sectionNumber
+            ORDER BY -LOG(1 - RAND()) / (
+                CASE
+                    WHEN uri.id IS NULL THEN 10.0
+                    WHEN uri.next_review_at <= NOW() THEN 5.0
+                    ELSE 1.0 / (COALESCE(uri.reps, 0) + 1)
+                END
+            )
+            LIMIT 1
+            """, nativeQuery = true)
+    Optional<QuizCourseQuestion> findNextQuestionProbabilisticNoExclude(
+            @Param("courseId") Long courseId,
+            @Param("sectionNumber") Integer sectionNumber,
+            @Param("userId") Long userId);
 }
