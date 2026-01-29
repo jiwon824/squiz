@@ -11,6 +11,12 @@ import { SquizLogoNew } from '@/shared/components/SquizLogoNew';
 import { Bell, User, Settings, LogOut } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 
+// 반응형 브레이크포인트 기준값 (CSS 논리 픽셀 기준, 브라우저 확대/축소 자동 반영)
+const BREAKPOINTS = {
+    MOBILE: 600,        // 모바일: 좌측 사이드바 닫힘, 우측 사이드바 숨김
+    TABLET: 1000,       // 태블릿 이상: 좌측 사이드바 mini 모드
+} as const;
+
 interface UserLayoutV2Props {
     children: React.ReactNode;
 }
@@ -28,23 +34,52 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children }) => {
     const profileRef = useRef<HTMLDivElement>(null);
     const location = useLocation();
 
-    // 반응형 리사이즈 감지
+    // 반응형 리사이즈 + 브라우저 확대/축소 감지
+    // window.innerWidth는 CSS 논리 픽셀 기준이므로 확대 시 값이 줄어듦
     useEffect(() => {
         const handleResize = () => setWindowWidth(window.innerWidth);
         window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
+
+        // visualViewport: 핀치 줌 등 시각적 뷰포트 변경 감지 (모바일 대응)
+        const vv = window.visualViewport;
+        if (vv) {
+            vv.addEventListener('resize', handleResize);
+        }
+
+        return () => {
+            window.removeEventListener('resize', handleResize);
+            if (vv) {
+                vv.removeEventListener('resize', handleResize);
+            }
+        };
     }, []);
 
-    // 반응형 1000px 이하에서 사이드바 미니 모드로 전환
+    // 반응형 사이드바 자동 모드 전환 (화면 크기 변경 시에만 동작)
+    const prevWidthRef = useRef(windowWidth);
     useEffect(() => {
-        if (windowWidth <= 1000 && sidebarMode === 'full') {
+        const prevWidth = prevWidthRef.current;
+        prevWidthRef.current = windowWidth;
+
+        // 화면 크기가 실제로 변경되지 않았으면 무시 (수동 토글 보호)
+        if (prevWidth === windowWidth) return;
+
+        const isMeetingRoom = /^\/study\/\d+\/meetings\/\d+\/room/.test(location.pathname);
+        if (isMeetingRoom) return;
+
+        if (windowWidth <= BREAKPOINTS.MOBILE) {
+            // 모바일로 축소: 완전 닫기
+            if (sidebarMode !== 'closed') {
+                setSidebarMode('closed');
+            }
+        } else if (prevWidth <= BREAKPOINTS.MOBILE) {
+            // 모바일에서 벗어남: mini로 복원
             setSidebarMode('mini');
         }
-    }, [windowWidth, sidebarMode, setSidebarMode]);
+    }, [windowWidth, sidebarMode, setSidebarMode, location.pathname]);
 
-    // 반응형 600px 이하에서 우측 사이드바 자동 닫기
+    // 모바일에서 우측 사이드바 자동 닫기
     useEffect(() => {
-        if (windowWidth <= 600 && activeRightTab) {
+        if (windowWidth <= BREAKPOINTS.MOBILE && activeRightTab) {
             setActiveRightTab(null);
         }
     }, [windowWidth, activeRightTab, setActiveRightTab]);
@@ -72,7 +107,7 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children }) => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const isCompactMode = windowWidth <= 600;
+    const isCompactMode = windowWidth <= BREAKPOINTS.MOBILE;
     const isMeetingRoom = /^\/study\/\d+\/meetings\/\d+\/room/.test(location.pathname);
     const shouldHideHeader = isMeetingRoom;
 
@@ -82,6 +117,17 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children }) => {
             {!shouldHideHeader && (
                 <header className="h-16 w-full bg-slate-200 flex items-center justify-between px-6 flex-shrink-0 z-50">
                     <div className="flex items-center gap-4">
+                        {/* 사이드바 닫힘 상태일 때 헤더에 열기 버튼 표시 */}
+                        {sidebarMode === 'closed' && (
+                            <button
+                                onClick={() => setSidebarMode('mini')}
+                                className="p-2 rounded-2xl hover:bg-white/60 transition-colors"
+                                aria-label="사이드바 열기"
+                            >
+                                <span className="material-icons text-gray-600 text-[24px]">menu</span>
+                            </button>
+                        )}
+
                         {/* 로고 영역 */}
                         <Link to="/dashboard" className="flex items-center">
                             <SquizLogoNew width={160} height={55} className="scale-110 origin-left" />
@@ -253,12 +299,13 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children }) => {
             <div className="flex flex-1 overflow-hidden">
                 <Sidebar />
 
-                {/* 페이지 콘텐츠 */}
+                {/* 페이지 콘텐츠 - 사이드바 닫힘 시 왼쪽 패딩으로 벽 붙음 방지 */}
                 <main
                     className={cn(
                         'flex-1 flex flex-col overflow-hidden',
-                        'pb-6 pr-0 pl-0 bg-slate-200 transition-all duration-300 ease-out',
-                        shouldHideHeader ? 'pt-0' : 'pt-2'
+                        'pb-6 pr-0 bg-slate-200 transition-all duration-300 ease-out',
+                        shouldHideHeader ? 'pt-0' : 'pt-2',
+                        sidebarMode === 'closed' ? 'pl-4' : 'pl-0'
                     )}
                 >
                     {/* 둥근 메인 컨테이너 섹션 */}
