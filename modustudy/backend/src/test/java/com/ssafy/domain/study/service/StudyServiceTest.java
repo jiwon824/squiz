@@ -605,7 +605,7 @@ class StudyServiceTest {
             given(studyRepository.findAllById(List.of(2L))).willReturn(List.of(memberStudy));
 
             // when
-            Page<Study> result = studyService.getMyStudies(userId, pageable);
+            Page<StudyResponse> result = studyService.getMyStudies(userId, pageable);
 
             // then
             assertThat(result).isNotNull();
@@ -629,7 +629,7 @@ class StudyServiceTest {
                     .willReturn(new PageImpl<>(List.of()));
 
             // when
-            Page<Study> result = studyService.getMyStudies(userId, pageable);
+            Page<StudyResponse> result = studyService.getMyStudies(userId, pageable);
 
             // then
             assertThat(result).isNotNull();
