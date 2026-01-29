@@ -6,6 +6,7 @@ import com.ssafy.domain.calendar.dto.CalendarStatusResponse;
 import com.ssafy.domain.calendar.entity.CalendarWatch;
 import com.ssafy.domain.calendar.repository.CalendarWatchRepository;
 import com.ssafy.domain.calendar.service.GoogleCalendarService;
+import com.ssafy.domain.user.service.OAuth2Service;
 import com.ssafy.domain.user.entity.SocialProvider;
 import com.ssafy.domain.user.entity.UserSocialAccount;
 import com.ssafy.domain.user.repository.UserSocialAccountRepository;
@@ -29,8 +30,16 @@ import java.util.List;
 public class GoogleCalendarController {
 
     private final GoogleCalendarService googleCalendarService;
+    private final OAuth2Service oAuth2Service;
     private final UserSocialAccountRepository socialAccountRepository;
     private final CalendarWatchRepository calendarWatchRepository;
+
+    @GetMapping("/google/auth-url")
+    @Operation(summary = "Google 캘린더 OAuth 인증 URL 조회")
+    public ResponseEntity<ApiResponse<java.util.Map<String, String>>> getGoogleCalendarAuthUrl() {
+        String authUrl = oAuth2Service.getGoogleAuthUrl();
+        return ResponseEntity.ok(ApiResponse.success(java.util.Map.of("authUrl", authUrl)));
+    }
 
     @GetMapping("/status")
     @Operation(summary = "캘린더 연동 상태 확인")
