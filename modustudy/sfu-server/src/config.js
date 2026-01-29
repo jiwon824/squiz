@@ -1,6 +1,15 @@
 const path = require('path');
 const os = require('os');
 
+// ffmpeg-static 패키지에서 ffmpeg 바이너리 경로 가져오기
+let ffmpegStaticPath = null;
+try {
+  ffmpegStaticPath = require('ffmpeg-static');
+  console.log('[config] ffmpeg-static loaded:', ffmpegStaticPath);
+} catch (err) {
+  console.warn('[config] ffmpeg-static not available, using system ffmpeg:', err.message);
+}
+
 // Docker 컨테이너 내부 IP 자동 감지
 function getContainerIp() {
   const interfaces = os.networkInterfaces();
@@ -15,6 +24,8 @@ function getContainerIp() {
 }
 
 const config = {
+  // 멀티 Worker 설정: CPU 코어 수 또는 환경변수로 지정
+  numWorkers: Number(process.env.NUM_WORKERS || Math.max(1, os.cpus().length)),
   port: Number(process.env.PORT || 4000),
   listenIp: process.env.LISTEN_IP || '0.0.0.0',
   announcedIp: process.env.ANNOUNCED_IP
@@ -33,7 +44,7 @@ const config = {
   rtcMaxPort: Number(process.env.RTC_MAX_PORT || 22000),
   recordingsBasePath: process.env.RECORDINGS_BASE_PATH
     || path.resolve(__dirname, '..', '..', 'backend', 'uploads'),
-  ffmpegPath: process.env.FFMPEG_PATH || 'ffmpeg',
+  ffmpegPath: process.env.FFMPEG_PATH || ffmpegStaticPath || 'ffmpeg',
   recordingWidth: Number(process.env.RECORDING_WIDTH || 1280),
   recordingHeight: Number(process.env.RECORDING_HEIGHT || 720),
   recordingFps: Number(process.env.RECORDING_FPS || 30),
@@ -63,5 +74,7 @@ const config = {
     }
   ]
 };
+
+console.log('[config] ffmpegPath:', config.ffmpegPath);
 
 module.exports = config;

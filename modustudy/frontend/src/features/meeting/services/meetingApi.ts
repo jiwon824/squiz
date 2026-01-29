@@ -124,6 +124,14 @@ export const meetingApi = {
         return data.data;
     },
 
+    async deleteChatMessage(
+        studyId: number,
+        meetingId: number,
+        messageId: number
+    ): Promise<void> {
+        await api.delete(`${buildMeetingPath(studyId, meetingId)}/chat/${messageId}`);
+    },
+
     async getRecording(studyId: number, meetingId: number): Promise<MeetingRecordingResponse> {
         const { data } = await api.get<ApiResponse<MeetingRecordingResponse>>(
             `${buildMeetingPath(studyId, meetingId)}/recording`

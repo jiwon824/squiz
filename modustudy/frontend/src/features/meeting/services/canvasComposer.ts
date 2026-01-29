@@ -1,4 +1,4 @@
-﻿// 해상도/프레임 제한 상수
+﻿// 대역폭 절약을 위한 Canvas 해상도/프레임 제한 상수
 const MAX_WIDTH = 1920;
 const MAX_HEIGHT = 1080;
 const CAPTURE_FPS = 24;
@@ -109,12 +109,12 @@ class CanvasComposerService {
       this.screenVideo = await this.prepareVideo(screenStream);
       this.cameraVideo = await this.prepareVideo(cameraStream);
 
-      // 최대 해상도 제한 적용
-      const rawWidth = this.screenVideo.videoWidth || 1920;
-      const rawHeight = this.screenVideo.videoHeight || 1080;
-      const scale = Math.min(1, MAX_WIDTH / rawWidth, MAX_HEIGHT / rawHeight);
-      const width = Math.round(rawWidth * scale);
-      const height = Math.round(rawHeight * scale);
+      // 원본 해상도 유지하되 최대 크기 제한 적용
+      const srcWidth = this.screenVideo.videoWidth || MAX_WIDTH;
+      const srcHeight = this.screenVideo.videoHeight || MAX_HEIGHT;
+      const scale = Math.min(1, MAX_WIDTH / srcWidth, MAX_HEIGHT / srcHeight);
+      const width = Math.round(srcWidth * scale);
+      const height = Math.round(srcHeight * scale);
 
       this.ensureCanvas(width, height);
       this.resetComposedStream();
