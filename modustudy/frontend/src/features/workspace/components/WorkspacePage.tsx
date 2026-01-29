@@ -101,6 +101,25 @@ export const WorkspacePage: React.FC = () => {
           studyApi.getStudyMembers(studyId),
         ]);
 
+        // 스터디 시작일 체크: 시작일 전이면 상세페이지로 리다이렉트
+        if (studyData?.startDate) {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const startDate = new Date(studyData.startDate);
+          startDate.setHours(0, 0, 0, 0);
+
+          if (today < startDate) {
+            const formattedDate = startDate.toLocaleDateString('ko-KR', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            });
+            showToast?.(`워크스페이스는 스터디 시작일(${formattedDate})부터 이용 가능합니다.`, 'info');
+            navigate(`/study/v3/${studyId}`);
+            return;
+          }
+        }
+
         setStudyName(studyData?.name || '스터디');
 
         // 멤버 목록 설정
@@ -149,7 +168,7 @@ export const WorkspacePage: React.FC = () => {
     };
 
     loadInitialData();
-  }, [studyId]);
+  }, [studyId, navigate, showToast]);
 
   // WebSocket 연결 관리
   useEffect(() => {

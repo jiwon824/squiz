@@ -38,66 +38,85 @@ public class StudyService {
 
     /**
      * 전체 스터디 목록 조회 (공개된 스터디만, DRAFT 제외)
+     * - 순환참조 방지를 위해 StudyResponse DTO로 반환
      */
-    public Page<Study> getAllStudies(Pageable pageable) {
+    public Page<StudyResponse> getAllStudies(Pageable pageable) {
         log.info("전체 스터디 목록 조회 - page: {}, size: {}",
                 pageable.getPageNumber(), pageable.getPageSize());
 
-        return studyRepository.findAllPublicStudies(Status.DRAFT, pageable);
+        Page<Study> studies = studyRepository.findAllPublicStudies(Status.DRAFT, pageable);
+        return studies.map(StudyResponse::from);
     }
 
     /**
      * 모집중인 스터디 목록 조회
+     * - 순환참조 방지를 위해 StudyResponse DTO로 반환
      */
-    public Page<Study> getRecruitingStudies(Pageable pageable) {
+    public Page<StudyResponse> getRecruitingStudies(Pageable pageable) {
         log.info("모집중인 스터디 목록 조회 - page: {}, size: {}",
                 pageable.getPageNumber(), pageable.getPageSize());
 
-        return studyRepository.findRecruitingStudies(pageable);
+        Page<Study> studies = studyRepository.findRecruitingStudies(pageable);
+        return studies.map(StudyResponse::from);
     }
 
     /**
      * 스터디 검색/필터링 (동적 쿼리)
+     * - 순환참조 방지를 위해 StudyResponse DTO로 반환
      */
-    public Page<Study> searchStudies(StudySearchCondition condition, Pageable pageable) {
+    public Page<StudyResponse> searchStudies(StudySearchCondition condition, Pageable pageable) {
         log.info("스터디 검색 - 조건: keyword={}, topicId={}, status={}, meetingType={}",
                 condition.getKeyword(),
                 condition.getTopicId(),
                 condition.getStatus(),
                 condition.getMeetingType());
 
-        return studyRepository.searchStudies(condition, pageable);
+        Page<Study> studies = studyRepository.searchStudies(condition, pageable);
+        return studies.map(StudyResponse::from);
     }
 
     /**
      * 스터디장별 스터디 목록 조회
+     * - 순환참조 방지를 위해 StudyResponse DTO로 반환
      */
-    public Page<Study> getStudiesByLeader(Long leaderId, Pageable pageable) {
+    public Page<StudyResponse> getStudiesByLeader(Long leaderId, Pageable pageable) {
         log.info("스터디장 {} 의 스터디 목록 조회", leaderId);
 
-        return studyRepository.findByLeaderId(leaderId, pageable);
+        Page<Study> studies = studyRepository.findByLeaderId(leaderId, pageable);
+        return studies.map(StudyResponse::from);
     }
 
     /**
      * 스터디장의 특정 상태 스터디 목록 조회
+     * - 순환참조 방지를 위해 StudyResponse DTO로 반환
      */
-    public Page<Study> getStudiesByLeaderAndStatus(Long leaderId, Status status, Pageable pageable) {
+    public Page<StudyResponse> getStudiesByLeaderAndStatus(Long leaderId, Status status, Pageable pageable) {
         log.info("스터디장 {} 의 {} 상태 스터디 목록 조회", leaderId, status);
 
-        return studyRepository.findByLeaderIdAndStatus(leaderId, status, pageable);
+        Page<Study> studies = studyRepository.findByLeaderIdAndStatus(leaderId, status, pageable);
+        return studies.map(StudyResponse::from);
     }
 
     /**
      * 스터디 상세 조회
+     * - 순환참조 방지를 위해 StudyResponse DTO로 반환
      */
-    public Study getStudyById(Long studyId) {
+    public StudyResponse getStudyById(Long studyId) {
         log.info("스터디 상세 조회 - ID: {}", studyId);
 
-        return studyRepository.findById(studyId)
+        Study study = studyRepository.findById(studyId)
                 .orElseThrow(() -> {
                     log.error("존재하지 않는 스터디 ID: {}", studyId);
                     return new StudyException.StudyNotFoundException(studyId);
                 });
+
+        // 스터디장 정보 조회
+        User leader = null;
+        if (study.getLeaderId() != null) {
+            leader = userRepository.findById(study.getLeaderId()).orElse(null);
+        }
+
+        return StudyResponse.from(study, leader);
     }
 
     /**
@@ -216,7 +235,10 @@ public class StudyService {
 
         log.info("스터디 수정 완료 - studyId: {}", studyId);
 
-        return StudyResponse.from(study);
+        // 스터디장 정보 조회
+        User leader = userRepository.findById(leaderId).orElse(null);
+
+        return StudyResponse.from(study, leader);
     }
 
     /**
@@ -268,7 +290,10 @@ public class StudyService {
         log.info("스터디 상태 변경 완료 - studyId: {}, 이전: {} -> 새: {}",
                 studyId, study.getStatus(), newStatus);
 
-        return StudyResponse.from(study);
+        // 스터디장 정보 조회
+        User leader = userRepository.findById(leaderId).orElse(null);
+
+        return StudyResponse.from(study, leader);
     }
 
     /**
@@ -296,7 +321,10 @@ public class StudyService {
 
         log.info("모집 기간 연장 완료 - studyId: {}, 연장 횟수: {}", studyId, study.getExtensionCount());
 
-        return StudyResponse.from(study);
+        // 스터디장 정보 조회
+        User leader = userRepository.findById(leaderId).orElse(null);
+
+        return StudyResponse.from(study, leader);
     }
 
     /**

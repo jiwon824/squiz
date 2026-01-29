@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, SlidersHorizontal, Grid, List, X, Sparkles } from 'lucide-react';
+import { Plus, Search, SlidersHorizontal, Grid, List, X, Sparkles, Loader2 } from 'lucide-react';
 import StudyListContainer from './StudyListContainer';
 import StudyCardContentV2 from './StudyCardContentV2';
 import StudyFilter, { FilterState } from './StudyFilter';
-import { studyService, Study, SortOption } from '../services/studyService';
+import { Study, SortOption } from '../services/studyService';
+import { getStudyList, StudyListItem } from '@/api/endpoints/studyApi';
 import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { Button } from '@/shared/components';
 import { cn } from '@/shared/utils/cn';
@@ -53,7 +54,8 @@ const shimmerStyles = `
  */
 const StudyPageV2: React.FC = () => {
     const navigate = useNavigate();
-    const [filteredStudies, setFilteredStudies] = useState<Study[]>([]);
+    const [studies, setStudies] = useState<Study[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [searchKeyword, setSearchKeyword] = useState('');
     const [filters, setFilters] = useState<FilterState>({
         status: [],
@@ -69,26 +71,91 @@ const StudyPageV2: React.FC = () => {
         order: 'desc',
     });
     const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalElements, setTotalElements] = useState(0);
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
     const [showFilters, setShowFilters] = useState(false);
     const pageSize = 12;
 
-    // 초기 데이터 로드
-    useEffect(() => {
-        const allStudies = studyService.getAllStudies();
-        setFilteredStudies(allStudies);
-    }, []);
+    // API에서 데이터 변환 (StudyResponse DTO 구조 지원)
+    const convertToStudy = (item: StudyListItem): Study => ({
+        id: item.id,
+        leaderId: item.leader?.id || item.leaderId || 0,
+        name: item.name,
+        description: item.description || '',
+        topic: item.topic?.name || '',
+        format: item.format?.name || '',
+        studyType: item.studyType,
+        meetingType: item.meetingType,
+        status: item.status,
+        isPublic: true,
+        maxMembers: item.maxMembers,
+        currentMembers: 1, // API에서 제공하지 않으면 기본값
+        difficulty: item.difficulty || 'BEGINNER',
+        scheduleDays: item.scheduleDays || '',
+        scheduleTime: item.scheduleTime,
+        regionId: item.regionId,
+        recruitEndDate: item.recruitEndDate,
+        leader: {
+            id: item.leader?.id || item.leaderId || 0,
+            nickname: item.leader?.nickname || '스터디장',
+            profileImage: item.leader?.profileImage || null,
+            leaderRating: 4.5,
+            leaderReviewCount: 0,
+        },
+        isBookmarked: false,
+        createdAt: item.createdAt,
+    });
 
-    // 필터 및 검색 적용
+    // API에서 스터디 목록 로드
+    const loadStudies = async () => {
+        setIsLoading(true);
+        try {
+            const sortParam = sortOption.field === 'createdAt'
+                ? `createdAt,${sortOption.order}`
+                : sortOption.field === 'recruitEndDate'
+                ? `recruitEndDate,${sortOption.order}`
+                : `createdAt,desc`;
+
+            const response = await getStudyList({
+                page: currentPage - 1, // API는 0-based
+                size: pageSize,
+                sort: sortParam,
+                keyword: searchKeyword || undefined,
+                meetingType: filters.meetingType.length === 1 ? filters.meetingType[0] : undefined,
+                difficulty: filters.difficulty.length === 1 ? filters.difficulty[0] : undefined,
+            });
+
+            console.log('[스터디 목록 API 응답]', response);
+
+            // 안전한 배열 처리 (백엔드 순환 참조 에러 대비)
+            const content = response?.content || [];
+            const convertedStudies = content.map(convertToStudy);
+            console.log('[변환된 스터디]', convertedStudies);
+            setStudies(convertedStudies);
+            setTotalPages(response?.totalPages || 0);
+            setTotalElements(response?.totalElements || 0);
+        } catch (error) {
+            console.error('스터디 목록 로드 실패:', error);
+            setStudies([]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // 초기 로드 및 필터/정렬/페이지 변경 시 재로드
     useEffect(() => {
-        let result = studyService.getFilteredStudies({
-            ...filters,
-            keyword: searchKeyword,
-        });
-        result = studyService.sortStudies(result, sortOption);
-        setFilteredStudies(result);
-        setCurrentPage(1);
-    }, [filters, searchKeyword, sortOption]);
+        loadStudies();
+    }, [currentPage, sortOption, filters.meetingType, filters.difficulty]);
+
+    // 검색 시 페이지 리셋 후 로드
+    useEffect(() => {
+        if (currentPage === 1) {
+            loadStudies();
+        } else {
+            setCurrentPage(1);
+        }
+    }, [searchKeyword]);
 
     // 필터 변경 핸들러
     const handleFilterChange = (newFilters: FilterState) => {
@@ -122,8 +189,8 @@ const StudyPageV2: React.FC = () => {
 
     // 찜하기 토글 핸들러
     const handleBookmarkToggle = (studyId: number) => {
-        studyService.toggleBookmark(studyId);
-        setFilteredStudies((prev) =>
+        // TODO: API 연동 필요
+        setStudies((prev) =>
             prev.map((study) =>
                 study.id === studyId ? { ...study, isBookmarked: !study.isBookmarked } : study
             )
@@ -142,10 +209,8 @@ const StudyPageV2: React.FC = () => {
         } else {
             setFilters(prev => ({ ...prev, meetingType: [type] }));
         }
+        setCurrentPage(1); // 필터 변경 시 첫 페이지로
     };
-
-    // 페이지네이션
-    const paginatedData = studyService.paginateStudies(filteredStudies, currentPage, pageSize);
 
     // 현재 정렬 옵션 값
     const currentSortValue =
@@ -167,7 +232,7 @@ const StudyPageV2: React.FC = () => {
                                     성장의 시작, 스터디 둘러보기
                                 </h1>
                                 <p className="text-sm text-[var(--color-text-secondary)] mt-1">
-                                    총 <span className="font-bold text-[var(--color-primary)]">{filteredStudies.length}</span>개의 스터디
+                                    총 <span className="font-bold text-[var(--color-primary)]">{totalElements}</span>개의 스터디
                                 </p>
                             </div>
                         </div>
@@ -320,7 +385,11 @@ const StudyPageV2: React.FC = () => {
                     </div>
 
                     {/* 스터디 목록 */}
-                    {paginatedData.studies.length > 0 ? (
+                    {isLoading ? (
+                        <div className="flex justify-center items-center py-16">
+                            <Loader2 size={32} className="animate-spin text-[var(--color-primary)]" />
+                        </div>
+                    ) : studies.length > 0 ? (
                         <>
                             <div className={cn(
                                 "mb-8",
@@ -328,7 +397,7 @@ const StudyPageV2: React.FC = () => {
                                     ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5"
                                     : "flex flex-col gap-3"
                             )}>
-                                {paginatedData.studies.map((study) => (
+                                {studies.map((study) => (
                                     <StudyCardContentV2
                                         key={study.id}
                                         study={study}
@@ -340,7 +409,7 @@ const StudyPageV2: React.FC = () => {
                             </div>
 
                             {/* 페이지네이션 */}
-                            {paginatedData.totalPages > 1 && (
+                            {totalPages > 1 && (
                                 <div className="flex justify-center items-center gap-6">
                                     <button
                                         className="p-2 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
@@ -353,7 +422,7 @@ const StudyPageV2: React.FC = () => {
                                     </button>
 
                                     <div className="flex items-center gap-4">
-                                        {Array.from({ length: paginatedData.totalPages }, (_, i) => i + 1).map((pageNum) => (
+                                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
                                             <button
                                                 key={pageNum}
                                                 className={cn(
@@ -371,7 +440,7 @@ const StudyPageV2: React.FC = () => {
 
                                     <button
                                         className="p-2 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                                        disabled={currentPage === paginatedData.totalPages}
+                                        disabled={currentPage === totalPages}
                                         onClick={() => setCurrentPage((prev) => prev + 1)}
                                     >
                                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -387,10 +456,10 @@ const StudyPageV2: React.FC = () => {
                                 <Search size={28} className="text-[var(--color-text-muted)]" />
                             </div>
                             <p className="text-lg font-semibold text-[var(--color-text-primary)] mb-2">
-                                검색 결과가 없습니다
+                                등록된 스터디가 없습니다
                             </p>
                             <p className="text-sm text-[var(--color-text-tertiary)]">
-                                다른 검색어나 필터를 시도해보세요.
+                                첫 번째 스터디를 만들어보세요!
                             </p>
                         </div>
                     )}

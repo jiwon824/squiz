@@ -700,9 +700,10 @@ class StudyServiceTest {
             // given
             Long studyId = 1L;
             given(studyRepository.findById(studyId)).willReturn(Optional.of(testStudy));
+            given(userRepository.findById(testStudy.getLeaderId())).willReturn(Optional.of(testUser));
 
             // when
-            Study result = studyService.getStudyById(studyId);
+            StudyResponse result = studyService.getStudyById(studyId);
 
             // then
             assertThat(result).isNotNull();
@@ -710,7 +711,6 @@ class StudyServiceTest {
             assertThat(result.getName()).isEqualTo("알고리즘 마스터");
             assertThat(result.getTopic()).isNotNull();
             assertThat(result.getTopic().getName()).isEqualTo("백준");
-            assertThat(result.getTopicName()).isEqualTo("백준");
         }
 
         @Test
@@ -735,7 +735,7 @@ class StudyServiceTest {
             given(studyRepository.findRecruitingStudies(pageable)).willReturn(studies);
 
             // when
-            Page<Study> result = studyService.getRecruitingStudies(pageable);
+            Page<StudyResponse> result = studyService.getRecruitingStudies(pageable);
 
             // then
             assertThat(result).isNotNull();
