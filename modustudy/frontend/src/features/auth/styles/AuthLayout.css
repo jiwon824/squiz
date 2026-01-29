@@ -12,8 +12,8 @@
     transform: translate(-50%, -50%);
     width: 120%;
     height: 120%;
-    background: radial-gradient(circle, rgba(255,255,255,0.4) 0%, transparent 70%);
-    filter: blur(20px);
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 70%);
+    filter: blur(25px);
     z-index: -1;
 }
 
@@ -24,9 +24,10 @@
 
 /* 2. 텍스트 하이라이트 (몰입 부분 강조) */
 .text-highlight {
-    color: #FFEB3B; /* 혹은 보조색 */
+    color: var(--color-primary);
     position: relative;
     white-space: nowrap;
+    -webkit-text-fill-color: var(--color-primary);
 }
 
 .text-highlight::after {
@@ -36,7 +37,7 @@
     left: 0;
     width: 100%;
     height: 8px;
-    background: rgba(255, 235, 59, 0.3);
+    background: rgba(99, 102, 241, 0.15);
     z-index: -1;
 }
 
@@ -170,12 +171,14 @@
     transition: all 0.5s ease-in;
 }
 
-/* Left Side - Visual Branding */
+/* Left Side - Visual Branding (글래스모피즘) */
 .auth-visual {
     flex: 1;
     position: relative;
-    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
-    color: white;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    color: var(--color-text-primary);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -197,9 +200,9 @@
     position: absolute;
     inset: 0;
     background-image:
-        radial-gradient(at 40% 20%, rgba(255, 255, 255, 0.15) 0px, transparent 50%),
-        radial-gradient(at 80% 0%, rgba(255, 255, 255, 0.15) 0px, transparent 50%),
-        radial-gradient(at 0% 50%, rgba(255, 255, 255, 0.15) 0px, transparent 50%);
+        radial-gradient(at 20% 30%, rgba(99, 102, 241, 0.08) 0px, transparent 50%),
+        radial-gradient(at 80% 20%, rgba(139, 92, 246, 0.06) 0px, transparent 50%),
+        radial-gradient(at 50% 80%, rgba(59, 130, 246, 0.05) 0px, transparent 50%);
     z-index: 2;
 }
 
@@ -210,8 +213,33 @@
     max-width: 420px;
 }
 
+/* 카드 제거 후 중앙 정렬 레이아웃 */
+.visual-content--centered {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    max-width: 480px;
+}
+
 .visual-logo-wrapper {
     margin-bottom: 2rem;
+}
+
+/* 로고 크기 확대 */
+.visual-logo-wrapper--large {
+    margin-bottom: 3rem;
+}
+
+.visual-logo-wrapper--large .visual-logo-svg {
+    height: 64px;
+}
+
+.visual-logo-wrapper--large .logo-glow {
+    width: 150%;
+    height: 150%;
+    filter: blur(30px);
 }
 
 .visual-logo {
@@ -231,7 +259,7 @@
     font-weight: 800;
     line-height: 1.1;
     margin-bottom: 1.5rem;
-    background: linear-gradient(135deg, #ffffff 0%, #c7d2fe 100%);
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -260,6 +288,37 @@
     transform: translateY(0);
 }
 
+/* 슬로건 중앙 정렬 */
+.slogan-group--centered {
+    text-align: center;
+}
+
+.slogan-group--centered .primary-slogan-wrapper h2 {
+    text-align: center;
+}
+
+.slogan-group--centered .slogan-divider {
+    width: 48px;
+    height: 2px;
+    background: rgba(99, 102, 241, 0.3);
+    margin: 1.5rem auto;
+    border-radius: 1px;
+}
+
+.slogan-group--centered .secondary-slogan {
+    font-size: 1rem;
+    color: #64748b;
+    letter-spacing: 0.02em;
+    line-height: 1.6;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.8s 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.auth-page.loaded .slogan-group--centered .secondary-slogan {
+    opacity: 1;
+    transform: translateY(0);
+}
 
 .value-cards {
     display: grid;
@@ -558,19 +617,79 @@
     .auth-wrapper {
         flex-direction: column;
         height: auto;
+        min-height: auto;
         max-width: 500px;
         border-radius: var(--radius-login);
     }
 
     .auth-visual {
-        padding: 3rem 2rem;
-        min-height: 280px;
+        padding: 2.5rem 2rem;
+        min-height: auto;
         border-radius: var(--radius-login) var(--radius-login) 0 0;
     }
 
     .auth-form-container {
-        padding: 2.5rem 2rem;
+        padding: 2rem 2rem;
         border-radius: 0 0 var(--radius-login) var(--radius-login);
+    }
+
+    .form-content {
+        max-width: 100%;
+    }
+}
+
+/* 작은 모바일 화면 */
+@media (max-width: 600px) {
+    .auth-page {
+        padding: 1rem;
+        align-items: flex-start;
+    }
+
+    .auth-wrapper {
+        max-width: 100%;
+        border-radius: 16px;
+        min-height: auto;
+    }
+
+    .auth-visual {
+        padding: 2rem 1.5rem;
+    }
+
+    .visual-logo-wrapper--large {
+        margin-bottom: 1.5rem;
+    }
+
+    .visual-content h2 {
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .slogan-group--centered .slogan-divider {
+        margin: 1rem auto;
+    }
+
+    .slogan-group--centered .secondary-slogan {
+        font-size: 0.875rem;
+    }
+
+    .auth-form-container {
+        padding: 1.5rem;
+    }
+
+    .form-header {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-header h3 {
+        font-size: 1.5rem;
+    }
+
+    .input-group {
+        margin-bottom: 1rem;
+    }
+
+    .input-group input {
+        padding: 0.8rem 1rem;
     }
 }
 
