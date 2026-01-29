@@ -26,7 +26,7 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
         >
           <ChevronLeft size={20} />
         </button>
-        <span>{studyName}</span>
+        <span className="workspace-header__study-name">{studyName}</span>
       </div>
 
       <div className="workspace-header__actions">

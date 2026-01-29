@@ -4,10 +4,11 @@
  * 비밀번호 설정/변경, 소셜 계정 연동 관리 기능을 제공합니다.
  */
 
-import { useState } from 'react';
-import { Shield, Key, AlertTriangle, Link2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ShieldUser, Key, AlertTriangle, Link2, Calendar } from 'lucide-react';
 import { Button } from '@/shared/components/Button';
 import { useSettingStore } from '../store/settingStore';
+import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import { SocialAccountCard, UnlinkedSocialCard } from './SocialAccountCard';
 import type { SocialProvider } from '../types';
@@ -22,10 +23,24 @@ export const AccountSecuritySection = () => {
         setNewPassword,
         changeExistingPassword,
         unlinkSocialAccount,
+        fetchSocialAccounts,
+        googleCalendarStatus,
+        fetchGoogleCalendarStatus,
+        connectGoogleCalendar,
+        disconnectGoogleCalendar,
+        isLoading,
         isSaving,
         error,
     } = useSettingStore();
+    const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
     const showToast = useUIStore((state) => state.showToast);
+
+    // 로그인 상태일 때만 소셜 계정 및 캘린더 상태 조회
+    useEffect(() => {
+        if (!isLoggedIn) return;
+        fetchSocialAccounts();
+        fetchGoogleCalendarStatus();
+    }, [isLoggedIn, fetchSocialAccounts, fetchGoogleCalendarStatus]);
 
     // 비밀번호 폼 상태
     const [showPasswordForm, setShowPasswordForm] = useState(false);
@@ -100,12 +115,25 @@ export const AccountSecuritySection = () => {
         showToast(`${provider} 연동 기능은 준비 중입니다.`, 'info');
     };
 
+    // Google 캘린더 연동 핸들러
+    const handleConnectCalendar = async () => {
+        await connectGoogleCalendar();
+    };
+
+    // Google 캘린더 연동 해제 핸들러
+    const handleDisconnectCalendar = async () => {
+        if (confirm('Google 캘린더 연동을 해제하시겠습니까?')) {
+            await disconnectGoogleCalendar();
+            showToast('Google 캘린더 연동이 해제되었습니다.', 'success');
+        }
+    };
+
     return (
         <section className="setting-section">
             {/* 섹션 헤더 */}
             <div className="section-header">
                 <h2 className="section-title">
-                    <Shield className="section-title-icon" />
+                    <ShieldUser className="section-title-icon" />
                     계정 / 보안
                 </h2>
                 <p className="section-description">
@@ -233,30 +261,36 @@ export const AccountSecuritySection = () => {
                     <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#1e293b' }}>연동된 계정</h3>
                 </div>
 
-                <div className="social-accounts-list">
-                    {/* 연동된 계정 */}
-                    {socialAccounts.map((account) => (
-                        <SocialAccountCard
-                            key={account.provider}
-                            account={account}
-                            onUnlink={handleUnlink}
-                            disabled={socialAccounts.length <= 1 && !hasPassword}
-                            isSaving={isSaving}
-                        />
-                    ))}
+                {isLoading ? (
+                    <div className="loading-spinner">
+                        <div className="spinner" />
+                    </div>
+                ) : (
+                    <div className="social-accounts-list">
+                        {/* 연동된 계정 */}
+                        {socialAccounts.map((account) => (
+                            <SocialAccountCard
+                                key={account.provider}
+                                account={account}
+                                onUnlink={handleUnlink}
+                                disabled={socialAccounts.length <= 1 && !hasPassword}
+                                isSaving={isSaving}
+                            />
+                        ))}
 
-                    {/* 연동되지 않은 계정 */}
-                    {unlinkedProviders.map((provider) => (
-                        <UnlinkedSocialCard
-                            key={provider}
-                            provider={provider}
-                            onLink={handleLink}
-                        />
-                    ))}
-                </div>
+                        {/* 연동되지 않은 계정 */}
+                        {unlinkedProviders.map((provider) => (
+                            <UnlinkedSocialCard
+                                key={provider}
+                                provider={provider}
+                                onLink={handleLink}
+                            />
+                        ))}
+                    </div>
+                )}
 
                 {/* 경고 메시지 */}
-                {socialAccounts.length <= 1 && !hasPassword && (
+                {socialAccounts.length <= 1 && !hasPassword && !isLoading && (
                     <div className="warning-message">
                         <AlertTriangle size={20} />
                         <span>
@@ -273,6 +307,65 @@ export const AccountSecuritySection = () => {
                         <span style={{ color: '#991b1b' }}>{error}</span>
                     </div>
                 )}
+            </div>
+
+            {/* Google 캘린더 연동 영역 */}
+            <div className="calendar-integration-section">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                    <Calendar size={20} style={{ color: '#64748b' }} />
+                    <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#1e293b' }}>Google 캘린더 연동</h3>
+                </div>
+
+                <div className="calendar-integration-card">
+                    <div className="calendar-integration-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                            <rect width="24" height="24" rx="4" fill="#fff" />
+                            <path d="M19.5 4H17V3c0-.6-.4-1-1-1s-1 .4-1 1v1H9V3c0-.6-.4-1-1-1s-1 .4-1 1v1H4.5C3.7 4 3 4.7 3 5.5v14c0 .8.7 1.5 1.5 1.5h15c.8 0 1.5-.7 1.5-1.5v-14C21 4.7 20.3 4 19.5 4z" fill="#4285F4"/>
+                            <rect x="6" y="10" width="3" height="3" rx="0.5" fill="#EA4335"/>
+                            <rect x="10.5" y="10" width="3" height="3" rx="0.5" fill="#FBBC04"/>
+                            <rect x="15" y="10" width="3" height="3" rx="0.5" fill="#34A853"/>
+                            <rect x="6" y="15" width="3" height="3" rx="0.5" fill="#4285F4"/>
+                            <rect x="10.5" y="15" width="3" height="3" rx="0.5" fill="#EA4335"/>
+                        </svg>
+                    </div>
+                    <div className="calendar-integration-info">
+                        {googleCalendarStatus?.connected ? (
+                            <>
+                                <span className="calendar-integration-status connected">연동됨</span>
+                                {googleCalendarStatus.email && (
+                                    <span className="calendar-integration-email">{googleCalendarStatus.email}</span>
+                                )}
+                            </>
+                        ) : (
+                            <>
+                                <span className="calendar-integration-status">미연동</span>
+                                <span className="calendar-integration-desc">
+                                    Google 캘린더를 연동하면 스터디 일정을 자동으로 동기화할 수 있습니다.
+                                </span>
+                            </>
+                        )}
+                    </div>
+                    <div className="calendar-integration-action">
+                        {googleCalendarStatus?.connected ? (
+                            <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={handleDisconnectCalendar}
+                                isLoading={isSaving}
+                            >
+                                연동 해제
+                            </Button>
+                        ) : (
+                            <Button
+                                variant="primary"
+                                size="sm"
+                                onClick={handleConnectCalendar}
+                            >
+                                연동하기
+                            </Button>
+                        )}
+                    </div>
+                </div>
             </div>
         </section>
     );

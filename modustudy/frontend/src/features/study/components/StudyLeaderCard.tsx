@@ -104,7 +104,7 @@ const StudyLeaderCard: React.FC<StudyLeaderCardProps> = ({
     const isApplyDisabled = studyStatus !== 'RECRUITING' || currentMembers >= maxMembers;
 
     return (
-        <div className="lg:col-span-1">
+        <div className="2xl:col-span-1">
             <div className="sticky top-6">
                 <div className="bg-white rounded-2xl border border-[var(--color-border)] p-6 shadow-sm">
                 {/* 리더 프로필 */}
@@ -165,32 +165,7 @@ const StudyLeaderCard: React.FC<StudyLeaderCardProps> = ({
 
                 {/* 액션 버튼 */}
                 <div className="space-y-3">
-                    {/* 카카오톡 문의 버튼 */}
-                    <Button
-                        variant="google-outline"
-                        fullWidth
-                        onClick={handleKakaoInquiry}
-                        leftIcon={<MessageCircle size={16} />}
-                        className={cn(
-                            'h-12 rounded-xl font-semibold',
-                            'bg-[#FEE500] hover:bg-[#FDD835]',
-                            'text-[#3C1E1E] border-[#FEE500] hover:border-[#FDD835]'
-                        )}
-                    >
-                        카카오톡으로 문의
-                    </Button>
-
-                    {/* DM 문의 버튼 */}
-                    <Button
-                        variant="google-outline"
-                        fullWidth
-                        onClick={onInquiry}
-                        leftIcon={<Send size={16} />}
-                        className="h-12 rounded-xl font-semibold"
-                    >
-                        DM으로 문의
-                    </Button>
-
+                    {/* 스터디 신청/관리 버튼 (첫 번째 줄) */}
                     {isOwner ? (
                         <Button
                             variant="primary"
@@ -219,6 +194,39 @@ const StudyLeaderCard: React.FC<StudyLeaderCardProps> = ({
                             {getApplyButtonText()}
                         </Button>
                     )}
+                    {/* 구분선 또는 안내 문구
+                    <p className="text-xs text-center text-[var(--color-text-tertiary)] my-3">
+                    궁금한 점이 있다면 아래로 문의해주세요.
+                    </p> */}
+
+                    {/* 문의 버튼들 (세로 스택) */}
+                    <div className="flex flex-col gap-2">
+                        {/* DM 문의 버튼 */}
+                        <Button
+                            variant="google-outline"
+                            fullWidth
+                            onClick={onInquiry}
+                            leftIcon={<Send size={14} />}
+                            className="h-11 rounded-xl font-semibold text-xs"
+                        >
+                            문의하기
+                        </Button>
+
+                        {/* 카카오톡 문의 버튼 */}
+                        <Button
+                            variant="google-outline"
+                            fullWidth
+                            onClick={handleKakaoInquiry}
+                            leftIcon={<MessageCircle size={14} fill="#3C1E1E" />}
+                            className={cn(
+                                'h-11 rounded-xl font-semibold text-xs',
+                                'bg-[#FEE500] hover:bg-[#FDD835]',
+                                'text-[#3C1E1E] border-[#FEE500] hover:border-[#FDD835]'
+                            )}
+                        >
+                            카카오톡
+                        </Button>
+                    </div>
                     </div>
                 </div>
 
