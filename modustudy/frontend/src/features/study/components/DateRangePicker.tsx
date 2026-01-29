@@ -136,13 +136,13 @@ export const DateRangePicker = ({ startDate, endDate, minDate, onRangeChange }: 
         <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
             {/* 헤더 */}
             <div className="flex items-center justify-between mb-4">
-                <Button variant="ghost" size="sm" onClick={prevMonth}>
+                <Button type="button" variant="ghost" size="sm" onClick={prevMonth}>
                     <ChevronLeft size={18} />
                 </Button>
                 <span className="font-bold text-gray-800">
                     {currentMonth.getFullYear()}년 {currentMonth.getMonth() + 1}월
                 </span>
-                <Button variant="ghost" size="sm" onClick={nextMonth}>
+                <Button type="button" variant="ghost" size="sm" onClick={nextMonth}>
                     <ChevronRight size={18} />
                 </Button>
             </div>
