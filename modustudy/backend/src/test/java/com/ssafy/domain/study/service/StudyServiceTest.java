@@ -604,8 +604,8 @@ class StudyServiceTest {
             given(studyRepository.findByLeaderId(userId, pageable)).willReturn(leaderStudies);
             given(studyRepository.findAllById(List.of(2L))).willReturn(List.of(memberStudy));
 
-            // when
-            Page<Study> result = studyService.getMyStudies(userId, pageable);
+            // when - 반환 타입이 Page<StudyResponse>로 변경됨
+            Page<StudyResponse> result = studyService.getMyStudies(userId, pageable);
 
             // then
             assertThat(result).isNotNull();
@@ -628,8 +628,8 @@ class StudyServiceTest {
             given(studyRepository.findByLeaderId(userId, pageable))
                     .willReturn(new PageImpl<>(List.of()));
 
-            // when
-            Page<Study> result = studyService.getMyStudies(userId, pageable);
+            // when - 반환 타입이 Page<StudyResponse>로 변경됨
+            Page<StudyResponse> result = studyService.getMyStudies(userId, pageable);
 
             // then
             assertThat(result).isNotNull();
