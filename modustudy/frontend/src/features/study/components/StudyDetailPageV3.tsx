@@ -168,6 +168,7 @@ const StudyDetailPageV3: React.FC = () => {
         scheduleDays: studyDetail.scheduleDays || '',
         scheduleTime: studyDetail.scheduleTime,
         regionId: studyDetail.regionId,
+        recruitStartDate: studyDetail.recruitStartDate,
         recruitEndDate: studyDetail.recruitEndDate,
         leader: {
             id: studyDetail.leader?.id || 0,
