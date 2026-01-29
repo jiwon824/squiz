@@ -351,7 +351,7 @@
 
 /* 메시지 입력 */
 .message-input {
-  padding: 0 16px 24px;
+  padding: 0 70px 24px;
   flex-shrink: 0;
 }
 
@@ -404,6 +404,37 @@
 
 .message-input__field::placeholder {
   color: var(--ws-text-tertiary);
+}
+
+.message-input__field:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 전송 버튼 */
+.message-input__send-btn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-lg);
+  background-color: var(--color-primary);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin: 4px 0;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
+}
+
+.message-input__send-btn:hover:not(:disabled) {
+  background-color: var(--color-primary-dark);
+}
+
+.message-input__send-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* 멤버 목록 사이드바 - 오른쪽에서 슬라이드 인 */
@@ -1235,4 +1266,145 @@
 /* 세션 모달 전용 클래스 */
 .session-modal-form {
   position: relative;
+}
+
+/* ============================================
+   워크스페이스 → 미팅 페이지 전환 애니메이션
+   ============================================ */
+
+/* 퇴장 애니메이션 키프레임 */
+@keyframes workspace-to-meeting {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+    border-radius: 0;
+  }
+  100% {
+    transform: scale(0.85);
+    opacity: 0;
+    border-radius: 24px;
+  }
+}
+
+/* 워크스페이스 퇴장 애니메이션 */
+.workspace-container--exiting {
+  animation: workspace-to-meeting 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  pointer-events: none;
+}
+
+/* 퇴장 시 내부 요소 페이드아웃 */
+.workspace-container--exiting .workspace-header {
+  opacity: 0;
+  transition: opacity 0.2s ease-out;
+}
+
+.workspace-container--exiting .workspace-sidebar {
+  transform: translateX(-100%);
+  opacity: 0;
+  transition: transform 0.3s ease-out, opacity 0.2s ease-out;
+}
+
+.workspace-container--exiting .member-list {
+  transform: translateX(100%);
+  opacity: 0;
+  transition: transform 0.3s ease-out, opacity 0.2s ease-out;
+}
+
+/* 메인 콘텐츠만 남기고 줌아웃 효과 */
+.workspace-container--exiting .workspace-content {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  border-radius: 24px;
+  overflow: hidden;
+}
+
+/* ============================================
+   미팅 페이지 → 워크스페이스 진입 애니메이션
+   ============================================ */
+
+/* 진입 애니메이션 키프레임 */
+@keyframes meeting-to-workspace {
+  0% {
+    transform: scale(0.88);
+    opacity: 0;
+    border-radius: 24px;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+    border-radius: 0;
+  }
+}
+
+@keyframes workspace-header-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes workspace-sidebar-enter {
+  0% {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes workspace-member-list-enter {
+  0% {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes workspace-main-enter {
+  0% {
+    opacity: 0;
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 워크스페이스 진입 애니메이션 */
+.workspace-container--entering {
+  animation: meeting-to-workspace 0.5s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+}
+
+/* 진입 시 내부 요소 순차 애니메이션 */
+.workspace-container--entering .workspace-header {
+  opacity: 0;
+  animation: workspace-header-enter 0.4s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+  animation-delay: 0.15s;
+}
+
+.workspace-container--entering .workspace-sidebar {
+  opacity: 0;
+  animation: workspace-sidebar-enter 0.4s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+  animation-delay: 0.2s;
+}
+
+.workspace-container--entering .member-list {
+  opacity: 0;
+  animation: workspace-member-list-enter 0.4s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+  animation-delay: 0.2s;
+}
+
+.workspace-container--entering .workspace-main {
+  opacity: 0;
+  animation: workspace-main-enter 0.5s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+  animation-delay: 0.1s;
 }

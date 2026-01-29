@@ -36,6 +36,8 @@ export interface WidgetHeaderProps {
     subtitle?: string;
     /** 최대화 버튼 클릭 시 이동할 경로 */
     maximizePath?: string;
+    /** 최대화 시 페이지 전환 애니메이션 사용 여부 */
+    useTransitionAnimation?: boolean;
     /** 뒤로가기 버튼 표시 여부 */
     showBackButton?: boolean;
     /** 뒤로가기 버튼 클릭 핸들러 */
@@ -52,6 +54,7 @@ export const WidgetHeader: React.FC<WidgetHeaderProps> = ({
     title,
     subtitle,
     maximizePath,
+    useTransitionAnimation = false,
     showBackButton = false,
     onBack,
     rightActions,
@@ -60,7 +63,20 @@ export const WidgetHeader: React.FC<WidgetHeaderProps> = ({
     const navigate = useNavigate();
 
     const handleMaximize = () => {
-        if (maximizePath) {
+        if (!maximizePath) return;
+
+        if (useTransitionAnimation) {
+            // 대시보드에서 다른 페이지로 전환 시 애니메이션 사용
+            sessionStorage.setItem('fromDashboard', 'true');
+
+            // 퇴장 애니메이션을 위한 이벤트 발생
+            window.dispatchEvent(new CustomEvent('dashboardExit'));
+
+            // 애니메이션 완료 후 네비게이션 (500ms)
+            setTimeout(() => {
+                navigate(maximizePath);
+            }, 500);
+        } else {
             navigate(maximizePath);
         }
     };

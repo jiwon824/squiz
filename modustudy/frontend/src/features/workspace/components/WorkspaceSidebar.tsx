@@ -23,6 +23,8 @@ interface WorkspaceSidebarProps {
   onToggleDarkMode?: () => void;
   /** 현재 진행 중인 세션 (있으면 미팅 참여 버튼 표시) */
   activeSession?: StudySessionResponse | null;
+  /** 미팅으로 이동 시 콜백 (애니메이션 처리용) */
+  onNavigateToMeeting?: () => void;
 }
 
 // 메뉴 아이템 타입
@@ -67,14 +69,19 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
   isDarkMode = true,
   onToggleDarkMode,
   activeSession,
+  onNavigateToMeeting,
 }) => {
   const navigate = useNavigate();
 
   // 메뉴 클릭 핸들러
   const handleMenuClick = (menuId: MenuItem['id']) => {
     if (menuId === 'meeting' && studyId) {
-      // 미팅은 별도 페이지로 이동
-      navigate(`/study/${studyId}/meetings`);
+      // 애니메이션 콜백이 있으면 사용, 없으면 직접 이동
+      if (onNavigateToMeeting) {
+        onNavigateToMeeting();
+      } else {
+        navigate(`/study/${studyId}/meetings`);
+      }
       return;
     }
 
@@ -159,7 +166,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
         <div className="workspace-sidebar__footer">
           <button
             className="workspace-sidebar__meeting-btn workspace-sidebar__meeting-btn--active"
-            onClick={() => studyId && navigate(`/study/${studyId}/meetings`)}
+            onClick={() => onNavigateToMeeting ? onNavigateToMeeting() : studyId && navigate(`/study/${studyId}/meetings`)}
           >
             <Play size={20} />
             <span>미팅 참여하기</span>
