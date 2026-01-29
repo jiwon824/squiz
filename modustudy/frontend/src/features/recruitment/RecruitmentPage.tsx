@@ -11,6 +11,9 @@ import {
 import { cn } from '@/shared/utils/cn';
 import { Button, ArrowButton } from '@/shared/components';
 
+// 기본 프로필 이미지 경로
+const DEFAULT_PROFILE_IMAGE = '/images/default-profile.png';
+
 type ViewMode = 'list' | 'create' | 'edit' | 'detail';
 
 // 카테고리 한글 매핑
@@ -204,17 +207,11 @@ export const RecruitmentPage = () => {
 
                                 {/* 작성자 정보 */}
                                 <div className="flex items-center gap-3">
-                                    {selectedPost.authorAvatar ? (
-                                        <img
-                                            src={selectedPost.authorAvatar}
-                                            alt=""
-                                            className="w-10 h-10 rounded-xl border border-[var(--color-border)] object-cover"
-                                        />
-                                    ) : (
-                                        <div className="w-10 h-10 rounded-xl bg-[var(--color-primary-alpha-10)] flex items-center justify-center text-[var(--color-primary)] font-bold text-sm">
-                                            {selectedPost.authorName.charAt(0)}
-                                        </div>
-                                    )}
+                                    <img
+                                        src={selectedPost.authorAvatar || DEFAULT_PROFILE_IMAGE}
+                                        alt=""
+                                        className="w-10 h-10 rounded-xl border border-[var(--color-border)] object-cover"
+                                    />
                                     <div>
                                         <p className="text-sm font-bold text-[var(--color-text-primary)]">
                                             {selectedPost.authorName}

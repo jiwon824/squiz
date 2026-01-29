@@ -19,6 +19,9 @@ import { useDMStore } from '@/features/dm/store/dmStore';
 import { useUIStore } from '@/store/uiStore';
 import { getReviewsByLeaderId, getLeaderAverageRating, LeaderReview } from '../mockData';
 
+// 기본 프로필 이미지 경로
+const DEFAULT_PROFILE_IMAGE = '/images/default-profile.png';
+
 /**
  * StudyDetailPageV2 - Google Material Design 스타일 스터디 상세 페이지
  *
@@ -279,17 +282,11 @@ const StudyDetailPageV2: React.FC = () => {
                                 {/* 리더 프로필 */}
                                 <div className="text-center mb-6">
                                     <div className="relative inline-block mb-4">
-                                        {study.leader.profileImage ? (
-                                            <img
-                                                src={study.leader.profileImage}
-                                                alt={study.leader.nickname}
-                                                className="w-20 h-20 rounded-2xl object-cover border-2 border-white shadow-lg"
-                                            />
-                                        ) : (
-                                            <div className="w-20 h-20 rounded-2xl bg-[var(--color-primary)] text-white flex items-center justify-center text-2xl font-bold border-2 border-white shadow-lg">
-                                                {study.leader.nickname.charAt(0)}
-                                            </div>
-                                        )}
+                                        <img
+                                            src={study.leader.profileImage || DEFAULT_PROFILE_IMAGE}
+                                            alt={study.leader.nickname}
+                                            className="w-20 h-20 rounded-2xl object-cover border-2 border-white shadow-lg"
+                                        />
                                         {study.status === 'RECRUITING' && (
                                             <span className="absolute -bottom-1 -right-1 w-5 h-5 bg-[var(--color-success)] border-2 border-white rounded-full" />
                                         )}

@@ -78,6 +78,15 @@ export const WorkspacePage: React.FC = () => {
     return flag;
   }, []);
 
+  // 대시보드에서 진입 시 애니메이션 플래그 (최초 렌더 시 한 번만 확인)
+  const isEnteringFromDashboard = useMemo(() => {
+    const flag = sessionStorage.getItem('fromDashboard') === 'true';
+    if (flag) {
+      sessionStorage.removeItem('fromDashboard');
+    }
+    return flag;
+  }, []);
+
   // WebSocket 핸들러를 위한 ref (상태 변경 시에도 최신 값 참조)
   const messagesRef = useRef<MessageResponse[]>([]);
   messagesRef.current = messages;
@@ -417,7 +426,8 @@ export const WorkspacePage: React.FC = () => {
       'workspace-container',
       isDarkMode && 'workspace-container--dark',
       isExiting && 'workspace-container--exiting',
-      isEnteringFromMeeting && 'workspace-container--entering'
+      isEnteringFromMeeting && 'workspace-container--entering',
+      isEnteringFromDashboard && 'workspace-container--entering-from-dashboard'
     )}>
       {/* 메인 컨텐츠 영역 */}
       <div className="workspace-content">

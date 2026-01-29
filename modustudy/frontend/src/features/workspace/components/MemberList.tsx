@@ -1,6 +1,9 @@
 import { motion } from 'framer-motion';
 import { cn } from '@/shared/utils/cn';
 
+// 기본 프로필 이미지 경로
+const DEFAULT_PROFILE_IMAGE = '/images/default-profile.png';
+
 // 멤버 타입 정의
 export interface WorkspaceMember {
   id: number;
@@ -39,11 +42,7 @@ export const MemberList: React.FC<MemberListProps> = ({
       onClick={() => onMemberClick?.(member)}
     >
       <div className="member-list__avatar">
-        {member.profileImageUrl ? (
-          <img src={member.profileImageUrl} alt={member.nickname} />
-        ) : (
-          member.nickname.charAt(0).toUpperCase()
-        )}
+        <img src={member.profileImageUrl || DEFAULT_PROFILE_IMAGE} alt={member.nickname} />
         <div
           className={cn(
             'member-list__status',

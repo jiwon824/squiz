@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
     Archive,
     ChevronLeft,
@@ -246,8 +245,7 @@ export const LearningArchivePage: React.FC = () => {
                                     >
                                         {/* 왼쪽 인디케이터 */}
                                         {activeTab === tab.id && (
-                                            <motion.div
-                                                layoutId="archive-tab-indicator"
+                                            <div
                                                 className="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-r"
                                             />
                                         )}
@@ -271,23 +269,12 @@ export const LearningArchivePage: React.FC = () => {
 
                             {/* 우측 콘텐츠 영역 */}
                             <div className="flex-1 p-8">
-                                <AnimatePresence mode="wait">
-                                    {activeTab === 'stats' ? (
-                                        <motion.div
-                                            key="stats"
-                                            initial={{ opacity: 0, x: 10 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            exit={{ opacity: 0, x: -10 }}
-                                        >
+                                {activeTab === 'stats' ? (
+                                        <div>
                                             <LearningStatsView archives={MOCK_ARCHIVES} />
-                                        </motion.div>
+                                        </div>
                                     ) : (
-                                        <motion.div
-                                            key="list"
-                                            initial={{ opacity: 0, x: 10 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            exit={{ opacity: 0, x: -10 }}
-                                        >
+                                        <div>
                                             {/* 검색 및 필터 */}
                                             <div className="mb-6 space-y-4">
                                                 <div className="flex items-center gap-4">
@@ -360,15 +347,11 @@ export const LearningArchivePage: React.FC = () => {
                                                 viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : 'space-y-3'
                                             )}>
                                                 {filteredArchives.map((archive) => (
-                                                    <motion.div
+                                                    <div
                                                         key={archive.id}
-                                                        layout
-                                                        initial={{ opacity: 0 }}
-                                                        animate={{ opacity: 1 }}
-                                                        exit={{ opacity: 0 }}
                                                         onClick={() => setSelectedArchive(archive)}
                                                         className={cn(
-                                                            'bg-gray-50 rounded-xl p-4 transition-all cursor-pointer',
+                                                            'bg-gray-50 rounded-xl p-4 cursor-pointer',
                                                             'hover:shadow-md hover:bg-white border border-gray-100'
                                                         )}
                                                     >
@@ -403,7 +386,7 @@ export const LearningArchivePage: React.FC = () => {
                                                                 <span>퀴즈 {archive.quizCount}</span>
                                                             </div>
                                                         </div>
-                                                    </motion.div>
+                                                    </div>
                                                 ))}
                                             </div>
 
@@ -413,9 +396,8 @@ export const LearningArchivePage: React.FC = () => {
                                                     <p className="text-text-tertiary">검색 결과가 없습니다</p>
                                                 </div>
                                             )}
-                                        </motion.div>
+                                        </div>
                                     )}
-                                </AnimatePresence>
                             </div>
                         </div>
                     </div>
@@ -519,10 +501,8 @@ const ArchiveDetailView: React.FC<ArchiveDetailViewProps> = ({ archive }) => {
                             <span className="text-sm font-medium text-text-primary">{archive.quizCorrectRate}%</span>
                         </div>
                         <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
-                            <motion.div
-                                initial={{ width: 0 }}
-                                animate={{ width: `${archive.quizCorrectRate}%` }}
-                                transition={{ duration: 0.8 }}
+                            <div
+                                style={{ width: `${archive.quizCorrectRate}%` }}
                                 className={cn(
                                     'h-3 rounded-full',
                                     archive.quizCorrectRate >= 80 ? 'bg-accent' :
@@ -626,10 +606,8 @@ const LearningStatsView: React.FC<LearningStatsViewProps> = ({ archives }) => {
                                 <span className="text-sm text-text-tertiary">{count}회</span>
                             </div>
                             <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
-                                <motion.div
-                                    initial={{ width: 0 }}
-                                    animate={{ width: `${(count / totalArchives) * 100}%` }}
-                                    transition={{ duration: 0.8 }}
+                                <div
+                                    style={{ width: `${(count / totalArchives) * 100}%` }}
                                     className="h-2.5 bg-primary rounded-full"
                                 />
                             </div>

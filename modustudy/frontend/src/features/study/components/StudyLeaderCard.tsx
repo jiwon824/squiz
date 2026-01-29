@@ -5,6 +5,9 @@ import { Button } from '@/shared/components';
 import { useUIStore } from '@/store/uiStore';
 import { cn } from '@/shared/utils/cn';
 
+// 기본 프로필 이미지 경로
+const DEFAULT_PROFILE_IMAGE = '/images/default-profile.png';
+
 /**
  * 스터디 리더 정보 카드 컴포넌트
  * 리더 프로필, 평점, 문의/신청 버튼을 표시
@@ -105,30 +108,19 @@ const StudyLeaderCard: React.FC<StudyLeaderCardProps> = ({
 
     return (
         <div className="2xl:col-span-1">
-            <div className="sticky top-6">
+            <div className="2xl:fixed 2xl:top-[168px] 2xl:z-40">
                 <div className="bg-white rounded-2xl border border-[var(--color-border)] p-6 shadow-sm">
                 {/* 리더 프로필 */}
                 <div className="text-center mb-6">
                     <div className="relative inline-block mb-4">
-                        {leader.profileImage ? (
-                            <img
-                                src={leader.profileImage}
-                                alt={leader.nickname}
-                                className={cn(
-                                    'w-20 h-20 rounded-2xl object-cover',
-                                    'border-2 border-white shadow-lg'
-                                )}
-                            />
-                        ) : (
-                            <div className={cn(
-                                'w-20 h-20 rounded-2xl',
-                                'bg-[var(--color-primary)] text-white',
-                                'flex items-center justify-center',
-                                'text-2xl font-bold border-2 border-white shadow-lg'
-                            )}>
-                                {leader.nickname.charAt(0)}
-                            </div>
-                        )}
+                        <img
+                            src={leader.profileImage || DEFAULT_PROFILE_IMAGE}
+                            alt={leader.nickname}
+                            className={cn(
+                                'w-20 h-20 rounded-2xl object-cover',
+                                'border-2 border-white shadow-lg'
+                            )}
+                        />
                         {studyStatus === 'RECRUITING' && (
                             <span className="absolute -bottom-1 -right-1 w-5 h-5 bg-[var(--color-success)] border-2 border-white rounded-full" />
                         )}
@@ -199,8 +191,8 @@ const StudyLeaderCard: React.FC<StudyLeaderCardProps> = ({
                     궁금한 점이 있다면 아래로 문의해주세요.
                     </p> */}
 
-                    {/* 문의 버튼들 (세로 스택) */}
-                    <div className="flex flex-col gap-2">
+                    {/* 문의 버튼들 (가로 배치) */}
+                    <div className="flex gap-2">
                         {/* DM 문의 버튼 */}
                         <Button
                             variant="google-outline"
@@ -231,7 +223,7 @@ const StudyLeaderCard: React.FC<StudyLeaderCardProps> = ({
                 </div>
 
                 {/* 모집 마감일 안내 - 카드 바깥, sticky 컨테이너 안 */}
-                {recruitEndDate && studyStatus === 'RECRUITING' && (
+                {recruitEndDate && (studyStatus === 'RECRUITING' || studyStatus === 'PENDING') && (
                     <div className={cn(
                         'mt-3 pt-2 rounded-xl',
                         'bg-[#FCE8E6]',

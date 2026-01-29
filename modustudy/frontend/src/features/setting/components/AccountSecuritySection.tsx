@@ -4,7 +4,7 @@
  * 비밀번호 설정/변경, 소셜 계정 연동 관리 기능을 제공합니다.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ShieldUser, Key, AlertTriangle, Link2, Calendar } from 'lucide-react';
 import { Button } from '@/shared/components/Button';
 import { useSettingStore } from '../store/settingStore';
@@ -35,12 +35,17 @@ export const AccountSecuritySection = () => {
     const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
     const showToast = useUIStore((state) => state.showToast);
 
-    // 로그인 상태일 때만 소셜 계정 및 캘린더 상태 조회
+    // 최초 한 번만 fetch 실행하기 위한 ref
+    const hasFetchedRef = useRef(false);
+
+    // 로그인 상태일 때만 소셜 계정 및 캘린더 상태 조회 (최초 마운트 시 한 번만)
     useEffect(() => {
-        if (!isLoggedIn) return;
+        if (!isLoggedIn || hasFetchedRef.current) return;
+        hasFetchedRef.current = true;
         fetchSocialAccounts();
         fetchGoogleCalendarStatus();
-    }, [isLoggedIn, fetchSocialAccounts, fetchGoogleCalendarStatus]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isLoggedIn]);
 
     // 비밀번호 폼 상태
     const [showPasswordForm, setShowPasswordForm] = useState(false);

@@ -185,7 +185,24 @@ export const createSfuClient = (baseUrl: string) => {
                 // ignore and recreate
             }
         }
-        const producer = await transport.produce({ track, appData });
+        // 비디오는 Simulcast 인코딩 적용
+        let producer;
+        if (kind === 'video') {
+            const isScreenShare = appData?.source === 'screen' || appData?.source === 'mixed';
+            const encodings = isScreenShare
+                ? [{ maxBitrate: 1500000 }] // 화면 공유: 고품질 단일 레이어
+                : [
+                    { maxBitrate: 100000, scaleResolutionDownBy: 4, maxFramerate: 15 },
+                    { maxBitrate: 300000, scaleResolutionDownBy: 2, maxFramerate: 20 },
+                    { maxBitrate: 500000, maxFramerate: 24 },
+                ]; // 카메라: Simulcast 3레이어
+            const codecOptions = isScreenShare
+                ? { videoGoogleStartBitrate: 1000 }
+                : { videoGoogleStartBitrate: 300 };
+            producer = await transport.produce({ track, appData, encodings, codecOptions });
+        } else {
+            producer = await transport.produce({ track, appData });
+        }
         producers.set(kind, producer);
         return producer;
     };
