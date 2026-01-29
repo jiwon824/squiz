@@ -3,6 +3,9 @@ import { studyService } from '../../services/studyService';
 import { Applicant } from '../../mockData';
 import { Check, X, Clock, MessageSquare, User, Filter, ChevronDown, Calendar } from 'lucide-react';
 
+// 기본 프로필 이미지 경로
+const DEFAULT_PROFILE_IMAGE = '/images/default-profile.png';
+
 interface ApplicantManagementProps {
     studyId: number;
 }

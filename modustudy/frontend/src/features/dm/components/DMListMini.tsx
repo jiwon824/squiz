@@ -5,6 +5,9 @@ import { useAuthStore } from '@/store/authStore';
 import { BackButton } from '@/shared/components';
 import { cn } from '@/shared/utils/cn';
 
+// 기본 프로필 이미지 경로
+const DEFAULT_PROFILE_IMAGE = '/images/default-profile.png';
+
 // URL을 클릭 가능한 링크로 변환하는 함수
 const renderMessageContent = (content: string) => {
     const urlRegex = /(https?:\/\/[^\s]+)/g;
@@ -133,10 +136,10 @@ const DMListMini: React.FC = () => {
                         onClick={() => clearPendingDM()}
                     />
                     <div className={cn(
-                        'w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs',
+                        'w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs overflow-hidden',
                         'bg-study-blue/10 text-study-blue'
                     )}>
-                        {pendingDMUser.nickname.charAt(0)}
+                        <img src={pendingDMUser.profileImage || DEFAULT_PROFILE_IMAGE} alt={pendingDMUser.nickname} className="w-full h-full object-cover" />
                     </div>
                     <span className="font-bold text-sm">{pendingDMUser.nickname}</span>
                     <span className="text-xs text-green-500 ml-1">새 대화</span>
@@ -193,10 +196,10 @@ const DMListMini: React.FC = () => {
                         onClick={() => setCurrentConversation(null)}
                     />
                     <div className={cn(
-                        'w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs',
+                        'w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs overflow-hidden',
                         'bg-study-blue/10 text-study-blue'
                     )}>
-                        {currentConversation?.participantNickname.charAt(0)}
+                        <img src={currentConversation?.participantProfileImage || DEFAULT_PROFILE_IMAGE} alt={currentConversation?.participantNickname} className="w-full h-full object-cover" />
                     </div>
                     <span className="font-bold text-sm">{currentConversation?.participantNickname}</span>
                 </div>
@@ -218,13 +221,14 @@ const DMListMini: React.FC = () => {
                                     {/* 아바타 */}
                                     <div className="flex-shrink-0">
                                         <div className={cn(
-                                            'w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm',
+                                            'w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm overflow-hidden',
                                             'bg-primary/10 text-primary'
                                         )}>
-                                            {isReceiver
-                                                ? currentConversation?.participantNickname.charAt(0)
-                                                : 'Me'
-                                            }
+                                            <img
+                                                src={isReceiver ? (currentConversation?.participantProfileImage || DEFAULT_PROFILE_IMAGE) : DEFAULT_PROFILE_IMAGE}
+                                                alt={isReceiver ? currentConversation?.participantNickname : '나'}
+                                                className="w-full h-full object-cover"
+                                            />
                                         </div>
                                     </div>
 
@@ -339,10 +343,10 @@ const DMListMini: React.FC = () => {
                                 <div className="flex justify-between items-start mb-0.5">
                                     <div className="flex items-center gap-2">
                                         <div className={cn(
-                                            'w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs',
+                                            'w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs overflow-hidden',
                                             'bg-study-blue/10 text-study-blue'
                                         )}>
-                                            {dm.participantNickname.charAt(0)}
+                                            <img src={dm.participantProfileImage || DEFAULT_PROFILE_IMAGE} alt={dm.participantNickname} className="w-full h-full object-cover" />
                                         </div>
                                         <span className="text-sm font-bold text-gray-800">{dm.participantNickname}</span>
                                     </div>
