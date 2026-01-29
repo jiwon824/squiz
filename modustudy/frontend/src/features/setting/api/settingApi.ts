@@ -12,6 +12,7 @@ import type {
     ChangePasswordRequest,
     StudyPreference,
     StudyPreferenceUpdateRequest,
+    GoogleCalendarStatus,
 } from '../types';
 
 // ============================================
@@ -112,6 +113,40 @@ export const updateStudyPreference = async (
 };
 
 // ============================================
+// Google 캘린더 연동 API
+// ============================================
+
+/**
+ * Google 캘린더 연동 상태 조회
+ * GET /api/v1/calendar/google/status
+ */
+export const getGoogleCalendarStatus = async (): Promise<GoogleCalendarStatus> => {
+    const response = await api.get<{ success: boolean; data: GoogleCalendarStatus }>(
+        '/api/v1/calendar/google/status'
+    );
+    return response.data.data;
+};
+
+/**
+ * Google 캘린더 OAuth 인증 URL 조회
+ * GET /api/v1/calendar/google/auth-url
+ */
+export const getGoogleCalendarAuthUrl = async (): Promise<string> => {
+    const response = await api.get<{ success: boolean; data: { authUrl: string } }>(
+        '/api/v1/calendar/google/auth-url'
+    );
+    return response.data.data.authUrl;
+};
+
+/**
+ * Google 캘린더 연동 해제
+ * DELETE /api/v1/calendar/google/disconnect
+ */
+export const disconnectGoogleCalendar = async (): Promise<void> => {
+    await api.delete('/api/v1/calendar/google/disconnect');
+};
+
+// ============================================
 // API 객체 export
 // ============================================
 
@@ -128,6 +163,10 @@ export const settingApi = {
     // 스터디 선호 설정
     getStudyPreference,
     updateStudyPreference,
+    // Google 캘린더
+    getGoogleCalendarStatus,
+    getGoogleCalendarAuthUrl,
+    disconnectGoogleCalendar,
 };
 
 export default settingApi;
