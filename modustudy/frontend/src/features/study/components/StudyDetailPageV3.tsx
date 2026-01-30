@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
     Heart, Users, Clock, MapPin,
     Target, Award, AlertTriangle, Share2,
-    BookOpen, ChevronRight, Monitor, Handshake, Layers, MoreVertical,
+    BookOpen, Monitor, Handshake, Layers, MoreVertical,
     Calendar, CalendarDays, Bookmark, FileText, GraduationCap, Info, Loader2, Pencil
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
@@ -14,6 +14,7 @@ import { StudyReportModal } from './StudyReportModal';
 import LeaderReviewModal from './LeaderReviewModal';
 import StudyListContainer from './StudyListContainer';
 import StudyLeaderCard from './StudyLeaderCard';
+import StudyCommentSection from './StudyCommentSection';
 import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { Button, ArrowButton } from '@/shared/components';
 import { cn } from '@/shared/utils/cn';
@@ -219,7 +220,7 @@ const StudyDetailPageV3: React.FC = () => {
         startConversationWith({
             id: studyDetail.leader.id,
             nickname: studyDetail.leader.nickname,
-            profileImage: studyDetail.leader.profileImage
+            profileImage: studyDetail.leader.profileImage ?? null  // undefined -> null 변환
         });
         setActiveRightTab('dm');
     };
@@ -357,22 +358,15 @@ const StudyDetailPageV3: React.FC = () => {
                                         <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[var(--color-background-secondary)] text-[var(--color-text-secondary)]">
                                             # {study.topic}
                                         </span>
+                                        {isOwner && (
+                                            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[#FEF7E0] text-[#f9ab00] border border-[#FBBC04]">
+                                                # 내가 작성한 글
+                                            </span>
+                                        )}
                                         </div>
 
                                         {/* 액션 버튼 */}
                                         <div className="flex items-center gap-2 flex-shrink-0">
-                                            {/* 스터디장에게만 수정 버튼 표시 */}
-                                            {isOwner && (
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => navigate(`/study/create/planned?studyId=${study.id}`)}
-                                                    className="text-[var(--color-primary)] border-[var(--color-primary)] hover:bg-[var(--color-primary-alpha-10)]"
-                                                >
-                                                    <Pencil size={16} className="mr-1" />
-                                                    수정
-                                                </Button>
-                                            )}
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
@@ -409,16 +403,29 @@ const StudyDetailPageV3: React.FC = () => {
                                                 {/* 드롭다운 메뉴 */}
                                                 {isMenuOpen && (
                                                     <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl border border-[var(--color-border)] shadow-lg z-50 overflow-hidden">
-                                                        <button
-                                                            onClick={() => {
-                                                                setIsReportModalOpen(true);
-                                                                setIsMenuOpen(false);
-                                                            }}
-                                                            className="w-full px-4 py-3 text-left text-sm font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-error-light)] hover:text-[var(--color-error)] transition-colors flex items-center gap-2"
-                                                        >
-                                                            <AlertTriangle size={16} />
-                                                            <span>신고하기</span>
-                                                        </button>
+                                                        {isOwner ? (
+                                                            <button
+                                                                onClick={() => {
+                                                                    navigate(`/study/create/planned?studyId=${study.id}`);
+                                                                    setIsMenuOpen(false);
+                                                                }}
+                                                                className="w-full px-4 py-3 text-left text-sm font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-primary-alpha-10)] hover:text-[var(--color-primary)] transition-colors flex items-center gap-2"
+                                                            >
+                                                                <Pencil size={16} />
+                                                                <span>수정하기</span>
+                                                            </button>
+                                                        ) : (
+                                                            <button
+                                                                onClick={() => {
+                                                                    setIsReportModalOpen(true);
+                                                                    setIsMenuOpen(false);
+                                                                }}
+                                                                className="w-full px-4 py-3 text-left text-sm font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-error-light)] hover:text-[var(--color-error)] transition-colors flex items-center gap-2"
+                                                            >
+                                                                <AlertTriangle size={16} />
+                                                                <span>신고하기</span>
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 )}
                                             </div>
@@ -506,10 +513,14 @@ const StudyDetailPageV3: React.FC = () => {
                                     <div className="space-y-6">
                                         {/* 한줄 소개 */}
                                         {studyDetail.intro && (
-                                            <div className="p-4 bg-[var(--color-primary-alpha-5)] rounded-xl border border-[var(--color-primary-alpha-10)]">
-                                                <p className="text-[var(--color-text-primary)] font-medium italic">
-                                                    "{studyDetail.intro}"
-                                                </p>
+                                            <div className="flex items-start gap-3 p-4 bg-[var(--color-primary-alpha-5)] rounded-xl">
+                                                <span className="text-xl">💬</span>
+                                                <div>
+                                                    <p className="text-xs text-[var(--color-text-secondary)] mb-1">한줄 소개</p>
+                                                    <p className="text-[var(--color-text-primary)] font-medium">
+                                                        {studyDetail.intro}
+                                                    </p>
+                                                </div>
                                             </div>
                                         )}
 
@@ -545,7 +556,7 @@ const StudyDetailPageV3: React.FC = () => {
                                         {studyDetail.goal && (
                                             <div>
                                                 <h3 className="flex items-center gap-2 text-sm font-bold text-[var(--color-text-secondary)] mb-3">
-                                                    <GraduationCap size={16} />
+                                                    <GraduationCap size={16} className="text-[var(--color-primary)]" />
                                                     스터디 목표
                                                 </h3>
                                                 <p className="text-[var(--color-text-primary)] leading-relaxed bg-[var(--color-background)] p-4 rounded-xl">
@@ -558,7 +569,7 @@ const StudyDetailPageV3: React.FC = () => {
                                         {studyDetail.textbook && (
                                             <div>
                                                 <h3 className="flex items-center gap-2 text-sm font-bold text-[var(--color-text-secondary)] mb-3">
-                                                    <BookOpen size={16} />
+                                                    <BookOpen size={16} className="text-[var(--color-primary)]" />
                                                     교재 및 자료
                                                 </h3>
                                                 <p className="text-[var(--color-text-primary)] leading-relaxed bg-[var(--color-background)] p-4 rounded-xl">
@@ -571,7 +582,7 @@ const StudyDetailPageV3: React.FC = () => {
                                         {studyDetail.prerequisites && (
                                             <div>
                                                 <h3 className="flex items-center gap-2 text-sm font-bold text-[var(--color-text-secondary)] mb-3">
-                                                    <Award size={16} />
+                                                    <Award size={16} className="text-[var(--color-primary)]" />
                                                     필요한 사전 지식
                                                 </h3>
                                                 <p className="text-[var(--color-text-primary)] leading-relaxed bg-[var(--color-background)] p-4 rounded-xl">
@@ -584,7 +595,7 @@ const StudyDetailPageV3: React.FC = () => {
                                         {studyDetail.processDetail && (
                                             <div>
                                                 <h3 className="flex items-center gap-2 text-sm font-bold text-[var(--color-text-secondary)] mb-3">
-                                                    <FileText size={16} />
+                                                    <FileText size={16} className="text-[var(--color-primary)]" />
                                                     진행 방식
                                                 </h3>
                                                 <p className="text-[var(--color-text-primary)] leading-relaxed bg-[var(--color-background)] p-4 rounded-xl whitespace-pre-wrap">
@@ -654,7 +665,6 @@ const StudyDetailPageV3: React.FC = () => {
                                                                 진행중
                                                             </span>
                                                         )}
-                                                        <ChevronRight size={18} className="text-[var(--color-text-muted)]" />
                                                     </div>
                                                 </div>
                                             ))}
@@ -669,6 +679,14 @@ const StudyDetailPageV3: React.FC = () => {
                                         </div>
                                     )}
                                 </div>
+                            </div>
+
+                            {/* 댓글 섹션 */}
+                            <div className="mt-6">
+                                <StudyCommentSection
+                                    studyId={study.id}
+                                    studyLeaderId={study.leader.id}
+                                />
                             </div>
                         </div>
 

@@ -65,15 +65,13 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
     fetchUnreadCount: async () => {
         try {
-            console.log('[알림 Store] getUnreadCount API 호출 시작');
             const response = await getUnreadCount();
-            console.log('[알림 Store] getUnreadCount 응답:', response);
             set({
                 unreadCount: response.unreadCount,
                 unreadByType: response.byType,
             });
-        } catch (error) {
-            console.error('[알림 Store] getUnreadCount 에러:', error);
+        } catch {
+            // 조용히 실패 처리
         }
     },
 
