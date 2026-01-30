@@ -41,7 +41,7 @@ const MeetingRoomPage: React.FC = () => {
     const numericMeetingId = Number(meetingId);
     const navigate = useNavigate();
     const meetingListPath =
-        Number.isFinite(numericStudyId) && numericStudyId > 0 ? `/study/${numericStudyId}/meetings` : '/study';
+        Number.isFinite(numericStudyId) && numericStudyId > 0 ? `/study/${numericStudyId}/workspace` : '/study';
     const { user, isLoggedIn } = useAuthStore();
     const { showToast } = useUIStore();
 
@@ -2227,7 +2227,7 @@ const MeetingRoomPage: React.FC = () => {
                                 className="meeting-btn primary"
                                 onClick={() => navigate(meetingListPath)}
                             >
-                                회의 목록으로
+                                워크페이스로
                             </button>
                             <button className="meeting-btn ghost" onClick={() => navigate(-1)}>
                                 이전 화면
@@ -2291,7 +2291,7 @@ const MeetingRoomPage: React.FC = () => {
                                 <span>{isPresenter ? '발표자 모드' : '참가자 모드'}</span>
                             </div>
                             <button className="meeting-btn ghost" onClick={() => navigate(meetingListPath)}>
-                                목록으로
+                                워크페이스로
                             </button>
                         </div>
                     </div>

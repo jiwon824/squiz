@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+﻿import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { cn } from '@/shared/utils/cn';
 import { WorkspaceHeader } from './WorkspaceHeader';
@@ -8,6 +8,7 @@ import { MessageInput } from './MessageInput';
 import { MemberList, type WorkspaceMember } from './MemberList';
 import { WorkspaceCalendarArea } from './WorkspaceCalendarArea';
 import { MaterialArea } from '@/features/material';
+import MeetingHistoryPanel from '@/features/meeting/components/MeetingHistoryPanel';
 import { workspaceApi } from '@/api/endpoints/workspaceApi';
 import { studyApi, type StudyMemberResponse } from '@/api/endpoints/studyApi';
 import { sessionApi, type StudySessionResponse } from '@/api/endpoints/sessionApi';
@@ -48,7 +49,7 @@ export const WorkspacePage: React.FC = () => {
   const showToast = useUIStore((state) => state.showToast);
   const currentUser = useAuthStore((state) => state.user);
 
-  // studyId 파싱 (테스트 모드용 기본값)
+  // studyId 파싱 (테스트 모드용 기본값?)
   const studyId = studyIdParam ? Number(studyIdParam) : undefined;
 
   // 상태
@@ -70,8 +71,9 @@ export const WorkspacePage: React.FC = () => {
   const [isWebSocketConnected, setIsWebSocketConnected] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
   const [activeMeetingId, setActiveMeetingId] = useState<number | null>(null);
+  const [activeMeetingEnded, setActiveMeetingEnded] = useState<boolean | null>(null);
 
-  // 미팅에서 진입 시 애니메이션 플래그 (최초 렌더 시 한 번만 확인)
+  // 미팅에서 진입 애니메이션 플래그(최초 렌더 한 번만 확인)
   const isEnteringFromMeeting = useMemo(() => {
     const flag = sessionStorage.getItem('fromMeeting') === 'true';
     if (flag) {
@@ -80,7 +82,7 @@ export const WorkspacePage: React.FC = () => {
     return flag;
   }, []);
 
-  // 대시보드에서 진입 시 애니메이션 플래그 (최초 렌더 시 한 번만 확인)
+  // 대시보드에서 진입 애니메이션 플래그(최초 렌더 한 번만 확인)
   const isEnteringFromDashboard = useMemo(() => {
     const flag = sessionStorage.getItem('fromDashboard') === 'true';
     if (flag) {
@@ -89,7 +91,7 @@ export const WorkspacePage: React.FC = () => {
     return flag;
   }, []);
 
-  // WebSocket 핸들러를 위한 ref (상태 변경 시에도 최신 값 참조)
+  // WebSocket 핸들러를 위한 ref (상태 변경 시 최신 값 참조)
   const messagesRef = useRef<MessageResponse[]>([]);
   messagesRef.current = messages;
 
@@ -112,7 +114,7 @@ export const WorkspacePage: React.FC = () => {
           studyApi.getStudyMembers(studyId),
         ]);
 
-        // 스터디 시작일 체크: 시작일 전이면 상세페이지로 리다이렉트
+        // 스터디 시작일 체크: 시작일 이전이면 상세 페이지로 리다이렉트
         if (studyData?.startDate) {
           const today = new Date();
           today.setHours(0, 0, 0, 0);
@@ -125,7 +127,7 @@ export const WorkspacePage: React.FC = () => {
               month: 'long',
               day: 'numeric'
             });
-            showToast?.(`워크스페이스는 스터디 시작일(${formattedDate})부터 이용 가능합니다.`, 'info');
+            showToast?.(`워크스페이스는 스터디 시작일(${formattedDate})부터 이용할 수 있습니다.`, 'info');
             navigate(`/study/v3/${studyId}`);
             return;
           }
@@ -171,7 +173,7 @@ export const WorkspacePage: React.FC = () => {
           err?.response?.data?.message ||
           err?.response?.data?.error ||
           err?.message ||
-          '워크스페이스를 불러오는데 실패했습니다.';
+          '워크스페이스를 불러오는 데 실패했습니다.';
         setError(errorMessage);
       } finally {
         setIsLoading(false);
@@ -287,7 +289,7 @@ export const WorkspacePage: React.FC = () => {
     loadSessions();
   }, [loadSessions]);
 
-  // 10초마다 현재 시간 갱신 (진행 중 세션 실시간 감지)
+  // 10초마다 현재 시간 갱신 (진행 중인 세션 재확인)
   useEffect(() => {
     // 초기 체크
     setCurrentTime(new Date());
@@ -298,7 +300,7 @@ export const WorkspacePage: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // 5분마다 세션 목록 갱신 (새 세션 반영)
+  // 5분마다 세션 목록 갱신 (신규 세션 반영)
   useEffect(() => {
     const interval = setInterval(() => {
       loadSessions();
@@ -308,14 +310,21 @@ export const WorkspacePage: React.FC = () => {
 
   // 현재 진행 중인 세션 찾기
   const activeSession = useMemo(() => {
-    // currentTime을 의존성으로 사용해 주기적으로 재계산
+    // currentTime은 종속성 갱신을 위한 더미 참조
     void currentTime;
-    return sessions.find(isSessionInProgress) || null;
+    const inProgress = sessions.filter(isSessionInProgress);
+    if (inProgress.length === 0) return null;
+    return inProgress.reduce((latest, session) => {
+      const latestTime = new Date(latest.scheduledAt).getTime();
+      const sessionTime = new Date(session.scheduledAt).getTime();
+      return sessionTime > latestTime ? session : latest;
+    }, inProgress[0]);
   }, [sessions, currentTime]);
 
   useEffect(() => {
     if (!studyId || !activeSession) {
       setActiveMeetingId(null);
+      setActiveMeetingEnded(null);
       return;
     }
     let cancelled = false;
@@ -324,11 +333,19 @@ export const WorkspacePage: React.FC = () => {
         const meetings = await meetingApi.listMeetings(studyId, { page: 0, size: 20 });
         const match = meetings.content.find((meeting) => meeting.session?.id === activeSession.id);
         if (!cancelled) {
-          setActiveMeetingId(match?.id ?? null);
+          if (match) {
+            const ended = Boolean(match.endedAt);
+            setActiveMeetingEnded(ended);
+            setActiveMeetingId(ended ? null : match.id);
+          } else {
+            setActiveMeetingEnded(null);
+            setActiveMeetingId(null);
+          }
         }
       } catch (error) {
         if (!cancelled) {
           setActiveMeetingId(null);
+          setActiveMeetingEnded(null);
         }
         console.warn('Failed to resolve active meeting id', error);
       }
@@ -355,7 +372,7 @@ export const WorkspacePage: React.FC = () => {
         // WebSocket으로 메시지 전송
         workspaceWebSocket.sendMessage(content, 'TEXT');
       } else {
-        // WebSocket 미연결 시 REST API 폴백
+        // WebSocket 미연결 시 REST API 대체
         workspaceApi
           .sendMessage(workspace.id, { content, messageType: 'TEXT' })
           .then((newMessage) => {
@@ -382,12 +399,12 @@ export const WorkspacePage: React.FC = () => {
     try {
       const nextPage = currentPage + 1;
       const messagesData = await workspaceApi.getMessages(workspace.id, nextPage);
-      // 이전 메시지는 앞에 추가
+      // 이전 메시지를 위에 추가
       setMessages((prev) => [...messagesData.content.reverse(), ...prev]);
       setHasMoreMessages(!messagesData.last);
       setCurrentPage(nextPage);
     } catch (err) {
-      // 이전 메시지 로드 실패 시 무시
+      // 이전 메시지 로드 실패는 무시
     } finally {
       setIsMessagesLoading(false);
     }
@@ -441,7 +458,7 @@ export const WorkspacePage: React.FC = () => {
     return (
       <div className={cn('workspace-container', isDarkMode && 'workspace-container--dark')}>
         <div className="workspace-error">
-          <span className="workspace-error__icon">⚠️</span>
+          <span className="workspace-error__icon">!</span>
           <h2>오류가 발생했습니다</h2>
           <p>{error}</p>
           <button onClick={handleGoBack} className="workspace-error__btn">
@@ -460,7 +477,7 @@ export const WorkspacePage: React.FC = () => {
       isEnteringFromMeeting && 'workspace-container--entering',
       isEnteringFromDashboard && 'workspace-container--entering-from-dashboard'
     )}>
-      {/* 메인 컨텐츠 영역 */}
+      {/* 메인 콘텐츠 영역 */}
       <div className="workspace-content">
         {/* 상단 헤더 */}
         <WorkspaceHeader
@@ -480,7 +497,7 @@ export const WorkspacePage: React.FC = () => {
             onMenuChange={setActiveMenu}
             isDarkMode={isDarkMode}
             onToggleDarkMode={handleToggleDarkMode}
-            activeSession={activeSession}
+            activeSession={activeSession && activeMeetingEnded !== true ? activeSession : null}
             onNavigateToMeeting={handleNavigateToMeeting}
           />
 
@@ -507,6 +524,10 @@ export const WorkspacePage: React.FC = () => {
             {activeMenu === 'calendar' && studyId && (
               <WorkspaceCalendarArea studyId={studyId} isLeader={isLeader} onSessionChange={loadSessions} />
             )}
+
+            {activeMenu === 'meeting' && studyId && (
+              <MeetingHistoryPanel studyId={studyId} />
+            )}
           </div>
         </div>
       </div>
@@ -516,9 +537,16 @@ export const WorkspacePage: React.FC = () => {
         members={members}
         isVisible={isMembersVisible}
         onMemberClick={() => {
-          // TODO: 멤버 클릭 시 프로필 보기 등 기능 추가
+          // TODO: 멤버 클릭 프로필 보기 기능 추가
         }}
       />
     </div>
   );
 };
+
+
+
+
+
+
+
