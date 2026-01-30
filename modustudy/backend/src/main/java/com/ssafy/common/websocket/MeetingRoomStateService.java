@@ -123,6 +123,19 @@ public class MeetingRoomStateService {
         }
     }
 
+    public void removeChatMessage(String roomId, Long messageId) {
+        if (messageId == null) {
+            return;
+        }
+        ArrayDeque<MeetingRoomChatMessage> history = chatHistory.get(roomId);
+        if (history == null) {
+            return;
+        }
+        synchronized (history) {
+            history.removeIf(message -> messageId.equals(message.getId()));
+        }
+    }
+
     public List<MeetingRoomChatMessage> getChatHistory(String roomId) {
         ArrayDeque<MeetingRoomChatMessage> history = chatHistory.get(roomId);
         if (history == null) {

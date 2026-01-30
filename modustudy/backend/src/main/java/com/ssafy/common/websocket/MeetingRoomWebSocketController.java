@@ -9,7 +9,7 @@ import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.SimpMessageType;
 import org.springframework.stereotype.Controller;
-import com.ssafy.domain.meeting.service.MeetingService;
+import com.ssafy.domain.meeting.service.MeetingChatService;
 import java.util.Optional;
 
 @Controller
@@ -17,14 +17,14 @@ public class MeetingRoomWebSocketController {
     // Handles room join/chat/presenter events over STOMP.
     private final MeetingRoomStateService roomStateService;
     private final SimpMessagingTemplate messagingTemplate;
-    private final MeetingService meetingService;
+    private final MeetingChatService meetingChatService;
 
     public MeetingRoomWebSocketController(MeetingRoomStateService roomStateService,
                                           SimpMessagingTemplate messagingTemplate,
-                                          MeetingService meetingService) {
+                                          MeetingChatService meetingChatService) {
         this.roomStateService = roomStateService;
         this.messagingTemplate = messagingTemplate;
-        this.meetingService = meetingService;
+        this.meetingChatService = meetingChatService;
     }
 
     @MessageMapping("/rooms/{roomId}/join")
@@ -63,13 +63,18 @@ public class MeetingRoomWebSocketController {
     @MessageMapping("/rooms/{roomId}/chat")
     public void sendChat(@DestinationVariable String roomId, @Valid MeetingRoomChatMessage chatMessage) {
         roomStateService.addChatMessage(roomId, chatMessage);
-        parseMeetingId(roomId).ifPresent(meetingId -> meetingService.addChatMessage(
-                meetingId,
-                chatMessage.getUserId(),
-                chatMessage.getSender(),
-                chatMessage.getText(),
-                chatMessage.getSentAt()
-        ));
+        parseMeetingId(roomId).ifPresent(meetingId -> {
+            var saved = meetingChatService.addChatMessageAndReturn(
+                    meetingId,
+                    chatMessage.getUserId(),
+                    chatMessage.getSender(),
+                    chatMessage.getText(),
+                    chatMessage.getSentAt()
+            );
+            if (saved != null) {
+                chatMessage.setId(saved.getId());
+            }
+        });
         MeetingRoomEvent event = new MeetingRoomEvent(MeetingRoomEvent.Type.CHAT, roomId);
         event.setChat(chatMessage);
         messagingTemplate.convertAndSend("/topic/rooms/" + roomId + "/events", event);
