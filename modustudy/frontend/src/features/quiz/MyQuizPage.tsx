@@ -18,7 +18,7 @@ const STATE_LABELS: Record<number, string> = {
 const DEMO_CONTENT_TYPE: ReviewContentType = 'COURSE_QUESTION';
 const DEMO_CONTENT_ID = 1;
 
-export default function ReviewQuizPage() {
+export default function MyQuizPage() {
   const { elapsedTime, isRunning, start, stop, reset } = useTimer();
   const [result, setResult] = useState<ReviewSubmitResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
