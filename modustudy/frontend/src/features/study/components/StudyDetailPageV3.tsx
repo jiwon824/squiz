@@ -3,17 +3,18 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
     Heart, Users, Clock, MapPin,
     Target, Award, AlertTriangle, Share2,
-    BookOpen, ChevronRight, Monitor, Handshake, Layers, MoreVertical,
-    Calendar, CalendarDays, Bookmark, FileText, GraduationCap, Info, Loader2, Pencil
+    BookOpen, Monitor, Handshake, Layers, MoreVertical,
+    Calendar, CalendarDays, Bookmark, FileText, GraduationCap, Info, Loader2, Pencil, Quote, Trash2
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { studyService, Study } from '../services/studyService';
-import { studyApi, getStudySessions, StudySessionItem } from '@/api/endpoints/studyApi';
+import { studyApi, getStudySessions, StudySessionItem, deleteStudy } from '@/api/endpoints/studyApi';
 import StudyApplyModalV2 from './StudyApplyModalV2';
 import { StudyReportModal } from './StudyReportModal';
 import LeaderReviewModal from './LeaderReviewModal';
 import StudyListContainer from './StudyListContainer';
 import StudyLeaderCard from './StudyLeaderCard';
+import StudyCommentSection from './StudyCommentSection';
 import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { Button, ArrowButton } from '@/shared/components';
 import { cn } from '@/shared/utils/cn';
@@ -83,6 +84,8 @@ const StudyDetailPageV3: React.FC = () => {
     const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
     const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+    const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
     const [leaderReviews, setLeaderReviews] = useState<LeaderReview[]>([]);
     const [leaderAvgRating, setLeaderAvgRating] = useState(0);
     const { user } = useAuthStore();
@@ -219,7 +222,7 @@ const StudyDetailPageV3: React.FC = () => {
         startConversationWith({
             id: studyDetail.leader.id,
             nickname: studyDetail.leader.nickname,
-            profileImage: studyDetail.leader.profileImage
+            profileImage: studyDetail.leader.profileImage ?? null  // undefined -> null 변환
         });
         setActiveRightTab('dm');
     };
@@ -232,6 +235,24 @@ const StudyDetailPageV3: React.FC = () => {
         setLeaderReviews(reviews);
         setLeaderAvgRating(avgRating > 0 ? avgRating : 4.5);
         setIsReviewModalOpen(true);
+    };
+
+    // 스터디 삭제 핸들러
+    const handleDeleteStudy = async () => {
+        if (!studyDetail.id) return;
+
+        setIsDeleting(true);
+        try {
+            await deleteStudy(studyDetail.id);
+            showToast('스터디가 삭제되었습니다.', 'success');
+            navigate('/study');
+        } catch (error) {
+            console.error('스터디 삭제 실패:', error);
+            showToast('스터디 삭제에 실패했습니다.', 'error');
+        } finally {
+            setIsDeleting(false);
+            setIsDeleteConfirmOpen(false);
+        }
     };
 
     // 날짜 포맷팅 헬퍼
@@ -357,22 +378,15 @@ const StudyDetailPageV3: React.FC = () => {
                                         <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[var(--color-background-secondary)] text-[var(--color-text-secondary)]">
                                             # {study.topic}
                                         </span>
+                                        {isOwner && (
+                                            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[#FEF7E0] text-[#f9ab00] border border-[#FBBC04]">
+                                                # 내가 작성한 글
+                                            </span>
+                                        )}
                                         </div>
 
                                         {/* 액션 버튼 */}
                                         <div className="flex items-center gap-2 flex-shrink-0">
-                                            {/* 스터디장에게만 수정 버튼 표시 */}
-                                            {isOwner && (
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => navigate(`/study/create/planned?studyId=${study.id}`)}
-                                                    className="text-[var(--color-primary)] border-[var(--color-primary)] hover:bg-[var(--color-primary-alpha-10)]"
-                                                >
-                                                    <Pencil size={16} className="mr-1" />
-                                                    수정
-                                                </Button>
-                                            )}
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
@@ -409,16 +423,50 @@ const StudyDetailPageV3: React.FC = () => {
                                                 {/* 드롭다운 메뉴 */}
                                                 {isMenuOpen && (
                                                     <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl border border-[var(--color-border)] shadow-lg z-50 overflow-hidden">
-                                                        <button
-                                                            onClick={() => {
-                                                                setIsReportModalOpen(true);
-                                                                setIsMenuOpen(false);
-                                                            }}
-                                                            className="w-full px-4 py-3 text-left text-sm font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-error-light)] hover:text-[var(--color-error)] transition-colors flex items-center gap-2"
-                                                        >
-                                                            <AlertTriangle size={16} />
-                                                            <span>신고하기</span>
-                                                        </button>
+                                                        {isOwner ? (
+                                                            <>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        navigate(`/study/create/planned?studyId=${study.id}`);
+                                                                        setIsMenuOpen(false);
+                                                                    }}
+                                                                    className="w-full px-4 py-3 text-left text-sm font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-primary-alpha-10)] hover:text-[var(--color-primary)] transition-colors flex items-center gap-2"
+                                                                >
+                                                                    <Pencil size={16} />
+                                                                    <span>수정하기</span>
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setIsDeleteConfirmOpen(true);
+                                                                        setIsMenuOpen(false);
+                                                                    }}
+                                                                    disabled={study.currentMembers > 1}
+                                                                    className={cn(
+                                                                        "w-full px-4 py-3 text-left text-sm font-medium transition-colors flex items-center gap-2",
+                                                                        study.currentMembers > 1
+                                                                            ? "text-[var(--color-text-muted)] cursor-not-allowed"
+                                                                            : "text-[var(--color-error)] hover:bg-[var(--color-error-light)]"
+                                                                    )}
+                                                                >
+                                                                    <Trash2 size={16} />
+                                                                    <span>삭제하기</span>
+                                                                    {study.currentMembers > 1 && (
+                                                                        <span className="text-[10px] ml-auto">(멤버 있음)</span>
+                                                                    )}
+                                                                </button>
+                                                            </>
+                                                        ) : (
+                                                            <button
+                                                                onClick={() => {
+                                                                    setIsReportModalOpen(true);
+                                                                    setIsMenuOpen(false);
+                                                                }}
+                                                                className="w-full px-4 py-3 text-left text-sm font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-error-light)] hover:text-[var(--color-error)] transition-colors flex items-center gap-2"
+                                                            >
+                                                                <AlertTriangle size={16} />
+                                                                <span>신고하기</span>
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 )}
                                             </div>
@@ -448,46 +496,79 @@ const StudyDetailPageV3: React.FC = () => {
                                         모집 정보
                                     </h2>
 
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                        <InfoRow
-                                            icon={<Users size={18} />}
-                                            label="모집 인원"
-                                            value={`${study.currentMembers} / ${study.maxMembers}명`}
-                                            highlight={study.currentMembers >= study.maxMembers ? '마감' : undefined}
-                                        />
-                                        <InfoRow
-                                            icon={
-                                                study.meetingType === 'ONLINE' ? <Monitor size={18} /> :
-                                                study.meetingType === 'OFFLINE' ? <Handshake size={18} /> :
-                                                <Layers size={18} />
-                                            }
-                                            label="진행 방식"
-                                            value={getMeetingTypeText(study.meetingType)}
-                                        />
-                                        <InfoRow
-                                            icon={<MapPin size={18} />}
-                                            label="활동 지역"
-                                            value={
-                                                study.meetingType === 'ONLINE'
-                                                    ? '전국'
-                                                    : study.region?.name || getRegionById(study.regionId!)?.name || '미지정'
-                                            }
-                                        />
-                                        <InfoRow
-                                            icon={<Clock size={18} />}
-                                            label="모임 시간"
-                                            value={study.scheduleTime ? study.scheduleTime.substring(0, 5) : '협의 후 결정'}
-                                        />
-                                        <InfoRow
-                                            icon={<CalendarDays size={18} />}
-                                            label="모임 요일"
-                                            value={formatScheduleDays(study.scheduleDays)}
-                                        />
-                                        <InfoRow
-                                            icon={<Bookmark size={18} />}
-                                            label="모집 기간"
-                                            value={formatDateRange(study.recruitStartDate, study.recruitEndDate)}
-                                        />
+                                    <div className="space-y-6 pl-2.5">
+                                        {/* 모집 인원 & 진행 방식 */}
+                                        <div className="grid grid-cols-2 gap-6">
+                                            <div>
+                                                <h3 className="flex items-center gap-2 text-sm font-bold text-[var(--color-text-secondary)] mb-3">
+                                                    <Users size={16} className="text-[var(--color-primary)]" />
+                                                    모집 인원
+                                                </h3>
+                                                <p className="text-[var(--color-text-primary)] leading-relaxed pb-4 border-b border-[var(--color-border)]">
+                                                    {study.currentMembers} / {study.maxMembers}명
+                                                    {study.currentMembers >= study.maxMembers && (
+                                                        <span className="ml-2 text-xs font-bold text-[var(--color-error)]">마감</span>
+                                                    )}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <h3 className="flex items-center gap-2 text-sm font-bold text-[var(--color-text-secondary)] mb-3">
+                                                    {study.meetingType === 'ONLINE' ? <Monitor size={16} className="text-[var(--color-primary)]" /> :
+                                                     study.meetingType === 'OFFLINE' ? <Handshake size={16} className="text-[var(--color-primary)]" /> :
+                                                     <Layers size={16} className="text-[var(--color-primary)]" />}
+                                                    진행 방식
+                                                </h3>
+                                                <p className="text-[var(--color-text-primary)] leading-relaxed pb-4 border-b border-[var(--color-border)]">
+                                                    {getMeetingTypeText(study.meetingType)}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {/* 활동 지역 & 모임 시간 */}
+                                        <div className="grid grid-cols-2 gap-6">
+                                            <div>
+                                                <h3 className="flex items-center gap-2 text-sm font-bold text-[var(--color-text-secondary)] mb-3">
+                                                    <MapPin size={16} className="text-[var(--color-primary)]" />
+                                                    활동 지역
+                                                </h3>
+                                                <p className="text-[var(--color-text-primary)] leading-relaxed pb-4 border-b border-[var(--color-border)]">
+                                                    {study.meetingType === 'ONLINE'
+                                                        ? '전국'
+                                                        : study.region?.name || getRegionById(study.regionId!)?.name || '미지정'}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <h3 className="flex items-center gap-2 text-sm font-bold text-[var(--color-text-secondary)] mb-3">
+                                                    <Clock size={16} className="text-[var(--color-primary)]" />
+                                                    모임 시간
+                                                </h3>
+                                                <p className="text-[var(--color-text-primary)] leading-relaxed pb-4 border-b border-[var(--color-border)]">
+                                                    {study.scheduleTime ? study.scheduleTime.substring(0, 5) : '협의 후 결정'}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {/* 모임 요일 & 모집 기간 */}
+                                        <div className="grid grid-cols-2 gap-6">
+                                            <div>
+                                                <h3 className="flex items-center gap-2 text-sm font-bold text-[var(--color-text-secondary)] mb-3">
+                                                    <CalendarDays size={16} className="text-[var(--color-primary)]" />
+                                                    모임 요일
+                                                </h3>
+                                                <p className="text-[var(--color-text-primary)] leading-relaxed pb-4 border-b border-[var(--color-border)]">
+                                                    {formatScheduleDays(study.scheduleDays)}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <h3 className="flex items-center gap-2 text-sm font-bold text-[var(--color-text-secondary)] mb-3">
+                                                    <Bookmark size={16} className="text-[var(--color-primary)]" />
+                                                    모집 기간
+                                                </h3>
+                                                <p className="text-[var(--color-text-primary)] leading-relaxed pb-4 border-b border-[var(--color-border)]">
+                                                    {formatDateRange(study.recruitStartDate, study.recruitEndDate)}
+                                                </p>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -503,41 +584,41 @@ const StudyDetailPageV3: React.FC = () => {
                                         스터디 상세
                                     </h2>
 
-                                    <div className="space-y-6">
+                                    <div className="space-y-6 pl-2.5">
                                         {/* 한줄 소개 */}
                                         {studyDetail.intro && (
-                                            <div className="p-4 bg-[var(--color-primary-alpha-5)] rounded-xl border border-[var(--color-primary-alpha-10)]">
-                                                <p className="text-[var(--color-text-primary)] font-medium italic">
-                                                    "{studyDetail.intro}"
+                                            <div>
+                                                <h3 className="flex items-center gap-2 text-sm font-bold text-[var(--color-text-secondary)] mb-3">
+                                                    <Quote size={16} className="text-[var(--color-primary)]" />
+                                                    한줄 소개
+                                                </h3>
+                                                <p className="text-[var(--color-text-primary)] leading-relaxed pb-4 border-b border-[var(--color-border)]">
+                                                    {studyDetail.intro}
                                                 </p>
                                             </div>
                                         )}
 
                                         {/* 일정 정보 */}
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                            <InfoRow
-                                                icon={<Calendar size={18} />}
-                                                label="스터디 기간"
-                                                value={`${formatDate(studyDetail.startDate)} ~ ${formatDate(studyDetail.endDate)}`}
-                                            />
-                                            <InfoRow
-                                                icon={<Calendar size={18} />}
-                                                label="모집 기간"
-                                                value={`${formatDate(studyDetail.recruitStartDate)} ~ ${formatDate(studyDetail.recruitEndDate)}`}
-                                            />
-                                            {studyDetail.scheduleDays && (
-                                                <InfoRow
-                                                    icon={<Clock size={18} />}
-                                                    label="모임 요일"
-                                                    value={studyDetail.scheduleDays}
-                                                />
-                                            )}
+                                        <div className="grid grid-cols-2 gap-6">
+                                            <div>
+                                                <h3 className="flex items-center gap-2 text-sm font-bold text-[var(--color-text-secondary)] mb-3">
+                                                    <Calendar size={16} className="text-[var(--color-primary)]" />
+                                                    스터디 기간
+                                                </h3>
+                                                <p className="text-[var(--color-text-primary)] leading-relaxed pb-4 border-b border-[var(--color-border)]">
+                                                    {formatDate(studyDetail.startDate)} ~ {formatDate(studyDetail.endDate)}
+                                                </p>
+                                            </div>
                                             {studyDetail.totalSessions && (
-                                                <InfoRow
-                                                    icon={<FileText size={18} />}
-                                                    label="총 회차"
-                                                    value={`${studyDetail.totalSessions}회`}
-                                                />
+                                                <div>
+                                                    <h3 className="flex items-center gap-2 text-sm font-bold text-[var(--color-text-secondary)] mb-3">
+                                                        <FileText size={16} className="text-[var(--color-primary)]" />
+                                                        총 회차
+                                                    </h3>
+                                                    <p className="text-[var(--color-text-primary)] leading-relaxed pb-4 border-b border-[var(--color-border)]">
+                                                        {studyDetail.totalSessions}회
+                                                    </p>
+                                                </div>
                                             )}
                                         </div>
 
@@ -545,10 +626,10 @@ const StudyDetailPageV3: React.FC = () => {
                                         {studyDetail.goal && (
                                             <div>
                                                 <h3 className="flex items-center gap-2 text-sm font-bold text-[var(--color-text-secondary)] mb-3">
-                                                    <GraduationCap size={16} />
+                                                    <GraduationCap size={16} className="text-[var(--color-primary)]" />
                                                     스터디 목표
                                                 </h3>
-                                                <p className="text-[var(--color-text-primary)] leading-relaxed bg-[var(--color-background)] p-4 rounded-xl">
+                                                <p className="text-[var(--color-text-primary)] leading-relaxed pb-4 border-b border-[var(--color-border)]">
                                                     {studyDetail.goal}
                                                 </p>
                                             </div>
@@ -558,10 +639,10 @@ const StudyDetailPageV3: React.FC = () => {
                                         {studyDetail.textbook && (
                                             <div>
                                                 <h3 className="flex items-center gap-2 text-sm font-bold text-[var(--color-text-secondary)] mb-3">
-                                                    <BookOpen size={16} />
+                                                    <BookOpen size={16} className="text-[var(--color-primary)]" />
                                                     교재 및 자료
                                                 </h3>
-                                                <p className="text-[var(--color-text-primary)] leading-relaxed bg-[var(--color-background)] p-4 rounded-xl">
+                                                <p className="text-[var(--color-text-primary)] leading-relaxed pb-4 border-b border-[var(--color-border)]">
                                                     {studyDetail.textbook}
                                                 </p>
                                             </div>
@@ -571,10 +652,10 @@ const StudyDetailPageV3: React.FC = () => {
                                         {studyDetail.prerequisites && (
                                             <div>
                                                 <h3 className="flex items-center gap-2 text-sm font-bold text-[var(--color-text-secondary)] mb-3">
-                                                    <Award size={16} />
+                                                    <Award size={16} className="text-[var(--color-primary)]" />
                                                     필요한 사전 지식
                                                 </h3>
-                                                <p className="text-[var(--color-text-primary)] leading-relaxed bg-[var(--color-background)] p-4 rounded-xl">
+                                                <p className="text-[var(--color-text-primary)] leading-relaxed pb-4 border-b border-[var(--color-border)]">
                                                     {studyDetail.prerequisites}
                                                 </p>
                                             </div>
@@ -584,10 +665,10 @@ const StudyDetailPageV3: React.FC = () => {
                                         {studyDetail.processDetail && (
                                             <div>
                                                 <h3 className="flex items-center gap-2 text-sm font-bold text-[var(--color-text-secondary)] mb-3">
-                                                    <FileText size={16} />
+                                                    <FileText size={16} className="text-[var(--color-primary)]" />
                                                     진행 방식
                                                 </h3>
-                                                <p className="text-[var(--color-text-primary)] leading-relaxed bg-[var(--color-background)] p-4 rounded-xl whitespace-pre-wrap">
+                                                <p className="text-[var(--color-text-primary)] leading-relaxed pb-4 border-b border-[var(--color-border)] whitespace-pre-wrap">
                                                     {studyDetail.processDetail}
                                                 </p>
                                             </div>
@@ -613,51 +694,77 @@ const StudyDetailPageV3: React.FC = () => {
                                     </h2>
 
                                     {sessions.length > 0 ? (
-                                        <div className="space-y-3">
-                                            {sessions
-                                                .sort((a, b) => a.sessionNumber - b.sessionNumber)
-                                                .map((session) => (
-                                                <div
-                                                    key={session.id}
-                                                    className="flex items-start gap-4 p-4 bg-[var(--color-background)] rounded-xl border border-[var(--color-border-lighter)] hover:border-[var(--color-primary-alpha-20)] transition-colors"
-                                                >
-                                                    <div className="flex-shrink-0 w-12 h-12 bg-[var(--color-primary-alpha-10)] rounded-xl flex flex-col items-center justify-center">
-                                                        <span className="text-[10px] font-bold text-[var(--color-text-tertiary)] uppercase">
-                                                            {session.sessionNumber}회차
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex-1 pt-1">
-                                                        {session.title && (
-                                                            <p className="text-[var(--color-text-primary)] font-bold mb-1">
-                                                                {session.title}
+                                        <div className="relative pl-8">
+                                            {/* 타임라인 세로선 */}
+                                            <div className="absolute left-[11px] top-2 bottom-2 w-0.5 bg-[var(--color-border)]" />
+
+                                            <div className="space-y-6">
+                                                {sessions
+                                                    .sort((a, b) => a.sessionNumber - b.sessionNumber)
+                                                    .map((session, index) => (
+                                                    <div
+                                                        key={session.id}
+                                                        className="relative flex items-start gap-4"
+                                                    >
+                                                        {/* 타임라인 dot */}
+                                                        <div className={cn(
+                                                            "absolute -left-8 top-1 w-6 h-6 rounded-full flex items-center justify-center border-2 z-10",
+                                                            session.status === 'COMPLETED'
+                                                                ? "bg-[var(--color-success)] border-[var(--color-success)]"
+                                                                : session.status === 'IN_PROGRESS'
+                                                                ? "bg-[var(--color-primary)] border-[var(--color-primary)] animate-pulse"
+                                                                : "bg-white border-[var(--color-border)]"
+                                                        )}>
+                                                            {session.status === 'COMPLETED' ? (
+                                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
+                                                                    <polyline points="20 6 9 17 4 12" />
+                                                                </svg>
+                                                            ) : (
+                                                                <span className={cn(
+                                                                    "text-[10px] font-bold",
+                                                                    session.status === 'IN_PROGRESS'
+                                                                        ? "text-white"
+                                                                        : "text-[#4285F4]"
+                                                                )}>
+                                                                    {session.sessionNumber}
+                                                                </span>
+                                                            )}
+                                                        </div>
+
+                                                        {/* 내용 */}
+                                                        <div className={cn(
+                                                            "flex-1 pb-2",
+                                                            index !== sessions.length - 1 && "border-b border-[var(--color-border-lighter)]"
+                                                        )}>
+                                                            <div className="flex items-center justify-between gap-2 mb-1">
+                                                                <div className="flex items-center gap-2">
+                                                                    {session.scheduledAt && (
+                                                                        <span className="text-xs text-[var(--color-text-tertiary)]">
+                                                                            {new Date(session.scheduledAt).toLocaleDateString('ko-KR', {
+                                                                                month: 'short', day: 'numeric'
+                                                                            })}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                {session.status === 'COMPLETED' && (
+                                                                    <span className="text-xs font-bold text-[var(--color-success)]">완료</span>
+                                                                )}
+                                                                {session.status === 'IN_PROGRESS' && (
+                                                                    <span className="text-xs font-bold text-[var(--color-primary)]">진행중</span>
+                                                                )}
+                                                            </div>
+                                                            {session.title && (
+                                                                <p className="text-[var(--color-text-primary)] font-semibold mb-1">
+                                                                    {session.title}
+                                                                </p>
+                                                            )}
+                                                            <p className="text-[var(--color-text-secondary)] text-sm leading-relaxed">
+                                                                {session.description || '내용 없음'}
                                                             </p>
-                                                        )}
-                                                        <p className="text-[var(--color-text-secondary)] text-sm leading-relaxed">
-                                                            {session.description || '내용 없음'}
-                                                        </p>
-                                                        {session.scheduledAt && (
-                                                            <p className="text-xs text-[var(--color-text-tertiary)] mt-2">
-                                                                {new Date(session.scheduledAt).toLocaleDateString('ko-KR', {
-                                                                    month: 'long', day: 'numeric', weekday: 'short'
-                                                                })}
-                                                            </p>
-                                                        )}
+                                                        </div>
                                                     </div>
-                                                    <div className="flex items-center gap-2">
-                                                        {session.status === 'COMPLETED' && (
-                                                            <span className="px-2 py-1 bg-[var(--color-success-light)] text-[var(--color-success)] text-xs font-bold rounded">
-                                                                완료
-                                                            </span>
-                                                        )}
-                                                        {session.status === 'IN_PROGRESS' && (
-                                                            <span className="px-2 py-1 bg-[var(--color-primary-alpha-10)] text-[var(--color-primary)] text-xs font-bold rounded">
-                                                                진행중
-                                                            </span>
-                                                        )}
-                                                        <ChevronRight size={18} className="text-[var(--color-text-muted)]" />
-                                                    </div>
-                                                </div>
-                                            ))}
+                                                ))}
+                                            </div>
                                         </div>
                                     ) : (
                                         <div className="text-center py-8 text-[var(--color-text-secondary)]">
@@ -669,6 +776,14 @@ const StudyDetailPageV3: React.FC = () => {
                                         </div>
                                     )}
                                 </div>
+                            </div>
+
+                            {/* 댓글 섹션 */}
+                            <div className="mt-6">
+                                <StudyCommentSection
+                                    studyId={study.id}
+                                    studyLeaderId={study.leader.id}
+                                />
                             </div>
                         </div>
 
@@ -712,37 +827,53 @@ const StudyDetailPageV3: React.FC = () => {
                 reviews={leaderReviews}
                 averageRating={leaderAvgRating}
             />
+
+            {/* 스터디 삭제 확인 모달 */}
+            {isDeleteConfirmOpen && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-2xl p-6 w-full max-w-md mx-4 shadow-xl">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-12 h-12 rounded-full bg-[var(--color-error-light)] flex items-center justify-center">
+                                <Trash2 size={24} className="text-[var(--color-error)]" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-[var(--color-text-primary)]">스터디 삭제</h3>
+                                <p className="text-sm text-[var(--color-text-tertiary)]">이 작업은 되돌릴 수 없습니다</p>
+                            </div>
+                        </div>
+                        <p className="text-[var(--color-text-secondary)] mb-6">
+                            <strong>"{study.name}"</strong> 스터디를 정말 삭제하시겠습니까?<br />
+                            모든 커리큘럼과 댓글이 함께 삭제됩니다.
+                        </p>
+                        <div className="flex gap-3">
+                            <Button
+                                variant="secondary"
+                                fullWidth
+                                onClick={() => setIsDeleteConfirmOpen(false)}
+                                disabled={isDeleting}
+                            >
+                                취소
+                            </Button>
+                            <Button
+                                variant="primary"
+                                fullWidth
+                                onClick={handleDeleteStudy}
+                                disabled={isDeleting}
+                                className="bg-[var(--color-error)] hover:bg-[var(--color-error-dark)]"
+                            >
+                                {isDeleting ? (
+                                    <span className="flex items-center gap-2">
+                                        <Loader2 size={16} className="animate-spin" />
+                                        삭제 중...
+                                    </span>
+                                ) : '삭제'}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </UserLayoutV2>
     );
 };
-
-// 정보 행 컴포넌트
-interface InfoRowProps {
-    icon: React.ReactNode;
-    label: string;
-    value: string;
-    highlight?: string;
-}
-
-const InfoRow: React.FC<InfoRowProps> = ({ icon, label, value, highlight }) => (
-    <div className="flex items-start gap-3">
-        <div className="p-2 bg-[var(--color-background-secondary)] rounded-lg text-[var(--color-primary)]">
-            {icon}
-        </div>
-        <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold text-[var(--color-text-tertiary)] uppercase tracking-wide mb-1">
-                {label}
-            </p>
-            <p className="text-sm font-bold text-[var(--color-text-primary)] flex items-center gap-2">
-                <span className="truncate">{value}</span>
-                {highlight && (
-                    <span className="px-2 py-0.5 bg-[var(--color-error-light)] text-[var(--color-error)] text-xs font-bold rounded">
-                        {highlight}
-                    </span>
-                )}
-            </p>
-        </div>
-    </div>
-);
 
 export default StudyDetailPageV3;

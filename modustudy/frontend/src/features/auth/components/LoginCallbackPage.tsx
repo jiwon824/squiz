@@ -79,7 +79,15 @@ export const LoginCallbackPage = () => {
                     });
 
                     console.log('[INFO] 기존 소셜 유저 로그인 성공!');
-                    navigate('/dashboard', { replace: true });
+
+                    // 로그인 전 페이지로 리다이렉트 (저장된 URL이 있으면)
+                    const redirectUrl = sessionStorage.getItem('redirectAfterLogin');
+                    if (redirectUrl) {
+                        sessionStorage.removeItem('redirectAfterLogin');
+                        navigate(redirectUrl, { replace: true });
+                    } else {
+                        navigate('/dashboard', { replace: true });
+                    }
                 }
 
                 // 처리 완료 후 provider 삭제

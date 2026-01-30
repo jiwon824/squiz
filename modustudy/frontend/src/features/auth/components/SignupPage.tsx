@@ -1,11 +1,14 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import AuthLayout from './AuthLayout';
 import { PasswordInput } from './PasswordInput';
+import { TechStackSelector } from '@/shared/components/TechStackSelector';
 import { OAuthTempData } from '../types';
 import { authApi } from '@/api/endpoints/authApi';
+import { updateStudyPreference } from '@/features/setting/api/settingApi';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
+import AuthLayout from './AuthLayout';
+import '../styles/AuthLayout.css';
 
 export const SignupPage = () => {
     const navigate = useNavigate();
@@ -17,6 +20,7 @@ export const SignupPage = () => {
     const isOAuthMode = searchParams.get('oauth') === 'true';
     const [oauthData, setOauthData] = useState<OAuthTempData | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [selectedTechs, setSelectedTechs] = useState<string[]>([]);
 
     // 폼 상태
     const [formData, setFormData] = useState({
@@ -36,11 +40,10 @@ export const SignupPage = () => {
                 setOauthData(data);
                 setFormData(prev => ({
                     ...prev,
-                    email: data.email,
-                    name: data.name,
+                    email: data.email || '',
+                    name: data.name || '',
                 }));
             } else {
-                // OAuth 데이터가 없으면 로그인 페이지로
                 showToast('잘못된 접근입니다.', 'error');
                 navigate('/login');
             }
@@ -57,7 +60,6 @@ export const SignupPage = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        // 비밀번호 검증
         if (formData.password.length < 8) {
             showToast('비밀번호는 8자 이상이어야 합니다.', 'warning');
             return;
@@ -87,21 +89,17 @@ export const SignupPage = () => {
 
         try {
             if (isOAuthMode && oauthData) {
-                // OAuth 회원가입 완료 처리 - API 호출
                 console.log('[INFO] OAuth 회원가입 완료 요청');
 
-                // 토큰 설정 (API 호출을 위해)
                 localStorage.setItem('accessToken', oauthData?.accessToken || '');
                 localStorage.setItem('refreshToken', oauthData?.refreshToken || '');
 
-                // 프로필 설정 API 호출
                 const user = await authApi.setupProfile(
                     formData.name,
                     formData.nickname,
                     formData.password
                 );
 
-                // authStore 업데이트
                 login({
                     id: String(user.id),
                     name: user.name || formData.name,
@@ -110,17 +108,26 @@ export const SignupPage = () => {
                     avatar: user.profileImage || undefined
                 });
 
-                // 임시 데이터 삭제
                 localStorage.removeItem('oauthTempData');
+
+                if (selectedTechs.length > 0) {
+                    try {
+                        await updateStudyPreference({ techStack: selectedTechs });
+                    } catch {
+                        localStorage.setItem('studyPreference', JSON.stringify({ techStack: selectedTechs }));
+                    }
+                }
 
                 console.log('[INFO] 회원가입 완료!');
                 showToast('회원가입이 완료되었습니다!', 'success');
                 navigate('/dashboard');
             } else {
-                // 일반 회원가입 처리
                 console.log('[INFO] 일반 회원가입:', formData);
 
-                // TODO: 일반 회원가입 API 연동
+                if (selectedTechs.length > 0) {
+                    localStorage.setItem('studyPreference', JSON.stringify({ techStack: selectedTechs }));
+                }
+
                 showToast('회원가입이 완료되었습니다!', 'success');
                 navigate('/login');
             }
@@ -132,8 +139,24 @@ export const SignupPage = () => {
         }
     };
 
+    const techStackContent = (
+        <div className="w-full py-4">
+            <h3 className="text-lg font-bold text-gray-900 mb-1 text-center">
+                관심 기술 스택
+            </h3>
+            <p className="text-sm text-gray-500 mb-4 text-center">
+                관심있는 기술을 선택해주세요 (선택사항)
+            </p>
+            <TechStackSelector
+                selected={selectedTechs}
+                onChange={setSelectedTechs}
+                maxSelect={10}
+            />
+        </div>
+    );
+
     return (
-        <AuthLayout>
+        <AuthLayout leftContent={techStackContent}>
             <div className="form-header">
                 <h3>{isOAuthMode ? '추가 정보 입력' : '회원가입'}</h3>
                 <p>
@@ -144,7 +167,6 @@ export const SignupPage = () => {
             </div>
 
             <form className="auth-form" onSubmit={handleSubmit}>
-                {/* 이름 (OAuth 모드에서도 노출하여 확인/수정 가능하게 변경) */}
                 <div className="input-group">
                     <label htmlFor="name">이름</label>
                     <input
@@ -163,7 +185,6 @@ export const SignupPage = () => {
                     )}
                 </div>
 
-                {/* 이메일 (OAuth 모드에서는 readonly) */}
                 <div className="input-group">
                     <label htmlFor="email">이메일</label>
                     <input
@@ -189,7 +210,6 @@ export const SignupPage = () => {
                     )}
                 </div>
 
-                {/* 닉네임 */}
                 <div className="input-group">
                     <label htmlFor="nickname">닉네임</label>
                     <input
@@ -203,7 +223,6 @@ export const SignupPage = () => {
                     />
                 </div>
 
-                {/* 비밀번호 입력 컴포넌트 */}
                 <PasswordInput
                     password={formData.password}
                     confirmPassword={formData.confirmPassword}

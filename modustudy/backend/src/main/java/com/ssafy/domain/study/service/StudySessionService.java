@@ -14,6 +14,8 @@ import com.ssafy.domain.study.entity.StudySession;
 import com.ssafy.domain.study.repository.StudyMemberRepository;
 import com.ssafy.domain.study.repository.StudyRepository;
 import com.ssafy.domain.study.repository.StudySessionRepository;
+import com.ssafy.domain.notification.entity.NotificationType;
+import com.ssafy.domain.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -33,6 +35,7 @@ public class StudySessionService {
     private final StudyRepository studyRepository;
     private final StudyMemberRepository studyMemberRepository;
     private final GoogleCalendarService googleCalendarService;
+    private final NotificationService notificationService;
 
     /**
      * 세션 생성
@@ -201,6 +204,9 @@ public class StudySessionService {
         session.start();
         log.info("세션 시작 - sessionId: {}", sessionId);
 
+        // 스터디 멤버들에게 세션 시작 알림 전송
+        sendSessionStartNotification(study, session);
+
         return StudySessionResponse.from(session);
     }
 
@@ -353,6 +359,47 @@ public class StudySessionService {
     ) {
         public double getCompletionRate() {
             return totalCount == 0 ? 0 : (double) completedCount / totalCount * 100;
+        }
+    }
+
+    /**
+     * 스터디 멤버들에게 세션 시작 알림 전송
+     */
+    private void sendSessionStartNotification(Study study, StudySession session) {
+        try {
+            // 활성 스터디 멤버 조회
+            List<StudyMember> activeMembers = studyMemberRepository
+                    .findByStudyIdAndStatus(session.getStudyId(), MemberStatus.APPROVED);
+
+            String notificationTitle = "스터디 세션이 시작되었습니다";
+            String notificationContent = String.format("'%s' 스터디의 %d회차 세션이 시작되었습니다. 지금 참여하세요!",
+                    study.getName(), session.getSessionNumber());
+
+            for (StudyMember member : activeMembers) {
+                try {
+                    // referenceType: STUDY_SESSION, referenceId: studyId (워크스페이스 이동용)
+                    notificationService.createNotification(
+                            member.getUserId(),
+                            NotificationType.SCHEDULE,
+                            notificationTitle,
+                            notificationContent,
+                            "STUDY_SESSION",
+                            study.getId()
+                    );
+                    log.debug("세션 시작 알림 전송 - userId: {}, sessionId: {}",
+                            member.getUserId(), session.getId());
+                } catch (Exception e) {
+                    // 개별 멤버 알림 실패 시 로그만 남기고 계속 진행
+                    log.warn("세션 시작 알림 전송 실패 - userId: {}, error: {}",
+                            member.getUserId(), e.getMessage());
+                }
+            }
+
+            log.info("세션 시작 알림 전송 완료 - studyId: {}, sessionId: {}, memberCount: {}",
+                    study.getId(), session.getId(), activeMembers.size());
+        } catch (Exception e) {
+            log.error("세션 시작 알림 전송 중 오류 발생 - sessionId: {}, error: {}",
+                    session.getId(), e.getMessage());
         }
     }
 }

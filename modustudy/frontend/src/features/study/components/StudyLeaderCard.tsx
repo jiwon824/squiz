@@ -1,8 +1,9 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Star, Shield, Send, MessageCircle } from 'lucide-react';
 import { Button } from '@/shared/components';
 import { useUIStore } from '@/store/uiStore';
+import { useAuthStore } from '@/store/authStore';
 import { cn } from '@/shared/utils/cn';
 
 // 기본 프로필 이미지 경로
@@ -52,10 +53,24 @@ const StudyLeaderCard: React.FC<StudyLeaderCardProps> = ({
     onApply,
 }) => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { showToast } = useUIStore();
+    const { isLoggedIn } = useAuthStore();
 
     // 스터디장이 카카오 로그인 사용자인지 확인
     const isLeaderKakaoUser = leader.loginProvider === 'KAKAO';
+
+    // 신청 버튼 클릭 핸들러 (로그인 체크 포함)
+    const handleApplyClick = () => {
+        if (!isLoggedIn) {
+            // 현재 URL을 저장하고 로그인 페이지로 리다이렉트
+            sessionStorage.setItem('redirectAfterLogin', location.pathname);
+            showToast('로그인이 필요합니다.', 'info');
+            navigate('/login');
+            return;
+        }
+        onApply();
+    };
 
     // 카카오톡 문의 핸들러
     const handleKakaoInquiry = () => {
@@ -73,11 +88,28 @@ const StudyLeaderCard: React.FC<StudyLeaderCardProps> = ({
         }
     };
 
-    // 신청 버튼 텍스트 결정
+    // 신청 버튼 텍스트 결정 (상태별 분기)
     const getApplyButtonText = () => {
-        if (studyStatus !== 'RECRUITING') return '모집 마감';
-        if (currentMembers >= maxMembers) return '정원 마감';
-        return '스터디 신청하기';
+        switch (studyStatus) {
+            case 'RECRUITING':
+                if (currentMembers >= maxMembers) return '정원 마감';
+                return '스터디 신청하기';
+            case 'SCHEDULED':
+            case 'PENDING':
+                return '모집 예정';
+            case 'RECRUIT_CLOSED':
+                return '모집 마감';
+            case 'IN_PROGRESS':
+                return '진행중';
+            case 'COMPLETED':
+                return '완료됨';
+            case 'CANCELLED':
+                return '취소됨';
+            case 'DRAFT':
+                return '준비중';
+            default:
+                return '모집 마감';
+        }
     };
 
     // D-day 계산
@@ -176,7 +208,7 @@ const StudyLeaderCard: React.FC<StudyLeaderCardProps> = ({
                             variant="primary"
                             fullWidth
                             size="lg"
-                            onClick={onApply}
+                            onClick={handleApplyClick}
                             disabled={isApplyDisabled}
                             className={cn(
                                 'h-12 rounded-xl font-bold',
