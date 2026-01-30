@@ -68,9 +68,7 @@ public class MeetingSttService {
                     meetingId, null, true, "summary.txt", request.summary());
             summary.updateFileUrl(fileUrl);
         }
-        if (request.actionItems() != null) {
-            summary.updateActionItemsJson(helper.writeJson(request.actionItems()));
-        }
+        // action_items는 사용하지 않으므로 저장하지 않음
         if (request.keywords() != null) {
             summary.updateKeywordsJson(helper.writeJson(request.keywords()));
         }

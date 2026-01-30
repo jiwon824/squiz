@@ -47,6 +47,7 @@ services:
       - APP_TURN_URL=turn:REMOVED_DB_HOST:443?transport=tcp
       - APP_TURN_USERNAME=squiz
       - APP_TURN_CREDENTIAL=squiz2025turn
+      - APP_AI_SERVER_BASE_URL=http://3.38.92.48:8000
     restart: unless-stopped
     networks:
       - squiz-network
