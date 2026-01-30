@@ -1,12 +1,14 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Sparkles, TrendingUp, Calendar } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 import { useAuthStore } from '@/store/authStore';
 import { STTReportWidget } from './STTReportWidget';
 import { AIQuizWidget } from './AIQuizWidget';
 import { LearningArchiveWidget } from './LearningArchiveWidget';
 import { TodayGoalsCard } from './TodayGoalsCard';
+import { MyCreatedStudiesWidget } from './MyCreatedStudiesWidget';
+import { MyApplicationsWidget } from './MyApplicationsWidget';
 
 export const UserDashboardV2: React.FC = () => {
     const { user } = useAuthStore();
@@ -18,7 +20,7 @@ export const UserDashboardV2: React.FC = () => {
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-2xl p-8"
+                    className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-2xl pt-8 px-8 pb-4"
                 >
                     <div className="flex items-center gap-3 mb-3">
                         <Sparkles className="text-primary" size={32} />
@@ -29,29 +31,10 @@ export const UserDashboardV2: React.FC = () => {
                     <p className="text-text-secondary text-lg">오늘도 즐거운 학습 되세요!</p>
                 </motion.div>
 
-                {/* 통계 카드 */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <StatCard
-                        icon={<Calendar className="text-primary" size={24} />}
-                        title="이번 주 스터디"
-                        value="3회"
-                        change="+1"
-                        color="primary"
-                    />
-                    <StatCard
-                        icon={<TrendingUp className="text-secondary" size={24} />}
-                        title="학습 시간"
-                        value="7.5시간"
-                        change="+2.5시간"
-                        color="secondary"
-                    />
-                    <StatCard
-                        icon={<Sparkles className="text-accent" size={24} />}
-                        title="퀴즈 정답률"
-                        value="85%"
-                        change="+5%"
-                        color="accent"
-                    />
+                {/* 내 스터디 위젯 */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <MyCreatedStudiesWidget />
+                    <MyApplicationsWidget />
                 </div>
 
                 {/* 메인 위젯 영역 */}
@@ -83,21 +66,6 @@ export const UserDashboardV2: React.FC = () => {
     );
 };
 
-// 통계 카드 컴포넌트
-interface StatCardProps {
-    icon: React.ReactNode;
-    title: string;
-    value: string;
-    change: string;
-    color: 'primary' | 'secondary' | 'accent';
-}
-
-const COLOR_STYLES = {
-    primary: 'from-primary/10 to-primary/5 border-primary/20',
-    secondary: 'from-secondary/10 to-secondary/5 border-secondary/20',
-    accent: 'from-accent/10 to-accent/5 border-accent/20',
-} as const;
-
 const TEXT_COLOR_STYLES = {
     primary: 'text-primary',
     secondary: 'text-secondary',
@@ -109,27 +77,6 @@ const BG_COLOR_STYLES = {
     secondary: 'bg-secondary',
     accent: 'bg-accent',
 } as const;
-
-const StatCard: React.FC<StatCardProps> = ({ icon, title, value, change, color }) => {
-    return (
-        <motion.div
-            whileHover={{ y: -4 }}
-            className={cn(
-                'bg-gradient-to-br rounded-2xl p-6 border shadow-md transition-all',
-                COLOR_STYLES[color]
-            )}
-        >
-            <div className="flex items-center justify-between mb-4">
-                <div className="p-3 bg-white rounded-xl shadow-sm">{icon}</div>
-                <span className="text-xs font-medium text-accent px-2 py-1 bg-white rounded-full">
-                    {change}
-                </span>
-            </div>
-            <p className="text-sm text-text-secondary mb-1">{title}</p>
-            <p className="text-3xl font-black text-text-primary">{value}</p>
-        </motion.div>
-    );
-};
 
 // 정보 카드 컴포넌트
 interface InfoCardProps {

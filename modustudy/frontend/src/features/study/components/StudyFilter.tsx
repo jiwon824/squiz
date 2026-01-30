@@ -50,9 +50,13 @@ const StudyFilter: React.FC<StudyFilterProps> = ({ onFilterChange, onSearch }) =
     // 필터 옵션 정의
     const filterOptions = {
         status: [
+            { value: 'SCHEDULED', label: '모집예정' },
             { value: 'RECRUITING', label: '모집중' },
+            { value: 'RECRUIT_CLOSED', label: '모집완료' },
+            { value: 'PENDING', label: '확정대기' },
             { value: 'IN_PROGRESS', label: '진행중' },
             { value: 'COMPLETED', label: '완료' },
+            { value: 'CANCELLED', label: '취소' },
         ],
         topic: Object.keys(TOPIC_CATEGORIES).map(topic => ({ value: topic, label: topic })),
         meetingType: [

@@ -126,10 +126,10 @@ export const STTReportPage: React.FC = () => {
             <div className="max-w-[1600px] mx-auto px-8">
                 {/* 브레드크럼 + 뒤로가기 헤더 + 우측 다운로드 */}
                 <PageNavHeader
-                    title="STT 미팅 리포트"
+                    title="미팅 리포트"
                     breadcrumbs={[
                         { label: '대시보드', path: '/dashboard' },
-                        { label: 'STT 미팅 리포트' },
+                        { label: '미팅 리포트' },
                     ]}
                     onBack={() => navigate(-1)}
                     rightActions={

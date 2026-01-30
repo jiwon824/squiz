@@ -45,9 +45,9 @@ export const STTReportWidget: React.FC = () => {
             <WidgetHeader
                 icon={FileText}
                 iconColor="primary"
-                title="STT 미팅 리포트"
+                title="미팅 리포트"
                 subtitle="최근 스터디 요약"
-                maximizePath="/stt-report"
+                maximizePath="/meeting-report"
             />
 
             <div className="flex">
