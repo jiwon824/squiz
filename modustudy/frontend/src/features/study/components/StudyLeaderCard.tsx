@@ -19,7 +19,7 @@ export interface LeaderInfo {
     id: number;
     nickname: string;
     profileImage?: string | null;
-    leaderRating: number;
+    leaderRating: number | null; // null이면 리뷰가 없는 상태
     leaderReviewCount: number;
     loginProvider?: 'KAKAO' | 'GOOGLE' | 'NAVER'; // 스터디장의 로그인 방식
 }
@@ -171,9 +171,13 @@ const StudyLeaderCard: React.FC<StudyLeaderCardProps> = ({
                             'hover:bg-[var(--color-primary-alpha-10)] transition-colors group'
                         )}
                     >
-                        <Star size={14} className="text-yellow-400 fill-current" />
+                        <Star size={14} className={cn(
+                            leader.leaderReviewCount > 0 ? 'text-yellow-400 fill-current' : 'text-gray-300'
+                        )} />
                         <span className="text-sm font-bold text-[var(--color-text-primary)]">
-                            {leader.leaderRating.toFixed(1)}
+                            {leader.leaderReviewCount > 0 && leader.leaderRating != null
+                                ? leader.leaderRating.toFixed(1)
+                                : '-'}
                         </span>
                         <span className="text-xs text-[var(--color-text-tertiary)] group-hover:text-[var(--color-primary)]">
                             ({leader.leaderReviewCount}개 리뷰)

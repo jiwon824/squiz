@@ -48,7 +48,6 @@ const MeetingStartModal: React.FC<MeetingStartModalProps> = ({ open, initialTitl
         <div className="meeting-modal-backdrop" role="dialog" aria-modal="true">
             <div className="meeting-modal">
                 <div className="meeting-modal__header">
-                    <h2>미팅 시작</h2>
                     <button className="meeting-modal__close" onClick={onClose} aria-label="닫기">
                         ×
                     </button>

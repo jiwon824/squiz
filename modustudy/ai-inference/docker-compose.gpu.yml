@@ -14,13 +14,19 @@ services:
     volumes:
       - ./models:/app/models:ro
     environment:
+      # LLM 모델 (8B: 요약/퀴즈, 14B: 스터디 템플릿 추천)
       - MODEL_PATH=/app/models/qwen3-8b-summarizer-q4km.gguf
-      - WHISPER_MODEL=${WHISPER_MODEL:-medium}
-      - WHISPER_DEVICE=cuda
+      - RECOMMEND_MODEL_PATH=/app/models/qwen3-14b.Q4_K_M.gguf
       - N_CTX=${N_CTX:-4096}
       - N_GPU_LAYERS=-1
       - N_THREADS=${N_THREADS:-4}
+      # Whisper STT (large-v3: 가장 높은 정확도)
+      - WHISPER_MODEL=large-v3
+      - WHISPER_DEVICE=cuda
+      # Redis
       - REDIS_URL=redis://redis:6379
+      # Claude API (요약 검증용, 선택사항)
+      - CLAUDE_API_KEY=${CLAUDE_API_KEY:-}
     depends_on:
       - redis
     restart: unless-stopped
