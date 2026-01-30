@@ -145,8 +145,7 @@
     display: flex;
     width: 100%;
     max-width: 1100px;
-    min-height: 700px;
-    height: auto;
+    height: 700px;
     background: rgba(255, 255, 255, 0.7);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
@@ -390,6 +389,7 @@
     padding: 3rem;
     background: rgba(255, 255, 255, 0.6);
     border-radius: 0 var(--radius-login) var(--radius-login) 0;
+    overflow-y: auto;
 }
 
 .form-content {
