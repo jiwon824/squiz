@@ -539,6 +539,10 @@
   background-color: var(--color-google-green);
 }
 
+.member-list__status--idle {
+  background-color: var(--color-google-yellow);
+}
+
 .member-list__status--offline {
   background-color: var(--color-gray-500);
 }

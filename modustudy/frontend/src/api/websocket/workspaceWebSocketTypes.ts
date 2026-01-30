@@ -4,7 +4,14 @@
 export type ConnectionStatus = 'CONNECTING' | 'CONNECTED' | 'DISCONNECTED' | 'ERROR';
 
 // 이벤트 타입
-export type WorkspaceEventType = 'MESSAGE' | 'TYPING' | 'JOIN' | 'LEAVE' | 'DELETE' | 'UPDATE';
+export type WorkspaceEventType =
+  | 'MESSAGE'
+  | 'TYPING'
+  | 'JOIN'
+  | 'LEAVE'
+  | 'DELETE'
+  | 'UPDATE'
+  | 'PRESENCE';
 
 // 메시지 응답 (MessageResponse와 동일한 구조)
 export interface WorkspaceMessageResponse {
@@ -30,6 +37,7 @@ export interface WorkspaceWebSocketEvent {
   senderProfileImageUrl: string | null;
   message?: WorkspaceMessageResponse;
   messageId?: number;
+  presenceStatus?: 'ACTIVE' | 'IDLE';
   timestamp: string;
 }
 
@@ -48,6 +56,7 @@ export interface WorkspaceWebSocketHandlers {
   onLeave?: (event: WorkspaceWebSocketEvent) => void;
   onDelete?: (event: WorkspaceWebSocketEvent) => void;
   onUpdate?: (event: WorkspaceWebSocketEvent) => void;
+  onPresence?: (event: WorkspaceWebSocketEvent) => void;
   onConnectionChange?: (status: ConnectionStatus) => void;
   onError?: (error: string) => void;
 }

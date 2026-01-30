@@ -142,6 +142,9 @@ class WorkspaceWebSocketService {
         case 'UPDATE':
           this.handlers.onUpdate?.(event);
           break;
+        case 'PRESENCE':
+          this.handlers.onPresence?.(event);
+          break;
       }
     } catch (e) {
       console.error('[Workspace WS] 이벤트 파싱 실패:', e);
@@ -209,6 +212,25 @@ class WorkspaceWebSocketService {
         userId: this.userId!.toString(),
         nickname: this.nickname,
       },
+    });
+  }
+
+  /**
+   * 상태 변경 전송
+   */
+  sendPresence(status: 'ACTIVE' | 'IDLE'): void {
+    if (!this.client?.connected || !this.workspaceId) return;
+
+    this.client.publish({
+      destination: `/app/workspace/presence/${this.workspaceId}`,
+      headers: {
+        userId: this.userId!.toString(),
+        nickname: this.nickname,
+      },
+      body: JSON.stringify({
+        workspaceId: this.workspaceId,
+        status,
+      }),
     });
   }
 
