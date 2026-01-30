@@ -1,8 +1,9 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Star, Shield, Send, MessageCircle } from 'lucide-react';
 import { Button } from '@/shared/components';
 import { useUIStore } from '@/store/uiStore';
+import { useAuthStore } from '@/store/authStore';
 import { cn } from '@/shared/utils/cn';
 
 // 기본 프로필 이미지 경로
@@ -52,10 +53,24 @@ const StudyLeaderCard: React.FC<StudyLeaderCardProps> = ({
     onApply,
 }) => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { showToast } = useUIStore();
+    const { isLoggedIn } = useAuthStore();
 
     // 스터디장이 카카오 로그인 사용자인지 확인
     const isLeaderKakaoUser = leader.loginProvider === 'KAKAO';
+
+    // 신청 버튼 클릭 핸들러 (로그인 체크 포함)
+    const handleApplyClick = () => {
+        if (!isLoggedIn) {
+            // 현재 URL을 저장하고 로그인 페이지로 리다이렉트
+            sessionStorage.setItem('redirectAfterLogin', location.pathname);
+            showToast('로그인이 필요합니다.', 'info');
+            navigate('/login');
+            return;
+        }
+        onApply();
+    };
 
     // 카카오톡 문의 핸들러
     const handleKakaoInquiry = () => {
@@ -193,7 +208,7 @@ const StudyLeaderCard: React.FC<StudyLeaderCardProps> = ({
                             variant="primary"
                             fullWidth
                             size="lg"
-                            onClick={onApply}
+                            onClick={handleApplyClick}
                             disabled={isApplyDisabled}
                             className={cn(
                                 'h-12 rounded-xl font-bold',
