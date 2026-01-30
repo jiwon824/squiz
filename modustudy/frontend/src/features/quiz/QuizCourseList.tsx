@@ -394,7 +394,7 @@ export const QuizCourseList = () => {
                         }}
                     >
                         <p style={{ color: 'var(--color-text-secondary)' }}>
-                            <strong>Tip:</strong> 코스를 클릭하여 섹션을 확인하세요. 섹션을 완료하면 진행률이 업데이트됩니다!
+                            <strong>Tip:</strong> 코스를 클릭하면 원하는 섹션의 문제를 풀 수 있습니다!
                         </p>
                     </div>
                 )}

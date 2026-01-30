@@ -269,7 +269,7 @@ class QuizSectionAttemptServiceIntegrationTest {
             // 답안 저장
             Long questionId = firstResponse.questions().get(0).questionId();
             SaveAnswerRequest request = new SaveAnswerRequest(
-                    new SaveAnswerRequest.AnswerItem(questionId, "1")
+                    new SaveAnswerRequest.AnswerItem(questionId, "1", 1000L)
             );
             quizSectionAttemptService.saveAnswer(attemptId, request, userId);
 
@@ -359,7 +359,7 @@ class QuizSectionAttemptServiceIntegrationTest {
 
             // 2. When: 답안 저장
             SaveAnswerRequest request = new SaveAnswerRequest(
-                    new SaveAnswerRequest.AnswerItem(questionId, "New Answer")
+                    new SaveAnswerRequest.AnswerItem(questionId, "New Answer", 1000L)
             );
             quizSectionAttemptService.saveAnswer(attemptId, request, testUser.getId());
 
@@ -370,6 +370,8 @@ class QuizSectionAttemptServiceIntegrationTest {
             UserSectionAttemptQuestion updatedAq = attemptQuestionRepository
                     .findByAttemptIdAndQuestionId(attemptId, questionId).orElseThrow();
             assertThat(updatedAq.getVersion()).isEqualTo(initialVersion + 1);
+            // responseTimeMs가 DB에 정상 저장되었는지 검증
+            assertThat(updatedAq.getResponseTimeMs()).isEqualTo(1000L);
         }
 
         @Test
@@ -472,7 +474,7 @@ class QuizSectionAttemptServiceIntegrationTest {
 
             // When
             SaveAnswerRequest request = new SaveAnswerRequest(
-                    new SaveAnswerRequest.AnswerItem(questionId, "1")
+                    new SaveAnswerRequest.AnswerItem(questionId, "1", 1000L)
             );
             quizSectionAttemptService.saveAnswer(attemptId, request, userId);
 
@@ -483,6 +485,11 @@ class QuizSectionAttemptServiceIntegrationTest {
             SectionAttemptResponse refreshed = quizSectionAttemptService
                     .startOrResumeAttempt(courseId, sectionNumber, userId);
             assertThat(refreshed.answeredCount()).isEqualTo(1);
+
+            // responseTimeMs가 DB에 정상 저장되었는지 검증
+            UserSectionAttemptQuestion savedAq = attemptQuestionRepository
+                    .findByAttemptIdAndQuestionId(attemptId, questionId).orElseThrow();
+            assertThat(savedAq.getResponseTimeMs()).isEqualTo(1000L);
         }
 
         @Test
@@ -500,12 +507,12 @@ class QuizSectionAttemptServiceIntegrationTest {
 
             // 첫 번째 답안 저장
             quizSectionAttemptService.saveAnswer(attemptId,
-                    new SaveAnswerRequest(new SaveAnswerRequest.AnswerItem(questionId, "OLD")),
+                    new SaveAnswerRequest(new SaveAnswerRequest.AnswerItem(questionId, "OLD", 1000L)),
                     userId);
 
             // When: 같은 문제에 새로운 답안 저장
             quizSectionAttemptService.saveAnswer(attemptId,
-                    new SaveAnswerRequest(new SaveAnswerRequest.AnswerItem(questionId, "NEW")),
+                    new SaveAnswerRequest(new SaveAnswerRequest.AnswerItem(questionId, "NEW", 1000L)),
                     userId);
 
             entityManager.flush();
@@ -526,7 +533,7 @@ class QuizSectionAttemptServiceIntegrationTest {
             Long invalidAttemptId = 999999L;
             Long userId = testUser.getId();
             SaveAnswerRequest request = new SaveAnswerRequest(
-                    new SaveAnswerRequest.AnswerItem(1L, "1")
+                    new SaveAnswerRequest.AnswerItem(1L, "1", 1000L)
             );
 
             // When & Then: NotFoundException 대신 BusinessException을 기대함
@@ -552,7 +559,7 @@ class QuizSectionAttemptServiceIntegrationTest {
 
             // When & Then: otherUser로 답안 저장 시도
             SaveAnswerRequest request = new SaveAnswerRequest(
-                    new SaveAnswerRequest.AnswerItem(questionId, "1")
+                    new SaveAnswerRequest.AnswerItem(questionId, "1", 1000L)
             );
 
             assertThatThrownBy(() -> quizSectionAttemptService
@@ -578,7 +585,7 @@ class QuizSectionAttemptServiceIntegrationTest {
 
             // When & Then: 완료된 시도에 답안 저장 시도
             SaveAnswerRequest request = new SaveAnswerRequest(
-                    new SaveAnswerRequest.AnswerItem(questionId, "1")
+                    new SaveAnswerRequest.AnswerItem(questionId, "1", 1000L)
             );
 
             assertThatThrownBy(() -> quizSectionAttemptService
@@ -598,7 +605,7 @@ class QuizSectionAttemptServiceIntegrationTest {
 
             // When: 존재하지 않는 questionId로 답안 저장 시도
             SaveAnswerRequest request = new SaveAnswerRequest(
-                    new SaveAnswerRequest.AnswerItem(999999L, "1")
+                    new SaveAnswerRequest.AnswerItem(999999L, "1", 1000L)
             );
 
             // Then: 이제 무시되지 않고 BusinessException이 발생해야 함
@@ -630,7 +637,7 @@ class QuizSectionAttemptServiceIntegrationTest {
             for (int i = 0; i < 8; i++) {
                 Long questionId = attemptResponse.questions().get(i).questionId();
                 quizSectionAttemptService.saveAnswer(attemptId,
-                        new SaveAnswerRequest(new SaveAnswerRequest.AnswerItem(questionId, "1")),
+                        new SaveAnswerRequest(new SaveAnswerRequest.AnswerItem(questionId, "1", 1000L)),
                         userId);
             }
 
@@ -662,7 +669,7 @@ class QuizSectionAttemptServiceIntegrationTest {
             for (int i = 0; i < 5; i++) {
                 Long questionId = attemptResponse.questions().get(i).questionId();
                 quizSectionAttemptService.saveAnswer(attemptId,
-                        new SaveAnswerRequest(new SaveAnswerRequest.AnswerItem(questionId, "1")),
+                        new SaveAnswerRequest(new SaveAnswerRequest.AnswerItem(questionId, "1", 1000L)),
                         userId);
             }
 
@@ -670,7 +677,7 @@ class QuizSectionAttemptServiceIntegrationTest {
             for (int i = 5; i < 10; i++) {
                 Long questionId = attemptResponse.questions().get(i).questionId();
                 quizSectionAttemptService.saveAnswer(attemptId,
-                        new SaveAnswerRequest(new SaveAnswerRequest.AnswerItem(questionId, "WRONG")),
+                        new SaveAnswerRequest(new SaveAnswerRequest.AnswerItem(questionId, "WRONG", 1000L)),
                         userId);
             }
 
