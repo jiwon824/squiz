@@ -682,10 +682,12 @@ const StudyDetailPageV3: React.FC = () => {
                             </div>
 
                             {/* 댓글 섹션 */}
-                            <StudyCommentSection
-                                studyId={study.id}
-                                studyLeaderId={study.leader.id}
-                            />
+                            <div className="mt-6">
+                                <StudyCommentSection
+                                    studyId={study.id}
+                                    studyLeaderId={study.leader.id}
+                                />
+                            </div>
                         </div>
 
                         {/* 우측: 리더 정보 (1열) */}

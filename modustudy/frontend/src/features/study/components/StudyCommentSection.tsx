@@ -242,20 +242,64 @@ const StudyCommentSection: React.FC<StudyCommentSectionProps> = ({
 
                 <div className="flex-1 min-w-0">
                     {/* 헤더 */}
-                    <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold text-[var(--color-text-primary)]">
-                            {comment.userNickname}
-                        </span>
-                        {comment.userId === studyLeaderId && (
-                            <span className="px-1.5 py-0.5 text-[10px] font-bold bg-[var(--color-primary-alpha-10)] text-[var(--color-primary)] rounded">
-                                스터디장
+                    <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2">
+                            <span className="font-semibold text-[var(--color-text-primary)]">
+                                {comment.userNickname}
                             </span>
-                        )}
-                        <span className="text-xs text-[var(--color-text-tertiary)]">
-                            {formatRelativeTime(comment.createdAt)}
-                        </span>
-                        {comment.updatedAt !== comment.createdAt && !comment.isDeleted && (
-                            <span className="text-xs text-[var(--color-text-tertiary)]">(수정됨)</span>
+                            {comment.userId === studyLeaderId && (
+                                <span className="px-1.5 py-0.5 text-[10px] font-bold bg-[var(--color-primary-alpha-10)] text-[var(--color-primary)] rounded">
+                                    스터디장
+                                </span>
+                            )}
+                            <span className="text-xs text-[var(--color-text-tertiary)]">
+                                {formatRelativeTime(comment.createdAt)}
+                            </span>
+                            {comment.updatedAt !== comment.createdAt && !comment.isDeleted && (
+                                <span className="text-xs text-[var(--color-text-tertiary)]">(수정됨)</span>
+                            )}
+                        </div>
+
+                        {/* 수정/삭제 메뉴 (헤더 우측) */}
+                        {!comment.isDeleted && (canEditComment(comment) || canDeleteComment(comment)) && (
+                            <div className="relative">
+                                <button
+                                    onClick={() => setOpenMenuId(openMenuId === comment.id ? null : comment.id)}
+                                    className="p-1 text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] rounded hover:bg-[var(--color-background-secondary)] transition-colors"
+                                >
+                                    <MoreVertical size={16} />
+                                </button>
+
+                                {openMenuId === comment.id && (
+                                    <div className="absolute right-0 top-full mt-1 w-24 bg-white rounded-lg border border-[var(--color-border)] shadow-lg z-20 overflow-hidden">
+                                        {canEditComment(comment) && (
+                                            <button
+                                                onClick={() => {
+                                                    setEditingId(comment.id);
+                                                    setEditContent(comment.content);
+                                                    setOpenMenuId(null);
+                                                }}
+                                                className="w-full px-3 py-2 text-left text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-background-secondary)] flex items-center gap-2"
+                                            >
+                                                <Pencil size={14} />
+                                                수정
+                                            </button>
+                                        )}
+                                        {canDeleteComment(comment) && (
+                                            <button
+                                                onClick={() => {
+                                                    handleDeleteComment(comment.id);
+                                                    setOpenMenuId(null);
+                                                }}
+                                                className="w-full px-3 py-2 text-left text-sm text-[var(--color-error)] hover:bg-[var(--color-error-light)] flex items-center gap-2"
+                                            >
+                                                <Trash2 size={14} />
+                                                삭제
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
                         )}
                     </div>
 
@@ -308,65 +352,20 @@ const StudyCommentSection: React.FC<StudyCommentSectionProps> = ({
                         />
                     )}
 
-                    {/* 액션 버튼 */}
-                    {!comment.isDeleted && editingId !== comment.id && (
-                        <div className="flex items-center gap-3 mt-2">
-                            {/* 답글 버튼 (최상위 댓글만) */}
-                            {!isReply && (
-                                <button
-                                    onClick={() => {
-                                        if (!checkLoginAndRedirect()) return;
-                                        setReplyingTo(replyingTo === comment.id ? null : comment.id);
-                                        setReplyContent('');
-                                    }}
-                                    className="text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-primary)] flex items-center gap-1"
-                                >
-                                    <CornerDownRight size={12} />
-                                    답글 {comment.replyCount > 0 && `(${comment.replyCount})`}
-                                </button>
-                            )}
-
-                            {/* 수정/삭제 메뉴 */}
-                            {(canEditComment(comment) || canDeleteComment(comment)) && (
-                                <div className="relative ml-auto">
-                                    <button
-                                        onClick={() => setOpenMenuId(openMenuId === comment.id ? null : comment.id)}
-                                        className="p-1 text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] opacity-0 group-hover:opacity-100 transition-opacity"
-                                    >
-                                        <MoreVertical size={16} />
-                                    </button>
-
-                                    {openMenuId === comment.id && (
-                                        <div className="absolute right-0 mt-1 w-24 bg-white rounded-lg border border-[var(--color-border)] shadow-lg z-10 overflow-hidden">
-                                            {canEditComment(comment) && (
-                                                <button
-                                                    onClick={() => {
-                                                        setEditingId(comment.id);
-                                                        setEditContent(comment.content);
-                                                        setOpenMenuId(null);
-                                                    }}
-                                                    className="w-full px-3 py-2 text-left text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-background-secondary)] flex items-center gap-2"
-                                                >
-                                                    <Pencil size={14} />
-                                                    수정
-                                                </button>
-                                            )}
-                                            {canDeleteComment(comment) && (
-                                                <button
-                                                    onClick={() => {
-                                                        handleDeleteComment(comment.id);
-                                                        setOpenMenuId(null);
-                                                    }}
-                                                    className="w-full px-3 py-2 text-left text-sm text-[var(--color-error)] hover:bg-[var(--color-error-light)] flex items-center gap-2"
-                                                >
-                                                    <Trash2 size={14} />
-                                                    삭제
-                                                </button>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
+                    {/* 답글 버튼 (최상위 댓글만) */}
+                    {!comment.isDeleted && editingId !== comment.id && !isReply && (
+                        <div className="mt-2">
+                            <button
+                                onClick={() => {
+                                    if (!checkLoginAndRedirect()) return;
+                                    setReplyingTo(replyingTo === comment.id ? null : comment.id);
+                                    setReplyContent('');
+                                }}
+                                className="text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-primary)] flex items-center gap-1"
+                            >
+                                <CornerDownRight size={12} />
+                                답글 {comment.replyCount > 0 && `(${comment.replyCount})`}
+                            </button>
                         </div>
                     )}
 
