@@ -265,6 +265,22 @@ public class StudySessionService {
         return new SessionStatistics(totalCount, completedCount, scheduledCount, cancelledCount);
     }
 
+    /**
+     * 미팅 결과에 맞춰 세션 진행 시간을 갱신
+     */
+    @Transactional
+    public void updateDurationFromMeeting(Long studyId, Long sessionId, Integer durationMinutes) {
+        if (durationMinutes == null || durationMinutes <= 0) {
+            return;
+        }
+        Study study = getStudyOrThrow(studyId);
+        StudySession session = getSessionOrThrow(sessionId);
+        validateSessionBelongsToStudy(session, studyId);
+
+        session.setDurationMinutes(durationMinutes);
+        updateSessionInMemberCalendars(session, study.getName());
+    }
+
     private Study getStudyOrThrow(Long studyId) {
         return studyRepository.findById(studyId)
                 .orElseThrow(() -> new StudyException.StudyNotFoundException(studyId));

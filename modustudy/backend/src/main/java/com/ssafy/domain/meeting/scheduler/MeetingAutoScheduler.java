@@ -22,6 +22,7 @@ import java.util.List;
 public class MeetingAutoScheduler {
     private static final int WINDOW_MINUTES = 1;
     private static final int DEFAULT_PLANNED_DURATION_SECONDS = 60 * 60;
+    private static final int MAX_PLANNED_DURATION_SECONDS = 3 * 60 * 60;
 
     private final StudySessionRepository studySessionRepository;
     private final MeetingRepository meetingRepository;
@@ -45,6 +46,7 @@ public class MeetingAutoScheduler {
                     .map(Workspace::getId)
                     .orElse(null);
             String title = buildMeetingTitle(session);
+            int plannedDurationSeconds = resolvePlannedDurationSeconds(session);
             Meeting meeting = Meeting.schedule(
                     session.getStudyId(),
                     session.getId(),
@@ -52,7 +54,7 @@ public class MeetingAutoScheduler {
                     title,
                     MeetingType.OTHER,
                     session.getScheduledAt(),
-                    DEFAULT_PLANNED_DURATION_SECONDS
+                    plannedDurationSeconds
             );
             meetingRepository.save(meeting);
             log.info("자동 미팅 생성 완료 - studyId={}, sessionId={}, meetingTitle={}",
@@ -69,5 +71,13 @@ public class MeetingAutoScheduler {
             return session.getTitle();
         }
         return "미팅";
+    }
+
+    private int resolvePlannedDurationSeconds(StudySession session) {
+        Integer durationMinutes = session.getDurationMinutes();
+        int planned = (durationMinutes == null || durationMinutes <= 0)
+                ? DEFAULT_PLANNED_DURATION_SECONDS
+                : durationMinutes * 60;
+        return Math.min(planned, MAX_PLANNED_DURATION_SECONDS);
     }
 }

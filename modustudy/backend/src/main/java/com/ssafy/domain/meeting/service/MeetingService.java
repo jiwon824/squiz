@@ -17,6 +17,8 @@ import com.ssafy.domain.meeting.repository.MeetingSttFileRepository;
 import com.ssafy.domain.meeting.repository.MeetingSttSummaryRepository;
 import com.ssafy.domain.study.entity.Study;
 import com.ssafy.domain.study.repository.StudyRepository;
+import com.ssafy.domain.study.repository.StudySessionRepository;
+import com.ssafy.domain.study.service.StudySessionService;
 import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -49,6 +51,8 @@ public class MeetingService {
     private final MeetingSttSummaryRepository meetingSttSummaryRepository;
     private final UserRepository userRepository;
     private final StudyRepository studyRepository;
+    private final StudySessionRepository studySessionRepository;
+    private final StudySessionService studySessionService;
     private final SfuProperties sfuProperties;
     private final MeetingServiceHelper helper;
     private final MeetingRecordingService meetingRecordingService;
@@ -143,13 +147,8 @@ public class MeetingService {
         }
         MeetingType meetingType = request.meetingType() == null ? MeetingType.OTHER : request.meetingType();
         boolean autoShareSummary = Boolean.TRUE.equals(request.autoShareSummary());
-        int plannedDurationSeconds = request.plannedDurationSeconds() == null ? 3600 : request.plannedDurationSeconds();
-        if (plannedDurationSeconds <= 0) {
-            plannedDurationSeconds = 3600;
-        }
-        if (plannedDurationSeconds > MAX_PLANNED_DURATION_SECONDS) {
-            plannedDurationSeconds = MAX_PLANNED_DURATION_SECONDS;
-        }
+        int plannedDurationSeconds = resolvePlannedDurationSeconds(
+                studyId, request.sessionId(), request.plannedDurationSeconds());
         Meeting meeting = Meeting.start(studyId, request.sessionId(), request.workspaceId(),
                 request.title(), meetingType, autoShareSummary, request.shareWorkspaceId(), LocalDateTime.now(),
                 plannedDurationSeconds);
@@ -179,6 +178,10 @@ public class MeetingService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "PLANNED_DURATION_CANNOT_DECREASE");
         }
         meeting.updatePlannedDurationSeconds(plannedDurationSeconds);
+        if (meeting.getSessionId() != null) {
+            int minutes = (int) Math.ceil(plannedDurationSeconds / 60.0);
+            studySessionService.updateDurationFromMeeting(studyId, meeting.getSessionId(), minutes);
+        }
         return getMeetingDetail(studyId, meetingId);
     }
 
@@ -201,6 +204,10 @@ public class MeetingService {
         meeting.updateSummaryStatus(SummaryStatus.PROCESSING);
         meetingAudioService.finalizeIndividualVoiceRecordings(meetingId, participants);
         meetingRecordingService.triggerSfuRecordingStop(meetingId);
+        if (meeting.getSessionId() != null && meeting.getDurationSeconds() != null) {
+            int minutes = (int) Math.ceil(meeting.getDurationSeconds() / 60.0);
+            studySessionService.updateDurationFromMeeting(studyId, meeting.getSessionId(), minutes);
+        }
         return new MeetingEndResponse(meeting.getDurationSeconds(), meeting.getParticipantCount(),
                 meeting.getSummaryStatus().name());
     }
@@ -259,5 +266,25 @@ public class MeetingService {
         if (!study.getLeaderId().equals(userId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "LEADER_ONLY");
         }
+    }
+
+    private int resolvePlannedDurationSeconds(Long studyId, Long sessionId, Integer requestedSeconds) {
+        int planned = requestedSeconds == null ? 3600 : requestedSeconds;
+        if (planned <= 0) {
+            planned = 3600;
+        }
+        if (sessionId != null && requestedSeconds == null) {
+            Integer minutes = studySessionRepository.findById(sessionId)
+                    .filter(session -> session.getStudyId().equals(studyId))
+                    .map(session -> session.getDurationMinutes())
+                    .orElse(null);
+            if (minutes != null && minutes > 0) {
+                planned = minutes * 60;
+            }
+        }
+        if (planned > MAX_PLANNED_DURATION_SECONDS) {
+            planned = MAX_PLANNED_DURATION_SECONDS;
+        }
+        return planned;
     }
 }
