@@ -357,22 +357,15 @@ const StudyDetailPageV3: React.FC = () => {
                                         <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[var(--color-background-secondary)] text-[var(--color-text-secondary)]">
                                             # {study.topic}
                                         </span>
+                                        {isOwner && (
+                                            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[#FEF7E0] text-[#f9ab00] border border-[#FBBC04]">
+                                                # 내가 작성한 글
+                                            </span>
+                                        )}
                                         </div>
 
                                         {/* 액션 버튼 */}
                                         <div className="flex items-center gap-2 flex-shrink-0">
-                                            {/* 스터디장에게만 수정 버튼 표시 */}
-                                            {isOwner && (
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => navigate(`/study/create/planned?studyId=${study.id}`)}
-                                                    className="text-[var(--color-primary)] border-[var(--color-primary)] hover:bg-[var(--color-primary-alpha-10)]"
-                                                >
-                                                    <Pencil size={16} className="mr-1" />
-                                                    수정
-                                                </Button>
-                                            )}
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
@@ -409,16 +402,29 @@ const StudyDetailPageV3: React.FC = () => {
                                                 {/* 드롭다운 메뉴 */}
                                                 {isMenuOpen && (
                                                     <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl border border-[var(--color-border)] shadow-lg z-50 overflow-hidden">
-                                                        <button
-                                                            onClick={() => {
-                                                                setIsReportModalOpen(true);
-                                                                setIsMenuOpen(false);
-                                                            }}
-                                                            className="w-full px-4 py-3 text-left text-sm font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-error-light)] hover:text-[var(--color-error)] transition-colors flex items-center gap-2"
-                                                        >
-                                                            <AlertTriangle size={16} />
-                                                            <span>신고하기</span>
-                                                        </button>
+                                                        {isOwner ? (
+                                                            <button
+                                                                onClick={() => {
+                                                                    navigate(`/study/create/planned?studyId=${study.id}`);
+                                                                    setIsMenuOpen(false);
+                                                                }}
+                                                                className="w-full px-4 py-3 text-left text-sm font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-primary-alpha-10)] hover:text-[var(--color-primary)] transition-colors flex items-center gap-2"
+                                                            >
+                                                                <Pencil size={16} />
+                                                                <span>수정하기</span>
+                                                            </button>
+                                                        ) : (
+                                                            <button
+                                                                onClick={() => {
+                                                                    setIsReportModalOpen(true);
+                                                                    setIsMenuOpen(false);
+                                                                }}
+                                                                className="w-full px-4 py-3 text-left text-sm font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-error-light)] hover:text-[var(--color-error)] transition-colors flex items-center gap-2"
+                                                            >
+                                                                <AlertTriangle size={16} />
+                                                                <span>신고하기</span>
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 )}
                                             </div>

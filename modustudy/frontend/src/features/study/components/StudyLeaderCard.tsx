@@ -73,11 +73,28 @@ const StudyLeaderCard: React.FC<StudyLeaderCardProps> = ({
         }
     };
 
-    // 신청 버튼 텍스트 결정
+    // 신청 버튼 텍스트 결정 (상태별 분기)
     const getApplyButtonText = () => {
-        if (studyStatus !== 'RECRUITING') return '모집 마감';
-        if (currentMembers >= maxMembers) return '정원 마감';
-        return '스터디 신청하기';
+        switch (studyStatus) {
+            case 'RECRUITING':
+                if (currentMembers >= maxMembers) return '정원 마감';
+                return '스터디 신청하기';
+            case 'SCHEDULED':
+            case 'PENDING':
+                return '모집 예정';
+            case 'RECRUIT_CLOSED':
+                return '모집 마감';
+            case 'IN_PROGRESS':
+                return '진행중';
+            case 'COMPLETED':
+                return '완료됨';
+            case 'CANCELLED':
+                return '취소됨';
+            case 'DRAFT':
+                return '준비중';
+            default:
+                return '모집 마감';
+        }
     };
 
     // D-day 계산
