@@ -2,7 +2,7 @@
 
 import '@/features/dashboard-v2/styles/DashboardV2.css';
 import { useEffect, useState, useRef, useMemo } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Sidebar } from './components/Sidebar';
 import { RightSideBarV2 } from './components-v2/RightSideBarV2';
 import { useUIStore, SidebarMode } from '@/store/uiStore';
@@ -44,6 +44,7 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEntering
     const profileRef = useRef<HTMLDivElement>(null);
     const prevSidebarModeRef = useRef<SidebarMode | null>(null);
     const location = useLocation();
+    const navigate = useNavigate();
 
     // 대시보드에서 진입 시 애니메이션 플래그 (최초 렌더 시 한 번만 확인)
     const isEnteringFromDashboard = useMemo(() => {
@@ -278,8 +279,31 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEntering
                                                 <div
                                                     key={notification.id}
                                                     onClick={() => {
+                                                        // 읽음 처리
                                                         if (!notification.isRead) {
                                                             markNotificationAsRead(notification.id);
+                                                        }
+                                                        // 드롭다운 닫기
+                                                        setIsNotificationOpen(false);
+                                                        // 해당 페이지로 이동
+                                                        const { referenceType, referenceId } = notification;
+                                                        if (referenceType && referenceId) {
+                                                            switch (referenceType) {
+                                                                case 'STUDY_APPLICATION':
+                                                                    // 지원자 관리 탭으로 바로 이동
+                                                                    navigate(`/study/manage/${referenceId}?tab=applicants`);
+                                                                    break;
+                                                                case 'STUDY':
+                                                                    navigate(`/study/${referenceId}`);
+                                                                    break;
+                                                                case 'STUDY_SESSION':
+                                                                case 'MEETING':
+                                                                    navigate(`/study/${referenceId}/workspace`);
+                                                                    break;
+                                                                case 'SCHEDULE':
+                                                                    navigate('/calendar');
+                                                                    break;
+                                                            }
                                                         }
                                                     }}
                                                     className={cn(

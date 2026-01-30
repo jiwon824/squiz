@@ -83,12 +83,17 @@ export const NotificationPage = () => {
 
         switch (referenceType) {
             case 'STUDY_APPLICATION':
-                // 스터디 신청 알림 -> 스터디 관리 페이지로 이동
+                // 스터디 신청 알림 -> 스터디 관리 페이지의 지원자 관리 탭으로 이동
                 // referenceId에 studyId가 저장되어 있음
-                navigate(`/study/manage/${referenceId}`);
+                navigate(`/study/manage/${referenceId}?tab=applicants`);
                 break;
             case 'STUDY':
                 navigate(`/study/${referenceId}`);
+                break;
+            case 'STUDY_SESSION':
+                // 세션 시작 알림 -> 해당 스터디 워크스페이스로 이동
+                // referenceId에 studyId가 저장됨
+                navigate(`/study/${referenceId}/workspace`);
                 break;
             case 'MEETING':
                 // 미팅 알림 -> 해당 스터디 워크스페이스로 이동
