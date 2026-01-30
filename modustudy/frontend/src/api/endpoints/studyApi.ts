@@ -651,6 +651,12 @@ export const updateStudy = async (studyId: number, data: StudyCreatePayload) => 
   return response.data;
 };
 
+// 스터디 삭제 (신청자가 0명일 때만 가능)
+export const deleteStudy = async (studyId: number) => {
+  const response = await api.delete(`/api/v1/study/${studyId}`);
+  return response.data;
+};
+
 // 내 스터디 템플릿 목록 조회
 export interface StudyTemplateItem {
   id: number;
