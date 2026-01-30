@@ -353,12 +353,20 @@ public class StudyService {
         Set<Study> allStudies = new HashSet<>(leaderStudies.getContent());
         allStudies.addAll(memberStudies);
 
-        // 5. 정렬 및 페이징 후 DTO 변환
+        // 5. 스터디장 정보 일괄 조회 (N+1 방지)
+        Set<Long> leaderIds = allStudies.stream()
+                .map(Study::getLeaderId)
+                .filter(id -> id != null)
+                .collect(java.util.stream.Collectors.toSet());
+        Map<Long, User> leaderMap = userRepository.findAllById(leaderIds).stream()
+                .collect(java.util.stream.Collectors.toMap(User::getId, u -> u));
+
+        // 6. 정렬 및 페이징 후 DTO 변환 (스터디장 정보 포함)
         List<StudyResponse> sortedResponses = allStudies.stream()
                 .sorted(Comparator.comparing(Study::getCreatedAt).reversed())
                 .skip(pageable.getOffset())
                 .limit(pageable.getPageSize())
-                .map(StudyResponse::from)
+                .map(study -> StudyResponse.from(study, leaderMap.get(study.getLeaderId())))
                 .toList();
 
         log.info("내 스터디 목록 조회 완료 - userId: {}, count: {}", userId, allStudies.size());

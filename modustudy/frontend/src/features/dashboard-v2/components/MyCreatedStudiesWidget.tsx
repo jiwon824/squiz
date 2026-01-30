@@ -35,14 +35,23 @@ interface StudyItem {
   leader?: { id: number; nickname?: string; profileImage?: string | null };
 }
 
+// 대시보드에 표시할 최대 개수
+const MAX_DISPLAY_COUNT = 2;
+
 export const MyCreatedStudiesWidget: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const [studies, setStudies] = useState<StudyItem[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
   const fetchStudies = async () => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(false);
     try {
@@ -50,12 +59,18 @@ export const MyCreatedStudiesWidget: React.FC = () => {
       // studyApi.getMyStudies는 response.data를 반환 (Spring Page 객체)
       const page = (response as any)?.content ? response : (response as any)?.data || response;
       const content: StudyItem[] = page?.content || [];
-      // 내가 리더인 스터디만 필터 (백엔드 응답: leader.id)
-      const myCreated = user?.id
-        ? content.filter((s) => s.leader?.id === user.id)
-        : content;
-      setStudies(myCreated.slice(0, 5));
-    } catch {
+
+      // 내가 리더인 스터디만 필터 (타입 안전 비교)
+      const myCreated = content.filter((s) => {
+        const leaderId = s.leader?.id;
+        return leaderId != null && Number(leaderId) === Number(user.id);
+      });
+
+      setTotalCount(myCreated.length);
+      // 최신순 2개만 표시
+      setStudies(myCreated.slice(0, MAX_DISPLAY_COUNT));
+    } catch (err) {
+      console.error('[MyCreatedStudiesWidget] 조회 실패:', err);
       setError(true);
     } finally {
       setLoading(false);
@@ -64,7 +79,7 @@ export const MyCreatedStudiesWidget: React.FC = () => {
 
   useEffect(() => {
     fetchStudies();
-  }, []);
+  }, [user?.id]);
 
   return (
     <div className="bg-gradient-to-br from-white to-blue-50/30 rounded-2xl p-6 shadow-md border border-blue-100/60 relative overflow-hidden">
@@ -141,59 +156,72 @@ export const MyCreatedStudiesWidget: React.FC = () => {
 
       {/* 스터디 목록 */}
       {!loading && !error && studies.length > 0 && (
-        <ul className="space-y-2 relative">
-          <AnimatePresence>
-            {studies.map((study, idx) => {
-              const badge = getStatusBadge(study.status);
-              return (
-                <motion.li
-                  key={study.id}
-                  initial={{ opacity: 0, x: -8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -8 }}
-                  transition={{ delay: idx * 0.05 }}
-                >
-                  <button
-                    onClick={() => navigate(`/study/${study.id}`)}
-                    className={cn(
-                      'w-full flex items-center gap-3 text-left group',
-                      'rounded-xl p-3 transition-all duration-200',
-                      'hover:bg-white hover:shadow-sm border border-transparent hover:border-blue-100'
-                    )}
+        <div className="space-y-2 relative">
+          <ul className="space-y-2">
+            <AnimatePresence>
+              {studies.map((study, idx) => {
+                const badge = getStatusBadge(study.status);
+                return (
+                  <motion.li
+                    key={study.id}
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -8 }}
+                    transition={{ delay: idx * 0.05 }}
                   >
-                    {/* 주제 아이콘 또는 인덱스 */}
-                    <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-colors">
-                      {study.topic?.icon ? (
-                        <span className="text-sm">{study.topic.icon}</span>
-                      ) : (
-                        <Users size={14} className="text-blue-500" />
+                    <button
+                      onClick={() => navigate(`/study/${study.id}`)}
+                      className={cn(
+                        'w-full flex items-center gap-3 text-left group',
+                        'rounded-xl p-3 transition-all duration-200',
+                        'hover:bg-white hover:shadow-sm border border-transparent hover:border-blue-100'
                       )}
-                    </div>
+                    >
+                      {/* 주제 아이콘 또는 인덱스 */}
+                      <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-colors">
+                        {study.topic?.icon ? (
+                          <span className="text-sm">{study.topic.icon}</span>
+                        ) : (
+                          <Users size={14} className="text-blue-500" />
+                        )}
+                      </div>
 
-                    {/* 스터디 정보 */}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-800 truncate group-hover:text-blue-700 transition-colors">
-                        {study.name}
-                      </p>
-                      {study.topic && (
-                        <p className="text-[11px] text-gray-400 truncate mt-0.5">{study.topic.name}</p>
-                      )}
-                    </div>
+                      {/* 스터디 정보 */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-800 truncate group-hover:text-blue-700 transition-colors">
+                          {study.name}
+                        </p>
+                        {study.topic && (
+                          <p className="text-[11px] text-gray-400 truncate mt-0.5">{study.topic.name}</p>
+                        )}
+                      </div>
 
-                    {/* 상태 뱃지 */}
-                    <span className={cn(
-                      'text-[10px] font-bold px-2.5 py-1 rounded-full flex-shrink-0 flex items-center gap-1',
-                      badge.className
-                    )}>
-                      <span className={cn('w-1.5 h-1.5 rounded-full', badge.dot)} />
-                      {badge.label}
-                    </span>
-                  </button>
-                </motion.li>
-              );
-            })}
-          </AnimatePresence>
-        </ul>
+                      {/* 상태 뱃지 */}
+                      <span className={cn(
+                        'text-[10px] font-bold px-2.5 py-1 rounded-full flex-shrink-0 flex items-center gap-1',
+                        badge.className
+                      )}>
+                        <span className={cn('w-1.5 h-1.5 rounded-full', badge.dot)} />
+                        {badge.label}
+                      </span>
+                    </button>
+                  </motion.li>
+                );
+              })}
+            </AnimatePresence>
+          </ul>
+
+          {/* 더보기 버튼 (2개 초과 시) */}
+          {totalCount > MAX_DISPLAY_COUNT && (
+            <button
+              onClick={() => navigate('/my-studies/created')}
+              className="w-full flex items-center justify-center gap-1.5 py-2.5 mt-2 rounded-xl bg-blue-50 hover:bg-blue-100 transition-colors text-blue-600 text-sm font-medium"
+            >
+              <span>외 {totalCount - MAX_DISPLAY_COUNT}개 더보기</span>
+              <ChevronRight size={16} />
+            </button>
+          )}
+        </div>
       )}
     </div>
   );
