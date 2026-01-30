@@ -755,3 +755,38 @@
 .social-circle-btn.naver:hover {
     background: #02b351;
 }
+
+/* 커스텀 좌측 콘텐츠 (회원가입 기술스택 선택 등) */
+.visual-content--custom {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10;
+    padding: 1.5rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(99, 102, 241, 0.3) transparent;
+}
+
+.visual-content--custom::-webkit-scrollbar {
+    width: 4px;
+}
+
+.visual-content--custom::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.visual-content--custom::-webkit-scrollbar-thumb {
+    background: rgba(99, 102, 241, 0.3);
+    border-radius: 2px;
+}
+
+.visual-content--custom::-webkit-scrollbar-thumb:hover {
+    background: rgba(99, 102, 241, 0.5);
+}
