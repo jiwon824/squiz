@@ -97,9 +97,11 @@ public class MeetingController {
     @PutMapping("/{meetingId}/end")
     public ResponseEntity<ApiResponse<MeetingEndResponse>> end(
             @PathVariable Long studyId,
-            @PathVariable Long meetingId
+            @PathVariable Long meetingId,
+            @AuthenticationPrincipal SsafyUserDetails userDetails
     ) {
-        MeetingEndResponse response = meetingService.endMeeting(studyId, meetingId);
+        Long userId = userDetails == null ? null : userDetails.getUser().getId();
+        MeetingEndResponse response = meetingService.endMeeting(studyId, meetingId, requireUserId(userId));
         String roomId = "meeting-" + meetingId;
         MeetingRoomEvent event = new MeetingRoomEvent(MeetingRoomEvent.Type.MEETING_ENDED, roomId);
         messagingTemplate.convertAndSend("/topic/rooms/" + roomId + "/events", event);
@@ -111,10 +113,12 @@ public class MeetingController {
     public ResponseEntity<ApiResponse<MeetingDetailResponse>> updatePlannedDuration(
             @PathVariable Long studyId,
             @PathVariable Long meetingId,
+            @AuthenticationPrincipal SsafyUserDetails userDetails,
             @Valid @RequestBody MeetingPlannedDurationRequest request
     ) {
+        Long userId = userDetails == null ? null : userDetails.getUser().getId();
         return ResponseEntity.ok(ApiResponse.success(
-                meetingService.updatePlannedDuration(studyId, meetingId, request.plannedDurationSeconds())
+                meetingService.updatePlannedDuration(studyId, meetingId, requireUserId(userId), request.plannedDurationSeconds())
         ));
     }
 

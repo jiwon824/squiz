@@ -1,6 +1,6 @@
-/**
+﻿/**
  * 스터디 API
- * 스터디 조회/생성/수정 및 멤버 관련 API 엔드포인트
+ * 스터디 조회/생성/수정 및 멤버 관련 API 모음
  */
 
 import api from '../axios';
@@ -15,7 +15,7 @@ export interface TopicInfo {
   sortOrder: number;
 }
 
-// 토픽 자식 (계층 구조용)
+// 토픽 자식 (계층 구조)
 export interface TopicChild {
   id: number;
   name: string;
@@ -23,7 +23,7 @@ export interface TopicChild {
   sortOrder: number;
 }
 
-// 토픽 부모 (계층 구조용)
+// 토픽 부모 (계층 구조)
 export interface TopicParent {
   id: number;
   name: string;
@@ -41,7 +41,7 @@ export interface FormatInfo {
   sortOrder: number;
 }
 
-// 형식 아이템 (별칭)
+// 형식 아이템(별칭)
 export interface FormatItem {
   id: number;
   name: string;
@@ -135,7 +135,7 @@ export interface StudyMemberResponse {
   joinedAt: string;
 }
 
-// 페이징 응답
+// 페이지 응답
 export interface PageResponse<T> {
   content: T[];
   pageable: {
@@ -196,7 +196,7 @@ export interface AiStudyPlanRequest {
   techStack?: string[];
   schedule?: string[];
   durationWeeks?: number;  // 선호 스터디 기간 (주)
-  totalSessions?: number;  // 총 회차 (요일수 × 주수)
+  totalSessions?: number;  // 총 회차 (요일 수 × 주수)
 }
 
 // 주차별 커리큘럼 아이템
@@ -225,7 +225,7 @@ export interface AiStudyPlanResponse {
     days: string[];
     time: string;
   };
-  // 새로 추가: 주차별 커리큘럼
+  // 추가: 주차별 커리큘럼
   curriculum?: AiCurriculumItem[];
 }
 
@@ -301,7 +301,7 @@ export interface StudyListPageResponse {
 }
 
 /**
- * 스터디 목록 조회 (페이징)
+ * 스터디 목록 조회 (페이지)
  * GET /api/v1/study
  */
 export const getStudyList = async (params: StudyListParams = {}): Promise<StudyListPageResponse> => {
@@ -315,22 +315,22 @@ export const getStudyList = async (params: StudyListParams = {}): Promise<StudyL
   if (params.difficulty) queryParams.set('difficulty', params.difficulty);
   if (params.status) queryParams.set('status', params.status);
 
-  console.log('[getStudyList] 요청:', `/api/v1/study?${queryParams.toString()}`);
+  console.log('[getStudyList] 요청:', /api/v1/study?);
   const response = await api.get(`/api/v1/study?${queryParams.toString()}`);
   console.log('[getStudyList] 응답:', response.data);
 
   // 백엔드 응답 형식: { success: true, data: { content: [...], ... } }
-  // 또는 직접 페이징 응답: { content: [...], ... }
+  // 또는 직접 페이지 응답: { content: [...], ... }
   const data = response.data;
   if (data.data && data.data.content !== undefined) {
     // { success: true, data: { content: [...] } } 형식
     return data.data;
   } else if (data.content !== undefined) {
-    // { content: [...] } 형식 (직접 페이징 응답)
+    // { content: [...] } 형식 (직접 페이지 응답)
     return data;
   } else {
-    // 빈 응답 처리
-    console.warn('[getStudyList] 예상치 못한 응답 구조:', data);
+    // 예외 응답 처리
+    console.warn('[getStudyList] 예상하지 못한 응답 구조:', data);
     return {
       content: [],
       pageable: { pageNumber: 0, pageSize: 12 },
@@ -367,13 +367,15 @@ export const studyApi = {
     const response = await api.get<any>(`/api/v1/study/${studyId}`);
     let data = response.data;
 
-    // 백엔드 순환참조로 인해 JSON이 문자열로 올 수 있음 - name 필드만 추출
+    // 기존 백엔드 응답이 문자열인 경우 간단 파싱
     if (typeof data === 'string') {
       const nameMatch = data.match(/"name"\s*:\s*"([^"]+)"/);
       const idMatch = data.match(/"id"\s*:\s*(\d+)/);
+      const leaderMatch = data.match(/"leaderId"\s*:\s*(\d+)/);
       data = {
         id: idMatch ? parseInt(idMatch[1]) : 0,
-        name: nameMatch ? nameMatch[1] : '스터디',
+        leaderId: leaderMatch ? parseInt(leaderMatch[1]) : undefined,
+        name: nameMatch ? nameMatch[1] : 'Study',
       };
     }
 
@@ -381,7 +383,7 @@ export const studyApi = {
   },
 
   /**
-   * 스터디 존재 여부 확인
+   * ���͵� ���� ���� Ȯ��
    * GET /api/v1/study/{studyId}/exists
    */
   checkStudyExists: async (studyId: number) => {
@@ -390,7 +392,7 @@ export const studyApi = {
   },
 
   /**
-   * 내 스터디 목록 조회
+   * �� ���͵� ��� ��ȸ
    * GET /api/v1/study/my
    */
   getMyStudies: async (page = 0, size = 20) => {
@@ -401,7 +403,7 @@ export const studyApi = {
   },
 
   /**
-   * 스터디 멤버 목록 조회
+   * ���͵� ��� ��� ��ȸ
    * GET /api/v1/study/{studyId}/members
    */
   getStudyMembers: async (studyId: number, page = 0, size = 50) => {
@@ -1144,14 +1146,10 @@ export const generateStudyPlanStream = async (
         const trimmedLine = line.trim();
         if (!trimmedLine) continue; // 빈 줄 무시
 
-        console.log('[SSE 라인]', trimmedLine);
-
         if (trimmedLine.startsWith('event:')) {
           currentEvent = trimmedLine.substring(6).trim();
-          console.log('[SSE 이벤트]', currentEvent);
         } else if (trimmedLine.startsWith('data:')) {
           const data = trimmedLine.substring(5).trim();
-          console.log('[SSE 데이터]', data.substring(0, 100) + '...');
 
           try {
             const parsed = JSON.parse(data);
@@ -1159,7 +1157,6 @@ export const generateStudyPlanStream = async (
             if (currentEvent === 'token' && parsed.token !== undefined) {
               callbacks.onToken(parsed.token);
             } else if (currentEvent === 'complete') {
-              console.log('[SSE 완료 이벤트 수신]', parsed);
               // 완료 시 응답 변환
               const result: AiStudyPlanResponse = {
                 name: parsed.name || '',
@@ -1176,17 +1173,14 @@ export const generateStudyPlanStream = async (
                 scheduleSuggestion: parsed.scheduleSuggestion || parsed.schedule_suggestion,
                 curriculum: parsed.curriculum,
               };
-              console.log('[SSE 완료 결과]', result);
               callbacks.onComplete(result);
               return;
             } else if (currentEvent === 'error') {
-              console.error('[SSE 에러 이벤트]', parsed);
               callbacks.onError(new Error(parsed.error || 'Unknown error'));
               return;
             }
-          } catch (parseError) {
+          } catch {
             // JSON 파싱 실패 시 무시 (부분 데이터일 수 있음)
-            console.warn('[SSE 파싱 실패]', data);
           }
 
           currentEvent = ''; // 이벤트 리셋
@@ -1197,13 +1191,11 @@ export const generateStudyPlanStream = async (
     // 스트림이 끝났는데 complete 이벤트가 없었던 경우
     // 버퍼에 남은 데이터가 있으면 처리 시도
     if (buffer.trim()) {
-      console.log('[SSE 스트림 종료] 남은 버퍼 처리 시도:', buffer.substring(0, 200));
       try {
         // complete 이벤트의 data 부분만 남아있을 수 있음
         const dataMatch = buffer.match(/data:\s*(\{[\s\S]*\})/);
         if (dataMatch) {
           const parsed = JSON.parse(dataMatch[1]);
-          console.log('[SSE 버퍼에서 complete 데이터 파싱]', parsed);
           const result: AiStudyPlanResponse = {
             name: parsed.name || '',
             intro: parsed.intro || '',
@@ -1223,12 +1215,20 @@ export const generateStudyPlanStream = async (
           return;
         }
       } catch (e) {
-        console.warn('[SSE 버퍼 파싱 실패]', e);
+        console.warn('[SSE ���� �Ľ� ����]', e);
       }
     }
-    console.warn('[SSE 스트림 종료] complete 이벤트 없이 종료됨');
-    callbacks.onError(new Error('스트림이 완료 이벤트 없이 종료되었습니다'));
+    console.warn('[SSE ��Ʈ�� ����] complete �̺�Ʈ ���� �����');
+    callbacks.onError(new Error('��Ʈ���� �Ϸ� �̺�Ʈ ���� ����Ǿ����ϴ�.'));
   } catch (error) {
     callbacks.onError(error instanceof Error ? error : new Error(String(error)));
   }
 };
+
+
+
+
+
+
+
+

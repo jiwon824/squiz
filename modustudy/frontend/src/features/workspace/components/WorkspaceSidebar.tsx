@@ -8,7 +8,6 @@ import {
   Video,
   Info,
   UserCog,
-  ExternalLink,
   Sun,
   Moon,
   LucideIcon,
@@ -23,7 +22,7 @@ interface WorkspaceSidebarProps {
   onToggleDarkMode?: () => void;
   /** 현재 진행 중인 세션 (있으면 미팅 참여 버튼 표시) */
   activeSession?: StudySessionResponse | null;
-  /** 미팅으로 이동 시 콜백 (애니메이션 처리용) */
+  /** 미팅으로 이동 콜백 (전환 애니메이션 처리용) */
   onNavigateToMeeting?: () => void;
 }
 
@@ -40,7 +39,7 @@ const menuItems: MenuItem[] = [
     id: 'chat',
     label: '채팅',
     icon: MessageSquare,
-    description: '스터디원들과 대화하기',
+    description: '스터디원과 소통하기',
   },
   {
     id: 'materials',
@@ -58,7 +57,7 @@ const menuItems: MenuItem[] = [
     id: 'meeting',
     label: '미팅',
     icon: Video,
-    description: '화상 미팅 참여',
+    description: '화상 미팅 기록',
   },
 ];
 
@@ -75,16 +74,6 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
 
   // 메뉴 클릭 핸들러
   const handleMenuClick = (menuId: MenuItem['id']) => {
-    if (menuId === 'meeting' && studyId) {
-      // 애니메이션 콜백이 있으면 사용, 없으면 직접 이동
-      if (onNavigateToMeeting) {
-        onNavigateToMeeting();
-      } else {
-        navigate(`/study/${studyId}/meetings`);
-      }
-      return;
-    }
-
     onMenuChange?.(menuId);
   };
 
@@ -106,11 +95,6 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
             >
               <IconComponent size={20} className="workspace-sidebar__menu-icon" />
               <span className="workspace-sidebar__menu-label">{item.label}</span>
-              {item.id === 'meeting' && (
-                <span className="workspace-sidebar__menu-badge">
-                  <ExternalLink size={14} />
-                </span>
-              )}
             </button>
           );
         })}
@@ -161,7 +145,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
         </button>
       </div>
 
-      {/* 하단 미팅 시작 버튼 - 진행 중인 세션이 있을 때만 표시 */}
+      {/* 하단 미팅 참여 버튼 - 진행 중인 세션이 있을 때만 표시 */}
       {activeSession && (
         <div className="workspace-sidebar__footer">
           <button

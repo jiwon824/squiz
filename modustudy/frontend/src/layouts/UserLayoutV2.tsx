@@ -76,6 +76,11 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEntering
         };
     }, []);
 
+    // 페이지 이동 시 퇴장 애니메이션 상태 리셋
+    useEffect(() => {
+        setIsDashboardExiting(false);
+    }, [location.pathname]);
+
     // 알림 데이터 로드 + 실시간 polling (30초마다)
     useEffect(() => {
         if (!isLoggedIn) return;
@@ -158,14 +163,22 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEntering
             setSidebarMode('closed');
         }
     }, [location.pathname, sidebarMode, setSidebarMode]);
+
+    // 회의 룸에서 나올 때 사이드바 복원 (경로 변경 시에만 동작)
+    const prevPathnameRef = useRef(location.pathname);
     useEffect(() => {
+        const prevPathname = prevPathnameRef.current;
+        prevPathnameRef.current = location.pathname;
+
+        const wasMeetingRoom = /^\/study\/\d+\/meetings\/\d+\/room/.test(prevPathname);
         const isMeetingRoom = /^\/study\/\d+\/meetings\/\d+\/room/.test(location.pathname);
-        if (isMeetingRoom) return;
-        if (sidebarMode === 'closed') {
-            setSidebarMode(prevSidebarModeRef.current ?? 'mini');
+
+        // 회의 룸에서 벗어났을 때만 사이드바 복원
+        if (wasMeetingRoom && !isMeetingRoom && prevSidebarModeRef.current) {
+            setSidebarMode(prevSidebarModeRef.current);
             prevSidebarModeRef.current = null;
         }
-    }, [location.pathname, sidebarMode, setSidebarMode]);
+    }, [location.pathname, setSidebarMode]);
 
     // 드롭다운 외부 클릭 감지
     useEffect(() => {
