@@ -1,5 +1,6 @@
 package com.ssafy.domain.quiz.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.List;
@@ -73,6 +74,7 @@ public record AttemptResultResponse(
             String correctAnswer,
 
             @Schema(description = "정답 여부", example = "true")
+            @JsonProperty("correct")
             Boolean isCorrect,
 
             @Schema(description = "해설", example = "Java에서 정수형은 int 키워드를 사용합니다.")

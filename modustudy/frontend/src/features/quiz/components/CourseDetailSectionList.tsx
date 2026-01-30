@@ -5,12 +5,11 @@
  * 
  * 목적 (PURPOSE):
  * 코스에 포함된 섹션들을 목록으로 표시합니다.
- * 각 섹션의 상태(잠김/진행중/완료)에 따라 다른 스타일을 적용합니다.
  * 
  * =============================================================================
  */
 
-import { Lock, Play, CheckCircle, Trophy } from 'lucide-react';
+import { Play, CheckCircle, Trophy } from 'lucide-react';
 import type { CourseDetailSection } from '../types/CourseDetailSection.types';
 import { getSectionStatus } from '../types/CourseDetailSection.types';
 import type { CourseCategory } from '../types/QuizCourse.types';
@@ -71,35 +70,24 @@ export const CourseDetailSectionList = ({
                     return (
                         <div
                             key={section.sectionNumber}
-                            onClick={() => {
-                                if (status !== 'Locked') {
-                                    onSectionClick?.(section.sectionNumber);
-                                }
-                            }}
-                            className={status !== 'Locked' ? 'cursor-pointer group' : ''}
+                            onClick={() => onSectionClick?.(section.sectionNumber)}
+                            className="cursor-pointer group"
                             style={{
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: 'var(--spacing-md)',
                                 padding: 'var(--spacing-md) var(--spacing-lg)',
                                 borderBottom: isLast ? 'none' : '1px solid var(--color-border)',
-                                backgroundColor: status === 'Locked'
-                                    ? 'var(--color-background-tertiary)'
-                                    : 'var(--color-surface)',
-                                opacity: status === 'Locked' ? 0.7 : 1,
+                                backgroundColor: 'var(--color-surface)',
                                 transition: 'all var(--transition-fast)',
                             }}
                             onMouseEnter={(e) => {
-                                if (status !== 'Locked') {
-                                    e.currentTarget.style.backgroundColor = 'var(--color-surface-hover)';
-                                    e.currentTarget.style.borderColor = categoryConfig.color;
-                                }
+                                e.currentTarget.style.backgroundColor = 'var(--color-surface-hover)';
+                                e.currentTarget.style.borderColor = categoryConfig.color;
                             }}
                             onMouseLeave={(e) => {
-                                if (status !== 'Locked') {
-                                    e.currentTarget.style.backgroundColor = 'var(--color-surface)';
-                                    e.currentTarget.style.borderColor = 'var(--color-border)';
-                                }
+                                e.currentTarget.style.backgroundColor = 'var(--color-surface)';
+                                e.currentTarget.style.borderColor = 'var(--color-border)';
                             }}
                         >
                             {/* 섹션 번호 및 상태 아이콘 */}
@@ -111,18 +99,14 @@ export const CourseDetailSectionList = ({
                                     borderRadius: 'var(--radius-full)',
                                     backgroundColor: status === 'Completed'
                                         ? 'var(--color-google-green)'
-                                        : status === 'InProgress'
-                                            ? categoryConfig.color
-                                            : 'var(--color-gray-300)',
+                                        : categoryConfig.color,
                                     flexShrink: 0,
                                 }}
                             >
                                 {status === 'Completed' ? (
                                     <CheckCircle size={20} color="white" />
-                                ) : status === 'InProgress' ? (
-                                    <Play size={18} color="white" fill="white" />
                                 ) : (
-                                    <Lock size={18} color="white" />
+                                    <Play size={18} color="white" fill="white" />
                                 )}
                             </div>
 
@@ -139,11 +123,9 @@ export const CourseDetailSectionList = ({
                                 <div
                                     className="font-medium"
                                     style={{
-                                        color: status === 'Locked'
-                                            ? 'var(--color-text-tertiary)'
-                                            : status === 'Completed'
-                                                ? 'var(--color-text-secondary)'
-                                                : 'var(--color-text-primary)',
+                                        color: status === 'Completed'
+                                            ? 'var(--color-text-secondary)'
+                                            : 'var(--color-text-primary)',
                                         textDecoration: status === 'Completed' ? 'line-through' : 'none',
                                     }}
                                 >
@@ -182,8 +164,8 @@ export const CourseDetailSectionList = ({
                                 </div>
                             )}
 
-                            {/* 시작 버튼 (진행 가능한 경우만) */}
-                            {status === 'InProgress' && (
+                            {/* 시작 버튼 (완료되지 않은 모든 섹션에 표시) */}
+                            {status !== 'Completed' && (
                                 <button
                                     className="opacity-0 group-hover:opacity-100"
                                     onClick={(e) => {
@@ -205,19 +187,6 @@ export const CourseDetailSectionList = ({
                                 >
                                     시작
                                 </button>
-                            )}
-
-                            {/* 잠금 상태 표시 */}
-                            {status === 'Locked' && (
-                                <span
-                                    className="text-xs"
-                                    style={{
-                                        color: 'var(--color-text-muted)',
-                                        flexShrink: 0,
-                                    }}
-                                >
-                                    이전 섹션 완료 필요
-                                </span>
                             )}
                         </div>
                     );

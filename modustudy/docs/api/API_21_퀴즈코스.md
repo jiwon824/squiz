@@ -16,7 +16,7 @@
 | GET | `/` | 코스 목록 조회 | X |
 | GET | `/{courseId}` | 코스 상세 조회 | X |
 | GET | `/{courseId}/sections` | 섹션 목록 조회 | O |
-| POST | `/{courseId}/sections/{sectionNumber}/attempts` | 섹션 시도 시작/재개 | O |
+| POST | `/{courseId}/sections/{sectionNumber}/attempts/{attemptId}` | 섹션 시도 시작/재개 | O |
 | PATCH | `/{courseId}/sections/{sectionNumber}/attempts/{attemptId}/answers` | 단일 답안 실시간 저장 | O |
 | POST | `/{courseId}/sections/{sectionNumber}/attempts/{attemptId}/submit` | 섹션 제출 (채점) | O |
 | DELETE | `/{courseId}/sections/{sectionNumber}/attempts/{attemptId}` | 시도 포기 | O |

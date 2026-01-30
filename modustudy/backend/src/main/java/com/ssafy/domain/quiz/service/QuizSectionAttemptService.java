@@ -48,6 +48,7 @@ public class QuizSectionAttemptService {
     private final UserSectionAttemptQuestionRepository attemptQuestionRepository;
     private final UserCourseProgressRepository progressRepository;
     private final BadgeRepository badgeRepository;
+    private final FsrsService fsrsService;
     private final ObjectMapper objectMapper;
 
     /**
@@ -262,67 +263,84 @@ public class QuizSectionAttemptService {
                     "완료된 시도는 수정할 수 없습니다.");
         }
 
-        // 답안 저장 (Version 자동 증가)
-        aq.saveAnswer(request.answer().answer());
+
+        // 답안 + 응답 시간 저장
+        Long responseTimeMs = request.answer().responseTimeMs();
+        log.debug("[doSaveAnswer] userId={}, questionId={}, responseTimeMs={}ms",
+                userId, request.answer().questionId(), responseTimeMs);
+
+        aq.saveAnswer(request.answer().answer(), responseTimeMs);
         attemptQuestionRepository.save(aq);
+
+        log.info("[doSaveAnswer] 답안 저장 완료: attemptId={}, questionId={}, responseTimeMs={}ms",
+                attemptId, request.answer().questionId(), responseTimeMs);
     }
 
-    /**
-     * 시도를 제출하고 채점한다.
-     *
-     * @param attemptId 시도 ID
-     * @param userId    사용자 ID
-     * @return 채점 결과
-     */
-    @Transactional
-    public AttemptResultResponse submitAttempt(Long attemptId, Long userId) {
-        UserSectionAttempt attempt = attemptRepository.findById(attemptId)
-                .orElseThrow(NotFoundException::attempt);
+        /**
+         * 시도를 제출하고 채점한다.
+         *
+         * @param attemptId 시도 ID
+         * @param userId    사용자 ID
+         * @return 채점 결과
+         */
+        @Transactional
+        public AttemptResultResponse submitAttempt(Long attemptId, Long userId) {
+            UserSectionAttempt attempt = attemptRepository.findById(attemptId)
+                    .orElseThrow(NotFoundException::attempt);
 
-        // 본인 시도인지 확인
-        if (!attempt.getUser().getId().equals(userId)) {
-            throw new BusinessException(
-                    HttpStatus.FORBIDDEN,
-                    "NOT_ATTEMPT_OWNER",
-                    "본인의 시도만 제출할 수 있습니다.");
-        }
+            // 본인 시도인지 확인
+            if (!attempt.getUser().getId().equals(userId)) {
+                throw new BusinessException(
+                        HttpStatus.FORBIDDEN,
+                        "NOT_ATTEMPT_OWNER",
+                        "본인의 시도만 제출할 수 있습니다.");
+            }
 
-        // 진행 중인 시도인지 확인
-        if (!attempt.isInProgress()) {
-            throw new BusinessException(
-                    HttpStatus.BAD_REQUEST,
-                    "ATTEMPT_ALREADY_COMPLETED",
-                    "이미 완료된 시도입니다.");
-        }
+            // 진행 중인 시도인지 확인
+            if (!attempt.isInProgress()) {
+                throw new BusinessException(
+                        HttpStatus.BAD_REQUEST,
+                        "ATTEMPT_ALREADY_COMPLETED",
+                        "이미 완료된 시도입니다.");
+            }
 
-        // 1. 문제 목록 조회 (질문 정보 포함)
-        // 이 시점에서 question 정보가 필요하므로 fetch join된 쿼리 사용
-        List<UserSectionAttemptQuestion> attemptQuestions = attemptQuestionRepository
-                .findByAttemptIdWithQuestionOrderByOrderIndex(attemptId);
+            // 1. 문제 목록 조회 (질문 정보 포함)
+            // 이 시점에서 question 정보가 필요하므로 fetch join된 쿼리 사용
+            List<UserSectionAttemptQuestion> attemptQuestions = attemptQuestionRepository
+                    .findByAttemptIdWithQuestionOrderByOrderIndex(attemptId);
 
-        // 2. 각 문제 채점
-        for (UserSectionAttemptQuestion aq : attemptQuestions) {
-            // UserSectionAttemptQuestion 엔티티의 비즈니스 메서드 호출
-            // 내부적으로 userAnswer와 question.correctAnswer 비교
-            aq.grade(aq.getQuestion().getCorrectAnswer());
-        }
+            // 2. 각 문제 채점 및 FSRS 기록 저장
+            for (UserSectionAttemptQuestion aq : attemptQuestions) {
+                // 채점 실행
+                aq.grade(aq.getQuestion().getCorrectAnswer());
 
-        // 3. 정답 개수 계산
-        int correctCount = (int) attemptQuestions.stream()
-                .filter(UserSectionAttemptQuestion::getIsCorrect)
-                .count();
+                // [추가] FSRS 복습 데이터 생성/업데이트 요청
+                // 각 문제의 정답 여부(isCorrect)와 엔티티에 저장된 응답 시간(responseTimeMs)을 넘깁니다.
+                fsrsService.processReview(
+                        userId,
+                        ReviewContentType.COURSE_QUESTION, // 코스 문제임을 명시
+                        aq.getQuestion().getId(),          // 실제 문제(Question)의 ID
+                        aq.getIsCorrect(),
+                        aq.getResponseTimeMs()             // 엔티티에 추가한 필드 사용
+                );
+            }
 
-        // 4. 시도 완료 처리
-        QuizCourseSection section = attempt.getSection();
-        attempt.complete(correctCount, section.getPassScore());
-        // JPA Dirty Checking으로 변경사항 자동 저장
+            // 3. 정답 개수 계산
+            int correctCount = (int) attemptQuestions.stream()
+                    .filter(UserSectionAttemptQuestion::getIsCorrect)
+                    .count();
 
-        // 통과 시 다음 섹션 해금
-        boolean isNextSectionUnlocked = false;
-        BadgeInfo earnedBadge = null;
+            // 4. 시도 완료 처리
+            QuizCourseSection section = attempt.getSection();
+            attempt.complete(correctCount, section.getPassScore());
+            // JPA Dirty Checking으로 변경사항 자동 저장
 
-        if (attempt.getIsPassed()) {
-            isNextSectionUnlocked = updateProgress(
+            // 통과 시 다음 섹션 해금
+            boolean isNextSectionUnlocked = false;
+            BadgeInfo earnedBadge = null;
+
+            if (attempt.getIsPassed()) {
+                isNextSectionUnlocked = updateProgress(
                     userId,
                     section.getCourse().getId(),
                     section.getSectionNumber());

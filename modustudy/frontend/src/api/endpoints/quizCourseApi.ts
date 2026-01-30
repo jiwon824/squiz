@@ -123,7 +123,40 @@ export interface AttemptData {
     questions: AttemptQuestion[];
 }
 
-/** 채점 결과 개별 문제 */
+// -----------------------------------------------------------------------------
+// 백엔드 JSON 응답 타입 (Jackson @JsonProperty 기준)
+// -----------------------------------------------------------------------------
+
+/** 백엔드 채점 결과 개별 문제 (JSON 직렬화 형식) */
+interface BackendQuestionResult {
+    orderIndex: number;
+    questionId: number;
+    userAnswer: string;
+    correctAnswer: string;
+    correct: boolean; // Jackson @JsonProperty("correct")
+    explanation: string;
+}
+
+/** 백엔드 제출 결과 응답 (JSON 직렬화 형식) */
+interface BackendSubmitResultData {
+    attemptId: number;
+    score: number;
+    correctCount: number;
+    totalQuestions: number;
+    passScore: number;
+    isPassed: boolean;
+    isNextSectionUnlocked: boolean;
+    submittedAt: string;
+    passedAt: string | null;
+    earnedBadge?: BadgeInfo;
+    results: BackendQuestionResult[];
+}
+
+// -----------------------------------------------------------------------------
+// 프론트엔드 도메인 타입
+// -----------------------------------------------------------------------------
+
+/** 채점 결과 개별 문제 (프론트엔드 도메인 모델) */
 export interface QuestionResult {
     orderIndex: number;
     questionId: number;
@@ -211,6 +244,7 @@ export interface SaveAnswerRequest {
     answer: {
         questionId: number;
         answer: string;
+        responseTimeMs: number;
     };
 }
 
@@ -306,7 +340,8 @@ export const saveAnswer = async (
     sectionNumber: number,
     attemptId: number,
     questionId: number,
-    answer: string | string[]
+    answer: string | string[],
+    responseTimeMs: number
 ): Promise<void> => {
     // Backend DTO expects a String, not an Array.
     // For MULTIPLE_CHOICE_MULTIPLE questions, the frontend stores answers as string[]
@@ -318,8 +353,12 @@ export const saveAnswer = async (
         answer: {
             questionId,
             answer: serializedAnswer,
+            responseTimeMs,
         },
     };
+
+    console.log(`[quizCourseApi] 답안 저장 요청: questionId=${questionId}, responseTimeMs=${responseTimeMs}ms`);
+
     const response = await api.patch<ApiResponse<null>>(
         `/api/v1/quiz-courses/${courseId}/sections/${sectionNumber}/attempts/${attemptId}/answers`,
         request
@@ -327,6 +366,8 @@ export const saveAnswer = async (
     if (!response.data.success) {
         throw new Error(response.data.error?.message || '답안 저장에 실패했습니다.');
     }
+
+    console.log(`[quizCourseApi] 답안 저장 성공: questionId=${questionId}`);
 };
 
 /**
@@ -339,13 +380,36 @@ export const submitAttempt = async (
     sectionNumber: number,
     attemptId: number
 ): Promise<SubmitResultData> => {
-    const response = await api.post<ApiResponse<SubmitResultData> & { message?: string }>(
+    const response = await api.post<ApiResponse<BackendSubmitResultData> & { message?: string }>(
         `/api/v1/quiz-courses/${courseId}/sections/${sectionNumber}/attempts/${attemptId}/submit`
     );
     if (!response.data.success) {
         throw new Error(response.data.error?.message || '제출에 실패했습니다.');
     }
-    return response.data.data;
+
+    // 백엔드 JSON(correct) → 프론트엔드 도메인 모델(isCorrect) 변환
+    const backendData = response.data.data;
+    return {
+        attemptId: backendData.attemptId,
+        status: 'SUBMITTED',
+        score: backendData.score,
+        correctCount: backendData.correctCount,
+        totalQuestions: backendData.totalQuestions,
+        passScore: backendData.passScore,
+        isPassed: backendData.isPassed,
+        isNextSectionUnlocked: backendData.isNextSectionUnlocked,
+        submittedAt: backendData.submittedAt,
+        passedAt: backendData.passedAt,
+        earnedBadge: backendData.earnedBadge,
+        results: backendData.results.map(r => ({
+            orderIndex: r.orderIndex,
+            questionId: r.questionId,
+            userAnswer: r.userAnswer ? r.userAnswer.split(',') : [],
+            correctAnswer: r.correctAnswer ? r.correctAnswer.split(',') : [],
+            isCorrect: r.correct, // 백엔드 correct → 프론트엔드 isCorrect
+            explanation: r.explanation,
+        })),
+    };
 };
 
 /**
