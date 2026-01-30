@@ -103,6 +103,14 @@ const MeetingRoomPage: React.FC = () => {
     const devicePermissionRequestedRef = useRef(false);
     const autoEndTriggeredRef = useRef(false);
 
+    // 실시간 STT 관련 refs
+    const utteranceRecorderRef = useRef<MediaRecorder | null>(null);
+    const utteranceChunksRef = useRef<BlobPart[]>([]);
+    const utteranceStartTimeRef = useRef<number | null>(null);
+    const speakingDebounceTimerRef = useRef<number | null>(null);
+    const lastSpeakingStateRef = useRef(false);
+    const SPEAKING_DEBOUNCE_MS = 1500; // 발화 종료 감지 딜레이 (1.5초)
+
     const [meetingTitle, setMeetingTitle] = useState('');
     const [meetingStartedAt, setMeetingStartedAt] = useState<string | null>(null);
     const [plannedDurationSeconds, setPlannedDurationSeconds] = useState<number | null>(null);
@@ -287,11 +295,31 @@ const MeetingRoomPage: React.FC = () => {
     }, []);
 
     const updateOutgoingAudio = useCallback(async (nextTrack: MediaStreamTrack | null) => {
-        if (!sfuClientRef.current) return;
-        if (!nextTrack || nextTrack.readyState !== 'live') return;
-        if (publishedAudioTrackIdRef.current === nextTrack.id) return;
+        console.log('[audio] updateOutgoingAudio called', {
+            hasTrack: !!nextTrack,
+            trackId: nextTrack?.id,
+            trackReadyState: nextTrack?.readyState,
+            trackEnabled: nextTrack?.enabled,
+            trackMuted: nextTrack?.muted,
+            publishedTrackId: publishedAudioTrackIdRef.current,
+            hasSfuClient: !!sfuClientRef.current,
+        });
+        if (!sfuClientRef.current) {
+            console.warn('[audio] updateOutgoingAudio: no SFU client');
+            return;
+        }
+        if (!nextTrack || nextTrack.readyState !== 'live') {
+            console.warn('[audio] updateOutgoingAudio: track not live', { hasTrack: !!nextTrack, state: nextTrack?.readyState });
+            return;
+        }
+        if (publishedAudioTrackIdRef.current === nextTrack.id) {
+            console.log('[audio] updateOutgoingAudio: same track already published');
+            return;
+        }
+        console.log('[audio] updateOutgoingAudio: producing audio track');
         await sfuClientRef.current.produceTrack('audio', nextTrack);
         publishedAudioTrackIdRef.current = nextTrack.id;
+        console.log('[audio] updateOutgoingAudio: audio track published successfully');
     }, []);
 
     const stopMixedAudioTrack = useCallback(() => {
@@ -354,6 +382,10 @@ const MeetingRoomPage: React.FC = () => {
 
     const ensureMicProcessedTrack = useCallback(() => {
         if (micProcessedTrackRef.current && micProcessedTrackRef.current.readyState === 'live') {
+            console.log('[mic] ensureMicProcessedTrack: using existing track', {
+                trackId: micProcessedTrackRef.current.id,
+                readyState: micProcessedTrackRef.current.readyState,
+            });
             return micProcessedTrackRef.current;
         }
         stopMicProcessedTrack();
@@ -368,6 +400,11 @@ const MeetingRoomPage: React.FC = () => {
         micDestinationRef.current = destination;
         micConstantSourceRef.current = constantSource;
         micProcessedTrackRef.current = destination.stream.getAudioTracks()[0] ?? null;
+        console.log('[mic] ensureMicProcessedTrack: created new track', {
+            trackId: micProcessedTrackRef.current?.id,
+            readyState: micProcessedTrackRef.current?.readyState,
+            contextState: context.state,
+        });
         return micProcessedTrackRef.current;
     }, [stopMicProcessedTrack]);
 
@@ -385,7 +422,17 @@ const MeetingRoomPage: React.FC = () => {
     }, []);
 
     const attachMicStreamToMixer = useCallback((stream: MediaStream) => {
-        if (!micAudioContextRef.current || !micDestinationRef.current) return;
+        console.log('[mic] attachMicStreamToMixer called', {
+            hasContext: !!micAudioContextRef.current,
+            hasDestination: !!micDestinationRef.current,
+            contextState: micAudioContextRef.current?.state,
+            streamActive: stream?.active,
+            streamTracks: stream?.getTracks().length,
+        });
+        if (!micAudioContextRef.current || !micDestinationRef.current) {
+            console.warn('[mic] attachMicStreamToMixer: missing context or destination!');
+            return;
+        }
         micAudioContextRef.current.resume().catch(() => {});
         if (micSourceNodeRef.current) {
             try {
@@ -560,7 +607,7 @@ const MeetingRoomPage: React.FC = () => {
     }, []);
 
     const appendChatMessage = useCallback((message: MeetingRoomChatMessage) => {
-        const key = `${message.sentAt}-${message.sender}-${message.text}`;
+        const key = message.id ? `id:${message.id}` : `${message.sentAt}-${message.sender}-${message.text}`;
         if (chatDedupRef.current.has(key)) {
             return;
         }
@@ -569,17 +616,30 @@ const MeetingRoomPage: React.FC = () => {
     }, []);
 
     const handleDeleteChat = useCallback((target: MeetingRoomChatMessage) => {
-        setChatMessages((prev) =>
-            prev.filter(
-                (message) =>
-                    !(
-                        message.sentAt === target.sentAt &&
-                        message.sender === target.sender &&
-                        message.text === target.text
-                    )
-            )
-        );
-    }, []);
+        if (!numericStudyId || !numericMeetingId) return;
+        if (!target.id) {
+            setChatMessages((prev) =>
+                prev.filter(
+                    (message) =>
+                        !(
+                            message.sentAt === target.sentAt &&
+                            message.sender === target.sender &&
+                            message.text === target.text
+                        )
+                )
+            );
+            return;
+        }
+        meetingApi
+            .deleteChatMessage(numericStudyId, numericMeetingId, target.id)
+            .then(() => {
+                setChatMessages((prev) => prev.filter((message) => message.id !== target.id));
+            })
+            .catch((error) => {
+                console.error('Failed to delete chat message', error);
+                showToast('채팅 삭제에 실패했습니다.', 'error');
+            });
+    }, [numericMeetingId, numericStudyId, showToast]);
 
         const updateOutgoingVideo = useCallback(
         async (options?: {
@@ -920,6 +980,123 @@ const MeetingRoomPage: React.FC = () => {
     }, [ensureRecordingAudioTrack, stopRecordingAudioTrack]);
 
 
+    // 실시간 STT: 발화 녹음 시작
+    const startUtteranceRecording = useCallback((stream: MediaStream) => {
+        if (utteranceRecorderRef.current) return;
+        if (typeof MediaRecorder === 'undefined') return;
+
+        const supportedType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+            ? 'audio/webm;codecs=opus'
+            : 'audio/webm';
+
+        utteranceChunksRef.current = [];
+        utteranceStartTimeRef.current = Date.now();
+
+        const recorder = new MediaRecorder(stream, { mimeType: supportedType });
+        recorder.ondataavailable = (event) => {
+            if (event.data && event.data.size > 0) {
+                utteranceChunksRef.current.push(event.data);
+            }
+        };
+        recorder.start(500); // 500ms마다 데이터 수집
+        utteranceRecorderRef.current = recorder;
+        console.log('[STT] 발화 녹음 시작');
+    }, []);
+
+    // 실시간 STT: 발화 녹음 종료 및 STT 처리
+    const stopUtteranceRecording = useCallback(async () => {
+        const recorder = utteranceRecorderRef.current;
+        if (!recorder || recorder.state === 'inactive') {
+            utteranceRecorderRef.current = null;
+            return;
+        }
+
+        const startTime = utteranceStartTimeRef.current;
+        const startTimeMs = startTime ?? Date.now();
+
+        // 녹음 중지
+        return new Promise<void>((resolve) => {
+            recorder.onstop = async () => {
+                utteranceRecorderRef.current = null;
+
+                const supportedType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+                    ? 'audio/webm;codecs=opus'
+                    : 'audio/webm';
+                const blob = new Blob(utteranceChunksRef.current, { type: supportedType });
+                utteranceChunksRef.current = [];
+
+                // 최소 500ms 이상의 녹음만 처리
+                const durationMs = Date.now() - startTimeMs;
+                if (blob.size < 1000 || durationMs < 500) {
+                    console.log('[STT] 녹음이 너무 짧아 무시함', { size: blob.size, durationMs });
+                    resolve();
+                    return;
+                }
+
+                console.log('[STT] 발화 녹음 완료, STT 요청 시작', { size: blob.size, durationMs });
+
+                // STT 처리
+                if (numericStudyId && numericMeetingId && user?.id && meetingStartedAt) {
+                    try {
+                        // AI 서버로 STT 요청
+                        const sttResult = await meetingApi.speechToText(blob);
+                        console.log('[STT] STT 결과:', sttResult);
+
+                        if (sttResult.text && sttResult.text.trim()) {
+                            // 미팅 시작 시간 기준 타임스탬프 계산
+                            const meetingStartMs = new Date(meetingStartedAt).getTime();
+                            const timestampSeconds = Math.floor((startTimeMs - meetingStartMs) / 1000);
+
+                            // 백엔드에 트랜스크립트 저장
+                            await meetingApi.addTranscript(numericStudyId, numericMeetingId, {
+                                userId: Number(user.id),
+                                content: sttResult.text.trim(),
+                                timestampSeconds: Math.max(0, timestampSeconds),
+                                startMs: startTimeMs - meetingStartMs,
+                                endMs: Date.now() - meetingStartMs,
+                            });
+                            console.log('[STT] 트랜스크립트 저장 완료');
+                        }
+                    } catch (error) {
+                        console.error('[STT] STT 처리 실패:', error);
+                    }
+                }
+                resolve();
+            };
+
+            try {
+                recorder.requestData();
+            } catch {
+                // ignore
+            }
+            recorder.stop();
+        });
+    }, [numericStudyId, numericMeetingId, user?.id, meetingStartedAt]);
+
+    // 실시간 STT: 발화 상태 변경 처리 (디바운스 적용)
+    const handleSpeakingChange = useCallback((isSpeaking: boolean) => {
+        // 디바운스 타이머 클리어
+        if (speakingDebounceTimerRef.current) {
+            window.clearTimeout(speakingDebounceTimerRef.current);
+            speakingDebounceTimerRef.current = null;
+        }
+
+        if (isSpeaking && !lastSpeakingStateRef.current) {
+            // 발화 시작
+            lastSpeakingStateRef.current = true;
+            const micStream = localMicStreamRef.current;
+            if (micStream) {
+                startUtteranceRecording(micStream);
+            }
+        } else if (!isSpeaking && lastSpeakingStateRef.current) {
+            // 발화 종료 감지 (디바운스 적용)
+            speakingDebounceTimerRef.current = window.setTimeout(() => {
+                lastSpeakingStateRef.current = false;
+                void stopUtteranceRecording();
+            }, SPEAKING_DEBOUNCE_MS);
+        }
+    }, [startUtteranceRecording, stopUtteranceRecording]);
+
     const updateVoiceRecordingSource = useCallback(() => {
         if (useSfuRecording) return;
         voiceSourceUpdateChainRef.current = voiceSourceUpdateChainRef.current.then(async () => {
@@ -1025,6 +1202,8 @@ const MeetingRoomPage: React.FC = () => {
                             if (wsClientRef.current && roomIdRef.current) {
                                 wsClientRef.current.setSpeaking(roomIdRef.current, { speaking: isSpeaking });
                             }
+                            // 실시간 STT: 발화 상태 변경 시 녹음 처리
+                            handleSpeakingChange(isSpeaking);
                         })
                     );
                 }
@@ -1075,6 +1254,8 @@ const MeetingRoomPage: React.FC = () => {
                             if (wsClientRef.current && roomIdRef.current) {
                                 wsClientRef.current.setSpeaking(roomIdRef.current, { speaking: isSpeaking });
                             }
+                            // 실시간 STT: 발화 상태 변경 시 녹음 처리
+                            handleSpeakingChange(isSpeaking);
                         })
                     );
                 }
@@ -1088,6 +1269,7 @@ const MeetingRoomPage: React.FC = () => {
         [
             attachMicStreamToMixer,
             ensureMicProcessedTrack,
+            handleSpeakingChange,
             resumeMicContext,
             startSfuRecording,
             updateOutgoingAudio,
@@ -1135,6 +1317,16 @@ const MeetingRoomPage: React.FC = () => {
         if (wsClientRef.current && roomIdRef.current) {
             wsClientRef.current.setSpeaking(roomIdRef.current, { speaking: false });
         }
+
+        // 실시간 STT: 발화 녹음 정리
+        if (speakingDebounceTimerRef.current) {
+            window.clearTimeout(speakingDebounceTimerRef.current);
+            speakingDebounceTimerRef.current = null;
+        }
+        lastSpeakingStateRef.current = false;
+        // 진행 중인 발화가 있으면 STT 처리
+        await stopUtteranceRecording();
+
         const track = localMicStreamRef.current?.getAudioTracks()?.[0] ?? null;
         if (track) {
             track.enabled = true;
@@ -1147,7 +1339,7 @@ const MeetingRoomPage: React.FC = () => {
         }
         setMicEnabled(false);
         updateVoiceRecordingSource();
-    }, [ensureMicrophoneStream, updateSelfParticipant, updateVoiceRecordingSource]);
+    }, [stopUtteranceRecording, updateSelfParticipant, updateVoiceRecordingSource]);
 
     const ensureCameraStream = useCallback(async (publishCamera?: boolean) => {
         if (!navigator.mediaDevices?.getUserMedia) {
@@ -1236,11 +1428,15 @@ const MeetingRoomPage: React.FC = () => {
 
     const startScreenShare = useCallback(
         async (cameraEnabledOverride?: boolean, publishOnStart = true) => {
-            const needsAudio = shareModeRef.current === 'screen' || shareModeRef.current === 'mixed';
+            // 화면 공유 시 항상 오디오 요청 (시스템 오디오)
+            const needsAudio = true;
             if (localScreenStreamRef.current) {
                 const videoTrack = localScreenStreamRef.current.getVideoTracks()[0];
-                const hasAudio = localScreenStreamRef.current.getAudioTracks().length > 0;
-                if (!videoTrack || videoTrack.readyState !== 'live' || (needsAudio && !hasAudio)) {
+                if (!videoTrack || videoTrack.readyState !== 'live') {
+                    // 화면 공유 오디오 프로듀서 종료
+                    if (sfuClientRef.current) {
+                        await sfuClientRef.current.closeProducer('screen-audio');
+                    }
                     stopTracks(localScreenStreamRef.current);
                     localScreenStreamRef.current = null;
                 } else {
@@ -1255,11 +1451,33 @@ const MeetingRoomPage: React.FC = () => {
                 setScreenSharing(true);
                 screenSharingRef.current = true;
                 updateVoiceRecordingSource();
+
+                // 화면 공유 비디오 트랙에 contentHint 설정 (화면 공유 최적화)
+                const screenVideoTrack = stream.getVideoTracks()[0];
+                if (screenVideoTrack && 'contentHint' in screenVideoTrack) {
+                    // 'motion': 영상 콘텐츠에 적합, 'detail': 텍스트/정적 화면에 적합
+                    (screenVideoTrack as any).contentHint = 'motion';
+                }
+
+                // 화면 공유 오디오 트랙이 있으면 SFU로 전송
+                const screenAudioTrack = stream.getAudioTracks()[0];
+                if (screenAudioTrack && sfuClientRef.current) {
+                    console.log('[screen] publishing screen audio track', {
+                        trackId: screenAudioTrack.id,
+                        trackReadyState: screenAudioTrack.readyState,
+                    });
+                    await sfuClientRef.current.produceTrack('screen-audio', screenAudioTrack, { source: 'screen' });
+                }
+
                 const [track] = stream.getVideoTracks();
                 if (track) {
                     track.onended = () => {
                         setScreenSharing(false);
                         screenSharingRef.current = false;
+                        // 화면 공유 오디오 프로듀서 종료
+                        if (sfuClientRef.current) {
+                            sfuClientRef.current.closeProducer('screen-audio').catch(() => {});
+                        }
                         localScreenStreamRef.current = null;
                         if (shareModeRef.current === 'mixed' || shareModeRef.current === 'screen') {
                             setShareMode('camera');
@@ -1288,6 +1506,10 @@ const MeetingRoomPage: React.FC = () => {
     );
 
     const stopScreenShare = useCallback(async () => {
+        // 화면 공유 오디오 프로듀서 종료
+        if (sfuClientRef.current) {
+            await sfuClientRef.current.closeProducer('screen-audio').catch(() => {});
+        }
         stopTracks(localScreenStreamRef.current);
         localScreenStreamRef.current = null;
         setScreenSharing(false);
@@ -1632,6 +1854,9 @@ const MeetingRoomPage: React.FC = () => {
             if (event.type === 'CHAT' && event.chat) {
                 appendChatMessage(event.chat);
             }
+            if (event.type === 'CHAT_DELETED' && event.deletedChatId) {
+                setChatMessages((prev) => prev.filter((message) => message.id !== event.deletedChatId));
+            }
             if (event.type === 'CHAT_HISTORY' && event.chatHistory) {
                 event.chatHistory.forEach((message) => appendChatMessage(message));
             }
@@ -1670,13 +1895,30 @@ const MeetingRoomPage: React.FC = () => {
 
     const handleNewConsumer = useCallback(
         (payload: SfuConsumerPayload) => {
+            console.log('[consumer] handleNewConsumer', {
+                kind: payload.kind,
+                producerId: payload.producerId,
+                consumerId: payload.consumerId,
+                peerId: payload.peerId,
+                streamActive: payload.stream?.active,
+                trackCount: payload.stream?.getTracks().length,
+            });
             if (payload.kind === 'audio') {
                 const audio = new Audio();
                 audio.srcObject = payload.stream;
                 audio.autoplay = true;
-                audio.play().catch(() => {});
-                remoteAudioElementsRef.current.set(payload.producerId, audio);
                 const track = payload.stream.getAudioTracks()?.[0] ?? null;
+                console.log('[consumer] audio consumer details', {
+                    producerId: payload.producerId,
+                    trackId: track?.id,
+                    trackReadyState: track?.readyState,
+                    trackEnabled: track?.enabled,
+                    trackMuted: track?.muted,
+                });
+                audio.play()
+                    .then(() => console.log('[consumer] audio play success', { producerId: payload.producerId }))
+                    .catch((err) => console.error('[consumer] audio play failed', { producerId: payload.producerId, error: err.message }));
+                remoteAudioElementsRef.current.set(payload.producerId, audio);
                 if (track) {
                     remoteAudioTracksRef.current.set(payload.producerId, track);
                     setRemoteAudioVersion((prev) => prev + 1);
@@ -1864,6 +2106,22 @@ const MeetingRoomPage: React.FC = () => {
                 aiDetectionCleanupRef.current = null;
             }
             audioDetection.stopDetection();
+
+            // 실시간 STT 정리
+            if (speakingDebounceTimerRef.current) {
+                window.clearTimeout(speakingDebounceTimerRef.current);
+                speakingDebounceTimerRef.current = null;
+            }
+            if (utteranceRecorderRef.current && utteranceRecorderRef.current.state !== 'inactive') {
+                try {
+                    utteranceRecorderRef.current.stop();
+                } catch {
+                    // ignore
+                }
+            }
+            utteranceRecorderRef.current = null;
+            utteranceChunksRef.current = [];
+
             stopTracks(localMicStreamRef.current);
             stopCameraHardware();
             stopTracks(localScreenStreamRef.current);
@@ -1966,7 +2224,9 @@ const MeetingRoomPage: React.FC = () => {
                 {isEnding && (
                     <div className="meeting-room__ending-overlay">
                         <div className="meeting-room__ending-text">
-                            미팅 종료중입니다. 잠시만 기다려주세요.
+                            미팅 종료 중 입니다. <br/>
+                            미팅 내용을 요약 중 입니다. <br/> 
+                            잠시만 기다려주세요.
                         </div>
                     </div>
                 )}

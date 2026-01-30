@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
 import { Archive, Search, Calendar, Grid, List } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 import { WidgetHeader, WidgetContainer } from '@/shared/components/layouts';
@@ -147,14 +146,10 @@ export const LearningArchiveWidget: React.FC = () => {
                     )}
                 >
                     {filteredArchives.map((archive) => (
-                        <motion.div
+                        <div
                             key={archive.id}
-                            layout
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
                             className={cn(
-                                'bg-gray-50 rounded-xl p-4 transition-all cursor-pointer',
+                                'bg-gray-50 rounded-xl p-4 cursor-pointer',
                                 'hover:shadow-md hover:bg-white border border-gray-100'
                             )}
                         >
@@ -184,7 +179,7 @@ export const LearningArchiveWidget: React.FC = () => {
                                     <span>퀴즈 {archive.quizCount}</span>
                                 </div>
                             </div>
-                        </motion.div>
+                        </div>
                     ))}
                 </div>
 

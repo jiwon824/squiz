@@ -15,6 +15,8 @@ interface SfuCallbacks {
     onProducerClosed?: (payload: { producerId: string; peerId: string }) => void;
 }
 
+export type ProducerKind = 'audio' | 'video' | 'screen-audio';
+
 export const createSfuClient = (baseUrl: string) => {
     let socket: Socket | null = null;
     let device: any = null;
@@ -155,26 +157,50 @@ export const createSfuClient = (baseUrl: string) => {
     };
 
     const produceTrack = async (
-        kind: 'audio' | 'video',
+        kind: ProducerKind,
         track: MediaStreamTrack | null,
         appData?: Record<string, unknown>
     ) => {
-        if (!track) return null;
-        if (track.readyState === 'ended') return null;
+        // screen-audio는 mediasoup에서 'audio' 타입으로 전송
+        const mediasoupKind = kind === 'screen-audio' ? 'audio' : kind;
+        console.log('[sfu] produceTrack called', {
+            kind,
+            mediasoupKind,
+            hasTrack: !!track,
+            trackId: track?.id,
+            trackReadyState: track?.readyState,
+            trackEnabled: track?.enabled,
+            trackMuted: track?.muted,
+            hasExistingProducer: producers.has(kind),
+        });
+        if (!track) {
+            console.log('[sfu] produceTrack: no track provided');
+            return null;
+        }
+        if (track.readyState === 'ended') {
+            console.log('[sfu] produceTrack: track already ended');
+            return null;
+        }
         const transport = await ensureSendTransport();
-        if (!transport) return null;
+        if (!transport) {
+            console.log('[sfu] produceTrack: no transport');
+            return null;
+        }
         if (producers.has(kind)) {
             const existing = producers.get(kind);
             if (existing.track && existing.track.id === track.id) {
                 console.log('[sfu] produceTrack: same track already producing');
                 return existing;
             }
+            console.log('[sfu] produceTrack: replacing existing producer', { existingTrackId: existing.track?.id, newTrackId: track.id });
             try {
                 if (typeof existing.replaceTrack === 'function') {
                     await existing.replaceTrack({ track });
+                    console.log('[sfu] produceTrack: track replaced successfully');
                     return existing;
                 }
-            } catch {
+            } catch (err) {
+                console.warn('[sfu] produceTrack: replaceTrack failed, will recreate', err);
                 // fallback to recreate
             }
             try {
@@ -185,12 +211,42 @@ export const createSfuClient = (baseUrl: string) => {
                 // ignore and recreate
             }
         }
-        const producer = await transport.produce({ track, appData });
+        // 비디오일 경우 Simulcast 인코딩 설정
+        let producer;
+        if (mediasoupKind === 'video') {
+            const isScreenShare = appData?.source === 'screen' || appData?.source === 'mixed';
+            // 화면 공유: 고품질 단일 레이어 / 카메라: 낮은 프레임레이트 + Simulcast 3레이어
+            const encodings = isScreenShare
+                ? [{ maxBitrate: 1500000 }]
+                : [
+                    { maxBitrate: 100000, scaleResolutionDownBy: 4, maxFramerate: 15 },
+                    { maxBitrate: 300000, scaleResolutionDownBy: 2, maxFramerate: 20 },
+                    { maxBitrate: 500000, maxFramerate: 24 },
+                ];
+            const codecOptions = isScreenShare
+                ? { videoGoogleStartBitrate: 1000 }
+                : { videoGoogleStartBitrate: 300 };
+            producer = await transport.produce({
+                track,
+                appData,
+                encodings,
+                codecOptions,
+            });
+        } else {
+            console.log('[sfu] produceTrack: creating audio producer');
+            producer = await transport.produce({ track, appData });
+        }
         producers.set(kind, producer);
+        console.log('[sfu] produceTrack: producer created successfully', {
+            kind,
+            producerId: producer.id,
+            producerPaused: producer.paused,
+            producerClosed: producer.closed,
+        });
         return producer;
     };
 
-    const closeProducer = async (kind: 'audio' | 'video') => {
+    const closeProducer = async (kind: ProducerKind) => {
         const producer = producers.get(kind);
         if (producer) {
             await request('closeProducer', { roomId, producerId: producer.id });
@@ -225,9 +281,19 @@ export const createSfuClient = (baseUrl: string) => {
                 // ignore resume errors when transport state changes quickly
             }
             if (consumer.kind === 'video') {
+                // 초기 keyframe 요청
                 setTimeout(() => {
                     request('requestKeyFrame', { roomId, consumerId: consumer.id }).catch(() => {});
                 }, 300);
+                // 주기적 keyframe 요청 (화면 공유 멈춤 방지)
+                const keyFrameInterval = setInterval(() => {
+                    if (consumer.closed) {
+                        clearInterval(keyFrameInterval);
+                        return;
+                    }
+                    request('requestKeyFrame', { roomId, consumerId: consumer.id }).catch(() => {});
+                }, 3000);
+                consumer.on('close', () => clearInterval(keyFrameInterval));
             }
             const stream = new MediaStream([consumer.track]);
             console.log('[sfu] consume success', { consumerId: consumer.id, kind: consumer.kind, streamActive: stream.active, trackCount: stream.getTracks().length });

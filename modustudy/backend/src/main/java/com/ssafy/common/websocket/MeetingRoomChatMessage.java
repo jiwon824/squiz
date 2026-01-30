@@ -5,6 +5,7 @@ import java.time.Instant;
 
 public class MeetingRoomChatMessage {
     // Optional userId for persisted chat messages.
+    private Long id;
     private Long userId;
     @NotBlank
     private String sender;
@@ -12,6 +13,14 @@ public class MeetingRoomChatMessage {
     private String text;
     // Default to server time when the chat message is received.
     private Instant sentAt = Instant.now();
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
 
     public String getSender() {
         return sender;

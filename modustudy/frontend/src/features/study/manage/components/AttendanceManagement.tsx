@@ -1,77 +1,137 @@
-import React, { useState } from 'react';
-import { 
-    Calendar, ChevronLeft, ChevronRight, Check, X, 
-    Clock, AlertCircle, Users, TrendingUp 
+import React, { useState, useEffect } from 'react';
+import {
+    Calendar, ChevronLeft, ChevronRight, Check, X,
+    Clock, AlertCircle, Users, TrendingUp
 } from 'lucide-react';
+import { studyApi } from '@/api/endpoints/studyApi';
+import { useUIStore } from '@/store/uiStore';
+
+// 기본 프로필 이미지 경로
+const DEFAULT_PROFILE_IMAGE = '/images/default-profile.png';
 
 interface AttendanceManagementProps {
     studyId: number;
 }
 
-// Mock 데이터
-const mockMembers = [
-    { id: 1, name: '김철수', avatar: 'K', attendanceRate: 100 },
-    { id: 2, name: '이영희', avatar: 'L', attendanceRate: 95 },
-    { id: 3, name: '박민수', avatar: 'P', attendanceRate: 90 },
-    { id: 4, name: '정다은', avatar: 'J', attendanceRate: 85 },
-    { id: 5, name: '최준호', avatar: 'C', attendanceRate: 75 },
-    { id: 6, name: '한소희', avatar: 'H', attendanceRate: 80 },
-];
+interface Session {
+    id: number;
+    title: string;
+    sessionNumber: number;
+    scheduledAt: string;
+}
 
-const mockMeetings = [
-    { id: 1, date: '2026-01-20', title: '10주차 정기 미팅', time: '20:00' },
-    { id: 2, date: '2026-01-23', title: '11주차 정기 미팅', time: '20:00' },
-    { id: 3, date: '2026-01-27', title: '12주차 정기 미팅', time: '20:00' },
-];
-
-// 출석 상태: 'present' | 'absent' | 'late' | 'excused' | null
-type AttendanceStatus = 'present' | 'absent' | 'late' | 'excused' | null;
+interface AttendanceRecord {
+    id: number;
+    userId: number;
+    userName?: string;
+    status: 'PRESENT' | 'ABSENT' | 'LATE' | 'EXCUSED' | null;
+    checkedAt?: string;
+    excuseStatus?: string;
+}
 
 const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ studyId }) => {
-    const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-    const [selectedMeeting, setSelectedMeeting] = useState(mockMeetings[0]);
-    const [viewMode, setViewMode] = useState<'calendar' | 'list'>('list');
+    const [sessions, setSessions] = useState<Session[]>([]);
+    const [selectedSession, setSelectedSession] = useState<Session | null>(null);
+    const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
+    const [loading, setLoading] = useState(true);
+    const { showToast } = useUIStore();
 
-    // Mock 출석 데이터 생성
-    const [attendanceData, setAttendanceData] = useState<Record<number, AttendanceStatus>>({
-        1: 'present',
-        2: 'present',
-        3: 'late',
-        4: 'present',
-        5: 'absent',
-        6: 'excused',
-    });
+    useEffect(() => {
+        fetchSessions();
+    }, [studyId]);
 
-    const handleAttendanceChange = (memberId: number, status: AttendanceStatus) => {
-        setAttendanceData(prev => ({ ...prev, [memberId]: status }));
+    useEffect(() => {
+        if (selectedSession) {
+            fetchAttendance(selectedSession.id);
+        }
+    }, [selectedSession]);
+
+    const fetchSessions = async () => {
+        setLoading(true);
+        try {
+            const response = await studyApi.getStudySessions(studyId);
+            console.log('[AttendanceManagement] 세션 API 응답:', response);
+            const sessionList = response || [];
+            console.log('[AttendanceManagement] 세션 수:', sessionList.length);
+            setSessions(sessionList);
+            if (sessionList.length > 0) {
+                setSelectedSession(sessionList[0]);
+            }
+        } catch (error) {
+            console.error('세션 목록 조회 실패:', error);
+            showToast('세션 목록을 불러오는데 실패했습니다.', 'error');
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const getStatusStyle = (status: AttendanceStatus) => {
+    const fetchAttendance = async (sessionId: number) => {
+        try {
+            const response = await studyApi.getSessionAttendance(studyId, sessionId);
+            console.log('[AttendanceManagement] 출석 API 응답:', response);
+            const records = response?.data || response || [];
+            console.log('[AttendanceManagement] 출석 레코드 수:', records.length);
+            setAttendanceRecords(records);
+        } catch (error) {
+            console.error('출석 정보 조회 실패:', error);
+            showToast('출석 정보를 불러오는데 실패했습니다.', 'error');
+        }
+    };
+
+    const formatDate = (dateString: string) => {
+        const date = new Date(dateString);
+        return `${date.getMonth() + 1}/${date.getDate()}`;
+    };
+
+    const formatTime = (dateString: string) => {
+        const date = new Date(dateString);
+        return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+    };
+
+    const getStatusStyle = (status: string | null) => {
         switch (status) {
-            case 'present': return 'bg-success/10 text-success border-success/30';
-            case 'absent': return 'bg-error/10 text-error border-error/30';
-            case 'late': return 'bg-warning/10 text-warning border-warning/30';
-            case 'excused': return 'bg-info/10 text-info border-info/30';
+            case 'PRESENT': return 'bg-success/10 text-success border-success/30';
+            case 'ABSENT': return 'bg-error/10 text-error border-error/30';
+            case 'LATE': return 'bg-warning/10 text-warning border-warning/30';
+            case 'EXCUSED': return 'bg-info/10 text-info border-info/30';
             default: return 'bg-background-tertiary text-text-tertiary border-border-light';
         }
     };
 
-    const getStatusLabel = (status: AttendanceStatus) => {
+    const getStatusLabel = (status: string | null) => {
         switch (status) {
-            case 'present': return '출석';
-            case 'absent': return '결석';
-            case 'late': return '지각';
-            case 'excused': return '소명';
+            case 'PRESENT': return '출석';
+            case 'ABSENT': return '결석';
+            case 'LATE': return '지각';
+            case 'EXCUSED': return '소명';
             default: return '미체크';
         }
     };
 
     const stats = {
-        present: Object.values(attendanceData).filter(s => s === 'present').length,
-        absent: Object.values(attendanceData).filter(s => s === 'absent').length,
-        late: Object.values(attendanceData).filter(s => s === 'late').length,
-        excused: Object.values(attendanceData).filter(s => s === 'excused').length,
+        present: attendanceRecords.filter(r => r.status === 'PRESENT').length,
+        absent: attendanceRecords.filter(r => r.status === 'ABSENT').length,
+        late: attendanceRecords.filter(r => r.status === 'LATE').length,
+        excused: attendanceRecords.filter(r => r.status === 'EXCUSED').length,
     };
+
+    if (loading) {
+        return (
+            <div className="text-center py-12">
+                <div className="inline-block w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-text-secondary mt-4">출석 정보를 불러오는 중...</p>
+            </div>
+        );
+    }
+
+    if (sessions.length === 0) {
+        return (
+            <div className="text-center py-12 bg-background-secondary rounded-2xl">
+                <Calendar size={48} className="mx-auto text-text-muted mb-4" />
+                <p className="text-text-secondary">아직 생성된 세션이 없습니다</p>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
@@ -80,22 +140,6 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ studyId }) 
                 <div>
                     <h2 className="text-xl font-bold text-text-primary">출석 관리</h2>
                     <p className="text-sm text-text-secondary mt-1">미팅별 출석 현황을 관리하세요</p>
-                </div>
-                <div className="flex gap-2">
-                    <button
-                        onClick={() => setViewMode('list')}
-                        className={`px-4 py-2 rounded-xl text-sm font-medium transition-all
-                            ${viewMode === 'list' ? 'bg-primary text-white' : 'bg-background-secondary text-text-secondary hover:bg-background-tertiary'}`}
-                    >
-                        목록
-                    </button>
-                    <button
-                        onClick={() => setViewMode('calendar')}
-                        className={`px-4 py-2 rounded-xl text-sm font-medium transition-all
-                            ${viewMode === 'calendar' ? 'bg-primary text-white' : 'bg-background-secondary text-text-secondary hover:bg-background-tertiary'}`}
-                    >
-                        캘린더
-                    </button>
                 </div>
             </div>
 
@@ -117,80 +161,69 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ studyId }) 
                 ))}
             </div>
 
-            {/* 미팅 선택 */}
-            <div className="flex items-center gap-3 p-4 bg-background-secondary rounded-2xl">
-                <Calendar size={20} className="text-primary" />
-                <select
-                    value={selectedMeeting.id}
-                    onChange={(e) => setSelectedMeeting(mockMeetings.find(m => m.id === Number(e.target.value)) || mockMeetings[0])}
-                    className="flex-1 bg-surface border border-border-light rounded-xl px-4 py-2 text-sm font-medium text-text-primary outline-none focus:border-primary"
-                >
-                    {mockMeetings.map((meeting) => (
-                        <option key={meeting.id} value={meeting.id}>
-                            {meeting.title} - {meeting.date} {meeting.time}
-                        </option>
-                    ))}
-                </select>
-            </div>
+            {/* 세션 선택 */}
+            {selectedSession && (
+                <div className="flex items-center gap-3 p-4 bg-background-secondary rounded-2xl">
+                    <Calendar size={20} className="text-primary" />
+                    <select
+                        value={selectedSession.id}
+                        onChange={(e) => {
+                            const session = sessions.find(s => s.id === Number(e.target.value));
+                            if (session) setSelectedSession(session);
+                        }}
+                        className="flex-1 bg-surface border border-border-light rounded-xl px-4 py-2 text-sm font-medium text-text-primary outline-none focus:border-primary"
+                    >
+                        {sessions.map((session) => (
+                            <option key={session.id} value={session.id}>
+                                {session.title} - {formatDate(session.scheduledAt)} {formatTime(session.scheduledAt)}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            )}
 
             {/* 출석 체크 리스트 */}
             <div className="bg-background-secondary rounded-2xl overflow-hidden">
                 <div className="p-4 border-b border-border-light flex items-center justify-between">
                     <h3 className="font-bold text-text-primary flex items-center gap-2">
                         <Users size={18} />
-                        멤버 출석 현황 ({mockMembers.length}명)
+                        멤버 출석 현황 ({attendanceRecords.length}명)
                     </h3>
-                    <button className="text-sm text-primary font-medium hover:underline">
-                        전체 출석 처리
-                    </button>
                 </div>
-                
+
                 <div className="divide-y divide-border-light">
-                    {mockMembers.map((member) => (
-                        <div key={member.id} className="p-4 flex items-center gap-4 hover:bg-surface/50 transition-colors">
-                            {/* 아바타 */}
-                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-                                {member.avatar}
-                            </div>
-                            
-                            {/* 멤버 정보 */}
-                            <div className="flex-1 min-w-0">
-                                <div className="font-medium text-text-primary">{member.name}</div>
-                                <div className="text-xs text-text-tertiary flex items-center gap-1">
-                                    <TrendingUp size={12} />
-                                    누적 출석률 {member.attendanceRate}%
+                    {attendanceRecords.length === 0 ? (
+                        <div className="p-8 text-center text-text-secondary">
+                            출석 정보가 없습니다
+                        </div>
+                    ) : (
+                        attendanceRecords.map((record) => (
+                            <div key={record.id} className="p-4 flex items-center gap-4 hover:bg-surface/50 transition-colors">
+                                {/* 아바타 */}
+                                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
+                                    {(record.userName?.trim() || `User ${record.userId}`).charAt(0).toUpperCase()}
+                                </div>
+
+                                {/* 멤버 정보 */}
+                                <div className="flex-1 min-w-0">
+                                    <div className="font-medium text-text-primary">
+                                        {record.userName?.trim() || `User ${record.userId}`}
+                                    </div>
+                                    {record.checkedAt && (
+                                        <div className="text-xs text-text-tertiary">
+                                            체크 시각: {formatTime(record.checkedAt)}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* 출석 상태 표시 */}
+                                <div className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${getStatusStyle(record.status)}`}>
+                                    {getStatusLabel(record.status)}
                                 </div>
                             </div>
-
-                            {/* 출석 상태 버튼 */}
-                            <div className="flex gap-2">
-                                {(['present', 'late', 'absent', 'excused'] as AttendanceStatus[]).map((status) => (
-                                    <button
-                                        key={status}
-                                        onClick={() => handleAttendanceChange(member.id, status)}
-                                        className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all
-                                            ${attendanceData[member.id] === status 
-                                                ? getStatusStyle(status) 
-                                                : 'bg-surface border-border-light text-text-tertiary hover:border-primary/30'
-                                            }`}
-                                    >
-                                        {getStatusLabel(status)}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    ))}
+                        ))
+                    )}
                 </div>
-            </div>
-
-            {/* 저장 버튼 */}
-            <div className="flex justify-end gap-3">
-                <button className="px-6 py-3 rounded-xl text-sm font-medium bg-background-secondary text-text-secondary hover:bg-background-tertiary transition-colors">
-                    초기화
-                </button>
-                <button className="px-6 py-3 rounded-xl text-sm font-bold bg-primary text-white hover:bg-primary-dark transition-colors shadow-md">
-                    저장하기
-                </button>
             </div>
         </div>
     );

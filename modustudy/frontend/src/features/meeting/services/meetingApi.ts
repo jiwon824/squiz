@@ -15,6 +15,7 @@ import {
     MeetingSttFileResponse,
     MeetingSttSummaryResponse,
     MeetingSummaryResponse,
+    MeetingTranscriptItemResponse,
     MeetingSummaryUpdateRequest,
     PageResponse,
     SfuConfigResponse,
@@ -84,6 +85,51 @@ export const meetingApi = {
         await api.post(`${buildMeetingPath(studyId, meetingId)}/leave`);
     },
 
+    /** STT 트랜스크립트 조회 */
+    async getTranscripts(studyId: number, meetingId: number): Promise<MeetingTranscriptItemResponse[]> {
+        const { data } = await api.get<ApiResponse<MeetingTranscriptItemResponse[]>>(
+            `${buildMeetingPath(studyId, meetingId)}/transcripts`
+        );
+        return data.data;
+    },
+
+    /** 실시간 STT 트랜스크립트 추가 */
+    async addTranscript(
+        studyId: number,
+        meetingId: number,
+        payload: {
+            userId: number;
+            content: string;
+            timestampSeconds: number;
+            startMs?: number;
+            endMs?: number;
+        }
+    ): Promise<MeetingTranscriptItemResponse> {
+        const { data } = await api.post<ApiResponse<MeetingTranscriptItemResponse>>(
+            `${buildMeetingPath(studyId, meetingId)}/transcripts`,
+            payload
+        );
+        return data.data;
+    },
+
+    /** AI 서버로 음성 STT 요청 */
+    async speechToText(audioBlob: Blob): Promise<{ text: string; duration: number }> {
+        const aiServerUrl = import.meta.env.VITE_AI_SERVER_URL || 'http://18.207.138.18:8000';
+        const formData = new FormData();
+        formData.append('file', audioBlob, 'audio.webm');
+
+        const response = await fetch(`${aiServerUrl}/api/stt`, {
+            method: 'POST',
+            body: formData,
+        });
+
+        if (!response.ok) {
+            throw new Error(`STT 요청 실패: ${response.status}`);
+        }
+
+        return response.json();
+    },
+
     async getSummary(studyId: number, meetingId: number): Promise<MeetingSummaryResponse> {
         const { data } = await api.get<ApiResponse<MeetingSummaryResponse>>(
             `${buildMeetingPath(studyId, meetingId)}/summary`
@@ -113,6 +159,14 @@ export const meetingApi = {
             { params }
         );
         return data.data;
+    },
+
+    async deleteChatMessage(
+        studyId: number,
+        meetingId: number,
+        messageId: number
+    ): Promise<void> {
+        await api.delete(`${buildMeetingPath(studyId, meetingId)}/chat/${messageId}`);
     },
 
     async getRecording(studyId: number, meetingId: number): Promise<MeetingRecordingResponse> {

@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { studyService } from '../../services/studyService';
-import { Applicant } from '../../mockData';
-import { Check, X, Clock, MessageSquare, User, Filter, ChevronDown, Calendar } from 'lucide-react';
+import { studyApi } from '@/api/endpoints/studyApi';
+import { Check, X, MessageSquare, User, Filter, ChevronDown, Calendar } from 'lucide-react';
+import { useUIStore } from '@/store/uiStore';
+
+// 기본 프로필 이미지 경로
+const DEFAULT_PROFILE_IMAGE = '/images/default-profile.png';
 
 interface ApplicantManagementProps {
     studyId: number;
@@ -9,38 +12,96 @@ interface ApplicantManagementProps {
 
 type FilterStatus = 'all' | 'PENDING' | 'APPROVED' | 'REJECTED';
 
+// 신청자 타입
+interface Applicant {
+    applicationId: number;
+    userId: number;
+    nickname: string;
+    profileImage?: string | null;
+    message?: string;
+    status: 'PENDING' | 'APPROVED' | 'REJECTED';
+    createdAt: string;
+}
+
 const ApplicantManagement: React.FC<ApplicantManagementProps> = ({ studyId }) => {
     const [applicants, setApplicants] = useState<Applicant[]>([]);
     const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
     const [expandedId, setExpandedId] = useState<number | null>(null);
+    const [loading, setLoading] = useState(true);
+    const { showToast } = useUIStore();
 
+    // 신청자 목록 조회
     useEffect(() => {
-        const data = studyService.getApplicantsByStudyId(studyId);
-        setApplicants(data);
-    }, [studyId]);
+        fetchApplicants();
+    }, [studyId, filterStatus]);
+
+    const fetchApplicants = async () => {
+        setLoading(true);
+        try {
+            const response = await studyApi.getApplications(
+                studyId,
+                filterStatus === 'all' ? undefined : filterStatus
+            );
+
+            console.log('[ApplicantManagement] API 응답:', response);
+            console.log('[ApplicantManagement] 필터 상태:', filterStatus);
+
+            // 응답 구조 확인 및 변환
+            const content = response?.data?.content || response?.content || [];
+            console.log('[ApplicantManagement] content:', content);
+            console.log('[ApplicantManagement] 신청자 수:', content.length);
+
+            const mappedApplicants: Applicant[] = content.map((app: any) => ({
+                applicationId: app.applicationId,
+                userId: app.userId,
+                nickname: app.nickname || app.userName || '익명',
+                profileImage: app.profileImage || app.userProfileImage,
+                message: app.message || app.applicationMessage,
+                status: app.status,
+                createdAt: app.createdAt || app.appliedAt || new Date().toISOString(),
+            }));
+
+            console.log('[ApplicantManagement] 매핑된 신청자:', mappedApplicants);
+            setApplicants(mappedApplicants);
+        } catch (error) {
+            console.error('신청자 목록 조회 실패:', error);
+            showToast('신청자 목록을 불러오는데 실패했습니다.', 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
         const now = new Date();
         const diff = now.getTime() - date.getTime();
         const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-        
+
         if (days === 0) return '오늘';
         if (days === 1) return '어제';
         if (days < 7) return `${days}일 전`;
         return `${date.getMonth() + 1}/${date.getDate()}`;
     };
 
-    const handleAction = (applicantId: number, status: 'APPROVED' | 'REJECTED') => {
-        const success = studyService.updateApplicantStatus(applicantId, status);
-        if (success) {
-            setApplicants(prev => prev.map(app =>
-                app.id === applicantId ? { ...app, status } : app
-            ));
+    const handleAction = async (applicationId: number, action: 'APPROVED' | 'REJECTED') => {
+        try {
+            if (action === 'APPROVED') {
+                await studyApi.approveApplication(studyId, applicationId);
+                showToast('신청을 승인했습니다.', 'success');
+            } else {
+                await studyApi.rejectApplication(studyId, applicationId);
+                showToast('신청을 거절했습니다.', 'info');
+            }
+
+            // 목록 새로고침
+            await fetchApplicants();
+        } catch (error) {
+            console.error('신청 처리 실패:', error);
+            showToast('신청 처리에 실패했습니다.', 'error');
         }
     };
 
-    const filteredApplicants = applicants.filter(app => 
+    const filteredApplicants = applicants.filter(app =>
         filterStatus === 'all' ? true : app.status === filterStatus
     );
 
@@ -61,6 +122,15 @@ const ApplicantManagement: React.FC<ApplicantManagementProps> = ({ studyId }) =>
             default: return '대기 중';
         }
     };
+
+    if (loading) {
+        return (
+            <div className="text-center py-12">
+                <div className="inline-block w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-text-secondary mt-4">신청자 목록을 불러오는 중...</p>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
@@ -93,8 +163,8 @@ const ApplicantManagement: React.FC<ApplicantManagementProps> = ({ studyId }) =>
                             key={filter.value}
                             onClick={() => setFilterStatus(filter.value as FilterStatus)}
                             className={`px-4 py-2 rounded-xl text-sm font-medium transition-all
-                                ${filterStatus === filter.value 
-                                    ? 'bg-primary text-white' 
+                                ${filterStatus === filter.value
+                                    ? 'bg-primary text-white'
                                     : 'bg-background-secondary text-text-secondary hover:bg-background-tertiary'
                                 }`}
                         >
@@ -115,18 +185,22 @@ const ApplicantManagement: React.FC<ApplicantManagementProps> = ({ studyId }) =>
             ) : (
                 <div className="space-y-3">
                     {filteredApplicants.map((app) => (
-                        <div 
-                            key={app.id}
+                        <div
+                            key={app.applicationId}
                             className="bg-background-secondary rounded-2xl border border-border-light overflow-hidden"
                         >
                             {/* 카드 헤더 */}
-                            <div 
+                            <div
                                 className="p-4 flex items-center gap-4 cursor-pointer hover:bg-surface/50 transition-colors"
-                                onClick={() => setExpandedId(expandedId === app.id ? null : app.id)}
+                                onClick={() => setExpandedId(expandedId === app.applicationId ? null : app.applicationId)}
                             >
                                 {/* 아바타 */}
-                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-lg">
-                                    {app.nickname.charAt(0)}
+                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-lg overflow-hidden">
+                                    <img
+                                        src={app.profileImage || DEFAULT_PROFILE_IMAGE}
+                                        alt={app.nickname}
+                                        className="w-full h-full object-cover"
+                                    />
                                 </div>
 
                                 {/* 정보 */}
@@ -147,14 +221,14 @@ const ApplicantManagement: React.FC<ApplicantManagementProps> = ({ studyId }) =>
                                 {app.status === 'PENDING' && (
                                     <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                                         <button
-                                            onClick={() => handleAction(app.id, 'APPROVED')}
+                                            onClick={() => handleAction(app.applicationId, 'APPROVED')}
                                             className="w-9 h-9 rounded-xl bg-success/10 text-success flex items-center justify-center hover:bg-success/20 transition-colors"
                                             title="승인"
                                         >
                                             <Check size={18} />
                                         </button>
                                         <button
-                                            onClick={() => handleAction(app.id, 'REJECTED')}
+                                            onClick={() => handleAction(app.applicationId, 'REJECTED')}
                                             className="w-9 h-9 rounded-xl bg-error/10 text-error flex items-center justify-center hover:bg-error/20 transition-colors"
                                             title="거절"
                                         >
@@ -164,14 +238,14 @@ const ApplicantManagement: React.FC<ApplicantManagementProps> = ({ studyId }) =>
                                 )}
 
                                 {/* 확장 아이콘 */}
-                                <ChevronDown 
-                                    size={18} 
-                                    className={`text-text-tertiary transition-transform ${expandedId === app.id ? 'rotate-180' : ''}`}
+                                <ChevronDown
+                                    size={18}
+                                    className={`text-text-tertiary transition-transform ${expandedId === app.applicationId ? 'rotate-180' : ''}`}
                                 />
                             </div>
 
                             {/* 확장된 내용 */}
-                            {expandedId === app.id && (
+                            {expandedId === app.applicationId && (
                                 <div className="px-4 pb-4 border-t border-border-light">
                                     <div className="pt-4">
                                         {/* 지원 메시지 */}
@@ -189,14 +263,14 @@ const ApplicantManagement: React.FC<ApplicantManagementProps> = ({ studyId }) =>
                                         {app.status === 'PENDING' && (
                                             <div className="flex gap-3 mt-4">
                                                 <button
-                                                    onClick={() => handleAction(app.id, 'APPROVED')}
+                                                    onClick={() => handleAction(app.applicationId, 'APPROVED')}
                                                     className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-success text-white font-medium hover:bg-success/90 transition-colors shadow-sm"
                                                 >
                                                     <Check size={18} />
                                                     참여 승인
                                                 </button>
                                                 <button
-                                                    onClick={() => handleAction(app.id, 'REJECTED')}
+                                                    onClick={() => handleAction(app.applicationId, 'REJECTED')}
                                                     className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-error/10 text-error font-medium hover:bg-error/20 transition-colors"
                                                 >
                                                     <X size={18} />

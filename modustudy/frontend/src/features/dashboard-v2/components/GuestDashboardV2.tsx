@@ -17,13 +17,15 @@ const HERO_MESSAGES = [
         subtitle: '공부는 저희가 시켜드릴게요',
         description: '스터디 참여만으로 자동으로 복습·요약·평가가 완성됩니다',
         icon: Sparkles,
+        backgroundImage: '/images/background7.png', // 배경 이미지 경로
     },
     {
         id: 2,
         title: '스터디가 끝나면',
         subtitle: 'AI가 자동으로 정리해드려요',
-        description: 'STT 기반 대화 요약본과 핵심 키워드 퀴즈를 자동 생성',
+        description: 'AI 기반 대화 요약본과 핵심 키워드 퀴즈를 자동 생성',
         icon: Brain,
+        spotlightGradient: true, // 중앙 스포트라이트 + 파란색 그라데이션
     },
     {
         id: 3,
@@ -31,6 +33,7 @@ const HERO_MESSAGES = [
         subtitle: '실시간 화상 스터디',
         description: '화면 공유와 음성 채팅이 결합된 강력한 학습 환경',
         icon: Video,
+        backgroundImage: '/images/background6.png', // 배경 이미지 경로
     },
 ];
 
@@ -61,8 +64,56 @@ export const GuestDashboardV2: React.FC = () => {
     return (
         <div className="min-h-screen bg-white">
             {/* 히어로 섹션 - Apple 스타일 */}
-            <section className="relative min-h-[60vh] flex items-center justify-center py-12 bg-gradient-to-b from-gray-50 to-white">
-                <div className="max-w-5xl mx-auto px-8 text-center">
+            <section
+                className="relative min-h-[60vh] flex items-center justify-center py-12"
+                style={
+                    currentHero.backgroundImage ? {
+                        backgroundImage: `url(${currentHero.backgroundImage})`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                    } : currentHero.spotlightGradient ? {
+                        // 베이스 배경 (레이어들이 위에 쌓임)
+                        background: 'linear-gradient(180deg, #F8FAFF 0%, #EEF4FF 100%)',
+                    } : undefined
+                }
+            >
+                {/* 배경 오버레이 */}
+                {currentHero.backgroundImage ? (
+                    <div className="absolute inset-0 bg-gradient-to-b from-white/80 via-white/40 to-white" />
+                ) : currentHero.spotlightGradient ? (
+                    <>
+                        {/* 다층 그라데이션 - 아주 연하고 투명한 효과 */}
+                        <div
+                            className="absolute inset-0 opacity-20"
+                            style={{
+                                background: 'radial-gradient(ellipse 100% 80% at 50% 40%, transparent 0%, rgba(66, 133, 244, 0.05) 60%, rgba(66, 133, 244, 0.12) 100%)',
+                            }}
+                        />
+                        <div
+                            className="absolute inset-0 opacity-15"
+                            style={{
+                                background: 'radial-gradient(circle at 20% 10%, rgba(66, 133, 244, 0.08) 0%, transparent 40%)',
+                            }}
+                        />
+                        <div
+                            className="absolute inset-0 opacity-15"
+                            style={{
+                                background: 'radial-gradient(circle at 80% 90%, rgba(26, 115, 232, 0.1) 0%, transparent 40%)',
+                            }}
+                        />
+                        {/* 중앙 밝은 스포트라이트 */}
+                        <div
+                            className="absolute inset-0"
+                            style={{
+                                background: 'radial-gradient(ellipse 60% 50% at 50% 45%, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.3) 55%, transparent 80%)',
+                            }}
+                        />
+                    </>
+                ) : (
+                    <div className="absolute inset-0 bg-gradient-to-b from-gray-50 to-white" />
+                )}
+
+                <div className="relative max-w-5xl mx-auto px-8 text-center">
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={currentIndex}
@@ -168,7 +219,7 @@ export const GuestDashboardV2: React.FC = () => {
                     <div className="space-y-32">
                         <FeatureWithMockup
                             title="자동 대화 요약"
-                            description="STT 기술로 스터디 대화를 실시간으로 기록하고 핵심 내용을 자동으로 요약합니다. 더 이상 수동으로 노트를 작성할 필요가 없습니다."
+                            description="AI 기술로 스터디 대화를 실시간으로 기록하고 핵심 내용을 자동으로 요약합니다. 더 이상 수동으로 노트를 작성할 필요가 없습니다."
                             align="left"
                             mockup={<STTMockup />}
                         />
@@ -327,7 +378,7 @@ const STTMockup: React.FC = () => (
                 <FileText className="text-primary" size={20} />
             </div>
             <div>
-                <h4 className="text-lg font-bold text-gray-900 mb-0">STT 미팅 리포트</h4>
+                <h4 className="text-lg font-bold text-gray-900 mb-0">미팅 리포트</h4>
                 <p className="text-xs text-gray-500">최근 스터디 요약</p>
             </div>
         </div>

@@ -55,10 +55,27 @@ export const Sidebar = () => {
         }
     }, [isLoggedIn]);
 
-    // 스터디 팝오버 아이템 클릭 시 워크스페이스로 이동
+    // 스터디 팝오버 아이템 클릭 시 워크스페이스로 이동 (애니메이션 적용)
     const handleStudyPopoverClick = useCallback((studyId: number) => {
-        navigate(`/study/${studyId}/workspace`);
-    }, [navigate]);
+        const path = `/study/${studyId}/workspace`;
+
+        // 대시보드가 아닌 경우 바로 이동
+        if (location.pathname !== '/dashboard' && location.pathname !== '/') {
+            navigate(path);
+            return;
+        }
+
+        // sessionStorage에 플래그 설정
+        sessionStorage.setItem('fromDashboard', 'true');
+
+        // 퇴장 애니메이션을 위한 이벤트 발생
+        window.dispatchEvent(new CustomEvent('dashboardExit'));
+
+        // 애니메이션 완료 후 네비게이션 (500ms)
+        setTimeout(() => {
+            navigate(path);
+        }, 500);
+    }, [location.pathname, navigate]);
 
     // 대시보드에서 다른 페이지로 전환 시 애니메이션 처리
     const handleTransitionNavigate = useCallback((path: string) => {

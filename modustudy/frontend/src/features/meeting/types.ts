@@ -219,6 +219,7 @@ export interface MeetingRoomParticipant {
 }
 
 export interface MeetingRoomChatMessage {
+    id?: number | null;
     userId?: number | null;
     sender: string;
     text: string;
@@ -230,6 +231,7 @@ export type MeetingRoomEventType =
     | 'LEAVE'
     | 'CHAT'
     | 'CHAT_HISTORY'
+    | 'CHAT_DELETED'
     | 'PRESENTER'
     | 'SPEAKING'
     | 'PRESENCE'
@@ -243,6 +245,7 @@ export interface MeetingRoomEvent {
     participants?: MeetingRoomParticipant[];
     chat?: MeetingRoomChatMessage;
     chatHistory?: MeetingRoomChatMessage[];
+    deletedChatId?: number | null;
     presenterName?: string;
     presenterId?: number | null;
 }

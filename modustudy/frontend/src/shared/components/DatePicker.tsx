@@ -127,13 +127,13 @@ export const DatePicker = ({ value, onChange, min, max, placeholder = "날짜 �
                 <div className="absolute top-full left-0 mt-2 z-50 bg-white border border-gray-200 rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.1)] w-[320px] p-6 animate-in fade-in zoom-in-95 duration-200 origin-top">
                     {/* 헤더 */}
                     <div className="flex items-center justify-between mb-6">
-                        <Button variant="google-ghost" size="sm" isCircle onClick={prevMonth}>
+                        <Button type="button" variant="google-ghost" size="sm" isCircle onClick={prevMonth}>
                             <ChevronLeft size={20} />
                         </Button>
                         <span className="font-black text-gray-800 tracking-tight">
                             {currentMonth.getFullYear()}년 {currentMonth.getMonth() + 1}월
                         </span>
-                        <Button variant="google-ghost" size="sm" isCircle onClick={nextMonth}>
+                        <Button type="button" variant="google-ghost" size="sm" isCircle onClick={nextMonth}>
                             <ChevronRight size={20} />
                         </Button>
                     </div>

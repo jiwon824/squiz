@@ -1,6 +1,9 @@
 import { cn } from '@/shared/utils/cn';
 import type { MessageResponse } from '../types';
 
+// 기본 프로필 이미지 경로
+const DEFAULT_PROFILE_IMAGE = '/images/default-profile.png';
+
 interface MessageItemProps {
   message: MessageResponse;
   isGrouped?: boolean; // 같은 사용자의 연속 메시지인 경우
@@ -109,21 +112,17 @@ export const MessageItem: React.FC<MessageItemProps> = ({
       <div className="flex-shrink-0">
         <div
           className={cn(
-            'w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm',
+            'w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm overflow-hidden',
             isOwnMessage
               ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300'
               : 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
           )}
         >
-          {message.author.profileImageUrl ? (
-            <img
-              src={message.author.profileImageUrl}
-              alt={message.author.nickname}
-              className="w-full h-full rounded-full object-cover"
-            />
-          ) : (
-            message.author.nickname.charAt(0).toUpperCase()
-          )}
+          <img
+            src={message.author.profileImageUrl || DEFAULT_PROFILE_IMAGE}
+            alt={message.author.nickname}
+            className="w-full h-full rounded-full object-cover"
+          />
         </div>
       </div>
 

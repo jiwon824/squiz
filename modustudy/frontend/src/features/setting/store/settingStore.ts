@@ -46,6 +46,10 @@ interface SettingState {
     isSaving: boolean;
     error: string | null;
 
+    // fetch 완료 플래그 (무한 루프 방지)
+    hasFetchedSocialAccounts: boolean;
+    hasFetchedCalendarStatus: boolean;
+
     // 액션: 섹션 변경
     setActiveSection: (section: SettingSection) => void;
 
@@ -88,6 +92,8 @@ export const useSettingStore = create<SettingState>((set, get) => ({
     isLoading: false,
     isSaving: false,
     error: null,
+    hasFetchedSocialAccounts: false,
+    hasFetchedCalendarStatus: false,
 
     // 섹션 변경
     setActiveSection: (section) => {
@@ -150,7 +156,9 @@ export const useSettingStore = create<SettingState>((set, get) => ({
      * 소셜 계정 목록 조회
      */
     fetchSocialAccounts: async () => {
-        set({ isLoading: true, error: null });
+        // 이미 fetch한 경우 스킵 (무한 루프 방지)
+        if (get().hasFetchedSocialAccounts) return;
+        set({ isLoading: true, error: null, hasFetchedSocialAccounts: true });
         try {
             const response = await getSocialAccounts();
             set({
@@ -242,6 +250,9 @@ export const useSettingStore = create<SettingState>((set, get) => ({
      * Google 캘린더 연동 상태 조회
      */
     fetchGoogleCalendarStatus: async () => {
+        // 이미 fetch한 경우 스킵 (무한 루프 방지)
+        if (get().hasFetchedCalendarStatus) return;
+        set({ hasFetchedCalendarStatus: true });
         try {
             const status = await getGoogleCalendarStatus();
             set({ googleCalendarStatus: status });

@@ -2,6 +2,9 @@ import React from 'react';
 import { Heart, Users, MapPin, Calendar, Clock, Star } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 
+// 기본 프로필 이미지 경로
+const DEFAULT_PROFILE_IMAGE = '/images/default-profile.png';
+
 interface StudyCardContentProps {
     study: {
         id: number;
@@ -183,17 +186,11 @@ const StudyCardContent: React.FC<StudyCardContentProps> = ({ study, onBookmarkTo
                 <div className="flex items-center gap-4">
                     <div className="relative group/avatar">
                         <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-md group-hover/avatar:blur-lg transition-all opacity-0 group-hover/avatar:opacity-100" />
-                        {study.leader.profileImage ? (
-                            <img
-                                src={study.leader.profileImage}
-                                alt={study.leader.nickname}
-                                className="w-10 h-10 rounded-2xl border-2 border-white shadow-sm object-cover relative z-10"
-                            />
-                        ) : (
-                            <div className="w-10 h-10 rounded-2xl bg-primary text-white flex items-center justify-center text-base font-black border-2 border-white shadow-sm relative z-10">
-                                {study.leader.nickname.charAt(0)}
-                            </div>
-                        )}
+                        <img
+                            src={study.leader.profileImage || DEFAULT_PROFILE_IMAGE}
+                            alt={study.leader.nickname}
+                            className="w-10 h-10 rounded-2xl border-2 border-white shadow-sm object-cover relative z-10"
+                        />
                         {study.status === 'RECRUITING' && (
                             <span className="absolute -bottom-1 -right-1 w-3 h-3 bg-success border-2 border-white rounded-full z-20 shadow-sm" />
                         )}

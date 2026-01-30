@@ -4,7 +4,7 @@ import {
     Heart, Users, Clock, MapPin,
     Target, Award, AlertTriangle, Share2,
     BookOpen, ChevronRight, Monitor, Handshake, Layers, MoreVertical,
-    Calendar, FileText, Crosshair, Info, Loader2, Pencil
+    Calendar, CalendarDays, Bookmark, FileText, GraduationCap, Info, Loader2, Pencil
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { studyService, Study } from '../services/studyService';
@@ -151,6 +151,27 @@ const StudyDetailPageV3: React.FC = () => {
     if (!studyDetail) return null;
 
     // studyDetail을 기존 Study 타입에 맞게 변환 (하위 호환성)
+    // 날짜 기반 상태 보정 (백엔드에서 자동 업데이트 안 될 경우 대비)
+    const computeStatus = (originalStatus: string, recruitStart?: string, recruitEnd?: string): string => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (originalStatus === 'PENDING' && recruitStart) {
+            const startDate = new Date(recruitStart);
+            startDate.setHours(0, 0, 0, 0);
+            const endDate = recruitEnd ? new Date(recruitEnd) : null;
+            if (endDate) endDate.setHours(0, 0, 0, 0);
+
+            // 모집 시작일이 오늘이거나 지났고, 종료일이 안 지났으면 → 모집중
+            if (startDate <= today && (!endDate || endDate >= today)) {
+                return 'RECRUITING';
+            }
+        }
+        return originalStatus;
+    };
+
+    const computedStatus = computeStatus(studyDetail.status, studyDetail.recruitStartDate, studyDetail.recruitEndDate);
+
     const study: Study = {
         id: studyDetail.id,
         leaderId: studyDetail.leader?.id || 0,
@@ -160,7 +181,7 @@ const StudyDetailPageV3: React.FC = () => {
         format: studyDetail.format?.name || '',
         studyType: studyDetail.studyType,
         meetingType: studyDetail.meetingType,
-        status: studyDetail.status,
+        status: computedStatus,
         isPublic: studyDetail.isPublic ?? true,
         maxMembers: studyDetail.maxMembers,
         currentMembers: 1,
@@ -168,6 +189,7 @@ const StudyDetailPageV3: React.FC = () => {
         scheduleDays: studyDetail.scheduleDays || '',
         scheduleTime: studyDetail.scheduleTime,
         regionId: studyDetail.regionId,
+        recruitStartDate: studyDetail.recruitStartDate,
         recruitEndDate: studyDetail.recruitEndDate,
         leader: {
             id: studyDetail.leader?.id || 0,
@@ -255,6 +277,28 @@ const StudyDetailPageV3: React.FC = () => {
             case 'HYBRID': return '온/오프라인 혼합';
             default: return meetingType;
         }
+    };
+
+    // 요일 포맷팅 (MON,WED,FRI -> 월, 수, 금)
+    const formatScheduleDays = (days: string) => {
+        if (!days) return '협의 후 결정';
+        const dayMap: Record<string, string> = {
+            'MON': '월', 'TUE': '화', 'WED': '수',
+            'THU': '목', 'FRI': '금', 'SAT': '토', 'SUN': '일'
+        };
+        return days.split(',').map(d => dayMap[d.trim()] || d).join(', ');
+    };
+
+    // 날짜 범위 포맷팅
+    const formatDateRange = (start?: string, end?: string) => {
+        if (!start && !end) return '미정';
+        const formatDate = (d: string) => {
+            const date = new Date(d);
+            return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
+        };
+        if (start && end) return `${formatDate(start)} ~ ${formatDate(end)}`;
+        if (start) return `${formatDate(start)} ~`;
+        return `~ ${formatDate(end!)}`;
     };
 
     const statusConfig = getStatusConfig(study.status);
@@ -434,6 +478,16 @@ const StudyDetailPageV3: React.FC = () => {
                                             label="모임 시간"
                                             value={study.scheduleTime ? study.scheduleTime.substring(0, 5) : '협의 후 결정'}
                                         />
+                                        <InfoRow
+                                            icon={<CalendarDays size={18} />}
+                                            label="모임 요일"
+                                            value={formatScheduleDays(study.scheduleDays)}
+                                        />
+                                        <InfoRow
+                                            icon={<Bookmark size={18} />}
+                                            label="모집 기간"
+                                            value={formatDateRange(study.recruitStartDate, study.recruitEndDate)}
+                                        />
                                     </div>
                                 </div>
 
@@ -491,7 +545,7 @@ const StudyDetailPageV3: React.FC = () => {
                                         {studyDetail.goal && (
                                             <div>
                                                 <h3 className="flex items-center gap-2 text-sm font-bold text-[var(--color-text-secondary)] mb-3">
-                                                    <Crosshair size={16} />
+                                                    <GraduationCap size={16} />
                                                     스터디 목표
                                                 </h3>
                                                 <p className="text-[var(--color-text-primary)] leading-relaxed bg-[var(--color-background)] p-4 rounded-xl">
