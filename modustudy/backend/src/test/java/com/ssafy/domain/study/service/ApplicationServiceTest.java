@@ -10,6 +10,7 @@ import com.ssafy.domain.study.repository.StudyRepository;
 import com.ssafy.domain.user.entity.Role;
 import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.repository.UserRepository;
+import com.ssafy.domain.notification.service.NotificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -58,6 +59,9 @@ class ApplicationServiceTest {
 
     @Mock
     private StudyRecommendService studyRecommendService;
+
+    @Mock
+    private NotificationService notificationService;
 
     @InjectMocks
     private ApplicationService applicationService;
