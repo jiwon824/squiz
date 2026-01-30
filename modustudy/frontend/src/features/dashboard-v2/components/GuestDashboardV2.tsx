@@ -23,7 +23,7 @@ const HERO_MESSAGES = [
         id: 2,
         title: '스터디가 끝나면',
         subtitle: 'AI가 자동으로 정리해드려요',
-        description: 'STT 기반 대화 요약본과 핵심 키워드 퀴즈를 자동 생성',
+        description: 'AI 기반 대화 요약본과 핵심 키워드 퀴즈를 자동 생성',
         icon: Brain,
         spotlightGradient: true, // 중앙 스포트라이트 + 파란색 그라데이션
     },
@@ -219,7 +219,7 @@ export const GuestDashboardV2: React.FC = () => {
                     <div className="space-y-32">
                         <FeatureWithMockup
                             title="자동 대화 요약"
-                            description="STT 기술로 스터디 대화를 실시간으로 기록하고 핵심 내용을 자동으로 요약합니다. 더 이상 수동으로 노트를 작성할 필요가 없습니다."
+                            description="AI 기술로 스터디 대화를 실시간으로 기록하고 핵심 내용을 자동으로 요약합니다. 더 이상 수동으로 노트를 작성할 필요가 없습니다."
                             align="left"
                             mockup={<STTMockup />}
                         />
@@ -378,7 +378,7 @@ const STTMockup: React.FC = () => (
                 <FileText className="text-primary" size={20} />
             </div>
             <div>
-                <h4 className="text-lg font-bold text-gray-900 mb-0">STT 미팅 리포트</h4>
+                <h4 className="text-lg font-bold text-gray-900 mb-0">미팅 리포트</h4>
                 <p className="text-xs text-gray-500">최근 스터디 요약</p>
             </div>
         </div>
