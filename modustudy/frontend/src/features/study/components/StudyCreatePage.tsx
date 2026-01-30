@@ -127,7 +127,6 @@ const StudyCreatePage: React.FC = () => {
             setIsLoadingStudy(true);
             try {
                 const study = await studyApi.getStudyDetail(Number(editStudyId));
-                console.log('[수정 모드] 스터디 데이터 로드:', study);
 
                 // 토픽 ID로 대분류 찾기
                 let topicParentId: number | null = null;
@@ -208,7 +207,6 @@ const StudyCreatePage: React.FC = () => {
                 }
             } catch (err) {
                 // 템플릿 조회 실패 시 무시 (신규 유저 등)
-                console.log('저장된 템플릿 없음');
             }
         };
         checkSavedTemplates();
@@ -280,7 +278,6 @@ const StudyCreatePage: React.FC = () => {
             try {
                 // API에서 선호 설정 가져오기
                 const pref: any = await getStudyPreference();
-                console.log('[StudyPreference API 응답]', pref);
                 const techStacks = pref.techStacks || pref.techStack || [];
                 if (techStacks.length > 0) {
                     setUserTechStack(techStacks);
@@ -291,7 +288,6 @@ const StudyCreatePage: React.FC = () => {
                     preferredDurationWeeks: pref.preferredDurationWeeks || 4,
                 });
             } catch (err) {
-                console.log('[StudyPreference API 실패]', err);
                 // localStorage fallback
                 try {
                     const saved = localStorage.getItem('studyPreference');
@@ -449,13 +445,8 @@ const StudyCreatePage: React.FC = () => {
 
     // AI 스터디 계획 생성
     const handleAiGenerate = async () => {
-        console.log('[AI Generate] preferenceLoaded:', preferenceLoaded);
-        console.log('[AI Generate] userTechStack:', userTechStack);
-        console.log('[AI Generate] hasStudyPreference:', hasStudyPreference);
-
         // 선호 설정 체크를 먼저 수행
         if (!hasStudyPreference) {
-            console.log('[AI Generate] 선호 설정 없음 - 모달 표시');
             setShowPreferenceModal(true);
             return;
         }
@@ -558,16 +549,6 @@ const StudyCreatePage: React.FC = () => {
             studyEndDate.setDate(studyEndDate.getDate() + (preferredDurationWeeks - 1) * 7);
             const studyEnd = formatDate(studyEndDate);
 
-            // 디버깅: 날짜 계산 확인
-            console.log('[날짜 계산]', {
-                모집시작: recruitStart,
-                모집종료: recruitEnd,
-                스터디시작: studyStart,
-                스터디종료: studyEnd,
-                선호요일: availableDays,
-                기간주: preferredDurationWeeks,
-            });
-
             // 시간대 → 시간 변환
             const timeSlotToTime: Record<string, string> = {
                 morning: '10:00',
@@ -580,13 +561,6 @@ const StudyCreatePage: React.FC = () => {
             // 총 회차 계산: 요일수 × 주수 (요일 선택 없으면 주당 1회)
             const daysPerWeek = availableDays.length || 1;
             const totalSessions = daysPerWeek * preferredDurationWeeks;
-
-            console.log('[회차 계산]', {
-                선호요일: availableDays,
-                요일수: daysPerWeek,
-                기간주: preferredDurationWeeks,
-                총회차: totalSessions,
-            });
 
             // 스트리밍용 변수
             let accumulatedText = '';
@@ -618,11 +592,6 @@ const StudyCreatePage: React.FC = () => {
             // AI 결과를 폼에 반영하는 함수 (스트리밍 완료 시 호출 - 토픽/형식 매칭, 커리큘럼 등)
             const applyAiResult = (result: AiStudyPlanResponse) => {
                 // 디버깅: AI 응답 확인
-                console.log('[AI 응답]', result);
-                console.log('[AI topic]', result.topic, '[AI format]', result.format);
-                console.log('[DB topics]', topics);
-                console.log('[DB formats]', formats);
-
                 // AI 결과를 폼에 반영
                 setFormData(prev => {
                     const updated = { ...prev };
@@ -689,9 +658,33 @@ const StudyCreatePage: React.FC = () => {
                             'nlp': ['nlp'], '자연어처리': ['nlp'], '컴퓨터 비전': ['컴퓨터 비전'],
                             'mlops': ['mlops'], '논문': ['논문 리뷰'], '논문 리뷰': ['논문 리뷰'],
                             '웹 접근성': ['웹 접근성/성능'], '웹 성능': ['웹 접근성/성능'],
+                            // DevOps/인프라 관련 키워드
+                            'devops': ['docker', 'kubernetes', 'ci/cd', 'aws', 'linux'],
+                            '인프라': ['docker', 'kubernetes', 'ci/cd', 'aws', 'linux'],
+                            'infrastructure': ['docker', 'kubernetes', 'ci/cd', 'aws', 'linux'],
+                            'devops/인프라': ['docker', 'kubernetes', 'ci/cd', 'aws', 'linux'],
+                            // 프론트엔드 관련 키워드
+                            '프론트엔드': ['react', 'vue', 'javascript', 'typescript'],
+                            'frontend': ['react', 'vue', 'javascript', 'typescript'],
+                            '웹 프론트엔드': ['react', 'vue', 'javascript', 'typescript'],
+                            // 백엔드 관련 키워드
+                            '백엔드': ['java/spring', 'node.js/express', 'python/django'],
+                            'backend': ['java/spring', 'node.js/express', 'python/django'],
+                            '웹 백엔드': ['java/spring', 'node.js/express', 'python/django'],
+                            // 모바일 관련 키워드
+                            '모바일': ['android (kotlin)', 'ios (swift)', 'flutter'],
+                            'mobile': ['android (kotlin)', 'ios (swift)', 'flutter'],
+                            // CS 기초 관련 키워드
+                            'cs': ['운영체제', '네트워크', '데이터베이스', '자료구조'],
+                            'cs 기초': ['운영체제', '네트워크', '데이터베이스', '자료구조'],
+                            '컴퓨터 과학': ['운영체제', '네트워크', '데이터베이스', '자료구조'],
+                            // AI/ML 관련 키워드
+                            'ai': ['머신러닝 기초', '딥러닝', 'nlp'],
+                            '인공지능': ['머신러닝 기초', '딥러닝', 'nlp'],
+                            'ai/ml': ['머신러닝 기초', '딥러닝', 'nlp'],
                         };
 
-                        // 1차: 정확 매칭
+                        // 1차: 세부주제 정확 매칭
                         for (const parent of topics) {
                             const child = parent.children.find(c => c.name.toLowerCase() === topicLower);
                             if (child) {
@@ -701,6 +694,7 @@ const StudyCreatePage: React.FC = () => {
                                 break;
                             }
                         }
+
                         // 2차: 키워드 매칭
                         if (!found) {
                             for (const [keyword, dbNames] of Object.entries(keywordMap)) {
@@ -720,20 +714,39 @@ const StudyCreatePage: React.FC = () => {
                                 }
                             }
                         }
+
+                        // 3차: 부모 주제명 매칭 (첫 번째 세부주제 선택)
+                        if (!found) {
+                            for (const parent of topics) {
+                                const parentLower = parent.name.toLowerCase();
+                                if (topicLower.includes(parentLower) || parentLower.includes(topicLower) ||
+                                    topicLower.split('/').some(part => parentLower.includes(part.trim())) ||
+                                    parentLower.split('/').some(part => topicLower.includes(part.trim()))) {
+                                    if (parent.children.length > 0) {
+                                        updated.topicParentId = parent.id;
+                                        updated.topicId = parent.children[0].id;
+                                        found = true;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
                     }
 
                     // 형식 매칭
                     if (result.format && formats.length > 0) {
                         const formatLower = result.format.toLowerCase().trim();
+
                         const formatKeywordMap: Record<string, string> = {
                             '문제 풀이': '문제 풀이', '문제': '문제 풀이', '알고리즘': '문제 풀이', '코딩테스트': '문제 풀이',
                             '독서/책 스터디': '독서/책 스터디', '독서': '독서/책 스터디', '책': '독서/책 스터디',
                             '강의 수강': '강의 수강', '강의': '강의 수강', '수강': '강의 수강',
-                            '프로젝트': '프로젝트', '개발': '프로젝트',
+                            '프로젝트': '프로젝트', '개발': '프로젝트', 'project': '프로젝트',
                             '모의 면접': '모의 면접', '면접': '모의 면접',
                             '코드 리뷰': '코드 리뷰', '리뷰': '코드 리뷰',
                             '발표/세미나': '발표/세미나', '발표': '발표/세미나', '세미나': '발표/세미나',
                             '토론': '토론', '토의': '토론',
+                            '실습': '프로젝트', 'hands-on': '프로젝트',
                         };
 
                         let matched = formats.find(f => f.name.toLowerCase() === formatLower);
@@ -744,6 +757,13 @@ const StudyCreatePage: React.FC = () => {
                                     if (matched) break;
                                 }
                             }
+                        }
+                        // 3차: 부분 매칭 (형식명에 검색어가 포함되어 있으면)
+                        if (!matched) {
+                            matched = formats.find(f =>
+                                f.name.toLowerCase().includes(formatLower) ||
+                                formatLower.includes(f.name.toLowerCase())
+                            );
                         }
                         if (matched) {
                             updated.formatId = matched.id;
@@ -948,20 +968,17 @@ const StudyCreatePage: React.FC = () => {
             } else {
                 // 생성 모드
                 const createdStudy = await createStudy(payload);
-                console.log('[스터디 생성 완료]', createdStudy);
 
                 // 커리큘럼이 있으면 세션도 함께 생성
                 if (formData.hasCurriculum && formData.curriculum.length > 0 && formData.startDate && createdStudy?.id) {
                     const validCurriculum = formData.curriculum.filter(c => c.description.trim() !== '');
                     if (validCurriculum.length > 0) {
-                        console.log('[세션 생성 시작]', validCurriculum);
                         await createStudySessions(
                             createdStudy.id,
                             validCurriculum,
                             formData.startDate,
                             formData.meetingType
                         );
-                        console.log('[세션 생성 완료]');
                     }
                 }
 
@@ -970,7 +987,6 @@ const StudyCreatePage: React.FC = () => {
             }
         } catch (err: any) {
             console.error(isEditMode ? '스터디 수정 실패:' : '스터디 생성 실패:', err);
-            console.log('에러 응답 데이터:', err?.response?.data);
 
             // validation 에러 추출
             const errorData = err?.response?.data;
