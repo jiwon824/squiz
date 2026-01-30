@@ -14,7 +14,7 @@ const MeetingSummaryPanel: React.FC<MeetingSummaryPanelProps> = ({ summary }) =>
                     <h3>AI 요약</h3>
                 </div>
                 <div className="meeting-detail-card__body">
-                    <p className="meeting-detail-empty">요약이 아직 생성되지 않았습니다.</p>
+                    <p className="meeting-detail-empty">요약 생성까지 2 ~ 10분 소요됩니다.</p>
                 </div>
             </section>
         );

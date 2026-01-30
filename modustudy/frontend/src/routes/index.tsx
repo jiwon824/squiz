@@ -7,6 +7,8 @@ import { DashboardV2, GuestDashboardV2, UserDashboardV2 } from '../features/dash
 import { StudyAfterQuiz } from '../features/dashboard-v2/pages/StudyAfterQuiz';
 import { STTReportPage } from '../features/dashboard-v2/pages/STTReportPage';
 import { LearningArchivePage } from '../features/dashboard-v2/pages/LearningArchivePage';
+import { MyCreatedStudiesPage } from '../features/dashboard-v2/pages/MyCreatedStudiesPage';
+import { MyApplicationsPage } from '../features/dashboard-v2/pages/MyApplicationsPage';
 import { GuestLayoutV2 } from '@/layouts/GuestLayoutV2';
 import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { CalendarTestPage } from '../features/calendar/components/CalendarTestPage';
@@ -151,9 +153,11 @@ export const AppRouter = () => {
                 {/* 퀴즈 */}
                 <Route path="/quiz" element={<QuizGameSelection />} />
                 {/* 내 브랜치 추가 */}
-                <Route path="/quiz/review" element={<StudyAfterQuiz />} />
-                <Route path="/stt-report" element={<STTReportPage />} />
-                <Route path="/learning-archive" element={<LearningArchivePage />} />
+                <Route path="/quiz/review" element={<UserLayoutV2><StudyAfterQuiz /></UserLayoutV2>} />
+                <Route path="/meeting-report" element={<UserLayoutV2><STTReportPage /></UserLayoutV2>} />
+                <Route path="/learning-archive" element={<UserLayoutV2><LearningArchivePage /></UserLayoutV2>} />
+                <Route path="/my-studies/created" element={<UserLayoutV2><MyCreatedStudiesPage /></UserLayoutV2>} />
+                <Route path="/my-studies/applications" element={<UserLayoutV2><MyApplicationsPage /></UserLayoutV2>} />
                 <Route path="/quiz-commentle" element={<CommentleQuiz />} />
                 <Route path="/quiz-practice" element={<QuizCourseList />} />
                 <Route path="/quiz-practice/:courseId" element={<CourseDetail />} />
