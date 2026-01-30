@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { studyService, Study } from '../services/studyService';
-import { studyApi, getStudySessions, StudySessionItem, deleteStudy } from '@/api/endpoints/studyApi';
+import { studyApi, getStudySessions, StudySessionItem, deleteStudy, getLeaderReviews, getLeaderInfo, LeaderReviewResponse, LeaderInfoResponse } from '@/api/endpoints/studyApi';
 import StudyApplyModalV2 from './StudyApplyModalV2';
 import { StudyReportModal } from './StudyReportModal';
 import LeaderReviewModal from './LeaderReviewModal';
@@ -20,7 +20,7 @@ import { Button, ArrowButton } from '@/shared/components';
 import { cn } from '@/shared/utils/cn';
 import { useDMStore } from '@/features/dm/store/dmStore';
 import { useUIStore } from '@/store/uiStore';
-import { getReviewsByLeaderId, getLeaderAverageRating, getRegionById, LeaderReview } from '../mockData';
+import { getRegionById } from '../mockData';
 
 // API 응답 타입 (StudyResponse 구조)
 interface StudyDetail {
@@ -86,8 +86,10 @@ const StudyDetailPageV3: React.FC = () => {
     const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
     const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
-    const [leaderReviews, setLeaderReviews] = useState<LeaderReview[]>([]);
-    const [leaderAvgRating, setLeaderAvgRating] = useState(0);
+    const [leaderReviews, setLeaderReviews] = useState<LeaderReviewResponse[]>([]);
+    const [leaderAvgRating, setLeaderAvgRating] = useState<number | null>(null);
+    const [leaderReviewCount, setLeaderReviewCount] = useState(0);
+    const [leaderInfo, setLeaderInfo] = useState<LeaderInfoResponse | null>(null);
     const { user } = useAuthStore();
 
     // 실제 API에서 스터디 상세 및 세션(커리큘럼) 조회
@@ -112,6 +114,17 @@ const StudyDetailPageV3: React.FC = () => {
                     console.error('세션 목록 조회 실패:', sessionError);
                     console.error('세션 에러 상세:', sessionError?.response?.data || sessionError?.message);
                     setSessions([]);
+                }
+
+                // 스터디장 정보 조회 (평점, 리뷰 수 포함)
+                try {
+                    const leaderData = await getLeaderInfo(Number(id));
+                    console.log('[스터디장 정보 API 응답]', leaderData);
+                    setLeaderInfo(leaderData);
+                    setLeaderAvgRating(leaderData.leaderRating);
+                    setLeaderReviewCount(leaderData.leaderReviewCount || 0);
+                } catch (leaderError) {
+                    console.error('스터디장 정보 조회 실패:', leaderError);
                 }
             } catch (error) {
                 console.error('스터디 상세 조회 실패:', error);
@@ -196,10 +209,10 @@ const StudyDetailPageV3: React.FC = () => {
         recruitEndDate: studyDetail.recruitEndDate,
         leader: {
             id: studyDetail.leader?.id || 0,
-            nickname: studyDetail.leader?.nickname || '스터디장',
+            nickname: leaderInfo?.nickname || studyDetail.leader?.nickname || '스터디장',
             profileImage: studyDetail.leader?.profileImage || null,
-            leaderRating: 4.5,
-            leaderReviewCount: 0,
+            leaderRating: leaderInfo?.leaderRating ?? null,
+            leaderReviewCount: leaderInfo?.leaderReviewCount || 0,
         },
         isBookmarked: false,
         createdAt: studyDetail.createdAt,
@@ -228,13 +241,27 @@ const StudyDetailPageV3: React.FC = () => {
     };
 
     // 평점 클릭 시 리뷰 목록 모달 열기
-    const handleRatingClick = () => {
-        if (!studyDetail.leader) return;
-        const reviews = getReviewsByLeaderId(studyDetail.leader.id);
-        const avgRating = getLeaderAverageRating(studyDetail.leader.id);
-        setLeaderReviews(reviews);
-        setLeaderAvgRating(avgRating > 0 ? avgRating : 4.5);
-        setIsReviewModalOpen(true);
+    const handleRatingClick = async () => {
+        if (!studyDetail.id) return;
+
+        try {
+            // 리뷰 목록 조회
+            const reviewData = await getLeaderReviews(studyDetail.id);
+            setLeaderReviews(reviewData.content || []);
+
+            // 평균 평점 계산
+            if (reviewData.content && reviewData.content.length > 0) {
+                const sum = reviewData.content.reduce((acc, review) => acc + review.rating, 0);
+                setLeaderAvgRating(sum / reviewData.content.length);
+            } else {
+                setLeaderAvgRating(0);
+            }
+            setLeaderReviewCount(reviewData.totalElements || 0);
+            setIsReviewModalOpen(true);
+        } catch (error) {
+            console.error('리뷰 조회 실패:', error);
+            showToast('리뷰를 불러오는데 실패했습니다.', 'error');
+        }
     };
 
     // 스터디 삭제 핸들러
