@@ -10,6 +10,8 @@ import com.ssafy.domain.study.repository.StudyMemberRepository;
 import com.ssafy.domain.study.repository.StudyRepository;
 import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.repository.UserRepository;
+import com.ssafy.domain.notification.entity.NotificationType;
+import com.ssafy.domain.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -30,6 +32,7 @@ public class ApplicationService {
     private final UserRepository userRepository;
     private final StudyMemberRepository studyMemberRepository;
     private final StudyRecommendService studyRecommendService;
+    private final NotificationService notificationService;
 
     // ============================================================
     // 신청 생성
@@ -83,7 +86,22 @@ public class ApplicationService {
         // 6. 추천 반응 자동 기록 (추천에서 온 지원인지 감지)
         studyRecommendService.tryLogAction(userId, studyId, StudyRecommendAction.ActionType.APPLY);
 
-        // 7. DTO 변환 및 추가 정보 설정
+        // 7. 스터디장에게 알림 전송
+        String notificationTitle = "새로운 스터디 신청";
+        String notificationContent = String.format("%s님이 '%s' 스터디에 참가 신청을 했습니다.",
+                user.getNickname() != null ? user.getNickname() : user.getName(),
+                study.getName());
+        notificationService.createNotification(
+                study.getLeaderId(),
+                NotificationType.STUDY_APPLICATION,
+                notificationTitle,
+                notificationContent,
+                "STUDY_APPLICATION",
+                saved.getId()
+        );
+        log.info("스터디장에게 알림 전송 완료 - leaderId: {}", study.getLeaderId());
+
+        // 8. DTO 변환 및 추가 정보 설정
         ApplicationResponse response = ApplicationResponse.from(saved);
         response.setStudyName(study.getName());
         response.setUserInfo(user.getName(), user.getNickname(), user.getEmail());
