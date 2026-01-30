@@ -1,0 +1,3 @@
+-- Add STUDY_APPLICATION to notification.type enum
+ALTER TABLE `notification`
+  MODIFY `type` ENUM('CHAT', 'SCHEDULE', 'ATTENDANCE', 'STUDY_UPDATE', 'STUDY_APPLICATION', 'QUIZ', 'SYSTEM') NOT NULL;

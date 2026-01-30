@@ -9,6 +9,7 @@ import { MemberList, type WorkspaceMember } from './MemberList';
 import { WorkspaceCalendarArea } from './WorkspaceCalendarArea';
 import { MaterialArea } from '@/features/material';
 import MeetingHistoryPanel from '@/features/meeting/components/MeetingHistoryPanel';
+import MeetingDetailPanel from '@/features/meeting/components/MeetingDetailPanel';
 import { workspaceApi } from '@/api/endpoints/workspaceApi';
 import { studyApi, type StudyMemberResponse } from '@/api/endpoints/studyApi';
 import { sessionApi, type StudySessionResponse } from '@/api/endpoints/sessionApi';
@@ -72,6 +73,7 @@ export const WorkspacePage: React.FC = () => {
   const [isExiting, setIsExiting] = useState(false);
   const [activeMeetingId, setActiveMeetingId] = useState<number | null>(null);
   const [activeMeetingEnded, setActiveMeetingEnded] = useState<boolean | null>(null);
+  const [selectedMeetingId, setSelectedMeetingId] = useState<number | null>(null);
 
   // 미팅에서 진입 애니메이션 플래그(최초 렌더 한 번만 확인)
   const isEnteringFromMeeting = useMemo(() => {
@@ -97,6 +99,13 @@ export const WorkspacePage: React.FC = () => {
 
   // 초기 데이터 로드
   useEffect(() => {
+    const pendingMenu = sessionStorage.getItem('workspaceActiveMenu');
+    if (pendingMenu) {
+      if (pendingMenu === 'chat' || pendingMenu === 'materials' || pendingMenu === 'calendar' || pendingMenu === 'meeting') {
+        setActiveMenu(pendingMenu);
+      }
+      sessionStorage.removeItem('workspaceActiveMenu');
+    }
     const loadInitialData = async () => {
       if (!studyId) {
         setIsLoading(false);
@@ -153,9 +162,22 @@ export const WorkspacePage: React.FC = () => {
         try {
           workspaceData = await workspaceApi.getWorkspaceByStudyId(studyId);
         } catch (wsError: any) {
+          const status = wsError?.response?.status;
           // 워크스페이스가 없으면 생성
-          if (wsError?.response?.status === 400 || wsError?.response?.status === 404) {
-            workspaceData = await workspaceApi.createWorkspace(studyId);
+          if (status === 400 || status === 404) {
+            try {
+              workspaceData = await workspaceApi.createWorkspace(studyId);
+            } catch (createError: any) {
+              const createStatus = createError?.response?.status;
+              const createMessage = createError?.response?.data?.message || createError?.message || '';
+              if (createStatus === 409 || createMessage.includes('이미') || createMessage.toLowerCase().includes('exist')) {
+                workspaceData = await workspaceApi.getWorkspaceByStudyId(studyId);
+              } else {
+                throw createError;
+              }
+            }
+          } else if (status === 409) {
+            workspaceData = await workspaceApi.getWorkspaceByStudyId(studyId);
           } else {
             throw wsError;
           }
@@ -425,21 +447,21 @@ export const WorkspacePage: React.FC = () => {
   const handleNavigateToMeeting = useCallback(() => {
     if (!studyId) return;
 
+    if (!activeMeetingId) {
+      showToast?.('미팅 생성중입니다. 잠시후 다시 접속해주세요.', 'info');
+      return;
+    }
+
     // 퇴장 애니메이션 시작
     setIsExiting(true);
 
-    // 미팅 페이지에서 진입 애니메이션을 위한 플래그 설정
-    sessionStorage.setItem('fromWorkspace', 'true');
-
     // 애니메이션 완료 후 네비게이션 (500ms)
     setTimeout(() => {
-      if (activeMeetingId) {
-        navigate(`/study/${studyId}/meetings/${activeMeetingId}/room`);
-      } else {
-        navigate(`/study/${studyId}/meetings`);
-      }
+      // 미팅 페이지에서 진입 애니메이션을 위한 플래그 설정
+      sessionStorage.setItem('fromWorkspace', 'true');
+      navigate(`/study/${studyId}/meetings/${activeMeetingId}/room`);
     }, 500);
-  }, [navigate, studyId, activeMeetingId]);
+  }, [navigate, studyId, activeMeetingId, showToast]);
 
   // 로딩 상태
   if (isLoading) {
@@ -526,7 +548,20 @@ export const WorkspacePage: React.FC = () => {
             )}
 
             {activeMenu === 'meeting' && studyId && (
-              <MeetingHistoryPanel studyId={studyId} />
+              <div className="workspace-main__scroll">
+                {selectedMeetingId ? (
+                  <MeetingDetailPanel
+                    studyId={studyId}
+                    meetingId={selectedMeetingId}
+                    onBack={() => setSelectedMeetingId(null)}
+                  />
+                ) : (
+                  <MeetingHistoryPanel
+                    studyId={studyId}
+                    onSelectMeeting={(meetingId) => setSelectedMeetingId(meetingId)}
+                  />
+                )}
+              </div>
             )}
           </div>
         </div>
