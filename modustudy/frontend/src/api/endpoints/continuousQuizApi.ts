@@ -56,7 +56,7 @@ interface BackendQuestionResponse {
 /** 백엔드 POST /submit 응답 (ContinuousSubmitResponse.java) */
 interface BackendSubmitResponse {
     submittedQuestionId: number;
-    isCorrect: boolean;
+    correct: boolean; // Java의 boolean isCorrect → Jackson이 "correct"로 직렬화
     userAnswer: string;
     correctAnswer: string;
     explanation: string | null;
@@ -264,14 +264,14 @@ export const submitAnswer = async (
 
     // 백엔드 응답을 프론트엔드 형식으로 변환
     const result: SubmitAnswerResponse = {
-        isCorrect: backendData.isCorrect,
+        isCorrect: backendData.correct,
         correctAnswer: backendData.correctAnswer,
         nextQuestion: transformQuestion(backendData.nextQuestion),
         isSessionComplete: false, // 무한 루프 모드 - 항상 false
         explanation: backendData.explanation || undefined,
     };
 
-    console.log(`[continuousQuizApi] 답안 제출 성공: isCorrect=${result.isCorrect}, nextQuestionId=${result.nextQuestion?.questionId}`);
+    console.log(`[continuousQuizApi] 답안 제출 성공: correct=${backendData.correct}, isCorrect=${result.isCorrect}, nextQuestionId=${result.nextQuestion?.questionId}`);
 
     return result;
 };

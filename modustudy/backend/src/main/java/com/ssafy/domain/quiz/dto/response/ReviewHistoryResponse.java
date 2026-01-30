@@ -1,5 +1,6 @@
 package com.ssafy.domain.quiz.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.ssafy.domain.quiz.entity.ReviewContentType;
 import com.ssafy.domain.quiz.entity.UserReviewItem;
 import com.ssafy.domain.quiz.entity.UserReviewLog;
@@ -96,6 +97,7 @@ public record ReviewHistoryResponse(
             Long logId,
 
             @Schema(description = "정답 여부", example = "true")
+            @JsonProperty("correct")
             boolean isCorrect,
 
             @Schema(description = "응답 시간 (밀리초)", example = "3200")

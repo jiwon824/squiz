@@ -1,5 +1,6 @@
 package com.ssafy.domain.quiz.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -17,6 +18,7 @@ public class ContinuousAnswerResponse {
     // ── 답변 결과 ──
 
     private Long questionId;
+    @JsonProperty("correct")
     private boolean isCorrect;
     private String userAnswer;
     private String correctAnswer;

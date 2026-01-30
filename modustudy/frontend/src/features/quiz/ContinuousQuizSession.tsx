@@ -17,7 +17,7 @@
  * =============================================================================
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Loader2, AlertCircle, RefreshCw, CheckCircle, XCircle, Trophy } from 'lucide-react';
 
@@ -32,6 +32,7 @@ import {
     ContinuousQuizQuestion,
 } from '@/api/endpoints/continuousQuizApi';
 
+import { useTimer } from './hooks/useTimer';
 import type { QuizQuestion as QuizQuestionType, QuestionType } from './types/QuizQuestion.types';
 
 // =============================================================================
@@ -369,8 +370,11 @@ export const ContinuousQuizSession = () => {
         averageResponseTimeMs: number;
     } | null>(null);
 
-    // FSRS 응답 시간 측정용 ref (문제 렌더 시점 기록)
-    const questionRenderTimeRef = useRef<number>(0);
+    // FSRS 응답 시간 측정 (useTimer - 탭 전환 감지 포함)
+    const { start: startTimer, stop: stopTimer } = useTimer();
+
+    // 다음 문제 데이터 (제출 응답에서 받아 "다음 문제" 클릭 시 적용)
+    const [nextQuestionData, setNextQuestionData] = useState<ContinuousQuizQuestion | null>(null);
 
     // 브라우저 뒤로가기/새로고침 시 경고
     useEffect(() => {
@@ -386,13 +390,12 @@ export const ContinuousQuizSession = () => {
         return () => window.removeEventListener('beforeunload', handleBeforeUnload);
     }, [isSessionComplete]);
 
-    // 문제 렌더 시 시간 기록
+    // 새 문제 렌더 시 타이머 시작
     useEffect(() => {
         if (currentQuestion && !showFeedback) {
-            questionRenderTimeRef.current = performance.now();
-            console.log(`[ContinuousQuizSession] 문제 렌더 시간 기록: ${questionRenderTimeRef.current}ms`);
+            startTimer();
         }
-    }, [currentQuestion, showFeedback]);
+    }, [currentQuestion, showFeedback, startTimer]);
 
     // 초기 문제 로드
     useEffect(() => {
@@ -445,26 +448,27 @@ export const ContinuousQuizSession = () => {
         setCurrentAnswer(answer);
     }, []);
 
-    // 답안 제출 핸들러
+    // 피드백 확인 후 다음 문제로 전환 (사용자 클릭 필수)
+    const handleNextQuestion = useCallback(() => {
+        if (nextQuestionData) {
+            const nextUiQuestion = mapApiQuestionToUiQuestion(nextQuestionData);
+            setCurrentQuestion(nextUiQuestion);
+            setCurrentApiQuestion(nextQuestionData);
+            setNextQuestionData(null);
+        }
+        setShowFeedback(false);
+        setFeedbackData(null);
+        setCurrentAnswer(undefined);
+    }, [nextQuestionData]);
+
+    // 답안 제출 핸들러 - useTimer로 시간 측정, 백엔드 isCorrect 기반 피드백
     const handleSubmit = useCallback(async () => {
         if (!currentApiQuestion || !isValidAnswer(currentAnswer)) {
             showToast('답변을 선택해주세요.', 'info');
             return;
         }
 
-        // 응답 시간 계산
-        const responseTimeMs = Math.round(performance.now() - questionRenderTimeRef.current);
-
-        // 디버깅: 제출되는 답안 상세 로그
-        console.log('[ContinuousQuizSession] 답안 제출 상세:', {
-            questionId: currentApiQuestion.questionId,
-            questionType: currentApiQuestion.questionType,
-            userAnswer: currentAnswer,
-            userAnswerType: typeof currentAnswer,
-            availableOptions: currentApiQuestion.options?.map(o => ({ id: o.id, text: o.text })),
-            responseTimeMs,
-        });
-
+        const responseTimeMs = stopTimer();
         setIsSubmitting(true);
 
         try {
@@ -474,7 +478,7 @@ export const ContinuousQuizSession = () => {
                 responseTimeMs
             );
 
-            // 피드백 표시
+            // 백엔드 isCorrect를 그대로 사용하여 피드백 표시
             setFeedbackData({
                 isCorrect: response.isCorrect,
                 correctAnswer: response.correctAnswer,
@@ -489,31 +493,20 @@ export const ContinuousQuizSession = () => {
             }
             setTotalResponseTimeMs(prev => prev + responseTimeMs);
 
-            // 무한 루프 모드: 다음 문제가 없으면 에러 (이론상 발생하지 않음)
-            if (!response.nextQuestion) {
-                console.error('[ContinuousQuizSession] 다음 문제가 없습니다 (이론상 발생 불가)');
+            // 다음 문제 데이터 저장 ("다음 문제" 클릭 시 적용)
+            if (response.nextQuestion) {
+                setNextQuestionData(response.nextQuestion);
+            } else {
+                console.error('[ContinuousQuizSession] 다음 문제가 없습니다');
                 showToast('다음 문제를 불러오는데 실패했습니다.', 'error');
-                return;
             }
-
-            // 다음 문제 준비 (피드백 모달에서 "다음 문제" 클릭 시 전환)
-            const nextUiQuestion = mapApiQuestionToUiQuestion(response.nextQuestion);
-            setCurrentQuestion(nextUiQuestion);
-            setCurrentApiQuestion(response.nextQuestion);
         } catch (err) {
             console.error('[ContinuousQuizSession] 제출 실패:', err);
             showToast(err instanceof Error ? err.message : '제출에 실패했습니다.', 'error');
         } finally {
             setIsSubmitting(false);
         }
-    }, [currentApiQuestion, currentAnswer, showToast, solvedCount]);
-
-    // 피드백 후 다음 문제로
-    const handleContinue = useCallback(() => {
-        setShowFeedback(false);
-        setFeedbackData(null);
-        setCurrentAnswer(undefined);
-    }, []);
+    }, [currentApiQuestion, currentAnswer, showToast, stopTimer]);
 
     // 코스로 돌아가기
     const handleReturnToCourse = useCallback(() => {
@@ -718,7 +711,7 @@ export const ContinuousQuizSession = () => {
                     isCorrect={feedbackData.isCorrect}
                     correctAnswer={feedbackData.correctAnswer}
                     explanation={feedbackData.explanation}
-                    onContinue={handleContinue}
+                    onContinue={handleNextQuestion}
                 />
             )}
         </div>

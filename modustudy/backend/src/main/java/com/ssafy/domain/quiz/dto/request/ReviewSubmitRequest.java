@@ -1,5 +1,6 @@
 package com.ssafy.domain.quiz.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.ssafy.domain.quiz.entity.ReviewContentType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
@@ -26,6 +27,7 @@ public record ReviewSubmitRequest(
 
         @Schema(description = "정답 여부", example = "true")
         @NotNull(message = "정답 여부는 필수입니다")
+        @JsonProperty("correct")
         Boolean isCorrect,
 
         @Schema(description = "응답 시간 (밀리초)", example = "3200")

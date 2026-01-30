@@ -56,8 +56,15 @@ const BASE = '/api/v1/reviews';
 
 /** 복습 결과 제출 */
 export async function submitReview(data: ReviewSubmitRequest): Promise<ReviewSubmitResponse> {
-  console.log('[reviewApi] submitReview 요청:', data);
-  const res = await api.post<{ success: boolean; data: ReviewSubmitResponse }>(BASE, data);
+  // 도메인 모델(isCorrect)을 백엔드 JSON 형식(correct)으로 변환
+  const backendPayload = {
+    contentType: data.contentType,
+    contentId: data.contentId,
+    correct: data.isCorrect,
+    responseTimeMs: data.responseTimeMs,
+  };
+  console.log('[reviewApi] submitReview 요청:', backendPayload);
+  const res = await api.post<{ success: boolean; data: ReviewSubmitResponse }>(BASE, backendPayload);
   console.log('[reviewApi] submitReview 응답:', res.data);
   return res.data.data;
 }

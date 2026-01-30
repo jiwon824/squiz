@@ -518,7 +518,7 @@ class QuizCourseControllerTest {
                                         .andExpect(jsonPath("$.data.isPassed").value(true))
                                         .andExpect(jsonPath("$.data.isNextSectionUnlocked").value(true))
                                         .andExpect(jsonPath("$.data.results").isArray())
-                                        .andExpect(jsonPath("$.data.results[0].isCorrect").value(true));
+                                        .andExpect(jsonPath("$.data.results[0].correct").value(true));
                 }
 
                 @Test
