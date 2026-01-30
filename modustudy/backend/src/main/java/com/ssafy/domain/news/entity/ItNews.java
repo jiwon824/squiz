@@ -1,6 +1,13 @@
 package com.ssafy.domain.news.entity;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Lob;
+import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -27,13 +34,15 @@ public class ItNews {
     @Column(columnDefinition = "TEXT")
     private String summary;
 
-    @Column(nullable = false, length = 500)
+    @Lob
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String sourceUrl;
 
     @Column(length = 100)
     private String sourceName;  // velog, tistory, ZDNet 등
 
-    @Column(length = 500)
+    @Lob
+    @Column(columnDefinition = "TEXT")
     private String thumbnailUrl;
 
     @Column(length = 50)
