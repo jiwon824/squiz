@@ -315,6 +315,7 @@ export const getStudyList = async (params: StudyListParams = {}): Promise<StudyL
   if (params.difficulty) queryParams.set('difficulty', params.difficulty);
   if (params.status) queryParams.set('status', params.status);
 
+  console.log('[getStudyList] 요청:', "/api/v1/study");
   const response = await api.get(`/api/v1/study?${queryParams.toString()}`);
   console.log('[getStudyList] 응답:', response.data);
 
