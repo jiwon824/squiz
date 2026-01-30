@@ -23,7 +23,7 @@ interface Session {
 interface AttendanceRecord {
     id: number;
     userId: number;
-    userName: string;
+    userName?: string;
     status: 'PRESENT' | 'ABSENT' | 'LATE' | 'EXCUSED' | null;
     checkedAt?: string;
     excuseStatus?: string;
@@ -201,12 +201,14 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ studyId }) 
                             <div key={record.id} className="p-4 flex items-center gap-4 hover:bg-surface/50 transition-colors">
                                 {/* 아바타 */}
                                 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
-                                    {record.userName.charAt(0).toUpperCase()}
+                                    {(record.userName?.trim() || `User ${record.userId}`).charAt(0).toUpperCase()}
                                 </div>
 
                                 {/* 멤버 정보 */}
                                 <div className="flex-1 min-w-0">
-                                    <div className="font-medium text-text-primary">{record.userName}</div>
+                                    <div className="font-medium text-text-primary">
+                                        {record.userName?.trim() || `User ${record.userId}`}
+                                    </div>
                                     {record.checkedAt && (
                                         <div className="text-xs text-text-tertiary">
                                             체크 시각: {formatTime(record.checkedAt)}
