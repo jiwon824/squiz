@@ -13,9 +13,23 @@ interface StudyStatusChartProps {
     data: StudyStatusStats[];
 }
 
-const COLORS = ['#22c55e', '#3b82f6', '#6b7280', '#ef4444'];
+// Google Design System 색상 (colors.ts 기반)
+const STATUS_COLORS: Record<string, string> = {
+    'DRAFT': '#5F6368',       // gray.500 - 비활성/임시저장
+    'SCHEDULED': '#FBBC04',   // google.yellow - 예정/알림
+    'RECRUITING': '#4285F4',  // google.blue - 활성/모집중
+    'RECRUIT_CLOSED': '#34A853', // google.green - 모집 성공
+    'PENDING': '#f9ab00',     // google.yellow.dark - 대기/주의
+    'IN_PROGRESS': '#1a73e8', // google.blue.dark - 진행중
+    'COMPLETED': '#137333',   // google.green.dark - 완료
+    'CANCELLED': '#EA4335',   // google.red - 취소
+};
 const STATUS_LABELS: Record<string, string> = {
+    'DRAFT': '임시저장',
+    'SCHEDULED': '모집예정',
     'RECRUITING': '모집중',
+    'RECRUIT_CLOSED': '모집완료',
+    'PENDING': '확정대기',
     'IN_PROGRESS': '진행중',
     'COMPLETED': '완료',
     'CANCELLED': '취소'
@@ -24,7 +38,8 @@ const STATUS_LABELS: Record<string, string> = {
 const StudyStatusChart: React.FC<StudyStatusChartProps> = ({ data }) => {
     const formattedData = data.map(item => ({
         name: STATUS_LABELS[item.status] || item.status,
-        value: item.count
+        value: item.count,
+        color: STATUS_COLORS[item.status] || '#5F6368'
     }));
 
     const total = data.reduce((sum, item) => sum + item.count, 0);
@@ -50,8 +65,8 @@ const StudyStatusChart: React.FC<StudyStatusChartProps> = ({ data }) => {
                             label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                             labelLine={false}
                         >
-                            {formattedData.map((_, index) => (
-                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            {formattedData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.color} />
                             ))}
                         </Pie>
                         <Tooltip
