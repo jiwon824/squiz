@@ -1391,6 +1391,28 @@ const MeetingRoomPage: React.FC = () => {
             if (publishCamera && isPresenter) {
                 await updateOutgoingVideo({ publish: true, cameraEnabledOverride: true });
             }
+            // 기존 스트림이 있어도 aiDetection이 작동 중인지 확인하고 재시작
+            if (aiVideoRef.current) {
+                const currentSrcObject = aiVideoRef.current.srcObject as MediaStream | null;
+                const needsReset = !currentSrcObject ||
+                    currentSrcObject !== localCameraStreamRef.current ||
+                    !aiDetectionCleanupRef.current;
+                if (needsReset) {
+                    aiVideoRef.current.srcObject = localCameraStreamRef.current;
+                    aiVideoRef.current.play().catch(() => {});
+                    if (aiDetectionCleanupRef.current) {
+                        aiDetectionCleanupRef.current();
+                    }
+                    aiDetectionCleanupRef.current = aiDetection.startDetection(aiVideoRef.current, (isPresent) => {
+                        if (presenceRef.current === isPresent) return;
+                        presenceRef.current = isPresent;
+                        updateSelfParticipant({ isPresent });
+                        if (wsClientRef.current && roomIdRef.current) {
+                            wsClientRef.current.setPresence(roomIdRef.current, { present: isPresent });
+                        }
+                    });
+                }
+            }
             return;
         }
         try {
@@ -1600,6 +1622,11 @@ const MeetingRoomPage: React.FC = () => {
                 setShareMode('screen');
                 shareModeRef.current = 'screen';
                 setCameraEnabled(false);
+                // 카메라 스트림 중지 전에 aiDetection 정리 (중지된 스트림으로 감지 시도 방지)
+                if (aiDetectionCleanupRef.current) {
+                    aiDetectionCleanupRef.current();
+                    aiDetectionCleanupRef.current = null;
+                }
                 stopTracks(localCameraStreamRef.current);
                 localCameraStreamRef.current = null;
                 await ensureCameraStream(false);
@@ -1629,6 +1656,11 @@ const MeetingRoomPage: React.FC = () => {
                 localScreenStreamRef.current = null;
                 setScreenSharing(false);
                 screenSharingRef.current = false;
+                // 카메라 스트림 중지 전에 aiDetection 정리 (중지된 스트림으로 감지 시도 방지)
+                if (aiDetectionCleanupRef.current) {
+                    aiDetectionCleanupRef.current();
+                    aiDetectionCleanupRef.current = null;
+                }
                 stopTracks(localCameraStreamRef.current);
                 localCameraStreamRef.current = null;
             }
