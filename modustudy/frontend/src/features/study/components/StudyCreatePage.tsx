@@ -267,20 +267,29 @@ const StudyCreatePage: React.FC = () => {
         showToast('템플릿을 불러왔습니다.', 'success');
     };
 
-    // 사용자 기술스택 기반 추천
+    // 사용자 스터디 선호 설정 (기술스택 + 일정)
     const [userTechStack, setUserTechStack] = useState<string[]>([]);
+    const [userSchedule, setUserSchedule] = useState<{
+        availableDays: string[];
+        preferredDurationWeeks: number;
+    }>({ availableDays: [], preferredDurationWeeks: 4 });
     const [preferenceLoaded, setPreferenceLoaded] = useState(false);
 
     useEffect(() => {
-        const loadTechStack = async () => {
+        const loadPreference = async () => {
             try {
-                // API에서 기술스택 가져오기
+                // API에서 선호 설정 가져오기
                 const pref: any = await getStudyPreference();
                 console.log('[StudyPreference API 응답]', pref);
                 const techStacks = pref.techStacks || pref.techStack || [];
                 if (techStacks.length > 0) {
                     setUserTechStack(techStacks);
                 }
+                // 일정 정보 로드
+                setUserSchedule({
+                    availableDays: pref.availableDays || [],
+                    preferredDurationWeeks: pref.preferredDurationWeeks || 4,
+                });
             } catch (err) {
                 console.log('[StudyPreference API 실패]', err);
                 // localStorage fallback
@@ -290,16 +299,20 @@ const StudyCreatePage: React.FC = () => {
                         const pref = JSON.parse(saved);
                         const stack = pref.techStacks || pref.techStack || [];
                         if (stack.length > 0) setUserTechStack(stack);
+                        setUserSchedule({
+                            availableDays: pref.availableDays || [],
+                            preferredDurationWeeks: pref.preferredDurationWeeks || 4,
+                        });
                     }
                 } catch { /* 무시 */ }
             }
             setPreferenceLoaded(true);
         };
-        loadTechStack();
+        loadPreference();
     }, []);
 
-    // 선호 설정 여부 확인
-    const hasStudyPreference = userTechStack.length > 0;
+    // 선호 설정 여부 확인 (가용 요일만 있으면 AI 추천 가능, 기술스택은 선택)
+    const hasStudyPreference = userSchedule.availableDays.length > 0;
 
     const aiSuggestions = useMemo(() => {
         const items: string[] = [];
@@ -1840,7 +1853,7 @@ const StudyCreatePage: React.FC = () => {
                                 </h3>
                             </div>
                             <p className="text-sm text-gray-600 mb-2">
-                                AI가 맞춤형 스터디 계획을 생성하려면 먼저 스터디 선호 설정을 완료해주세요.
+                                AI가 맞춤형 스터디 계획을 생성하려면 먼저 일정 설정을 완료해주세요.
                             </p>
                             <p className="text-sm text-gray-500">
                                 기술 스택, 가용 일정, 선호 기간 등을 설정하면 더 정확한 추천을 받을 수 있습니다.
