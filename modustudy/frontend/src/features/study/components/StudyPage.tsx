@@ -5,7 +5,7 @@ import StudyListContainer from './StudyListContainer';
 import StudyCardContentV2 from './StudyCardContentV2';
 import StudyFilter, { FilterState } from './StudyFilter';
 import { Study, SortOption } from '../services/studyService';
-import { getStudyList, StudyListItem } from '@/api/endpoints/studyApi';
+import { getStudyList, getLeaderInfo, StudyListItem, LeaderInfoResponse } from '@/api/endpoints/studyApi';
 import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { Button } from '@/shared/components';
 import { cn } from '@/shared/utils/cn';
@@ -100,14 +100,44 @@ const StudyPageV2: React.FC = () => {
             id: item.leader?.id || item.leaderId || 0,
             nickname: item.leader?.nickname || '스터디장',
             profileImage: item.leader?.profileImage || null,
-            leaderRating: 4.5,
-            leaderReviewCount: 0,
+            leaderRating: item.leader?.leaderRating ?? null,
+            leaderReviewCount: item.leader?.leaderReviewCount || 0,
         },
         isBookmarked: false,
         createdAt: item.createdAt,
     });
 
-    // API에서 스터디 목록 로드
+    // 리더 정보가 포함된 스터디 변환 (별도 API 조회 결과 사용)
+    const convertToStudyWithLeader = (item: StudyListItem, leaderInfo?: LeaderInfoResponse): Study => ({
+        id: item.id,
+        leaderId: leaderInfo?.userId || item.leader?.id || item.leaderId || 0,
+        name: item.name,
+        description: item.description || '',
+        topic: item.topic?.name || '',
+        format: item.format?.name || '',
+        studyType: item.studyType,
+        meetingType: item.meetingType,
+        status: item.status,
+        isPublic: true,
+        maxMembers: item.maxMembers,
+        currentMembers: 1, // API에서 제공하지 않으면 기본값
+        difficulty: item.difficulty || 'BEGINNER',
+        scheduleDays: item.scheduleDays || '',
+        scheduleTime: item.scheduleTime,
+        regionId: item.regionId,
+        recruitEndDate: item.recruitEndDate,
+        leader: {
+            id: leaderInfo?.userId || item.leader?.id || item.leaderId || 0,
+            nickname: leaderInfo?.nickname || item.leader?.nickname || '스터디장',
+            profileImage: leaderInfo?.profileImage || item.leader?.profileImage || null,
+            leaderRating: leaderInfo?.leaderRating ?? item.leader?.leaderRating ?? null,
+            leaderReviewCount: leaderInfo?.leaderReviewCount || item.leader?.leaderReviewCount || 0,
+        },
+        isBookmarked: false,
+        createdAt: item.createdAt,
+    });
+
+    // API에서 스터디 목록 로드 (리더 정보 포함)
     const loadStudies = async () => {
         setIsLoading(true);
         try {
@@ -130,7 +160,26 @@ const StudyPageV2: React.FC = () => {
 
             // 안전한 배열 처리 (백엔드 순환 참조 에러 대비)
             const content = response?.content || [];
-            const convertedStudies = content.map(convertToStudy);
+
+            // 각 스터디에 대해 리더 정보 병렬 조회
+            const leaderInfoMap = new Map<number, LeaderInfoResponse>();
+            const leaderInfoPromises = content.map(async (item) => {
+                try {
+                    const leaderInfo = await getLeaderInfo(item.id);
+                    leaderInfoMap.set(item.id, leaderInfo);
+                } catch (err) {
+                    console.warn(`스터디 ${item.id} 리더 정보 조회 실패:`, err);
+                }
+            });
+
+            await Promise.all(leaderInfoPromises);
+
+            // 리더 정보를 포함하여 스터디 변환
+            const convertedStudies = content.map((item) => {
+                const leaderInfo = leaderInfoMap.get(item.id);
+                return convertToStudyWithLeader(item, leaderInfo);
+            });
+
             console.log('[변환된 스터디]', convertedStudies);
             setStudies(convertedStudies);
             setTotalPages(response?.totalPages || 0);

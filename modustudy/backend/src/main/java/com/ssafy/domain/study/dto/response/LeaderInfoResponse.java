@@ -20,6 +20,8 @@ public class LeaderInfoResponse {
 
     private String email;
 
+    private String profileImage;
+
     private Float leaderRating;
 
     private Integer leaderReviewCount;
@@ -34,6 +36,7 @@ public class LeaderInfoResponse {
                 .name(user.getName())
                 .nickname(user.getNickname())
                 .email(user.getEmail())
+                .profileImage(user.getProfileImage())
                 .leaderRating(user.getLeaderRating())
                 .leaderReviewCount(user.getLeaderReviewCount())
                 .currentLevel(user.getCurrentLevel())
