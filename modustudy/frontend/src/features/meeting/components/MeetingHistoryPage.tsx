@@ -109,9 +109,6 @@ const MeetingHistoryPage: React.FC = () => {
                             <p className="meeting-history__subtitle">날짜별로 미팅을 확인해보세요.</p>
                         </div>
                     </div>
-                    <button className="meeting-btn primary" onClick={() => setShowStartModal(true)}>
-                        미팅 시작
-                    </button>
                 </div>
 
                 <div className="meeting-history__filters">

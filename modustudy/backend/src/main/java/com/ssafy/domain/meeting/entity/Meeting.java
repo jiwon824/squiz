@@ -107,6 +107,36 @@ public class Meeting extends BaseEntity {
                 .build();
     }
 
+    public static Meeting schedule(Long studyId, Long sessionId, Long workspaceId, String title, MeetingType meetingType,
+                                   java.time.LocalDateTime scheduledAt, Integer plannedDurationSeconds) {
+        return Meeting.builder()
+                .studyId(studyId)
+                .sessionId(sessionId)
+                .workspaceId(workspaceId)
+                .title(title)
+                .meetingType(meetingType)
+                .startedAt(scheduledAt)
+                .participantCount(0)
+                .plannedDurationSeconds(plannedDurationSeconds)
+                .status(MeetingStatus.WAITING)
+                .recordingStatus(RecordingStatus.WAITING)
+                .sttStatus(SttStatus.PENDING)
+                .summaryStatus(SummaryStatus.PENDING)
+                .autoShareSummary(false)
+                .build();
+    }
+
+    public void startFromWaiting(java.time.LocalDateTime now) {
+        if (this.status != MeetingStatus.WAITING) {
+            return;
+        }
+        this.status = MeetingStatus.IN_PROGRESS;
+        if (this.startedAt == null) {
+            this.startedAt = now;
+        }
+        this.recordingStatus = RecordingStatus.RECORDING;
+    }
+
     public void end(java.time.LocalDateTime endedAt, int participantCount) {
         this.endedAt = endedAt;
         if (startedAt != null) {

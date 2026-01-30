@@ -1,6 +1,6 @@
-/**
+﻿/**
  * 스터디 API
- * 스터디 조회/생성/수정 및 멤버 관련 API 엔드포인트
+ * 스터디 조회/생성/수정 및 멤버 관련 API 모음
  */
 
 import api from '../axios';
@@ -15,7 +15,7 @@ export interface TopicInfo {
   sortOrder: number;
 }
 
-// 토픽 자식 (계층 구조용)
+// 토픽 자식 (계층 구조)
 export interface TopicChild {
   id: number;
   name: string;
@@ -23,7 +23,7 @@ export interface TopicChild {
   sortOrder: number;
 }
 
-// 토픽 부모 (계층 구조용)
+// 토픽 부모 (계층 구조)
 export interface TopicParent {
   id: number;
   name: string;
@@ -41,7 +41,7 @@ export interface FormatInfo {
   sortOrder: number;
 }
 
-// 형식 아이템 (별칭)
+// 형식 아이템(별칭)
 export interface FormatItem {
   id: number;
   name: string;
@@ -135,7 +135,7 @@ export interface StudyMemberResponse {
   joinedAt: string;
 }
 
-// 페이징 응답
+// 페이지 응답
 export interface PageResponse<T> {
   content: T[];
   pageable: {
@@ -196,7 +196,7 @@ export interface AiStudyPlanRequest {
   techStack?: string[];
   schedule?: string[];
   durationWeeks?: number;  // 선호 스터디 기간 (주)
-  totalSessions?: number;  // 총 회차 (요일수 × 주수)
+  totalSessions?: number;  // 총 회차 (요일 수 × 주수)
 }
 
 // 주차별 커리큘럼 아이템
@@ -225,7 +225,7 @@ export interface AiStudyPlanResponse {
     days: string[];
     time: string;
   };
-  // 새로 추가: 주차별 커리큘럼
+  // 추가: 주차별 커리큘럼
   curriculum?: AiCurriculumItem[];
 }
 
@@ -299,7 +299,7 @@ export interface StudyListPageResponse {
 }
 
 /**
- * 스터디 목록 조회 (페이징)
+ * 스터디 목록 조회 (페이지)
  * GET /api/v1/study
  */
 export const getStudyList = async (params: StudyListParams = {}): Promise<StudyListPageResponse> => {
@@ -313,22 +313,22 @@ export const getStudyList = async (params: StudyListParams = {}): Promise<StudyL
   if (params.difficulty) queryParams.set('difficulty', params.difficulty);
   if (params.status) queryParams.set('status', params.status);
 
-  console.log('[getStudyList] 요청:', `/api/v1/study?${queryParams.toString()}`);
+  console.log('[getStudyList] 요청:', /api/v1/study?);
   const response = await api.get(`/api/v1/study?${queryParams.toString()}`);
   console.log('[getStudyList] 응답:', response.data);
 
   // 백엔드 응답 형식: { success: true, data: { content: [...], ... } }
-  // 또는 직접 페이징 응답: { content: [...], ... }
+  // 또는 직접 페이지 응답: { content: [...], ... }
   const data = response.data;
   if (data.data && data.data.content !== undefined) {
     // { success: true, data: { content: [...] } } 형식
     return data.data;
   } else if (data.content !== undefined) {
-    // { content: [...] } 형식 (직접 페이징 응답)
+    // { content: [...] } 형식 (직접 페이지 응답)
     return data;
   } else {
-    // 빈 응답 처리
-    console.warn('[getStudyList] 예상치 못한 응답 구조:', data);
+    // 예외 응답 처리
+    console.warn('[getStudyList] 예상하지 못한 응답 구조:', data);
     return {
       content: [],
       pageable: { pageNumber: 0, pageSize: 12 },
@@ -365,13 +365,15 @@ export const studyApi = {
     const response = await api.get<any>(`/api/v1/study/${studyId}`);
     let data = response.data;
 
-    // 백엔드 순환참조로 인해 JSON이 문자열로 올 수 있음 - name 필드만 추출
+    // 기존 백엔드 응답이 문자열인 경우 간단 파싱
     if (typeof data === 'string') {
       const nameMatch = data.match(/"name"\s*:\s*"([^"]+)"/);
       const idMatch = data.match(/"id"\s*:\s*(\d+)/);
+      const leaderMatch = data.match(/"leaderId"\s*:\s*(\d+)/);
       data = {
         id: idMatch ? parseInt(idMatch[1]) : 0,
-        name: nameMatch ? nameMatch[1] : '스터디',
+        leaderId: leaderMatch ? parseInt(leaderMatch[1]) : undefined,
+        name: nameMatch ? nameMatch[1] : 'Study',
       };
     }
 
@@ -379,7 +381,7 @@ export const studyApi = {
   },
 
   /**
-   * 스터디 존재 여부 확인
+   * ���͵� ���� ���� Ȯ��
    * GET /api/v1/study/{studyId}/exists
    */
   checkStudyExists: async (studyId: number) => {
@@ -388,7 +390,7 @@ export const studyApi = {
   },
 
   /**
-   * 내 스터디 목록 조회
+   * �� ���͵� ��� ��ȸ
    * GET /api/v1/study/my
    */
   getMyStudies: async (page = 0, size = 20) => {
@@ -399,7 +401,7 @@ export const studyApi = {
   },
 
   /**
-   * 스터디 멤버 목록 조회
+   * ���͵� ��� ��� ��ȸ
    * GET /api/v1/study/{studyId}/members
    */
   getStudyMembers: async (studyId: number, page = 0, size = 50) => {
@@ -1151,12 +1153,20 @@ export const generateStudyPlanStream = async (
           return;
         }
       } catch (e) {
-        console.warn('[SSE 버퍼 파싱 실패]', e);
+        console.warn('[SSE ���� �Ľ� ����]', e);
       }
     }
-    console.warn('[SSE 스트림 종료] complete 이벤트 없이 종료됨');
-    callbacks.onError(new Error('스트림이 완료 이벤트 없이 종료되었습니다'));
+    console.warn('[SSE ��Ʈ�� ����] complete �̺�Ʈ ���� �����');
+    callbacks.onError(new Error('��Ʈ���� �Ϸ� �̺�Ʈ ���� ����Ǿ����ϴ�.'));
   } catch (error) {
     callbacks.onError(error instanceof Error ? error : new Error(String(error)));
   }
 };
+
+
+
+
+
+
+
+
