@@ -12,6 +12,7 @@ AI 추론 서버 (FastAPI + llama-cpp-python + Whisper)
 import os
 import uuid
 import tempfile
+import subprocess
 from pathlib import Path
 from typing import Optional
 from fastapi import FastAPI, HTTPException, UploadFile, File, BackgroundTasks
@@ -35,6 +36,67 @@ REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 # 전역 모델
 llm = None
 whisper_model = None
+
+
+# ===== 음성 전처리 =====
+
+def preprocess_audio(input_path: str) -> str:
+    """
+    음성 전처리 (노이즈 제거 + 정규화)
+    - highpass: 75Hz 이하 저주파 제거 (남성 저음 보존)
+    - lowpass: 8kHz 이상 고주파 제거 (하울링)
+    - afftdn: FFT 기반 노이즈 감쇠 (loudnorm 전에 배치)
+    - loudnorm: 볼륨 정규화
+    - 16kHz mono PCM으로 변환 (Whisper 최적)
+    
+    Returns: 전처리된 파일 경로 (실패 시 원본 경로)
+    """
+    try:
+        # 출력 파일 경로 (UUID로 충돌 방지)
+        output_path = input_path.rsplit(".", 1)[0] + f"_preprocessed_{uuid.uuid4().hex[:8]}.wav"
+        
+        # ffmpeg 명령어 (최적화)
+        cmd = [
+            "ffmpeg", "-i", input_path,
+            "-af", "highpass=f=75,lowpass=f=8000,afftdn=nf=-25,loudnorm",
+            "-c:a", "pcm_s16le",  # 무압축 PCM (Whisper 최적)
+            "-ar", "16000",       # 16kHz 샘플레이트
+            "-ac", "1",           # 모노
+            "-threads", "0",      # CPU 자동 최적화
+            "-y",                 # 덮어쓰기
+            output_path
+        ]
+        
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=300  # 5분 타임아웃
+        )
+        
+        if result.returncode == 0:
+            print(f"[PREPROCESS] 전처리 완료: {input_path} -> {output_path}")
+            return output_path
+        else:
+            print(f"[PREPROCESS] ffmpeg 실패: {result.stderr[:200]}")
+            return input_path  # 원본 사용 (fallback)
+            
+    except subprocess.TimeoutExpired:
+        print(f"[PREPROCESS] 타임아웃 (5분 초과): {input_path}")
+        return input_path
+    except Exception as e:
+        print(f"[PREPROCESS] 에러: {e}")
+        return input_path
+
+
+def cleanup_preprocessed(original_path: str, preprocessed_path: str):
+    """전처리된 임시 파일 삭제"""
+    if preprocessed_path != original_path and os.path.exists(preprocessed_path):
+        try:
+            os.unlink(preprocessed_path)
+        except Exception:
+            pass
+
 
 
 def load_llm():
@@ -224,10 +286,14 @@ async def speech_to_text(file: UploadFile = File(...)):
         tmp.write(content)
         tmp_path = tmp.name
 
+    preprocessed_path = None
     try:
+        # 음성 전처리 (노이즈 제거)
+        preprocessed_path = preprocess_audio(tmp_path)
+        
         # Whisper 추론
         segments, info = whisper_model.transcribe(
-            tmp_path,
+            preprocessed_path,
             language="ko",
             beam_size=5,
             vad_filter=True,
@@ -253,6 +319,8 @@ async def speech_to_text(file: UploadFile = File(...)):
 
     finally:
         # 임시 파일 삭제
+        if preprocessed_path:
+            cleanup_preprocessed(tmp_path, preprocessed_path)
         os.unlink(tmp_path)
 
 
@@ -291,11 +359,15 @@ async def speech_to_text_async(
 
 def process_stt_job(job_id: str, file_path: str):
     """STT 백그라운드 작업"""
+    preprocessed_path = None
     try:
         jobs[job_id]["status"] = "processing"
+        
+        # 음성 전처리
+        preprocessed_path = preprocess_audio(file_path)
 
         segments, info = whisper_model.transcribe(
-            file_path,
+            preprocessed_path,
             language="ko",
             beam_size=5,
             vad_filter=True,
@@ -325,6 +397,8 @@ def process_stt_job(job_id: str, file_path: str):
 
     finally:
         # 임시 파일 삭제
+        if preprocessed_path:
+            cleanup_preprocessed(file_path, preprocessed_path)
         if os.path.exists(file_path):
             os.unlink(file_path)
 
@@ -988,12 +1062,16 @@ async def process_meeting(
 
 def process_meeting_job(job_id: str, file_path: str, generate_quiz_flag: bool):
     """회의 전체 처리 백그라운드 작업"""
+    preprocessed_path = None
     try:
         jobs[job_id]["status"] = "processing"
+        
+        # 0. 음성 전처리
+        preprocessed_path = preprocess_audio(file_path)
 
         # 1. STT
         segments, info = whisper_model.transcribe(
-            file_path,
+            preprocessed_path,
             language="ko",
             beam_size=5,
             vad_filter=True,
@@ -1067,6 +1145,8 @@ def process_meeting_job(job_id: str, file_path: str, generate_quiz_flag: bool):
         jobs[job_id]["error"] = str(e)
 
     finally:
+        if preprocessed_path:
+            cleanup_preprocessed(file_path, preprocessed_path)
         if os.path.exists(file_path):
             os.unlink(file_path)
 
@@ -1189,15 +1269,27 @@ async def process_meeting_full(
 
 def process_meeting_full_job(job_id: str, mixed_path: str, individual_paths: list, generate_quiz: bool):
     """회의 전체 처리 백그라운드 작업 (Claude 1회 통합 호출)"""
+    preprocessed_mixed = None
+    preprocessed_individuals = []
     try:
         jobs[job_id]["status"] = "processing"
 
         import json
         import re
 
+        # 0. 음성 전처리 (전체 + 화자별)
+        preprocessed_mixed = preprocess_audio(mixed_path)
+        for item in individual_paths:
+            preprocessed_path = preprocess_audio(item["path"])
+            preprocessed_individuals.append({
+                "original": item["path"],
+                "preprocessed": preprocessed_path,
+                "user_id": item.get("user_id")
+            })
+
         # 1. 전체 음성 STT
         segments, info = whisper_model.transcribe(
-            mixed_path,
+            preprocessed_mixed,
             language="ko",
             beam_size=5,
             vad_filter=True,
@@ -1206,12 +1298,12 @@ def process_meeting_full_job(job_id: str, mixed_path: str, individual_paths: lis
 
         # 2. 화자별 STT (먼저 모두 수행)
         speaker_texts = []
-        for item in individual_paths:
+        for item in preprocessed_individuals:
             if not item["user_id"]:
                 continue
             try:
                 segments, _ = whisper_model.transcribe(
-                    item["path"],
+                    item["preprocessed"],
                     language="ko",
                     beam_size=5,
                     vad_filter=True,
@@ -1352,9 +1444,13 @@ def process_meeting_full_job(job_id: str, mixed_path: str, individual_paths: lis
         print(f"[ERROR] 회의 처리 실패: {e}")
 
     finally:
-        # 임시 파일 정리
+        # 임시 파일 정리 (전처리 파일 포함)
+        if preprocessed_mixed:
+            cleanup_preprocessed(mixed_path, preprocessed_mixed)
         if os.path.exists(mixed_path):
             os.unlink(mixed_path)
+        for item in preprocessed_individuals:
+            cleanup_preprocessed(item["original"], item["preprocessed"])
         for item in individual_paths:
             if os.path.exists(item["path"]):
                 os.unlink(item["path"])
