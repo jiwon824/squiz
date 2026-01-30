@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PasswordInput } from './PasswordInput';
-import { TechStackSelector } from '@/shared/components/TechStackSelector';
 import { OAuthTempData } from '../types';
 import { authApi } from '@/api/endpoints/authApi';
-import { updateStudyPreference } from '@/features/setting/api/settingApi';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import AuthLayout from './AuthLayout';
@@ -20,7 +18,6 @@ export const SignupPage = () => {
     const isOAuthMode = searchParams.get('oauth') === 'true';
     const [oauthData, setOauthData] = useState<OAuthTempData | null>(null);
     const [isLoading, setIsLoading] = useState(false);
-    const [selectedTechs, setSelectedTechs] = useState<string[]>([]);
 
     // 폼 상태
     const [formData, setFormData] = useState({
@@ -110,24 +107,11 @@ export const SignupPage = () => {
 
                 localStorage.removeItem('oauthTempData');
 
-                if (selectedTechs.length > 0) {
-                    try {
-                        await updateStudyPreference({ techStack: selectedTechs });
-                    } catch {
-                        localStorage.setItem('studyPreference', JSON.stringify({ techStack: selectedTechs }));
-                    }
-                }
-
                 console.log('[INFO] 회원가입 완료!');
                 showToast('회원가입이 완료되었습니다!', 'success');
                 navigate('/dashboard');
             } else {
                 console.log('[INFO] 일반 회원가입:', formData);
-
-                if (selectedTechs.length > 0) {
-                    localStorage.setItem('studyPreference', JSON.stringify({ techStack: selectedTechs }));
-                }
-
                 showToast('회원가입이 완료되었습니다!', 'success');
                 navigate('/login');
             }
@@ -139,24 +123,8 @@ export const SignupPage = () => {
         }
     };
 
-    const techStackContent = (
-        <div className="w-full py-4">
-            <h3 className="text-lg font-bold text-gray-900 mb-1 text-center">
-                관심 기술 스택
-            </h3>
-            <p className="text-sm text-gray-500 mb-4 text-center">
-                관심있는 기술을 선택해주세요 (선택사항)
-            </p>
-            <TechStackSelector
-                selected={selectedTechs}
-                onChange={setSelectedTechs}
-                maxSelect={10}
-            />
-        </div>
-    );
-
     return (
-        <AuthLayout leftContent={techStackContent}>
+        <AuthLayout>
             <div className="form-header">
                 <h3>{isOAuthMode ? '추가 정보 입력' : '회원가입'}</h3>
                 <p>
