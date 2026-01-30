@@ -277,6 +277,232 @@ class ContinuousQuizServiceTest {
                     .isInstanceOf(BusinessException.class)
                     .hasMessageContaining("문제를 찾을 수 없습니다");
         }
+
+        @Test
+        @DisplayName("객관식 문제에서 옵션 ID로 제출 시 정답으로 처리한다 (correctAnswer가 텍스트인 경우)")
+        void shouldAcceptOptionIdWhenCorrectAnswerIsText() {
+            // given: correctAnswer가 텍스트 "int"로 저장, 사용자는 옵션 ID "A"를 제출
+            String optionsJson = "[{\"id\": \"A\", \"text\": \"int\"}, {\"id\": \"B\", \"text\": \"integer\"}]";
+            QuizCourseQuestion mcQuestion = createQuizCourseQuestion(
+                    10L, 1, "Java에서 정수형 키워드는?",
+                    QuestionType.MULTIPLE_CHOICE, optionsJson, "int", "정수형은 int입니다."
+            );
+            ReflectionTestUtils.setField(mcQuestion, "section", testSection);
+
+            ContinuousAnswerRequest request = createAnswerRequest("A", 2000L);
+
+            given(learningRepository.findById(10L))
+                    .willReturn(Optional.of(mcQuestion));
+            given(fsrsService.processReview(
+                    eq(TEST_USER_ID), any(), eq(10L), eq(true), anyLong()
+            )).willReturn(testReviewItem);
+
+            // when
+            ContinuousAnswerResponse response = continuousQuizService.submitAnswer(
+                    TEST_USER_ID, 10L, request
+            );
+
+            // then
+            assertThat(response.isCorrect()).isTrue();
+        }
+
+        @Test
+        @DisplayName("객관식 문제에서 옵션 ID로 제출 시 정답으로 처리한다 (correctAnswer가 ID인 경우)")
+        void shouldAcceptOptionIdWhenCorrectAnswerIsId() {
+            // given: correctAnswer가 ID "A"로 저장, 사용자는 옵션 ID "A"를 제출
+            String optionsJson = "[{\"id\": \"A\", \"text\": \"int\"}, {\"id\": \"B\", \"text\": \"integer\"}]";
+            QuizCourseQuestion mcQuestion = createQuizCourseQuestion(
+                    11L, 1, "Java에서 정수형 키워드는?",
+                    QuestionType.MULTIPLE_CHOICE, optionsJson, "A", "정수형은 int입니다."
+            );
+            ReflectionTestUtils.setField(mcQuestion, "section", testSection);
+
+            ContinuousAnswerRequest request = createAnswerRequest("A", 2000L);
+
+            given(learningRepository.findById(11L))
+                    .willReturn(Optional.of(mcQuestion));
+            given(fsrsService.processReview(
+                    eq(TEST_USER_ID), any(), eq(11L), eq(true), anyLong()
+            )).willReturn(testReviewItem);
+
+            // when
+            ContinuousAnswerResponse response = continuousQuizService.submitAnswer(
+                    TEST_USER_ID, 11L, request
+            );
+
+            // then
+            assertThat(response.isCorrect()).isTrue();
+        }
+
+        @Test
+        @DisplayName("다중선택 문제에서 정답을 순서 관계없이 판정한다")
+        void shouldCheckMultipleSelectionAnswerRegardlessOfOrder() {
+            // given: correctAnswer가 "A,C"로 저장, 사용자는 "C,A"를 제출
+            String optionsJson = "[{\"id\": \"A\", \"text\": \"int\"}, {\"id\": \"B\", \"text\": \"String\"}, {\"id\": \"C\", \"text\": \"double\"}]";
+            QuizCourseQuestion mcmQuestion = createQuizCourseQuestion(
+                    12L, 1, "Java에서 기본형 타입을 모두 선택하세요",
+                    QuestionType.MULTIPLE_CHOICE_MULTIPLE, optionsJson, "A,C", "int와 double은 기본형입니다."
+            );
+            ReflectionTestUtils.setField(mcmQuestion, "section", testSection);
+
+            ContinuousAnswerRequest request = createAnswerRequest("C,A", 3000L);
+
+            given(learningRepository.findById(12L))
+                    .willReturn(Optional.of(mcmQuestion));
+            given(fsrsService.processReview(
+                    eq(TEST_USER_ID), any(), eq(12L), eq(true), anyLong()
+            )).willReturn(testReviewItem);
+
+            // when
+            ContinuousAnswerResponse response = continuousQuizService.submitAnswer(
+                    TEST_USER_ID, 12L, request
+            );
+
+            // then
+            assertThat(response.isCorrect()).isTrue();
+        }
+
+        @Test
+        @DisplayName("다중선택 문제에서 옵션 ID와 텍스트를 매칭하여 판정한다")
+        void shouldMatchMultipleSelectionByIdAndText() {
+            // given: correctAnswer가 텍스트 "int,double"로 저장, 사용자는 ID "A,C"를 제출
+            String optionsJson = "[{\"id\": \"A\", \"text\": \"int\"}, {\"id\": \"B\", \"text\": \"String\"}, {\"id\": \"C\", \"text\": \"double\"}]";
+            QuizCourseQuestion mcmQuestion = createQuizCourseQuestion(
+                    13L, 1, "Java에서 기본형 타입을 모두 선택하세요",
+                    QuestionType.MULTIPLE_CHOICE_MULTIPLE, optionsJson, "int,double", "int와 double은 기본형입니다."
+            );
+            ReflectionTestUtils.setField(mcmQuestion, "section", testSection);
+
+            ContinuousAnswerRequest request = createAnswerRequest("A,C", 3000L);
+
+            given(learningRepository.findById(13L))
+                    .willReturn(Optional.of(mcmQuestion));
+            given(fsrsService.processReview(
+                    eq(TEST_USER_ID), any(), eq(13L), eq(true), anyLong()
+            )).willReturn(testReviewItem);
+
+            // when
+            ContinuousAnswerResponse response = continuousQuizService.submitAnswer(
+                    TEST_USER_ID, 13L, request
+            );
+
+            // then
+            assertThat(response.isCorrect()).isTrue();
+        }
+
+        @Test
+        @DisplayName("객관식 문제에서 오답 ID를 제출하면 오답으로 처리한다")
+        void shouldRejectWrongOptionId() {
+            // given: correctAnswer가 "A", 사용자는 "B"를 제출
+            String optionsJson = "[{\"id\": \"A\", \"text\": \"int\"}, {\"id\": \"B\", \"text\": \"integer\"}]";
+            QuizCourseQuestion mcQuestion = createQuizCourseQuestion(
+                    14L, 1, "Java에서 정수형 키워드는?",
+                    QuestionType.MULTIPLE_CHOICE, optionsJson, "A", "정수형은 int입니다."
+            );
+            ReflectionTestUtils.setField(mcQuestion, "section", testSection);
+
+            ContinuousAnswerRequest request = createAnswerRequest("B", 2000L);
+
+            given(learningRepository.findById(14L))
+                    .willReturn(Optional.of(mcQuestion));
+            given(fsrsService.processReview(
+                    eq(TEST_USER_ID), any(), eq(14L), eq(false), anyLong()
+            )).willReturn(testReviewItem);
+
+            // when
+            ContinuousAnswerResponse response = continuousQuizService.submitAnswer(
+                    TEST_USER_ID, 14L, request
+            );
+
+            // then
+            assertThat(response.isCorrect()).isFalse();
+        }
+
+        @Test
+        @DisplayName("correct_answer가 JSON 배열 형식일 때 정답으로 처리한다")
+        void shouldParseJsonArrayCorrectAnswer() {
+            // given: correctAnswer가 JSON 배열 "[\"B\"]"로 저장, 사용자는 "B"를 제출
+            String optionsJson = "[{\"id\": \"A\", \"text\": \"int\"}, {\"id\": \"B\", \"text\": \"integer\"}]";
+            QuizCourseQuestion mcQuestion = createQuizCourseQuestion(
+                    15L, 1, "Java에서 정수형 래퍼 클래스는?",
+                    QuestionType.MULTIPLE_CHOICE, optionsJson, "[\"B\"]", "Integer 클래스입니다."
+            );
+            ReflectionTestUtils.setField(mcQuestion, "section", testSection);
+
+            ContinuousAnswerRequest request = createAnswerRequest("B", 2000L);
+
+            given(learningRepository.findById(15L))
+                    .willReturn(Optional.of(mcQuestion));
+            given(fsrsService.processReview(
+                    eq(TEST_USER_ID), any(), eq(15L), eq(true), anyLong()
+            )).willReturn(testReviewItem);
+
+            // when
+            ContinuousAnswerResponse response = continuousQuizService.submitAnswer(
+                    TEST_USER_ID, 15L, request
+            );
+
+            // then
+            assertThat(response.isCorrect()).isTrue();
+            assertThat(response.getCorrectAnswer()).isEqualTo("B"); // 정규화된 값 반환
+        }
+
+        @Test
+        @DisplayName("correct_answer가 다중선택 JSON 배열일 때 정답으로 처리한다")
+        void shouldParseJsonArrayMultipleCorrectAnswer() {
+            // given: correctAnswer가 JSON 배열 "[\"A\", \"C\"]"로 저장
+            String optionsJson = "[{\"id\": \"A\", \"text\": \"int\"}, {\"id\": \"B\", \"text\": \"String\"}, {\"id\": \"C\", \"text\": \"double\"}]";
+            QuizCourseQuestion mcmQuestion = createQuizCourseQuestion(
+                    16L, 1, "Java에서 기본형 타입을 모두 선택하세요",
+                    QuestionType.MULTIPLE_CHOICE_MULTIPLE, optionsJson, "[\"A\", \"C\"]", "int와 double은 기본형입니다."
+            );
+            ReflectionTestUtils.setField(mcmQuestion, "section", testSection);
+
+            ContinuousAnswerRequest request = createAnswerRequest("C,A", 3000L);
+
+            given(learningRepository.findById(16L))
+                    .willReturn(Optional.of(mcmQuestion));
+            given(fsrsService.processReview(
+                    eq(TEST_USER_ID), any(), eq(16L), eq(true), anyLong()
+            )).willReturn(testReviewItem);
+
+            // when
+            ContinuousAnswerResponse response = continuousQuizService.submitAnswer(
+                    TEST_USER_ID, 16L, request
+            );
+
+            // then
+            assertThat(response.isCorrect()).isTrue();
+        }
+
+        @Test
+        @DisplayName("correct_answer가 따옴표로 감싸진 문자열일 때 정답으로 처리한다")
+        void shouldParseQuotedStringCorrectAnswer() {
+            // given: correctAnswer가 "\"B\""로 저장 (따옴표 포함)
+            String optionsJson = "[{\"id\": \"A\", \"text\": \"int\"}, {\"id\": \"B\", \"text\": \"integer\"}]";
+            QuizCourseQuestion mcQuestion = createQuizCourseQuestion(
+                    17L, 1, "Java에서 정수형 래퍼 클래스는?",
+                    QuestionType.MULTIPLE_CHOICE, optionsJson, "\"B\"", "Integer 클래스입니다."
+            );
+            ReflectionTestUtils.setField(mcQuestion, "section", testSection);
+
+            ContinuousAnswerRequest request = createAnswerRequest("B", 2000L);
+
+            given(learningRepository.findById(17L))
+                    .willReturn(Optional.of(mcQuestion));
+            given(fsrsService.processReview(
+                    eq(TEST_USER_ID), any(), eq(17L), eq(true), anyLong()
+            )).willReturn(testReviewItem);
+
+            // when
+            ContinuousAnswerResponse response = continuousQuizService.submitAnswer(
+                    TEST_USER_ID, 17L, request
+            );
+
+            // then
+            assertThat(response.isCorrect()).isTrue();
+            assertThat(response.getCorrectAnswer()).isEqualTo("B"); // 정규화된 값 반환
+        }
     }
 
     // ══════════════════════════════════════════════════════
