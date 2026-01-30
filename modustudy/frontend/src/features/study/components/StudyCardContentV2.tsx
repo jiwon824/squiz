@@ -1,5 +1,5 @@
 import React from 'react';
-import { Heart, Users, MapPin, Clock, Star, Zap } from 'lucide-react';
+import { Heart, Users, MapPin, Clock, Star, Zap, Monitor, Handshake, Layers } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 import { DifficultyBadge } from './DifficultyBadge';
 
@@ -32,7 +32,7 @@ interface StudyCardContentV2Props {
             id: number;
             nickname: string;
             profileImage?: string | null;
-            leaderRating: number;
+            leaderRating: number | null; // null이면 리뷰가 없는 상태
             leaderReviewCount: number;
         };
         isBookmarked: boolean;
@@ -46,13 +46,23 @@ interface StudyCardContentV2Props {
  * StudyCardContentV2 - Google Material Design 스타일 스터디 카드
  */
 const StudyCardContentV2: React.FC<StudyCardContentV2Props> = ({ study, variant = 'card', onBookmarkToggle, onClick }) => {
-    // 미팅 타입 텍스트
+    // 미팅 타입 텍스트 (스터디 상세 페이지와 동일)
     const getMeetingTypeText = (meetingType: string) => {
         switch (meetingType) {
             case 'ONLINE': return '온라인';
             case 'OFFLINE': return '오프라인';
-            case 'HYBRID': return '혼합';
+            case 'HYBRID': return '온/오프라인 혼합';
             default: return meetingType;
+        }
+    };
+
+    // 미팅 타입 아이콘 (스터디 상세 페이지와 동일)
+    const getMeetingTypeIcon = (meetingType: string, size: number = 14) => {
+        switch (meetingType) {
+            case 'ONLINE': return <Monitor size={size} />;
+            case 'OFFLINE': return <Handshake size={size} />;
+            case 'HYBRID': return <Layers size={size} />;
+            default: return <Monitor size={size} />;
         }
     };
 
@@ -107,7 +117,7 @@ const StudyCardContentV2: React.FC<StudyCardContentV2Props> = ({ study, variant 
                             {study.currentMembers}/{study.maxMembers}명
                         </span>
                         <span className="flex items-center gap-1">
-                            <MapPin size={12} />
+                            {getMeetingTypeIcon(study.meetingType, 12)}
                             {getMeetingTypeText(study.meetingType)}
                         </span>
                         {study.region && (
@@ -129,12 +139,16 @@ const StudyCardContentV2: React.FC<StudyCardContentV2Props> = ({ study, variant 
                     <div className="text-right hidden sm:block">
                         <p className="text-sm font-semibold text-[var(--color-text-primary)]">{study.leader.nickname}</p>
                         <div className="flex items-center justify-end gap-1 mt-0.5">
-                            <Star size={12} className="text-yellow-400 fill-current" />
+                            <Star size={12} className={cn(
+                                study.leader.leaderReviewCount > 0 ? 'text-yellow-400 fill-current' : 'text-gray-300'
+                            )} />
                             <span className="text-xs font-semibold text-[var(--color-text-primary)]">
-                                {study.leader.leaderRating.toFixed(1)}
+                                {study.leader.leaderReviewCount > 0 && study.leader.leaderRating != null
+                                    ? study.leader.leaderRating.toFixed(1)
+                                    : '-'}
                             </span>
                             <span className="text-[10px] text-[var(--color-text-tertiary)]">
-                                ({study.leader.leaderReviewCount})
+                                ({study.leader.leaderReviewCount}개 리뷰)
                             </span>
                         </div>
                     </div>
@@ -229,12 +243,12 @@ const StudyCardContentV2: React.FC<StudyCardContentV2Props> = ({ study, variant 
                 {study.description}
             </p>
 
-            {/* 정보 그리드 - 고정 2x2 */}
+            {/* 정보 그리드 - 고정 2x2 (스터디 상세 페이지와 동일한 아이콘) */}
             <div className="grid grid-cols-2 gap-2.5 mt-auto flex-shrink-0">
                 <InfoChip icon={<Users size={14} />} text={`${study.currentMembers}/${study.maxMembers}명`} highlight={isFullCapacity} />
-                <InfoChip icon={<MapPin size={14} />} text={getMeetingTypeText(study.meetingType)} />
-                <InfoChip icon={<Clock size={14} />} text={study.scheduleTime ? study.scheduleTime.substring(0, 5) : '시간 미정'} />
-                <InfoChip icon={<MapPin size={14} />} text={study.region?.name || '-'} />
+                <InfoChip icon={getMeetingTypeIcon(study.meetingType)} text={getMeetingTypeText(study.meetingType)} />
+                <InfoChip icon={<Clock size={14} />} text={study.scheduleTime ? study.scheduleTime.substring(0, 5) : '협의 후 결정'} />
+                <InfoChip icon={<MapPin size={14} />} text={study.region?.name || '전국'} />
             </div>
 
             {/* 하단: 리더 정보 - 항상 맨 아래 */}
@@ -248,12 +262,16 @@ const StudyCardContentV2: React.FC<StudyCardContentV2Props> = ({ study, variant 
                     {study.leader.nickname}
                 </span>
                 <div className="flex items-center gap-1.5">
-                    <Star size={16} className="text-yellow-400 fill-current" />
+                    <Star size={16} className={cn(
+                        study.leader.leaderReviewCount > 0 ? 'text-yellow-400 fill-current' : 'text-gray-300'
+                    )} />
                     <span className="text-[15px] font-semibold text-[var(--color-text-primary)]">
-                        {study.leader.leaderRating.toFixed(1)}
+                        {study.leader.leaderReviewCount > 0 && study.leader.leaderRating != null
+                            ? study.leader.leaderRating.toFixed(1)
+                            : '-'}
                     </span>
                     <span className="text-xs text-[var(--color-text-tertiary)]">
-                        ({study.leader.leaderReviewCount})
+                        ({study.leader.leaderReviewCount}개 리뷰)
                     </span>
                 </div>
             </div>
