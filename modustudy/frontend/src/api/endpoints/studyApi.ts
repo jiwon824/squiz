@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 스터디 API
  * 스터디 조회/생성/수정 및 멤버 관련 API 모음
  */
@@ -383,7 +383,7 @@ export const studyApi = {
   },
 
   /**
-   * ���͵� ���� ���� Ȯ��
+   * 스터디 존재 여부 확인
    * GET /api/v1/study/{studyId}/exists
    */
   checkStudyExists: async (studyId: number) => {
@@ -392,7 +392,7 @@ export const studyApi = {
   },
 
   /**
-   * �� ���͵� ��� ��ȸ
+   * 내 스터디 목록 조회
    * GET /api/v1/study/my
    */
   getMyStudies: async (page = 0, size = 20) => {
@@ -403,7 +403,7 @@ export const studyApi = {
   },
 
   /**
-   * ���͵� ��� ��� ��ȸ
+   * 스터디 멤버 목록 조회
    * GET /api/v1/study/{studyId}/members
    */
   getStudyMembers: async (studyId: number, page = 0, size = 50) => {
@@ -1146,10 +1146,14 @@ export const generateStudyPlanStream = async (
         const trimmedLine = line.trim();
         if (!trimmedLine) continue; // 빈 줄 무시
 
+        console.log('[SSE 라인]', trimmedLine);
+
         if (trimmedLine.startsWith('event:')) {
           currentEvent = trimmedLine.substring(6).trim();
+          console.log('[SSE 이벤트]', currentEvent);
         } else if (trimmedLine.startsWith('data:')) {
           const data = trimmedLine.substring(5).trim();
+          console.log('[SSE 데이터]', data.substring(0, 100) + '...');
 
           try {
             const parsed = JSON.parse(data);
@@ -1157,6 +1161,7 @@ export const generateStudyPlanStream = async (
             if (currentEvent === 'token' && parsed.token !== undefined) {
               callbacks.onToken(parsed.token);
             } else if (currentEvent === 'complete') {
+              console.log('[SSE 완료 이벤트 수신]', parsed);
               // 완료 시 응답 변환
               const result: AiStudyPlanResponse = {
                 name: parsed.name || '',
@@ -1173,14 +1178,17 @@ export const generateStudyPlanStream = async (
                 scheduleSuggestion: parsed.scheduleSuggestion || parsed.schedule_suggestion,
                 curriculum: parsed.curriculum,
               };
+              console.log('[SSE 완료 결과]', result);
               callbacks.onComplete(result);
               return;
             } else if (currentEvent === 'error') {
+              console.error('[SSE 에러 이벤트]', parsed);
               callbacks.onError(new Error(parsed.error || 'Unknown error'));
               return;
             }
-          } catch {
+          } catch (parseError) {
             // JSON 파싱 실패 시 무시 (부분 데이터일 수 있음)
+            console.warn('[SSE 파싱 실패]', data);
           }
 
           currentEvent = ''; // 이벤트 리셋
@@ -1191,11 +1199,13 @@ export const generateStudyPlanStream = async (
     // 스트림이 끝났는데 complete 이벤트가 없었던 경우
     // 버퍼에 남은 데이터가 있으면 처리 시도
     if (buffer.trim()) {
+      console.log('[SSE 스트림 종료] 남은 버퍼 처리 시도:', buffer.substring(0, 200));
       try {
         // complete 이벤트의 data 부분만 남아있을 수 있음
         const dataMatch = buffer.match(/data:\s*(\{[\s\S]*\})/);
         if (dataMatch) {
           const parsed = JSON.parse(dataMatch[1]);
+          console.log('[SSE 버퍼에서 complete 데이터 파싱]', parsed);
           const result: AiStudyPlanResponse = {
             name: parsed.name || '',
             intro: parsed.intro || '',
@@ -1215,11 +1225,11 @@ export const generateStudyPlanStream = async (
           return;
         }
       } catch (e) {
-        console.warn('[SSE ���� �Ľ� ����]', e);
+        console.warn('[SSE 버퍼 파싱 실패]', e);
       }
     }
-    console.warn('[SSE ��Ʈ�� ����] complete �̺�Ʈ ���� �����');
-    callbacks.onError(new Error('��Ʈ���� �Ϸ� �̺�Ʈ ���� ����Ǿ����ϴ�.'));
+    console.warn('[SSE 스트림 종료] complete 이벤트 없이 종료됨');
+    callbacks.onError(new Error('스트림이 완료 이벤트 없이 종료되었습니다.'));
   } catch (error) {
     callbacks.onError(error instanceof Error ? error : new Error(String(error)));
   }
