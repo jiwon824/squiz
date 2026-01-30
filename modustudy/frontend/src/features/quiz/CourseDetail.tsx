@@ -222,35 +222,23 @@ export const CourseDetail = () => {
         window.location.reload();
     };
 
-    // 섹션 클릭 핸들러 - 로그인 상태에 따라 다른 동작
+    // 섹션 클릭 핸들러 - 연속 학습 모드로 이동
     const handleSectionClick = (sectionNumber: number) => {
         if (!courseData?.isAuthenticated) {
             // 비로그인 사용자: 로그인 페이지로 리다이렉트
             console.log('[CourseDetail] 비로그인 사용자 - 로그인 유도');
-            // 현재 페이지를 returnUrl로 저장하여 로그인 후 돌아올 수 있도록
             navigate('/login', {
                 state: {
-                    returnUrl: `/quiz-practice/${courseId}/section/${sectionNumber}/session`,
+                    returnUrl: `/continuous-quiz/${courseId}/section/${sectionNumber}`,
                     message: '퀴즈를 시작하려면 로그인이 필요합니다.'
                 }
             });
             return;
         }
 
-        // 진행 중인 시도가 있는지 확인
-        const section = courseData.sections.find(s => s.sectionNumber === sectionNumber);
-        const attemptId = section?.inProgressAttemptId;
-
-        // 로그인 사용자: 퀴즈 세션 페이지로 이동
-        if (attemptId) {
-            // 명시적 attemptId로 재개
-            console.log(`[CourseDetail] 퀴즈 재개: 코스 ${courseId}, 섹션 ${sectionNumber}, attemptId ${attemptId}`);
-            navigate(`/quiz-practice/${courseId}/section/${sectionNumber}/session/${attemptId}`);
-        } else {
-            // 새 시도 시작
-            console.log(`[CourseDetail] 퀴즈 시작: 코스 ${courseId}, 섹션 ${sectionNumber}`);
-            navigate(`/quiz-practice/${courseId}/section/${sectionNumber}/session`);
-        }
+        // 연속 학습 모드로 직접 이동 (attemptId 불필요)
+        console.log(`[CourseDetail] 연속 학습 시작: 코스 ${courseId}, 섹션 ${sectionNumber}`);
+        navigate(`/continuous-quiz/${courseId}/section/${sectionNumber}`);
     };
 
     // =========================================================================
@@ -449,7 +437,7 @@ export const CourseDetail = () => {
                 >
                     <p style={{ color: 'var(--color-text-secondary)', marginBottom: 0 }}>
                         <strong>Tip:</strong> {courseData.isAuthenticated
-                            ? '섹션을 순서대로 완료하면 다음 섹션이 해금됩니다!'
+                            ? '원하는 섹션을 자유롭게 학습하세요. FSRS 알고리즘이 최적의 복습 시점을 안내합니다!'
                             : '로그인하여 학습 진행률을 저장하고 뱃지를 획득하세요!'}
                     </p>
                 </div>
