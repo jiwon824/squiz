@@ -5,10 +5,11 @@
  * 
  * 목적 (PURPOSE):
  * 개별 코스의 상세 정보를 보여주는 페이지 컴포넌트입니다.
- * 코스 헤더, 진행률, 섹션 목록을 조합하여 전체 페이지를 구성합니다.
- * 
+ * 코스 헤더와 섹션 목록을 조합하여 전체 페이지를 구성합니다.
+ * FSRS 기반 연속 학습 시스템을 위한 코스 진입점입니다.
+ *
  * 조건부 API 호출:
- * - 로그인 사용자: fetchSectionsWithProgress() → 진행률 포함
+ * - 로그인 사용자: fetchSectionsWithProgress() → 섹션 상태 포함
  * - 비로그인 사용자: fetchCourseDetail() → 기본 섹션 정보만
  * 
  * URL: /quiz-practice/:courseId
@@ -21,7 +22,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Loader2, AlertCircle, RefreshCw, LogIn } from 'lucide-react';
 
 import { CourseDetailHeader } from './components/CourseDetailHeader';
-import { CourseDetailProgress } from './components/CourseDetailProgress';
 import { CourseDetailSectionList } from './components/CourseDetailSectionList';
 import { useAuthStore } from '@/store/authStore';
 import {
@@ -355,7 +355,6 @@ export const CourseDetail = () => {
     // =========================================================================
 
     const category = mapCodeToCategory(courseData.courseName);
-    const completedCount = courseData.sections.filter(s => s.isPassed).length;
 
     return (
         <div
@@ -387,7 +386,7 @@ export const CourseDetail = () => {
                         <div className="flex items-center gap-3">
                             <LogIn size={20} style={{ color: 'var(--color-warning-dark)' }} />
                             <p style={{ color: 'var(--color-warning-dark)', marginBottom: 0 }}>
-                                <strong>로그인하면</strong> 진행률을 저장하고 다음 섹션을 해금할 수 있습니다.
+                                <strong>로그인하여</strong> 문제를 풀어보세요.
                             </p>
                         </div>
                         <button
@@ -412,13 +411,6 @@ export const CourseDetail = () => {
                     </div>
                 )}
 
-                {/* 진행률 */}
-                <CourseDetailProgress
-                    completedCount={completedCount}
-                    totalCount={courseData.totalSections}
-                    category={category}
-                />
-
                 {/* 섹션 목록 */}
                 <CourseDetailSectionList
                     sections={courseData.sections}
@@ -435,10 +427,20 @@ export const CourseDetail = () => {
                         borderRadius: 'var(--radius-lg)',
                     }}
                 >
-                    <p style={{ color: 'var(--color-text-secondary)', marginBottom: 0 }}>
-                        <strong>Tip:</strong> {courseData.isAuthenticated
-                            ? '원하는 섹션을 자유롭게 학습하세요. FSRS 알고리즘이 최적의 복습 시점을 안내합니다!'
-                            : '로그인하여 학습 진행률을 저장하고 뱃지를 획득하세요!'}
+                    <p style={{ color: 'var(--color-text-secondary)', marginBottom: 0, lineHeight: '1.6' }}>
+                        <strong>💡 Tip:</strong> {courseData.isAuthenticated
+                            ? (
+                                <>
+                                    원하는 섹션부터 <strong>자유롭게 학습</strong>하세요!<br />
+                                    학습한 내용은 잊어버리지 않도록 제때 복습시켜 드릴게요.
+                                </>
+                            )
+                            : (
+                                <>
+                                    <strong>로그인</strong>하면 당신의 학습 패턴을 기억하는 똑똑한 친구가 생겨요. <br />
+                                    당신만을 위한 맞춤 학습 경로를 만들어드릴게요!
+                                </>
+                            )}
                     </p>
                 </div>
             </div>
