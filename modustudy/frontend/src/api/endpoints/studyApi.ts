@@ -283,6 +283,8 @@ export interface StudyListItem {
     id: number;
     nickname: string;
     profileImage?: string;
+    leaderRating?: number | null;
+    leaderReviewCount?: number;
   };
 }
 
@@ -657,6 +659,76 @@ export const updateStudy = async (studyId: number, data: StudyCreatePayload) => 
 export const deleteStudy = async (studyId: number) => {
   const response = await api.delete(`/api/v1/study/${studyId}`);
   return response.data;
+};
+
+// ========== 스터디장 리뷰 (Leader Review) ==========
+
+// 스터디장 정보 응답 타입
+export interface LeaderInfoResponse {
+  userId: number;
+  name: string;
+  nickname: string;
+  email: string;
+  leaderRating: number | null;
+  leaderReviewCount: number;
+  currentLevel: number;
+  levelName: string;
+}
+
+// 스터디장 리뷰 응답 타입
+export interface LeaderReviewResponse {
+  reviewId: number;
+  reviewerId: number;
+  reviewerName: string;
+  reviewerNickname: string;
+  studyId: number;
+  studyName: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+}
+
+// 스터디장 리뷰 페이지 응답 타입
+export interface LeaderReviewPageResponse {
+  content: LeaderReviewResponse[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+  first: boolean;
+  last: boolean;
+}
+
+/**
+ * 스터디장 정보 조회
+ * GET /api/v1/study/{studyId}/leader
+ */
+export const getLeaderInfo = async (studyId: number): Promise<LeaderInfoResponse> => {
+  const response = await api.get(`/api/v1/study/${studyId}/leader`);
+  const data = response.data;
+  if (data.data) {
+    return data.data;
+  }
+  return data;
+};
+
+/**
+ * 스터디장 리뷰 목록 조회
+ * GET /api/v1/study/{studyId}/leader/reviews
+ */
+export const getLeaderReviews = async (
+  studyId: number,
+  page = 0,
+  size = 10
+): Promise<LeaderReviewPageResponse> => {
+  const response = await api.get(`/api/v1/study/${studyId}/leader/reviews`, {
+    params: { page, size },
+  });
+  const data = response.data;
+  if (data.data) {
+    return data.data;
+  }
+  return data;
 };
 
 // 내 스터디 템플릿 목록 조회

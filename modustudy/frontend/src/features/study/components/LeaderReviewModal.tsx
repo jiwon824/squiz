@@ -2,14 +2,14 @@ import React from 'react';
 import { Star, User } from 'lucide-react';
 import { Modal } from '@/shared/components';
 import { cn } from '@/shared/utils/cn';
-import { LeaderReview } from '../mockData';
+import { LeaderReviewResponse } from '@/api/endpoints/studyApi';
 
 interface LeaderReviewModalProps {
     isOpen: boolean;
     onClose: () => void;
     leaderNickname: string;
-    reviews: LeaderReview[];
-    averageRating: number;
+    reviews: LeaderReviewResponse[];
+    averageRating: number | null; // null이면 리뷰가 없는 상태
 }
 
 /**
@@ -76,10 +76,10 @@ const LeaderReviewModal: React.FC<LeaderReviewModalProps> = ({
                     {/* 평균 평점 */}
                     <div className="flex flex-col items-center justify-center gap-2 md:pr-8 md:border-r border-border-light/50">
                         <span className="text-5xl font-black text-text-primary">
-                            {averageRating.toFixed(1)}
+                            {averageRating != null ? averageRating.toFixed(1) : '-'}
                         </span>
                         <div className="flex gap-0.5">
-                            {renderStars(averageRating)}
+                            {renderStars(averageRating ?? 0)}
                         </div>
                         <span className="text-sm text-text-tertiary font-medium">
                             총 {reviews.length}개의 리뷰
@@ -120,26 +120,18 @@ const LeaderReviewModal: React.FC<LeaderReviewModalProps> = ({
                     ) : (
                         reviews.map((review) => (
                             <div
-                                key={review.id}
+                                key={review.reviewId}
                                 className="p-5 bg-white border border-border-light rounded-2xl hover:shadow-sm transition-shadow"
                             >
                                 {/* 리뷰어 정보 */}
                                 <div className="flex items-start justify-between mb-3">
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
-                                            {review.reviewerProfileImage ? (
-                                                <img
-                                                    src={review.reviewerProfileImage}
-                                                    alt={review.reviewerNickname}
-                                                    className="w-full h-full object-cover"
-                                                />
-                                            ) : (
-                                                <User size={20} className="text-primary" />
-                                            )}
+                                            <User size={20} className="text-primary" />
                                         </div>
                                         <div>
                                             <p className="text-sm font-bold text-text-primary">
-                                                {review.reviewerNickname}
+                                                {review.reviewerNickname || review.reviewerName}
                                             </p>
                                             <p className="text-[11px] text-text-tertiary">
                                                 {review.studyName}
