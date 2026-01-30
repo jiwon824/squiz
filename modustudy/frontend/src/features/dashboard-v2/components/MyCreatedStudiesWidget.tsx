@@ -4,7 +4,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Crown, Plus, Users, ChevronRight, RefreshCw, Megaphone, Loader2, Maximize2 } from 'lucide-react';
+import { Crown, Plus, Users, ChevronRight, RefreshCw, Megaphone, Loader2, Maximize2, Play } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 import { studyApi } from '@/api/endpoints/studyApi';
 import { useAuthStore } from '@/store/authStore';
@@ -169,8 +169,7 @@ export const MyCreatedStudiesWidget: React.FC = () => {
                     exit={{ opacity: 0, x: -8 }}
                     transition={{ delay: idx * 0.05 }}
                   >
-                    <button
-                      onClick={() => navigate(`/study/${study.id}`)}
+                    <div
                       className={cn(
                         'w-full flex items-center gap-3 text-left group',
                         'rounded-xl p-3 transition-all duration-200',
@@ -178,23 +177,31 @@ export const MyCreatedStudiesWidget: React.FC = () => {
                       )}
                     >
                       {/* 주제 아이콘 또는 인덱스 */}
-                      <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-colors">
+                      <button
+                        onClick={() => navigate(`/study/${study.id}`)}
+                        className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-colors"
+                        title="스터디 상세 보기"
+                      >
                         {study.topic?.icon ? (
                           <span className="text-sm">{study.topic.icon}</span>
                         ) : (
                           <Users size={14} className="text-blue-500" />
                         )}
-                      </div>
+                      </button>
 
                       {/* 스터디 정보 */}
-                      <div className="flex-1 min-w-0">
+                      <button
+                        onClick={() => navigate(`/study/${study.id}`)}
+                        className="flex-1 min-w-0 text-left"
+                        title="스터디 상세 보기"
+                      >
                         <p className="text-sm font-semibold text-gray-800 truncate group-hover:text-blue-700 transition-colors">
                           {study.name}
                         </p>
                         {study.topic && (
                           <p className="text-[11px] text-gray-400 truncate mt-0.5">{study.topic.name}</p>
                         )}
-                      </div>
+                      </button>
 
                       {/* 상태 뱃지 */}
                       <span className={cn(
@@ -204,7 +211,23 @@ export const MyCreatedStudiesWidget: React.FC = () => {
                         <span className={cn('w-1.5 h-1.5 rounded-full', badge.dot)} />
                         {badge.label}
                       </span>
-                    </button>
+
+                      {/* 워크스페이스 이동 버튼 */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/study/${study.id}/workspace`);
+                        }}
+                        className={cn(
+                          'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
+                          'bg-blue-500 hover:bg-blue-600 transition-colors',
+                          'shadow-sm shadow-blue-200'
+                        )}
+                        title="워크스페이스로 이동"
+                      >
+                        <Play size={14} className="text-white ml-0.5" fill="white" />
+                      </button>
+                    </div>
                   </motion.li>
                 );
               })}

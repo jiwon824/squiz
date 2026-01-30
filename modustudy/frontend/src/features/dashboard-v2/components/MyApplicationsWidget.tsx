@@ -4,7 +4,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Search, ChevronRight, RefreshCw, Clock, CheckCircle2, XCircle, Compass, Loader2, Maximize2 } from 'lucide-react';
+import { Send, Search, ChevronRight, RefreshCw, Clock, CheckCircle2, XCircle, Compass, Loader2, Maximize2, Play } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 import { studyApi } from '@/api/endpoints/studyApi';
 
@@ -180,8 +180,7 @@ export const MyApplicationsWidget: React.FC = () => {
                     exit={{ opacity: 0, x: -8 }}
                     transition={{ delay: idx * 0.05 }}
                   >
-                    <button
-                      onClick={() => navigate(`/study/${app.studyId}`)}
+                    <div
                       className={cn(
                         'w-full flex items-center gap-3 text-left group',
                         'rounded-xl p-3 transition-all duration-200',
@@ -189,30 +188,38 @@ export const MyApplicationsWidget: React.FC = () => {
                       )}
                     >
                       {/* 상태 아이콘 */}
-                      <div className={cn(
-                        'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors',
-                        app.status === 'PENDING' && 'bg-amber-50 group-hover:bg-amber-100',
-                        app.status === 'APPROVED' && 'bg-emerald-50 group-hover:bg-emerald-100',
-                        app.status === 'REJECTED' && 'bg-red-50 group-hover:bg-red-100',
-                        !['PENDING', 'APPROVED', 'REJECTED'].includes(app.status) && 'bg-gray-50 group-hover:bg-gray-100',
-                      )}>
+                      <button
+                        onClick={() => navigate(`/study/${app.studyId}`)}
+                        className={cn(
+                          'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors',
+                          app.status === 'PENDING' && 'bg-amber-50 group-hover:bg-amber-100',
+                          app.status === 'APPROVED' && 'bg-emerald-50 group-hover:bg-emerald-100',
+                          app.status === 'REJECTED' && 'bg-red-50 group-hover:bg-red-100',
+                          !['PENDING', 'APPROVED', 'REJECTED'].includes(app.status) && 'bg-gray-50 group-hover:bg-gray-100',
+                        )}
+                        title="스터디 상세 보기"
+                      >
                         <StatusIcon size={14} className={cn(
                           app.status === 'PENDING' && 'text-amber-500',
                           app.status === 'APPROVED' && 'text-emerald-500',
                           app.status === 'REJECTED' && 'text-red-400',
                           !['PENDING', 'APPROVED', 'REJECTED'].includes(app.status) && 'text-gray-400',
                         )} />
-                      </div>
+                      </button>
 
                       {/* 신청 정보 */}
-                      <div className="flex-1 min-w-0">
+                      <button
+                        onClick={() => navigate(`/study/${app.studyId}`)}
+                        className="flex-1 min-w-0 text-left"
+                        title="스터디 상세 보기"
+                      >
                         <p className="text-sm font-semibold text-gray-800 truncate group-hover:text-violet-700 transition-colors">
                           {app.studyName || `스터디 #${app.studyId}`}
                         </p>
                         <p className="text-[11px] text-gray-400 mt-0.5">
                           {formatDate(app.createdAt)} 신청
                         </p>
-                      </div>
+                      </button>
 
                       {/* 상태 뱃지 */}
                       <span className={cn(
@@ -222,7 +229,25 @@ export const MyApplicationsWidget: React.FC = () => {
                         <span className={cn('w-1.5 h-1.5 rounded-full', badge.dot)} />
                         {badge.label}
                       </span>
-                    </button>
+
+                      {/* 워크스페이스 이동 버튼 (승인된 경우에만) */}
+                      {app.status === 'APPROVED' && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/study/${app.studyId}/workspace`);
+                          }}
+                          className={cn(
+                            'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
+                            'bg-emerald-500 hover:bg-emerald-600 transition-colors',
+                            'shadow-sm shadow-emerald-200'
+                          )}
+                          title="워크스페이스로 이동"
+                        >
+                          <Play size={14} className="text-white ml-0.5" fill="white" />
+                        </button>
+                      )}
+                    </div>
                   </motion.li>
                 );
               })}
