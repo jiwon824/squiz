@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Send, CheckCircle, AlertCircle, Loader2, Users, Calendar, MapPin } from 'lucide-react';
-import { studyService, Study } from '../services/studyService';
+import { Study } from '../services/studyService';
+import { studyApi } from '@/api/endpoints/studyApi';
 import { Modal, Button, FormField } from '@/shared/components';
 import { cn } from '@/shared/utils/cn';
 
@@ -43,17 +44,15 @@ const StudyApplyModalV2: React.FC<StudyApplyModalV2Props> = ({ study, isOpen, on
         setStatus('loading');
 
         try {
-            const result = await studyService.applyToStudy(study.id, message);
-            if (result.success) {
-                setStatus('success');
-                setStatusMessage(result.message);
-            } else {
-                setStatus('error');
-                setStatusMessage(result.message);
-            }
-        } catch (error) {
+            const response = await studyApi.applyToStudy(study.id, message);
+            console.log('[StudyApplyModalV2] 신청 응답:', response);
+            setStatus('success');
+            setStatusMessage('스터디 신청이 완료되었습니다! 스터디장의 승인을 기다려주세요.');
+        } catch (error: any) {
+            console.error('[StudyApplyModalV2] 신청 실패:', error);
             setStatus('error');
-            setStatusMessage('신청 처리 중 예상치 못한 오류가 발생했습니다.');
+            const errorMessage = error?.response?.data?.message || error?.message || '신청 처리 중 예상치 못한 오류가 발생했습니다.';
+            setStatusMessage(errorMessage);
         }
     };
 

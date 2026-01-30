@@ -426,6 +426,191 @@ export const studyApi = {
     const response = await api.get<any>(`/api/v1/study/${studyId}/members/${userId}/check`);
     return response.data as boolean;
   },
+
+  // ========== 신청자 관리 (Application) ==========
+
+  /**
+   * 스터디 신청
+   * POST /api/v1/study/{studyId}/applications
+   */
+  applyToStudy: async (studyId: number, message: string) => {
+    const response = await api.post<any>(`/api/v1/study/${studyId}/applications`, { message });
+    return response.data;
+  },
+
+  /**
+   * 스터디 신청자 목록 조회
+   * GET /api/v1/study/{studyId}/applications
+   */
+  getApplications: async (studyId: number, status?: string, page = 0, size = 20) => {
+    const params = new URLSearchParams();
+    params.set('page', page.toString());
+    params.set('size', size.toString());
+    if (status && status !== 'all') {
+      params.set('status', status);
+    }
+
+    const response = await api.get<any>(`/api/v1/study/${studyId}/applications?${params.toString()}`);
+    return response.data;
+  },
+
+  /**
+   * 신청 승인
+   * PATCH /api/v1/study/{studyId}/applications/{applicationId}/approve
+   */
+  approveApplication: async (studyId: number, applicationId: number) => {
+    const response = await api.patch<any>(`/api/v1/study/${studyId}/applications/${applicationId}/approve`);
+    return response.data;
+  },
+
+  /**
+   * 신청 거절
+   * PATCH /api/v1/study/{studyId}/applications/{applicationId}/reject
+   */
+  rejectApplication: async (studyId: number, applicationId: number, rejectedReason?: string) => {
+    const response = await api.patch<any>(
+      `/api/v1/study/${studyId}/applications/${applicationId}/reject`,
+      { rejectedReason }
+    );
+    return response.data;
+  },
+
+  /**
+   * 대기중인 신청자 수 조회
+   * GET /api/v1/study/{studyId}/applications (status=PENDING으로 카운트)
+   */
+  getPendingApplicationCount: async (studyId: number): Promise<number> => {
+    try {
+      const response = await api.get<any>(`/api/v1/study/${studyId}/applications?status=PENDING&page=0&size=1`);
+      const data = response.data;
+      // 응답 구조: { data: { totalElements: N } } 또는 { totalElements: N }
+      return data?.data?.totalElements || data?.totalElements || 0;
+    } catch (error) {
+      console.error('대기중 신청자 수 조회 실패:', error);
+      return 0;
+    }
+  },
+
+  /**
+   * 내 스터디 신청 내역 조회
+   * GET /api/v1/my/applications
+   */
+  getMyApplications: async (status?: string, page = 0, size = 20) => {
+    const params = new URLSearchParams();
+    params.set('page', page.toString());
+    params.set('size', size.toString());
+    if (status && status !== 'all') {
+      params.set('status', status);
+    }
+
+    const response = await api.get<any>(`/api/v1/my/applications?${params.toString()}`);
+    return response.data;
+  },
+
+  // ========== 세션 및 출석 관리 ==========
+
+  /**
+   * 스터디 세션 목록 조회
+   * GET /api/v1/studies/{studyId}/sessions
+   */
+  getStudySessions: async (studyId: number) => {
+    const response = await api.get<any>(`/api/v1/studies/${studyId}/sessions`);
+    return response.data;
+  },
+
+  /**
+   * 세션별 출석 정보 조회 (소명 정보 포함)
+   * GET /api/v1/studies/{studyId}/sessions/{sessionId}/attendance
+   */
+  getSessionAttendance: async (studyId: number, sessionId: number) => {
+    const response = await api.get<any>(`/api/v1/studies/${studyId}/sessions/${sessionId}/attendance`);
+    return response.data;
+  },
+
+  /**
+   * 소명 승인/거절
+   * PATCH /api/v1/studies/{studyId}/sessions/{sessionId}/attendance/{targetUserId}/excuse
+   */
+  decideExcuse: async (
+    studyId: number,
+    sessionId: number,
+    targetUserId: number,
+    decision: 'APPROVED' | 'REJECTED',
+    decisionReason?: string
+  ) => {
+    const response = await api.patch<any>(
+      `/api/v1/studies/${studyId}/sessions/${sessionId}/attendance/${targetUserId}/excuse`,
+      {
+        decision,
+        decisionReason,
+      }
+    );
+    return response.data;
+  },
+
+  /**
+   * 대기중인 소명 수 조회
+   * 모든 세션의 출석 정보를 조회하여 PENDING 상태인 소명 수를 카운트
+   */
+  getPendingExcuseCount: async (studyId: number): Promise<number> => {
+    try {
+      // 1. 세션 목록 조회
+      const sessionsResponse = await api.get<any>(`/api/v1/studies/${studyId}/sessions`);
+      const sessions = sessionsResponse.data || [];
+
+      // 2. 각 세션의 출석 정보 조회 및 PENDING 소명 카운트
+      let pendingCount = 0;
+
+      for (const session of sessions) {
+        try {
+          const attendanceResponse = await api.get<any>(
+            `/api/v1/studies/${studyId}/sessions/${session.id}/attendance`
+          );
+          const attendances = attendanceResponse.data?.data || attendanceResponse.data || [];
+
+          // PENDING 상태의 소명 카운트
+          const pending = attendances.filter(
+            (att: any) => att.excuseStatus === 'PENDING' && att.excuseReason
+          ).length;
+
+          pendingCount += pending;
+        } catch (error) {
+          // 개별 세션 조회 실패는 무시하고 계속 진행
+          console.warn(`세션 ${session.id} 출석 정보 조회 실패:`, error);
+        }
+      }
+
+      return pendingCount;
+    } catch (error) {
+      console.error('대기중 소명 수 조회 실패:', error);
+      return 0;
+    }
+  },
+
+  // ========== 북마크 (Bookmark) ==========
+
+  /**
+   * 북마크 토글 (추가/삭제)
+   * POST /api/v1/study/{studyId}/bookmark
+   */
+  toggleBookmark: async (studyId: number) => {
+    const response = await api.post<any>(`/api/v1/study/${studyId}/bookmark`);
+    return response.data;
+  },
+
+  /**
+   * 북마크 여부 확인
+   * GET /api/v1/study/{studyId}/bookmark/check
+   */
+  checkBookmark: async (studyId: number): Promise<boolean> => {
+    try {
+      const response = await api.get<any>(`/api/v1/study/${studyId}/bookmark/check`);
+      return response.data;
+    } catch (error) {
+      console.error('북마크 여부 확인 실패:', error);
+      return false;
+    }
+  },
 };
 
 // ========== 개별 함수 export (스터디 생성 페이지 등에서 사용) ==========

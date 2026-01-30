@@ -7,7 +7,8 @@ import {
 } from 'lucide-react';
 import { DifficultyBadge } from './DifficultyBadge';
 import { useAuthStore } from '@/store/authStore';
-import { studyService, Study } from '../services/studyService';
+import { studyApi } from '@/api/endpoints/studyApi';
+import { Study } from '../services/studyService';
 import StudyApplyModalV2 from './StudyApplyModalV2';
 import { StudyReportModal } from './StudyReportModal';
 import LeaderReviewModal from './LeaderReviewModal';
@@ -49,21 +50,40 @@ const StudyDetailPageV2: React.FC = () => {
     const { user } = useAuthStore();
 
     useEffect(() => {
-        if (id) {
-            const data = studyService.getStudyById(Number(id));
-            if (data) {
-                setStudy(data);
-                setIsBookmarked(data.isBookmarked);
+        const fetchStudyDetail = async () => {
+            if (!id) return;
+
+            try {
+                const data = await studyApi.getStudyDetail(Number(id));
+                if (data) {
+                    setStudy(data as Study);
+                    setIsBookmarked(data.isBookmarked || false);
+                }
+            } catch (error) {
+                console.error('스터디 상세 조회 실패:', error);
+                showToast('스터디 정보를 불러오는데 실패했습니다.', 'error');
+                navigate('/study');
             }
-        }
-    }, [id]);
+        };
+
+        fetchStudyDetail();
+    }, [id, navigate, showToast]);
 
     if (!study) return null;
 
-    const handleBookmarkToggle = () => {
-        studyService.toggleBookmark(study.id);
-        setIsBookmarked(!isBookmarked);
-        showToast(isBookmarked ? '찜 목록에서 제거되었습니다.' : '찜 목록에 추가되었습니다.', 'success');
+    const handleBookmarkToggle = async () => {
+        try {
+            const response = await studyApi.toggleBookmark(study.id);
+            const newBookmarkState = response?.isBookmarked !== undefined ? response.isBookmarked : !isBookmarked;
+            setIsBookmarked(newBookmarkState);
+            showToast(
+                newBookmarkState ? '찜 목록에 추가되었습니다.' : '찜 목록에서 제거되었습니다.',
+                'success'
+            );
+        } catch (error) {
+            console.error('북마크 토글 실패:', error);
+            showToast('북마크 처리에 실패했습니다.', 'error');
+        }
     };
 
     const handleReportSubmit = (reason: string) => {
