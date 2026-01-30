@@ -7,6 +7,7 @@ import { Sidebar } from './components/Sidebar';
 import { RightSideBarV2 } from './components-v2/RightSideBarV2';
 import { useUIStore, SidebarMode } from '@/store/uiStore';
 import { useAuthStore } from '@/store/authStore';
+import { useNotificationStore } from '@/features/notification/store/notificationStore';
 import { SquizLogoNew } from '@/shared/components/SquizLogoNew';
 import { Bell, User, Settings, LogOut } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
@@ -33,7 +34,8 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEntering
     const activeRightTab = useUIStore((state) => state.activeRightTab);
     const setSidebarMode = useUIStore((state) => state.setSidebarMode);
     const setActiveRightTab = useUIStore((state) => state.setActiveRightTab);
-    const { user, logout } = useAuthStore();
+    const { user, logout, isLoggedIn } = useAuthStore();
+    const { notifications, unreadCount, fetchNotifications, fetchUnreadCount, markNotificationAsRead } = useNotificationStore();
     const [windowWidth, setWindowWidth] = useState(window.innerWidth);
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -72,6 +74,26 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEntering
             window.removeEventListener('dashboardExit', handleDashboardExit);
         };
     }, []);
+
+    // 알림 데이터 로드
+    useEffect(() => {
+        console.log('[알림] isLoggedIn:', isLoggedIn, '현재 로그인 유저:', user?.id, user?.name);
+        if (isLoggedIn) {
+            console.log('[알림] fetchUnreadCount 호출 - userId:', user?.id);
+            fetchUnreadCount();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isLoggedIn]);
+
+    // 알림 드롭다운 열릴 때 알림 목록 로드
+    useEffect(() => {
+        console.log('[알림] isNotificationOpen:', isNotificationOpen, 'isLoggedIn:', isLoggedIn);
+        if (isNotificationOpen && isLoggedIn) {
+            console.log('[알림] fetchNotifications 호출');
+            fetchNotifications(0, 10);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isNotificationOpen, isLoggedIn]);
 
     // 반응형 리사이즈 + 브라우저 확대/축소 감지
     // window.innerWidth는 CSS 논리 픽셀 기준이므로 확대 시 값이 줄어듦
@@ -218,7 +240,11 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEntering
                             >
                                 <div className="relative">
                                     {/* 읽지 않은 알림 표시 */}
-                                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" />
+                                    {unreadCount > 0 && (
+                                        <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 rounded-full flex items-center justify-center text-[10px] text-white font-bold px-1">
+                                            {unreadCount > 99 ? '99+' : unreadCount}
+                                        </span>
+                                    )}
                                     <Bell size={20} className="text-gray-700" />
                                 </div>
                             </button>
@@ -230,15 +256,58 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEntering
                                     'animate-in fade-in slide-in-from-top-2 duration-200 z-50'
                                 )}>
                                     {/* 헤더 */}
-                                    <div className="px-4 py-3 border-b border-gray-100">
+                                    <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                                         <h6 className="text-base font-semibold text-gray-900">알림</h6>
+                                        {unreadCount > 0 && (
+                                            <span className="text-xs text-gray-500">{unreadCount}개의 새 알림</span>
+                                        )}
                                     </div>
 
                                     {/* 알림 목록 */}
                                     <div className="max-h-96 overflow-y-auto">
-                                        <div className="p-4 text-center text-sm text-gray-500">
-                                            새로운 알림이 없습니다
-                                        </div>
+                                        {notifications.length === 0 ? (
+                                            <div className="p-4 text-center text-sm text-gray-500">
+                                                새로운 알림이 없습니다
+                                            </div>
+                                        ) : (
+                                            notifications.slice(0, 10).map((notification) => (
+                                                <div
+                                                    key={notification.id}
+                                                    onClick={() => {
+                                                        if (!notification.isRead) {
+                                                            markNotificationAsRead(notification.id);
+                                                        }
+                                                    }}
+                                                    className={cn(
+                                                        'px-4 py-3 border-b border-gray-50 cursor-pointer transition-colors',
+                                                        'hover:bg-gray-50',
+                                                        !notification.isRead && 'bg-blue-50/50'
+                                                    )}
+                                                >
+                                                    <div className="flex items-start gap-3">
+                                                        {!notification.isRead && (
+                                                            <span className="mt-2 w-2 h-2 bg-blue-500 rounded-full flex-shrink-0" />
+                                                        )}
+                                                        <div className={cn('flex-1', notification.isRead && 'ml-5')}>
+                                                            <p className="text-sm font-medium text-gray-900 line-clamp-1">
+                                                                {notification.title}
+                                                            </p>
+                                                            <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
+                                                                {notification.content}
+                                                            </p>
+                                                            <p className="text-[10px] text-gray-400 mt-1">
+                                                                {new Date(notification.createdAt).toLocaleString('ko-KR', {
+                                                                    month: 'short',
+                                                                    day: 'numeric',
+                                                                    hour: '2-digit',
+                                                                    minute: '2-digit'
+                                                                })}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
                                     </div>
 
                                     {/* 푸터 */}
