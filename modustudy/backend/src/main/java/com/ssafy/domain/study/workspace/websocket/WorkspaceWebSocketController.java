@@ -25,6 +25,7 @@ import org.springframework.stereotype.Controller;
  * - /app/workspace/leave/{workspaceId}    : 워크스페이스 퇴장
  * - /app/workspace/send/{workspaceId}     : 메시지 전송
  * - /app/workspace/typing/{workspaceId}   : 입력 중 표시
+ * - /app/workspace/presence/{workspaceId} : 상태 변경
  *
  * 구독:
  * - /topic/workspace/{workspaceId}        : 워크스페이스 메시지 수신 (브로드캐스트)
@@ -151,6 +152,30 @@ public class WorkspaceWebSocketController {
 
         } catch (Exception e) {
             log.warn("입력 중 표시 전송 실패: workspaceId={}, userId={}", workspaceId, userId);
+        }
+    }
+
+    /**
+     * 상태 변경 (ACTIVE / IDLE)
+     */
+    @MessageMapping("/workspace/presence/{workspaceId}")
+    public void presence(@DestinationVariable Long workspaceId,
+                         @Header("userId") Long userId,
+                         @Header(value = "nickname", required = false) String nickname,
+                         @Valid @Payload WorkspacePresenceMessage message) {
+        try {
+            if (nickname == null || nickname.isEmpty()) {
+                User user = userRepository.findById(userId).orElse(null);
+                nickname = user != null ? user.getNickname() : "알 수 없음";
+            }
+            User user = userRepository.findById(userId).orElse(null);
+            String profileImageUrl = user != null ? user.getProfileImage() : null;
+
+            WorkspaceWebSocketEvent presenceEvent = WorkspaceWebSocketEvent.presence(
+                    workspaceId, userId, nickname, profileImageUrl, message.getStatus());
+            broadcastToWorkspace(workspaceId, presenceEvent);
+        } catch (Exception e) {
+            log.warn("상태 변경 전송 실패: workspaceId={}, userId={}", workspaceId, userId);
         }
     }
 
