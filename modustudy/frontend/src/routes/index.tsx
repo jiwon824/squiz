@@ -91,6 +91,9 @@ const ProfileSkeleton = lazy(() =>
 const AdminDashboardPage = lazy(() =>
     import('../features/admin').then(m => ({ default: m.AdminDashboardPage }))
 );
+const NotificationPage = lazy(() =>
+    import('../features/notification/pages/NotificationPage').then(m => ({ default: m.NotificationPage }))
+);
 
 export const AppRouter = () => {
     const { login, logout, isInitialized, setInitialized } = useAuthStore();
@@ -186,6 +189,7 @@ export const AppRouter = () => {
 
                 {/* 기타 */}
                 <Route path="/recruitment" element={<RecruitmentPage />} />
+                <Route path="/notifications" element={<NotificationPage />} />
                 <Route path="/setting" element={<SettingPage />} />
                 <Route
                     path="/profile"
