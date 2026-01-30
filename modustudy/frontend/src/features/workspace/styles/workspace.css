@@ -106,6 +106,13 @@
   z-index: 0;
 }
 
+.workspace-main__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 /* 다크 모드에서만 blur 효과 */
 [data-theme="dark"] .workspace-main,
 .workspace-container--dark .workspace-main {
