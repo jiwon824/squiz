@@ -11,7 +11,7 @@ import { cn } from '@/shared/utils/cn';
 import { DateRangePicker } from './DateRangePicker';
 import { DatePicker, TimePicker } from '@/shared/components';
 import {
-    getTopics, getFormats, getProvinces, getDistricts, createStudy, updateStudy, generateStudyPlan, generateStudyPlanStream, getMyTemplates, createTemplate, studyApi, createStudySessions,
+    getTopics, getFormats, getProvinces, getDistricts, createStudy, updateStudy, generateStudyPlan, generateStudyPlanStream, getMyTemplates, createTemplate, studyApi, createStudySessions, getStudySessions,
     type TopicParent, type FormatItem, type RegionItem, type StudyCreatePayload, type AiStudyPlanResponse, type StudyTemplateItem
 } from '@/api/endpoints/studyApi';
 import { getStudyPreference } from '@/features/setting/api/settingApi';
@@ -126,7 +126,11 @@ const StudyCreatePage: React.FC = () => {
         const loadStudyData = async () => {
             setIsLoadingStudy(true);
             try {
-                const study = await studyApi.getStudyDetail(Number(editStudyId));
+                // 스터디 정보와 세션(커리큘럼) 정보를 함께 로드
+                const [study, sessions] = await Promise.all([
+                    studyApi.getStudyDetail(Number(editStudyId)),
+                    getStudySessions(Number(editStudyId))
+                ]);
 
                 // 토픽 ID로 대분류 찾기
                 let topicParentId: number | null = null;
@@ -139,6 +143,18 @@ const StudyCreatePage: React.FC = () => {
                         }
                     }
                 }
+
+                // 세션 데이터를 커리큘럼 형태로 변환
+                const hasSessions = sessions && sessions.length > 0;
+                const curriculumData: CurriculumItem[] = hasSessions
+                    ? sessions
+                        .sort((a, b) => a.sessionNumber - b.sessionNumber)
+                        .map(session => ({
+                            session: session.sessionNumber,
+                            description: session.description || session.title || '',
+                            date: session.scheduledAt ? session.scheduledAt.split('T')[0] : undefined
+                        }))
+                    : [{ session: 1, description: '' }];
 
                 setFormData(prev => ({
                     ...prev,
@@ -168,8 +184,8 @@ const StudyCreatePage: React.FC = () => {
                     prerequisites: study.prerequisites || '',
                     processDetail: study.processDetail || '',
                     targetOrgType: study.targetOrgType || '',
-                    hasCurriculum: false,
-                    curriculum: [{ session: 1, description: '' }]
+                    hasCurriculum: hasSessions,
+                    curriculum: curriculumData
                 }));
             } catch (err) {
                 console.error('스터디 데이터 로딩 실패:', err);

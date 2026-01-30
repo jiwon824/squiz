@@ -649,6 +649,12 @@ export const updateStudy = async (studyId: number, data: StudyCreatePayload) => 
   return response.data;
 };
 
+// 스터디 삭제 (신청자가 0명일 때만 가능)
+export const deleteStudy = async (studyId: number) => {
+  const response = await api.delete(`/api/v1/study/${studyId}`);
+  return response.data;
+};
+
 // 내 스터디 템플릿 목록 조회
 export interface StudyTemplateItem {
   id: number;
@@ -835,6 +841,173 @@ export interface StreamingCallbacks {
  * - SSE(Server-Sent Events)로 실시간 토큰 수신
  * - 완료 시 파싱된 JSON 결과 반환
  */
+// ========== 스터디 댓글 (Comment) ==========
+
+// 댓글 응답 타입
+export interface StudyCommentResponse {
+  id: number;
+  studyId: number;
+  userId: number;
+  userNickname: string;
+  userProfileImage: string | null;
+  parentId: number | null;
+  content: string;
+  imageUrl: string | null;
+  isDeleted: boolean;
+  createdAt: string;
+  updatedAt: string;
+  replies: StudyCommentResponse[];
+  replyCount: number;
+}
+
+// 댓글 페이지 응답 타입
+export interface StudyCommentPageResponse {
+  comments: StudyCommentResponse[];
+  totalElements: number;
+  totalPages: number;
+  currentPage: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
+}
+
+// 댓글 생성 요청 타입
+export interface StudyCommentCreateRequest {
+  parentId?: number;
+  content: string;
+  imageUrl?: string;
+}
+
+// 댓글 수정 요청 타입
+export interface StudyCommentUpdateRequest {
+  content: string;
+  imageUrl?: string;
+}
+
+/**
+ * 스터디 댓글 목록 조회 (대댓글 포함)
+ * GET /api/v1/study/{studyId}/comments
+ */
+export const getStudyComments = async (
+  studyId: number,
+  page = 0,
+  size = 20
+): Promise<StudyCommentPageResponse> => {
+  const response = await api.get(`/api/v1/study/${studyId}/comments`, {
+    params: { page, size },
+  });
+  // 백엔드 응답 형식 처리
+  const data = response.data;
+  if (data.data) {
+    return data.data;
+  }
+  return data;
+};
+
+/**
+ * 최상위 댓글만 조회
+ * GET /api/v1/study/{studyId}/comments/parents
+ */
+export const getParentComments = async (
+  studyId: number,
+  page = 0,
+  size = 20
+): Promise<StudyCommentPageResponse> => {
+  const response = await api.get(`/api/v1/study/${studyId}/comments/parents`, {
+    params: { page, size },
+  });
+  const data = response.data;
+  if (data.data) {
+    return data.data;
+  }
+  return data;
+};
+
+/**
+ * 대댓글 목록 조회
+ * GET /api/v1/study/{studyId}/comments/{commentId}/replies
+ */
+export const getCommentReplies = async (
+  studyId: number,
+  commentId: number,
+  page = 0,
+  size = 10
+): Promise<StudyCommentPageResponse> => {
+  const response = await api.get(
+    `/api/v1/study/${studyId}/comments/${commentId}/replies`,
+    { params: { page, size } }
+  );
+  const data = response.data;
+  if (data.data) {
+    return data.data;
+  }
+  return data;
+};
+
+/**
+ * 댓글 생성 (최상위/대댓글)
+ * POST /api/v1/study/{studyId}/comments
+ */
+export const createStudyComment = async (
+  studyId: number,
+  request: StudyCommentCreateRequest
+): Promise<StudyCommentResponse> => {
+  const response = await api.post(`/api/v1/study/${studyId}/comments`, request);
+  const data = response.data;
+  if (data.data) {
+    return data.data;
+  }
+  return data;
+};
+
+/**
+ * 댓글 수정
+ * PUT /api/v1/study/{studyId}/comments/{commentId}
+ */
+export const updateStudyComment = async (
+  studyId: number,
+  commentId: number,
+  request: StudyCommentUpdateRequest
+): Promise<StudyCommentResponse> => {
+  const response = await api.put(
+    `/api/v1/study/${studyId}/comments/${commentId}`,
+    request
+  );
+  const data = response.data;
+  if (data.data) {
+    return data.data;
+  }
+  return data;
+};
+
+/**
+ * 댓글 삭제 (Soft Delete)
+ * DELETE /api/v1/study/{studyId}/comments/{commentId}
+ */
+export const deleteStudyComment = async (
+  studyId: number,
+  commentId: number
+): Promise<void> => {
+  await api.delete(`/api/v1/study/${studyId}/comments/${commentId}`);
+};
+
+/**
+ * 댓글 개수 조회
+ * GET /api/v1/study/{studyId}/comments/count
+ */
+export const getStudyCommentCount = async (studyId: number): Promise<number> => {
+  const response = await api.get(`/api/v1/study/${studyId}/comments/count`);
+  const data = response.data;
+  if (typeof data === 'number') {
+    return data;
+  }
+  if (data.data !== undefined) {
+    return data.data;
+  }
+  return 0;
+};
+
+// ========== AI 스터디 계획 생성 (스트리밍) ==========
+
 export const generateStudyPlanStream = async (
   data: AiStudyPlanRequest,
   callbacks: StreamingCallbacks

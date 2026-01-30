@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import ManagementSidebar from './components/ManagementSidebar';
 import TeamDashboard from './components/TeamDashboard';
@@ -18,9 +18,13 @@ export type ManageTab = 'dashboard' | 'applicants' | 'members' | 'attendance' | 
 const StudyManagementPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const { showToast } = useUIStore();
     const [study, setStudy] = useState<Study | null>(null);
-    const [activeTab, setActiveTab] = useState<ManageTab>('dashboard');
+
+    // URL query parameter에서 초기 탭 설정 (알림에서 직접 이동 시 사용)
+    const initialTab = (searchParams.get('tab') as ManageTab) || 'dashboard';
+    const [activeTab, setActiveTab] = useState<ManageTab>(initialTab);
     const [pendingApplicantCount, setPendingApplicantCount] = useState(0);
     const [pendingExcuseCount, setPendingExcuseCount] = useState(0);
 

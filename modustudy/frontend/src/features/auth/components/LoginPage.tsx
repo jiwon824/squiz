@@ -76,7 +76,15 @@ export const LoginPage = () => {
             });
 
             console.log('[INFO] 로그인 성공!');
-            navigate('/dashboard');
+
+            // 로그인 전 페이지로 리다이렉트 (저장된 URL이 있으면)
+            const redirectUrl = sessionStorage.getItem('redirectAfterLogin');
+            if (redirectUrl) {
+                sessionStorage.removeItem('redirectAfterLogin');
+                navigate(redirectUrl);
+            } else {
+                navigate('/dashboard');
+            }
         } catch (error: any) {
             console.error('Login error:', error);
 

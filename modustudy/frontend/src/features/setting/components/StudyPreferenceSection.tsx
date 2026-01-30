@@ -5,9 +5,10 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { BookOpen, X, Plus, Check, Info } from 'lucide-react';
+import { BookOpen, Check, Info } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 import { Button } from '@/shared/components/Button';
+import { TechStackSelector } from '@/shared/components/TechStackSelector';
 import { getStudyPreference, updateStudyPreference } from '../api/settingApi';
 import type { DayOfWeek, TimeSlot, StudyPreference } from '../types';
 
@@ -25,22 +26,9 @@ const TIME_SLOTS: { value: TimeSlot; label: string; desc: string }[] = [
 // 기간 옵션 (주 단위)
 const DURATION_OPTIONS = [2, 3, 4, 5, 6, 7, 8];
 
-// 추천 기술스택 (자동완성용)
-const SUGGESTED_TECHS = [
-    'Java', 'Spring Boot', 'JPA', 'Python', 'Django', 'FastAPI',
-    'JavaScript', 'TypeScript', 'React', 'Next.js', 'Vue', 'Angular',
-    'Node.js', 'Express', 'NestJS', 'Go', 'Kotlin', 'Swift',
-    'Docker', 'Kubernetes', 'AWS', 'GCP', 'Linux', 'Git',
-    'MySQL', 'PostgreSQL', 'MongoDB', 'Redis', 'Kafka',
-    'PyTorch', 'TensorFlow', 'Flutter', 'React Native',
-    'C', 'C++', 'Rust', 'SQL', 'GraphQL', 'Terraform',
-];
-
 export const StudyPreferenceSection = () => {
     // 폼 상태
     const [techStack, setTechStack] = useState<string[]>([]);
-    const [techInput, setTechInput] = useState('');
-    const [showSuggestions, setShowSuggestions] = useState(false);
     const [availableDays, setAvailableDays] = useState<DayOfWeek[]>([]);
     const [preferredTimeSlot, setPreferredTimeSlot] = useState<TimeSlot | null>(null);
     const [preferredDurationWeeks, setPreferredDurationWeeks] = useState(4);
@@ -88,31 +76,6 @@ export const StudyPreferenceSection = () => {
         }
     }, [techStack, availableDays, preferredTimeSlot, preferredDurationWeeks]);
 
-    // 기술스택 추가
-    const addTech = useCallback((tech: string) => {
-        const trimmed = tech.trim();
-        if (trimmed && !techStack.includes(trimmed)) {
-            setTechStack(prev => [...prev, trimmed]);
-        }
-        setTechInput('');
-        setShowSuggestions(false);
-    }, [techStack]);
-
-    // 기술스택 삭제
-    const removeTech = useCallback((tech: string) => {
-        setTechStack(prev => prev.filter(t => t !== tech));
-    }, []);
-
-    // 기술스택 입력 키 핸들러
-    const handleTechKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter' || e.key === ',') {
-            e.preventDefault();
-            if (techInput.trim()) {
-                addTech(techInput);
-            }
-        }
-    };
-
     // 요일 토글
     const toggleDay = useCallback((day: DayOfWeek) => {
         setAvailableDays(prev =>
@@ -152,13 +115,6 @@ export const StudyPreferenceSection = () => {
         }
     };
 
-    // 필터링된 추천 목록
-    const filteredSuggestions = techInput.trim()
-        ? SUGGESTED_TECHS.filter(
-            t => t.toLowerCase().includes(techInput.toLowerCase()) && !techStack.includes(t)
-        ).slice(0, 8)
-        : [];
-
     if (isLoading) {
         return (
             <section className="setting-section">
@@ -185,78 +141,20 @@ export const StudyPreferenceSection = () => {
                 <div className="bg-white rounded-2xl border border-gray-100 p-6">
                     <div className="flex items-center gap-2 mb-4">
                         <h3 className="text-base font-bold text-gray-900">기술 스택</h3>
+                        <span className="text-xs text-gray-400">
+                            ({techStack.length}개 선택됨)
+                        </span>
                     </div>
 
-                    {/* 등록된 기술스택 태그 */}
-                    {techStack.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mb-4">
-                            {techStack.map(tech => (
-                                <span
-                                    key={tech}
-                                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-primary/10 text-primary text-sm font-medium rounded-full"
-                                >
-                                    {tech}
-                                    <button
-                                        type="button"
-                                        onClick={() => removeTech(tech)}
-                                        className="ml-0.5 hover:bg-primary/20 rounded-full p-0.5 transition-colors"
-                                    >
-                                        <X size={12} />
-                                    </button>
-                                </span>
-                            ))}
-                        </div>
-                    )}
+                    <TechStackSelector
+                        selected={techStack}
+                        onChange={setTechStack}
+                        compact
+                    />
 
-                    {/* 기술스택 입력 */}
-                    <div className="relative">
-                        <div className="flex gap-2">
-                            <input
-                                type="text"
-                                value={techInput}
-                                onChange={(e) => {
-                                    setTechInput(e.target.value);
-                                    setShowSuggestions(true);
-                                }}
-                                onKeyDown={handleTechKeyDown}
-                                onFocus={() => setShowSuggestions(true)}
-                                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                                placeholder="기술명 입력 후 Enter (예: React, Docker)"
-                                className="flex-1 p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none text-sm"
-                            />
-                            <button
-                                type="button"
-                                onClick={() => techInput.trim() && addTech(techInput)}
-                                className="px-4 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors text-gray-600"
-                            >
-                                <Plus size={18} />
-                            </button>
-                        </div>
-
-                        {/* 자동완성 드롭다운 */}
-                        {showSuggestions && filteredSuggestions.length > 0 && (
-                            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
-                                {filteredSuggestions.map(tech => (
-                                    <button
-                                        key={tech}
-                                        type="button"
-                                        onMouseDown={(e) => {
-                                            e.preventDefault();
-                                            addTech(tech);
-                                        }}
-                                        className="w-full px-4 py-2.5 text-left text-sm hover:bg-primary/5 transition-colors flex items-center gap-2"
-                                    >
-                                        <Plus size={14} className="text-gray-400" />
-                                        {tech}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-
-                    <p className="mt-2 text-xs text-gray-400 flex items-center gap-1">
+                    <p className="mt-3 text-xs text-gray-400 flex items-center gap-1">
                         <Info size={12} />
-                        콤마(,) 또는 Enter로 추가. 보유한 기술을 등록하면 맞춤 추천에 활용됩니다.
+                        보유한 기술을 선택하면 맞춤 스터디 추천에 활용됩니다.
                     </p>
                 </div>
 
