@@ -69,8 +69,12 @@ export const NotificationSection = () => {
 
             {/* 알림 설정 목록 */}
             <div className="notification-list">
-                {notificationSettings.map((setting) => {
+                {(notificationSettings || []).map((setting) => {
                     const config = notificationConfig[setting.type];
+                    // config가 없는 경우 기본값 사용
+                    if (!config) {
+                        return null;
+                    }
                     const Icon = config.icon;
 
                     return (

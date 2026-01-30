@@ -1834,7 +1834,8 @@ const MeetingRoomPage: React.FC = () => {
             } finally {
                 stopCameraHardware();
                 sessionStorage.setItem(`meeting-end-reload-${numericMeetingId}`, '1');
-                navigate(`/study/${numericStudyId}/meetings/${numericMeetingId}`);
+                sessionStorage.setItem('workspaceActiveMenu', 'meeting');
+                navigate(`/study/${numericStudyId}/workspace`);
             }
         },
         [numericStudyId, numericMeetingId, canEndMeeting, navigate, stopCameraHardware, finalizeVoiceRecording]
@@ -1864,7 +1865,8 @@ const MeetingRoomPage: React.FC = () => {
                     await finalizeVoiceRecording();
                     stopCameraHardware();
                     sessionStorage.setItem(`meeting-end-reload-${numericMeetingId}`, '1');
-                    navigate(`/study/${numericStudyId}/meetings/${numericMeetingId}`);
+                    sessionStorage.setItem('workspaceActiveMenu', 'meeting');
+                    navigate(`/study/${numericStudyId}/workspace`);
                 })();
                 return;
             }

@@ -7,9 +7,10 @@ import '../styles/MeetingShared.css';
 
 interface MeetingHistoryPanelProps {
   studyId: number;
+  onSelectMeeting?: (meetingId: number) => void;
 }
 
-const MeetingHistoryPanel: React.FC<MeetingHistoryPanelProps> = ({ studyId }) => {
+const MeetingHistoryPanel: React.FC<MeetingHistoryPanelProps> = ({ studyId, onSelectMeeting }) => {
   const navigate = useNavigate();
   const [meetings, setMeetings] = useState<MeetingListItemResponse[]>([]);
   const [startDate, setStartDate] = useState('');
@@ -109,7 +110,13 @@ const MeetingHistoryPanel: React.FC<MeetingHistoryPanelProps> = ({ studyId }) =>
                 {meeting.endedAt && (
                   <button
                     className="meeting-btn ghost"
-                    onClick={() => navigate(`/study/${studyId}/meetings/${meeting.id}`)}
+                    onClick={() => {
+                      if (onSelectMeeting) {
+                        onSelectMeeting(meeting.id);
+                      } else {
+                        navigate(`/study/${studyId}/meetings/${meeting.id}`);
+                      }
+                    }}
                   >
                     기록 보기
                   </button>
