@@ -87,6 +87,7 @@ public class ApplicationService {
         studyRecommendService.tryLogAction(userId, studyId, StudyRecommendAction.ActionType.APPLY);
 
         // 7. 스터디장에게 알림 전송
+        // referenceId에 studyId를 저장하여 프론트엔드에서 /study/manage/{studyId}로 이동 가능하게 함
         String notificationTitle = "새로운 스터디 신청";
         String notificationContent = String.format("%s님이 '%s' 스터디에 참가 신청을 했습니다.",
                 user.getNickname() != null ? user.getNickname() : user.getName(),
@@ -97,7 +98,7 @@ public class ApplicationService {
                 notificationTitle,
                 notificationContent,
                 "STUDY_APPLICATION",
-                saved.getId()
+                studyId
         );
         log.info("스터디장에게 알림 전송 완료 - leaderId: {}", study.getLeaderId());
 

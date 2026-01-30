@@ -75,21 +75,25 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEntering
         };
     }, []);
 
-    // 알림 데이터 로드
+    // 알림 데이터 로드 + 실시간 polling (30초마다)
     useEffect(() => {
-        console.log('[알림] isLoggedIn:', isLoggedIn, '현재 로그인 유저:', user?.id, user?.name);
-        if (isLoggedIn) {
-            console.log('[알림] fetchUnreadCount 호출 - userId:', user?.id);
+        if (!isLoggedIn) return;
+
+        // 초기 로드
+        fetchUnreadCount();
+
+        // 30초마다 알림 체크
+        const interval = setInterval(() => {
             fetchUnreadCount();
-        }
+        }, 30000);
+
+        return () => clearInterval(interval);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isLoggedIn]);
 
     // 알림 드롭다운 열릴 때 알림 목록 로드
     useEffect(() => {
-        console.log('[알림] isNotificationOpen:', isNotificationOpen, 'isLoggedIn:', isLoggedIn);
         if (isNotificationOpen && isLoggedIn) {
-            console.log('[알림] fetchNotifications 호출');
             fetchNotifications(0, 10);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -263,14 +267,14 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEntering
                                         )}
                                     </div>
 
-                                    {/* 알림 목록 */}
+                                    {/* 알림 목록 (읽지 않은 알림만 표시) */}
                                     <div className="max-h-96 overflow-y-auto">
-                                        {notifications.length === 0 ? (
+                                        {notifications.filter(n => !n.isRead).length === 0 ? (
                                             <div className="p-4 text-center text-sm text-gray-500">
                                                 새로운 알림이 없습니다
                                             </div>
                                         ) : (
-                                            notifications.slice(0, 10).map((notification) => (
+                                            notifications.filter(n => !n.isRead).slice(0, 10).map((notification) => (
                                                 <div
                                                     key={notification.id}
                                                     onClick={() => {
