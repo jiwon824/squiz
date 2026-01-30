@@ -2,8 +2,6 @@ package com.ssafy.domain.meeting.service;
 
 import com.ssafy.common.storage.LocalFileStorageService;
 import com.ssafy.domain.ai.service.AiService;
-import com.ssafy.domain.meeting.dto.response.MeetingActionItemResponse;
-import com.ssafy.domain.meeting.entity.ActionItemStatus;
 import com.ssafy.domain.meeting.entity.Meeting;
 import com.ssafy.domain.meeting.entity.MeetingAudioRecording;
 import com.ssafy.domain.meeting.entity.MeetingAudioTrackType;
@@ -21,7 +19,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,7 +34,6 @@ public class MeetingAiProcessingService {
     private final AiService aiService;
     private final MeetingServiceHelper helper;
     private final MeetingSttService meetingSttService;
-    private final MeetingActionItemService meetingActionItemService;
 
     @Transactional
     public String startAiProcessing(Long studyId, Long meetingId) {
@@ -100,15 +96,7 @@ public class MeetingAiProcessingService {
                 summary.updateKeywordsJson(helper.writeJson(result.getKeywords()));
             }
 
-            if (result.getActionItems() != null && !result.getActionItems().isEmpty()) {
-                List<MeetingActionItemResponse> actionItemResponses = new ArrayList<>();
-                for (var item : result.getActionItems()) {
-                    actionItemResponses.add(new MeetingActionItemResponse(
-                            null, item.getContent(), item.getUserId(), ActionItemStatus.TODO));
-                    meetingActionItemService.saveActionItem(meetingId, item.getContent(), item.getUserId(), ActionItemStatus.TODO);
-                }
-                summary.updateActionItemsJson(helper.writeJson(actionItemResponses));
-            }
+            // action_items는 사용하지 않으므로 저장하지 않음
 
             meetingSttService.saveSummary(summary);
 
