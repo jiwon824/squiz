@@ -14,6 +14,7 @@ import { createSfuClient, SfuConsumerPayload } from '../services/sfuClient';
 import audioDetection from '../services/audioDetection';
 import aiDetection from '../services/aiDetection';
 import canvasComposer from '../services/canvasComposer';
+import { studyApi } from '@/api/endpoints/studyApi';
 import {
     MeetingJoinResponse,
     MeetingRoomChatMessage,
@@ -133,10 +134,10 @@ const MeetingRoomPage: React.FC = () => {
     const [roomGuardMessage, setRoomGuardMessage] = useState('회의 정보를 확인 중입니다.');
     const [sfuReady, setSfuReady] = useState(false);
     const [isEnding, setIsEnding] = useState(false);
+    const [leaderId, setLeaderId] = useState<number | null>(null);
 
     const aiVideoRef = useRef<HTMLVideoElement | null>(null);
     const videoStageRef = useRef<HTMLDivElement | null>(null);
-    const ownerKey = user?.id ?? user?.nickname ?? user?.name ?? 'guest';
     const micEnabledRef = useRef(micEnabled);
     const speakingRef = useRef(false);
     const presenceRef = useRef(false);
@@ -221,9 +222,40 @@ const MeetingRoomPage: React.FC = () => {
     }, [meetingStartedAt, plannedDurationSeconds]);
 
     const canEndMeeting = useMemo(() => {
-        if (!numericMeetingId) return false;
-        return localStorage.getItem(`meeting-owner-${numericMeetingId}`) === String(ownerKey);
-    }, [numericMeetingId, ownerKey]);
+        if (!user?.id || leaderId == null) return false;
+        const userIdNum = Number(user.id);
+        if (Number.isNaN(userIdNum)) return false;
+        return userIdNum === leaderId;
+    }, [leaderId, user?.id]);
+
+    useEffect(() => {
+        if (!numericStudyId) return;
+        let cancelled = false;
+        (async () => {
+            try {
+                const detail = await studyApi.getStudyDetail(numericStudyId);
+                if (!cancelled) {
+                    const leader = detail?.leader?.id ?? detail?.leaderId ?? null;
+                    if (leader == null) {
+                        setLeaderId(null);
+                    } else if (typeof leader === 'number') {
+                        setLeaderId(leader);
+                    } else {
+                        const parsed = Number(leader);
+                        setLeaderId(Number.isNaN(parsed) ? null : parsed);
+                    }
+                }
+            } catch (error) {
+                if (!cancelled) {
+                    setLeaderId(null);
+                }
+                console.warn('Failed to fetch study detail for leader check', error);
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [numericStudyId]);
 
     const isPresenter = useMemo(() => {
         if (presenterId !== null && selfParticipantIdRef.current !== null) {

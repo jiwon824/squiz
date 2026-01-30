@@ -15,6 +15,8 @@ import com.ssafy.domain.meeting.repository.MeetingPhotoRepository;
 import com.ssafy.domain.meeting.repository.MeetingRepository;
 import com.ssafy.domain.meeting.repository.MeetingSttFileRepository;
 import com.ssafy.domain.meeting.repository.MeetingSttSummaryRepository;
+import com.ssafy.domain.study.entity.Study;
+import com.ssafy.domain.study.repository.StudyRepository;
 import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -46,6 +48,7 @@ public class MeetingService {
     private final MeetingSttFileRepository meetingSttFileRepository;
     private final MeetingSttSummaryRepository meetingSttSummaryRepository;
     private final UserRepository userRepository;
+    private final StudyRepository studyRepository;
     private final SfuProperties sfuProperties;
     private final MeetingServiceHelper helper;
     private final MeetingRecordingService meetingRecordingService;
@@ -158,7 +161,9 @@ public class MeetingService {
     }
 
     @Transactional
-    public MeetingDetailResponse updatePlannedDuration(Long studyId, Long meetingId, Integer plannedDurationSeconds) {
+    public MeetingDetailResponse updatePlannedDuration(Long studyId, Long meetingId, Long userId,
+                                                       Integer plannedDurationSeconds) {
+        validateLeader(studyId, userId);
         if (plannedDurationSeconds == null || plannedDurationSeconds <= 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "PLANNED_DURATION_REQUIRED");
         }
@@ -178,7 +183,8 @@ public class MeetingService {
     }
 
     @Transactional
-    public MeetingEndResponse endMeeting(Long studyId, Long meetingId) {
+    public MeetingEndResponse endMeeting(Long studyId, Long meetingId, Long userId) {
+        validateLeader(studyId, userId);
         Meeting meeting = helper.getMeetingOrThrow(studyId, meetingId);
         if (meeting.getStatus() == MeetingStatus.ENDED) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "MEETING_ALREADY_ENDED");
@@ -206,6 +212,7 @@ public class MeetingService {
         if (meeting.getStatus() == MeetingStatus.ENDED) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "MEETING_ALREADY_ENDED");
         }
+        meeting.startFromWaiting(LocalDateTime.now());
         MeetingParticipant participant = meetingParticipantRepository.findTopByMeetingIdAndUserIdOrderByJoinedAtDesc(meetingId, userId)
                 .orElseGet(() -> MeetingParticipant.join(meetingId, userId, LocalDateTime.now()));
         if (participant.getId() != null) {
@@ -244,5 +251,13 @@ public class MeetingService {
         MeetingParticipant participant = meetingParticipantRepository.findTopByMeetingIdAndUserIdOrderByJoinedAtDesc(meetingId, userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "NOT_IN_MEETING"));
         participant.updateMute(muted);
+    }
+
+    private void validateLeader(Long studyId, Long userId) {
+        Study study = studyRepository.findById(studyId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "STUDY_NOT_FOUND"));
+        if (!study.getLeaderId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "LEADER_ONLY");
+        }
     }
 }

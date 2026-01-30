@@ -92,7 +92,7 @@ const MeetingControls: React.FC<MeetingControlsProps> = ({
                             ? extendDisabled
                                 ? '최대 3시간까지 연장할 수 있습니다.'
                                 : '미팅 시간을 30분 연장합니다.'
-                            : '미팅을 시작한 사람만 연장할 수 있습니다.'
+                            : '스터디장만 연장할 수 있습니다.'
                     }
                 >
                     미팅 30분 추가
@@ -101,7 +101,7 @@ const MeetingControls: React.FC<MeetingControlsProps> = ({
                     className="meeting-control danger"
                     onClick={onEndMeeting}
                     disabled={!canEndMeeting}
-                    title={canEndMeeting ? '미팅 종료' : '미팅을 시작한 사람만 종료할 수 있습니다.'}
+                    title={canEndMeeting ? '미팅 종료' : '스터디장만 종료할 수 있습니다.'}
                 >
                     미팅 종료
                 </button>

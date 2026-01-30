@@ -11,6 +11,7 @@ import { MaterialArea } from '@/features/material';
 import { workspaceApi } from '@/api/endpoints/workspaceApi';
 import { studyApi, type StudyMemberResponse } from '@/api/endpoints/studyApi';
 import { sessionApi, type StudySessionResponse } from '@/api/endpoints/sessionApi';
+import { meetingApi } from '@/features/meeting/services/meetingApi';
 import { useUIStore } from '@/store/uiStore';
 import { useAuthStore } from '@/store/authStore';
 import { workspaceWebSocket } from '@/api/websocket/workspaceWebSocketService';
@@ -68,6 +69,7 @@ export const WorkspacePage: React.FC = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isWebSocketConnected, setIsWebSocketConnected] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
+  const [activeMeetingId, setActiveMeetingId] = useState<number | null>(null);
 
   // 미팅에서 진입 시 애니메이션 플래그 (최초 렌더 시 한 번만 확인)
   const isEnteringFromMeeting = useMemo(() => {
@@ -311,6 +313,31 @@ export const WorkspacePage: React.FC = () => {
     return sessions.find(isSessionInProgress) || null;
   }, [sessions, currentTime]);
 
+  useEffect(() => {
+    if (!studyId || !activeSession) {
+      setActiveMeetingId(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const meetings = await meetingApi.listMeetings(studyId, { page: 0, size: 20 });
+        const match = meetings.content.find((meeting) => meeting.session?.id === activeSession.id);
+        if (!cancelled) {
+          setActiveMeetingId(match?.id ?? null);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setActiveMeetingId(null);
+        }
+        console.warn('Failed to resolve active meeting id', error);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeSession, studyId]);
+
   // 다크모드 토글
   const handleToggleDarkMode = useCallback(() => {
     setIsDarkMode((prev) => !prev);
@@ -389,9 +416,13 @@ export const WorkspacePage: React.FC = () => {
 
     // 애니메이션 완료 후 네비게이션 (500ms)
     setTimeout(() => {
-      navigate(`/study/${studyId}/meetings`);
+      if (activeMeetingId) {
+        navigate(`/study/${studyId}/meetings/${activeMeetingId}/room`);
+      } else {
+        navigate(`/study/${studyId}/meetings`);
+      }
     }, 500);
-  }, [navigate, studyId]);
+  }, [navigate, studyId, activeMeetingId]);
 
   // 로딩 상태
   if (isLoading) {
