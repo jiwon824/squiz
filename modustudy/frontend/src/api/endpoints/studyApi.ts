@@ -1074,14 +1074,10 @@ export const generateStudyPlanStream = async (
         const trimmedLine = line.trim();
         if (!trimmedLine) continue; // 빈 줄 무시
 
-        console.log('[SSE 라인]', trimmedLine);
-
         if (trimmedLine.startsWith('event:')) {
           currentEvent = trimmedLine.substring(6).trim();
-          console.log('[SSE 이벤트]', currentEvent);
         } else if (trimmedLine.startsWith('data:')) {
           const data = trimmedLine.substring(5).trim();
-          console.log('[SSE 데이터]', data.substring(0, 100) + '...');
 
           try {
             const parsed = JSON.parse(data);
@@ -1089,7 +1085,6 @@ export const generateStudyPlanStream = async (
             if (currentEvent === 'token' && parsed.token !== undefined) {
               callbacks.onToken(parsed.token);
             } else if (currentEvent === 'complete') {
-              console.log('[SSE 완료 이벤트 수신]', parsed);
               // 완료 시 응답 변환
               const result: AiStudyPlanResponse = {
                 name: parsed.name || '',
@@ -1106,17 +1101,14 @@ export const generateStudyPlanStream = async (
                 scheduleSuggestion: parsed.scheduleSuggestion || parsed.schedule_suggestion,
                 curriculum: parsed.curriculum,
               };
-              console.log('[SSE 완료 결과]', result);
               callbacks.onComplete(result);
               return;
             } else if (currentEvent === 'error') {
-              console.error('[SSE 에러 이벤트]', parsed);
               callbacks.onError(new Error(parsed.error || 'Unknown error'));
               return;
             }
-          } catch (parseError) {
+          } catch {
             // JSON 파싱 실패 시 무시 (부분 데이터일 수 있음)
-            console.warn('[SSE 파싱 실패]', data);
           }
 
           currentEvent = ''; // 이벤트 리셋
@@ -1127,13 +1119,11 @@ export const generateStudyPlanStream = async (
     // 스트림이 끝났는데 complete 이벤트가 없었던 경우
     // 버퍼에 남은 데이터가 있으면 처리 시도
     if (buffer.trim()) {
-      console.log('[SSE 스트림 종료] 남은 버퍼 처리 시도:', buffer.substring(0, 200));
       try {
         // complete 이벤트의 data 부분만 남아있을 수 있음
         const dataMatch = buffer.match(/data:\s*(\{[\s\S]*\})/);
         if (dataMatch) {
           const parsed = JSON.parse(dataMatch[1]);
-          console.log('[SSE 버퍼에서 complete 데이터 파싱]', parsed);
           const result: AiStudyPlanResponse = {
             name: parsed.name || '',
             intro: parsed.intro || '',
