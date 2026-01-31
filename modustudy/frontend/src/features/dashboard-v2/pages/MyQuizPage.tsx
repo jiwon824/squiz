@@ -141,16 +141,10 @@ export const MyQuizPage: React.FC = () => {
 
         // 일단 API 호출 시도
         try {
-            // 정답 비교 로직 보완
-            const correctStr = String(selectedReviewItem.question.correctAnswer);
-            // 정답이 숫자인지 문자인지 확실치 않으므로 일단 loose comparison or parsing
-            // 만약 correctAnswer가 "0" 이면 0 == "0" -> true.
-            const isAnswerCorrect = String(selectedAnswer) === correctStr;
-
             await submitReview({
                 contentType: selectedReviewItem.contentType,
                 contentId: selectedReviewItem.contentId,
-                isCorrect: isAnswerCorrect,
+                userAnswer: String(selectedAnswer),
                 responseTimeMs
             });
         } catch (e) {
@@ -164,14 +158,13 @@ export const MyQuizPage: React.FC = () => {
         setShowResult(true);
 
         const responseTimeMs = timer.stop();
-        const correctStr = String(selectedReviewItem.question.correctAnswer).toLowerCase();
-        const isAnswerCorrect = shortAnswer.trim().toLowerCase() === correctStr;
+
 
         try {
             await submitReview({
                 contentType: selectedReviewItem.contentType,
                 contentId: selectedReviewItem.contentId,
-                isCorrect: isAnswerCorrect,
+                userAnswer: shortAnswer,
                 responseTimeMs
             });
         } catch (e) {
@@ -307,12 +300,8 @@ export const MyQuizPage: React.FC = () => {
                                             {(() => {
                                                 const question = selectedReviewItem.question;
                                                 const isCorrect = ['MULTIPLE_CHOICE', 'MULTIPLE_CHOICE_MULTIPLE'].includes(question.questionType)
-                                                    // Assuming correctAnswer is '0', '1', etc. based on index as per MultiChoiceQuiz usually? Or is it 'A'?
-                                                    // Let's assume naive check for now, ideally backend returns 0-based index or letter.
-                                                    // If backend returns 'A', 'B', we might need mapping.
-                                                    // For now let's skip complex verification logic here as it's UI
-                                                    ? true
-                                                    : shortAnswer.trim().toLowerCase() === String(question.correctAnswer).toLowerCase();
+                                                    ? String(selectedAnswer) === String(question.correctAnswer)
+                                                    : shortAnswer.trim().toLowerCase() === String(question.correctAnswer).trim().toLowerCase();
 
                                                 return (
                                                     <div className={cn(
