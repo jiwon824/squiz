@@ -36,11 +36,18 @@ class AIDetectionService {
                 await this.loadModel();
             }
             if (!videoElement || videoElement.readyState < 2) {
+                console.log('[ai] detect skipped: video not ready', {
+                    hasVideo: Boolean(videoElement),
+                    readyState: videoElement?.readyState,
+                    width: videoElement?.videoWidth,
+                    height: videoElement?.videoHeight,
+                });
                 return null;
             }
             const predictions = await this.model!.detect(videoElement);
             return predictions.some((prediction) => prediction.class === 'person' && prediction.score > 0.5);
-        } catch {
+        } catch (error) {
+            console.warn('[ai] detect error', error);
             return null;
         }
     }
@@ -50,19 +57,24 @@ class AIDetectionService {
         callback: (isPresent: boolean) => void,
         interval = 2000
     ) {
+        console.log('[ai] startDetection', {
+            interval,
+            hasVideo: Boolean(videoElement),
+        });
         const detectionLoop = async () => {
-            if (document.hidden) {
-                return;
-            }
             const isPresent = await this.detectPerson(videoElement);
             if (isPresent === null) {
                 return;
             }
+            console.log('[ai] detect result', { isPresent });
             callback(isPresent);
         };
         detectionLoop();
         const intervalId = window.setInterval(detectionLoop, interval);
-        return () => clearInterval(intervalId);
+        return () => {
+            console.log('[ai] stopDetection');
+            clearInterval(intervalId);
+        };
     }
 }
 
