@@ -76,6 +76,8 @@ const MeetingRoomPage: React.FC = () => {
     const audioDetectionActiveRef = useRef(false);
     const aiDetectionCleanupRef = useRef<(() => void) | null>(null);
     const aiDetectionStreamRef = useRef<MediaStream | null>(null);
+    const aiDetectionRestartRef = useRef<(() => void) | null>(null);
+    const aiDetectionRestartTimerRef = useRef<number | null>(null);
     const chatDedupRef = useRef<Set<string>>(new Set());
     const remoteAudioElementsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
     const remoteAudioTracksRef = useRef<Map<string, MediaStreamTrack>>(new Map());
@@ -599,14 +601,32 @@ const MeetingRoomPage: React.FC = () => {
         if (aiDetectionStreamRef.current) {
             const track = aiDetectionStreamRef.current.getVideoTracks()?.[0];
             if (track && track.readyState === 'live') {
+                console.log('[ai] reuse detection stream', { trackId: track.id, readyState: track.readyState });
                 return aiDetectionStreamRef.current;
             }
             stopTracks(aiDetectionStreamRef.current);
             aiDetectionStreamRef.current = null;
         }
         try {
+            console.log('[ai] request detection stream');
             const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
             aiDetectionStreamRef.current = stream;
+            const track = stream.getVideoTracks()?.[0];
+            if (track) {
+                console.log('[ai] detection stream acquired', { trackId: track.id, readyState: track.readyState });
+                const handleEnded = () => {
+                    console.warn('[ai] detection track ended/inactive');
+                    if (aiDetectionCleanupRef.current) {
+                        aiDetectionCleanupRef.current();
+                        aiDetectionCleanupRef.current = null;
+                    }
+                    stopTracks(aiDetectionStreamRef.current);
+                    aiDetectionStreamRef.current = null;
+                    aiDetectionRestartRef.current?.();
+                };
+                track.addEventListener('ended', handleEnded, { once: true });
+                stream.addEventListener('inactive', handleEnded, { once: true });
+            }
             return stream;
         } catch (error) {
             console.error('Failed to access camera for AI detection', error);
@@ -615,6 +635,7 @@ const MeetingRoomPage: React.FC = () => {
     }, []);
 
     const ensureAiDetection = useCallback(async () => {
+        console.log('[ai] ensureAiDetection called');
         const detectionStream =
             aiDetectionStreamRef.current ?? (await ensureAiDetectionStream()) ?? localCameraStreamRef.current;
         if (!detectionStream || !aiVideoRef.current) return;
@@ -622,6 +643,7 @@ const MeetingRoomPage: React.FC = () => {
         if (!track || track.readyState !== 'live') return;
         const shouldRestart = aiVideoRef.current.srcObject !== detectionStream;
         if (shouldRestart && aiDetectionCleanupRef.current) {
+            console.log('[ai] restart detection loop due to stream change');
             aiDetectionCleanupRef.current();
             aiDetectionCleanupRef.current = null;
         }
@@ -630,11 +652,15 @@ const MeetingRoomPage: React.FC = () => {
         }
         aiVideoRef.current.muted = true;
         aiVideoRef.current.playsInline = true;
-        aiVideoRef.current.play().catch(() => {});
+        aiVideoRef.current.play().catch((error) => {
+            console.warn('[ai] video play failed', error);
+        });
         if (!aiDetectionCleanupRef.current) {
+            console.log('[ai] start detection loop');
             aiDetectionCleanupRef.current = aiDetection.startDetection(aiVideoRef.current, (isPresent) => {
                 if (presenceRef.current === isPresent) return;
                 presenceRef.current = isPresent;
+                console.log('[ai] presence changed', { isPresent });
                 updateSelfParticipant({ isPresent });
                 if (wsClientRef.current && roomIdRef.current) {
                     wsClientRef.current.setPresence(roomIdRef.current, { present: isPresent });
@@ -642,6 +668,34 @@ const MeetingRoomPage: React.FC = () => {
             });
         }
     }, [ensureAiDetectionStream, updateSelfParticipant]);
+
+    useEffect(() => {
+        aiDetectionRestartRef.current = () => {
+            if (aiDetectionRestartTimerRef.current) return;
+            console.log('[ai] schedule detection restart');
+            aiDetectionRestartTimerRef.current = window.setTimeout(() => {
+                aiDetectionRestartTimerRef.current = null;
+                console.log('[ai] restart detection now');
+                void ensureAiDetection();
+            }, 300);
+        };
+        return () => {
+            if (aiDetectionRestartTimerRef.current) {
+                window.clearTimeout(aiDetectionRestartTimerRef.current);
+                aiDetectionRestartTimerRef.current = null;
+            }
+        };
+    }, [ensureAiDetection]);
+
+    useEffect(() => {
+        const watchdogId = window.setInterval(() => {
+            if (!aiDetectionCleanupRef.current) {
+                console.log('[ai] watchdog: detection loop missing, restarting');
+                void ensureAiDetection();
+            }
+        }, 4000);
+        return () => window.clearInterval(watchdogId);
+    }, [ensureAiDetection]);
 
     const mergeParticipants = useCallback((incoming: MeetingRoomParticipant[]) => {
         setParticipants((prev) => {
@@ -2166,10 +2220,16 @@ const MeetingRoomPage: React.FC = () => {
             }
             setSfuReady(false);
             if (aiDetectionCleanupRef.current) {
+                console.log('[ai] cleanup detection on unmount');
                 aiDetectionCleanupRef.current();
                 aiDetectionCleanupRef.current = null;
             }
             audioDetection.stopDetection();
+            if (aiDetectionRestartTimerRef.current) {
+                window.clearTimeout(aiDetectionRestartTimerRef.current);
+                aiDetectionRestartTimerRef.current = null;
+            }
+            aiDetectionRestartRef.current = null;
             stopTracks(aiDetectionStreamRef.current);
             aiDetectionStreamRef.current = null;
 
