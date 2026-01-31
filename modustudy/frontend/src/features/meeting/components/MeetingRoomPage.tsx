@@ -1916,6 +1916,12 @@ const MeetingRoomPage: React.FC = () => {
         plannedDurationSeconds,
     ]);
 
+    const remainingExtendCount = useMemo(() => {
+        const currentSeconds = plannedDurationSeconds ?? 3600;
+        const remainingSeconds = Math.max(0, MAX_PLANNED_DURATION_SECONDS - currentSeconds);
+        return Math.floor(remainingSeconds / 1800);
+    }, [MAX_PLANNED_DURATION_SECONDS, plannedDurationSeconds]);
+
     const presenterLabel = presenterName ? '발표자: ' + presenterName : '발표자';
 
     const endMeetingInternal = useCallback(
@@ -2479,7 +2485,12 @@ const MeetingRoomPage: React.FC = () => {
                 title="미팅 시간 연장"
                 maxWidth="sm"
             >
-                <p className="text-sm text-gray-600">30분이 추가됩니다. 추가 하시겠습니까?</p>
+                <p className="text-sm text-gray-600">
+                    30분이 추가됩니다. 추가 하시겠습니까?
+                    <span className="mt-2 block text-xs text-gray-500">
+                        남은 추가 가능 횟수: {remainingExtendCount}회
+                    </span>
+                </p>
                 <div className="mt-6 flex justify-end gap-3">
                     <Button variant="ghost" size="sm" onClick={() => setIsExtendConfirmOpen(false)}>
                         취소
