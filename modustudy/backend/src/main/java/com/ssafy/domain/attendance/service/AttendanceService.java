@@ -91,7 +91,7 @@ public class AttendanceService {
         if (session == null) return;
 
         // 스터디 멤버 목록 조회
-        List<StudyMember> members = studyMemberRepository.findByStudyIdAndStatus(studyId, MemberStatus.ACTIVE);
+        List<StudyMember> members = studyMemberRepository.findByStudyIdAndStatus(studyId, MemberStatus.APPROVED);
 
         for (StudyMember member : members) {
             Long userId = member.getUserId();
