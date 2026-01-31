@@ -78,6 +78,10 @@ public class MeetingAiProcessingService {
         AiService.MeetingProcessResult result = aiService.getMeetingProcessResult(jobId);
 
         if ("completed".equals(result.getStatus())) {
+            boolean hasData = result.getTranscript() != null
+                    || result.getSummary() != null
+                    || (result.getKeywords() != null && !result.getKeywords().isEmpty());
+
             if (result.getTranscript() != null) {
                 String sttFileUrl = localFileStorageService.saveMeetingTextContent(
                         meetingId, null, true, "stt.txt", result.getTranscript());
@@ -100,8 +104,13 @@ public class MeetingAiProcessingService {
 
             meetingSttService.saveSummary(summary);
 
-            meeting.updateSummaryStatus(SummaryStatus.DONE);
-            log.info("AI 처리 완료 - meetingId: {}", meetingId);
+            if (hasData) {
+                meeting.updateSummaryStatus(SummaryStatus.DONE);
+                log.info("AI 처리 완료 - meetingId: {}", meetingId);
+            } else {
+                meeting.updateSummaryStatus(SummaryStatus.PENDING);
+                log.warn("AI 처리 완료했으나 데이터 없음 - meetingId: {}", meetingId);
+            }
 
         } else if ("failed".equals(result.getStatus())) {
             meeting.updateSummaryStatus(SummaryStatus.PENDING);
