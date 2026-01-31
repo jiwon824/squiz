@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+﻿import { useState, useEffect, useCallback, useMemo } from 'react';
 import { type UnifiedSchedule } from '@/features/calendar';
 import { sessionApi, type StudySessionResponse } from '@/api/endpoints/sessionApi';
+import { studyApi } from '@/api/endpoints/studyApi';
 import { SessionModal } from './SessionModal';
 import { WorkspaceCalendar } from './WorkspaceCalendar';
 import { useUIStore } from '@/store/uiStore';
@@ -98,6 +99,13 @@ export const WorkspaceCalendarArea: React.FC<WorkspaceCalendarAreaProps> = ({
   const [isDateModalOpen, setIsDateModalOpen] = useState(false);
   const [deletingSessionId, setDeletingSessionId] = useState<number | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [attendanceBySessionId, setAttendanceBySessionId] = useState<
+    Record<number, { status: string; excuseStatus?: string }>
+  >({});
+  const [isExcuseModalOpen, setIsExcuseModalOpen] = useState(false);
+  const [excuseReason, setExcuseReason] = useState('');
+  const [excuseTarget, setExcuseTarget] = useState<UnifiedSchedule | null>(null);
+  const [excuseSubmitting, setExcuseSubmitting] = useState(false);
 
   // 세션 목록 로드
   const loadSessions = useCallback(async () => {
@@ -117,6 +125,33 @@ export const WorkspaceCalendarArea: React.FC<WorkspaceCalendarAreaProps> = ({
     loadSessions();
   }, [loadSessions]);
 
+  const loadAttendanceCalendar = useCallback(async () => {
+    try {
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth() + 1;
+      const response = await studyApi.getAttendanceCalendar(studyId, year, month);
+      const payload = response?.data || response;
+      const items = payload?.items || [];
+      const nextMap: Record<number, { status: string; excuseStatus?: string }> = {};
+      items.forEach((item: any) => {
+        if (item?.sessionId) {
+          nextMap[item.sessionId] = {
+            status: item.status,
+            excuseStatus: item.excuseStatus,
+          };
+        }
+      });
+      setAttendanceBySessionId(nextMap);
+    } catch (error) {
+      console.warn('출석 달력 조회 실패:', error);
+      setAttendanceBySessionId({});
+    }
+  }, [currentDate, studyId]);
+
+  useEffect(() => {
+    loadAttendanceCalendar();
+  }, [loadAttendanceCalendar]);
+
   // 10초마다 현재 시간 갱신 (세션 상태 실시간 업데이트)
   useEffect(() => {
     const interval = setInterval(() => {
@@ -128,8 +163,18 @@ export const WorkspaceCalendarArea: React.FC<WorkspaceCalendarAreaProps> = ({
   // 세션 상태를 실시간으로 계산 (currentTime이 바뀔 때마다 재계산)
   const schedules = useMemo(() => {
     void currentTime; // 의존성으로 사용
-    return sessions.map(toUnifiedSchedule);
-  }, [sessions, currentTime]);
+    return sessions.map((session) => {
+      const base = toUnifiedSchedule(session);
+      const attendanceInfo = attendanceBySessionId[session.id];
+      return attendanceInfo
+        ? {
+            ...base,
+            attendanceStatus: attendanceInfo.status as UnifiedSchedule['attendanceStatus'],
+            excuseStatus: attendanceInfo.excuseStatus as UnifiedSchedule['excuseStatus'],
+          }
+        : base;
+    });
+  }, [sessions, currentTime, attendanceBySessionId]);
 
   // 이전/다음 달 이동
   const goToPrevMonth = () => {
@@ -195,9 +240,47 @@ export const WorkspaceCalendarArea: React.FC<WorkspaceCalendarAreaProps> = ({
     setSelectedDate(null);
   };
 
+  const handleAbsentBadgeClick = (schedule: UnifiedSchedule) => {
+    if (schedule.excuseStatus === 'APPROVED' || schedule.excuseStatus === 'REJECTED') {
+      showToast?.('이미 소명이 처리된 출결입니다.', 'info');
+      return;
+    }
+    setExcuseTarget(schedule);
+    setExcuseReason('');
+    setIsExcuseModalOpen(true);
+  };
+
+  const handleExcuseModalClose = () => {
+    if (excuseSubmitting) return;
+    setIsExcuseModalOpen(false);
+    setExcuseReason('');
+    setExcuseTarget(null);
+  };
+
+  const handleSubmitExcuse = async () => {
+    if (!excuseTarget || excuseSubmitting) return;
+    if (!excuseReason.trim()) {
+      showToast?.('소명 사유를 입력해주세요.', 'warning');
+      return;
+    }
+    setExcuseSubmitting(true);
+    try {
+      await studyApi.submitExcuse(studyId, Number(excuseTarget.id), excuseReason.trim());
+      showToast?.('결석 소명이 제출되었습니다.', 'success');
+      await loadAttendanceCalendar();
+      handleExcuseModalClose();
+    } catch (error) {
+      console.error('결석 소명 제출 실패:', error);
+      showToast?.('결석 소명 제출에 실패했습니다.', 'error');
+    } finally {
+      setExcuseSubmitting(false);
+    }
+  };
+
   // 세션 저장 성공 시
   const handleSessionSuccess = () => {
     loadSessions();
+    loadAttendanceCalendar();
     onSessionChange?.(); // 부모에게 세션 변경 알림
   };
 
@@ -206,7 +289,7 @@ export const WorkspaceCalendarArea: React.FC<WorkspaceCalendarAreaProps> = ({
     e.stopPropagation();
 
     if (!isLeader) {
-      showToast?.('스터디장만 세션을 삭제할 수 있습니다.', 'error');
+      showToast?.('스터디장만 세션을 삭제할 수 있습니다.', 'warning');
       return;
     }
 
@@ -217,8 +300,9 @@ export const WorkspaceCalendarArea: React.FC<WorkspaceCalendarAreaProps> = ({
     setDeletingSessionId(sessionId);
     try {
       await sessionApi.deleteSession(studyId, sessionId);
-      showToast?.('세션이 삭제되었습니다.', 'success');
+      showToast?.('세션을 삭제했습니다.', 'success');
       loadSessions();
+      loadAttendanceCalendar();
       onSessionChange?.(); // 부모에게 세션 변경 알림
     } catch (err: any) {
       const errorMessage = err?.response?.data?.message || '세션 삭제에 실패했습니다.';
@@ -294,6 +378,7 @@ export const WorkspaceCalendarArea: React.FC<WorkspaceCalendarAreaProps> = ({
           loading={loading}
           className="w-full"
           isLeader={isLeader}
+          onAbsentBadgeClick={handleAbsentBadgeClick}
         />
       </div>
 
@@ -358,7 +443,7 @@ export const WorkspaceCalendarArea: React.FC<WorkspaceCalendarAreaProps> = ({
                       {schedule.status === 'SCHEDULED' && '예정'}
                       {schedule.status === 'IN_PROGRESS' && '진행 중'}
                       {schedule.status === 'COMPLETED' && '완료'}
-                      {schedule.status === 'CANCELLED' && '취소됨'}
+                      {schedule.status === 'CANCELLED' && '취소'}
                     </span>
                     {/* 삭제 버튼 (리더이고 예정 상태일 때만 표시) */}
                     {isLeader && schedule.status === 'SCHEDULED' && (
@@ -369,7 +454,7 @@ export const WorkspaceCalendarArea: React.FC<WorkspaceCalendarAreaProps> = ({
                           'p-1 rounded hover:bg-red-100 transition-colors',
                           deletingSessionId === schedule.id && 'opacity-50 cursor-not-allowed'
                         )}
-                        title="세션 삭제"
+                        title="일정 삭제"
                       >
                         <Trash2 size={14} className="text-red-500" />
                       </button>
@@ -380,7 +465,7 @@ export const WorkspaceCalendarArea: React.FC<WorkspaceCalendarAreaProps> = ({
             ) : (
               <div className="text-center py-6 text-gray-500">
                 <CalendarIcon size={24} className="mx-auto mb-1.5 opacity-50" />
-                <p className="text-sm">이 날짜에 예정된 세션이 없습니다.</p>
+                해당 날짜에 일정이 없습니다.
               </div>
             )}
           </div>
@@ -394,7 +479,7 @@ export const WorkspaceCalendarArea: React.FC<WorkspaceCalendarAreaProps> = ({
                 className="w-full gap-1.5 text-sm"
                 onClick={() => selectedDate && handleQuickAdd(selectedDate)}
               >
-                이 날짜에 세션 추가
+                해당 날짜에 세션 추가
               </Button>
             </div>
           )}
@@ -411,6 +496,43 @@ export const WorkspaceCalendarArea: React.FC<WorkspaceCalendarAreaProps> = ({
         onSuccess={handleSessionSuccess}
         isLeader={isLeader}
       />
+
+      {/* 결석 소명 작성 모달 */}
+      <Modal isOpen={isExcuseModalOpen} onClose={handleExcuseModalClose} maxWidth="sm">
+        <div className="-m-8 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-base font-bold text-gray-900">결석 소명 작성</h3>
+            <button
+              onClick={handleExcuseModalClose}
+              className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
+              disabled={excuseSubmitting}
+            >
+              <X size={16} className="text-gray-500" />
+            </button>
+          </div>
+          <div className="space-y-2">
+            <p className="text-sm text-gray-600">
+              {excuseTarget?.title ? `${excuseTarget.title} 일정` : ''}
+              {excuseTarget?.startTime ? ` · ${excuseTarget.startTime}` : ''}
+            </p>
+            <textarea
+              className="w-full min-h-[120px] rounded-lg border border-gray-200 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+              placeholder="결석 사유를 입력해주세요."
+              value={excuseReason}
+              onChange={(e) => setExcuseReason(e.target.value)}
+              disabled={excuseSubmitting}
+            />
+          </div>
+          <div className="mt-4 flex justify-end gap-2">
+            <Button variant="ghost" size="sm" onClick={handleExcuseModalClose} disabled={excuseSubmitting}>
+              취소
+            </Button>
+            <Button variant="primary" size="sm" onClick={handleSubmitExcuse} disabled={excuseSubmitting}>
+              제출
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

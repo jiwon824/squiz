@@ -126,6 +126,7 @@ public class AttendanceService {
                     scheduledAt.toLocalDate(),
                     item.getSession().getId(),
                     item.getStatus(),
+                    item.getExcuseStatus(),
                     item.getCheckType(),
                     scheduledAt
             ));
@@ -156,7 +157,7 @@ public class AttendanceService {
         validateLeader(studyId, leaderId);
         Attendance attendance = getOrCreateAttendance(session, targetUserId);
         if (request.status() == AttendanceExcuseStatus.APPROVED) {
-            attendance.setStatus(AttendanceStatus.EXCUSED);
+            attendance.setStatus(AttendanceStatus.PRESENT);
             attendance.setExcuseStatus(AttendanceExcuseStatus.APPROVED);
         } else if (request.status() == AttendanceExcuseStatus.REJECTED) {
             attendance.setStatus(AttendanceStatus.ABSENT);
