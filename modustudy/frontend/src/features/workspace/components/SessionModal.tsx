@@ -3,6 +3,7 @@ import { Modal, Button, Input } from '@/shared/components';
 import { sessionApi, type StudySessionResponse, type SessionCreateRequest } from '@/api/endpoints/sessionApi';
 import { useUIStore } from '@/store/uiStore';
 import { cn } from '@/shared/utils/cn';
+import { formatDate, getTodayString } from '@/features/calendar/utils';
 import {
   Tag,
   AlignLeft,
@@ -261,7 +262,7 @@ export const SessionModal: React.FC<SessionModalProps> = ({
         // scheduledAt에서 날짜와 시간 분리
         if (session.scheduledAt) {
           const dt = new Date(session.scheduledAt);
-          setDate(dt.toISOString().split('T')[0]);
+          setDate(formatDate(dt));
           setTime(dt.toTimeString().slice(0, 5));
         }
         setDurationMinutes(session.durationMinutes || '');
@@ -271,7 +272,7 @@ export const SessionModal: React.FC<SessionModalProps> = ({
         // 생성 모드: 초기값
         setTitle('');
         setDescription('');
-        const today = new Date().toISOString().split('T')[0];
+        const today = getTodayString();
         const selectedDate = initialDate || today;
         setDate(selectedDate);
 
