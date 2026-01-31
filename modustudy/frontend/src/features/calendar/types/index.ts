@@ -29,6 +29,8 @@ export interface UnifiedSchedule {
     isOnline?: boolean;
     source: ScheduleSource;
     status?: ScheduleStatus;
+    attendanceStatus?: 'PRESENT' | 'LATE' | 'ABSENT' | 'EXCUSED';
+    excuseStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
     studyId?: number; // 스터디 세션인 경우
     sessionNumber?: number; // 스터디 세션 회차
     googleEventId?: string; // Google Calendar ID

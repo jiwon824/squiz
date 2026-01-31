@@ -532,6 +532,29 @@ export const studyApi = {
   },
 
   /**
+   * 출석 달력 조회 (내 출석)
+   * GET /api/v1/studies/{studyId}/attendance/calendar?year=&month=
+   */
+  getAttendanceCalendar: async (studyId: number, year: number, month: number) => {
+    const response = await api.get<any>(
+      `/api/v1/studies/${studyId}/attendance/calendar?year=${year}&month=${month}`
+    );
+    return response.data;
+  },
+
+  /**
+   * 결석 소명 제출
+   * POST /api/v1/studies/{studyId}/sessions/{sessionId}/attendance/excuse
+   */
+  submitExcuse: async (studyId: number, sessionId: number, reason: string) => {
+    const response = await api.post<any>(
+      `/api/v1/studies/${studyId}/sessions/${sessionId}/attendance/excuse`,
+      { reason }
+    );
+    return response.data;
+  },
+
+  /**
    * 소명 승인/거절
    * PATCH /api/v1/studies/{studyId}/sessions/{sessionId}/attendance/{targetUserId}/excuse
    */
@@ -545,7 +568,7 @@ export const studyApi = {
     const response = await api.patch<any>(
       `/api/v1/studies/${studyId}/sessions/${sessionId}/attendance/${targetUserId}/excuse`,
       {
-        decision,
+        status: decision,
         decisionReason,
       }
     );
