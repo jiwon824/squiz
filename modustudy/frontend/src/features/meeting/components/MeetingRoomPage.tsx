@@ -75,6 +75,7 @@ const MeetingRoomPage: React.FC = () => {
     const composedStreamRef = useRef<MediaStream | null>(null);
     const audioDetectionActiveRef = useRef(false);
     const aiDetectionCleanupRef = useRef<(() => void) | null>(null);
+    const aiDetectionStreamRef = useRef<MediaStream | null>(null);
     const chatDedupRef = useRef<Set<string>>(new Set());
     const remoteAudioElementsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
     const remoteAudioTracksRef = useRef<Map<string, MediaStreamTrack>>(new Map());
@@ -593,13 +594,39 @@ const MeetingRoomPage: React.FC = () => {
         [setParticipants]
     );
 
-    const ensureAiDetection = useCallback(() => {
-        const stream = localCameraStreamRef.current;
-        if (!stream || !aiVideoRef.current) return;
-        const track = stream.getVideoTracks()?.[0];
+    const ensureAiDetectionStream = useCallback(async () => {
+        if (!navigator.mediaDevices?.getUserMedia) return null;
+        if (aiDetectionStreamRef.current) {
+            const track = aiDetectionStreamRef.current.getVideoTracks()?.[0];
+            if (track && track.readyState === 'live') {
+                return aiDetectionStreamRef.current;
+            }
+            stopTracks(aiDetectionStreamRef.current);
+            aiDetectionStreamRef.current = null;
+        }
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+            aiDetectionStreamRef.current = stream;
+            return stream;
+        } catch (error) {
+            console.error('Failed to access camera for AI detection', error);
+            return null;
+        }
+    }, []);
+
+    const ensureAiDetection = useCallback(async () => {
+        const detectionStream =
+            aiDetectionStreamRef.current ?? (await ensureAiDetectionStream()) ?? localCameraStreamRef.current;
+        if (!detectionStream || !aiVideoRef.current) return;
+        const track = detectionStream.getVideoTracks()?.[0];
         if (!track || track.readyState !== 'live') return;
-        if (aiVideoRef.current.srcObject !== stream) {
-            aiVideoRef.current.srcObject = stream;
+        const shouldRestart = aiVideoRef.current.srcObject !== detectionStream;
+        if (shouldRestart && aiDetectionCleanupRef.current) {
+            aiDetectionCleanupRef.current();
+            aiDetectionCleanupRef.current = null;
+        }
+        if (aiVideoRef.current.srcObject !== detectionStream) {
+            aiVideoRef.current.srcObject = detectionStream;
         }
         aiVideoRef.current.muted = true;
         aiVideoRef.current.playsInline = true;
@@ -614,7 +641,7 @@ const MeetingRoomPage: React.FC = () => {
                 }
             });
         }
-    }, [updateSelfParticipant]);
+    }, [ensureAiDetectionStream, updateSelfParticipant]);
 
     const mergeParticipants = useCallback((incoming: MeetingRoomParticipant[]) => {
         setParticipants((prev) => {
@@ -1333,7 +1360,8 @@ const MeetingRoomPage: React.FC = () => {
         devicePermissionRequestedRef.current = true;
         await ensureMicrophoneStream(true);
         await requestCameraPermission();
-    }, [ensureMicrophoneStream, requestCameraPermission]);
+        await ensureAiDetection();
+    }, [ensureAiDetection, ensureMicrophoneStream, requestCameraPermission]);
 
     const startMicrophone = useCallback(async () => {
         console.log('[mic] start requested', { micEnabled: micEnabledRef.current });
@@ -1417,31 +1445,17 @@ const MeetingRoomPage: React.FC = () => {
                 });
             }
             updateVoiceRecordingSource();
-            if (aiVideoRef.current) {
-                aiVideoRef.current.srcObject = stream;
-                aiVideoRef.current.play().catch(() => {});
-                if (aiDetectionCleanupRef.current) {
-                    aiDetectionCleanupRef.current();
-                }
-                aiDetectionCleanupRef.current = aiDetection.startDetection(aiVideoRef.current, (isPresent) => {
-                    if (presenceRef.current === isPresent) return;
-                    presenceRef.current = isPresent;
-                    updateSelfParticipant({ isPresent });
-                    if (wsClientRef.current && roomIdRef.current) {
-                        wsClientRef.current.setPresence(roomIdRef.current, { present: isPresent });
-                    }
-                });
-            }
+            void ensureAiDetection();
         } catch (error) {
             console.error('Failed to access camera', error);
             setCameraEnabled(false);
         }
-    }, [cameraEnabled, isPresenter, updateOutgoingVideo, updateSelfParticipant, updateVoiceRecordingSource]);
+    }, [cameraEnabled, ensureAiDetection, isPresenter, updateOutgoingVideo, updateSelfParticipant, updateVoiceRecordingSource]);
 
     const stopCameraPublish = useCallback(async () => {
         setCameraEnabled(false);
         await updateOutgoingVideo({ publish: isPresenter, cameraEnabledOverride: false });
-        ensureAiDetection();
+        void ensureAiDetection();
     }, [ensureAiDetection, isPresenter, updateOutgoingVideo]);
 
     const stopCameraHardware = useCallback(() => {
@@ -1664,7 +1678,7 @@ const MeetingRoomPage: React.FC = () => {
         ]
     );
 
-    const handleTogglePresenter = useCallback(() => {
+    const handleTogglePresenter = useCallback(async () => {
         if (!roomIdRef.current || !wsClientRef.current) return;
         if (isPresenter) {
             isPresenterRef.current = false;
@@ -1683,6 +1697,12 @@ const MeetingRoomPage: React.FC = () => {
                 composedStreamRef.current = null;
             }
             stopMixedAudioTrack();
+            publishedVideoTrackIdRef.current = null;
+            try {
+                await sfuClientRef.current?.closeProducer('video');
+            } catch (error) {
+                console.warn('[sfu] closeProducer failed on presenter release', error);
+            }
             updateOutgoingVideo({ publish: false, cameraEnabledOverride: false, nextScreenStream: null });
             void refreshOutgoingAudio();
             return;
@@ -1960,6 +1980,16 @@ const MeetingRoomPage: React.FC = () => {
                 }
                 return;
             }
+            const videoTrack = payload.stream.getVideoTracks()?.[0] ?? null;
+            if (videoTrack) {
+                const handleEnded = () => {
+                    setRemoteVideoStreams((prev) => prev.filter((item) => item.id !== payload.consumerId));
+                };
+                videoTrack.addEventListener('ended', handleEnded, { once: true });
+                if (typeof payload.stream.addEventListener === 'function') {
+                    payload.stream.addEventListener('inactive', handleEnded, { once: true });
+                }
+            }
             setRemoteVideoStreams((prev) => {
                 if (prev.some((item) => item.id === payload.consumerId)) {
                     return prev;
@@ -2140,6 +2170,8 @@ const MeetingRoomPage: React.FC = () => {
                 aiDetectionCleanupRef.current = null;
             }
             audioDetection.stopDetection();
+            stopTracks(aiDetectionStreamRef.current);
+            aiDetectionStreamRef.current = null;
 
             // 실시간 STT 정리
             if (speakingDebounceTimerRef.current) {
