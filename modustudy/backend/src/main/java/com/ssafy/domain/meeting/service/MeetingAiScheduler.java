@@ -38,6 +38,7 @@ public class MeetingAiScheduler {
     private final MeetingAudioRecordingRepository meetingAudioRecordingRepository;
     private final LocalFileStorageService localFileStorageService;
     private final MeetingAiProcessingService meetingAiProcessingService;
+    private final MeetingSttService meetingSttService;
     private final SpeechSegmentService speechSegmentService;
 
     // 진행 중인 AI 작업 추적 (meetingId -> jobId)
@@ -149,6 +150,7 @@ public class MeetingAiScheduler {
 
                 String status = meetingAiProcessingService.checkAndSaveAiResult(
                         meeting.getStudyId(), meetingId, jobId);
+                syncGeneratedTextFiles(meetingId);
 
                 if ("completed".equals(status) || "failed".equals(status)) {
                     processingJobs.remove(meetingId);
@@ -237,7 +239,51 @@ public class MeetingAiScheduler {
         }
     }
 
+    /**
+     * 60초마다 실행 - 종료된 미팅의 생성된 파일을 DB와 동기화
+     * (AI 처리 상태와 무관하게 파일 존재 시 DB 업서트)
+     */
+    @Scheduled(fixedDelay = 60000)
+    public void syncEndedMeetingsTextFiles() {
+        List<Meeting> meetings = meetingRepository.findTop200ByStatusOrderByEndedAtDesc(MeetingStatus.ENDED);
+        if (meetings.isEmpty()) {
+            return;
+        }
+
+        for (Meeting meeting : meetings) {
+            syncGeneratedTextFiles(meeting.getId());
+        }
+    }
+
     private String buildMixedVoiceUrl(Long meetingId) {
         return "/uploads/meetings/" + meetingId + "/recordings/voice/voice.webm";
+    }
+
+    private void syncGeneratedTextFiles(Long meetingId) {
+        try {
+            Path sttPath = localFileStorageService.getBasePath()
+                    .resolve("meetings")
+                    .resolve(String.valueOf(meetingId))
+                    .resolve("stt")
+                    .resolve("mixed")
+                    .resolve("stt.txt")
+                    .normalize();
+            if (Files.exists(sttPath)) {
+                meetingSttService.upsertSttFileInternal(meetingId, null);
+            }
+
+            Path summaryPath = localFileStorageService.getBasePath()
+                    .resolve("meetings")
+                    .resolve(String.valueOf(meetingId))
+                    .resolve("stt")
+                    .resolve("mixed")
+                    .resolve("summary.txt")
+                    .normalize();
+            if (Files.exists(summaryPath)) {
+                meetingSttService.upsertSummaryFileInternal(meetingId, null);
+            }
+        } catch (Exception e) {
+            log.error("생성된 텍스트 파일 동기화 실패 - meetingId: {}, error: {}", meetingId, e.getMessage());
+        }
     }
 }
