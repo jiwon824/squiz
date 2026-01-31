@@ -1044,7 +1044,8 @@ const MeetingRoomPage: React.FC = () => {
         const url = getSfuRecordingUrl('/recordings/start');
         if (!roomId || !url) return;
         sfuRecordingChainRef.current = sfuRecordingChainRef.current.then(async () => {
-            if (sfuRecordingStateRef.current === 'recording' || sfuRecordingStateRef.current === 'starting') {
+            // 이미 녹음 중이면 스킵
+            if (sfuRecordingStateRef.current === 'recording') {
                 return;
             }
             sfuRecordingStateRef.current = 'starting';
