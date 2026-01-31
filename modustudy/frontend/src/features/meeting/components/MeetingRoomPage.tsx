@@ -15,6 +15,7 @@ import audioDetection from '../services/audioDetection';
 import aiDetection from '../services/aiDetection';
 import canvasComposer from '../services/canvasComposer';
 import { studyApi } from '@/api/endpoints/studyApi';
+import { Button, Modal } from '@/shared/components';
 import {
     MeetingJoinResponse,
     MeetingRoomChatMessage,
@@ -137,6 +138,9 @@ const MeetingRoomPage: React.FC = () => {
     const [roomGuardMessage, setRoomGuardMessage] = useState('회의 정보를 확인 중입니다.');
     const [sfuReady, setSfuReady] = useState(false);
     const [isEnding, setIsEnding] = useState(false);
+    const [isExtendConfirmOpen, setIsExtendConfirmOpen] = useState(false);
+    const [isEndConfirmOpen, setIsEndConfirmOpen] = useState(false);
+    const [isPresenterConfirmOpen, setIsPresenterConfirmOpen] = useState(false);
     const [leaderId, setLeaderId] = useState<number | null>(null);
 
     const aiVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -1733,6 +1737,20 @@ const MeetingRoomPage: React.FC = () => {
         ]
     );
 
+    const confirmPresenterClaim = useCallback(() => {
+        if (!roomIdRef.current || !wsClientRef.current) return;
+        isPresenterRef.current = true;
+        wsClientRef.current.setPresenter(roomIdRef.current, {
+            displayName: displayNameRef.current,
+            action: 'claim',
+        });
+        setPresenterName(displayNameRef.current);
+        if (selfParticipantIdRef.current !== null) {
+            setPresenterId(selfParticipantIdRef.current);
+        }
+        setIsPresenterConfirmOpen(false);
+    }, []);
+
     const handleTogglePresenter = useCallback(async () => {
         if (!roomIdRef.current || !wsClientRef.current) return;
         if (isPresenter) {
@@ -1762,17 +1780,7 @@ const MeetingRoomPage: React.FC = () => {
             void refreshOutgoingAudio();
             return;
         }
-        const confirmed = window.confirm('발표자가 되시겠습니까? 현재 발표자는 권한을 내려야 합니다.');
-        if (!confirmed) return;
-        isPresenterRef.current = true;
-        wsClientRef.current.setPresenter(roomIdRef.current, {
-            displayName: displayNameRef.current,
-            action: 'claim',
-        });
-        setPresenterName(displayNameRef.current);
-        if (selfParticipantIdRef.current !== null) {
-            setPresenterId(selfParticipantIdRef.current);
-        }
+        setIsPresenterConfirmOpen(true);
     }, [isPresenter, refreshOutgoingAudio, stopMixedAudioTrack, updateOutgoingVideo]);
 
     useEffect(() => {
@@ -1869,10 +1877,26 @@ const MeetingRoomPage: React.FC = () => {
         }
     }, [isCapturing, numericMeetingId, numericStudyId]);
 
-    const handleExtendMeeting = useCallback(async () => {
+    const handleExtendMeeting = useCallback(() => {
         if (!numericStudyId || !numericMeetingId || !canEndMeeting) return;
         const currentSeconds = plannedDurationSeconds ?? 3600;
         if (currentSeconds >= MAX_PLANNED_DURATION_SECONDS) {
+            return;
+        }
+        setIsExtendConfirmOpen(true);
+    }, [
+        MAX_PLANNED_DURATION_SECONDS,
+        canEndMeeting,
+        numericMeetingId,
+        numericStudyId,
+        plannedDurationSeconds,
+    ]);
+
+    const confirmExtendMeeting = useCallback(async () => {
+        if (!numericStudyId || !numericMeetingId || !canEndMeeting) return;
+        const currentSeconds = plannedDurationSeconds ?? 3600;
+        if (currentSeconds >= MAX_PLANNED_DURATION_SECONDS) {
+            setIsExtendConfirmOpen(false);
             return;
         }
         const nextSeconds = Math.min(currentSeconds + 1800, MAX_PLANNED_DURATION_SECONDS);
@@ -1881,6 +1905,8 @@ const MeetingRoomPage: React.FC = () => {
             setPlannedDurationSeconds(detail.plannedDurationSeconds ?? nextSeconds);
         } catch (error) {
             console.error('Failed to extend meeting duration', error);
+        } finally {
+            setIsExtendConfirmOpen(false);
         }
     }, [
         MAX_PLANNED_DURATION_SECONDS,
@@ -1893,12 +1919,8 @@ const MeetingRoomPage: React.FC = () => {
     const presenterLabel = presenterName ? '발표자: ' + presenterName : '발표자';
 
     const endMeetingInternal = useCallback(
-        async (requireConfirm: boolean) => {
+        async () => {
             if (!numericStudyId || !numericMeetingId || !canEndMeeting) return;
-            if (requireConfirm) {
-                const confirmed = window.confirm('미팅을 종료하시겠습니까?');
-                if (!confirmed) return;
-            }
             try {
                 setIsEnding(true);
                 sfuStopRequestedRef.current = true;
@@ -1923,12 +1945,18 @@ const MeetingRoomPage: React.FC = () => {
         if (autoEndTriggeredRef.current) return;
         if (elapsedSeconds >= plannedDurationSeconds) {
             autoEndTriggeredRef.current = true;
-            void endMeetingInternal(false);
+            void endMeetingInternal();
         }
     }, [elapsedSeconds, plannedDurationSeconds, meetingStartedAt, canEndMeeting, endMeetingInternal]);
 
     const handleEndMeeting = useCallback(() => {
-        void endMeetingInternal(true);
+        if (!canEndMeeting) return;
+        setIsEndConfirmOpen(true);
+    }, [canEndMeeting]);
+
+    const confirmEndMeeting = useCallback(() => {
+        setIsEndConfirmOpen(false);
+        void endMeetingInternal();
     }, [endMeetingInternal]);
 
     const handleRoomEvent = useCallback(
@@ -2445,6 +2473,61 @@ const MeetingRoomPage: React.FC = () => {
                     </div>
                 </div>
             </div>
+            <Modal
+                isOpen={isExtendConfirmOpen}
+                onClose={() => setIsExtendConfirmOpen(false)}
+                title="미팅 시간 연장"
+                maxWidth="sm"
+            >
+                <p className="text-sm text-gray-600">30분이 추가됩니다. 추가 하시겠습니까?</p>
+                <div className="mt-6 flex justify-end gap-3">
+                    <Button variant="ghost" size="sm" onClick={() => setIsExtendConfirmOpen(false)}>
+                        취소
+                    </Button>
+                    <Button variant="primary" size="sm" onClick={confirmExtendMeeting}>
+                        확인
+                    </Button>
+                </div>
+            </Modal>
+            <Modal
+                isOpen={isEndConfirmOpen}
+                onClose={() => setIsEndConfirmOpen(false)}
+                title="미팅 종료"
+                maxWidth="sm"
+            >
+                <p className="text-sm text-gray-600">미팅을 종료하시겠습니까?</p>
+                <div className="mt-6 flex justify-end gap-3">
+                    <Button variant="ghost" size="sm" onClick={() => setIsEndConfirmOpen(false)}>
+                        취소
+                    </Button>
+                    <Button variant="danger" size="sm" onClick={confirmEndMeeting}>
+                        종료
+                    </Button>
+                </div>
+            </Modal>
+            <Modal
+                isOpen={isPresenterConfirmOpen}
+                onClose={() => setIsPresenterConfirmOpen(false)}
+                title="발표자 전환"
+                maxWidth="sm"
+            >
+                <p className="text-sm text-gray-600">
+                    발표자가 되시겠습니까? 현재 발표자는 권한을 내려야 합니다.
+                </p>
+                <div className="mt-6 flex justify-end gap-3">
+                    <Button variant="ghost" size="sm" onClick={() => setIsPresenterConfirmOpen(false)}>
+                        취소
+                    </Button>
+                    <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={confirmPresenterClaim}
+                        className="bg-emerald-600 hover:bg-emerald-700"
+                    >
+                        확인
+                    </Button>
+                </div>
+            </Modal>
         </UserLayoutV2>
     );
 };
