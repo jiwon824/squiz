@@ -9,6 +9,9 @@ class CanvasComposerService {
   private canvas!: HTMLCanvasElement;
   private ctx!: CanvasRenderingContext2D;
   private animationFrame: number | null = null;
+  private frameRequestId: number | null = null;
+  private frameTimerId: number | null = null;
+  private lastFrameTs = 0;
   private isComposing = false;
 
   private screenVideo!: HTMLVideoElement;
@@ -120,7 +123,7 @@ class CanvasComposerService {
       this.resetComposedStream();
 
       this.isComposing = true;
-      this.loop();
+      this.startFrameLoop();
     }
 
     return this.composedStream!;
@@ -131,6 +134,12 @@ class CanvasComposerService {
   }
 
   private loop = () => {
+    if (!this.isComposing) return;
+    this.drawFrame();
+    this.animationFrame = requestAnimationFrame(this.loop);
+  };
+
+  private drawFrame = () => {
     if (!this.isComposing) return;
 
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -152,19 +161,64 @@ class CanvasComposerService {
     if (this.cameraVideo?.readyState >= 2) {
       this.ctx.drawImage(this.cameraVideo, x, y, this.pipWidth, this.pipHeight);
     }
-
-    this.animationFrame = requestAnimationFrame(this.loop);
   };
+
+  private startFrameLoop() {
+    this.stopFrameLoop();
+    this.lastFrameTs = 0;
+
+    const screen = this.screenVideo as HTMLVideoElement & {
+      requestVideoFrameCallback?: (cb: (now: number) => void) => number;
+      cancelVideoFrameCallback?: (id: number) => void;
+    };
+
+    if (screen?.requestVideoFrameCallback) {
+      const onFrame = (now: number) => {
+        if (!this.isComposing) return;
+        if (!this.lastFrameTs || now - this.lastFrameTs >= 1000 / CAPTURE_FPS) {
+          this.lastFrameTs = now;
+          this.drawFrame();
+        }
+        this.frameRequestId = screen.requestVideoFrameCallback!(onFrame);
+      };
+      this.frameRequestId = screen.requestVideoFrameCallback(onFrame);
+      return;
+    }
+
+    // Fallback: fixed interval loop
+    const intervalMs = Math.max(1000 / CAPTURE_FPS, 16);
+    this.frameTimerId = window.setInterval(() => {
+      if (!this.isComposing) return;
+      this.drawFrame();
+    }, intervalMs);
+  }
+
+  private stopFrameLoop() {
+    if (this.frameRequestId !== null) {
+      const screen = this.screenVideo as HTMLVideoElement & {
+        cancelVideoFrameCallback?: (id: number) => void;
+      };
+      if (screen?.cancelVideoFrameCallback) {
+        screen.cancelVideoFrameCallback(this.frameRequestId);
+      }
+      this.frameRequestId = null;
+    }
+    if (this.frameTimerId !== null) {
+      window.clearInterval(this.frameTimerId);
+      this.frameTimerId = null;
+    }
+    if (this.animationFrame) {
+      cancelAnimationFrame(this.animationFrame);
+      this.animationFrame = null;
+    }
+  }
 
   stopComposing() {
     this.isComposing = false;
     this.screenTrackId = null;
     this.cameraTrackId = null;
 
-    if (this.animationFrame) {
-      cancelAnimationFrame(this.animationFrame);
-      this.animationFrame = null;
-    }
+    this.stopFrameLoop();
 
     if (this.composedStream) {
       this.composedStream.getTracks().forEach((t) => t.stop());

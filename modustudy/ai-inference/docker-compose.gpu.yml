@@ -13,6 +13,8 @@ services:
       - "8000:8000"
     volumes:
       - ./models:/app/models:ro
+      # SFU 녹음 파일 공유 (SFU와 동일 경로로 마운트)
+      - ./uploads:/app/uploads:ro
     environment:
       # LLM 모델 (8B: 요약/퀴즈, 14B: 스터디 템플릿 추천)
       - MODEL_PATH=/app/models/qwen3-8b-summarizer-q4km.gguf
@@ -27,6 +29,10 @@ services:
       - REDIS_URL=redis://redis:6379
       # Claude API (요약 검증용, 선택사항)
       - CLAUDE_API_KEY=${CLAUDE_API_KEY:-}
+      # 백엔드 URL (녹음 파일 업로드용)
+      - BACKEND_URL=https://i14d106.p.ssafy.io
+      # SFU 녹음 파일 경로 (SFU와 동일 경로)
+      - SFU_UPLOADS_PATH=/app/uploads
     depends_on:
       - redis
     restart: unless-stopped
