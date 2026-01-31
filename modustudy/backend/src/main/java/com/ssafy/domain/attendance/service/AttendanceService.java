@@ -24,7 +24,6 @@ import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -71,7 +70,7 @@ public class AttendanceService {
         return AttendanceResponse.from(attendanceRepository.save(attendance));
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public AttendanceResponse checkAttendanceAutoOnline(Long studyId, Long sessionId, Long userId) {
         StudySession session = getSessionOrThrow(sessionId, studyId);
         validateMember(studyId, userId);
