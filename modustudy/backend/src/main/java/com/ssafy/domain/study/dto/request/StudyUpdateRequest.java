@@ -130,11 +130,11 @@ public class StudyUpdateRequest {
     }
 
     /**
-     * 날짜 검증 (종료일이 시작일보다 늦어야 함)
+     * 날짜 검증 (종료일이 시작일과 같거나 늦어야 함)
      */
     public boolean isValidDateRange() {
         if (startDate != null && endDate != null) {
-            return endDate.isAfter(startDate);
+            return !endDate.isBefore(startDate);
         }
         return true;
     }
