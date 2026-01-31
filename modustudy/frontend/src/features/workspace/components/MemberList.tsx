@@ -11,6 +11,7 @@ export interface WorkspaceMember {
   profileImageUrl: string | null;
   role: 'LEADER' | 'MEMBER';
   isOnline?: boolean;
+  isIdle?: boolean;
 }
 
 interface MemberListProps {
@@ -28,11 +29,15 @@ export const MemberList: React.FC<MemberListProps> = ({
   const leaders = members.filter((m) => m.role === 'LEADER');
   const regularMembers = members.filter((m) => m.role === 'MEMBER');
 
-  // 온라인 상태별 정렬 (온라인 먼저)
+  // 상태별 정렬 (온라인 > 자리비움 > 오프라인)
   const sortByOnline = (list: WorkspaceMember[]) =>
     [...list].sort((a, b) => {
-      if (a.isOnline === b.isOnline) return 0;
-      return a.isOnline ? -1 : 1;
+      const rank = (member: WorkspaceMember) => {
+        if (!member.isOnline) return 2;
+        if (member.isIdle) return 1;
+        return 0;
+      };
+      return rank(a) - rank(b);
     });
 
   const renderMember = (member: WorkspaceMember) => (
@@ -46,9 +51,11 @@ export const MemberList: React.FC<MemberListProps> = ({
         <div
           className={cn(
             'member-list__status',
-            member.isOnline
-              ? 'member-list__status--online'
-              : 'member-list__status--offline'
+            !member.isOnline
+              ? 'member-list__status--offline'
+              : member.isIdle
+              ? 'member-list__status--idle'
+              : 'member-list__status--online'
           )}
         />
       </div>

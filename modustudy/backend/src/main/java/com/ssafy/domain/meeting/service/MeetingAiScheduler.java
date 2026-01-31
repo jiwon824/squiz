@@ -42,6 +42,12 @@ public class MeetingAiScheduler {
     // 진행 중인 AI 작업 추적 (meetingId -> jobId)
     private final Map<Long, String> processingJobs = new ConcurrentHashMap<>();
 
+    // AI 작업 시작 시간 추적 (meetingId -> startTimeMillis)
+    private final Map<Long, Long> jobStartTimes = new ConcurrentHashMap<>();
+
+    // AI 응답 타임아웃 (10분)
+    private static final long AI_PROCESSING_TIMEOUT_MS = 10 * 60 * 1000;
+
     /**
      * 미팅 종료 직후 단발성으로 AI 처리를 시도.
      * (녹음 파일이 아직 준비되지 않았다면 스킵되고, 스케줄러가 재시도함)
@@ -98,14 +104,35 @@ public class MeetingAiScheduler {
             return;
         }
 
+        long now = System.currentTimeMillis();
+
         for (Map.Entry<Long, String> entry : processingJobs.entrySet()) {
             Long meetingId = entry.getKey();
             String jobId = entry.getValue();
+
+            // 타임아웃 체크 (10분 초과 시 중단)
+            Long startTime = jobStartTimes.get(meetingId);
+            if (startTime != null && (now - startTime) > AI_PROCESSING_TIMEOUT_MS) {
+                log.warn("AI 처리 타임아웃 (10분 초과) - meetingId: {}, jobId: {}", meetingId, jobId);
+                processingJobs.remove(meetingId);
+                jobStartTimes.remove(meetingId);
+                try {
+                    Meeting meeting = meetingRepository.findById(meetingId).orElse(null);
+                    if (meeting != null) {
+                        meeting.updateSummaryStatus(SummaryStatus.PENDING);
+                        meetingRepository.save(meeting);
+                    }
+                } catch (Exception e) {
+                    log.error("타임아웃 후 상태 업데이트 실패 - meetingId: {}", meetingId, e);
+                }
+                continue;
+            }
 
             try {
                 Meeting meeting = meetingRepository.findById(meetingId).orElse(null);
                 if (meeting == null) {
                     processingJobs.remove(meetingId);
+                    jobStartTimes.remove(meetingId);
                     continue;
                 }
 
@@ -114,11 +141,11 @@ public class MeetingAiScheduler {
 
                 if ("completed".equals(status) || "failed".equals(status)) {
                     processingJobs.remove(meetingId);
+                    jobStartTimes.remove(meetingId);
                     log.info("AI 처리 완료 - meetingId: {}, status: {}", meetingId, status);
                 }
             } catch (Exception e) {
                 log.error("AI 결과 확인 실패 - meetingId: {}, jobId: {}, error: {}", meetingId, jobId, e.getMessage());
-                // 실패 시 재시도를 위해 job 유지 (또는 일정 횟수 후 제거)
             }
         }
     }
@@ -171,6 +198,7 @@ public class MeetingAiScheduler {
         try {
             String jobId = meetingAiProcessingService.startAiProcessing(studyId, meetingId);
             processingJobs.put(meetingId, jobId);
+            jobStartTimes.put(meetingId, System.currentTimeMillis());
             log.info("AI 처리 시작 - meetingId: {}, jobId: {}", meetingId, jobId);
         } catch (Exception e) {
             log.error("AI 처리 시작 실패 - meetingId: {}, error: {}", meetingId, e.getMessage());

@@ -71,6 +71,15 @@ export const workspaceApi = {
   },
 
   /**
+   * 워크스페이스 접속 중인 사용자 목록 조회
+   * GET /api/v1/workspaces/{workspaceId}/presence
+   */
+  getWorkspacePresence: async (workspaceId: number) => {
+    const response = await api.get<any>(`/api/v1/workspaces/${workspaceId}/presence`);
+    return response.data as number[];
+  },
+
+  /**
    * 워크스페이스 생성
    * POST /api/v1/workspaces/study/{studyId}
    */

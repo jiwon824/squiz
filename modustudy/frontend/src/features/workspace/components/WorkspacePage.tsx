@@ -42,6 +42,7 @@ const toWorkspaceMember = (member: StudyMemberResponse): WorkspaceMember => ({
   profileImageUrl: member.userProfileImage || null,
   role: member.role,
   isOnline: false, // 온라인 상태는 별도 WebSocket으로 관리 필요
+  isIdle: false,
 });
 
 export const WorkspacePage: React.FC = () => {
@@ -74,6 +75,36 @@ export const WorkspacePage: React.FC = () => {
   const [activeMeetingId, setActiveMeetingId] = useState<number | null>(null);
   const [activeMeetingEnded, setActiveMeetingEnded] = useState<boolean | null>(null);
   const [selectedMeetingId, setSelectedMeetingId] = useState<number | null>(null);
+
+  const idleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isIdleRef = useRef(false);
+
+  const applyPresence = useCallback((onlineIds: number[]) => {
+    const onlineSet = new Set(onlineIds.map((id) => Number(id)));
+    setMembers((prev) =>
+      prev.map((m) => ({ ...m, isOnline: onlineSet.has(m.id), isIdle: false }))
+    );
+  }, []);
+
+  const scheduleIdleTimer = useCallback(() => {
+    if (idleTimeoutRef.current) {
+      clearTimeout(idleTimeoutRef.current);
+    }
+    idleTimeoutRef.current = setTimeout(() => {
+      if (!isIdleRef.current) {
+        isIdleRef.current = true;
+        workspaceWebSocket.sendPresence('IDLE');
+      }
+    }, 3 * 60 * 1000);
+  }, []);
+
+  const handleUserActivity = useCallback(() => {
+    if (isIdleRef.current) {
+      isIdleRef.current = false;
+      workspaceWebSocket.sendPresence('ACTIVE');
+    }
+    scheduleIdleTimer();
+  }, [scheduleIdleTimer]);
 
   // 미팅에서 진입 애니메이션 플래그(최초 렌더 한 번만 확인)
   const isEnteringFromMeeting = useMemo(() => {
@@ -244,7 +275,7 @@ export const WorkspacePage: React.FC = () => {
         if (event.senderId) {
           setMembers((prev) =>
             prev.map((m) =>
-              m.id === event.senderId ? { ...m, isOnline: true } : m
+              m.id === event.senderId ? { ...m, isOnline: true, isIdle: false } : m
             )
           );
         }
@@ -254,10 +285,21 @@ export const WorkspacePage: React.FC = () => {
         if (event.senderId) {
           setMembers((prev) =>
             prev.map((m) =>
-              m.id === event.senderId ? { ...m, isOnline: false } : m
+              m.id === event.senderId ? { ...m, isOnline: false, isIdle: false } : m
             )
           );
         }
+      },
+      onPresence: (event: WorkspaceWebSocketEvent) => {
+        if (!event.senderId || !event.presenceStatus) return;
+        const isIdle = event.presenceStatus === 'IDLE';
+        setMembers((prev) =>
+          prev.map((m) =>
+            m.id === event.senderId
+              ? { ...m, isOnline: true, isIdle }
+              : m
+          )
+        );
       },
       onDelete: (event: WorkspaceWebSocketEvent) => {
         // 메시지 삭제 시
@@ -281,6 +323,14 @@ export const WorkspacePage: React.FC = () => {
         setIsWebSocketConnected(status === 'CONNECTED');
         if (status === 'CONNECTED') {
           console.log('[Workspace] WebSocket 연결 완료');
+          workspaceApi
+            .getWorkspacePresence(workspace.id)
+            .then((onlineIds) => {
+              applyPresence(onlineIds);
+            })
+            .catch(() => {
+              // presence 조회 실패는 무시
+            });
         }
       },
       onError: (errorMessage) => {
@@ -293,7 +343,34 @@ export const WorkspacePage: React.FC = () => {
       workspaceWebSocket.disconnect();
       setIsWebSocketConnected(false);
     };
-  }, [workspace?.id, currentUser?.id, currentUser?.nickname]);
+  }, [workspace?.id, currentUser?.id, currentUser?.nickname, applyPresence]);
+
+  // 사용자 활동 감지 (3분 이상 미활동 시 자리비움 처리)
+  useEffect(() => {
+    if (!isWebSocketConnected) {
+      if (idleTimeoutRef.current) {
+        clearTimeout(idleTimeoutRef.current);
+        idleTimeoutRef.current = null;
+      }
+      return;
+    }
+
+    isIdleRef.current = false;
+    workspaceWebSocket.sendPresence('ACTIVE');
+    scheduleIdleTimer();
+
+    const events: Array<keyof WindowEventMap> = ['mousemove', 'keydown', 'scroll', 'touchstart'];
+    const listener = () => handleUserActivity();
+    events.forEach((event) => window.addEventListener(event, listener, { passive: true }));
+
+    return () => {
+      events.forEach((event) => window.removeEventListener(event, listener));
+      if (idleTimeoutRef.current) {
+        clearTimeout(idleTimeoutRef.current);
+        idleTimeoutRef.current = null;
+      }
+    };
+  }, [isWebSocketConnected, handleUserActivity, scheduleIdleTimer]);
 
   // 세션 목록 로드
   const loadSessions = useCallback(async () => {
