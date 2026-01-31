@@ -36,7 +36,6 @@ import java.util.List;
 @Transactional
 public class AttendanceService {
     private static final int SELF_ATTENDANCE_DELAY_MINUTES = 15;
-    private static final int AUTO_ATTENDANCE_WINDOW_MINUTES = 10;
     private static final int LATE_THRESHOLD_MINUTES = 10;
 
     private final AttendanceRepository attendanceRepository;
@@ -74,7 +73,7 @@ public class AttendanceService {
     public AttendanceResponse checkAttendanceAutoOnline(Long studyId, Long sessionId, Long userId) {
         StudySession session = getSessionOrThrow(sessionId, studyId);
         validateMember(studyId, userId);
-        validateAutoAttendanceWindow(session);
+        validateAutoAttendanceSession(session);
         Attendance attendance = getOrCreateAttendance(session, userId);
         updateCheckInfo(attendance, AttendanceCheckType.AUTO, session);
         attendance.setCheckedBy(null);
@@ -127,6 +126,7 @@ public class AttendanceService {
                     scheduledAt.toLocalDate(),
                     item.getSession().getId(),
                     item.getStatus(),
+                    item.getExcuseStatus(),
                     item.getCheckType(),
                     scheduledAt
             ));
@@ -157,7 +157,7 @@ public class AttendanceService {
         validateLeader(studyId, leaderId);
         Attendance attendance = getOrCreateAttendance(session, targetUserId);
         if (request.status() == AttendanceExcuseStatus.APPROVED) {
-            attendance.setStatus(AttendanceStatus.EXCUSED);
+            attendance.setStatus(AttendanceStatus.PRESENT);
             attendance.setExcuseStatus(AttendanceExcuseStatus.APPROVED);
         } else if (request.status() == AttendanceExcuseStatus.REJECTED) {
             attendance.setStatus(AttendanceStatus.ABSENT);
@@ -233,15 +233,9 @@ public class AttendanceService {
         }
     }
 
-    private void validateAutoAttendanceWindow(StudySession session) {
+    private void validateAutoAttendanceSession(StudySession session) {
         if (session.getIsOnline() == null || !session.getIsOnline()) {
-            throw new IllegalStateException("온라인 스터디가 아닙니다.");
-        }
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime start = session.getScheduledAt();
-        LocalDateTime end = start.plusMinutes(AUTO_ATTENDANCE_WINDOW_MINUTES);
-        if (now.isBefore(start) || now.isAfter(end)) {
-            throw new IllegalStateException("자동 출석 가능 시간이 아닙니다.");
+            throw new IllegalStateException("?⑤씪???ㅽ꽣?붽? ?꾨떃?덈떎.");
         }
     }
 

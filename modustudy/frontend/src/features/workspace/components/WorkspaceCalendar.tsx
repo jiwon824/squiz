@@ -8,6 +8,7 @@ interface WorkspaceCalendarProps {
   schedules: UnifiedSchedule[];
   onDateClick?: (date: string) => void;
   onQuickAdd?: (date: string) => void;
+  onAbsentBadgeClick?: (schedule: UnifiedSchedule) => void;
   viewMode?: 'monthly' | 'weekly';
   loading?: boolean;
   className?: string;
@@ -25,6 +26,7 @@ export const WorkspaceCalendar: React.FC<WorkspaceCalendarProps> = ({
   schedules,
   onDateClick,
   onQuickAdd,
+  onAbsentBadgeClick,
   viewMode = 'monthly',
   loading = false,
   className = '',
@@ -58,19 +60,29 @@ export const WorkspaceCalendar: React.FC<WorkspaceCalendarProps> = ({
   };
 
   const resolveDayStatusItems = (daySchedules: UnifiedSchedule[]) => {
-    const orderedStatuses = ['COMPLETED', 'IN_PROGRESS', 'SCHEDULED', 'CANCELLED'] as const;
-    const counts = daySchedules.reduce<Record<string, number>>((acc, schedule) => {
-      if (!schedule.status) return acc;
-      acc[schedule.status] = (acc[schedule.status] ?? 0) + 1;
-      return acc;
-    }, {});
-    return orderedStatuses
-      .filter((status) => counts[status] > 0)
-      .map((status) => ({
-        status,
-        count: counts[status],
-        color: statusColors[status],
+    const items: Array<{ status: string; count?: number; label?: string; color: string }> = [];
+
+    const inProgressCount = daySchedules.filter((s) => s.status === 'IN_PROGRESS').length;
+    if (inProgressCount > 0) {
+      items.push({ status: 'IN_PROGRESS', count: inProgressCount, color: statusColors.IN_PROGRESS });
+    }
+
+    const scheduledItems = daySchedules
+      .filter((s) => s.status === 'SCHEDULED')
+      .sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''))
+      .map((s) => ({
+        status: 'SCHEDULED',
+        label: s.startTime || '--:--',
+        color: statusColors.SCHEDULED,
       }));
+    items.push(...scheduledItems);
+
+    const cancelledCount = daySchedules.filter((s) => s.status === 'CANCELLED').length;
+    if (cancelledCount > 0) {
+      items.push({ status: 'CANCELLED', count: cancelledCount, color: statusColors.CANCELLED });
+    }
+
+    return items;
   };
 
   if (loading) {
@@ -104,6 +116,9 @@ export const WorkspaceCalendar: React.FC<WorkspaceCalendarProps> = ({
           const daySchedules = schedules.filter((s) => s.startDate === dayInfo.fullDate);
           const scheduleCount = daySchedules.length;
           const statusItems = resolveDayStatusItems(daySchedules);
+          const completedSchedules = daySchedules
+            .filter((schedule) => schedule.source === 'study' && schedule.status === 'COMPLETED')
+            .sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
           const isToday = dayInfo.fullDate === todayStr;
 
           return (
@@ -112,10 +127,12 @@ export const WorkspaceCalendar: React.FC<WorkspaceCalendarProps> = ({
               dayInfo={dayInfo}
               scheduleCount={scheduleCount}
               statusItems={statusItems}
+              completedSchedules={completedSchedules}
               isToday={isToday}
               onDateClick={onDateClick}
               onQuickAdd={onQuickAdd}
               isLeader={isLeader}
+              onAbsentBadgeClick={onAbsentBadgeClick}
             />
           );
         })}
