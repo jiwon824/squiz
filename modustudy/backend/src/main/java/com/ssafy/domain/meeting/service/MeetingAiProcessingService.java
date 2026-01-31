@@ -2,6 +2,7 @@ package com.ssafy.domain.meeting.service;
 
 import com.ssafy.common.storage.LocalFileStorageService;
 import com.ssafy.domain.ai.service.AiService;
+import com.ssafy.domain.meeting.entity.ActionItemStatus;
 import com.ssafy.domain.meeting.entity.Meeting;
 import com.ssafy.domain.meeting.entity.MeetingAudioRecording;
 import com.ssafy.domain.meeting.entity.MeetingAudioTrackType;
@@ -9,6 +10,7 @@ import com.ssafy.domain.meeting.entity.MeetingStatus;
 import com.ssafy.domain.meeting.entity.MeetingSttSummary;
 import com.ssafy.domain.meeting.entity.SummaryStatus;
 import com.ssafy.domain.meeting.repository.MeetingAudioRecordingRepository;
+import com.ssafy.domain.quiz.service.StudyQuizService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +36,8 @@ public class MeetingAiProcessingService {
     private final AiService aiService;
     private final MeetingServiceHelper helper;
     private final MeetingSttService meetingSttService;
+    private final MeetingActionItemService meetingActionItemService;
+    private final StudyQuizService studyQuizService;
 
     @Transactional
     public String startAiProcessing(Long studyId, Long meetingId) {
@@ -100,9 +104,28 @@ public class MeetingAiProcessingService {
                 summary.updateKeywordsJson(helper.writeJson(result.getKeywords()));
             }
 
-            // action_items는 사용하지 않으므로 저장하지 않음
-
             meetingSttService.saveSummary(summary);
+
+            // 액션 아이템 저장
+            if (result.getActionItems() != null && !result.getActionItems().isEmpty()) {
+                for (AiService.MeetingProcessResult.ActionItem item : result.getActionItems()) {
+                    meetingActionItemService.saveActionItem(
+                            meetingId,
+                            item.getContent(),
+                            item.getUserId(),
+                            ActionItemStatus.TODO
+                    );
+                }
+                log.info("액션 아이템 저장 완료 - meetingId: {}, count: {}", meetingId, result.getActionItems().size());
+            }
+
+            // 퀴즈 저장
+            if (result.getQuizRaw() != null && !result.getQuizRaw().isBlank()) {
+                String quizTitle = meeting.getTitle() != null
+                        ? meeting.getTitle() + " 복습 퀴즈"
+                        : "미팅 복습 퀴즈";
+                studyQuizService.saveQuizFromMeeting(studyId, meetingId, quizTitle, result.getQuizRaw());
+            }
 
             if (hasData) {
                 meeting.updateSummaryStatus(SummaryStatus.DONE);
