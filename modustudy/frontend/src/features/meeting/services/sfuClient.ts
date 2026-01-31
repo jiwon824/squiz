@@ -217,15 +217,14 @@ export const createSfuClient = (baseUrl: string) => {
             const isScreenShare = appData?.source === 'screen' || appData?.source === 'mixed';
             // 화면 공유: 고품질 단일 레이어 / 카메라: 낮은 프레임레이트 + Simulcast 3레이어
             const encodings = isScreenShare
-                ? [{ maxBitrate: 1500000 }]
+                ? [{ maxBitrate: 2500000 }]
                 : [
-                    { maxBitrate: 100000, scaleResolutionDownBy: 4, maxFramerate: 15 },
-                    { maxBitrate: 300000, scaleResolutionDownBy: 2, maxFramerate: 20 },
-                    { maxBitrate: 500000, maxFramerate: 24 },
+                    { maxBitrate: 500000, scaleResolutionDownBy: 2, maxFramerate: 24 },
+                    { maxBitrate: 1500000, maxFramerate: 30 },
                 ];
             const codecOptions = isScreenShare
-                ? { videoGoogleStartBitrate: 1000 }
-                : { videoGoogleStartBitrate: 300 };
+                ? { videoGoogleStartBitrate: 1500 }
+                : { videoGoogleStartBitrate: 800 };
             producer = await transport.produce({
                 track,
                 appData,
