@@ -76,13 +76,16 @@ export const useDMStore = create<DMState>((set, get) => ({
 
     // 메시지 목록 조회
     fetchMessages: async (conversationId: number) => {
+        console.log('[DM] fetchMessages started for:', conversationId);
         set({ isLoading: true, currentConversationId: conversationId });
         try {
             const messages = await getMessages(conversationId);
+            console.log('[DM] fetchMessages result:', messages?.length, 'messages');
             set({ messages, isLoading: false });
             // 읽음 처리
             get().markConversationAsRead(conversationId);
         } catch (error: any) {
+            console.error('[DM] fetchMessages error:', error);
             set({
                 error: error.response?.data?.message || '메시지를 불러오지 못했습니다.',
                 isLoading: false
@@ -171,8 +174,10 @@ export const useDMStore = create<DMState>((set, get) => ({
 
     // 현재 대화방 설정
     setCurrentConversation: (conversationId: number | null) => {
+        console.log('[DM] setCurrentConversation:', conversationId);
         set({ currentConversationId: conversationId });
         if (conversationId) {
+            console.log('[DM] Calling fetchMessages for:', conversationId);
             get().fetchMessages(conversationId);
         } else {
             set({ messages: [] });

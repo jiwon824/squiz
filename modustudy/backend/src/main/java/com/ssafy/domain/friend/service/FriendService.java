@@ -8,6 +8,8 @@ import com.ssafy.domain.friend.entity.UserBlock;
 import com.ssafy.domain.friend.mapper.FriendshipMapper;
 import com.ssafy.domain.friend.mapper.UserBlockMapper;
 import com.ssafy.domain.friend.mapper.UserSearchMapper;
+import com.ssafy.domain.notification.entity.NotificationType;
+import com.ssafy.domain.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -25,6 +27,7 @@ public class FriendService {
     private final FriendshipMapper friendshipMapper;
     private final UserBlockMapper userBlockMapper;
     private final UserSearchMapper userSearchMapper;
+    private final NotificationService notificationService;
 
     /**
      * 사용자 검색 (닉네임)
@@ -118,6 +121,17 @@ public class FriendService {
 
         // 저장된 데이터 다시 조회 (사용자 정보 포함)
         Friendship saved = friendshipMapper.findById(friendship.getId());
+
+        // 친구 요청 알림 생성 (요청 받은 사람에게)
+        notificationService.createNotification(
+                addresseeId,
+                NotificationType.FRIEND,
+                "친구 요청",
+                saved.getRequesterNickname() + "님이 친구 요청을 보냈습니다.",
+                "FRIEND_REQUEST",
+                saved.getId()
+        );
+
         return FriendRequestResponse.fromSent(saved);
     }
 
@@ -164,6 +178,17 @@ public class FriendService {
 
         // 업데이트된 데이터 조회
         Friendship updated = friendshipMapper.findById(requestId);
+
+        // 친구 수락 알림 생성 (요청 보낸 사람에게)
+        notificationService.createNotification(
+                updated.getRequesterId(),
+                NotificationType.FRIEND,
+                "친구 수락",
+                updated.getAddresseeNickname() + "님이 친구 요청을 수락했습니다.",
+                "FRIEND_ACCEPT",
+                updated.getId()
+        );
+
         return FriendResponse.from(updated, userId);
     }
 
