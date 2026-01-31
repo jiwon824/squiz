@@ -9,10 +9,13 @@ services:
     network_mode: host
     volumes:
       - ./uploads:/app/uploads
+      - ./certs:/app/certs
     environment:
       - NODE_ENV=production
       - PORT=4000
-      - SFU_USE_HTTPS=false
+      - SFU_USE_HTTPS=true
+      - SFU_SSL_KEY_PATH=/app/certs/key.pem
+      - SFU_SSL_CERT_PATH=/app/certs/cert.pem
       - LISTEN_IP=0.0.0.0
       - ANNOUNCED_IP=3.38.92.48
       - CORS_ORIGINS=*

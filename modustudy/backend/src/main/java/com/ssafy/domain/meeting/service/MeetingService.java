@@ -210,6 +210,18 @@ public class MeetingService {
             int minutes = (int) Math.ceil(meeting.getDurationSeconds() / 60.0);
             studySessionService.updateDurationFromMeeting(studyId, meeting.getSessionId(), minutes);
         }
+        // 미팅 종료 시 참가하지 않은 멤버 ABSENT 처리
+        if (meeting.getSessionId() != null) {
+            List<Long> participantUserIds = participants.stream()
+                    .map(MeetingParticipant::getUserId)
+                    .collect(Collectors.toList());
+            try {
+                attendanceService.markAbsentForNonParticipants(studyId, meeting.getSessionId(), participantUserIds);
+            } catch (Exception ex) {
+                log.warn("Failed to mark absent for non-participants. studyId={}, sessionId={}, error={}",
+                        studyId, meeting.getSessionId(), ex.getMessage());
+            }
+        }
         return new MeetingEndResponse(meeting.getDurationSeconds(), meeting.getParticipantCount(),
                 meeting.getSummaryStatus().name());
     }

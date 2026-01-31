@@ -70,6 +70,7 @@ public class AttendanceService {
         return AttendanceResponse.from(attendanceRepository.save(attendance));
     }
 
+    @Transactional
     public AttendanceResponse checkAttendanceAutoOnline(Long studyId, Long sessionId, Long userId) {
         StudySession session = getSessionOrThrow(sessionId, studyId);
         validateMember(studyId, userId);
@@ -78,6 +79,34 @@ public class AttendanceService {
         updateCheckInfo(attendance, AttendanceCheckType.AUTO, session);
         attendance.setCheckedBy(null);
         return AttendanceResponse.from(attendanceRepository.save(attendance));
+    }
+
+    /**
+     * 미팅 종료 시 참가하지 않은 멤버를 ABSENT로 처리
+     */
+    @Transactional
+    public void markAbsentForNonParticipants(Long studyId, Long sessionId, List<Long> participantUserIds) {
+        StudySession session = studySessionRepository.findById(sessionId).orElse(null);
+        if (session == null) return;
+
+        // 스터디 멤버 목록 조회
+        List<StudyMember> members = studyMemberRepository.findByStudyIdAndStatus(studyId, MemberStatus.APPROVED);
+
+        for (StudyMember member : members) {
+            Long userId = member.getUserId();
+            // 참가자 목록에 없으면 ABSENT 처리
+            if (!participantUserIds.contains(userId)) {
+                Attendance attendance = getOrCreateAttendance(session, userId);
+                // 이미 출석 처리된 경우 건너뛰기
+                if (attendance.getStatus() == AttendanceStatus.PRESENT ||
+                    attendance.getStatus() == AttendanceStatus.LATE) {
+                    continue;
+                }
+                attendance.setStatus(AttendanceStatus.ABSENT);
+                attendance.setCheckType(AttendanceCheckType.AUTO);
+                attendanceRepository.save(attendance);
+            }
+        }
     }
 
     public AttendanceResponse updateAttendanceStatus(
@@ -237,11 +266,8 @@ public class AttendanceService {
         if (session.getIsOnline() == null || !session.getIsOnline()) {
             throw new IllegalStateException("오프라인 세션은 자동 출석을 처리할 수 없습니다.");
         }
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime lateThreshold = session.getScheduledAt().plusMinutes(LATE_THRESHOLD_MINUTES);
-        if (now.isAfter(lateThreshold)) {
-            throw new IllegalStateException("세션 시작 10분 이후에는 자동 출석이 불가합니다.");
-        }
+        // 10분 이후 입장해도 LATE로 처리되도록 예외 던지지 않음
+        // updateCheckInfo()에서 시간에 따라 PRESENT/LATE 자동 판정
     }
 
     private StudySession getSessionOrThrow(Long sessionId, Long studyId) {

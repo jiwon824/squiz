@@ -38,6 +38,52 @@ llm = None
 whisper_model = None
 
 
+# ===== 8B 출력 파싱 =====
+
+def parse_action_items_from_8b(local_summary: str) -> list:
+    """
+    8B 모델 출력에서 액션아이템 섹션 파싱
+
+    8B 출력 형식:
+    ## 요약
+    ...
+    ## 액션 아이템
+    - 할 일 1
+    - 할 일 2
+    ## 키워드
+    ...
+
+    Returns: [{"user_id": None, "content": "할 일"}, ...]
+    """
+    action_items = []
+
+    try:
+        # "## 액션 아이템" 또는 "## 액션아이템" 섹션 찾기
+        import re
+        pattern = r'##\s*액션\s*아이템[^\n]*\n([\s\S]*?)(?=##|$)'
+        match = re.search(pattern, local_summary)
+
+        if match:
+            section = match.group(1).strip()
+            # 각 줄에서 - 또는 숫자. 로 시작하는 항목 추출
+            lines = section.split('\n')
+            for line in lines:
+                line = line.strip()
+                # - 로 시작하거나 숫자. 로 시작하는 경우
+                if line.startswith('-') or (len(line) > 2 and line[0].isdigit() and line[1] in '.):'):
+                    # 앞의 마커 제거
+                    content = re.sub(r'^[-\d.)\s]+', '', line).strip()
+                    if content:
+                        action_items.append({
+                            "user_id": None,  # 전체 액션아이템 (특정 사용자 지정 안함)
+                            "content": content
+                        })
+    except Exception as e:
+        print(f"[WARNING] 액션아이템 파싱 실패: {e}")
+
+    return action_items
+
+
 # ===== 음성 전처리 =====
 
 def preprocess_audio(input_path: str) -> str:
@@ -1317,26 +1363,43 @@ def process_meeting_full_job(job_id: str, mixed_path: str, individual_paths: lis
             except Exception as e:
                 print(f"[WARNING] 화자별 STT 실패: {e}")
 
-        # 3. 로컬 LLM 요약 (초안)
+        # 3. 로컬 LLM 요약 (파인튜닝 형식) - 원본 대신 요약본만 Claude에 전달
         summary_prompt = f"""<|im_start|>system
-당신은 IT 스터디 회의록을 요약하는 전문가입니다. 핵심 내용을 정확하게 정리합니다.<|im_end|>
-<|im_start|>user
-다음 IT 스터디 회의 내용을 요약해주세요.
+당신은 IT 스터디 회의록을 요약하는 전문가입니다. 다음 형식으로 정리해주세요:
 
-회의 내용:
-{full_text}<|im_end|>
+## 요약
+[2-3문장 핵심 요약]
+
+## 다룬 내용
+- [토픽별 요점]
+
+## 액션 아이템
+- [할 일]
+
+## 키워드
+[쉼표로 구분]
+<|im_end|>
+<|im_start|>user
+다음 회의 내용을 분석하여 정리해주세요:
+
+{full_text[:4000]}
+<|im_end|>
 <|im_start|>assistant
 """
-        summary_output = llm(summary_prompt, max_tokens=512, temperature=0.7,
+        summary_output = llm(summary_prompt, max_tokens=1200, temperature=0.3,
                              stop=["<|im_end|>", "<|im_start|>"], echo=False)
         local_summary = summary_output["choices"][0]["text"].strip()
 
-        # 4. Claude 통합 호출 (요약 보완 + 보충설명 + 키워드 + 액션아이템 + 퀴즈)
+        # 3.5 8B 출력에서 액션아이템 파싱
+        action_items = parse_action_items_from_8b(local_summary)
+        print(f"[MEETING] 8B 액션아이템 파싱 완료: {len(action_items)}개")
+
+        # 4. Claude 통합 호출 (8B 요약본만 전달, 원본 미전송)
         speaker_info = ""
         if speaker_texts:
-            speaker_info = "\n\n## 화자별 발언 내용:\n"
-            for s in speaker_texts:
-                speaker_info += f"\n### 화자 ID {s['user_id']}:\n{s['text'][:800]}\n"
+            # 화자 ID 목록만 전달 (발언 원본은 전달하지 않음)
+            speaker_ids_list = [s['user_id'] for s in speaker_texts]
+            speaker_info = f"\n\n## 참여자 ID 목록: {speaker_ids_list}"
 
         quiz_instruction = ""
         if generate_quiz:
@@ -1346,70 +1409,55 @@ def process_meeting_full_job(job_id: str, mixed_path: str, individual_paths: lis
    - 난이도: EASY, MEDIUM, HARD 섞어서
    - 각 문제에 정답과 해설 포함"""
 
-        claude_prompt = f"""다음은 IT 스터디 회의록입니다. 한 번의 응답으로 모든 분석을 완료해주세요.
+        claude_prompt = f"""다음은 IT 스터디 회의 분석 결과입니다. 검토하고 보완해주세요.
 
-## 원본 회의 내용:
-{full_text[:4000]}
-
-## AI 요약 초안:
+## 회의 요약:
 {local_summary}
 {speaker_info}
 
 ---
 
-위 내용을 바탕으로 다음을 수행해주세요:
+위 분석을 바탕으로 다음을 수행해주세요:
 
-1. **요약 보완**: AI 요약 초안을 검토하고, 부족한 부분을 보완해주세요 (3-5문장)
+1. **요약 검토 및 보완**: 위 요약을 검토하고, 더 풍부하고 명확하게 보완해주세요 (5-7문장).
+   - 핵심 논의 사항을 빠짐없이 포함
+   - 결론이나 합의된 사항 강조
 
-2. **보충 설명**: 회의에서 다룬 기술적 개념에 대해 학습에 도움이 되는 보충 설명을 추가해주세요.
-   - 회의에서 언급된 핵심 개념/기술에 대한 간단한 배경 지식
-   - 더 깊이 학습하면 좋을 관련 주제
-   - 실무 적용 팁 (있다면)
+2. **학습 피드백**: 회의에서 다룬 기술/개념에 대해 학습에 도움이 되는 피드백을 제공해주세요.
+   - 핵심 개념의 배경 지식 및 원리 설명
+   - 심화 학습을 위한 관련 주제 추천
+   - 실무 적용 팁이나 주의사항
 
 3. **키워드**: 핵심 키워드 5-7개를 추출해주세요.
-
-4. **화자별 액션아이템**: 각 화자(user_id)에게 적합한 과제/할 일을 1-2개씩 추천해주세요.
 {quiz_instruction}
 
 ---
 
 반드시 아래 JSON 형식으로만 응답해주세요:
 {{
-  "summary": "보완된 요약 (3-5문장)",
-  "supplementary": "보충 설명 (기술 배경, 관련 주제, 실무 팁 등)",
+  "summary": "보완된 풍부한 요약 (5-7문장)",
+  "feedback": "학습 피드백 (배경지식, 심화주제, 실무팁 등을 풍부하게)",
   "keywords": ["키워드1", "키워드2", ...],
-  "action_items": [
-    {{"user_id": 1, "content": "액션아이템 내용"}},
-    {{"user_id": 2, "content": "액션아이템 내용"}}
-  ],
-  "quiz": {{
-    "questions": [
-      {{
-        "question_text": "문제 내용",
-        "question_type": "MULTIPLE_CHOICE",
-        "options": [
-          {{"label": "A", "text": "보기1", "is_correct": true}},
-          {{"label": "B", "text": "보기2", "is_correct": false}},
-          {{"label": "C", "text": "보기3", "is_correct": false}},
-          {{"label": "D", "text": "보기4", "is_correct": false}}
-        ],
-        "correct_answer": ["A"],
-        "explanation": "해설",
-        "difficulty": "MEDIUM"
-      }}
-    ]
-  }}
+  "quiz": [
+    {{
+      "question": "문제 내용",
+      "type": "객관식",
+      "options": ["A. 보기1", "B. 보기2", "C. 보기3", "D. 보기4"],
+      "answer": "A",
+      "explanation": "해설"
+    }}
+  ]
 }}
 """
 
         claude_response = call_claude(claude_prompt, max_tokens=4096)
 
-        # 기본값 설정
+        # 기본값: 8B 요약 결과 사용
         final_summary = local_summary
-        supplementary = ""
+        feedback = ""
         keywords = []
-        action_items = []
         quiz = None
+        # action_items는 위에서 8B 출력 파싱으로 이미 설정됨
 
         if claude_response:
             json_match = re.search(r'\{[\s\S]*\}', claude_response)
@@ -1417,17 +1465,16 @@ def process_meeting_full_job(job_id: str, mixed_path: str, individual_paths: lis
                 try:
                     result = json.loads(json_match.group())
                     final_summary = result.get("summary", local_summary)
-                    supplementary = result.get("supplementary", "")
+                    feedback = result.get("feedback", "")
                     keywords = result.get("keywords", [])
-                    action_items = result.get("action_items", [])
                     if generate_quiz and result.get("quiz"):
                         quiz = json.dumps(result["quiz"], ensure_ascii=False)
                 except Exception as e:
                     print(f"[WARNING] Claude 응답 파싱 실패: {e}")
 
-        # 요약에 보충설명 추가
-        if supplementary:
-            final_summary = f"{final_summary}\n\n📚 보충 설명:\n{supplementary}"
+        # 요약에 학습 피드백 추가
+        if feedback:
+            final_summary = f"{final_summary}\n\n📚 학습 피드백:\n{feedback}"
 
         jobs[job_id]["status"] = "completed"
         jobs[job_id]["result"] = {
@@ -1760,116 +1807,113 @@ def process_transcript_summary(job_id: str, transcript: str, speaker_ids: List[i
     try:
         print(f"[TRANSCRIPT] 요약 시작: job_id={job_id}, length={len(transcript)}")
 
-        # 1. 로컬 LLM으로 초안 요약
+        # 1. 로컬 8B LLM으로 요약 + 키워드 + 액션아이템 추출 (파인튜닝 형식)
         summary_prompt = f"""<|im_start|>system
-IT 스터디 회의 내용을 요약하는 전문가입니다.
+당신은 IT 스터디 회의록을 요약하는 전문가입니다. 다음 형식으로 정리해주세요:
+
+## 요약
+[2-3문장 핵심 요약]
+
+## 다룬 내용
+- [토픽별 요점]
+
+## 액션 아이템
+- [할 일]
+
+## 키워드
+[쉼표로 구분]
 <|im_end|>
 <|im_start|>user
-다음 회의 transcript를 3-4문장으로 요약해주세요:
+다음 회의 내용을 분석하여 정리해주세요:
 
-{transcript[:3000]}
+{transcript[:4000]}
 <|im_end|>
 <|im_start|>assistant
 """
-        summary_output = llm(summary_prompt, max_tokens=512, temperature=0.7,
+        summary_output = llm(summary_prompt, max_tokens=1200, temperature=0.3,
                              stop=["<|im_end|>", "<|im_start|>"], echo=False)
         local_summary = summary_output["choices"][0]["text"].strip()
 
-        # 2. Claude 통합 호출
+        print(f"[TRANSCRIPT] 8B 요약 완료: {len(local_summary)} chars")
+
+        # 1.5 8B 출력에서 액션아이템 파싱
+        action_items = parse_action_items_from_8b(local_summary)
+        print(f"[TRANSCRIPT] 8B 액션아이템 파싱 완료: {len(action_items)}개")
+
+        # 2. Claude 호출 (8B 요약본 기반 검토/보완 + 보충설명 + 퀴즈)
         quiz_instruction = ""
         if generate_quiz:
             quiz_instruction = """
-5. **퀴즈**: 스터디 내용 복습을 위한 퀴즈를 5문제 이상 생성해주세요.
+4. **퀴즈**: 스터디 내용 복습을 위한 퀴즈를 5문제 이상 생성해주세요.
    - MULTIPLE_CHOICE(객관식)와 SHORT_ANSWER(단답형) 혼합
    - 난이도: EASY, MEDIUM, HARD 섞어서
    - 각 문제에 정답과 해설 포함"""
 
-        speaker_info = ""
-        if speaker_ids:
-            speaker_info = f"\n\n## 참여자 ID 목록: {speaker_ids}"
+        claude_prompt = f"""다음은 IT 스터디 회의 분석 결과입니다. 검토하고 보완해주세요.
 
-        claude_prompt = f"""다음은 IT 스터디 회의록입니다. 한 번의 응답으로 모든 분석을 완료해주세요.
-
-## 원본 회의 내용 (화자: 발언 형식):
-{transcript[:6000]}
-
-## AI 요약 초안:
 {local_summary}
-{speaker_info}
 
 ---
 
-위 내용을 바탕으로 다음을 수행해주세요:
+위 분석을 바탕으로 다음을 수행해주세요:
 
-1. **요약 보완**: AI 요약 초안을 검토하고, 부족한 부분을 보완해주세요 (3-5문장)
+1. **요약 검토 및 보완**: 위 요약을 검토하고, 더 풍부하고 명확하게 보완해주세요 (5-7문장).
+   - 핵심 논의 사항을 빠짐없이 포함
+   - 결론이나 합의된 사항 강조
 
-2. **보충 설명**: 회의에서 다룬 기술적 개념에 대해 학습에 도움이 되는 보충 설명을 추가해주세요.
-   - 회의에서 언급된 핵심 개념/기술에 대한 간단한 배경 지식
-   - 더 깊이 학습하면 좋을 관련 주제
-   - 실무 적용 팁 (있다면)
+2. **학습 피드백**: 회의에서 다룬 기술/개념에 대해 학습에 도움이 되는 피드백을 제공해주세요.
+   - 핵심 개념의 배경 지식 및 원리 설명
+   - 심화 학습을 위한 관련 주제 추천
+   - 실무 적용 팁이나 주의사항
 
-3. **키워드**: 핵심 키워드 5-7개를 추출해주세요.
-
-4. **화자별 액션아이템**: transcript에서 확인되는 화자들에게 적합한 과제/할 일을 1-2개씩 추천해주세요.
+3. **키워드 보완**: 위에서 추출된 키워드를 검토하고, 누락된 중요 키워드가 있다면 추가해주세요.
 {quiz_instruction}
 
 ---
 
 반드시 아래 JSON 형식으로만 응답해주세요:
 {{
-  "summary": "보완된 요약 (3-5문장)",
-  "supplementary": "보충 설명 (기술 배경, 관련 주제, 실무 팁 등)",
+  "summary": "보완된 풍부한 요약 (5-7문장)",
+  "feedback": "학습 피드백 (배경지식, 심화주제, 실무팁 등을 풍부하게)",
   "keywords": ["키워드1", "키워드2", ...],
-  "action_items": [
-    {{"user_id": 1, "content": "액션아이템 내용"}},
-    {{"user_id": 2, "content": "액션아이템 내용"}}
-  ],
-  "quiz": {{
-    "questions": [
-      {{
-        "question_text": "문제 내용",
-        "question_type": "MULTIPLE_CHOICE",
-        "options": [
-          {{"label": "A", "text": "보기1", "is_correct": true}},
-          {{"label": "B", "text": "보기2", "is_correct": false}},
-          {{"label": "C", "text": "보기3", "is_correct": false}},
-          {{"label": "D", "text": "보기4", "is_correct": false}}
-        ],
-        "correct_answer": ["A"],
-        "explanation": "해설",
-        "difficulty": "MEDIUM"
-      }}
-    ]
-  }}
+  "quiz": [
+    {{
+      "question": "문제 내용",
+      "type": "객관식",
+      "options": ["A. 보기1", "B. 보기2", "C. 보기3", "D. 보기4"],
+      "answer": "A",
+      "explanation": "해설"
+    }}
+  ]
 }}
 """
 
         claude_response = call_claude(claude_prompt, max_tokens=4096)
 
-        # 기본값 설정
+        # 기본값: 8B 요약 결과 사용
         final_summary = local_summary
-        supplementary = ""
+        feedback = ""
         keywords = []
-        action_items = []
         quiz = None
+        # action_items는 위에서 8B 출력 파싱으로 이미 설정됨
 
         if claude_response:
             json_match = re.search(r'\{[\s\S]*\}', claude_response)
             if json_match:
                 try:
                     result = json.loads(json_match.group())
+                    # Claude가 보완한 요약 사용
                     final_summary = result.get("summary", local_summary)
-                    supplementary = result.get("supplementary", "")
+                    feedback = result.get("feedback", "")
                     keywords = result.get("keywords", [])
-                    action_items = result.get("action_items", [])
                     if generate_quiz and result.get("quiz"):
                         quiz = json.dumps(result["quiz"], ensure_ascii=False)
                 except Exception as e:
                     print(f"[TRANSCRIPT] Claude 응답 파싱 실패: {e}")
 
-        # 요약에 보충설명 추가
-        if supplementary:
-            final_summary = f"{final_summary}\n\n📚 보충 설명:\n{supplementary}"
+        # 요약에 학습 피드백 추가
+        if feedback:
+            final_summary = f"{final_summary}\n\n📚 학습 피드백:\n{feedback}"
 
         jobs[job_id]["status"] = "completed"
         jobs[job_id]["result"] = {

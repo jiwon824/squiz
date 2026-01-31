@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect, useCallback, useMemo } from 'react';
 import { type UnifiedSchedule } from '@/features/calendar';
+import { formatDate } from '@/features/calendar/utils';
 import { sessionApi, type StudySessionResponse } from '@/api/endpoints/sessionApi';
 import { studyApi } from '@/api/endpoints/studyApi';
 import { SessionModal } from './SessionModal';
@@ -47,7 +48,7 @@ const calculateSessionStatus = (
 const toUnifiedSchedule = (session: StudySessionResponse): UnifiedSchedule => {
   // scheduledAt에서 날짜 추출
   const dt = new Date(session.scheduledAt);
-  const dateStr = dt.toISOString().split('T')[0];
+  const dateStr = formatDate(dt);
   const timeStr = dt.toTimeString().slice(0, 5);
 
   // 현재 시간 기준 상태 계산
