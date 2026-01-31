@@ -33,6 +33,7 @@ export const WorkspaceCalendar: React.FC<WorkspaceCalendarProps> = ({
   isLeader = false,
 }) => {
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const nowLabel = new Date().toTimeString().slice(0, 5);
 
   // 윈도우 리사이즈 감지
   useEffect(() => {
@@ -64,7 +65,7 @@ export const WorkspaceCalendar: React.FC<WorkspaceCalendarProps> = ({
 
     const inProgressCount = daySchedules.filter((s) => s.status === 'IN_PROGRESS').length;
     if (inProgressCount > 0) {
-      items.push({ status: 'IN_PROGRESS', count: inProgressCount, color: statusColors.IN_PROGRESS });
+      items.push({ status: 'IN_PROGRESS', label: nowLabel, color: statusColors.IN_PROGRESS });
     }
 
     const scheduledItems = daySchedules
