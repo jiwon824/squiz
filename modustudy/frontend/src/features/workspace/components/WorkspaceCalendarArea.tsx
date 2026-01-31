@@ -54,10 +54,10 @@ const toUnifiedSchedule = (session: StudySessionResponse): UnifiedSchedule => {
 
   // 상태별 색상
   const statusColors: Record<string, string> = {
-    SCHEDULED: '#4285F4', // 파랑
+    SCHEDULED: '#EA4335', // 파랑
     IN_PROGRESS: '#FBBC05', // 노랑
     COMPLETED: '#34A853', // 초록
-    CANCELLED: '#EA4335', // 빨강
+    CANCELLED: '#9CA3AF', // 빨강
   };
 
   return {
@@ -73,7 +73,7 @@ const toUnifiedSchedule = (session: StudySessionResponse): UnifiedSchedule => {
     status: calculatedStatus,
     studyId: session.studyId,
     sessionNumber: session.sessionNumber,
-    color: statusColors[calculatedStatus] || '#4285F4',
+    color: statusColors[calculatedStatus] || '#EA4335',
     createdAt: session.createdAt,
   };
 };

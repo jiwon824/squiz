@@ -7,6 +7,7 @@ interface CalendarDayInfo {
 interface WorkspaceCalendarDayProps {
   dayInfo: CalendarDayInfo;
   scheduleCount: number;
+  statusItems?: Array<{ status: string; count: number; color: string }>;
   isToday: boolean;
   onDateClick?: (date: string) => void;
   onQuickAdd?: (date: string) => void;
@@ -21,6 +22,7 @@ interface WorkspaceCalendarDayProps {
 export const WorkspaceCalendarDay: React.FC<WorkspaceCalendarDayProps> = ({
   dayInfo,
   scheduleCount,
+  statusItems = [],
   isToday,
   onDateClick,
   onQuickAdd,
@@ -78,14 +80,30 @@ export const WorkspaceCalendarDay: React.FC<WorkspaceCalendarDayProps> = ({
 
         {/* 일정 표시 - 라이브 점 + 개수 */}
         {scheduleCount > 0 && (
-          <div className="flex items-center gap-1.5 mt-2">
-            <div className="relative flex items-center justify-center">
-              <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
-              <div className="absolute w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
+          <div className="flex flex-col gap-1.5 mt-2">
+            <div className="flex flex-col gap-1">
+              {statusItems.length > 0 ? (
+                statusItems.map((item, idx) => (
+                  <div
+                    key={`${item.status}-${idx}`}
+                    className="flex items-center gap-0.5"
+                  >
+                    <div className="relative flex items-center justify-center">
+                      <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: item.color }} />
+                      {idx === 0 && (
+                        <div className="absolute w-1.5 h-1.5 rounded-full animate-ping" style={{ backgroundColor: item.color }} />
+                      )}
+                    </div>
+                    <span className="text-[10px] text-gray-600">{item.count}</span>
+                  </div>
+                ))
+              ) : (
+                <div className="relative flex items-center justify-center">
+                  <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#EA4335' }} />
+                  <div className="absolute w-1.5 h-1.5 rounded-full animate-ping" style={{ backgroundColor: '#EA4335' }} />
+                </div>
+              )}
             </div>
-            <span className="text-xs font-medium workspace-calendar-day__count">
-              {scheduleCount}
-            </span>
           </div>
         )}
       </div>
@@ -100,12 +118,27 @@ export const WorkspaceCalendarDay: React.FC<WorkspaceCalendarDayProps> = ({
           {dayInfo.day}
         </span>
         {scheduleCount > 0 && (
-          <div className="flex items-center gap-1">
-            <div className="relative flex items-center justify-center">
-              <div className="w-1 h-1 rounded-full bg-red-500" />
-              <div className="absolute w-1 h-1 rounded-full bg-red-500 animate-ping" />
+          <div className="flex flex-col items-center gap-1">
+            <div className="flex flex-col items-center gap-0.5">
+              {statusItems.length > 0 ? (
+                statusItems.map((item, idx) => (
+                  <div key={`${item.status}-${idx}`} className="flex items-center gap-0.5">
+                    <div className="relative flex items-center justify-center">
+                      <div className="w-1 h-1 rounded-full" style={{ backgroundColor: item.color }} />
+                      {idx === 0 && (
+                        <div className="absolute w-1 h-1 rounded-full animate-ping" style={{ backgroundColor: item.color }} />
+                      )}
+                    </div>
+                    <span className="text-[9px] text-gray-600">{item.count}</span>
+                  </div>
+                ))
+              ) : (
+                <div className="relative flex items-center justify-center">
+                  <div className="w-1 h-1 rounded-full" style={{ backgroundColor: '#EA4335' }} />
+                  <div className="absolute w-1 h-1 rounded-full animate-ping" style={{ backgroundColor: '#EA4335' }} />
+                </div>
+              )}
             </div>
-            <span className="text-[10px] workspace-calendar-day__count">{scheduleCount}</span>
           </div>
         )}
       </div>
