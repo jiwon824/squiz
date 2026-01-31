@@ -172,25 +172,30 @@ public class MeetingAiScheduler {
     public void processMeetingIfReady(Meeting meeting) {
         Long meetingId = meeting.getId();
         Long studyId = meeting.getStudyId();
+        log.info("[AI 처리 준비] meetingId: {}, studyId: {} - 처리 조건 확인 시작", meetingId, studyId);
 
         // 1. 실시간 STT segments 확인 (우선 처리)
         long segmentCount = speechSegmentService.countByMeetingId(meetingId);
+        log.info("[AI 처리 준비] meetingId: {} - speech segment 수: {}", meetingId, segmentCount);
+
         if (segmentCount > 0) {
-            log.info("실시간 STT 세그먼트 발견 - meetingId: {}, count: {}, 바로 AI 처리 시작", meetingId, segmentCount);
+            log.info("[AI 처리 준비] meetingId: {} - 실시간 STT 세그먼트 발견, AI 처리 시작", meetingId);
             startAiProcessingJob(studyId, meetingId, meeting);
             return;
         }
 
         // 2. 실시간 STT 없으면 오디오 파일 확인
+        log.info("[AI 처리 준비] meetingId: {} - speech segment 없음, 오디오 파일 확인", meetingId);
         List<MeetingAudioRecording> mixedRecordings = meetingAudioRecordingRepository
                 .findByMeetingIdAndTrackTypeOrderByCreatedAtAsc(meetingId, MeetingAudioTrackType.MIXED);
 
         if (mixedRecordings.isEmpty()) {
             // DB에 없으면 디스크에서 voice.webm 파일 확인
             Path voiceFile = localFileStorageService.resolveMeetingVoiceDir(meetingId).resolve("voice.webm");
+            log.info("[AI 처리 준비] meetingId: {} - DB에 오디오 없음, 파일 확인: {}", meetingId, voiceFile);
 
             if (!Files.exists(voiceFile)) {
-                log.debug("음성 파일/STT 세그먼트 없음 - meetingId: {}", meetingId);
+                log.info("[AI 처리 준비] meetingId: {} - 음성 파일도 없음. 처리 스킵", meetingId);
                 return;
             }
 

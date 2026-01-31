@@ -75,4 +75,16 @@ public class InternalMeetingController {
         MeetingSttSummaryResponse response = meetingSttService.upsertSummaryFileInternal(meetingId, fileUrl);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
     }
+
+    @PostMapping("/{meetingId}/ai-result")
+    @Operation(summary = "AI 처리 결과 저장 (내부용)", description = "AI 서버에서 STT/요약 처리 후 결과 텍스트를 직접 저장")
+    public ResponseEntity<ApiResponse<MeetingSttSummaryResponse>> saveAiResult(
+            @PathVariable Long meetingId,
+            @RequestBody java.util.Map<String, String> request
+    ) {
+        String sttText = request.get("sttText");
+        String summaryText = request.get("summaryText");
+        MeetingSttSummaryResponse response = meetingSttService.saveAiResultDirect(meetingId, sttText, summaryText);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
+    }
 }

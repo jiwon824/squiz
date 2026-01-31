@@ -13,6 +13,8 @@ import os
 import uuid
 import tempfile
 import subprocess
+import logging
+from datetime import datetime
 from pathlib import Path
 from typing import Optional, List
 from fastapi import FastAPI, HTTPException, UploadFile, File, BackgroundTasks
@@ -21,6 +23,15 @@ from pydantic import BaseModel
 from contextlib import asynccontextmanager
 import uvicorn
 import json
+import re
+
+# 로깅 설정
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger(__name__)
 
 # 설정
 MODEL_PATH = os.getenv("MODEL_PATH", "./models/qwen3-8b-summarizer-q4km.gguf")
@@ -453,9 +464,17 @@ def process_stt_job(job_id: str, file_path: str):
 async def get_job_status(job_id: str):
     """작업 상태 조회"""
     if job_id not in jobs:
+        logger.warning(f"[API] /api/jobs/{job_id} - Job not found")
         raise HTTPException(status_code=404, detail="Job not found")
 
     job = jobs[job_id]
+    logger.info(f"[API] /api/jobs/{job_id} - status={job['status']}, has_result={job['result'] is not None}, has_error={job['error'] is not None}")
+
+    # 결과가 있을 경우 상세 로그
+    if job['status'] == 'completed' and job['result']:
+        result = job['result']
+        logger.info(f"[API] /api/jobs/{job_id} - result summary: transcript_len={len(result.get('transcript', ''))}, summary_len={len(result.get('summary', ''))}, keywords={result.get('keywords', [])}, action_items_count={len(result.get('action_items', []))}, has_quiz={result.get('quiz') is not None}")
+
     return JobStatusResponse(
         job_id=job_id,
         status=job["status"],
@@ -1205,29 +1224,48 @@ CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-3-haiku-20240307")
 def call_claude(prompt: str, max_tokens: int = 2048) -> str:
     """Claude API 호출"""
     if not CLAUDE_API_KEY:
+        logger.warning("[CLAUDE] API 키 없음 - Claude 호출 스킵")
         return None
 
     import httpx
 
-    response = httpx.post(
-        "https://api.anthropic.com/v1/messages",
-        headers={
-            "x-api-key": CLAUDE_API_KEY,
-            "anthropic-version": "2023-06-01",
-            "content-type": "application/json",
-        },
-        json={
-            "model": CLAUDE_MODEL,
-            "max_tokens": max_tokens,
-            "messages": [{"role": "user", "content": prompt}],
-        },
-        timeout=120.0,
-    )
+    logger.info(f"[CLAUDE] API 호출 시작 - model={CLAUDE_MODEL}, max_tokens={max_tokens}, prompt_len={len(prompt)}")
+    start_time = datetime.now()
 
-    if response.status_code == 200:
-        return response.json()["content"][0]["text"]
-    else:
-        print(f"[WARNING] Claude API 오류: {response.status_code} - {response.text}")
+    try:
+        response = httpx.post(
+            "https://api.anthropic.com/v1/messages",
+            headers={
+                "x-api-key": CLAUDE_API_KEY,
+                "anthropic-version": "2023-06-01",
+                "content-type": "application/json",
+            },
+            json={
+                "model": CLAUDE_MODEL,
+                "max_tokens": max_tokens,
+                "messages": [{"role": "user", "content": prompt}],
+            },
+            timeout=120.0,
+        )
+
+        elapsed = (datetime.now() - start_time).total_seconds()
+
+        if response.status_code == 200:
+            result_text = response.json()["content"][0]["text"]
+            logger.info(f"[CLAUDE] API 성공 - elapsed={elapsed:.2f}s, response_len={len(result_text)}")
+            logger.debug(f"[CLAUDE] 응답 미리보기: {result_text[:200]}...")
+            return result_text
+        else:
+            logger.error(f"[CLAUDE] API 오류 - status={response.status_code}, elapsed={elapsed:.2f}s, body={response.text[:500]}")
+            return None
+
+    except httpx.TimeoutException:
+        elapsed = (datetime.now() - start_time).total_seconds()
+        logger.error(f"[CLAUDE] API 타임아웃 (120초) - elapsed={elapsed:.2f}s")
+        return None
+    except Exception as e:
+        elapsed = (datetime.now() - start_time).total_seconds()
+        logger.error(f"[CLAUDE] API 예외 - elapsed={elapsed:.2f}s, error={str(e)}")
         return None
 
 
@@ -1317,11 +1355,14 @@ def process_meeting_full_job(job_id: str, mixed_path: str, individual_paths: lis
     """회의 전체 처리 백그라운드 작업 (Claude 1회 통합 호출)"""
     preprocessed_mixed = None
     preprocessed_individuals = []
+    start_time = datetime.now()
     try:
         jobs[job_id]["status"] = "processing"
-
-        import json
-        import re
+        logger.info(f"[MEETING-FULL] ========== 전체 처리 시작 ==========")
+        logger.info(f"[MEETING-FULL] job_id={job_id}")
+        logger.info(f"[MEETING-FULL] mixed_path={mixed_path}")
+        logger.info(f"[MEETING-FULL] individual_count={len(individual_paths)}")
+        logger.info(f"[MEETING-FULL] generate_quiz={generate_quiz}")
 
         # 0. 음성 전처리 (전체 + 화자별)
         preprocessed_mixed = preprocess_audio(mixed_path)
@@ -1404,10 +1445,13 @@ def process_meeting_full_job(job_id: str, mixed_path: str, individual_paths: lis
         quiz_instruction = ""
         if generate_quiz:
             quiz_instruction = """
-5. **퀴즈**: 스터디 내용 복습을 위한 퀴즈를 5문제 이상 생성해주세요.
+6. **퀴즈**: 스터디 내용 복습을 위한 퀴즈를 5문제 이상 생성해주세요.
    - MULTIPLE_CHOICE(객관식)와 SHORT_ANSWER(단답형) 혼합
    - 난이도: EASY, MEDIUM, HARD 섞어서
    - 각 문제에 정답과 해설 포함"""
+
+        # 8B에서 파싱한 액션아이템을 문자열로 변환
+        action_items_text = "\n".join([f"- {item['content']}" for item in action_items]) if action_items else "(없음)"
 
         claude_prompt = f"""다음은 IT 스터디 회의 분석 결과입니다. 검토하고 보완해주세요.
 
@@ -1416,6 +1460,9 @@ def process_meeting_full_job(job_id: str, mixed_path: str, individual_paths: lis
 {speaker_info}
 
 ---
+**현재 추출된 액션 아이템:**
+{action_items_text}
+---
 
 위 분석을 바탕으로 다음을 수행해주세요:
 
@@ -1423,12 +1470,21 @@ def process_meeting_full_job(job_id: str, mixed_path: str, individual_paths: lis
    - 핵심 논의 사항을 빠짐없이 포함
    - 결론이나 합의된 사항 강조
 
-2. **학습 피드백**: 회의에서 다룬 기술/개념에 대해 학습에 도움이 되는 피드백을 제공해주세요.
+2. **주요 내용 (highlights)**: 회의에서 다룬 가장 중요한 포인트 3-5개를 bullet point로 추출해주세요.
+   - 각 포인트는 한 문장으로 간결하게
+   - 학습자가 반드시 기억해야 할 핵심 내용
+
+3. **액션 아이템 검토 및 보완**: 위 액션 아이템을 검토하고, 더 구체적이고 실행 가능하게 보완해주세요.
+   - 누락된 중요한 할 일이 있다면 추가
+   - 모호한 항목은 구체화
+   - 각 항목은 실행 가능한 형태로
+
+4. **학습 피드백**: 회의에서 다룬 기술/개념에 대해 학습에 도움이 되는 피드백을 제공해주세요.
    - 핵심 개념의 배경 지식 및 원리 설명
    - 심화 학습을 위한 관련 주제 추천
    - 실무 적용 팁이나 주의사항
 
-3. **키워드**: 핵심 키워드 5-7개를 추출해주세요.
+5. **키워드**: 핵심 키워드 5-7개를 추출해주세요.
 {quiz_instruction}
 
 ---
@@ -1436,6 +1492,8 @@ def process_meeting_full_job(job_id: str, mixed_path: str, individual_paths: lis
 반드시 아래 JSON 형식으로만 응답해주세요:
 {{
   "summary": "보완된 풍부한 요약 (5-7문장)",
+  "highlights": ["핵심 포인트 1", "핵심 포인트 2", "핵심 포인트 3"],
+  "action_items": ["구체적인 할 일 1", "구체적인 할 일 2"],
   "feedback": "학습 피드백 (배경지식, 심화주제, 실무팁 등을 풍부하게)",
   "keywords": ["키워드1", "키워드2", ...],
   "quiz": [
@@ -1456,8 +1514,9 @@ def process_meeting_full_job(job_id: str, mixed_path: str, individual_paths: lis
         final_summary = local_summary
         feedback = ""
         keywords = []
+        highlights = []
         quiz = None
-        # action_items는 위에서 8B 출력 파싱으로 이미 설정됨
+        # action_items는 위에서 8B 출력 파싱으로 이미 설정됨 (Claude가 보완하면 덮어씀)
 
         if claude_response:
             json_match = re.search(r'\{[\s\S]*\}', claude_response)
@@ -1467,28 +1526,61 @@ def process_meeting_full_job(job_id: str, mixed_path: str, individual_paths: lis
                     final_summary = result.get("summary", local_summary)
                     feedback = result.get("feedback", "")
                     keywords = result.get("keywords", [])
+                    highlights = result.get("highlights", [])
+                    # Claude가 보완한 action_items가 있으면 사용 (8B 결과 대체)
+                    claude_action_items = result.get("action_items", [])
+                    if claude_action_items:
+                        action_items = [{"user_id": None, "content": item} for item in claude_action_items]
+                        print(f"[MEETING] Claude 보완 액션아이템 사용: {len(action_items)}개")
                     if generate_quiz and result.get("quiz"):
                         quiz = json.dumps(result["quiz"], ensure_ascii=False)
                 except Exception as e:
                     print(f"[WARNING] Claude 응답 파싱 실패: {e}")
 
+        # 요약에 주요 내용(highlights) 섹션 추가
+        if highlights:
+            highlights_text = "\n".join([f"• {h}" for h in highlights])
+            final_summary = f"📌 주요 내용:\n{highlights_text}\n\n📝 요약:\n{final_summary}"
+
+        # 요약에 액션 아이템 섹션 추가
+        if action_items:
+            action_items_formatted = "\n".join([f"• {item['content']}" for item in action_items])
+            final_summary = f"{final_summary}\n\n📋 액션 아이템:\n{action_items_formatted}"
+
         # 요약에 학습 피드백 추가
         if feedback:
             final_summary = f"{final_summary}\n\n📚 학습 피드백:\n{feedback}"
+
+        total_elapsed = (datetime.now() - start_time).total_seconds()
 
         jobs[job_id]["status"] = "completed"
         jobs[job_id]["result"] = {
             "transcript": full_text,
             "summary": final_summary,
             "keywords": keywords,
+            "highlights": highlights,
             "action_items": action_items,
             "quiz": quiz,
         }
+        logger.info(f"[MEETING-FULL] ========== 전체 처리 완료 ==========")
+        logger.info(f"[MEETING-FULL] job_id={job_id}")
+        logger.info(f"[MEETING-FULL] total_elapsed={total_elapsed:.2f}s")
+        logger.info(f"[MEETING-FULL] transcript_len={len(full_text)}")
+        logger.info(f"[MEETING-FULL] summary_len={len(final_summary)}")
+        logger.info(f"[MEETING-FULL] keywords={keywords}")
+        logger.info(f"[MEETING-FULL] highlights_count={len(highlights)}")
+        logger.info(f"[MEETING-FULL] action_items_count={len(action_items)}")
 
     except Exception as e:
+        total_elapsed = (datetime.now() - start_time).total_seconds()
         jobs[job_id]["status"] = "failed"
         jobs[job_id]["error"] = str(e)
-        print(f"[ERROR] 회의 처리 실패: {e}")
+        logger.error(f"[MEETING-FULL] ========== 전체 처리 실패 ==========")
+        logger.error(f"[MEETING-FULL] job_id={job_id}")
+        logger.error(f"[MEETING-FULL] elapsed={total_elapsed:.2f}s")
+        logger.error(f"[MEETING-FULL] error={str(e)}")
+        import traceback
+        logger.error(f"[MEETING-FULL] traceback:\n{traceback.format_exc()}")
 
     finally:
         # 임시 파일 정리 (전처리 파일 포함)
@@ -1547,15 +1639,17 @@ async def process_speech_segment(request: SpeechSegmentRequest, background_tasks
     if not os.path.exists(abs_path):
         raise HTTPException(status_code=404, detail=f"File not found: {file_path}")
 
-    print(f"[SPEECH] 발화 세그먼트 처리 시작: meetingId={meeting_id}, userId={user_id}, duration={duration_ms}ms")
+    logger.info(f"[SPEECH] 발화 세그먼트 처리 시작: meetingId={meeting_id}, userId={user_id}, duration={duration_ms}ms, path={abs_path}")
 
     preprocessed_path = None
+    start_time = datetime.now()
     try:
         # 1. 경량 오디오 전처리 (실시간 최적화)
         preprocessed_path = preprocess_audio_realtime(abs_path)
         process_path = preprocessed_path if preprocessed_path != abs_path else abs_path
 
         # 2. Whisper STT (빠른 설정)
+        stt_start = datetime.now()
         segments, info = whisper_model.transcribe(
             process_path,
             language="ko",
@@ -1563,11 +1657,13 @@ async def process_speech_segment(request: SpeechSegmentRequest, background_tasks
             vad_filter=True,
             condition_on_previous_text=False,  # 독립 세그먼트이므로 비활성화
         )
+        stt_elapsed = (datetime.now() - stt_start).total_seconds()
 
         # 결과 조합
         full_text = " ".join([seg.text.strip() for seg in segments])
+        total_elapsed = (datetime.now() - start_time).total_seconds()
 
-        print(f"[SPEECH] STT 완료: meetingId={meeting_id}, userId={user_id}, text='{full_text[:50]}...'")
+        logger.info(f"[SPEECH] STT 완료: meetingId={meeting_id}, userId={user_id}, elapsed={total_elapsed:.2f}s (stt={stt_elapsed:.2f}s), text='{full_text[:100]}'")
 
         # 3. 백엔드로 결과 전송 (비동기)
         if full_text.strip():
@@ -1587,7 +1683,10 @@ async def process_speech_segment(request: SpeechSegmentRequest, background_tasks
         )
 
     except Exception as e:
-        print(f"[SPEECH] STT 처리 실패: {e}")
+        total_elapsed = (datetime.now() - start_time).total_seconds()
+        logger.error(f"[SPEECH] STT 처리 실패: meetingId={meeting_id}, userId={user_id}, elapsed={total_elapsed:.2f}s, error={str(e)}")
+        import traceback
+        logger.error(f"[SPEECH] traceback:\n{traceback.format_exc()}")
         return SpeechSegmentResponse(
             status="error",
             text="",
@@ -1660,17 +1759,21 @@ async def send_speech_to_backend(meeting_id: int, user_id: str, timestamp: float
         "text": text
     }
 
+    logger.info(f"[SPEECH->BACKEND] 전송 시작: meetingId={meeting_id}, userId={user_id}, text_len={len(text)}")
+
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.post(url, json=payload)
 
         if response.status_code in (200, 201):
-            print(f"[SPEECH] 백엔드 전송 완료: meetingId={meeting_id}")
+            logger.info(f"[SPEECH->BACKEND] 전송 성공: meetingId={meeting_id}, status={response.status_code}")
         else:
-            print(f"[SPEECH] 백엔드 전송 실패: status={response.status_code}")
+            logger.warning(f"[SPEECH->BACKEND] 전송 실패: meetingId={meeting_id}, status={response.status_code}, body={response.text[:200]}")
 
+    except httpx.TimeoutException:
+        logger.error(f"[SPEECH->BACKEND] 타임아웃: meetingId={meeting_id}")
     except Exception as e:
-        print(f"[SPEECH] 백엔드 전송 오류: {e}")
+        logger.error(f"[SPEECH->BACKEND] 전송 오류: meetingId={meeting_id}, error={str(e)}")
 
 
 # ===== 녹음 파일 업로드 (SFU → AI → 백엔드) =====
@@ -1691,12 +1794,12 @@ class RecordingUploadResponse(BaseModel):
 
 
 @app.post("/api/upload-recording", response_model=RecordingUploadResponse)
-async def upload_recording(request: RecordingUploadRequest):
+async def upload_recording(request: RecordingUploadRequest, background_tasks: BackgroundTasks):
     """
-    SFU 녹음 파일을 전처리 후 백엔드로 업로드
-    1. 파일 경로 검증
-    2. 오디오 전처리 (노이즈 제거, 정규화)
-    3. 백엔드 내부 API로 업로드
+    SFU 녹음 파일 처리:
+    1. 파일 경로 검증 및 전처리
+    2. 백엔드로 음성 파일 업로드
+    3. 로컬에서 STT + 요약 후 결과를 백엔드로 전송 (백그라운드)
     """
     import httpx
 
@@ -1711,7 +1814,7 @@ async def upload_recording(request: RecordingUploadRequest):
     if not os.path.exists(abs_path):
         raise HTTPException(status_code=404, detail=f"File not found: {file_path}")
 
-    print(f"[UPLOAD] 녹음 파일 업로드 시작: meetingId={meeting_id}, path={file_path}")
+    print(f"[UPLOAD] 녹음 파일 처리 시작: meetingId={meeting_id}, path={file_path}")
 
     preprocessed_path = None
     try:
@@ -1721,7 +1824,7 @@ async def upload_recording(request: RecordingUploadRequest):
 
         print(f"[UPLOAD] 전처리 완료: {upload_path}")
 
-        # 2. 백엔드로 업로드
+        # 2. 백엔드로 음성 파일 업로드
         upload_url = f"{BACKEND_URL}/api/internal/meetings/{meeting_id}/recording/video"
 
         with open(upload_path, "rb") as f:
@@ -1733,27 +1836,117 @@ async def upload_recording(request: RecordingUploadRequest):
         if response.status_code in (200, 201):
             result = response.json()
             recording_url = result.get("data", {}).get("recordingUrl")
-            print(f"[UPLOAD] 업로드 성공: meetingId={meeting_id}, url={recording_url}")
-            return RecordingUploadResponse(
-                status="success",
-                message="녹음 파일 업로드 완료",
-                recording_url=recording_url
-            )
+            print(f"[UPLOAD] 파일 업로드 성공: meetingId={meeting_id}, url={recording_url}")
         else:
-            print(f"[UPLOAD] 업로드 실패: status={response.status_code}, body={response.text}")
+            print(f"[UPLOAD] 파일 업로드 실패: status={response.status_code}, body={response.text}")
             raise HTTPException(
                 status_code=response.status_code,
                 detail=f"Backend upload failed: {response.text}"
             )
 
+        # 3. 백그라운드에서 STT + 요약 처리 후 결과 전송 (전처리된 파일 경로 전달)
+        background_tasks.add_task(
+            process_recording_and_send_results,
+            meeting_id,
+            upload_path,  # 전처리된 파일 사용
+            abs_path,  # 원본 경로 (정리용)
+            preprocessed_path  # 전처리 경로 (정리용)
+        )
+
+        return RecordingUploadResponse(
+            status="success",
+            message="녹음 파일 업로드 완료, STT/요약 처리 시작",
+            recording_url=recording_url
+        )
+
     except httpx.RequestError as e:
         print(f"[UPLOAD] 네트워크 오류: {e}")
+        # 전처리 파일 정리
+        if preprocessed_path:
+            cleanup_preprocessed(abs_path, preprocessed_path)
         raise HTTPException(status_code=502, detail=f"Backend connection failed: {str(e)}")
 
+
+def process_recording_and_send_results(meeting_id: int, audio_path: str, original_path: str, preprocessed_path: str):
+    """
+    녹음 파일을 STT + 요약 처리 후 결과를 백엔드로 전송 (백그라운드 작업)
+    """
+    import requests
+
+    try:
+        print(f"[PROCESS] STT 시작: meetingId={meeting_id}")
+
+        # 1. Whisper STT
+        if whisper_model is None:
+            print(f"[PROCESS] Whisper 모델 없음, 스킵")
+            return
+
+        segments, info = whisper_model.transcribe(
+            audio_path,
+            language="ko",
+            beam_size=5,
+            vad_filter=True,
+        )
+        full_text = " ".join([seg.text.strip() for seg in segments])
+
+        if not full_text or len(full_text.strip()) < 10:
+            print(f"[PROCESS] STT 결과 없음, 스킵: meetingId={meeting_id}")
+            return
+
+        print(f"[PROCESS] STT 완료: meetingId={meeting_id}, length={len(full_text)}")
+
+        # 2. 로컬 LLM 요약
+        if llm is None:
+            print(f"[PROCESS] LLM 모델 없음, STT만 저장")
+            summary_text = ""
+        else:
+            summary_prompt = f"""<|im_start|>system
+당신은 IT 스터디 회의록을 요약하는 전문가입니다. 다음 형식으로 정리해주세요:
+
+## 요약
+[2-3문장 핵심 요약]
+
+## 다룬 내용
+- [토픽별 요점]
+
+## 액션 아이템
+- [할 일]
+
+## 키워드
+[쉼표로 구분]
+<|im_end|>
+<|im_start|>user
+다음 회의 내용을 분석하여 정리해주세요:
+
+{full_text[:4000]}
+<|im_end|>
+<|im_start|>assistant
+"""
+            summary_output = llm(summary_prompt, max_tokens=1200, temperature=0.3,
+                                 stop=["<|im_end|>", "<|im_start|>"], echo=False)
+            summary_text = summary_output["choices"][0]["text"].strip()
+            print(f"[PROCESS] 요약 완료: meetingId={meeting_id}")
+
+        # 3. 백엔드로 STT/요약 결과 전송
+        result_url = f"{BACKEND_URL}/api/internal/meetings/{meeting_id}/ai-result"
+        payload = {
+            "sttText": full_text,
+            "summaryText": summary_text,
+            "status": "COMPLETED"
+        }
+
+        response = requests.post(result_url, json=payload, timeout=30)
+        if response.status_code in (200, 201):
+            print(f"[PROCESS] 결과 전송 성공: meetingId={meeting_id}")
+        else:
+            print(f"[PROCESS] 결과 전송 실패: meetingId={meeting_id}, status={response.status_code}")
+
+    except Exception as e:
+        print(f"[PROCESS] 처리 실패: meetingId={meeting_id}, error={e}")
     finally:
         # 전처리 임시 파일 정리
         if preprocessed_path:
-            cleanup_preprocessed(abs_path, preprocessed_path)
+            cleanup_preprocessed(original_path, preprocessed_path)
 
 
 # ===== 실시간 STT transcript 기반 요약 (STT 스킵) =====
@@ -1776,7 +1969,10 @@ async def summarize_transcript(request: TranscriptSummarizeRequest, background_t
     실시간 STT로 수집된 transcript를 바로 요약
     STT 단계를 건너뛰고 Claude API로 직접 요약 요청
     """
+    logger.info(f"[API] /api/summarize-transcript 호출 - transcript_len={len(request.transcript) if request.transcript else 0}, speaker_ids={request.speaker_ids}, generate_quiz={request.generate_quiz}")
+
     if not request.transcript or len(request.transcript.strip()) < 50:
+        logger.warning(f"[API] /api/summarize-transcript 거부 - transcript 너무 짧음")
         return TranscriptSummarizeResponse(
             status="error",
             message="Transcript too short (minimum 50 characters)"
@@ -1784,6 +1980,7 @@ async def summarize_transcript(request: TranscriptSummarizeRequest, background_t
 
     job_id = str(uuid.uuid4())
     jobs[job_id] = {"status": "processing", "result": None, "error": None}
+    logger.info(f"[API] /api/summarize-transcript - job 생성됨: job_id={job_id}")
 
     background_tasks.add_task(
         process_transcript_summary,
@@ -1804,8 +2001,14 @@ def process_transcript_summary(job_id: str, transcript: str, speaker_ids: List[i
     """
     Transcript 기반 요약 처리 (백그라운드)
     """
+    start_time = datetime.now()
     try:
-        print(f"[TRANSCRIPT] 요약 시작: job_id={job_id}, length={len(transcript)}")
+        logger.info(f"[TRANSCRIPT] ========== 요약 시작 ==========")
+        logger.info(f"[TRANSCRIPT] job_id={job_id}")
+        logger.info(f"[TRANSCRIPT] transcript_length={len(transcript)}")
+        logger.info(f"[TRANSCRIPT] speaker_ids={speaker_ids}")
+        logger.info(f"[TRANSCRIPT] generate_quiz={generate_quiz}")
+        logger.info(f"[TRANSCRIPT] transcript 미리보기: {transcript[:300]}...")
 
         # 1. 로컬 8B LLM으로 요약 + 키워드 + 액션아이템 추출 (파인튜닝 형식)
         summary_prompt = f"""<|im_start|>system
@@ -1830,15 +2033,21 @@ def process_transcript_summary(job_id: str, transcript: str, speaker_ids: List[i
 <|im_end|>
 <|im_start|>assistant
 """
+        logger.info(f"[TRANSCRIPT] 8B LLM 호출 시작...")
+        llm_start = datetime.now()
         summary_output = llm(summary_prompt, max_tokens=1200, temperature=0.3,
                              stop=["<|im_end|>", "<|im_start|>"], echo=False)
         local_summary = summary_output["choices"][0]["text"].strip()
+        llm_elapsed = (datetime.now() - llm_start).total_seconds()
 
-        print(f"[TRANSCRIPT] 8B 요약 완료: {len(local_summary)} chars")
+        logger.info(f"[TRANSCRIPT] 8B LLM 완료 - elapsed={llm_elapsed:.2f}s, output_len={len(local_summary)}")
+        logger.info(f"[TRANSCRIPT] 8B 요약 미리보기: {local_summary[:500]}...")
 
         # 1.5 8B 출력에서 액션아이템 파싱
         action_items = parse_action_items_from_8b(local_summary)
-        print(f"[TRANSCRIPT] 8B 액션아이템 파싱 완료: {len(action_items)}개")
+        logger.info(f"[TRANSCRIPT] 8B 액션아이템 파싱 완료: {len(action_items)}개")
+        if action_items:
+            logger.info(f"[TRANSCRIPT] 액션아이템 목록: {action_items}")
 
         # 2. Claude 호출 (8B 요약본 기반 검토/보완 + 보충설명 + 퀴즈)
         quiz_instruction = ""
@@ -1849,10 +2058,16 @@ def process_transcript_summary(job_id: str, transcript: str, speaker_ids: List[i
    - 난이도: EASY, MEDIUM, HARD 섞어서
    - 각 문제에 정답과 해설 포함"""
 
+        # 8B에서 파싱한 액션아이템을 문자열로 변환
+        action_items_text = "\n".join([f"- {item['content']}" for item in action_items]) if action_items else "(없음)"
+
         claude_prompt = f"""다음은 IT 스터디 회의 분석 결과입니다. 검토하고 보완해주세요.
 
 {local_summary}
 
+---
+**현재 추출된 액션 아이템:**
+{action_items_text}
 ---
 
 위 분석을 바탕으로 다음을 수행해주세요:
@@ -1861,12 +2076,21 @@ def process_transcript_summary(job_id: str, transcript: str, speaker_ids: List[i
    - 핵심 논의 사항을 빠짐없이 포함
    - 결론이나 합의된 사항 강조
 
-2. **학습 피드백**: 회의에서 다룬 기술/개념에 대해 학습에 도움이 되는 피드백을 제공해주세요.
+2. **주요 내용 (highlights)**: 회의에서 다룬 가장 중요한 포인트 3-5개를 bullet point로 추출해주세요.
+   - 각 포인트는 한 문장으로 간결하게
+   - 학습자가 반드시 기억해야 할 핵심 내용
+
+3. **액션 아이템 검토 및 보완**: 위 액션 아이템을 검토하고, 더 구체적이고 실행 가능하게 보완해주세요.
+   - 누락된 중요한 할 일이 있다면 추가
+   - 모호한 항목은 구체화
+   - 각 항목은 실행 가능한 형태로
+
+4. **학습 피드백**: 회의에서 다룬 기술/개념에 대해 학습에 도움이 되는 피드백을 제공해주세요.
    - 핵심 개념의 배경 지식 및 원리 설명
    - 심화 학습을 위한 관련 주제 추천
    - 실무 적용 팁이나 주의사항
 
-3. **키워드 보완**: 위에서 추출된 키워드를 검토하고, 누락된 중요 키워드가 있다면 추가해주세요.
+5. **키워드 보완**: 위에서 추출된 키워드를 검토하고, 누락된 중요 키워드가 있다면 추가해주세요.
 {quiz_instruction}
 
 ---
@@ -1874,6 +2098,8 @@ def process_transcript_summary(job_id: str, transcript: str, speaker_ids: List[i
 반드시 아래 JSON 형식으로만 응답해주세요:
 {{
   "summary": "보완된 풍부한 요약 (5-7문장)",
+  "highlights": ["핵심 포인트 1", "핵심 포인트 2", "핵심 포인트 3"],
+  "action_items": ["구체적인 할 일 1", "구체적인 할 일 2"],
   "feedback": "학습 피드백 (배경지식, 심화주제, 실무팁 등을 풍부하게)",
   "keywords": ["키워드1", "키워드2", ...],
   "quiz": [
@@ -1888,16 +2114,19 @@ def process_transcript_summary(job_id: str, transcript: str, speaker_ids: List[i
 }}
 """
 
+        logger.info(f"[TRANSCRIPT] Claude 호출 시작...")
         claude_response = call_claude(claude_prompt, max_tokens=4096)
 
         # 기본값: 8B 요약 결과 사용
         final_summary = local_summary
         feedback = ""
         keywords = []
+        highlights = []
         quiz = None
-        # action_items는 위에서 8B 출력 파싱으로 이미 설정됨
+        # action_items는 위에서 8B 출력 파싱으로 이미 설정됨 (Claude가 보완하면 덮어씀)
 
         if claude_response:
+            logger.info(f"[TRANSCRIPT] Claude 응답 수신 - length={len(claude_response)}")
             json_match = re.search(r'\{[\s\S]*\}', claude_response)
             if json_match:
                 try:
@@ -1906,41 +2135,84 @@ def process_transcript_summary(job_id: str, transcript: str, speaker_ids: List[i
                     final_summary = result.get("summary", local_summary)
                     feedback = result.get("feedback", "")
                     keywords = result.get("keywords", [])
+                    highlights = result.get("highlights", [])
+                    # Claude가 보완한 action_items가 있으면 사용 (8B 결과 대체)
+                    claude_action_items = result.get("action_items", [])
+                    if claude_action_items:
+                        # Claude는 문자열 배열로 반환하므로 형식 맞춤
+                        action_items = [{"user_id": None, "content": item} for item in claude_action_items]
+                        logger.info(f"[TRANSCRIPT] Claude 보완 액션아이템 사용: {len(action_items)}개")
                     if generate_quiz and result.get("quiz"):
                         quiz = json.dumps(result["quiz"], ensure_ascii=False)
+                    logger.info(f"[TRANSCRIPT] Claude 파싱 성공 - summary_len={len(final_summary)}, keywords={keywords}, highlights={len(highlights)}개, quiz_count={len(result.get('quiz', []))}")
                 except Exception as e:
-                    print(f"[TRANSCRIPT] Claude 응답 파싱 실패: {e}")
+                    logger.error(f"[TRANSCRIPT] Claude 응답 JSON 파싱 실패: {e}")
+                    logger.error(f"[TRANSCRIPT] 파싱 실패한 응답: {claude_response[:500]}")
+            else:
+                logger.warning(f"[TRANSCRIPT] Claude 응답에서 JSON 블록 미발견")
+                logger.warning(f"[TRANSCRIPT] 원본 응답: {claude_response[:500]}")
+        else:
+            logger.warning(f"[TRANSCRIPT] Claude 응답 없음 - 8B 결과만 사용")
+
+        # 요약에 주요 내용(highlights) 섹션 추가
+        if highlights:
+            highlights_text = "\n".join([f"• {h}" for h in highlights])
+            final_summary = f"📌 주요 내용:\n{highlights_text}\n\n📝 요약:\n{final_summary}"
+
+        # 요약에 액션 아이템 섹션 추가
+        if action_items:
+            action_items_formatted = "\n".join([f"• {item['content']}" for item in action_items])
+            final_summary = f"{final_summary}\n\n📋 액션 아이템:\n{action_items_formatted}"
 
         # 요약에 학습 피드백 추가
         if feedback:
             final_summary = f"{final_summary}\n\n📚 학습 피드백:\n{feedback}"
+
+        total_elapsed = (datetime.now() - start_time).total_seconds()
 
         jobs[job_id]["status"] = "completed"
         jobs[job_id]["result"] = {
             "transcript": transcript,
             "summary": final_summary,
             "keywords": keywords,
+            "highlights": highlights,
             "action_items": action_items,
             "quiz": quiz,
         }
-        print(f"[TRANSCRIPT] 요약 완료: job_id={job_id}")
+        logger.info(f"[TRANSCRIPT] ========== 요약 완료 ==========")
+        logger.info(f"[TRANSCRIPT] job_id={job_id}")
+        logger.info(f"[TRANSCRIPT] total_elapsed={total_elapsed:.2f}s")
+        logger.info(f"[TRANSCRIPT] final_summary_len={len(final_summary)}")
+        logger.info(f"[TRANSCRIPT] keywords={keywords}")
+        logger.info(f"[TRANSCRIPT] highlights_count={len(highlights)}")
+        logger.info(f"[TRANSCRIPT] action_items_count={len(action_items)}")
+        logger.info(f"[TRANSCRIPT] quiz={'있음' if quiz else '없음'}")
 
     except Exception as e:
+        total_elapsed = (datetime.now() - start_time).total_seconds()
         jobs[job_id]["status"] = "failed"
         jobs[job_id]["error"] = str(e)
-        print(f"[TRANSCRIPT] 요약 실패: {e}")
+        logger.error(f"[TRANSCRIPT] ========== 요약 실패 ==========")
+        logger.error(f"[TRANSCRIPT] job_id={job_id}")
+        logger.error(f"[TRANSCRIPT] elapsed={total_elapsed:.2f}s")
+        logger.error(f"[TRANSCRIPT] error={str(e)}")
+        import traceback
+        logger.error(f"[TRANSCRIPT] traceback:\n{traceback.format_exc()}")
 
 
 if __name__ == "__main__":
-    print("=" * 60)
-    print("Squiz AI 추론 서버")
-    print("=" * 60)
-    print(f"LLM Model: {MODEL_PATH}")
-    print(f"Whisper Model: {WHISPER_MODEL}")
-    print(f"GPU Layers: {N_GPU_LAYERS}")
-    print(f"Context Length: {N_CTX}")
-    print(f"Server: http://{HOST}:{PORT}")
-    print(f"Backend URL: {BACKEND_URL}")
-    print("=" * 60)
+    logger.info("=" * 60)
+    logger.info("Squiz AI 추론 서버 시작")
+    logger.info("=" * 60)
+    logger.info(f"LLM Model: {MODEL_PATH}")
+    logger.info(f"Recommend Model: {RECOMMEND_MODEL_PATH}")
+    logger.info(f"Whisper Model: {WHISPER_MODEL}")
+    logger.info(f"GPU Layers: {N_GPU_LAYERS}")
+    logger.info(f"Context Length: {N_CTX}")
+    logger.info(f"Server: http://{HOST}:{PORT}")
+    logger.info(f"Backend URL: {BACKEND_URL}")
+    logger.info(f"Claude Model: {CLAUDE_MODEL}")
+    logger.info(f"Claude API Key: {'설정됨' if CLAUDE_API_KEY else '미설정'}")
+    logger.info("=" * 60)
 
     uvicorn.run(app, host=HOST, port=PORT)

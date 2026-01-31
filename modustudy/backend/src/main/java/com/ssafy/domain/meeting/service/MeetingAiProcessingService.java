@@ -141,6 +141,11 @@ public class MeetingAiProcessingService {
                 summary.updateKeywordsJson(helper.writeJson(result.getKeywords()));
             }
 
+            if (result.getHighlights() != null && !result.getHighlights().isEmpty()) {
+                summary.updateHighlightsJson(helper.writeJson(result.getHighlights()));
+                log.info("주요 내용(highlights) 저장 완료 - meetingId: {}, count: {}", meetingId, result.getHighlights().size());
+            }
+
             meetingSttService.saveSummary(summary);
 
             // 액션 아이템 저장

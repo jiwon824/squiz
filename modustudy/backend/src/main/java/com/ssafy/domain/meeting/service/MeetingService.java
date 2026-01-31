@@ -10,6 +10,7 @@ import com.ssafy.domain.meeting.entity.MeetingSttSummary;
 import com.ssafy.domain.meeting.entity.MeetingTextTrackType;
 import com.ssafy.domain.meeting.entity.MeetingType;
 import com.ssafy.domain.meeting.entity.SummaryStatus;
+import com.ssafy.domain.meeting.repository.MeetingActionItemRepository;
 import com.ssafy.domain.meeting.repository.MeetingParticipantRepository;
 import com.ssafy.domain.meeting.repository.MeetingPhotoRepository;
 import com.ssafy.domain.meeting.repository.MeetingRepository;
@@ -50,6 +51,7 @@ public class MeetingService {
     private final MeetingPhotoRepository meetingPhotoRepository;
     private final MeetingSttFileRepository meetingSttFileRepository;
     private final MeetingSttSummaryRepository meetingSttSummaryRepository;
+    private final MeetingActionItemRepository meetingActionItemRepository;
     private final AttendanceService attendanceService;
     private final UserRepository userRepository;
     private final StudyRepository studyRepository;
@@ -111,14 +113,42 @@ public class MeetingService {
                 .orElse(null);
         SummaryStatus summaryStatus = helper.resolveSummaryStatus(meeting);
         String summaryText = summary == null ? null : helper.readUploadedTextFile(summary.getFileUrl());
-        MeetingSummaryResponse summaryResponse = summary == null ? null : new MeetingSummaryResponse(
-                summary.getId(),
-                summaryText,
-                helper.parseActionItems(summary.getActionItemsJson()),
-                helper.parseKeywords(summary.getKeywordsJson()),
-                summaryStatus.name(),
-                summary.getCreatedAt()
-        );
+
+        // meeting_action_item 테이블에서 직접 조회 (meeting_stt_summary.action_items_json 대신)
+        List<MeetingActionItemResponse> actionItems = meetingActionItemRepository.findByMeetingId(meetingId).stream()
+                .map(item -> new MeetingActionItemResponse(
+                        item.getId(),
+                        item.getContent(),
+                        item.getAssigneeId(),
+                        item.getStatus()))
+                .toList();
+
+        // summary가 없어도 actionItems가 있으면 summaryResponse 생성
+        MeetingSummaryResponse summaryResponse;
+        if (summary != null) {
+            summaryResponse = new MeetingSummaryResponse(
+                    summary.getId(),
+                    summaryText,
+                    actionItems,
+                    helper.parseKeywords(summary.getKeywordsJson()),
+                    helper.parseKeywords(summary.getHighlightsJson()),  // highlights도 문자열 배열이므로 동일 메서드 사용
+                    summaryStatus.name(),
+                    summary.getCreatedAt()
+            );
+        } else if (!actionItems.isEmpty()) {
+            // summary 엔티티는 없지만 actionItems가 있는 경우
+            summaryResponse = new MeetingSummaryResponse(
+                    null,
+                    null,
+                    actionItems,
+                    List.of(),
+                    List.of(),
+                    summaryStatus.name(),
+                    null
+            );
+        } else {
+            summaryResponse = null;
+        }
 
         return new MeetingDetailResponse(
                 meeting.getId(),
