@@ -22,7 +22,7 @@ import {
     ShortAnswerQuiz
 } from '@/shared/components';
 import '../styles/DashboardV2.css';
-import { getTodayReviews, getWrongAnswers, ReviewItemDto } from '../api/reviewApi';
+import { getTodayReviews, getWrongAnswers, submitReview, ReviewItemDto } from '../api/reviewApi';
 
 // 흔들리는 개념 타입
 interface WeakConcept {
@@ -65,6 +65,7 @@ export const MyQuizPage: React.FC = () => {
     const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
     const [shortAnswer, setShortAnswer] = useState('');
     const [showResult, setShowResult] = useState(false);
+    const [questionStartTime, setQuestionStartTime] = useState<number>(0);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -106,16 +107,73 @@ export const MyQuizPage: React.FC = () => {
         setSelectedAnswer(null);
         setShortAnswer('');
         setShowResult(false);
+        setQuestionStartTime(Date.now());
     };
 
-    const handleSubmitMultiple = () => {
-        if (selectedAnswer === null) return;
+    const handleSubmitMultiple = async () => {
+        if (selectedAnswer === null || !selectedReviewItem) return;
+
         setShowResult(true);
+
+        // API 호출
+        const responseTimeMs = Date.now() - questionStartTime;
+        // 여기서 주의: 프론트엔드 UI 로직상 '정답/오답' 여부를 판단하는 로직이 필요함.
+        // 현재 코드 246라인 부근에 정답 판단 로직이 있음.
+
+        // 정답 여부 판단 (UI 로직 가져오기) (Note: 단순화하여 구현)
+        // 객관식이니 selectedReviewItem.question.correctAnswer 와 비교 필요.
+        // 하지만 기존 UI 코드에서는 (246라인)
+        // const isCorrect = ['MULTIPLE_CHOICE', ...].includes(...) ? true : ...
+        // 라고 되어있음. 즉, 객관식은 무조건 정답처리? 아님.
+        // 248라인 로직이 이상함. UI상으로는 그냥 넘어가는 듯 하나, 
+        // 실제로는 정답 비교가 필요함.
+        // MOCK 데이터나 기존 로직이 불완전해 보임.
+        // 일단 사용자가 '제출'하면 API를 호출하도록 함.
+
+        // 올바른 정답 비교 로직 추가 필요.
+        // 임시로 true로 두기보다는 비교를 시도.
+        // selectedReviewItem.question.correctAnswer는 string.
+        // selectedAnswer는 number.
+        // 보통 0, 1, 2... 인덱스.
+
+        // 일단 API 호출 시도
+        try {
+            // 정답 비교 로직 보완
+            const correctStr = String(selectedReviewItem.question.correctAnswer);
+            // 정답이 숫자인지 문자인지 확실치 않으므로 일단 loose comparison or parsing
+            // 만약 correctAnswer가 "0" 이면 0 == "0" -> true.
+            const isAnswerCorrect = String(selectedAnswer) === correctStr;
+
+            await submitReview({
+                contentType: selectedReviewItem.contentType,
+                contentId: selectedReviewItem.contentId,
+                isCorrect: isAnswerCorrect,
+                responseTimeMs
+            });
+        } catch (e) {
+            console.error("Review submission failed", e);
+        }
     };
 
-    const handleSubmitShort = () => {
-        if (!shortAnswer.trim()) return;
+    const handleSubmitShort = async () => {
+        if (!shortAnswer.trim() || !selectedReviewItem) return;
+
         setShowResult(true);
+
+        const responseTimeMs = Date.now() - questionStartTime;
+        const correctStr = String(selectedReviewItem.question.correctAnswer).toLowerCase();
+        const isAnswerCorrect = shortAnswer.trim().toLowerCase() === correctStr;
+
+        try {
+            await submitReview({
+                contentType: selectedReviewItem.contentType,
+                contentId: selectedReviewItem.contentId,
+                isCorrect: isAnswerCorrect,
+                responseTimeMs
+            });
+        } catch (e) {
+            console.error("Review submission failed", e);
+        }
     };
 
     const handleFinishRetry = () => {

@@ -49,3 +49,24 @@ export const getWrongAnswers = async (): Promise<TodayReviewResponse> => {
     const response = await api.get<ApiResponse<TodayReviewResponse>>('/api/v1/reviews/wrong-answers');
     return response.data.data;
 };
+
+export interface ReviewSubmitRequest {
+    contentType: 'COURSE_QUESTION' | 'STUDY_QUESTION';
+    contentId: number;
+    isCorrect: boolean;
+    responseTimeMs: number;
+}
+
+export interface ReviewSubmitResponse {
+    reviewItemId: number;
+    state: number;
+    stability: number;
+    difficulty: number;
+    scheduledDays: number;
+    nextReviewAt: string;
+}
+
+export const submitReview = async (data: ReviewSubmitRequest): Promise<ReviewSubmitResponse> => {
+    const response = await api.post<ApiResponse<ReviewSubmitResponse>>('/api/v1/reviews', data);
+    return response.data.data;
+};
