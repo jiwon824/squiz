@@ -8,6 +8,7 @@ import com.ssafy.domain.quiz.entity.UserReviewItem;
 import com.ssafy.domain.quiz.entity.UserReviewLog;
 import com.ssafy.domain.quiz.repository.UserReviewItemRepository;
 import com.ssafy.domain.quiz.repository.UserReviewLogRepository;
+import com.ssafy.domain.quiz.util.QuizGradingUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -44,6 +45,7 @@ public class FsrsService {
 
     private final UserReviewItemRepository reviewItemRepository;
     private final UserReviewLogRepository reviewLogRepository;
+
     private final ContinuousQuizRepository continuousQuizRepository;
     private final ObjectMapper objectMapper;
 
@@ -99,7 +101,44 @@ public class FsrsService {
     // ── 복습 처리 (Upsert + Log) ──
 
     /**
-     * 복습 결과를 처리한다.
+     * 복습 결과를 처리하고 FSRS 상태를 업데이트한다. (서버 사이드 채점 포함)
+     *
+     * @param userId         사용자 ID
+     * @param contentType    콘텐츠 유형
+     * @param contentId      콘텐츠 ID
+     * @param userAnswer     사용자 답안
+     * @param responseTimeMs 응답 시간 (밀리초)
+     * @return 업데이트된 UserReviewItem
+     */
+    @Transactional
+    public UserReviewItem processReview(Long userId, ReviewContentType contentType,
+            Long contentId, String userAnswer, long responseTimeMs) {
+
+        boolean isCorrect = false;
+
+        // 1. 정답 조회 및 채점
+        if (contentType == ReviewContentType.COURSE_QUESTION) {
+            // 문제 조회
+            QuizCourseQuestion question = continuousQuizRepository.findById(contentId)
+                    .orElseThrow(() -> new IllegalArgumentException("Question not found: " + contentId));
+
+            String correctAnswer = question.getCorrectAnswer();
+            isCorrect = QuizGradingUtils.grade(userAnswer, correctAnswer, question.getQuestionType(),
+                    question.getOptions());
+
+        } else if (contentType == ReviewContentType.STUDY_QUESTION) {
+            // TODO: 스터디 퀴즈(GPT 생성)의 경우 정답 저장 방식에 따라 처리 필요
+            // 현재는 임시로 정답 처리 (또는 별도 조회 로직 구현)
+            log.warn("Study question grading not fully implemented yet. Assuming correct.");
+            isCorrect = true;
+        }
+
+        // 2. FSRS 로직 위임
+        return processReviewResult(userId, contentType, contentId, isCorrect, responseTimeMs);
+    }
+
+    /**
+     * 복습 결과(정답 여부)를 기반으로 FSRS 상태를 업데이트한다.
      * <ol>
      * <li>UserReviewItem을 조회하거나 신규 생성 (Upsert)</li>
      * <li>FSRS v14 알고리즘으로 상태 갱신</li>
@@ -107,7 +146,7 @@ public class FsrsService {
      * </ol>
      */
     @Transactional
-    public UserReviewItem processReview(Long userId, ReviewContentType contentType,
+    public UserReviewItem processReviewResult(Long userId, ReviewContentType contentType,
             Long contentId, boolean isCorrect, long responseTimeMs) {
 
         int rating = calculateRating(isCorrect, responseTimeMs);
@@ -154,7 +193,8 @@ public class FsrsService {
         List<UserReviewItem> dueItems = reviewItemRepository.findDueItems(userId, LocalDateTime.now());
 
         // (테스트용) 내일 이 시간까지 포함해서 조회
-//        List<UserReviewItem> dueItems = reviewItemRepository.findDueItems(userId, LocalDateTime.now().plusDays(1));
+        // List<UserReviewItem> dueItems = reviewItemRepository.findDueItems(userId,
+        // LocalDateTime.now().plusDays(1));
         return enrichReviewItems(dueItems);
     }
 

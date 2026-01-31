@@ -147,8 +147,8 @@ public class QuizSectionAttemptService {
      * @param attemptId 시도 ID
      * @param userId    사용자 ID
      * @return 시도 응답 (문제 목록 및 저장된 답안 포함)
-     * @throws NotFoundException    시도를 찾을 수 없는 경우
-     * @throws BusinessException    본인의 시도가 아니거나 이미 완료된 경우
+     * @throws NotFoundException 시도를 찾을 수 없는 경우
+     * @throws BusinessException 본인의 시도가 아니거나 이미 완료된 경우
      */
     @Transactional(readOnly = true)
     public SectionAttemptResponse resumeAttempt(Long attemptId, Long userId) {
@@ -263,7 +263,6 @@ public class QuizSectionAttemptService {
                     "완료된 시도는 수정할 수 없습니다.");
         }
 
-
         // 답안 + 응답 시간 저장
         Long responseTimeMs = request.answer().responseTimeMs();
         log.debug("[doSaveAnswer] userId={}, questionId={}, responseTimeMs={}ms",
@@ -276,71 +275,71 @@ public class QuizSectionAttemptService {
                 attemptId, request.answer().questionId(), responseTimeMs);
     }
 
-        /**
-         * 시도를 제출하고 채점한다.
-         *
-         * @param attemptId 시도 ID
-         * @param userId    사용자 ID
-         * @return 채점 결과
-         */
-        @Transactional
-        public AttemptResultResponse submitAttempt(Long attemptId, Long userId) {
-            UserSectionAttempt attempt = attemptRepository.findById(attemptId)
-                    .orElseThrow(NotFoundException::attempt);
+    /**
+     * 시도를 제출하고 채점한다.
+     *
+     * @param attemptId 시도 ID
+     * @param userId    사용자 ID
+     * @return 채점 결과
+     */
+    @Transactional
+    public AttemptResultResponse submitAttempt(Long attemptId, Long userId) {
+        UserSectionAttempt attempt = attemptRepository.findById(attemptId)
+                .orElseThrow(NotFoundException::attempt);
 
-            // 본인 시도인지 확인
-            if (!attempt.getUser().getId().equals(userId)) {
-                throw new BusinessException(
-                        HttpStatus.FORBIDDEN,
-                        "NOT_ATTEMPT_OWNER",
-                        "본인의 시도만 제출할 수 있습니다.");
-            }
+        // 본인 시도인지 확인
+        if (!attempt.getUser().getId().equals(userId)) {
+            throw new BusinessException(
+                    HttpStatus.FORBIDDEN,
+                    "NOT_ATTEMPT_OWNER",
+                    "본인의 시도만 제출할 수 있습니다.");
+        }
 
-            // 진행 중인 시도인지 확인
-            if (!attempt.isInProgress()) {
-                throw new BusinessException(
-                        HttpStatus.BAD_REQUEST,
-                        "ATTEMPT_ALREADY_COMPLETED",
-                        "이미 완료된 시도입니다.");
-            }
+        // 진행 중인 시도인지 확인
+        if (!attempt.isInProgress()) {
+            throw new BusinessException(
+                    HttpStatus.BAD_REQUEST,
+                    "ATTEMPT_ALREADY_COMPLETED",
+                    "이미 완료된 시도입니다.");
+        }
 
-            // 1. 문제 목록 조회 (질문 정보 포함)
-            // 이 시점에서 question 정보가 필요하므로 fetch join된 쿼리 사용
-            List<UserSectionAttemptQuestion> attemptQuestions = attemptQuestionRepository
-                    .findByAttemptIdWithQuestionOrderByOrderIndex(attemptId);
+        // 1. 문제 목록 조회 (질문 정보 포함)
+        // 이 시점에서 question 정보가 필요하므로 fetch join된 쿼리 사용
+        List<UserSectionAttemptQuestion> attemptQuestions = attemptQuestionRepository
+                .findByAttemptIdWithQuestionOrderByOrderIndex(attemptId);
 
-            // 2. 각 문제 채점 및 FSRS 기록 저장
-            for (UserSectionAttemptQuestion aq : attemptQuestions) {
-                // 채점 실행
-                aq.grade(aq.getQuestion().getCorrectAnswer());
+        // 2. 각 문제 채점 및 FSRS 기록 저장
+        for (UserSectionAttemptQuestion aq : attemptQuestions) {
+            // 채점 실행
+            aq.grade(aq.getQuestion().getCorrectAnswer());
 
-                // [추가] FSRS 복습 데이터 생성/업데이트 요청
-                // 각 문제의 정답 여부(isCorrect)와 엔티티에 저장된 응답 시간(responseTimeMs)을 넘깁니다.
-                fsrsService.processReview(
-                        userId,
-                        ReviewContentType.COURSE_QUESTION, // 코스 문제임을 명시
-                        aq.getQuestion().getId(),          // 실제 문제(Question)의 ID
-                        aq.getIsCorrect(),
-                        aq.getResponseTimeMs()             // 엔티티에 추가한 필드 사용
-                );
-            }
+            // [추가] FSRS 복습 데이터 생성/업데이트 요청
+            // 각 문제의 정답 여부(isCorrect)와 엔티티에 저장된 응답 시간(responseTimeMs)을 넘깁니다.
+            fsrsService.processReviewResult(
+                    userId,
+                    ReviewContentType.COURSE_QUESTION, // 코스 문제임을 명시
+                    aq.getQuestion().getId(), // 실제 문제(Question)의 ID
+                    aq.getIsCorrect(),
+                    aq.getResponseTimeMs() // 엔티티에 추가한 필드 사용
+            );
+        }
 
-            // 3. 정답 개수 계산
-            int correctCount = (int) attemptQuestions.stream()
-                    .filter(UserSectionAttemptQuestion::getIsCorrect)
-                    .count();
+        // 3. 정답 개수 계산
+        int correctCount = (int) attemptQuestions.stream()
+                .filter(UserSectionAttemptQuestion::getIsCorrect)
+                .count();
 
-            // 4. 시도 완료 처리
-            QuizCourseSection section = attempt.getSection();
-            attempt.complete(correctCount, section.getPassScore());
-            // JPA Dirty Checking으로 변경사항 자동 저장
+        // 4. 시도 완료 처리
+        QuizCourseSection section = attempt.getSection();
+        attempt.complete(correctCount, section.getPassScore());
+        // JPA Dirty Checking으로 변경사항 자동 저장
 
-            // 통과 시 다음 섹션 해금
-            boolean isNextSectionUnlocked = false;
-            BadgeInfo earnedBadge = null;
+        // 통과 시 다음 섹션 해금
+        boolean isNextSectionUnlocked = false;
+        BadgeInfo earnedBadge = null;
 
-            if (attempt.getIsPassed()) {
-                isNextSectionUnlocked = updateProgress(
+        if (attempt.getIsPassed()) {
+            isNextSectionUnlocked = updateProgress(
                     userId,
                     section.getCourse().getId(),
                     section.getSectionNumber());
@@ -390,15 +389,15 @@ public class QuizSectionAttemptService {
      *
      * <h3>선택 기준 (우선순위)</h3>
      * <ol>
-     *   <li><b>답변 수</b>: 답변한 문제가 가장 많은 시도</li>
-     *   <li><b>생성 시각</b>: 동점일 경우 가장 최근 생성된 시도</li>
+     * <li><b>답변 수</b>: 답변한 문제가 가장 많은 시도</li>
+     * <li><b>생성 시각</b>: 동점일 경우 가장 최근 생성된 시도</li>
      * </ol>
      *
      * <h3>구현 Trade-off: Stream.max() vs Manual Loop</h3>
      * <ul>
-     *   <li><b>Stream.max()</b>: 선언적 코드로 가독성 우수. O(n) 시간 복잡도.</li>
-     *   <li><b>Manual Loop</b>: 약간 빠를 수 있으나 (Stream 오버헤드 없음),
-     *       중복 시도 수가 적어 (보통 1~2개) 성능 차이 무시 가능.</li>
+     * <li><b>Stream.max()</b>: 선언적 코드로 가독성 우수. O(n) 시간 복잡도.</li>
+     * <li><b>Manual Loop</b>: 약간 빠를 수 있으나 (Stream 오버헤드 없음),
+     * 중복 시도 수가 적어 (보통 1~2개) 성능 차이 무시 가능.</li>
      * </ul>
      * <p>
      * {@code @Transactional} 컨텍스트에서 DB I/O가 주요 병목이므로,
