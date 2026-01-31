@@ -221,7 +221,7 @@ deploy-ai-server:
         echo '=== SFU 배포 ===' &&
         docker pull $SFU_IMAGE:latest &&
         cd /home/ubuntu/ai-inference &&
-        docker-compose -f docker-compose.sfu.yml up -d --force-recreate squiz-sfu &&
+        docker compose -f docker-compose.sfu.yml up -d --force-recreate squiz-sfu &&
         echo 'SFU 완료'
       "
     # AI Inference 코드 복사 & 컨테이너 재시작
