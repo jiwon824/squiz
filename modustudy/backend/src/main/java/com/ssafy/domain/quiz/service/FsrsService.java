@@ -152,6 +152,9 @@ public class FsrsService {
     public List<ReviewItemDto> getTodayReviewsWithQuestions(Long userId) {
         // 1. 복습 예정 항목 조회
         List<UserReviewItem> dueItems = reviewItemRepository.findDueItems(userId, LocalDateTime.now());
+
+        // (테스트용) 내일 이 시간까지 포함해서 조회
+//        List<UserReviewItem> dueItems = reviewItemRepository.findDueItems(userId, LocalDateTime.now().plusDays(1));
         return enrichReviewItems(dueItems);
     }
 
