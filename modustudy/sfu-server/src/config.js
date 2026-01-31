@@ -57,6 +57,8 @@ const config = {
   turnUrl: process.env.TURN_URL || '',
   turnUsername: process.env.TURN_USERNAME || '',
   turnCredential: process.env.TURN_CREDENTIAL || '',
+  // AI 서버 URL (녹음 파일 업로드용)
+  aiServerUrl: process.env.AI_SERVER_URL || 'http://localhost:8000',
   mediaCodecs: [
     {
       kind: 'audio',

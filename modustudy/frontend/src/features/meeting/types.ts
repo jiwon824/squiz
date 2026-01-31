@@ -272,3 +272,13 @@ export interface MeetingSummaryUpdateRequest {
     keywords: string[];
     status: SummaryStatus;
 }
+
+// 실시간 발화 자막 타입
+export interface SpeechSegment {
+    meetingId: number;
+    speakerId: string;
+    speakerName: string;
+    timestamp: number;
+    durationMs: number;
+    text: string;
+}

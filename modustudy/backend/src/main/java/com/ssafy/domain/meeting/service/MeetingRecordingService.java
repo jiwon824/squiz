@@ -8,6 +8,7 @@ import com.ssafy.domain.meeting.entity.Meeting;
 import com.ssafy.domain.meeting.entity.MeetingRecording;
 import com.ssafy.domain.meeting.entity.RecordingStatus;
 import com.ssafy.domain.meeting.repository.MeetingRecordingRepository;
+import com.ssafy.domain.meeting.repository.MeetingRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +30,7 @@ public class MeetingRecordingService {
     private static final Logger log = LoggerFactory.getLogger(MeetingRecordingService.class);
 
     private final MeetingRecordingRepository meetingRecordingRepository;
+    private final MeetingRepository meetingRepository;
     private final LocalFileStorageService localFileStorageService;
     private final SfuProperties sfuProperties;
     private final RestTemplate restTemplate;
@@ -64,6 +66,40 @@ public class MeetingRecordingService {
         if (request.status() == RecordingStatus.READY) {
             meeting.updateRecordingStatus(RecordingStatus.READY);
         }
+        return toRecordingResponse(recording);
+    }
+
+    /**
+     * 내부 API용 - meetingId만으로 녹음 파일 업로드
+     * AI 서버에서 전처리 후 호출 (스터디 없는 미팅도 지원)
+     */
+    @Transactional
+    public MeetingRecordingResponse uploadRecordingVideoInternal(Long meetingId, MultipartFile video) {
+        Meeting meeting = meetingRepository.findById(meetingId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "MEETING_NOT_FOUND"));
+        if (video == null || video.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "VIDEO_REQUIRED");
+        }
+        String recordingUrl = localFileStorageService.saveMeetingRecordingVideo(meetingId, video);
+        String format = helper.extractFileExtension(video.getOriginalFilename());
+        Long fileSize = video.getSize();
+        MeetingRecording recording = meetingRecordingRepository.findByMeetingId(meetingId)
+                .orElseGet(() -> MeetingRecording.builder()
+                        .meetingId(meetingId)
+                        .recordingUrl(recordingUrl)
+                        .format(format)
+                        .fileSize(fileSize)
+                        .status(RecordingStatus.READY)
+                        .build());
+        if (recording.getId() == null) {
+            recording = meetingRecordingRepository.save(recording);
+        } else {
+            recording.updateDetails(recordingUrl, format, null, null, null, fileSize);
+            if (recording.getStatus() != RecordingStatus.READY) {
+                recording.updateStatus(RecordingStatus.READY);
+            }
+        }
+        meeting.updateRecordingStatus(RecordingStatus.READY);
         return toRecordingResponse(recording);
     }
 

@@ -249,6 +249,46 @@ public class AiService {
     }
 
     /**
+     * 실시간 STT transcript 기반 요약 작업 등록 (비동기)
+     * 미팅 중 실시간으로 수집된 STT 결과를 바로 Claude API로 요약
+     * STT 단계를 건너뛰어 처리 시간 단축
+     *
+     * @param transcript 실시간 STT로 수집된 transcript (화자: 텍스트 형식)
+     * @param speakerIds 화자 ID 목록 (액션아이템 추천용)
+     * @param generateQuiz 퀴즈 생성 여부
+     * @return job_id (비동기 작업 ID)
+     */
+    public String summarizeTranscriptAsync(String transcript, List<Long> speakerIds, boolean generateQuiz) {
+        log.info("Transcript 요약 요청 - length: {}, speakers: {}", transcript.length(), speakerIds.size());
+
+        try {
+            Map<String, Object> body = new HashMap<>();
+            body.put("transcript", transcript);
+            body.put("speaker_ids", speakerIds);
+            body.put("generate_quiz", generateQuiz);
+
+            String responseBody = callAiServer("/api/summarize-transcript", body);
+
+            @SuppressWarnings("unchecked")
+            Map<String, Object> result = objectMapper.readValue(responseBody, Map.class);
+            String status = (String) result.get("status");
+
+            if ("error".equals(status)) {
+                String message = (String) result.get("message");
+                throw new RuntimeException("Transcript 요약 실패: " + message);
+            }
+
+            String jobId = (String) result.get("job_id");
+            log.info("Transcript 요약 작업 등록 완료 - jobId: {}", jobId);
+            return jobId;
+
+        } catch (Exception e) {
+            log.error("Transcript 요약 작업 등록 실패: {}", e.getMessage());
+            throw new RuntimeException("Transcript 요약 서비스를 일시적으로 사용할 수 없습니다.", e);
+        }
+    }
+
+    /**
      * 미팅 처리 작업 상태 조회
      */
     public MeetingProcessResult getMeetingProcessResult(String jobId) {

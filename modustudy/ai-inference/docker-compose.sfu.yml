@@ -24,4 +24,6 @@ services:
       - RTC_PREFER_UDP=true
       - RTC_MIN_PORT=20000
       - RTC_MAX_PORT=21000
+      # AI 서버 URL (같은 서버에서 실행, network_mode: host)
+      - AI_SERVER_URL=http://localhost:8000
     restart: unless-stopped

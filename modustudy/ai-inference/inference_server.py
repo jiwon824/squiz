@@ -14,7 +14,7 @@ import uuid
 import tempfile
 import subprocess
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 from fastapi import FastAPI, HTTPException, UploadFile, File, BackgroundTasks
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -1456,6 +1456,437 @@ def process_meeting_full_job(job_id: str, mixed_path: str, individual_paths: lis
                 os.unlink(item["path"])
 
 
+# ===== 실시간 발화 세그먼트 처리 (SFU → AI → 백엔드) =====
+
+class SpeechSegmentRequest(BaseModel):
+    meeting_id: int
+    user_id: str  # 발화자 ID (socket.id 또는 displayName)
+    timestamp: float  # 발화 시작 시간 (Unix timestamp ms)
+    duration_ms: int  # 발화 길이 (ms)
+    file_path: str  # 세그먼트 파일 경로
+
+
+class SpeechSegmentResponse(BaseModel):
+    status: str
+    text: str = ""
+    message: str = ""
+
+
+@app.post("/api/process-speech-segment", response_model=SpeechSegmentResponse)
+async def process_speech_segment(request: SpeechSegmentRequest, background_tasks: BackgroundTasks):
+    """
+    실시간 발화 세그먼트 처리
+    1. 오디오 전처리 (경량화)
+    2. Whisper STT
+    3. 백엔드로 결과 전송 (WebSocket 브로드캐스트)
+
+    Note: 빠른 응답을 위해 백엔드 전송은 백그라운드로 처리
+    """
+    if whisper_model is None:
+        raise HTTPException(status_code=503, detail="Whisper 모델이 로드되지 않았습니다")
+
+    file_path = request.file_path
+    meeting_id = request.meeting_id
+    user_id = request.user_id
+    timestamp = request.timestamp
+    duration_ms = request.duration_ms
+
+    # 경로 보안 검증
+    SFU_UPLOADS_PATH = os.getenv("SFU_UPLOADS_PATH", "/app/uploads")
+    abs_path = os.path.abspath(file_path)
+    if not abs_path.startswith(os.path.abspath(SFU_UPLOADS_PATH)):
+        raise HTTPException(status_code=400, detail=f"Invalid file path")
+
+    if not os.path.exists(abs_path):
+        raise HTTPException(status_code=404, detail=f"File not found: {file_path}")
+
+    print(f"[SPEECH] 발화 세그먼트 처리 시작: meetingId={meeting_id}, userId={user_id}, duration={duration_ms}ms")
+
+    preprocessed_path = None
+    try:
+        # 1. 경량 오디오 전처리 (실시간 최적화)
+        preprocessed_path = preprocess_audio_realtime(abs_path)
+        process_path = preprocessed_path if preprocessed_path != abs_path else abs_path
+
+        # 2. Whisper STT (빠른 설정)
+        segments, info = whisper_model.transcribe(
+            process_path,
+            language="ko",
+            beam_size=3,  # 속도를 위해 낮춤 (기본 5)
+            vad_filter=True,
+            condition_on_previous_text=False,  # 독립 세그먼트이므로 비활성화
+        )
+
+        # 결과 조합
+        full_text = " ".join([seg.text.strip() for seg in segments])
+
+        print(f"[SPEECH] STT 완료: meetingId={meeting_id}, userId={user_id}, text='{full_text[:50]}...'")
+
+        # 3. 백엔드로 결과 전송 (비동기)
+        if full_text.strip():
+            background_tasks.add_task(
+                send_speech_to_backend,
+                meeting_id=meeting_id,
+                user_id=user_id,
+                timestamp=timestamp,
+                duration_ms=duration_ms,
+                text=full_text
+            )
+
+        return SpeechSegmentResponse(
+            status="success",
+            text=full_text,
+            message="STT 처리 완료"
+        )
+
+    except Exception as e:
+        print(f"[SPEECH] STT 처리 실패: {e}")
+        return SpeechSegmentResponse(
+            status="error",
+            text="",
+            message=str(e)
+        )
+
+    finally:
+        # 임시 파일 정리
+        if preprocessed_path:
+            cleanup_preprocessed(abs_path, preprocessed_path)
+        # 원본 세그먼트 파일도 삭제 (SFU에서 전송 후 불필요)
+        try:
+            if os.path.exists(abs_path):
+                os.unlink(abs_path)
+        except Exception:
+            pass
+
+
+def preprocess_audio_realtime(input_path: str) -> str:
+    """
+    실시간 세그먼트용 경량 전처리
+    - 전체 전처리보다 빠른 버전
+    - 기본 노이즈 제거 + 정규화만 수행
+    """
+    try:
+        output_path = input_path.rsplit(".", 1)[0] + f"_rt_{uuid.uuid4().hex[:6]}.wav"
+
+        cmd = [
+            "ffmpeg", "-i", input_path,
+            "-af", "highpass=f=100,lowpass=f=7000,loudnorm",  # 경량 필터
+            "-c:a", "pcm_s16le",
+            "-ar", "16000",
+            "-ac", "1",
+            "-y",
+            output_path
+        ]
+
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=30  # 실시간이므로 타임아웃 짧게
+        )
+
+        if result.returncode == 0:
+            return output_path
+        else:
+            print(f"[PREPROCESS-RT] ffmpeg 실패: {result.stderr[:100]}")
+            return input_path
+
+    except Exception as e:
+        print(f"[PREPROCESS-RT] 에러: {e}")
+        return input_path
+
+
+async def send_speech_to_backend(meeting_id: int, user_id: str, timestamp: float, duration_ms: int, text: str):
+    """
+    백엔드로 STT 결과 전송
+    - 백엔드에서 WebSocket으로 클라이언트에 브로드캐스트
+    """
+    import httpx
+
+    BACKEND_URL = os.getenv("BACKEND_URL", "http://squiz-backend:8080")
+    url = f"{BACKEND_URL}/api/internal/meetings/{meeting_id}/speech-segments"
+
+    payload = {
+        "userId": user_id,
+        "timestamp": int(timestamp),
+        "durationMs": duration_ms,
+        "text": text
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(url, json=payload)
+
+        if response.status_code in (200, 201):
+            print(f"[SPEECH] 백엔드 전송 완료: meetingId={meeting_id}")
+        else:
+            print(f"[SPEECH] 백엔드 전송 실패: status={response.status_code}")
+
+    except Exception as e:
+        print(f"[SPEECH] 백엔드 전송 오류: {e}")
+
+
+# ===== 녹음 파일 업로드 (SFU → AI → 백엔드) =====
+
+BACKEND_URL = os.getenv("BACKEND_URL", "http://squiz-backend:8080")
+SFU_UPLOADS_PATH = os.getenv("SFU_UPLOADS_PATH", "/app/uploads")
+
+
+class RecordingUploadRequest(BaseModel):
+    meeting_id: int
+    file_path: str  # SFU 서버 내 파일 경로
+
+
+class RecordingUploadResponse(BaseModel):
+    status: str
+    message: str
+    recording_url: Optional[str] = None
+
+
+@app.post("/api/upload-recording", response_model=RecordingUploadResponse)
+async def upload_recording(request: RecordingUploadRequest):
+    """
+    SFU 녹음 파일을 전처리 후 백엔드로 업로드
+    1. 파일 경로 검증
+    2. 오디오 전처리 (노이즈 제거, 정규화)
+    3. 백엔드 내부 API로 업로드
+    """
+    import httpx
+
+    meeting_id = request.meeting_id
+    file_path = request.file_path
+
+    # 경로 보안 검증 (SFU uploads 디렉토리 내부만 허용)
+    abs_path = os.path.abspath(file_path)
+    if not abs_path.startswith(os.path.abspath(SFU_UPLOADS_PATH)):
+        raise HTTPException(status_code=400, detail=f"Invalid file path: must be within {SFU_UPLOADS_PATH}")
+
+    if not os.path.exists(abs_path):
+        raise HTTPException(status_code=404, detail=f"File not found: {file_path}")
+
+    print(f"[UPLOAD] 녹음 파일 업로드 시작: meetingId={meeting_id}, path={file_path}")
+
+    preprocessed_path = None
+    try:
+        # 1. 오디오 전처리
+        preprocessed_path = preprocess_audio(abs_path)
+        upload_path = preprocessed_path if preprocessed_path != abs_path else abs_path
+
+        print(f"[UPLOAD] 전처리 완료: {upload_path}")
+
+        # 2. 백엔드로 업로드
+        upload_url = f"{BACKEND_URL}/api/internal/meetings/{meeting_id}/recording/video"
+
+        with open(upload_path, "rb") as f:
+            files = {"video": ("voice.webm", f, "video/webm")}
+
+            async with httpx.AsyncClient(timeout=120.0) as client:
+                response = await client.post(upload_url, files=files)
+
+        if response.status_code in (200, 201):
+            result = response.json()
+            recording_url = result.get("data", {}).get("recordingUrl")
+            print(f"[UPLOAD] 업로드 성공: meetingId={meeting_id}, url={recording_url}")
+            return RecordingUploadResponse(
+                status="success",
+                message="녹음 파일 업로드 완료",
+                recording_url=recording_url
+            )
+        else:
+            print(f"[UPLOAD] 업로드 실패: status={response.status_code}, body={response.text}")
+            raise HTTPException(
+                status_code=response.status_code,
+                detail=f"Backend upload failed: {response.text}"
+            )
+
+    except httpx.RequestError as e:
+        print(f"[UPLOAD] 네트워크 오류: {e}")
+        raise HTTPException(status_code=502, detail=f"Backend connection failed: {str(e)}")
+
+    finally:
+        # 전처리 임시 파일 정리
+        if preprocessed_path:
+            cleanup_preprocessed(abs_path, preprocessed_path)
+
+
+# ===== 실시간 STT transcript 기반 요약 (STT 스킵) =====
+
+class TranscriptSummarizeRequest(BaseModel):
+    transcript: str  # 이미 변환된 transcript 텍스트 (화자: 텍스트 형식)
+    speaker_ids: Optional[List[int]] = None  # 화자 ID 목록 (액션아이템용)
+    generate_quiz: bool = True
+
+
+class TranscriptSummarizeResponse(BaseModel):
+    status: str
+    job_id: Optional[str] = None
+    message: str = ""
+
+
+@app.post("/api/summarize-transcript", response_model=TranscriptSummarizeResponse)
+async def summarize_transcript(request: TranscriptSummarizeRequest, background_tasks: BackgroundTasks):
+    """
+    실시간 STT로 수집된 transcript를 바로 요약
+    STT 단계를 건너뛰고 Claude API로 직접 요약 요청
+    """
+    if not request.transcript or len(request.transcript.strip()) < 50:
+        return TranscriptSummarizeResponse(
+            status="error",
+            message="Transcript too short (minimum 50 characters)"
+        )
+
+    job_id = str(uuid.uuid4())
+    jobs[job_id] = {"status": "processing", "result": None, "error": None}
+
+    background_tasks.add_task(
+        process_transcript_summary,
+        job_id,
+        request.transcript,
+        request.speaker_ids or [],
+        request.generate_quiz
+    )
+
+    return TranscriptSummarizeResponse(
+        status="processing",
+        job_id=job_id,
+        message="Transcript summarization started"
+    )
+
+
+def process_transcript_summary(job_id: str, transcript: str, speaker_ids: List[int], generate_quiz: bool):
+    """
+    Transcript 기반 요약 처리 (백그라운드)
+    """
+    try:
+        print(f"[TRANSCRIPT] 요약 시작: job_id={job_id}, length={len(transcript)}")
+
+        # 1. 로컬 LLM으로 초안 요약
+        summary_prompt = f"""<|im_start|>system
+IT 스터디 회의 내용을 요약하는 전문가입니다.
+<|im_end|>
+<|im_start|>user
+다음 회의 transcript를 3-4문장으로 요약해주세요:
+
+{transcript[:3000]}
+<|im_end|>
+<|im_start|>assistant
+"""
+        summary_output = llm(summary_prompt, max_tokens=512, temperature=0.7,
+                             stop=["<|im_end|>", "<|im_start|>"], echo=False)
+        local_summary = summary_output["choices"][0]["text"].strip()
+
+        # 2. Claude 통합 호출
+        quiz_instruction = ""
+        if generate_quiz:
+            quiz_instruction = """
+5. **퀴즈**: 스터디 내용 복습을 위한 퀴즈를 5문제 이상 생성해주세요.
+   - MULTIPLE_CHOICE(객관식)와 SHORT_ANSWER(단답형) 혼합
+   - 난이도: EASY, MEDIUM, HARD 섞어서
+   - 각 문제에 정답과 해설 포함"""
+
+        speaker_info = ""
+        if speaker_ids:
+            speaker_info = f"\n\n## 참여자 ID 목록: {speaker_ids}"
+
+        claude_prompt = f"""다음은 IT 스터디 회의록입니다. 한 번의 응답으로 모든 분석을 완료해주세요.
+
+## 원본 회의 내용 (화자: 발언 형식):
+{transcript[:6000]}
+
+## AI 요약 초안:
+{local_summary}
+{speaker_info}
+
+---
+
+위 내용을 바탕으로 다음을 수행해주세요:
+
+1. **요약 보완**: AI 요약 초안을 검토하고, 부족한 부분을 보완해주세요 (3-5문장)
+
+2. **보충 설명**: 회의에서 다룬 기술적 개념에 대해 학습에 도움이 되는 보충 설명을 추가해주세요.
+   - 회의에서 언급된 핵심 개념/기술에 대한 간단한 배경 지식
+   - 더 깊이 학습하면 좋을 관련 주제
+   - 실무 적용 팁 (있다면)
+
+3. **키워드**: 핵심 키워드 5-7개를 추출해주세요.
+
+4. **화자별 액션아이템**: transcript에서 확인되는 화자들에게 적합한 과제/할 일을 1-2개씩 추천해주세요.
+{quiz_instruction}
+
+---
+
+반드시 아래 JSON 형식으로만 응답해주세요:
+{{
+  "summary": "보완된 요약 (3-5문장)",
+  "supplementary": "보충 설명 (기술 배경, 관련 주제, 실무 팁 등)",
+  "keywords": ["키워드1", "키워드2", ...],
+  "action_items": [
+    {{"user_id": 1, "content": "액션아이템 내용"}},
+    {{"user_id": 2, "content": "액션아이템 내용"}}
+  ],
+  "quiz": {{
+    "questions": [
+      {{
+        "question_text": "문제 내용",
+        "question_type": "MULTIPLE_CHOICE",
+        "options": [
+          {{"label": "A", "text": "보기1", "is_correct": true}},
+          {{"label": "B", "text": "보기2", "is_correct": false}},
+          {{"label": "C", "text": "보기3", "is_correct": false}},
+          {{"label": "D", "text": "보기4", "is_correct": false}}
+        ],
+        "correct_answer": ["A"],
+        "explanation": "해설",
+        "difficulty": "MEDIUM"
+      }}
+    ]
+  }}
+}}
+"""
+
+        claude_response = call_claude(claude_prompt, max_tokens=4096)
+
+        # 기본값 설정
+        final_summary = local_summary
+        supplementary = ""
+        keywords = []
+        action_items = []
+        quiz = None
+
+        if claude_response:
+            json_match = re.search(r'\{[\s\S]*\}', claude_response)
+            if json_match:
+                try:
+                    result = json.loads(json_match.group())
+                    final_summary = result.get("summary", local_summary)
+                    supplementary = result.get("supplementary", "")
+                    keywords = result.get("keywords", [])
+                    action_items = result.get("action_items", [])
+                    if generate_quiz and result.get("quiz"):
+                        quiz = json.dumps(result["quiz"], ensure_ascii=False)
+                except Exception as e:
+                    print(f"[TRANSCRIPT] Claude 응답 파싱 실패: {e}")
+
+        # 요약에 보충설명 추가
+        if supplementary:
+            final_summary = f"{final_summary}\n\n📚 보충 설명:\n{supplementary}"
+
+        jobs[job_id]["status"] = "completed"
+        jobs[job_id]["result"] = {
+            "transcript": transcript,
+            "summary": final_summary,
+            "keywords": keywords,
+            "action_items": action_items,
+            "quiz": quiz,
+        }
+        print(f"[TRANSCRIPT] 요약 완료: job_id={job_id}")
+
+    except Exception as e:
+        jobs[job_id]["status"] = "failed"
+        jobs[job_id]["error"] = str(e)
+        print(f"[TRANSCRIPT] 요약 실패: {e}")
+
+
 if __name__ == "__main__":
     print("=" * 60)
     print("Squiz AI 추론 서버")
@@ -1465,6 +1896,7 @@ if __name__ == "__main__":
     print(f"GPU Layers: {N_GPU_LAYERS}")
     print(f"Context Length: {N_CTX}")
     print(f"Server: http://{HOST}:{PORT}")
+    print(f"Backend URL: {BACKEND_URL}")
     print("=" * 60)
 
     uvicorn.run(app, host=HOST, port=PORT)
