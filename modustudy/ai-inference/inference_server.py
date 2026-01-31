@@ -25,6 +25,14 @@ import uvicorn
 import json
 import re
 
+
+# JSON 파싱 전 제어 문자 제거
+def sanitize_json_string(s):
+    """Remove control characters that break JSON parsing"""
+    # Remove control characters (0x00-0x1F except tab 0x09 and newline 0x0A)
+    return re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', s)
+
+
 # 로깅 설정
 logging.basicConfig(
     level=logging.INFO,
@@ -763,7 +771,7 @@ curriculum은 반드시 {total_sessions}개의 회차를 생성해주세요.
         json_match = re.search(r'\{[\s\S]*\}', response_text)
         if json_match:
             try:
-                result = json.loads(json_match.group())
+                result = json.loads(sanitize_json_string(json_match.group()))
                 return {
                     "name": result.get("name", f"{topic_input} 스터디"),
                     "intro": result.get("intro", f"{topic_input} 학습을 위한 스터디"),
@@ -988,7 +996,7 @@ curriculum은 반드시 {total_sessions}개의 회차를 생성해주세요.
             json_match = re.search(r'\{[\s\S]*\}', full_response)
             if json_match:
                 try:
-                    result = json.loads(json_match.group())
+                    result = json.loads(sanitize_json_string(json_match.group()))
                     final_result = {
                         "name": result.get("name", f"{topic_input} 스터디"),
                         "intro": result.get("intro", f"{topic_input} 학습을 위한 스터디"),
@@ -1522,7 +1530,7 @@ def process_meeting_full_job(job_id: str, mixed_path: str, individual_paths: lis
             json_match = re.search(r'\{[\s\S]*\}', claude_response)
             if json_match:
                 try:
-                    result = json.loads(json_match.group())
+                    result = json.loads(sanitize_json_string(json_match.group()))
                     final_summary = result.get("summary", local_summary)
                     feedback = result.get("feedback", "")
                     keywords = result.get("keywords", [])
@@ -2130,7 +2138,7 @@ def process_transcript_summary(job_id: str, transcript: str, speaker_ids: List[i
             json_match = re.search(r'\{[\s\S]*\}', claude_response)
             if json_match:
                 try:
-                    result = json.loads(json_match.group())
+                    result = json.loads(sanitize_json_string(json_match.group()))
                     # Claude가 보완한 요약 사용
                     final_summary = result.get("summary", local_summary)
                     feedback = result.get("feedback", "")
