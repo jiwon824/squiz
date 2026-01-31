@@ -4,7 +4,7 @@ import { Skeleton } from '../shared/components';
 
 // Dashboard V2 (메인 대시보드)
 import { DashboardV2, GuestDashboardV2, UserDashboardV2 } from '../features/dashboard-v2';
-import { MyQuizPage } from '../features/dashboard-v2/pages/MyQuiz';
+import { MyQuizPage } from '../features/dashboard-v2/pages/MyQuizPage';
 import { STTReportPage } from '../features/dashboard-v2/pages/STTReportPage';
 import { LearningArchivePage } from '../features/dashboard-v2/pages/LearningArchivePage';
 import { MyCreatedStudiesPage } from '../features/dashboard-v2/pages/MyCreatedStudiesPage';
@@ -21,9 +21,7 @@ import ReuseTest from '../features/reuseTest';
 const QuizGameSelection = lazy(() =>
     import('../features/quiz').then(m => ({ default: m.QuizGameSelection }))
 );
-const ReviewQuizPage = lazy(() =>
-    import('../features/quiz').then(m => ({ default: m.ReviewQuizPage }))
-);
+
 const CommentleQuiz = lazy(() =>
     import('../features/quiz').then(m => ({ default: m.CommentleQuiz }))
 );
@@ -158,7 +156,7 @@ export const AppRouter = () => {
 
                 {/* 퀴즈 */}
                 <Route path="/quiz" element={<QuizGameSelection />} />
-                <Route path="/test/quiz" element={<ReviewQuizPage />} />
+
                 {/* 내 브랜치 추가 */}
                 <Route path="/quiz/my-quiz" element={<UserLayoutV2><MyQuizPage /></UserLayoutV2>} />
                 <Route path="/meeting-report" element={<UserLayoutV2><STTReportPage /></UserLayoutV2>} />

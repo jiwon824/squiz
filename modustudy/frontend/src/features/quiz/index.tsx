@@ -5,5 +5,5 @@ export { QuizSession } from './QuizSession';
 export { ContinuousQuizSession } from './ContinuousQuizSession';
 // export { default as CommentleQuiz } from './Commentle/CommentleQuiz.jsx';
 export { CommentleQuizPage as CommentleQuiz } from './Commentle/CommentleQuizPage';
-export { default as MyQuizPage } from './MyQuizPage';
+
 
