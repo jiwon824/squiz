@@ -10,6 +10,7 @@ import com.ssafy.domain.meeting.entity.Meeting;
 import com.ssafy.domain.meeting.entity.MeetingSttFile;
 import com.ssafy.domain.meeting.entity.MeetingSttSummary;
 import com.ssafy.domain.meeting.entity.MeetingTextTrackType;
+import com.ssafy.domain.meeting.entity.SttStatus;
 import com.ssafy.domain.meeting.entity.SummaryStatus;
 import com.ssafy.domain.meeting.repository.MeetingSttFileRepository;
 import com.ssafy.domain.meeting.repository.MeetingSttSummaryRepository;
@@ -218,6 +219,48 @@ public class MeetingSttService {
                                 .fileUrl(sttFileUrl)
                                 .build())
                 );
+    }
+
+    @Transactional
+    public MeetingSttFileResponse upsertSttFileInternal(Long meetingId, String fileUrl) {
+        Meeting meeting = helper.getMeetingOrThrow(meetingId);
+        String resolvedUrl = (fileUrl == null || fileUrl.isBlank())
+                ? "/uploads/meetings/" + meetingId + "/stt/mixed/stt.txt"
+                : fileUrl;
+        MeetingSttFile saved = meetingSttFileRepository
+                .findByMeetingIdAndTrackTypeAndUserIdIsNull(meetingId, MeetingTextTrackType.MIXED)
+                .map(existing -> {
+                    existing.updateFileUrl(resolvedUrl);
+                    return meetingSttFileRepository.save(existing);
+                })
+                .orElseGet(() -> meetingSttFileRepository.save(MeetingSttFile.builder()
+                        .meetingId(meetingId)
+                        .trackType(MeetingTextTrackType.MIXED)
+                        .fileUrl(resolvedUrl)
+                        .build()));
+        meeting.updateSttStatus(SttStatus.DONE);
+        return toSttFileResponse(saved);
+    }
+
+    @Transactional
+    public MeetingSttSummaryResponse upsertSummaryFileInternal(Long meetingId, String fileUrl) {
+        Meeting meeting = helper.getMeetingOrThrow(meetingId);
+        String resolvedUrl = (fileUrl == null || fileUrl.isBlank())
+                ? "/uploads/meetings/" + meetingId + "/stt/mixed/summary.txt"
+                : fileUrl;
+        MeetingSttSummary saved = meetingSttSummaryRepository
+                .findByMeetingIdAndTrackTypeAndUserIdIsNull(meetingId, MeetingTextTrackType.MIXED)
+                .map(existing -> {
+                    existing.updateFileUrl(resolvedUrl);
+                    return meetingSttSummaryRepository.save(existing);
+                })
+                .orElseGet(() -> meetingSttSummaryRepository.save(MeetingSttSummary.builder()
+                        .meetingId(meetingId)
+                        .trackType(MeetingTextTrackType.MIXED)
+                        .fileUrl(resolvedUrl)
+                        .build()));
+        meeting.updateSummaryStatus(SummaryStatus.DONE);
+        return toSttSummaryResponse(saved);
     }
 
     private void validateTextTrack(MeetingTextTrackType trackType, Long userId) {

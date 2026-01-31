@@ -137,6 +137,26 @@ export const WorkspacePage: React.FC = () => {
       }
       sessionStorage.removeItem('workspaceActiveMenu');
     }
+    if (pendingMenu === 'meeting') {
+      const reloadFlag = sessionStorage.getItem('workspaceMeetingReloaded');
+      if (reloadFlag) {
+        sessionStorage.removeItem('workspaceMeetingReloaded');
+      } else {
+        let hasMeetingEndFlag = false;
+        for (let i = 0; i < sessionStorage.length; i += 1) {
+          const key = sessionStorage.key(i);
+          if (key && key.startsWith('meeting-end-reload-')) {
+            hasMeetingEndFlag = true;
+            sessionStorage.removeItem(key);
+          }
+        }
+        if (hasMeetingEndFlag) {
+          sessionStorage.setItem('workspaceMeetingReloaded', '1');
+          window.location.reload();
+          return;
+        }
+      }
+    }
     const loadInitialData = async () => {
       if (!studyId) {
         setIsLoading(false);
