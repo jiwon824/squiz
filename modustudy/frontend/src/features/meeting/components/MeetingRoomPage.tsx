@@ -1678,7 +1678,7 @@ const MeetingRoomPage: React.FC = () => {
         ]
     );
 
-    const handleTogglePresenter = useCallback(() => {
+    const handleTogglePresenter = useCallback(async () => {
         if (!roomIdRef.current || !wsClientRef.current) return;
         if (isPresenter) {
             isPresenterRef.current = false;
@@ -1697,6 +1697,12 @@ const MeetingRoomPage: React.FC = () => {
                 composedStreamRef.current = null;
             }
             stopMixedAudioTrack();
+            publishedVideoTrackIdRef.current = null;
+            try {
+                await sfuClientRef.current?.closeProducer('video');
+            } catch (error) {
+                console.warn('[sfu] closeProducer failed on presenter release', error);
+            }
             updateOutgoingVideo({ publish: false, cameraEnabledOverride: false, nextScreenStream: null });
             void refreshOutgoingAudio();
             return;
@@ -1973,6 +1979,16 @@ const MeetingRoomPage: React.FC = () => {
                     updateVoiceRecordingSource();
                 }
                 return;
+            }
+            const videoTrack = payload.stream.getVideoTracks()?.[0] ?? null;
+            if (videoTrack) {
+                const handleEnded = () => {
+                    setRemoteVideoStreams((prev) => prev.filter((item) => item.id !== payload.consumerId));
+                };
+                videoTrack.addEventListener('ended', handleEnded, { once: true });
+                if (typeof payload.stream.addEventListener === 'function') {
+                    payload.stream.addEventListener('inactive', handleEnded, { once: true });
+                }
             }
             setRemoteVideoStreams((prev) => {
                 if (prev.some((item) => item.id === payload.consumerId)) {
