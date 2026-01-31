@@ -9,6 +9,7 @@ services:
     network_mode: host
     volumes:
       - ./uploads:/app/uploads
+      - ./certs:/app/certs
     environment:
       - NODE_ENV=production
       - PORT=4000

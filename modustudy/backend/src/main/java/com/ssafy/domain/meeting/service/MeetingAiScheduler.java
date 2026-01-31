@@ -39,6 +39,7 @@ public class MeetingAiScheduler {
     private final LocalFileStorageService localFileStorageService;
     private final MeetingAiProcessingService meetingAiProcessingService;
     private final MeetingSttService meetingSttService;
+    private final SpeechSegmentService speechSegmentService;
 
     // 진행 중인 AI 작업 추적 (meetingId -> jobId)
     private final Map<Long, String> processingJobs = new ConcurrentHashMap<>();
@@ -153,14 +154,24 @@ public class MeetingAiScheduler {
     }
 
     /**
-     * 미팅 음성 파일이 준비되었는지 확인하고 AI 처리 시작
+     * 미팅 AI 처리 준비 확인 및 시작
+     * 1. 실시간 STT segments가 있으면 → 바로 AI 처리 시작 (오디오 불필요)
+     * 2. segments가 없으면 → voice.webm 파일 확인 후 처리
      */
     @Transactional
     public void processMeetingIfReady(Meeting meeting) {
         Long meetingId = meeting.getId();
         Long studyId = meeting.getStudyId();
 
-        // MIXED 오디오가 이미 DB에 있는지 확인
+        // 1. 실시간 STT segments 확인 (우선 처리)
+        long segmentCount = speechSegmentService.countByMeetingId(meetingId);
+        if (segmentCount > 0) {
+            log.info("실시간 STT 세그먼트 발견 - meetingId: {}, count: {}, 바로 AI 처리 시작", meetingId, segmentCount);
+            startAiProcessingJob(studyId, meetingId, meeting);
+            return;
+        }
+
+        // 2. 실시간 STT 없으면 오디오 파일 확인
         List<MeetingAudioRecording> mixedRecordings = meetingAudioRecordingRepository
                 .findByMeetingIdAndTrackTypeOrderByCreatedAtAsc(meetingId, MeetingAudioTrackType.MIXED);
 
@@ -169,7 +180,7 @@ public class MeetingAiScheduler {
             Path voiceFile = localFileStorageService.resolveMeetingVoiceDir(meetingId).resolve("voice.webm");
 
             if (!Files.exists(voiceFile)) {
-                log.debug("음성 파일 아직 없음 - meetingId: {}", meetingId);
+                log.debug("음성 파일/STT 세그먼트 없음 - meetingId: {}", meetingId);
                 return;
             }
 
@@ -197,6 +208,13 @@ public class MeetingAiScheduler {
         }
 
         // AI 처리 시작
+        startAiProcessingJob(studyId, meetingId, meeting);
+    }
+
+    /**
+     * AI 처리 작업 시작 (공통 로직)
+     */
+    private void startAiProcessingJob(Long studyId, Long meetingId, Meeting meeting) {
         try {
             String jobId = meetingAiProcessingService.startAiProcessing(studyId, meetingId);
             processingJobs.put(meetingId, jobId);
