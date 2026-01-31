@@ -38,6 +38,52 @@ llm = None
 whisper_model = None
 
 
+# ===== 8B 출력 파싱 =====
+
+def parse_action_items_from_8b(local_summary: str) -> list:
+    """
+    8B 모델 출력에서 액션아이템 섹션 파싱
+
+    8B 출력 형식:
+    ## 요약
+    ...
+    ## 액션 아이템
+    - 할 일 1
+    - 할 일 2
+    ## 키워드
+    ...
+
+    Returns: [{"user_id": None, "content": "할 일"}, ...]
+    """
+    action_items = []
+
+    try:
+        # "## 액션 아이템" 또는 "## 액션아이템" 섹션 찾기
+        import re
+        pattern = r'##\s*액션\s*아이템[^\n]*\n([\s\S]*?)(?=##|$)'
+        match = re.search(pattern, local_summary)
+
+        if match:
+            section = match.group(1).strip()
+            # 각 줄에서 - 또는 숫자. 로 시작하는 항목 추출
+            lines = section.split('\n')
+            for line in lines:
+                line = line.strip()
+                # - 로 시작하거나 숫자. 로 시작하는 경우
+                if line.startswith('-') or (len(line) > 2 and line[0].isdigit() and line[1] in '.):'):
+                    # 앞의 마커 제거
+                    content = re.sub(r'^[-\d.)\s]+', '', line).strip()
+                    if content:
+                        action_items.append({
+                            "user_id": None,  # 전체 액션아이템 (특정 사용자 지정 안함)
+                            "content": content
+                        })
+    except Exception as e:
+        print(f"[WARNING] 액션아이템 파싱 실패: {e}")
+
+    return action_items
+
+
 # ===== 음성 전처리 =====
 
 def preprocess_audio(input_path: str) -> str:
@@ -1344,6 +1390,10 @@ def process_meeting_full_job(job_id: str, mixed_path: str, individual_paths: lis
                              stop=["<|im_end|>", "<|im_start|>"], echo=False)
         local_summary = summary_output["choices"][0]["text"].strip()
 
+        # 3.5 8B 출력에서 액션아이템 파싱
+        action_items = parse_action_items_from_8b(local_summary)
+        print(f"[MEETING] 8B 액션아이템 파싱 완료: {len(action_items)}개")
+
         # 4. Claude 통합 호출 (8B 요약본만 전달, 원본 미전송)
         speaker_info = ""
         if speaker_texts:
@@ -1407,7 +1457,7 @@ def process_meeting_full_job(job_id: str, mixed_path: str, individual_paths: lis
         feedback = ""
         keywords = []
         quiz = None
-        action_items = []  # 액션아이템은 8B 요약본에 포함됨
+        # action_items는 위에서 8B 출력 파싱으로 이미 설정됨
 
         if claude_response:
             json_match = re.search(r'\{[\s\S]*\}', claude_response)
@@ -1786,6 +1836,10 @@ def process_transcript_summary(job_id: str, transcript: str, speaker_ids: List[i
 
         print(f"[TRANSCRIPT] 8B 요약 완료: {len(local_summary)} chars")
 
+        # 1.5 8B 출력에서 액션아이템 파싱
+        action_items = parse_action_items_from_8b(local_summary)
+        print(f"[TRANSCRIPT] 8B 액션아이템 파싱 완료: {len(action_items)}개")
+
         # 2. Claude 호출 (8B 요약본 기반 검토/보완 + 보충설명 + 퀴즈)
         quiz_instruction = ""
         if generate_quiz:
@@ -1841,7 +1895,7 @@ def process_transcript_summary(job_id: str, transcript: str, speaker_ids: List[i
         feedback = ""
         keywords = []
         quiz = None
-        action_items = []  # 액션아이템은 8B 요약본에 포함됨
+        # action_items는 위에서 8B 출력 파싱으로 이미 설정됨
 
         if claude_response:
             json_match = re.search(r'\{[\s\S]*\}', claude_response)

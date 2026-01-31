@@ -322,7 +322,9 @@ public class AiService {
                         List<MeetingProcessResult.ActionItem> items = new ArrayList<>();
                         for (Map<String, Object> item : actionItems) {
                             MeetingProcessResult.ActionItem actionItem = new MeetingProcessResult.ActionItem();
-                            actionItem.setUserId(((Number) item.get("user_id")).longValue());
+                            // user_id가 null일 수 있음 (전체 액션아이템)
+                            Object userIdObj = item.get("user_id");
+                            actionItem.setUserId(userIdObj != null ? ((Number) userIdObj).longValue() : null);
                             actionItem.setContent((String) item.get("content"));
                             items.add(actionItem);
                         }
