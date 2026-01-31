@@ -3,37 +3,80 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useUIStore } from '@/store/uiStore';
 import { useAuthStore } from '@/store/authStore';
-import { Users, MessageSquare, Video, Calendar, Clock, Play } from 'lucide-react';
+import { Users, MessageSquare, Video, Calendar, Clock, Play, Loader2 } from 'lucide-react';
 import FriendListMini from '@/features/friend/components/FriendListMini';
 import DMListMini from '@/features/dm/components/DMListMini';
 import { useDMStore } from '@/features/dm/store/dmStore';
 import { useFriendStore } from '@/features/friend/store/friendStore';
 import { cn } from '@/shared/utils/cn';
+import { calendarApi, StudySessionDTO } from '@/api/endpoints/calendarApi';
+import { studyApi } from '@/api/endpoints/studyApi';
 
-// Mock 데이터: 다가오는 미팅 일정
-const MOCK_MEETINGS = [
-    {
-        id: 1,
-        studyId: 101,
-        studyName: 'React 스터디',
-        meetingTitle: '주간 회의',
-        scheduledAt: new Date(Date.now() + 1000 * 60 * 25), // 25분 후
-        status: 'SCHEDULED',
-    },
-    {
-        id: 2,
-        studyId: 102,
-        studyName: 'CS 스터디',
-        meetingTitle: '알고리즘 세션',
-        scheduledAt: new Date(Date.now() + 1000 * 60 * 60 * 2), // 2시간 후
-        status: 'SCHEDULED',
-    },
-];
+// 미팅 일정 타입
+interface UpcomingMeeting {
+    id: number;
+    studyId: number;
+    studyName: string;
+    meetingTitle: string;
+    scheduledAt: Date;
+    status: string;
+}
 
 // 미팅 퀵 액세스 위젯
 const MeetingQuickAccess: React.FC = () => {
     const navigate = useNavigate();
-    const [meetings, setMeetings] = useState(MOCK_MEETINGS);
+    const [meetings, setMeetings] = useState<UpcomingMeeting[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    // 마운트 시 다가오는 미팅 로드
+    useEffect(() => {
+        const loadUpcomingMeetings = async () => {
+            try {
+                setIsLoading(true);
+
+                // 오늘부터 7일 후까지 세션 조회
+                const today = new Date();
+                const nextWeek = new Date(today);
+                nextWeek.setDate(nextWeek.getDate() + 7);
+
+                const startDate = today.toISOString().split('T')[0];
+                const endDate = nextWeek.toISOString().split('T')[0];
+
+                // 내 스터디 세션 조회
+                const sessions = await calendarApi.getMyStudySessions(startDate, endDate);
+
+                // 내 스터디 목록 조회 (스터디 이름 매핑용)
+                const studiesResponse = await studyApi.getMyStudies(0, 50);
+                const studyMap = new Map<number, string>();
+                studiesResponse.content.forEach(study => {
+                    studyMap.set(study.id, study.name);
+                });
+
+                // SCHEDULED 상태만 필터링하고 시간순 정렬
+                const upcomingMeetings: UpcomingMeeting[] = sessions
+                    .filter(s => s.status === 'SCHEDULED')
+                    .map(s => ({
+                        id: s.id,
+                        studyId: s.studyId,
+                        studyName: studyMap.get(s.studyId) || `스터디 ${s.studyId}`,
+                        meetingTitle: s.title,
+                        scheduledAt: new Date(s.scheduledAt),
+                        status: s.status,
+                    }))
+                    .filter(m => m.scheduledAt > new Date()) // 미래 일정만
+                    .sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime())
+                    .slice(0, 5); // 최대 5개
+
+                setMeetings(upcomingMeetings);
+            } catch (err) {
+                console.error('[MeetingQuickAccess] 미팅 일정 로딩 실패:', err);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        loadUpcomingMeetings();
+    }, []);
 
     // 남은 시간 계산
     const getTimeUntil = (scheduledAt: Date) => {
@@ -67,7 +110,12 @@ const MeetingQuickAccess: React.FC = () => {
 
             {/* 미팅 목록 */}
             <div className="flex-1 overflow-y-auto p-3 space-y-3">
-                {meetings.length === 0 ? (
+                {isLoading ? (
+                    <div className="text-center py-8 text-gray-400 text-sm">
+                        <Loader2 size={32} className="mx-auto mb-2 animate-spin opacity-50" />
+                        <p>로딩 중...</p>
+                    </div>
+                ) : meetings.length === 0 ? (
                     <div className="text-center py-8 text-gray-400 text-sm">
                         <Calendar size={32} className="mx-auto mb-2 opacity-30" />
                         <p>예정된 미팅이 없습니다</p>

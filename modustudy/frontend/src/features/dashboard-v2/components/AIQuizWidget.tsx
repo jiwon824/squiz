@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Brain, ChevronLeft, ChevronRight, Clock, CheckCircle2, Circle, Play } from 'lucide-react';
+import { Brain, ChevronLeft, ChevronRight, Clock, CheckCircle2, Circle, Play, Loader2 } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 import {
     MultipleChoiceQuiz,
@@ -10,8 +10,10 @@ import {
     WidgetHeader,
     WidgetContainer
 } from '@/shared/components';
+import { studyApi } from '@/api/endpoints/studyApi';
+import { studyQuizApi, StudyQuizListItem, StudyQuizDetail } from '@/api/endpoints/studyQuizApi';
 
-// 퀴즈 세트 타입
+// 퀴즈 세트 타입 (UI용)
 interface QuizSet {
     id: number;
     title: string;
@@ -22,132 +24,48 @@ interface QuizSet {
     questions: QuizQuestion[];
 }
 
-// Mock 퀴즈 세트 데이터
-const MOCK_QUIZ_SETS: QuizSet[] = [
-    {
-        id: 1,
-        title: 'React Hooks 복습',
-        meetingTitle: '프론트엔드 스터디 3회차',
-        createdAt: '2025-01-28',
-        questionCount: 4,
-        completedCount: 0,
-        questions: [
-            {
-                id: 1,
-                type: 'multiple',
-                question: 'useEffect의 클린업 함수는 언제 실행되나요?',
-                options: ['컴포넌트 마운트 시', '언마운트 시 또는 다음 effect 실행 전', '렌더링 직후', '상태 변경 시'],
-                correctAnswer: 1,
-                explanation: '클린업 함수는 컴포넌트 언마운트 시 또는 다음 effect가 실행되기 전에 호출됩니다.',
-                difficulty: 'medium',
-                category: 'React',
-            },
-            {
-                id: 2,
-                type: 'short',
-                question: 'React에서 컴포넌트의 상태를 관리하기 위해 사용하는 훅의 이름은?',
-                correctAnswer: 'useState',
-                explanation: 'useState는 함수형 컴포넌트에서 상태를 관리하기 위한 기본 훅입니다.',
-                difficulty: 'easy',
-                category: 'React',
-            },
-            {
-                id: 3,
-                type: 'multiple',
-                question: 'useMemo의 주요 목적은?',
-                options: ['상태 관리', '사이드 이펙트 처리', '값의 메모이제이션', 'DOM 접근'],
-                correctAnswer: 2,
-                explanation: 'useMemo는 계산 비용이 큰 값을 메모이제이션하여 불필요한 재계산을 방지합니다.',
-                difficulty: 'medium',
-                category: 'React',
-            },
-            {
-                id: 4,
-                type: 'short',
-                question: 'useRef로 생성한 객체의 값을 접근할 때 사용하는 속성명은?',
-                correctAnswer: 'current',
-                explanation: 'useRef는 .current 속성을 통해 변경 가능한 값을 저장합니다.',
-                difficulty: 'easy',
-                category: 'React',
-            },
-        ],
-    },
-    {
-        id: 2,
-        title: 'TypeScript 기초',
-        meetingTitle: '프론트엔드 스터디 2회차',
-        createdAt: '2025-01-25',
-        questionCount: 3,
-        completedCount: 3,
-        questions: [
-            {
-                id: 1,
-                type: 'multiple',
-                question: 'TypeScript의 Partial<T> 유틸리티 타입의 역할은?',
-                options: ['모든 속성을 필수로 만듦', '모든 속성을 선택적으로 만듦', '특정 속성만 선택', '속성 제거'],
-                correctAnswer: 1,
-                explanation: 'Partial<T>는 타입 T의 모든 속성을 선택적(optional)으로 만드는 유틸리티 타입입니다.',
-                difficulty: 'easy',
-                category: 'TypeScript',
-            },
-            {
-                id: 2,
-                type: 'short',
-                question: 'TypeScript에서 타입을 정의할 때 사용하는 키워드 두 가지는? (하나만 입력)',
-                correctAnswer: 'type',
-                explanation: 'type과 interface 키워드를 사용하여 타입을 정의할 수 있습니다.',
-                difficulty: 'easy',
-                category: 'TypeScript',
-            },
-            {
-                id: 3,
-                type: 'multiple',
-                question: 'never 타입은 언제 사용되나요?',
-                options: ['null 값을 표현할 때', '절대 반환하지 않는 함수', '빈 배열을 표현할 때', 'undefined 값을 표현할 때'],
-                correctAnswer: 1,
-                explanation: 'never 타입은 절대 발생하지 않는 값의 타입으로, 항상 예외를 던지거나 무한 루프를 도는 함수에 사용됩니다.',
-                difficulty: 'hard',
-                category: 'TypeScript',
-            },
-        ],
-    },
-    {
-        id: 3,
-        title: 'JavaScript 비동기',
-        meetingTitle: '프론트엔드 스터디 1회차',
-        createdAt: '2025-01-22',
-        questionCount: 2,
-        completedCount: 1,
-        questions: [
-            {
-                id: 1,
-                type: 'short',
-                question: 'JavaScript에서 비동기 함수를 정의할 때 사용하는 키워드는?',
-                correctAnswer: 'async',
-                explanation: 'async 키워드를 함수 앞에 붙이면 해당 함수는 항상 Promise를 반환하는 비동기 함수가 됩니다.',
-                difficulty: 'easy',
-                category: 'JavaScript',
-            },
-            {
-                id: 2,
-                type: 'multiple',
-                question: 'Promise.all()의 동작 방식은?',
-                options: [
-                    '순차적으로 실행',
-                    '병렬로 실행하고 모두 완료 시 결과 반환',
-                    '가장 빠른 것만 반환',
-                    '실패한 것만 반환'
-                ],
-                correctAnswer: 1,
-                explanation: 'Promise.all()은 여러 Promise를 병렬로 실행하고, 모든 Promise가 완료되면 결과 배열을 반환합니다.',
-                difficulty: 'medium',
-                category: 'JavaScript',
-            },
-        ],
-    },
-];
-
 type ViewMode = 'list' | 'quiz';
+
+/**
+ * 백엔드 응답을 UI QuizQuestion 형식으로 변환
+ */
+const transformToQuizQuestions = (detail: StudyQuizDetail): QuizQuestion[] => {
+    return detail.questions.map((q, idx) => {
+        const isMultiple = q.questionType === 'MULTIPLE_CHOICE';
+
+        // options 파싱
+        let options: string[] = [];
+        if (q.options) {
+            try {
+                options = JSON.parse(q.options);
+            } catch {
+                options = [];
+            }
+        }
+
+        // 정답 인덱스 찾기 (객관식인 경우)
+        let correctAnswer: number | string = q.correctAnswer;
+        if (isMultiple && options.length > 0) {
+            const answerIdx = options.findIndex(opt =>
+                opt.includes(q.correctAnswer) ||
+                opt.startsWith(q.correctAnswer) ||
+                opt === q.correctAnswer
+            );
+            correctAnswer = answerIdx >= 0 ? answerIdx : 0;
+        }
+
+        return {
+            id: q.id,
+            type: isMultiple ? 'multiple' : 'short',
+            question: q.questionText,
+            options: isMultiple ? options : undefined,
+            correctAnswer,
+            explanation: q.explanation || '',
+            difficulty: 'medium',
+            category: '',
+        } as QuizQuestion;
+    });
+};
 
 export const AIQuizWidget: React.FC = () => {
     const [viewMode, setViewMode] = useState<ViewMode>('list');
@@ -158,15 +76,131 @@ export const AIQuizWidget: React.FC = () => {
     const [showResult, setShowResult] = useState(false);
     const [score, setScore] = useState({ correct: 0, total: 0 });
 
-    const handleSelectQuizSet = (quizSet: QuizSet) => {
-        setSelectedQuizSet(quizSet);
-        setViewMode('quiz');
-        setCurrentIndex(0);
-        setSelectedAnswer(null);
-        setShortAnswer('');
-        setShowResult(false);
-        setScore({ correct: 0, total: 0 });
-    };
+    // 데이터 로딩 상태
+    const [quizSets, setQuizSets] = useState<QuizSet[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [currentStudyId, setCurrentStudyId] = useState<number | null>(null);
+
+    // 마운트 시 내 스터디 목록 조회 후 퀴즈 목록 로딩
+    useEffect(() => {
+        const loadData = async () => {
+            try {
+                setIsLoading(true);
+
+                // 내 스터디 목록 조회
+                const studyResponse = await studyApi.getMyStudies(0, 20);
+                if (studyResponse.content.length === 0) {
+                    setQuizSets([]);
+                    return;
+                }
+
+                // 모든 스터디의 퀴즈를 모아서 보여줌
+                const allQuizSets: QuizSet[] = [];
+
+                for (const study of studyResponse.content) {
+                    try {
+                        const quizzes = await studyQuizApi.getStudyQuizzes(study.id);
+
+                        for (const quiz of quizzes) {
+                            // 간략 정보로 QuizSet 생성 (questions는 선택 시 로드)
+                            allQuizSets.push({
+                                id: quiz.id,
+                                title: quiz.title,
+                                meetingTitle: study.name, // 스터디 이름을 meetingTitle로 사용
+                                createdAt: quiz.createdAt.split('T')[0],
+                                questionCount: quiz.questionCount,
+                                completedCount: 0, // TODO: 사용자별 진행도 저장 시 업데이트
+                                questions: [], // 선택 시 로드
+                            });
+
+                            // 첫 번째 스터디 ID 저장
+                            if (!currentStudyId) {
+                                setCurrentStudyId(study.id);
+                            }
+                        }
+                    } catch (err) {
+                        console.warn(`[AIQuizWidget] 스터디 ${study.id} 퀴즈 조회 실패:`, err);
+                    }
+                }
+
+                // 최신순 정렬
+                allQuizSets.sort((a, b) =>
+                    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+                );
+
+                setQuizSets(allQuizSets);
+            } catch (err) {
+                console.error('[AIQuizWidget] 데이터 로딩 실패:', err);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        loadData();
+    }, []);
+
+    // 퀴즈 세트 선택 시 상세 정보 로드
+    const handleSelectQuizSet = useCallback(async (quizSet: QuizSet) => {
+        // 이미 questions가 로드되어 있으면 바로 시작
+        if (quizSet.questions.length > 0) {
+            setSelectedQuizSet(quizSet);
+            setViewMode('quiz');
+            setCurrentIndex(0);
+            setSelectedAnswer(null);
+            setShortAnswer('');
+            setShowResult(false);
+            setScore({ correct: 0, total: 0 });
+            return;
+        }
+
+        // questions가 비어있으면 상세 조회
+        try {
+            setIsLoading(true);
+
+            // 해당 퀴즈의 스터디 ID 찾기
+            const studyResponse = await studyApi.getMyStudies(0, 20);
+            let studyId: number | null = null;
+
+            for (const study of studyResponse.content) {
+                try {
+                    const detail = await studyQuizApi.getQuizDetail(study.id, quizSet.id);
+                    if (detail) {
+                        studyId = study.id;
+                        const questions = transformToQuizQuestions(detail);
+
+                        const loadedQuizSet: QuizSet = {
+                            ...quizSet,
+                            questions,
+                        };
+
+                        // 상태 업데이트
+                        setQuizSets(prev => prev.map(q =>
+                            q.id === quizSet.id ? loadedQuizSet : q
+                        ));
+
+                        setSelectedQuizSet(loadedQuizSet);
+                        setViewMode('quiz');
+                        setCurrentIndex(0);
+                        setSelectedAnswer(null);
+                        setShortAnswer('');
+                        setShowResult(false);
+                        setScore({ correct: 0, total: 0 });
+                        break;
+                    }
+                } catch {
+                    // 해당 스터디에 퀴즈가 없으면 다음 스터디 시도
+                }
+            }
+
+            if (!studyId) {
+                console.error('[AIQuizWidget] 퀴즈를 찾을 수 없음:', quizSet.id);
+            }
+        } catch (err) {
+            console.error('[AIQuizWidget] 퀴즈 상세 로딩 실패:', err);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
 
     const handleBackToList = () => {
         setViewMode('list');
@@ -208,6 +242,25 @@ export const AIQuizWidget: React.FC = () => {
         }
     };
 
+    // 로딩 중
+    if (isLoading && viewMode === 'list') {
+        return (
+            <WidgetContainer>
+                <WidgetHeader
+                    icon={Brain}
+                    iconColor="secondary"
+                    title="AI 복습 퀴즈"
+                    subtitle="스터디 내용 기반 자동 생성"
+                    maximizePath="/quiz/review"
+                />
+                <div className="flex items-center justify-center h-64 text-text-tertiary">
+                    <Loader2 className="animate-spin mr-2" size={20} />
+                    로딩 중...
+                </div>
+            </WidgetContainer>
+        );
+    }
+
     return (
         <WidgetContainer>
             {/* 헤더 - 공통 컴포넌트 사용 */}
@@ -238,7 +291,7 @@ export const AIQuizWidget: React.FC = () => {
                             exit={{ opacity: 0 }}
                         >
                             <QuizSetList
-                                quizSets={MOCK_QUIZ_SETS}
+                                quizSets={quizSets}
                                 onSelect={handleSelectQuizSet}
                             />
                         </motion.div>
@@ -322,9 +375,11 @@ const QuizSetList: React.FC<QuizSetListProps> = ({ quizSets, onSelect }) => {
         <div className="flex flex-col">
             {/* 스크롤 가능한 리스트 영역 */}
             <div className="max-h-[400px] overflow-y-auto space-y-3 pr-2 quiz-list-scroll">
-                {currentItems.map((quizSet, index) => {
-                    const isCompleted = quizSet.completedCount === quizSet.questionCount;
-                    const progress = (quizSet.completedCount / quizSet.questionCount) * 100;
+                {currentItems.map((quizSet) => {
+                    const isCompleted = quizSet.completedCount === quizSet.questionCount && quizSet.questionCount > 0;
+                    const progress = quizSet.questionCount > 0
+                        ? (quizSet.completedCount / quizSet.questionCount) * 100
+                        : 0;
 
                     return (
                         <button
