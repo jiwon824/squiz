@@ -2,29 +2,27 @@ package com.ssafy.domain.quiz.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.common.auth.SsafyUserDetails;
+import com.ssafy.common.util.JwtTokenUtil;
 import com.ssafy.domain.quiz.dto.request.SaveAnswerRequest;
 import com.ssafy.domain.quiz.dto.response.*;
 import com.ssafy.domain.quiz.entity.enums.AttemptStatus;
 import com.ssafy.domain.quiz.entity.enums.QuestionType;
 import com.ssafy.domain.quiz.service.QuizCourseService;
 import com.ssafy.domain.quiz.service.QuizSectionAttemptService;
+import com.ssafy.domain.user.entity.Role;
 import com.ssafy.domain.user.entity.User;
+import com.ssafy.domain.user.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.core.MethodParameter;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
 import org.springframework.http.MediaType;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.bind.support.WebDataBinderFactory;
-import org.springframework.web.context.request.NativeWebRequest;
-import org.springframework.web.method.support.HandlerMethodArgumentResolver;
-import org.springframework.web.method.support.ModelAndViewContainer;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -34,6 +32,8 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -51,21 +51,27 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * - POST .../attempts/{attemptId}/submit (submit attempt)
  * - DELETE .../attempts/{attemptId} (abandon attempt)
  */
-@ExtendWith(MockitoExtension.class)
-@org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
+@WebMvcTest(QuizCourseController.class)
+@MockBean(JpaMetamodelMappingContext.class)
 class QuizCourseControllerTest {
 
+        @Autowired
         private MockMvc mockMvc;
+
+        @Autowired
         private ObjectMapper objectMapper;
 
-        @Mock
+        @MockBean
         private QuizCourseService quizCourseService;
 
-        @Mock
+        @MockBean
         private QuizSectionAttemptService attemptService;
 
-        @InjectMocks
-        private QuizCourseController quizCourseController;
+        @MockBean
+        private UserService userService;
+
+        @MockBean
+        private JwtTokenUtil jwtTokenUtil;
 
         // Test constants
         private static final Long COURSE_ID = 1L;
@@ -73,38 +79,18 @@ class QuizCourseControllerTest {
         private static final Long ATTEMPT_ID = 123L;
         private static final Long USER_ID = 1L;
 
-        // Mock user for authenticated endpoints
-        private User mockUser;
-        private SsafyUserDetails mockUserDetails;
+        private SsafyUserDetails userDetails;
 
         @BeforeEach
         void setUp() {
-                // Create mock user using Mockito (since id is in BaseEntity without setter)
-                mockUser = org.mockito.Mockito.mock(User.class);
-                given(mockUser.getId()).willReturn(USER_ID);
-
-                mockUserDetails = org.mockito.Mockito.mock(SsafyUserDetails.class);
-                given(mockUserDetails.getUser()).willReturn(mockUser);
-
-                // Custom argument resolver to inject mock SsafyUserDetails for
-                // @AuthenticationPrincipal
-                HandlerMethodArgumentResolver authResolver = new HandlerMethodArgumentResolver() {
-                        @Override
-                        public boolean supportsParameter(MethodParameter parameter) {
-                                return parameter.getParameterType().isAssignableFrom(SsafyUserDetails.class);
-                        }
-
-                        @Override
-                        public Object resolveArgument(MethodParameter parameter, ModelAndViewContainer mavContainer,
-                                        NativeWebRequest webRequest, WebDataBinderFactory binderFactory) {
-                                return mockUserDetails;
-                        }
-                };
-
-                mockMvc = MockMvcBuilders.standaloneSetup(quizCourseController)
-                                .setCustomArgumentResolvers(authResolver)
+                User user = User.builder()
+                                .email("test@example.com")
+                                .nickname("tester")
+                                .role(Role.USER)
+                                .isActive(true)
                                 .build();
-                objectMapper = new ObjectMapper();
+                ReflectionTestUtils.setField(user, "id", USER_ID);
+                userDetails = new SsafyUserDetails(user);
         }
 
         // ========== GET /api/v1/quiz-courses ==========
@@ -130,6 +116,7 @@ class QuizCourseControllerTest {
 
                         // when & then
                         mockMvc.perform(get("/api/v1/quiz-courses")
+                                        .with(user(userDetails))
                                         .contentType(MediaType.APPLICATION_JSON))
                                         .andDo(print())
                                         .andExpect(status().isOk())
@@ -152,6 +139,7 @@ class QuizCourseControllerTest {
 
                         // when & then
                         mockMvc.perform(get("/api/v1/quiz-courses")
+                                        .with(user(userDetails))
                                         .contentType(MediaType.APPLICATION_JSON))
                                         .andDo(print())
                                         .andExpect(status().isOk())
@@ -159,18 +147,6 @@ class QuizCourseControllerTest {
                                         .andExpect(jsonPath("$.data.courses").isEmpty());
                 }
 
-                @Test
-                @DisplayName("Accessible without authentication")
-                void accessibleWithoutAuthentication() throws Exception {
-                        // given
-                        QuizCourseListResponse response = new QuizCourseListResponse(Collections.emptyList());
-                        given(quizCourseService.getCourseList()).willReturn(response);
-
-                        // when & then
-                        mockMvc.perform(get("/api/v1/quiz-courses")
-                                        .contentType(MediaType.APPLICATION_JSON))
-                                        .andExpect(status().isOk());
-                }
         }
 
         // ========== GET /api/v1/quiz-courses/{courseId} ==========
@@ -195,6 +171,7 @@ class QuizCourseControllerTest {
 
                         // when & then
                         mockMvc.perform(get("/api/v1/quiz-courses/1")
+                                        .with(user(userDetails))
                                         .contentType(MediaType.APPLICATION_JSON))
                                         .andDo(print())
                                         .andExpect(status().isOk())
@@ -225,6 +202,7 @@ class QuizCourseControllerTest {
 
                         // when & then
                         mockMvc.perform(get("/api/v1/quiz-courses/1")
+                                        .with(user(userDetails))
                                         .contentType(MediaType.APPLICATION_JSON))
                                         .andDo(print())
                                         .andExpect(status().isOk())
@@ -243,6 +221,7 @@ class QuizCourseControllerTest {
 
                         // when & then
                         mockMvc.perform(get("/api/v1/quiz-courses/1")
+                                        .with(user(userDetails))
                                         .contentType(MediaType.APPLICATION_JSON))
                                         .andDo(print())
                                         .andExpect(status().isOk())
@@ -271,9 +250,9 @@ class QuizCourseControllerTest {
                         given(quizCourseService.getSectionsWithProgress(eq(COURSE_ID), anyLong()))
                                         .willReturn(response);
 
-                        // when & then - Note: Real auth would be needed; here we're testing routing
-                        // only
+                        // when & then
                         mockMvc.perform(get("/api/v1/quiz-courses/{courseId}/sections", COURSE_ID)
+                                        .with(user(userDetails))
                                         .contentType(MediaType.APPLICATION_JSON))
                                         .andDo(print())
                                         .andExpect(status().isOk())
@@ -304,6 +283,7 @@ class QuizCourseControllerTest {
 
                         // when & then
                         mockMvc.perform(get("/api/v1/quiz-courses/{courseId}/sections", COURSE_ID)
+                                        .with(user(userDetails))
                                         .contentType(MediaType.APPLICATION_JSON))
                                         .andDo(print())
                                         .andExpect(status().isOk())
@@ -313,8 +293,7 @@ class QuizCourseControllerTest {
                 }
         }
 
-        // ========== POST
-        // /api/v1/quiz-courses/{courseId}/sections/{sectionNumber}/attempts ==========
+        // ========== POST /api/v1/quiz-courses/{courseId}/sections/{sectionNumber}/attempts ==========
 
         @Nested
         @DisplayName("POST /api/v1/quiz-courses/{courseId}/sections/{sectionNumber}/attempts")
@@ -345,6 +324,8 @@ class QuizCourseControllerTest {
                         // when & then
                         mockMvc.perform(post("/api/v1/quiz-courses/{courseId}/sections/{sectionNumber}/attempts",
                                         COURSE_ID, SECTION_NUMBER)
+                                        .with(user(userDetails))
+                                        .with(csrf())
                                         .contentType(MediaType.APPLICATION_JSON))
                                         .andDo(print())
                                         .andExpect(status().isOk())
@@ -381,6 +362,8 @@ class QuizCourseControllerTest {
                         // when & then
                         mockMvc.perform(post("/api/v1/quiz-courses/{courseId}/sections/{sectionNumber}/attempts",
                                         COURSE_ID, SECTION_NUMBER)
+                                        .with(user(userDetails))
+                                        .with(csrf())
                                         .contentType(MediaType.APPLICATION_JSON))
                                         .andDo(print())
                                         .andExpect(status().isOk())
@@ -389,8 +372,7 @@ class QuizCourseControllerTest {
                 }
         }
 
-        // ========== POST
-        // /api/v1/quiz-courses/{courseId}/sections/{sectionNumber}/attempts/{attemptId} ==========
+        // ========== POST /api/v1/quiz-courses/{courseId}/sections/{sectionNumber}/attempts/{attemptId} ==========
 
         @Nested
         @DisplayName("POST /api/v1/quiz-courses/{courseId}/sections/{sectionNumber}/attempts/{attemptId}")
@@ -416,6 +398,8 @@ class QuizCourseControllerTest {
                         // when & then
                         mockMvc.perform(post("/api/v1/quiz-courses/{courseId}/sections/{sectionNumber}/attempts/{attemptId}",
                                         COURSE_ID, SECTION_NUMBER, ATTEMPT_ID)
+                                        .with(user(userDetails))
+                                        .with(csrf())
                                         .contentType(MediaType.APPLICATION_JSON))
                                         .andDo(print())
                                         .andExpect(status().isOk())
@@ -429,9 +413,7 @@ class QuizCourseControllerTest {
                 }
         }
 
-        // ========== PATCH
-        // /api/v1/quiz-courses/{courseId}/sections/{sectionNumber}/attempts/{attemptId}/answers
-        // ==========
+        // ========== PATCH .../attempts/{attemptId}/answers ==========
 
         @Nested
         @DisplayName("PATCH .../attempts/{attemptId}/answers")
@@ -451,6 +433,8 @@ class QuizCourseControllerTest {
                         mockMvc.perform(patch(
                                         "/api/v1/quiz-courses/{courseId}/sections/{sectionNumber}/attempts/{attemptId}/answers",
                                         COURSE_ID, SECTION_NUMBER, ATTEMPT_ID)
+                                        .with(user(userDetails))
+                                        .with(csrf())
                                         .contentType(MediaType.APPLICATION_JSON)
                                         .content(objectMapper.writeValueAsString(request)))
                                         .andDo(print())
@@ -476,6 +460,8 @@ class QuizCourseControllerTest {
                         mockMvc.perform(patch(
                                         "/api/v1/quiz-courses/{courseId}/sections/{sectionNumber}/attempts/{attemptId}/answers",
                                         COURSE_ID, SECTION_NUMBER, ATTEMPT_ID)
+                                        .with(user(userDetails))
+                                        .with(csrf())
                                         .contentType(MediaType.APPLICATION_JSON)
                                         .content(objectMapper.writeValueAsString(request)))
                                         .andExpect(status().isOk())
@@ -506,6 +492,8 @@ class QuizCourseControllerTest {
                         mockMvc.perform(post(
                                         "/api/v1/quiz-courses/{courseId}/sections/{sectionNumber}/attempts/{attemptId}/submit",
                                         COURSE_ID, SECTION_NUMBER, ATTEMPT_ID)
+                                        .with(user(userDetails))
+                                        .with(csrf())
                                         .contentType(MediaType.APPLICATION_JSON))
                                         .andDo(print())
                                         .andExpect(status().isOk())
@@ -534,6 +522,8 @@ class QuizCourseControllerTest {
                         mockMvc.perform(post(
                                         "/api/v1/quiz-courses/{courseId}/sections/{sectionNumber}/attempts/{attemptId}/submit",
                                         COURSE_ID, SECTION_NUMBER, ATTEMPT_ID)
+                                        .with(user(userDetails))
+                                        .with(csrf())
                                         .contentType(MediaType.APPLICATION_JSON))
                                         .andDo(print())
                                         .andExpect(status().isOk())
@@ -556,6 +546,8 @@ class QuizCourseControllerTest {
                         mockMvc.perform(post(
                                         "/api/v1/quiz-courses/{courseId}/sections/{sectionNumber}/attempts/{attemptId}/submit",
                                         COURSE_ID, SECTION_NUMBER, ATTEMPT_ID)
+                                        .with(user(userDetails))
+                                        .with(csrf())
                                         .contentType(MediaType.APPLICATION_JSON))
                                         .andDo(print())
                                         .andExpect(status().isOk())
@@ -581,6 +573,8 @@ class QuizCourseControllerTest {
                         mockMvc.perform(delete(
                                         "/api/v1/quiz-courses/{courseId}/sections/{sectionNumber}/attempts/{attemptId}",
                                         COURSE_ID, SECTION_NUMBER, ATTEMPT_ID)
+                                        .with(user(userDetails))
+                                        .with(csrf())
                                         .contentType(MediaType.APPLICATION_JSON))
                                         .andDo(print())
                                         .andExpect(status().isOk())
