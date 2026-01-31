@@ -33,13 +33,14 @@ public class StudyQuizService {
      * 미팅 AI 처리 결과에서 퀴즈 저장
      *
      * @param studyId   스터디 ID
+     * @param sessionId 세션(회차) ID
      * @param meetingId 미팅 ID
      * @param title     퀴즈 제목
      * @param quizRaw   AI 서버에서 반환한 퀴즈 JSON (raw string)
      * @return 저장된 StudyQuiz (null if parsing failed or no questions)
      */
     @Transactional
-    public StudyQuiz saveQuizFromMeeting(Long studyId, Long meetingId, String title, String quizRaw) {
+    public StudyQuiz saveQuizFromMeeting(Long studyId, Long sessionId, Long meetingId, String title, String quizRaw) {
         if (quizRaw == null || quizRaw.isBlank()) {
             log.warn("퀴즈 데이터가 비어있음 - meetingId: {}", meetingId);
             return null;
@@ -63,6 +64,7 @@ public class StudyQuizService {
             // StudyQuiz 생성
             StudyQuiz quiz = StudyQuiz.builder()
                     .studyId(studyId)
+                    .sessionId(sessionId)
                     .title(title)
                     .sourceType(StudyQuiz.SourceType.MEETING)
                     .sourceId(meetingId)

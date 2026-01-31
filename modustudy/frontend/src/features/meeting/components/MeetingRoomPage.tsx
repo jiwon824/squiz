@@ -15,6 +15,7 @@ import audioDetection from '../services/audioDetection';
 import aiDetection from '../services/aiDetection';
 import canvasComposer from '../services/canvasComposer';
 import { studyApi } from '@/api/endpoints/studyApi';
+import { Button, Modal } from '@/shared/components';
 import {
     MeetingJoinResponse,
     MeetingRoomChatMessage,
@@ -76,6 +77,8 @@ const MeetingRoomPage: React.FC = () => {
     const audioDetectionActiveRef = useRef(false);
     const aiDetectionCleanupRef = useRef<(() => void) | null>(null);
     const aiDetectionStreamRef = useRef<MediaStream | null>(null);
+    const aiDetectionRestartRef = useRef<(() => void) | null>(null);
+    const aiDetectionRestartTimerRef = useRef<number | null>(null);
     const chatDedupRef = useRef<Set<string>>(new Set());
     const remoteAudioElementsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
     const remoteAudioTracksRef = useRef<Map<string, MediaStreamTrack>>(new Map());
@@ -135,6 +138,9 @@ const MeetingRoomPage: React.FC = () => {
     const [roomGuardMessage, setRoomGuardMessage] = useState('회의 정보를 확인 중입니다.');
     const [sfuReady, setSfuReady] = useState(false);
     const [isEnding, setIsEnding] = useState(false);
+    const [isExtendConfirmOpen, setIsExtendConfirmOpen] = useState(false);
+    const [isEndConfirmOpen, setIsEndConfirmOpen] = useState(false);
+    const [isPresenterConfirmOpen, setIsPresenterConfirmOpen] = useState(false);
     const [leaderId, setLeaderId] = useState<number | null>(null);
 
     const aiVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -599,14 +605,32 @@ const MeetingRoomPage: React.FC = () => {
         if (aiDetectionStreamRef.current) {
             const track = aiDetectionStreamRef.current.getVideoTracks()?.[0];
             if (track && track.readyState === 'live') {
+                console.log('[ai] reuse detection stream', { trackId: track.id, readyState: track.readyState });
                 return aiDetectionStreamRef.current;
             }
             stopTracks(aiDetectionStreamRef.current);
             aiDetectionStreamRef.current = null;
         }
         try {
+            console.log('[ai] request detection stream');
             const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
             aiDetectionStreamRef.current = stream;
+            const track = stream.getVideoTracks()?.[0];
+            if (track) {
+                console.log('[ai] detection stream acquired', { trackId: track.id, readyState: track.readyState });
+                const handleEnded = () => {
+                    console.warn('[ai] detection track ended/inactive');
+                    if (aiDetectionCleanupRef.current) {
+                        aiDetectionCleanupRef.current();
+                        aiDetectionCleanupRef.current = null;
+                    }
+                    stopTracks(aiDetectionStreamRef.current);
+                    aiDetectionStreamRef.current = null;
+                    aiDetectionRestartRef.current?.();
+                };
+                track.addEventListener('ended', handleEnded, { once: true });
+                stream.addEventListener('inactive', handleEnded, { once: true });
+            }
             return stream;
         } catch (error) {
             console.error('Failed to access camera for AI detection', error);
@@ -615,6 +639,7 @@ const MeetingRoomPage: React.FC = () => {
     }, []);
 
     const ensureAiDetection = useCallback(async () => {
+        console.log('[ai] ensureAiDetection called');
         const detectionStream =
             aiDetectionStreamRef.current ?? (await ensureAiDetectionStream()) ?? localCameraStreamRef.current;
         if (!detectionStream || !aiVideoRef.current) return;
@@ -622,6 +647,7 @@ const MeetingRoomPage: React.FC = () => {
         if (!track || track.readyState !== 'live') return;
         const shouldRestart = aiVideoRef.current.srcObject !== detectionStream;
         if (shouldRestart && aiDetectionCleanupRef.current) {
+            console.log('[ai] restart detection loop due to stream change');
             aiDetectionCleanupRef.current();
             aiDetectionCleanupRef.current = null;
         }
@@ -630,11 +656,15 @@ const MeetingRoomPage: React.FC = () => {
         }
         aiVideoRef.current.muted = true;
         aiVideoRef.current.playsInline = true;
-        aiVideoRef.current.play().catch(() => {});
+        aiVideoRef.current.play().catch((error) => {
+            console.warn('[ai] video play failed', error);
+        });
         if (!aiDetectionCleanupRef.current) {
+            console.log('[ai] start detection loop');
             aiDetectionCleanupRef.current = aiDetection.startDetection(aiVideoRef.current, (isPresent) => {
                 if (presenceRef.current === isPresent) return;
                 presenceRef.current = isPresent;
+                console.log('[ai] presence changed', { isPresent });
                 updateSelfParticipant({ isPresent });
                 if (wsClientRef.current && roomIdRef.current) {
                     wsClientRef.current.setPresence(roomIdRef.current, { present: isPresent });
@@ -642,6 +672,34 @@ const MeetingRoomPage: React.FC = () => {
             });
         }
     }, [ensureAiDetectionStream, updateSelfParticipant]);
+
+    useEffect(() => {
+        aiDetectionRestartRef.current = () => {
+            if (aiDetectionRestartTimerRef.current) return;
+            console.log('[ai] schedule detection restart');
+            aiDetectionRestartTimerRef.current = window.setTimeout(() => {
+                aiDetectionRestartTimerRef.current = null;
+                console.log('[ai] restart detection now');
+                void ensureAiDetection();
+            }, 300);
+        };
+        return () => {
+            if (aiDetectionRestartTimerRef.current) {
+                window.clearTimeout(aiDetectionRestartTimerRef.current);
+                aiDetectionRestartTimerRef.current = null;
+            }
+        };
+    }, [ensureAiDetection]);
+
+    useEffect(() => {
+        const watchdogId = window.setInterval(() => {
+            if (!aiDetectionCleanupRef.current) {
+                console.log('[ai] watchdog: detection loop missing, restarting');
+                void ensureAiDetection();
+            }
+        }, 4000);
+        return () => window.clearInterval(watchdogId);
+    }, [ensureAiDetection]);
 
     const mergeParticipants = useCallback((incoming: MeetingRoomParticipant[]) => {
         setParticipants((prev) => {
@@ -990,7 +1048,8 @@ const MeetingRoomPage: React.FC = () => {
         const url = getSfuRecordingUrl('/recordings/start');
         if (!roomId || !url) return;
         sfuRecordingChainRef.current = sfuRecordingChainRef.current.then(async () => {
-            if (sfuRecordingStateRef.current === 'recording' || sfuRecordingStateRef.current === 'starting') {
+            // 이미 녹음 중이면 스킵
+            if (sfuRecordingStateRef.current === 'recording') {
                 return;
             }
             sfuRecordingStateRef.current = 'starting';
@@ -1678,6 +1737,20 @@ const MeetingRoomPage: React.FC = () => {
         ]
     );
 
+    const confirmPresenterClaim = useCallback(() => {
+        if (!roomIdRef.current || !wsClientRef.current) return;
+        isPresenterRef.current = true;
+        wsClientRef.current.setPresenter(roomIdRef.current, {
+            displayName: displayNameRef.current,
+            action: 'claim',
+        });
+        setPresenterName(displayNameRef.current);
+        if (selfParticipantIdRef.current !== null) {
+            setPresenterId(selfParticipantIdRef.current);
+        }
+        setIsPresenterConfirmOpen(false);
+    }, []);
+
     const handleTogglePresenter = useCallback(async () => {
         if (!roomIdRef.current || !wsClientRef.current) return;
         if (isPresenter) {
@@ -1707,17 +1780,7 @@ const MeetingRoomPage: React.FC = () => {
             void refreshOutgoingAudio();
             return;
         }
-        const confirmed = window.confirm('발표자가 되시겠습니까? 현재 발표자는 권한을 내려야 합니다.');
-        if (!confirmed) return;
-        isPresenterRef.current = true;
-        wsClientRef.current.setPresenter(roomIdRef.current, {
-            displayName: displayNameRef.current,
-            action: 'claim',
-        });
-        setPresenterName(displayNameRef.current);
-        if (selfParticipantIdRef.current !== null) {
-            setPresenterId(selfParticipantIdRef.current);
-        }
+        setIsPresenterConfirmOpen(true);
     }, [isPresenter, refreshOutgoingAudio, stopMixedAudioTrack, updateOutgoingVideo]);
 
     useEffect(() => {
@@ -1814,10 +1877,26 @@ const MeetingRoomPage: React.FC = () => {
         }
     }, [isCapturing, numericMeetingId, numericStudyId]);
 
-    const handleExtendMeeting = useCallback(async () => {
+    const handleExtendMeeting = useCallback(() => {
         if (!numericStudyId || !numericMeetingId || !canEndMeeting) return;
         const currentSeconds = plannedDurationSeconds ?? 3600;
         if (currentSeconds >= MAX_PLANNED_DURATION_SECONDS) {
+            return;
+        }
+        setIsExtendConfirmOpen(true);
+    }, [
+        MAX_PLANNED_DURATION_SECONDS,
+        canEndMeeting,
+        numericMeetingId,
+        numericStudyId,
+        plannedDurationSeconds,
+    ]);
+
+    const confirmExtendMeeting = useCallback(async () => {
+        if (!numericStudyId || !numericMeetingId || !canEndMeeting) return;
+        const currentSeconds = plannedDurationSeconds ?? 3600;
+        if (currentSeconds >= MAX_PLANNED_DURATION_SECONDS) {
+            setIsExtendConfirmOpen(false);
             return;
         }
         const nextSeconds = Math.min(currentSeconds + 1800, MAX_PLANNED_DURATION_SECONDS);
@@ -1826,6 +1905,8 @@ const MeetingRoomPage: React.FC = () => {
             setPlannedDurationSeconds(detail.plannedDurationSeconds ?? nextSeconds);
         } catch (error) {
             console.error('Failed to extend meeting duration', error);
+        } finally {
+            setIsExtendConfirmOpen(false);
         }
     }, [
         MAX_PLANNED_DURATION_SECONDS,
@@ -1838,12 +1919,8 @@ const MeetingRoomPage: React.FC = () => {
     const presenterLabel = presenterName ? '발표자: ' + presenterName : '발표자';
 
     const endMeetingInternal = useCallback(
-        async (requireConfirm: boolean) => {
+        async () => {
             if (!numericStudyId || !numericMeetingId || !canEndMeeting) return;
-            if (requireConfirm) {
-                const confirmed = window.confirm('미팅을 종료하시겠습니까?');
-                if (!confirmed) return;
-            }
             try {
                 setIsEnding(true);
                 sfuStopRequestedRef.current = true;
@@ -1868,12 +1945,18 @@ const MeetingRoomPage: React.FC = () => {
         if (autoEndTriggeredRef.current) return;
         if (elapsedSeconds >= plannedDurationSeconds) {
             autoEndTriggeredRef.current = true;
-            void endMeetingInternal(false);
+            void endMeetingInternal();
         }
     }, [elapsedSeconds, plannedDurationSeconds, meetingStartedAt, canEndMeeting, endMeetingInternal]);
 
     const handleEndMeeting = useCallback(() => {
-        void endMeetingInternal(true);
+        if (!canEndMeeting) return;
+        setIsEndConfirmOpen(true);
+    }, [canEndMeeting]);
+
+    const confirmEndMeeting = useCallback(() => {
+        setIsEndConfirmOpen(false);
+        void endMeetingInternal();
     }, [endMeetingInternal]);
 
     const handleRoomEvent = useCallback(
@@ -2166,10 +2249,16 @@ const MeetingRoomPage: React.FC = () => {
             }
             setSfuReady(false);
             if (aiDetectionCleanupRef.current) {
+                console.log('[ai] cleanup detection on unmount');
                 aiDetectionCleanupRef.current();
                 aiDetectionCleanupRef.current = null;
             }
             audioDetection.stopDetection();
+            if (aiDetectionRestartTimerRef.current) {
+                window.clearTimeout(aiDetectionRestartTimerRef.current);
+                aiDetectionRestartTimerRef.current = null;
+            }
+            aiDetectionRestartRef.current = null;
             stopTracks(aiDetectionStreamRef.current);
             aiDetectionStreamRef.current = null;
 
@@ -2384,6 +2473,61 @@ const MeetingRoomPage: React.FC = () => {
                     </div>
                 </div>
             </div>
+            <Modal
+                isOpen={isExtendConfirmOpen}
+                onClose={() => setIsExtendConfirmOpen(false)}
+                title="미팅 시간 연장"
+                maxWidth="sm"
+            >
+                <p className="text-sm text-gray-600">30분이 추가됩니다. 추가 하시겠습니까?</p>
+                <div className="mt-6 flex justify-end gap-3">
+                    <Button variant="ghost" size="sm" onClick={() => setIsExtendConfirmOpen(false)}>
+                        취소
+                    </Button>
+                    <Button variant="primary" size="sm" onClick={confirmExtendMeeting}>
+                        확인
+                    </Button>
+                </div>
+            </Modal>
+            <Modal
+                isOpen={isEndConfirmOpen}
+                onClose={() => setIsEndConfirmOpen(false)}
+                title="미팅 종료"
+                maxWidth="sm"
+            >
+                <p className="text-sm text-gray-600">미팅을 종료하시겠습니까?</p>
+                <div className="mt-6 flex justify-end gap-3">
+                    <Button variant="ghost" size="sm" onClick={() => setIsEndConfirmOpen(false)}>
+                        취소
+                    </Button>
+                    <Button variant="danger" size="sm" onClick={confirmEndMeeting}>
+                        종료
+                    </Button>
+                </div>
+            </Modal>
+            <Modal
+                isOpen={isPresenterConfirmOpen}
+                onClose={() => setIsPresenterConfirmOpen(false)}
+                title="발표자 전환"
+                maxWidth="sm"
+            >
+                <p className="text-sm text-gray-600">
+                    발표자가 되시겠습니까? 현재 발표자는 권한을 내려야 합니다.
+                </p>
+                <div className="mt-6 flex justify-end gap-3">
+                    <Button variant="ghost" size="sm" onClick={() => setIsPresenterConfirmOpen(false)}>
+                        취소
+                    </Button>
+                    <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={confirmPresenterClaim}
+                        className="bg-emerald-600 hover:bg-emerald-700"
+                    >
+                        확인
+                    </Button>
+                </div>
+            </Modal>
         </UserLayoutV2>
     );
 };

@@ -120,4 +120,13 @@ export const authApi = {
         const response = await api.post<any>('/api/v1/auth/password/reset', { token, newPassword });
         return response.data;
     },
+
+    /**
+     * Access Token 갱신
+     * POST /api/v1/auth/token/refresh
+     */
+    refreshToken: async (refreshToken: string) => {
+        const response = await api.post<any>('/api/v1/auth/token/refresh', { refreshToken });
+        return response.data.data as { accessToken: string; expiresIn: number };
+    },
 };

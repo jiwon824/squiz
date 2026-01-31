@@ -42,7 +42,7 @@ const MeetingControls: React.FC<MeetingControlsProps> = ({
                     onClick={onToggleMic}
                     disabled={micDisabled}
                 >
-                    {micEnabled ? '마이크 ON' : '마이크 OFF'}
+                    {micEnabled ? '마이크 끄기' : '마이크 켜기'}
                 </button>
                 {isPresenter && (
                     <div className="meeting-controls__share">

@@ -64,6 +64,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/dailies/**").permitAll()
                         // AI (테스트용 permitAll)
                         .requestMatchers("/api/v1/ai/**").permitAll()
+                        // 서버 간 내부 통신 API (AI 서버 → 백엔드)
+                        .requestMatchers("/api/internal/**").permitAll()
                         // 나머지는 인증 필요
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

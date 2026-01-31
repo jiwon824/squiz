@@ -15,6 +15,7 @@ import com.ssafy.domain.meeting.repository.MeetingPhotoRepository;
 import com.ssafy.domain.meeting.repository.MeetingRepository;
 import com.ssafy.domain.meeting.repository.MeetingSttFileRepository;
 import com.ssafy.domain.meeting.repository.MeetingSttSummaryRepository;
+import com.ssafy.domain.attendance.service.AttendanceService;
 import com.ssafy.domain.study.entity.Study;
 import com.ssafy.domain.study.repository.StudyRepository;
 import com.ssafy.domain.study.repository.StudySessionRepository;
@@ -49,6 +50,7 @@ public class MeetingService {
     private final MeetingPhotoRepository meetingPhotoRepository;
     private final MeetingSttFileRepository meetingSttFileRepository;
     private final MeetingSttSummaryRepository meetingSttSummaryRepository;
+    private final AttendanceService attendanceService;
     private final UserRepository userRepository;
     private final StudyRepository studyRepository;
     private final StudySessionRepository studySessionRepository;
@@ -208,6 +210,18 @@ public class MeetingService {
             int minutes = (int) Math.ceil(meeting.getDurationSeconds() / 60.0);
             studySessionService.updateDurationFromMeeting(studyId, meeting.getSessionId(), minutes);
         }
+        // 미팅 종료 시 참가하지 않은 멤버 ABSENT 처리
+        if (meeting.getSessionId() != null) {
+            List<Long> participantUserIds = participants.stream()
+                    .map(MeetingParticipant::getUserId)
+                    .collect(Collectors.toList());
+            try {
+                attendanceService.markAbsentForNonParticipants(studyId, meeting.getSessionId(), participantUserIds);
+            } catch (Exception ex) {
+                log.warn("Failed to mark absent for non-participants. studyId={}, sessionId={}, error={}",
+                        studyId, meeting.getSessionId(), ex.getMessage());
+            }
+        }
         return new MeetingEndResponse(meeting.getDurationSeconds(), meeting.getParticipantCount(),
                 meeting.getSummaryStatus().name());
     }
@@ -228,6 +242,19 @@ public class MeetingService {
         meetingParticipantRepository.save(participant);
         int participantCount = meetingParticipantRepository.countByMeetingId(meetingId);
         meeting.updateParticipantCount(participantCount);
+
+        if (meeting.getSessionId() != null) {
+            studySessionRepository.findById(meeting.getSessionId()).ifPresent(session -> {
+                if (Boolean.TRUE.equals(session.getIsOnline())) {
+                    try {
+                        attendanceService.checkAttendanceAutoOnline(studyId, session.getId(), userId);
+                    } catch (Exception ex) {
+                        log.warn("Auto attendance check failed. studyId={}, sessionId={}, userId={}, error={}",
+                                studyId, session.getId(), userId, ex.getMessage());
+                    }
+                }
+            });
+        }
 
         // 참가할 때마다 SFU 녹음 시작 시도 (이미 녹음 중이면 SFU에서 already-recording 반환)
         meetingRecordingService.triggerSfuRecordingStart(meetingId);

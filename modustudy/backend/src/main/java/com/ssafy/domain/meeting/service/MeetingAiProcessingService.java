@@ -149,12 +149,12 @@ public class MeetingAiProcessingService {
                 log.info("액션 아이템 저장 완료 - meetingId: {}, count: {}", meetingId, result.getActionItems().size());
             }
 
-            // 퀴즈 저장
+            // 퀴즈 저장 (스터디 + 세션(회차) + 미팅 연결)
             if (result.getQuizRaw() != null && !result.getQuizRaw().isBlank()) {
                 String quizTitle = meeting.getTitle() != null
                         ? meeting.getTitle() + " 복습 퀴즈"
                         : "미팅 복습 퀴즈";
-                studyQuizService.saveQuizFromMeeting(studyId, meetingId, quizTitle, result.getQuizRaw());
+                studyQuizService.saveQuizFromMeeting(studyId, meeting.getSessionId(), meetingId, quizTitle, result.getQuizRaw());
             }
 
             if (hasData) {

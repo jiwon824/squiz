@@ -143,7 +143,12 @@ public class MeetingExportService {
 
     private BaseFont resolvePdfBaseFont() throws IOException, DocumentException {
         if (pdfFontPath != null && !pdfFontPath.isBlank()) {
-            return BaseFont.createFont(pdfFontPath, BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+            // .ttc (TrueType Collection) 파일은 폰트 인덱스 지정 필요 (예: path.ttc,0)
+            String fontPath = pdfFontPath;
+            if (pdfFontPath.toLowerCase().endsWith(".ttc") && !pdfFontPath.contains(",")) {
+                fontPath = pdfFontPath + ",0";
+            }
+            return BaseFont.createFont(fontPath, BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
         }
         return BaseFont.createFont(BaseFont.HELVETICA, BaseFont.WINANSI, BaseFont.NOT_EMBEDDED);
     }
