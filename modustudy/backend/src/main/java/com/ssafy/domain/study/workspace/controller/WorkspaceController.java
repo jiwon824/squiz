@@ -89,17 +89,17 @@ public class WorkspaceController {
     }
 
     /**
-     * ?뚰겕?ㅽ럹?댁뒪 ?묒냽??紐⑸줉 議고쉶
+     * 워크스페이스 접속 중인 사용자 목록 조회
      */
     @GetMapping("/{workspaceId}/presence")
     public ResponseEntity<Set<Long>> getWorkspacePresence(
             @PathVariable Long workspaceId) {
 
-        log.info("API ?몄텧 - ?뚰겕?ㅽ럹?댁뒪 ?묒냽??紐⑸줉 議고쉶: workspaceId={}", workspaceId);
+        log.info("API 호출 - 워크스페이스 접속 중인 사용자 목록 조회: workspaceId={}", workspaceId);
 
         Set<Long> users = workspaceSessionService.getWorkspaceUsers(workspaceId);
 
-        log.info("API ?묐떟 - ?뚰겕?ㅽ럹?댁뒪 ?묒냽??紐⑸줉 議고쉶 ?꾨즺: count={}", users.size());
+        log.info("API 응답 - 워크스페이스 접속 중인 사용자 목록 조회 완료: count={}", users.size());
 
         return ResponseEntity.ok(users);
     }

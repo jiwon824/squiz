@@ -71,7 +71,7 @@ export const workspaceApi = {
   },
 
   /**
-   * ?뚰겕?ㅽ럹?댁뒪 ?묒냽??紐⑸줉 議고쉶
+   * 워크스페이스 접속 중인 사용자 목록 조회
    * GET /api/v1/workspaces/{workspaceId}/presence
    */
   getWorkspacePresence: async (workspaceId: number) => {
