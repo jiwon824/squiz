@@ -669,6 +669,7 @@ export interface LeaderInfoResponse {
   name: string;
   nickname: string;
   email: string;
+  profileImage: string | null;
   leaderRating: number | null;
   leaderReviewCount: number;
   currentLevel: number;

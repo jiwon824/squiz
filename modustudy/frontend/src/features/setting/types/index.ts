@@ -14,6 +14,7 @@ export type NotificationType =
     | 'ATTENDANCE'
     | 'STUDY_UPDATE'
     | 'QUIZ'
+    | 'FRIEND'
     | 'SYSTEM';
 
 /** 알림 설정 아이템 */
