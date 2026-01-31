@@ -235,7 +235,12 @@ public class AttendanceService {
 
     private void validateAutoAttendanceSession(StudySession session) {
         if (session.getIsOnline() == null || !session.getIsOnline()) {
-            throw new IllegalStateException("?⑤씪???ㅽ꽣?붽? ?꾨떃?덈떎.");
+            throw new IllegalStateException("오프라인 세션은 자동 출석을 처리할 수 없습니다.");
+        }
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime lateThreshold = session.getScheduledAt().plusMinutes(LATE_THRESHOLD_MINUTES);
+        if (now.isAfter(lateThreshold)) {
+            throw new IllegalStateException("세션 시작 10분 이후에는 자동 출석이 불가합니다.");
         }
     }
 
@@ -264,18 +269,21 @@ public class AttendanceService {
     private void validateLeader(Long studyId, Long userId) {
         StudyMember member = studyMemberRepository.findByStudyIdAndUserId(studyId, userId)
                 .orElseThrow(() -> new NotFoundException("STUDY_MEMBER_NOT_FOUND", "스터디 멤버가 아닙니다."));
-        if (member.getStatus() != MemberStatus.APPROVED || member.getRole() != MemberRole.LEADER) {
-            throw new IllegalStateException("스터디장 권한이 필요합니다.");
+        if (member.getStatus() != MemberStatus.APPROVED) {
+            throw new IllegalStateException("승인된 스터디 멤버가 아닙니다.");
         }
-    }
-
-    private User getStudyLeaderUser(Long studyId) {
-        Study study = getStudyOrThrow(studyId);
-        return getUserOrThrow(study.getLeaderId());
+        if (member.getRole() != MemberRole.LEADER) {
+            throw new IllegalStateException("스터디장이 아닙니다.");
+        }
     }
 
     private User getUserOrThrow(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("USER_NOT_FOUND", "사용자를 찾을 수 없습니다."));
+    }
+
+    private User getStudyLeaderUser(Long studyId) {
+        Study study = getStudyOrThrow(studyId);
+        return getUserOrThrow(study.getLeaderId());
     }
 }
