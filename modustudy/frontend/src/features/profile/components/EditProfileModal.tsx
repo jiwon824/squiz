@@ -32,6 +32,11 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
+        if (!formData.nickname.trim()) {
+            showToast('닉네임은 필수입니다.', 'warning');
+            return;
+        }
+
         setIsLoading(true);
         try {
             const updatedUser = await userApi.updateProfile({
@@ -96,15 +101,18 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-sm font-bold text-gray-700 ml-1">닉네임</label>
+                            <label className="text-sm font-bold text-gray-700 ml-1">닉네임 <span className="text-red-500">*</span></label>
                             <input
                                 type="text"
                                 name="nickname"
                                 value={formData.nickname}
                                 onChange={handleChange}
                                 placeholder="사용하실 닉네임을 입력해주세요"
+                                maxLength={50}
+                                required
                                 className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
                             />
+                            <p className="text-[11px] text-gray-400 ml-2">{formData.nickname.length}/50자</p>
                         </div>
 
                         <div className="space-y-2">

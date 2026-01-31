@@ -78,7 +78,7 @@ export const SignupPage = () => {
         }
 
         if (!formData.nickname.trim()) {
-            showToast('닉네임을 입력해주세요.', 'warning');
+            showToast('닉네임은 필수입니다.', 'warning');
             return;
         }
 
@@ -187,8 +187,12 @@ export const SignupPage = () => {
                         value={formData.nickname}
                         onChange={handleChange}
                         placeholder="사용하실 닉네임을 입력해주세요"
+                        maxLength={50}
                         required
                     />
+                    <p style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)', marginTop: '0.25rem' }}>
+                        {formData.nickname.length}/50자
+                    </p>
                 </div>
 
                 <PasswordInput

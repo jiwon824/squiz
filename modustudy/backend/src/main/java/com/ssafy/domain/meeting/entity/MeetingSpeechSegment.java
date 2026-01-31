@@ -22,8 +22,8 @@ public class MeetingSpeechSegment extends BaseEntity {
     @Column(name = "speaker_id", nullable = false, length = 100)
     private String speakerId;  // socket.id 또는 displayName
 
-    @Column(name = "speaker_name", length = 100)
-    private String speakerName;  // 표시 이름
+    @Column(name = "speaker_name", length = 50)
+    private String speakerName;  // 표시 이름 (닉네임)
 
     @Column(name = "speech_timestamp", nullable = false)
     private Long speechTimestamp;  // 발화 시작 시간 (Unix timestamp ms)

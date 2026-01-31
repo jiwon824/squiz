@@ -39,11 +39,15 @@ public class SpeechSegmentService {
         // userId로 닉네임 조회 (조회 실패 시 userId 그대로 사용)
         String speakerName = resolveSpeakerName(request.getUserId());
 
+        // 길이 제한 검증
+        String speakerId = truncateIfNeeded(request.getUserId(), 100);  // VARCHAR(100)
+        String safeSpeakerName = truncateIfNeeded(speakerName, 50);     // VARCHAR(50) - 닉네임 기준
+
         // DB에 발화 세그먼트 저장
         MeetingSpeechSegment segment = MeetingSpeechSegment.create(
                 meetingId,
-                request.getUserId(),
-                speakerName,
+                speakerId,
+                safeSpeakerName,
                 request.getTimestamp(),
                 request.getDurationMs(),
                 request.getText()
@@ -53,11 +57,11 @@ public class SpeechSegmentService {
         log.info("[SpeechSegment] DB 저장 완료: meetingId={}, segmentId={}, speaker={}",
                 meetingId, segment.getId(), speakerName);
 
-        // 응답 객체 생성
+        // 응답 객체 생성 (DB에 저장된 값과 동일하게)
         return SpeechSegmentResponse.builder()
                 .meetingId(meetingId)
-                .speakerId(request.getUserId())
-                .speakerName(speakerName)
+                .speakerId(speakerId)
+                .speakerName(safeSpeakerName)
                 .timestamp(request.getTimestamp())
                 .durationMs(request.getDurationMs())
                 .text(request.getText())
@@ -116,5 +120,15 @@ public class SpeechSegmentService {
         if (text == null) return "";
         if (text.length() <= maxLength) return text;
         return text.substring(0, maxLength) + "...";
+    }
+
+    /**
+     * DB 컬럼 길이 초과 방지
+     */
+    private String truncateIfNeeded(String text, int maxLength) {
+        if (text == null) return null;
+        if (text.length() <= maxLength) return text;
+        log.warn("[SpeechSegment] 텍스트 길이 초과로 잘림: original={}, max={}", text.length(), maxLength);
+        return text.substring(0, maxLength);
     }
 }
