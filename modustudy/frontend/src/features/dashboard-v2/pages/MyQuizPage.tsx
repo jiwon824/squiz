@@ -55,7 +55,7 @@ export const MyQuizPage: React.FC = () => {
     // Data State
     const [todayReviews, setTodayReviews] = useState<ReviewItemDto[]>([]);
     const [wrongReviews, setWrongReviews] = useState<ReviewItemDto[]>([]);
-    const [loading, setLoading] = useState(false);
+    // const [loading, setLoading] = useState(false); // Lint fix: unused
 
     // UI Action State
     const [selectedReviewItem, setSelectedReviewItem] = useState<ReviewItemDto | null>(null);
@@ -68,7 +68,7 @@ export const MyQuizPage: React.FC = () => {
 
     useEffect(() => {
         const fetchData = async () => {
-            setLoading(true);
+            // setLoading(true);
             try {
                 const [todayData, wrongData] = await Promise.all([
                     getTodayReviews(),
@@ -81,7 +81,7 @@ export const MyQuizPage: React.FC = () => {
                 setTodayReviews([]);
                 setWrongReviews([]);
             } finally {
-                setLoading(false);
+                // setLoading(false);
             }
         };
         fetchData();
@@ -201,7 +201,7 @@ export const MyQuizPage: React.FC = () => {
                                         </span>
                                     </div>
 
-                                    {selectedReviewItem.question.questionType === 'MULTIPLE_CHOICE' ? (
+                                    {['MULTIPLE_CHOICE', 'MULTIPLE_CHOICE_MULTIPLE'].includes(selectedReviewItem.question.questionType) ? (
                                         <MultipleChoiceQuiz
                                             quiz={{
                                                 id: Number(selectedReviewItem.contentId),
@@ -245,7 +245,7 @@ export const MyQuizPage: React.FC = () => {
                                             {/* 정답/오답 결과 표시 logic needs check */}
                                             {(() => {
                                                 const question = selectedReviewItem.question;
-                                                const isCorrect = question.questionType === 'MULTIPLE_CHOICE'
+                                                const isCorrect = ['MULTIPLE_CHOICE', 'MULTIPLE_CHOICE_MULTIPLE'].includes(question.questionType)
                                                     // Assuming correctAnswer is '0', '1', etc. based on index as per MultiChoiceQuiz usually? Or is it 'A'?
                                                     // Let's assume naive check for now, ideally backend returns 0-based index or letter.
                                                     // If backend returns 'A', 'B', we might need mapping.
