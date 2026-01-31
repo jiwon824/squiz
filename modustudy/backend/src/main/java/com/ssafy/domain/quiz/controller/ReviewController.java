@@ -59,7 +59,7 @@ public class ReviewController {
                 userId,
                 request.contentType(),
                 request.contentId(),
-                request.isCorrect(),
+                request.userAnswer(),
                 request.responseTimeMs());
 
         log.info("[ReviewController] 복습 제출 - userId: {}, contentType: {}, contentId: {}",
