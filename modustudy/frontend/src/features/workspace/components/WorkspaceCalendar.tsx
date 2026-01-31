@@ -50,6 +50,29 @@ export const WorkspaceCalendar: React.FC<WorkspaceCalendarProps> = ({
 
   const todayStr = getTodayString();
 
+  const statusColors: Record<string, string> = {
+    SCHEDULED: '#EA4335',
+    IN_PROGRESS: '#FBBC05',
+    COMPLETED: '#34A853',
+    CANCELLED: '#9CA3AF',
+  };
+
+  const resolveDayStatusItems = (daySchedules: UnifiedSchedule[]) => {
+    const orderedStatuses = ['COMPLETED', 'IN_PROGRESS', 'SCHEDULED', 'CANCELLED'] as const;
+    const counts = daySchedules.reduce<Record<string, number>>((acc, schedule) => {
+      if (!schedule.status) return acc;
+      acc[schedule.status] = (acc[schedule.status] ?? 0) + 1;
+      return acc;
+    }, {});
+    return orderedStatuses
+      .filter((status) => counts[status] > 0)
+      .map((status) => ({
+        status,
+        count: counts[status],
+        color: statusColors[status],
+      }));
+  };
+
   if (loading) {
     return (
       <div className={`flex items-center justify-center min-h-[400px] ${className}`}>
@@ -78,7 +101,9 @@ export const WorkspaceCalendar: React.FC<WorkspaceCalendarProps> = ({
       <div className="grid grid-cols-7 gap-0">
         {calendarDays.map((dayInfo, index) => {
           // 해당 날짜의 일정 개수
-          const scheduleCount = schedules.filter((s) => s.startDate === dayInfo.fullDate).length;
+          const daySchedules = schedules.filter((s) => s.startDate === dayInfo.fullDate);
+          const scheduleCount = daySchedules.length;
+          const statusItems = resolveDayStatusItems(daySchedules);
           const isToday = dayInfo.fullDate === todayStr;
 
           return (
@@ -86,6 +111,7 @@ export const WorkspaceCalendar: React.FC<WorkspaceCalendarProps> = ({
               key={`${dayInfo.fullDate}-${index}`}
               dayInfo={dayInfo}
               scheduleCount={scheduleCount}
+              statusItems={statusItems}
               isToday={isToday}
               onDateClick={onDateClick}
               onQuickAdd={onQuickAdd}

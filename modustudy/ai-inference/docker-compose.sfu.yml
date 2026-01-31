@@ -1,0 +1,29 @@
+# ===========================================
+# SFU 서버 (AI 서버에서 실행)
+# ===========================================
+
+services:
+  sfu:
+    image: tkdgns11/squiz-sfu:latest
+    container_name: squiz-sfu
+    network_mode: host
+    volumes:
+      - ./uploads:/app/uploads
+    environment:
+      - NODE_ENV=production
+      - PORT=4000
+      - SFU_USE_HTTPS=false
+      - LISTEN_IP=0.0.0.0
+      - ANNOUNCED_IP=3.38.92.48
+      - CORS_ORIGINS=*
+      - FFMPEG_PATH=ffmpeg
+      - RECORDINGS_BASE_PATH=/app/uploads
+      - RECORDING_RTP_IP=127.0.0.1
+      - RTC_ENABLE_UDP=true
+      - RTC_ENABLE_TCP=true
+      - RTC_PREFER_UDP=true
+      - RTC_MIN_PORT=20000
+      - RTC_MAX_PORT=21000
+      # AI 서버 URL (같은 서버에서 실행, network_mode: host)
+      - AI_SERVER_URL=http://localhost:8000
+    restart: unless-stopped

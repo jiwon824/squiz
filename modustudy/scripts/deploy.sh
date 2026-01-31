@@ -94,7 +94,8 @@ health_check_all() {
     local failed=0
     log "모든 서비스 헬스체크 시작"
 
-    for service in frontend backend sfu cs-quiz-ai; do
+    # SFU는 AI 추론 서버(3.38.92.48)에서 실행되므로 제외
+    for service in frontend backend cs-quiz-ai; do
         if ! health_check "$service"; then
             failed=1
         fi
@@ -108,7 +109,7 @@ pull_images() {
     log "Docker Hub에서 최신 이미지 Pull..."
     docker pull tkdgns11/squiz-backend:latest || true
     docker pull tkdgns11/squiz-frontend:latest || true
-    docker pull tkdgns11/squiz-sfu:latest || true
+    # SFU는 AI 추론 서버에서 실행되므로 제외
     docker pull tkdgns11/squiz-cs-quiz-ai:latest || true
     log "이미지 Pull 완료"
 }
@@ -162,10 +163,10 @@ deploy() {
     cd "$DEPLOY_PATH"
     log "기존 앱 컨테이너 정리..."
     docker compose -p squiz-app -f docker-compose.app.yml down --remove-orphans 2>/dev/null || true
-    docker rm -f squiz-backend squiz-frontend squiz-sfu squiz-cs-quiz-ai 2>/dev/null || true
+    docker rm -f squiz-backend squiz-frontend squiz-cs-quiz-ai 2>/dev/null || true
 
-    # Blue/Green 잔여 컨테이너도 정리
-    docker rm -f squiz-backend-blue squiz-backend-green squiz-nginx-blue squiz-nginx-green squiz-sfu-blue squiz-sfu-green squiz-cs-quiz-ai-blue squiz-cs-quiz-ai-green 2>/dev/null || true
+    # Blue/Green 잔여 컨테이너도 정리 (SFU는 AI 서버에서 실행)
+    docker rm -f squiz-backend-blue squiz-backend-green squiz-nginx-blue squiz-nginx-green squiz-cs-quiz-ai-blue squiz-cs-quiz-ai-green 2>/dev/null || true
 
     log "새 버전 배포..."
     docker compose -p squiz-app -f docker-compose.app.yml up -d
@@ -196,8 +197,8 @@ status() {
     echo "앱 서비스:"
     docker ps --filter "name=squiz-frontend" --format "  {{.Names}}: {{.Status}}" 2>/dev/null || echo "  (없음)"
     docker ps --filter "name=squiz-backend" --format "  {{.Names}}: {{.Status}}" 2>/dev/null || echo "  (없음)"
-    docker ps --filter "name=squiz-sfu" --format "  {{.Names}}: {{.Status}}" 2>/dev/null || echo "  (없음)"
     docker ps --filter "name=squiz-cs-quiz-ai" --format "  {{.Names}}: {{.Status}}" 2>/dev/null || echo "  (없음)"
+    echo "  (SFU: AI 서버 3.38.92.48에서 실행)"
     echo ""
     echo "Proxy:"
     docker ps --filter "name=squiz-nginx-proxy" --format "  {{.Names}}: {{.Status}}" 2>/dev/null || echo "  (없음)"

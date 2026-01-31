@@ -38,6 +38,7 @@ public class MeetingAiProcessingService {
     private final MeetingSttService meetingSttService;
     private final MeetingActionItemService meetingActionItemService;
     private final StudyQuizService studyQuizService;
+    private final SpeechSegmentService speechSegmentService;
 
     @Transactional
     public String startAiProcessing(Long studyId, Long meetingId) {
@@ -45,6 +46,36 @@ public class MeetingAiProcessingService {
         if (meeting.getStatus() != MeetingStatus.ENDED) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "MEETING_NOT_ENDED");
         }
+
+        meeting.updateSummaryStatus(SummaryStatus.PROCESSING);
+
+        // 1. 실시간 STT segments 확인 (미팅 중 수집된 발화 세그먼트)
+        long segmentCount = speechSegmentService.countByMeetingId(meetingId);
+
+        if (segmentCount > 0) {
+            // 실시간 STT 결과가 있으면 transcript-only 처리 (STT 스킵)
+            log.info("실시간 STT 세그먼트 발견 - meetingId: {}, count: {}", meetingId, segmentCount);
+
+            // 시간순으로 정렬된 transcript 조회
+            List<String> transcriptLines = speechSegmentService.getTranscriptByMeetingId(meetingId);
+            String transcript = String.join("\n", transcriptLines);
+
+            // 화자 ID 목록 추출 (개별 녹음에서)
+            List<MeetingAudioRecording> individualRecordings = meetingAudioRecordingRepository
+                    .findByMeetingIdAndTrackTypeOrderByCreatedAtAsc(meetingId, MeetingAudioTrackType.INDIVIDUAL);
+            List<Long> speakerIds = individualRecordings.stream()
+                    .map(MeetingAudioRecording::getUserId)
+                    .filter(userId -> userId != null)
+                    .distinct()
+                    .toList();
+
+            String jobId = aiService.summarizeTranscriptAsync(transcript, speakerIds, true);
+            log.info("Transcript 기반 AI 처리 시작 - meetingId: {}, jobId: {}", meetingId, jobId);
+            return jobId;
+        }
+
+        // 2. 실시간 STT 없으면 기존 방식 (오디오 파일 STT + 요약)
+        log.info("실시간 STT 없음, 오디오 파일 처리 - meetingId: {}", meetingId);
 
         List<MeetingAudioRecording> mixedRecordings = meetingAudioRecordingRepository
                 .findByMeetingIdAndTrackTypeOrderByCreatedAtAsc(meetingId, MeetingAudioTrackType.MIXED);
@@ -68,7 +99,6 @@ public class MeetingAiProcessingService {
             }
         }
 
-        meeting.updateSummaryStatus(SummaryStatus.PROCESSING);
         String jobId = aiService.processMeetingAsync(mixedAudioPath, individualPaths, true);
 
         log.info("AI 처리 시작 - meetingId: {}, jobId: {}", meetingId, jobId);

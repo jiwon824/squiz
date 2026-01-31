@@ -1359,7 +1359,7 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
       const fileSize = fs.existsSync(outputPath) ? fs.statSync(outputPath).size : null;
       const videoStartOffsetMs =
         state.firstVideoAt && state.startedAt ? Math.max(0, state.firstVideoAt - state.startedAt) : null;
-      return { status: 'stopped', outputPath, fileSize, videoStartOffsetMs };
+      return { status: 'stopped', outputPath, fileSize, videoStartOffsetMs, meetingId: state.meetingId };
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error('[recording] concat failed', err);

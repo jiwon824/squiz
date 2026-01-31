@@ -63,12 +63,13 @@ public class MeetingAutoScheduler {
     }
 
     private String buildMeetingTitle(StudySession session) {
+        String sessionTitle = session.getTitle();
+        if (sessionTitle != null && !sessionTitle.isBlank()) {
+            return sessionTitle;
+        }
         Integer sessionNumber = session.getSessionNumber();
         if (sessionNumber != null) {
             return sessionNumber + "회차 미팅";
-        }
-        if (session.getTitle() != null && !session.getTitle().isBlank()) {
-            return session.getTitle();
         }
         return "미팅";
     }
