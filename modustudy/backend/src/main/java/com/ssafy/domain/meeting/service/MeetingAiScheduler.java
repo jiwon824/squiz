@@ -80,15 +80,23 @@ public class MeetingAiScheduler {
      */
     @Scheduled(fixedDelay = 30000)
     public void processEndedMeetings() {
+        log.info("[AI 스케줄러] 폴링 시작 - 현재 진행중인 작업: {}", processingJobs.size());
+
         // 효율적인 쿼리로 AI 처리 대기 중인 미팅만 조회
-        List<Meeting> meetings = meetingRepository
-                .findByStatusAndSummaryStatus(MeetingStatus.ENDED, SummaryStatus.PROCESSING)
-                .stream()
+        List<Meeting> allProcessingMeetings = meetingRepository
+                .findByStatusAndSummaryStatus(MeetingStatus.ENDED, SummaryStatus.PROCESSING);
+
+        log.info("[AI 스케줄러] PROCESSING 상태 미팅 수: {}", allProcessingMeetings.size());
+
+        List<Meeting> meetings = allProcessingMeetings.stream()
                 .filter(m -> !processingJobs.containsKey(m.getId()))
                 .toList();
 
+        log.info("[AI 스케줄러] 처리 대상 미팅 수: {} (이미 진행중 제외)", meetings.size());
+
         for (Meeting meeting : meetings) {
             try {
+                log.info("[AI 스케줄러] 미팅 처리 시도 - meetingId: {}, studyId: {}", meeting.getId(), meeting.getStudyId());
                 processMeetingIfReady(meeting);
             } catch (Exception e) {
                 log.error("미팅 AI 처리 시작 실패 - meetingId: {}, error: {}", meeting.getId(), e.getMessage());
@@ -102,9 +110,11 @@ public class MeetingAiScheduler {
     @Scheduled(fixedDelay = 15000)
     public void checkProcessingJobs() {
         if (processingJobs.isEmpty()) {
+            log.debug("[AI 스케줄러] 진행 중인 작업 없음");
             return;
         }
 
+        log.info("[AI 스케줄러] 작업 결과 확인 시작 - 진행중인 작업: {}", processingJobs);
         long now = System.currentTimeMillis();
 
         for (Map.Entry<Long, String> entry : processingJobs.entrySet()) {

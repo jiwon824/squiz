@@ -10,7 +10,12 @@ import com.ssafy.domain.meeting.entity.MeetingStatus;
 import com.ssafy.domain.meeting.entity.MeetingSttSummary;
 import com.ssafy.domain.meeting.entity.SummaryStatus;
 import com.ssafy.domain.meeting.repository.MeetingAudioRecordingRepository;
+import com.ssafy.domain.notification.entity.NotificationType;
+import com.ssafy.domain.notification.service.NotificationService;
 import com.ssafy.domain.quiz.service.StudyQuizService;
+import com.ssafy.domain.study.entity.MemberStatus;
+import com.ssafy.domain.study.entity.StudyMember;
+import com.ssafy.domain.study.repository.StudyMemberRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,6 +44,8 @@ public class MeetingAiProcessingService {
     private final MeetingActionItemService meetingActionItemService;
     private final StudyQuizService studyQuizService;
     private final SpeechSegmentService speechSegmentService;
+    private final NotificationService notificationService;
+    private final StudyMemberRepository studyMemberRepository;
 
     @Transactional
     public String startAiProcessing(Long studyId, Long meetingId) {
@@ -160,6 +167,9 @@ public class MeetingAiProcessingService {
             if (hasData) {
                 meeting.updateSummaryStatus(SummaryStatus.DONE);
                 log.info("AI 처리 완료 - meetingId: {}", meetingId);
+
+                // 미팅 참가자들에게 AI 요약 완료 알림 전송
+                sendAiSummaryCompletedNotification(meeting, meetingId);
             } else {
                 meeting.updateSummaryStatus(SummaryStatus.PENDING);
                 log.warn("AI 처리 완료했으나 데이터 없음 - meetingId: {}", meetingId);
@@ -171,5 +181,37 @@ public class MeetingAiProcessingService {
         }
 
         return result.getStatus();
+    }
+
+    /**
+     * 스터디원 모두에게 AI 요약 완료 알림 전송
+     */
+    private void sendAiSummaryCompletedNotification(Meeting meeting, Long meetingId) {
+        try {
+            Long studyId = meeting.getStudyId();
+            List<StudyMember> members = studyMemberRepository.findByStudyIdAndStatus(studyId, MemberStatus.APPROVED);
+
+            String meetingTitle = meeting.getTitle() != null ? meeting.getTitle() : "미팅";
+            String title = "AI 요약 완료";
+            String content = meetingTitle + " 미팅의 AI 요약 및 복습 퀴즈가 준비되었습니다.";
+
+            for (StudyMember member : members) {
+                Long userId = member.getUserId();
+                if (userId != null) {
+                    notificationService.createNotification(
+                            userId,
+                            NotificationType.STUDY_UPDATE,
+                            title,
+                            content,
+                            "meeting",
+                            meetingId
+                    );
+                }
+            }
+
+            log.info("AI 요약 완료 알림 전송 - meetingId: {}, studyId: {}, 스터디원 수: {}", meetingId, studyId, members.size());
+        } catch (Exception e) {
+            log.error("AI 요약 완료 알림 전송 실패 - meetingId: {}, error: {}", meetingId, e.getMessage());
+        }
     }
 }
