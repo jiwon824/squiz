@@ -43,4 +43,6 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
      * - summaryStatus = PROCESSING
      */
     List<Meeting> findByStatusAndSummaryStatus(MeetingStatus status, SummaryStatus summaryStatus);
+
+    List<Meeting> findTop200ByStatusOrderByEndedAtDesc(MeetingStatus status);
 }

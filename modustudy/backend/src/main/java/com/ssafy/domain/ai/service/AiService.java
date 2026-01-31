@@ -259,7 +259,8 @@ public class AiService {
      * @return job_id (비동기 작업 ID)
      */
     public String summarizeTranscriptAsync(String transcript, List<Long> speakerIds, boolean generateQuiz) {
-        log.info("Transcript 요약 요청 - length: {}, speakers: {}", transcript.length(), speakerIds.size());
+        log.info("[AI 요약 요청] transcript 길이: {}, 화자 수: {}, 퀴즈생성: {}", transcript.length(), speakerIds.size(), generateQuiz);
+        log.info("[AI 요약 요청] transcript 미리보기: {}", transcript.length() > 200 ? transcript.substring(0, 200) + "..." : transcript);
 
         try {
             Map<String, Object> body = new HashMap<>();
@@ -267,11 +268,14 @@ public class AiService {
             body.put("speaker_ids", speakerIds);
             body.put("generate_quiz", generateQuiz);
 
+            log.info("[AI 요약 요청] AI 서버 호출 시작 - url: {}/api/summarize-transcript", aiServerBaseUrl);
             String responseBody = callAiServer("/api/summarize-transcript", body);
+            log.info("[AI 요약 요청] AI 서버 응답 수신 - 길이: {}", responseBody != null ? responseBody.length() : 0);
 
             @SuppressWarnings("unchecked")
             Map<String, Object> result = objectMapper.readValue(responseBody, Map.class);
             String status = (String) result.get("status");
+            log.info("[AI 요약 요청] 응답 상태: {}, 전체 응답: {}", status, result);
 
             if ("error".equals(status)) {
                 String message = (String) result.get("message");
@@ -279,11 +283,11 @@ public class AiService {
             }
 
             String jobId = (String) result.get("job_id");
-            log.info("Transcript 요약 작업 등록 완료 - jobId: {}", jobId);
+            log.info("[AI 요약 요청] 작업 등록 완료 - jobId: {}", jobId);
             return jobId;
 
         } catch (Exception e) {
-            log.error("Transcript 요약 작업 등록 실패: {}", e.getMessage());
+            log.error("[AI 요약 요청] 실패: {}", e.getMessage(), e);
             throw new RuntimeException("Transcript 요약 서비스를 일시적으로 사용할 수 없습니다.", e);
         }
     }
@@ -292,15 +296,19 @@ public class AiService {
      * 미팅 처리 작업 상태 조회
      */
     public MeetingProcessResult getMeetingProcessResult(String jobId) {
-        log.info("미팅 처리 결과 조회 - jobId: {}", jobId);
+        log.info("[AI 결과 조회] jobId: {}, aiServerUrl: {}", jobId, aiServerBaseUrl);
 
         try {
             ResponseEntity<String> response = restTemplate.getForEntity(
                     aiServerBaseUrl + "/api/jobs/" + jobId, String.class);
 
+            log.info("[AI 결과 조회] 응답 수신 - statusCode: {}, bodyLength: {}",
+                    response.getStatusCode(), response.getBody() != null ? response.getBody().length() : 0);
+
             @SuppressWarnings("unchecked")
             Map<String, Object> result = objectMapper.readValue(response.getBody(), Map.class);
             String status = (String) result.get("status");
+            log.info("[AI 결과 조회] 작업 상태: {}", status);
 
             MeetingProcessResult processResult = new MeetingProcessResult();
             processResult.setStatus(status);
