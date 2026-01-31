@@ -49,6 +49,7 @@ public class MeetingSttService {
                 summaryText,
                 helper.parseActionItems(summary.getActionItemsJson()),
                 helper.parseKeywords(summary.getKeywordsJson()),
+                helper.parseKeywords(summary.getHighlightsJson()),
                 helper.resolveSummaryStatus(meeting).name(),
                 summary.getCreatedAt()
         );
@@ -87,6 +88,7 @@ public class MeetingSttService {
                 summaryText,
                 helper.parseActionItems(summary.getActionItemsJson()),
                 helper.parseKeywords(summary.getKeywordsJson()),
+                helper.parseKeywords(summary.getHighlightsJson()),
                 helper.resolveSummaryStatus(meeting).name(),
                 summary.getCreatedAt()
         );
@@ -260,6 +262,65 @@ public class MeetingSttService {
                         .fileUrl(resolvedUrl)
                         .build()));
         meeting.updateSummaryStatus(SummaryStatus.DONE);
+        return toSttSummaryResponse(saved);
+    }
+
+    /**
+     * AI 서버에서 STT/요약 텍스트를 직접 저장
+     * 파일로 저장 후 DB 레코드 생성, 미팅 상태를 DONE으로 업데이트
+     */
+    @Transactional
+    public MeetingSttSummaryResponse saveAiResultDirect(Long meetingId, String sttText, String summaryText) {
+        Meeting meeting = helper.getMeetingOrThrow(meetingId);
+
+        // 1. STT 텍스트 저장
+        if (sttText != null && !sttText.isBlank()) {
+            String sttFileUrl = localFileStorageService.saveMeetingTextContent(
+                    meetingId, null, true, "stt.txt", sttText);
+            meetingSttFileRepository.findByMeetingIdAndTrackTypeAndUserIdIsNull(meetingId, MeetingTextTrackType.MIXED)
+                    .ifPresentOrElse(
+                            existing -> {
+                                existing.updateFileUrl(sttFileUrl);
+                                meetingSttFileRepository.save(existing);
+                            },
+                            () -> meetingSttFileRepository.save(MeetingSttFile.builder()
+                                    .meetingId(meetingId)
+                                    .trackType(MeetingTextTrackType.MIXED)
+                                    .fileUrl(sttFileUrl)
+                                    .build())
+                    );
+            meeting.updateSttStatus(SttStatus.DONE);
+        }
+
+        // 2. 요약 텍스트 저장
+        MeetingSttSummary saved;
+        if (summaryText != null && !summaryText.isBlank()) {
+            String summaryFileUrl = localFileStorageService.saveMeetingTextContent(
+                    meetingId, null, true, "summary.txt", summaryText);
+            saved = meetingSttSummaryRepository
+                    .findByMeetingIdAndTrackTypeAndUserIdIsNull(meetingId, MeetingTextTrackType.MIXED)
+                    .map(existing -> {
+                        existing.updateFileUrl(summaryFileUrl);
+                        return meetingSttSummaryRepository.save(existing);
+                    })
+                    .orElseGet(() -> meetingSttSummaryRepository.save(MeetingSttSummary.builder()
+                            .meetingId(meetingId)
+                            .trackType(MeetingTextTrackType.MIXED)
+                            .fileUrl(summaryFileUrl)
+                            .build()));
+        } else {
+            saved = meetingSttSummaryRepository
+                    .findByMeetingIdAndTrackTypeAndUserIdIsNull(meetingId, MeetingTextTrackType.MIXED)
+                    .orElseGet(() -> meetingSttSummaryRepository.save(MeetingSttSummary.builder()
+                            .meetingId(meetingId)
+                            .trackType(MeetingTextTrackType.MIXED)
+                            .fileUrl("")
+                            .build()));
+        }
+
+        // 3. 미팅 상태 업데이트
+        meeting.updateSummaryStatus(SummaryStatus.DONE);
+
         return toSttSummaryResponse(saved);
     }
 

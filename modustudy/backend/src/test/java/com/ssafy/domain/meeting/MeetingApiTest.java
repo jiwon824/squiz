@@ -219,6 +219,7 @@ class MeetingApiTest {
                 "summary",
                 List.of(new MeetingActionItemResponse(1L, "todo", null, ActionItemStatus.TODO)),
                 List.of("DP"),
+                List.of("주요 내용 1", "주요 내용 2"),
                 "DONE",
                 LocalDateTime.of(2025, 1, 15, 20, 40)
         );
@@ -355,6 +356,7 @@ class MeetingApiTest {
                 "summary",
                 List.of(new MeetingActionItemResponse(1L, "todo", null, ActionItemStatus.TODO)),
                 List.of("DP"),
+                List.of("주요 내용 1", "주요 내용 2"),
                 "DONE",
                 LocalDateTime.of(2025, 1, 15, 20, 40)
         );

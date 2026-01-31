@@ -325,6 +325,10 @@ public class AiService {
                     processResult.setKeywords(keywords != null ? keywords : List.of());
 
                     @SuppressWarnings("unchecked")
+                    List<String> highlights = (List<String>) data.get("highlights");
+                    processResult.setHighlights(highlights != null ? highlights : List.of());
+
+                    @SuppressWarnings("unchecked")
                     List<Map<String, Object>> actionItems = (List<Map<String, Object>>) data.get("action_items");
                     if (actionItems != null) {
                         List<MeetingProcessResult.ActionItem> items = new ArrayList<>();
@@ -366,6 +370,7 @@ public class AiService {
         private String transcript;
         private String summary;
         private List<String> keywords = new ArrayList<>();
+        private List<String> highlights = new ArrayList<>();
         private List<ActionItem> actionItems = new ArrayList<>();
         private String quizRaw;
         private String error;

@@ -8,6 +8,7 @@ public record MeetingSummaryResponse(
         String summary,
         List<MeetingActionItemResponse> actionItems,
         List<String> keywords,
+        List<String> highlights,
         String status,
         LocalDateTime createdAt
 ) {

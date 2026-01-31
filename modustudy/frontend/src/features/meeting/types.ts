@@ -132,6 +132,7 @@ export interface MeetingSummaryResponse {
     summary: string;
     actionItems: MeetingActionItemResponse[];
     keywords: string[];
+    highlights: string[];
     status: SummaryStatus;
     createdAt: string;
 }
