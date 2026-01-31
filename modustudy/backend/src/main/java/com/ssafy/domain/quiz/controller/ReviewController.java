@@ -60,8 +60,7 @@ public class ReviewController {
                 request.contentType(),
                 request.contentId(),
                 request.isCorrect(),
-                request.responseTimeMs()
-        );
+                request.responseTimeMs());
 
         log.info("[ReviewController] 복습 제출 - userId: {}, contentType: {}, contentId: {}",
                 userId, request.contentType(), request.contentId());
@@ -85,9 +84,25 @@ public class ReviewController {
             @AuthenticationPrincipal SsafyUserDetails userDetails) {
 
         Long userId = userDetails.getUser().getId();
-        List<UserReviewItem> dueItems = fsrsService.getDueItems(userId);
+        List<TodayReviewResponse.ReviewItemDto> items = fsrsService.getTodayReviewsWithQuestions(userId);
 
-        return ApiResponse.success(TodayReviewResponse.from(dueItems));
+        return ApiResponse.success(new TodayReviewResponse(items, items.size()));
+    }
+
+    /**
+     * 오답 노트 (많이 틀린 문제) 조회.
+     *
+     * lapses > 0 인 항목을 lapses 내림차순으로 반환한다.
+     */
+    @Operation(summary = "오답 노트 조회", description = "오답 횟수가 많은 순으로 문제 목록을 조회합니다. 인증 필요.")
+    @GetMapping("/wrong-answers")
+    public ApiResponse<TodayReviewResponse> getWrongAnswers(
+            @AuthenticationPrincipal SsafyUserDetails userDetails) {
+
+        Long userId = userDetails.getUser().getId();
+        List<TodayReviewResponse.ReviewItemDto> items = fsrsService.getWrongAnswersWithQuestions(userId);
+
+        return ApiResponse.success(new TodayReviewResponse(items, items.size()));
     }
 
     // ========== 복습 항목 이력 조회 ==========
