@@ -194,11 +194,11 @@ public class MeetingSttService {
     public MeetingSttSummary getOrCreateSummary(Long meetingId) {
         return meetingSttSummaryRepository
                 .findByMeetingIdAndTrackTypeAndUserIdIsNull(meetingId, MeetingTextTrackType.MIXED)
-                .orElseGet(() -> MeetingSttSummary.builder()
+                .orElseGet(() -> meetingSttSummaryRepository.save(MeetingSttSummary.builder()
                         .meetingId(meetingId)
                         .trackType(MeetingTextTrackType.MIXED)
                         .fileUrl("")
-                        .build());
+                        .build()));
     }
 
     public void saveSummary(MeetingSttSummary summary) {
@@ -208,7 +208,10 @@ public class MeetingSttService {
     public void saveSttFile(Long meetingId, String sttFileUrl) {
         meetingSttFileRepository.findByMeetingIdAndTrackTypeAndUserIdIsNull(meetingId, MeetingTextTrackType.MIXED)
                 .ifPresentOrElse(
-                        existing -> existing.updateFileUrl(sttFileUrl),
+                        existing -> {
+                            existing.updateFileUrl(sttFileUrl);
+                            meetingSttFileRepository.save(existing);
+                        },
                         () -> meetingSttFileRepository.save(MeetingSttFile.builder()
                                 .meetingId(meetingId)
                                 .trackType(MeetingTextTrackType.MIXED)

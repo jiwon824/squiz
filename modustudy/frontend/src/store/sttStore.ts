@@ -107,14 +107,14 @@ interface SttState {
 }
 
 export const useSttStore = create<SttState>((set, get) => ({
-    // 초기 상태: Mock 모드
+    // 초기 상태: API 모드 (실제 DB 연동)
     studyId: null,
     studyName: '',
-    reports: MOCK_REPORTS,
-    selectedReport: MOCK_REPORTS[0],
+    reports: [],
+    selectedReport: null,
     isLoading: false,
     error: null,
-    useMock: true,
+    useMock: false,
 
     setStudy: (studyId, studyName) => set({ studyId, studyName }),
 
@@ -122,7 +122,7 @@ export const useSttStore = create<SttState>((set, get) => ({
         if (useMock) {
             set({ useMock, reports: MOCK_REPORTS, selectedReport: MOCK_REPORTS[0] });
         } else {
-            set({ useMock });
+            set({ useMock, reports: [], selectedReport: null });
         }
     },
 
@@ -162,11 +162,10 @@ export const useSttStore = create<SttState>((set, get) => ({
                 get().fetchMeetingDetail(selected.id);
             }
         } catch (err) {
-            // API 실패 시 Mock 폴백
-            console.error('[SttStore] 미팅 목록 조회 실패, Mock 폴백:', err);
+            console.error('[SttStore] 미팅 목록 조회 실패:', err);
             set({
-                reports: MOCK_REPORTS,
-                selectedReport: MOCK_REPORTS[0],
+                reports: [],
+                selectedReport: null,
                 isLoading: false,
                 error: err instanceof Error ? err.message : 'API 호출 실패',
             });
@@ -222,8 +221,8 @@ export const useSttStore = create<SttState>((set, get) => ({
     reset: () => set({
         studyId: null,
         studyName: '',
-        reports: MOCK_REPORTS,
-        selectedReport: MOCK_REPORTS[0],
+        reports: [],
+        selectedReport: null,
         isLoading: false,
         error: null,
     }),

@@ -2,11 +2,14 @@ package com.ssafy.domain.study.workspace.controller;
 
 import com.ssafy.domain.study.workspace.dto.response.WorkspaceResponse;
 import com.ssafy.domain.study.workspace.service.WorkspaceService;
+import com.ssafy.domain.study.workspace.websocket.WorkspaceSessionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Set;
 
 /**
  * 워크스페이스 컨트롤러
@@ -18,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 public class WorkspaceController {
 
     private final WorkspaceService workspaceService;
+    private final WorkspaceSessionService workspaceSessionService;
 
     /**
      * 워크스페이스 생성 (스터디 시작 시 호출)
@@ -82,6 +86,22 @@ public class WorkspaceController {
         log.info("API 응답 - 워크스페이스 존재 여부: {}", exists);
 
         return ResponseEntity.ok(exists);
+    }
+
+    /**
+     * 워크스페이스 접속 중인 사용자 목록 조회
+     */
+    @GetMapping("/{workspaceId}/presence")
+    public ResponseEntity<Set<Long>> getWorkspacePresence(
+            @PathVariable Long workspaceId) {
+
+        log.info("API 호출 - 워크스페이스 접속 중인 사용자 목록 조회: workspaceId={}", workspaceId);
+
+        Set<Long> users = workspaceSessionService.getWorkspaceUsers(workspaceId);
+
+        log.info("API 응답 - 워크스페이스 접속 중인 사용자 목록 조회 완료: count={}", users.size());
+
+        return ResponseEntity.ok(users);
     }
 
     /**
