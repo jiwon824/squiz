@@ -23,6 +23,7 @@ import {
 } from '@/shared/components';
 import '../styles/DashboardV2.css';
 import { getTodayReviews, getWrongAnswers, submitReview, ReviewItemDto } from '../api/reviewApi';
+import { useTimer } from '@/features/quiz/hooks/useTimer';
 
 // 흔들리는 개념 타입
 interface WeakConcept {
@@ -65,7 +66,9 @@ export const MyQuizPage: React.FC = () => {
     const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
     const [shortAnswer, setShortAnswer] = useState('');
     const [showResult, setShowResult] = useState(false);
-    const [questionStartTime, setQuestionStartTime] = useState<number>(0);
+
+    // Timer Hook
+    const timer = useTimer();
 
     useEffect(() => {
         const fetchData = async () => {
@@ -107,7 +110,7 @@ export const MyQuizPage: React.FC = () => {
         setSelectedAnswer(null);
         setShortAnswer('');
         setShowResult(false);
-        setQuestionStartTime(Date.now());
+        timer.start();
     };
 
     const handleSubmitMultiple = async () => {
@@ -116,7 +119,7 @@ export const MyQuizPage: React.FC = () => {
         setShowResult(true);
 
         // API 호출
-        const responseTimeMs = Date.now() - questionStartTime;
+        const responseTimeMs = timer.stop();
         // 여기서 주의: 프론트엔드 UI 로직상 '정답/오답' 여부를 판단하는 로직이 필요함.
         // 현재 코드 246라인 부근에 정답 판단 로직이 있음.
 
@@ -160,7 +163,7 @@ export const MyQuizPage: React.FC = () => {
 
         setShowResult(true);
 
-        const responseTimeMs = Date.now() - questionStartTime;
+        const responseTimeMs = timer.stop();
         const correctStr = String(selectedReviewItem.question.correctAnswer).toLowerCase();
         const isAnswerCorrect = shortAnswer.trim().toLowerCase() === correctStr;
 
