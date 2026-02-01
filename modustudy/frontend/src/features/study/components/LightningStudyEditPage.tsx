@@ -214,7 +214,7 @@ const LightningStudyEditPage: React.FC = () => {
                     provinceId,
                     districtId,
                     meetingDate: study.startDate || '',
-                    meetingTime: study.scheduleTime || '19:00',
+                    meetingTime: study.scheduleTime ? study.scheduleTime.substring(0, 5) : '19:00',
                     duration: '2',
                     isPublic: study.isPublic !== false,
                     goal: study.goal || '',

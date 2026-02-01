@@ -204,8 +204,6 @@ const StudyPageV2: React.FC = () => {
                 difficulty: filters.difficulty.length === 1 ? filters.difficulty[0] : undefined,
             });
 
-            console.log('[스터디 목록 API 응답]', response);
-
             // 안전한 배열 처리 (백엔드 순환 참조 에러 대비)
             const content = response?.content || [];
 

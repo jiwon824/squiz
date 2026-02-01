@@ -180,7 +180,7 @@ const StudyCreatePage: React.FC = () => {
                     recruitStartDate: study.recruitStartDate || null,
                     recruitEndDate: study.recruitEndDate || null,
                     scheduleDays: study.scheduleDays ? study.scheduleDays.split(',') : [],
-                    scheduleTime: study.scheduleTime || '19:00',
+                    scheduleTime: study.scheduleTime ? study.scheduleTime.substring(0, 5) : '19:00',
                     studyType: study.studyType || 'PLANNED',
                     isPublic: study.isPublic !== false,
                     penaltyPolicy: study.penaltyPolicy || 'NORMAL',

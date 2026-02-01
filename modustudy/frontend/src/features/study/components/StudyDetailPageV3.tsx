@@ -359,14 +359,38 @@ const StudyDetailPageV3: React.FC = () => {
         }
     };
 
-    // 요일 포맷팅 (MON,WED,FRI -> 월, 수, 금)
+    // 요일 포맷팅 (MON,WED,FRI -> 월, 수, 금) - 요일 순서대로 정렬
     const formatScheduleDays = (days: string) => {
+        // 번개 스터디이고 scheduleDays가 없으면 startDate의 요일 표시
+        if (!days && studyDetail?.studyType === 'LIGHTNING' && studyDetail?.startDate) {
+            const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+            const startDate = new Date(studyDetail.startDate);
+            return dayNames[startDate.getDay()];
+        }
         if (!days) return '협의 후 결정';
-        const dayMap: Record<string, string> = {
-            'MON': '월', 'TUE': '화', 'WED': '수',
-            'THU': '목', 'FRI': '금', 'SAT': '토', 'SUN': '일'
+        // 대소문자/한글 모두 지원
+        const dayOrder: Record<string, number> = {
+            'MON': 0, 'mon': 0, '월': 0,
+            'TUE': 1, 'tue': 1, '화': 1,
+            'WED': 2, 'wed': 2, '수': 2,
+            'THU': 3, 'thu': 3, '목': 3,
+            'FRI': 4, 'fri': 4, '금': 4,
+            'SAT': 5, 'sat': 5, '토': 5,
+            'SUN': 6, 'sun': 6, '일': 6,
         };
-        return days.split(',').map(d => dayMap[d.trim()] || d).join(', ');
+        const dayMap: Record<string, string> = {
+            'MON': '월', 'mon': '월', '월': '월',
+            'TUE': '화', 'tue': '화', '화': '화',
+            'WED': '수', 'wed': '수', '수': '수',
+            'THU': '목', 'thu': '목', '목': '목',
+            'FRI': '금', 'fri': '금', '금': '금',
+            'SAT': '토', 'sat': '토', '토': '토',
+            'SUN': '일', 'sun': '일', '일': '일',
+        };
+        const sortedDays = days.split(',')
+            .map(d => d.trim())
+            .sort((a, b) => (dayOrder[a] ?? 99) - (dayOrder[b] ?? 99));
+        return sortedDays.map(d => dayMap[d] || d).join(', ');
     };
 
     // 날짜 범위 포맷팅

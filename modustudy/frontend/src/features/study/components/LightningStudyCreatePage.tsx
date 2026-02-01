@@ -261,12 +261,14 @@ const LightningStudyCreatePage: React.FC = () => {
             const startDate = formData.meetingDate;
             const endDate = formData.meetingDate;
 
-            // 모집 기간 설정 (즉시 모집 시작, 모임 당일까지 모집)
+            // 모집 기간 설정 (즉시 모집 시작, 모임 전날까지 모집)
             const today = new Date();
             const recruitStartDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
-            // 모집 종료일은 모임 당일로 설정 (시작 전까지 모집)
-            const recruitEndDate = formData.meetingDate;
+            // 모집 종료일은 모임 전날로 설정
+            const meetingDateObj = new Date(formData.meetingDate);
+            meetingDateObj.setDate(meetingDateObj.getDate() - 1);
+            const recruitEndDate = `${meetingDateObj.getFullYear()}-${String(meetingDateObj.getMonth() + 1).padStart(2, '0')}-${String(meetingDateObj.getDate()).padStart(2, '0')}`;
 
             // 모집 상태 결정
             const todayObj = new Date();
