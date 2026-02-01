@@ -74,4 +74,13 @@ public class QuizCourseQuestion extends BaseEntity {
      */
     @Column(columnDefinition = "TEXT")
     private String explanation;
+
+    /**
+     * 서술형 문제 채점용 핵심 키워드.
+     * JSON 배열 형태로 저장 (예: ["DDL", "데이터 정의"])
+     * 사용자 답변에 모든 키워드가 포함되어야 정답 처리됨 (AND 조건)
+     */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "keywords", columnDefinition = "json")
+    private String keywords;
 }

@@ -900,8 +900,7 @@ CREATE TABLE IF NOT EXISTS `quiz_course` (
 );
 
 CREATE TABLE IF NOT EXISTS `quiz_course_section` (
-    `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
-    `course_id` BIGINT NOT NULL,
+    `quiz_course_id` BIGINT NOT NULL,
     `section_number` INT NOT NULL,
     `name` VARCHAR(100) NOT NULL,
     `description` TEXT,
@@ -909,21 +908,25 @@ CREATE TABLE IF NOT EXISTS `quiz_course_section` (
     `pass_score` INT DEFAULT 70,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (`course_id`) REFERENCES `quiz_course`(`id`) ON DELETE CASCADE,
-    UNIQUE KEY `uk_course_section` (`course_id`, `section_number`)
+    PRIMARY KEY (`quiz_course_id`, `section_number`),
+    FOREIGN KEY (`quiz_course_id`) REFERENCES `quiz_course`(`id`) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS `quiz_course_question` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
-    `section_id` BIGINT NOT NULL,
+    `quiz_course_id` BIGINT NOT NULL,
+    `section_number` INT NOT NULL,
     `question_number` INT NOT NULL,
     `question_text` TEXT NOT NULL,
     `question_type` ENUM('MULTIPLE_CHOICE', 'SHORT_ANSWER', 'MULTIPLE_CHOICE_MULTIPLE') DEFAULT 'MULTIPLE_CHOICE',
     `options` JSON,
     `correct_answer` VARCHAR(500) NOT NULL,
     `explanation` TEXT,
+    `keywords` JSON DEFAULT NULL COMMENT '서술형 채점용 핵심 키워드 JSON 배열',
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (`section_id`) REFERENCES `quiz_course_section`(`id`) ON DELETE CASCADE
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (`quiz_course_id`, `section_number`) REFERENCES `quiz_course_section`(`quiz_course_id`, `section_number`) ON DELETE CASCADE,
+    INDEX `idx_quiz_course_question_type` (`question_type`)
 );
 
 CREATE TABLE IF NOT EXISTS `user_course_progress` (
@@ -951,12 +954,12 @@ CREATE TABLE IF NOT EXISTS `user_section_attempt` (
     `total_questions` INT DEFAULT 0,
     `is_passed` BOOLEAN DEFAULT FALSE,
     `status` ENUM('IN_PROGRESS', 'SUBMITTED', 'ABANDONED') DEFAULT 'IN_PROGRESS',
-    `version` BIGINT NOT NULL DEFAULT 0, -- 낙관적 잠금용
+    `version` BIGINT NOT NULL DEFAULT 0,
     `started_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `completed_at` TIMESTAMP NULL,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON DELETE CASCADE,
-    -- 복합키 참조 (V5 대응)
-    FOREIGN KEY (`quiz_course_id`, `section_number`) REFERENCES `quiz_course_section`(`course_id`, `section_number`) ON DELETE CASCADE,
+    FOREIGN KEY (`quiz_course_id`, `section_number`) REFERENCES `quiz_course_section`(`quiz_course_id`, `section_number`) ON DELETE CASCADE,
     INDEX `idx_attempt_user_section_status` (`user_id`, `quiz_course_id`, `section_number`, `status`)
 );
 
