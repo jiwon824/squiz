@@ -144,9 +144,24 @@ public class StudyQuizService {
             }
         }
 
+        // answer_keywords 처리 (서술형 채점용)
+        String answerKeywordsJson = null;
+        Object keywordsObj = q.get("answer_keywords");
+        if (keywordsObj != null) {
+            try {
+                if (keywordsObj instanceof List) {
+                    answerKeywordsJson = objectMapper.writeValueAsString(keywordsObj);
+                } else if (keywordsObj instanceof String) {
+                    answerKeywordsJson = (String) keywordsObj;
+                }
+            } catch (Exception e) {
+                log.warn("answer_keywords JSON 변환 실패: {}", e.getMessage());
+            }
+        }
+
         // 타입 변환
         QuestionType questionType = QuestionType.MULTIPLE_CHOICE;
-        if ("단답형".equals(type) || "SHORT_ANSWER".equalsIgnoreCase(type)) {
+        if ("단답형".equals(type) || "SHORT_ANSWER".equalsIgnoreCase(type) || "서술형".equals(type)) {
             questionType = QuestionType.SHORT_ANSWER;
         }
 
@@ -155,6 +170,7 @@ public class StudyQuizService {
                 .questionType(questionType)
                 .options(optionsJson)
                 .correctAnswer(answer != null ? answer : "")
+                .answerKeywords(answerKeywordsJson)
                 .explanation(explanation)
                 .build();
     }

@@ -30,8 +30,9 @@ public class StudyQuizDetailResponse {
         private Long id;
         private String questionText;
         private String questionType;
-        private String options;      // JSON string
+        private String options;         // JSON string
         private String correctAnswer;
+        private String answerKeywords;  // JSON string (서술형 채점용 키워드)
         private String explanation;
     }
 
@@ -59,6 +60,7 @@ public class StudyQuizDetailResponse {
                 .questionType(q.getQuestionType().name())
                 .options(q.getOptions())
                 .correctAnswer(q.getCorrectAnswer())
+                .answerKeywords(q.getAnswerKeywords())
                 .explanation(q.getExplanation())
                 .build();
     }
