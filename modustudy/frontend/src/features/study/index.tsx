@@ -4,6 +4,7 @@ export { default as StudyPageV2 } from './components/StudyPage';
 export { default as StudyCreatePage } from './components/StudyCreatePage';
 export { default as StudyTypeSelectPage } from './components/StudyTypeSelectPage';
 export { default as LightningStudyCreatePage } from './components/LightningStudyCreatePage';
+export { default as LightningStudyEditPage } from './components/LightningStudyEditPage';
 export { default as StudyDetailPage } from './components/StudyDetailPage';
 export { default as StudyDetailPageV2 } from './components/StudyDetailPageV2';
 export { default as StudyDetailPageV3 } from './components/StudyDetailPageV3';
