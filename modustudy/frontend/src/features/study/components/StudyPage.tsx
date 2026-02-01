@@ -5,7 +5,7 @@ import StudyListContainer from './StudyListContainer';
 import StudyCardContentV2 from './StudyCardContentV2';
 import StudyFilter, { FilterState } from './StudyFilter';
 import { Study, SortOption } from '../services/studyService';
-import { getStudyList, getLeaderInfo, getProvinces, getDistricts, StudyListItem, LeaderInfoResponse, type RegionItem } from '@/api/endpoints/studyApi';
+import { getStudyList, getLeaderInfo, getProvinces, getDistricts, StudyListItem, LeaderInfoResponse, type RegionItem, studyApi } from '@/api/endpoints/studyApi';
 import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { Button } from '@/shared/components';
 import { cn } from '@/shared/utils/cn';
@@ -283,13 +283,17 @@ const StudyPageV2: React.FC = () => {
     };
 
     // 찜하기 토글 핸들러
-    const handleBookmarkToggle = (studyId: number) => {
-        // TODO: API 연동 필요
-        setStudies((prev) =>
-            prev.map((study) =>
-                study.id === studyId ? { ...study, isBookmarked: !study.isBookmarked } : study
-            )
-        );
+    const handleBookmarkToggle = async (studyId: number) => {
+        try {
+            await studyApi.toggleBookmark(studyId);
+            setStudies((prev) =>
+                prev.map((study) =>
+                    study.id === studyId ? { ...study, isBookmarked: !study.isBookmarked } : study
+                )
+            );
+        } catch (error) {
+            console.error('북마크 토글 실패:', error);
+        }
     };
 
     // 스터디 클릭 핸들러 (V3 페이지로 이동)

@@ -127,6 +127,14 @@ const StudyDetailPageV3: React.FC = () => {
                 } catch (leaderError) {
                     console.error('스터디장 정보 조회 실패:', leaderError);
                 }
+
+                // 북마크 상태 조회
+                try {
+                    const bookmarked = await studyApi.checkBookmark(Number(id));
+                    setIsBookmarked(bookmarked);
+                } catch (bookmarkError) {
+                    console.error('북마크 상태 조회 실패:', bookmarkError);
+                }
             } catch (error) {
                 console.error('스터디 상세 조회 실패:', error);
                 showToast('스터디 정보를 불러올 수 없습니다.', 'error');
@@ -246,13 +254,20 @@ const StudyDetailPageV3: React.FC = () => {
             leaderRating: leaderInfo?.leaderRating ?? null,
             leaderReviewCount: leaderInfo?.leaderReviewCount || 0,
         },
-        isBookmarked: false,
+        isBookmarked: isBookmarked,
         createdAt: studyDetail.createdAt,
     };
 
-    const handleBookmarkToggle = () => {
-        setIsBookmarked(!isBookmarked);
-        showToast(isBookmarked ? '찜 목록에서 제거되었습니다.' : '찜 목록에 추가되었습니다.', 'success');
+    const handleBookmarkToggle = async () => {
+        if (!studyDetail?.id) return;
+        try {
+            await studyApi.toggleBookmark(studyDetail.id);
+            setIsBookmarked(!isBookmarked);
+            showToast(isBookmarked ? '찜 목록에서 제거되었습니다.' : '찜 목록에 추가되었습니다.', 'success');
+        } catch (error) {
+            console.error('북마크 토글 실패:', error);
+            showToast('북마크 처리 중 오류가 발생했습니다.', 'error');
+        }
     };
 
     const handleReportSubmit = (reason: string) => {
