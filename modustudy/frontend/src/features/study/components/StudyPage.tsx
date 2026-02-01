@@ -5,7 +5,7 @@ import StudyListContainer from './StudyListContainer';
 import StudyCardContentV2 from './StudyCardContentV2';
 import StudyFilter, { FilterState } from './StudyFilter';
 import { Study, SortOption } from '../services/studyService';
-import { getStudyList, getLeaderInfo, StudyListItem, LeaderInfoResponse } from '@/api/endpoints/studyApi';
+import { getStudyList, getLeaderInfo, getProvinces, getDistricts, StudyListItem, LeaderInfoResponse, type RegionItem } from '@/api/endpoints/studyApi';
 import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { Button } from '@/shared/components';
 import { cn } from '@/shared/utils/cn';
@@ -57,6 +57,8 @@ const StudyPageV2: React.FC = () => {
     const [studies, setStudies] = useState<Study[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchKeyword, setSearchKeyword] = useState('');
+    // 지역 데이터 맵 (regionId -> region name)
+    const [regionMap, setRegionMap] = useState<Map<number, string>>(new Map());
     const [filters, setFilters] = useState<FilterState>({
         status: [],
         topic: [],
@@ -108,39 +110,83 @@ const StudyPageV2: React.FC = () => {
     });
 
     // 리더 정보가 포함된 스터디 변환 (별도 API 조회 결과 사용)
-    const convertToStudyWithLeader = (item: StudyListItem, leaderInfo?: LeaderInfoResponse): Study => ({
-        id: item.id,
-        leaderId: leaderInfo?.userId || item.leader?.id || item.leaderId || 0,
-        name: item.name,
-        description: item.description || '',
-        topic: item.topic?.name || '',
-        format: item.format?.name || '',
-        studyType: item.studyType,
-        meetingType: item.meetingType,
-        status: item.status,
-        isPublic: true,
-        maxMembers: item.maxMembers,
-        currentMembers: item.currentMembers || 1, // API에서 받아온 값 사용
-        difficulty: item.difficulty || 'BEGINNER',
-        scheduleDays: item.scheduleDays || '',
-        scheduleTime: item.scheduleTime,
-        regionId: item.regionId,
-        recruitEndDate: item.recruitEndDate,
-        leader: {
-            id: leaderInfo?.userId || item.leader?.id || item.leaderId || 0,
-            nickname: leaderInfo?.nickname || item.leader?.nickname || '스터디장',
-            profileImage: leaderInfo?.profileImage || item.leader?.profileImage || null,
-            leaderRating: leaderInfo?.leaderRating ?? item.leader?.leaderRating ?? null,
-            leaderReviewCount: leaderInfo?.leaderReviewCount || item.leader?.leaderReviewCount || 0,
-        },
-        isBookmarked: false,
-        createdAt: item.createdAt,
-    });
+    const convertToStudyWithLeader = (item: StudyListItem, leaderInfo?: LeaderInfoResponse, regionNameMap?: Map<number, string>): Study => {
+        // regionId가 있으면 region 객체 생성
+        let region: { id: number; name: string } | undefined;
+        if (item.regionId && regionNameMap && regionNameMap.has(item.regionId)) {
+            region = {
+                id: item.regionId,
+                name: regionNameMap.get(item.regionId)!
+            };
+        }
+
+        return {
+            id: item.id,
+            leaderId: leaderInfo?.userId || item.leader?.id || item.leaderId || 0,
+            name: item.name,
+            description: item.description || '',
+            topic: item.topic?.name || '',
+            format: item.format?.name || '',
+            studyType: item.studyType,
+            meetingType: item.meetingType,
+            status: item.status,
+            isPublic: true,
+            maxMembers: item.maxMembers,
+            currentMembers: item.currentMembers || 1, // API에서 받아온 값 사용
+            difficulty: item.difficulty || 'BEGINNER',
+            scheduleDays: item.scheduleDays || '',
+            scheduleTime: item.scheduleTime,
+            regionId: item.regionId,
+            region, // region 객체 추가
+            recruitEndDate: item.recruitEndDate,
+            leader: {
+                id: leaderInfo?.userId || item.leader?.id || item.leaderId || 0,
+                nickname: leaderInfo?.nickname || item.leader?.nickname || '스터디장',
+                profileImage: leaderInfo?.profileImage || item.leader?.profileImage || null,
+                leaderRating: leaderInfo?.leaderRating ?? item.leader?.leaderRating ?? null,
+                leaderReviewCount: leaderInfo?.leaderReviewCount || item.leader?.leaderReviewCount || 0,
+            },
+            isBookmarked: false,
+            createdAt: item.createdAt,
+        };
+    };
+
+    // 지역 데이터 로드 (최초 1회)
+    const loadRegionData = async (): Promise<Map<number, string>> => {
+        // 이미 로드된 경우 기존 맵 반환
+        if (regionMap.size > 0) {
+            return regionMap;
+        }
+
+        const newRegionMap = new Map<number, string>();
+        try {
+            const provinces = await getProvinces();
+            // 각 시/도에 대해 구/군 목록 병렬 로드
+            await Promise.all(provinces.map(async (province) => {
+                try {
+                    const districts = await getDistricts(province.id);
+                    districts.forEach((district) => {
+                        // "시/도 구/군" 형식으로 저장
+                        newRegionMap.set(district.id, `${province.name} ${district.name}`);
+                    });
+                } catch (err) {
+                    console.warn(`${province.name} 구/군 목록 로드 실패:`, err);
+                }
+            }));
+            setRegionMap(newRegionMap);
+        } catch (error) {
+            console.error('지역 데이터 로드 실패:', error);
+        }
+        return newRegionMap;
+    };
 
     // API에서 스터디 목록 로드 (리더 정보 포함)
     const loadStudies = async () => {
         setIsLoading(true);
         try {
+            // 지역 데이터 먼저 로드
+            const currentRegionMap = await loadRegionData();
+
             const sortParam = sortOption.field === 'createdAt'
                 ? `createdAt,${sortOption.order}`
                 : sortOption.field === 'recruitEndDate'
@@ -174,10 +220,10 @@ const StudyPageV2: React.FC = () => {
 
             await Promise.all(leaderInfoPromises);
 
-            // 리더 정보를 포함하여 스터디 변환
+            // 리더 정보 및 지역 정보를 포함하여 스터디 변환
             const convertedStudies = content.map((item) => {
                 const leaderInfo = leaderInfoMap.get(item.id);
-                return convertToStudyWithLeader(item, leaderInfo);
+                return convertToStudyWithLeader(item, leaderInfo, currentRegionMap);
             });
 
             console.log('[변환된 스터디]', convertedStudies);

@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { studyService, Study } from '../services/studyService';
-import { studyApi, getStudySessions, StudySessionItem, deleteStudy, getLeaderReviews, getLeaderInfo, LeaderReviewResponse, LeaderInfoResponse } from '@/api/endpoints/studyApi';
+import { studyApi, getStudySessions, StudySessionItem, deleteStudy, getLeaderReviews, getLeaderInfo, LeaderReviewResponse, LeaderInfoResponse, getProvinces, getDistricts } from '@/api/endpoints/studyApi';
 import StudyApplyModalV2 from './StudyApplyModalV2';
 import { StudyReportModal } from './StudyReportModal';
 import LeaderReviewModal from './LeaderReviewModal';
@@ -20,7 +20,6 @@ import { Button, ArrowButton } from '@/shared/components';
 import { cn } from '@/shared/utils/cn';
 import { useDMStore } from '@/features/dm/store/dmStore';
 import { useUIStore } from '@/store/uiStore';
-import { getRegionById } from '../mockData';
 
 // API 응답 타입 (StudyResponse 구조)
 interface StudyDetail {
@@ -91,6 +90,7 @@ const StudyDetailPageV3: React.FC = () => {
     const [leaderAvgRating, setLeaderAvgRating] = useState<number | null>(null);
     const [leaderReviewCount, setLeaderReviewCount] = useState(0);
     const [leaderInfo, setLeaderInfo] = useState<LeaderInfoResponse | null>(null);
+    const [regionName, setRegionName] = useState<string | null>(null);
     const { user } = useAuthStore();
 
     // 실제 API에서 스터디 상세 및 세션(커리큘럼) 조회
@@ -136,6 +136,37 @@ const StudyDetailPageV3: React.FC = () => {
         };
         fetchStudyData();
     }, [id]);
+
+    // regionId가 있으면 지역 이름 조회
+    useEffect(() => {
+        const fetchRegionName = async () => {
+            if (!studyDetail?.regionId) {
+                setRegionName(null);
+                return;
+            }
+
+            try {
+                // 모든 시/도를 가져와서 각 시/도의 구/군에서 regionId 찾기
+                const provinces = await getProvinces();
+                for (const province of provinces) {
+                    const districts = await getDistricts(province.id);
+                    const foundDistrict = districts.find(d => d.id === studyDetail.regionId);
+                    if (foundDistrict) {
+                        // 시/도 + 구/군 형태로 표시
+                        setRegionName(`${province.name} ${foundDistrict.name}`);
+                        return;
+                    }
+                }
+                // 못 찾으면 미지정
+                setRegionName(null);
+            } catch (error) {
+                console.error('지역 정보 조회 실패:', error);
+                setRegionName(null);
+            }
+        };
+
+        fetchRegionName();
+    }, [studyDetail?.regionId]);
 
     // 메뉴 외부 클릭 감지
     useEffect(() => {
@@ -567,7 +598,7 @@ const StudyDetailPageV3: React.FC = () => {
                                                 <p className="text-[var(--color-text-primary)] leading-relaxed pb-4 border-b border-[var(--color-border)]">
                                                     {study.meetingType === 'ONLINE'
                                                         ? '전국'
-                                                        : study.region?.name || getRegionById(study.regionId!)?.name || '미지정'}
+                                                        : regionName || '미지정'}
                                                 </p>
                                             </div>
                                             <div>

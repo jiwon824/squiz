@@ -80,6 +80,15 @@ const StudyCardContent: React.FC<StudyCardContentProps> = ({ study, onBookmarkTo
         }
     };
 
+    // 지역 표시 텍스트 (meetingType에 따라 다르게 표시)
+    const getRegionText = () => {
+        if (study.meetingType === 'ONLINE') {
+            return '전국';
+        }
+        // 오프라인/혼합인 경우
+        return study.region?.name || '미지정';
+    };
+
     // 요일 포맷팅
     const formatDays = (days: string) => {
         const dayMap: { [key: string]: string } = {
@@ -164,14 +173,12 @@ const StudyCardContent: React.FC<StudyCardContentProps> = ({ study, onBookmarkTo
                         </div>
                         <span className="text-text-secondary truncate">{formatDays(study.scheduleDays)}</span>
                     </div>
-                    {study.region && (
-                        <div className="flex items-center gap-3 text-xs font-bold text-text-tertiary overflow-hidden">
-                            <div className="p-1.5 bg-primary/5 rounded-lg text-primary/70">
-                                <MapPin size={16} />
-                            </div>
-                            <span className="text-text-secondary truncate">{study.region.name}</span>
+                    <div className="flex items-center gap-3 text-xs font-bold text-text-tertiary overflow-hidden">
+                        <div className="p-1.5 bg-primary/5 rounded-lg text-primary/70">
+                            <MapPin size={16} />
                         </div>
-                    )}
+                        <span className="text-text-secondary truncate">{getRegionText()}</span>
+                    </div>
                     <div className="flex items-center gap-3 text-xs font-bold text-text-tertiary">
                         <div className="p-1.5 bg-primary/5 rounded-lg text-primary/70">
                             <Clock size={16} />

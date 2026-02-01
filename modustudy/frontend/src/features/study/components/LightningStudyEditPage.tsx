@@ -13,36 +13,16 @@ import {
     getFormats,
     updateStudy,
     studyApi,
+    getProvinces,
+    getDistricts,
     type TopicParent,
     type FormatItem,
     type StudyCreatePayload,
-    type StudyDetailResponse
+    type StudyDetailResponse,
+    type RegionItem
 } from '@/api/endpoints/studyApi';
 import { useUIStore } from '@/store/uiStore';
 
-// 시/도 데이터
-const CITIES = ['서울특별시', '부산광역시', '대구광역시', '인천광역시', '광주광역시', '대전광역시', '울산광역시', '세종특별자치시', '경기도', '강원도', '충청북도', '충청남도', '전라북도', '전라남도', '경상북도', '경상남도', '제주특별자치도'];
-
-// 구/군 데이터 (간소화)
-const DISTRICTS: Record<string, string[]> = {
-    '서울특별시': ['강남구', '강동구', '강북구', '강서구', '관악구', '광진구', '구로구', '금천구', '노원구', '도봉구', '동대문구', '동작구', '마포구', '서대문구', '서초구', '성동구', '성북구', '송파구', '양천구', '영등포구', '용산구', '은평구', '종로구', '중구', '중랑구'],
-    '부산광역시': ['강서구', '금정구', '남구', '동구', '동래구', '부산진구', '북구', '사상구', '사하구', '서구', '수영구', '연제구', '영도구', '중구', '해운대구', '기장군'],
-    '대구광역시': ['남구', '달서구', '동구', '북구', '서구', '수성구', '중구', '달성군'],
-    '인천광역시': ['계양구', '남동구', '동구', '미추홀구', '부평구', '서구', '연수구', '중구', '강화군', '옹진군'],
-    '광주광역시': ['광산구', '남구', '동구', '북구', '서구'],
-    '대전광역시': ['대덕구', '동구', '서구', '유성구', '중구'],
-    '울산광역시': ['남구', '동구', '북구', '중구', '울주군'],
-    '세종특별자치시': ['세종시'],
-    '경기도': ['수원시', '성남시', '고양시', '용인시', '부천시', '안산시', '안양시', '남양주시', '화성시', '평택시', '의정부시', '시흥시', '파주시', '김포시', '광명시', '광주시', '군포시', '하남시', '오산시', '이천시', '안성시', '의왕시', '양평군', '여주시', '과천시', '고양시', '구리시', '포천시', '양주시', '동두천시', '가평군', '연천군'],
-    '강원도': ['춘천시', '원주시', '강릉시', '동해시', '태백시', '속초시', '삼척시', '홍천군', '횡성군', '영월군', '평창군', '정선군', '철원군', '화천군', '양구군', '인제군', '고성군', '양양군'],
-    '충청북도': ['청주시', '충주시', '제천시', '보은군', '옥천군', '영동군', '증평군', '진천군', '괴산군', '음성군', '단양군'],
-    '충청남도': ['천안시', '공주시', '보령시', '아산시', '서산시', '논산시', '계룡시', '당진시', '금산군', '부여군', '서천군', '청양군', '홍성군', '예산군', '태안군'],
-    '전라북도': ['전주시', '군산시', '익산시', '정읍시', '남원시', '김제시', '완주군', '진안군', '무주군', '장수군', '임실군', '순창군', '고창군', '부안군'],
-    '전라남도': ['목포시', '여수시', '순천시', '나주시', '광양시', '담양군', '곡성군', '구례군', '고흥군', '보성군', '화순군', '장흥군', '강진군', '해남군', '영암군', '무안군', '함평군', '영광군', '장성군', '완도군', '진도군', '신안군'],
-    '경상북도': ['포항시', '경주시', '김천시', '안동시', '구미시', '영주시', '영천시', '상주시', '문경시', '경산시', '군위군', '의성군', '청송군', '영양군', '영덕군', '청도군', '고령군', '성주군', '칠곡군', '예천군', '봉화군', '울진군', '울릉군'],
-    '경상남도': ['창원시', '진주시', '통영시', '사천시', '김해시', '밀양시', '거제시', '양산시', '의령군', '함안군', '창녕군', '고성군', '남해군', '하동군', '산청군', '함양군', '거창군', '합천군'],
-    '제주특별자치도': ['제주시', '서귀포시']
-};
 
 // 대분류 → 세부주제 매핑
 const TOPIC_SUBTOPICS: Record<string, string[]> = {
@@ -95,6 +75,10 @@ const LightningStudyEditPage: React.FC = () => {
     const [originalStudy, setOriginalStudy] = useState<StudyDetailResponse | null>(null);
     const [currentMemberCount, setCurrentMemberCount] = useState(1); // 현재 참여 인원 (최소 인원 제한용)
 
+    // 지역 목록 상태 (API에서 가져옴)
+    const [provinces, setProvinces] = useState<RegionItem[]>([]);
+    const [districts, setDistricts] = useState<RegionItem[]>([]);
+
     const [formData, setFormData] = useState({
         // 기본 정보
         name: '',
@@ -105,8 +89,8 @@ const LightningStudyEditPage: React.FC = () => {
         subTopic: '',
         meetingType: 'ONLINE',
         maxMembers: 4,
-        city: '',
-        district: '',
+        provinceId: null as number | null,
+        districtId: null as number | null,
 
         // 일정 정보 (1회성)
         meetingDate: '',
@@ -151,17 +135,19 @@ const LightningStudyEditPage: React.FC = () => {
 
             setIsLoading(true);
             try {
-                // 병렬로 데이터 로드 (멤버 수 포함)
-                const [study, topicsData, formatsData, memberCount] = await Promise.all([
+                // 병렬로 데이터 로드 (멤버 수, 지역 목록 포함)
+                const [study, topicsData, formatsData, memberCount, provincesData] = await Promise.all([
                     studyApi.getStudyDetail(Number(studyId)),
                     getTopics(),
                     getFormats(),
                     studyApi.getMemberCount(Number(studyId)),
+                    getProvinces(),
                 ]);
 
                 setOriginalStudy(study);
                 setTopics(topicsData);
                 setFormats(formatsData);
+                setProvinces(provincesData);
                 // 현재 멤버 수 설정 (최소 1명 - 스터디장)
                 setCurrentMemberCount(Math.max(1, memberCount));
 
@@ -192,6 +178,29 @@ const LightningStudyEditPage: React.FC = () => {
                     formatName = study.format.name;
                 }
 
+                // 기존 지역 정보 처리 (regionId가 있으면 해당 구/군 ID를 설정하고 시/도도 찾아야 함)
+                let provinceId: number | null = null;
+                let districtId: number | null = null;
+
+                if (study.regionId) {
+                    // regionId가 있으면 해당 지역의 시/도를 찾기 위해 각 시/도의 구/군 목록 확인
+                    districtId = study.regionId;
+                    // 시/도 찾기 - 각 시/도의 구/군 목록을 확인해야 함
+                    for (const province of provincesData) {
+                        try {
+                            const districtsData = await getDistricts(province.id);
+                            const foundDistrict = districtsData.find(d => d.id === study.regionId);
+                            if (foundDistrict) {
+                                provinceId = province.id;
+                                setDistricts(districtsData);
+                                break;
+                            }
+                        } catch (e) {
+                            // 무시
+                        }
+                    }
+                }
+
                 // 폼 데이터 설정
                 setFormData({
                     name: study.name || '',
@@ -202,8 +211,8 @@ const LightningStudyEditPage: React.FC = () => {
                     subTopic: childTopicName,
                     meetingType: study.meetingType || 'ONLINE',
                     maxMembers: study.maxMembers || 4,
-                    city: '',
-                    district: '',
+                    provinceId,
+                    districtId,
                     meetingDate: study.startDate || '',
                     meetingTime: study.scheduleTime || '19:00',
                     duration: '2',
@@ -222,6 +231,27 @@ const LightningStudyEditPage: React.FC = () => {
 
         fetchStudyData();
     }, [studyId]);
+
+    // 시/도 변경 시 구/군 목록 가져오기
+    useEffect(() => {
+        const fetchDistricts = async () => {
+            if (formData.provinceId) {
+                try {
+                    const districtsData = await getDistricts(formData.provinceId);
+                    setDistricts(districtsData);
+                } catch (error) {
+                    console.error('구/군 목록 불러오기 실패:', error);
+                    setDistricts([]);
+                }
+            } else {
+                setDistricts([]);
+            }
+        };
+        // 초기 로드 시에는 이미 districts가 설정되어 있으므로 건너뜀
+        if (!isLoading) {
+            fetchDistricts();
+        }
+    }, [formData.provinceId, isLoading]);
 
     useEffect(() => {
         const container = document.getElementById('main-content-scroll');
@@ -267,8 +297,8 @@ const LightningStudyEditPage: React.FC = () => {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleCityChange = (city: string) => {
-        setFormData(prev => ({ ...prev, city, district: '' }));
+    const handleProvinceChange = (provinceId: number | null) => {
+        setFormData(prev => ({ ...prev, provinceId, districtId: null }));
     };
 
     const handleTopicChange = (topic: string) => {
@@ -291,8 +321,8 @@ const LightningStudyEditPage: React.FC = () => {
         }
 
         // 오프라인 모임 시 지역 선택 필수
-        if (formData.meetingType === 'OFFLINE' && !formData.city) {
-            showToast('오프라인 모임은 지역 선택이 필요합니다.', 'warning');
+        if (formData.meetingType === 'OFFLINE' && !formData.districtId) {
+            showToast('오프라인 모임은 지역 선택이 필요합니다.', 'error');
             return;
         }
 
@@ -344,7 +374,7 @@ const LightningStudyEditPage: React.FC = () => {
                 formatId,
                 studyType: 'LIGHTNING',
                 meetingType: formData.meetingType,
-                regionId: undefined,
+                regionId: formData.districtId || undefined,
                 scheduleTime: formData.meetingTime || undefined,
                 maxMembers: formData.maxMembers,
                 isPublic: formData.isPublic,
@@ -552,20 +582,20 @@ const LightningStudyEditPage: React.FC = () => {
                                                     <div>
                                                         <Select
                                                             label="시/도"
-                                                            value={formData.city}
-                                                            onChange={handleCityChange}
-                                                            options={CITIES}
+                                                            value={formData.provinceId?.toString() || ''}
+                                                            onChange={(val) => handleProvinceChange(val ? Number(val) : null)}
+                                                            options={provinces.map(p => ({ value: String(p.id), label: p.name }))}
                                                             placeholder="시/도 선택"
                                                         />
                                                     </div>
                                                     <div>
                                                         <Select
                                                             label="구/군"
-                                                            value={formData.district}
-                                                            onChange={(val) => setFormData(prev => ({ ...prev, district: val }))}
-                                                            options={formData.city ? DISTRICTS[formData.city] || [] : []}
+                                                            value={formData.districtId?.toString() || ''}
+                                                            onChange={(val) => setFormData(prev => ({ ...prev, districtId: val ? Number(val) : null }))}
+                                                            options={districts.map(d => ({ value: String(d.id), label: d.name }))}
                                                             placeholder="구/군 선택"
-                                                            disabled={!formData.city}
+                                                            disabled={!formData.provinceId}
                                                         />
                                                     </div>
                                                 </div>
