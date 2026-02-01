@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { studyService, Study } from '../services/studyService';
-import { studyApi, getStudySessions, StudySessionItem, deleteStudy, getLeaderReviews, getLeaderInfo, LeaderReviewResponse, LeaderInfoResponse } from '@/api/endpoints/studyApi';
+import { studyApi, getStudySessions, StudySessionItem, deleteStudy, getLeaderReviews, getLeaderInfo, LeaderReviewResponse, LeaderInfoResponse, getProvinces, getDistricts } from '@/api/endpoints/studyApi';
 import StudyApplyModalV2 from './StudyApplyModalV2';
 import { StudyReportModal } from './StudyReportModal';
 import LeaderReviewModal from './LeaderReviewModal';
@@ -20,7 +20,6 @@ import { Button, ArrowButton } from '@/shared/components';
 import { cn } from '@/shared/utils/cn';
 import { useDMStore } from '@/features/dm/store/dmStore';
 import { useUIStore } from '@/store/uiStore';
-import { getRegionById } from '../mockData';
 
 // API 응답 타입 (StudyResponse 구조)
 interface StudyDetail {
@@ -91,6 +90,7 @@ const StudyDetailPageV3: React.FC = () => {
     const [leaderAvgRating, setLeaderAvgRating] = useState<number | null>(null);
     const [leaderReviewCount, setLeaderReviewCount] = useState(0);
     const [leaderInfo, setLeaderInfo] = useState<LeaderInfoResponse | null>(null);
+    const [regionName, setRegionName] = useState<string | null>(null);
     const { user } = useAuthStore();
 
     // 실제 API에서 스터디 상세 및 세션(커리큘럼) 조회
@@ -127,6 +127,14 @@ const StudyDetailPageV3: React.FC = () => {
                 } catch (leaderError) {
                     console.error('스터디장 정보 조회 실패:', leaderError);
                 }
+
+                // 북마크 상태 조회
+                try {
+                    const bookmarked = await studyApi.checkBookmark(Number(id));
+                    setIsBookmarked(bookmarked);
+                } catch (bookmarkError) {
+                    console.error('북마크 상태 조회 실패:', bookmarkError);
+                }
             } catch (error) {
                 console.error('스터디 상세 조회 실패:', error);
                 showToast('스터디 정보를 불러올 수 없습니다.', 'error');
@@ -136,6 +144,37 @@ const StudyDetailPageV3: React.FC = () => {
         };
         fetchStudyData();
     }, [id]);
+
+    // regionId가 있으면 지역 이름 조회
+    useEffect(() => {
+        const fetchRegionName = async () => {
+            if (!studyDetail?.regionId) {
+                setRegionName(null);
+                return;
+            }
+
+            try {
+                // 모든 시/도를 가져와서 각 시/도의 구/군에서 regionId 찾기
+                const provinces = await getProvinces();
+                for (const province of provinces) {
+                    const districts = await getDistricts(province.id);
+                    const foundDistrict = districts.find(d => d.id === studyDetail.regionId);
+                    if (foundDistrict) {
+                        // 시/도 + 구/군 형태로 표시
+                        setRegionName(`${province.name} ${foundDistrict.name}`);
+                        return;
+                    }
+                }
+                // 못 찾으면 미지정
+                setRegionName(null);
+            } catch (error) {
+                console.error('지역 정보 조회 실패:', error);
+                setRegionName(null);
+            }
+        };
+
+        fetchRegionName();
+    }, [studyDetail?.regionId]);
 
     // 메뉴 외부 클릭 감지
     useEffect(() => {
@@ -215,13 +254,20 @@ const StudyDetailPageV3: React.FC = () => {
             leaderRating: leaderInfo?.leaderRating ?? null,
             leaderReviewCount: leaderInfo?.leaderReviewCount || 0,
         },
-        isBookmarked: false,
+        isBookmarked: isBookmarked,
         createdAt: studyDetail.createdAt,
     };
 
-    const handleBookmarkToggle = () => {
-        setIsBookmarked(!isBookmarked);
-        showToast(isBookmarked ? '찜 목록에서 제거되었습니다.' : '찜 목록에 추가되었습니다.', 'success');
+    const handleBookmarkToggle = async () => {
+        if (!studyDetail?.id) return;
+        try {
+            await studyApi.toggleBookmark(studyDetail.id);
+            setIsBookmarked(!isBookmarked);
+            showToast(isBookmarked ? '찜 목록에서 제거되었습니다.' : '찜 목록에 추가되었습니다.', 'success');
+        } catch (error) {
+            console.error('북마크 토글 실패:', error);
+            showToast('북마크 처리 중 오류가 발생했습니다.', 'error');
+        }
     };
 
     const handleReportSubmit = (reason: string) => {
@@ -328,14 +374,38 @@ const StudyDetailPageV3: React.FC = () => {
         }
     };
 
-    // 요일 포맷팅 (MON,WED,FRI -> 월, 수, 금)
+    // 요일 포맷팅 (MON,WED,FRI -> 월, 수, 금) - 요일 순서대로 정렬
     const formatScheduleDays = (days: string) => {
+        // 번개 스터디이고 scheduleDays가 없으면 startDate의 요일 표시
+        if (!days && studyDetail?.studyType === 'LIGHTNING' && studyDetail?.startDate) {
+            const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+            const startDate = new Date(studyDetail.startDate);
+            return dayNames[startDate.getDay()];
+        }
         if (!days) return '협의 후 결정';
-        const dayMap: Record<string, string> = {
-            'MON': '월', 'TUE': '화', 'WED': '수',
-            'THU': '목', 'FRI': '금', 'SAT': '토', 'SUN': '일'
+        // 대소문자/한글 모두 지원
+        const dayOrder: Record<string, number> = {
+            'MON': 0, 'mon': 0, '월': 0,
+            'TUE': 1, 'tue': 1, '화': 1,
+            'WED': 2, 'wed': 2, '수': 2,
+            'THU': 3, 'thu': 3, '목': 3,
+            'FRI': 4, 'fri': 4, '금': 4,
+            'SAT': 5, 'sat': 5, '토': 5,
+            'SUN': 6, 'sun': 6, '일': 6,
         };
-        return days.split(',').map(d => dayMap[d.trim()] || d).join(', ');
+        const dayMap: Record<string, string> = {
+            'MON': '월', 'mon': '월', '월': '월',
+            'TUE': '화', 'tue': '화', '화': '화',
+            'WED': '수', 'wed': '수', '수': '수',
+            'THU': '목', 'thu': '목', '목': '목',
+            'FRI': '금', 'fri': '금', '금': '금',
+            'SAT': '토', 'sat': '토', '토': '토',
+            'SUN': '일', 'sun': '일', '일': '일',
+        };
+        const sortedDays = days.split(',')
+            .map(d => d.trim())
+            .sort((a, b) => (dayOrder[a] ?? 99) - (dayOrder[b] ?? 99));
+        return sortedDays.map(d => dayMap[d] || d).join(', ');
     };
 
     // 날짜 범위 포맷팅
@@ -455,7 +525,12 @@ const StudyDetailPageV3: React.FC = () => {
                                                             <>
                                                                 <button
                                                                     onClick={() => {
-                                                                        navigate(`/study/create/planned?studyId=${study.id}`);
+                                                                        // 스터디 타입에 따라 다른 수정 페이지로 이동 (from=detail로 돌아올 페이지 지정)
+                                                                        if (study.studyType === 'LIGHTNING') {
+                                                                            navigate(`/study/edit/lightning/${study.id}?from=detail`);
+                                                                        } else {
+                                                                            navigate(`/study/create/planned?studyId=${study.id}&from=detail`);
+                                                                        }
                                                                         setIsMenuOpen(false);
                                                                     }}
                                                                     className="w-full px-4 py-3 text-left text-sm font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-primary-alpha-10)] hover:text-[var(--color-primary)] transition-colors flex items-center gap-2"
@@ -562,7 +637,7 @@ const StudyDetailPageV3: React.FC = () => {
                                                 <p className="text-[var(--color-text-primary)] leading-relaxed pb-4 border-b border-[var(--color-border)]">
                                                     {study.meetingType === 'ONLINE'
                                                         ? '전국'
-                                                        : study.region?.name || getRegionById(study.regionId!)?.name || '미지정'}
+                                                        : regionName || '미지정'}
                                                 </p>
                                             </div>
                                             <div>

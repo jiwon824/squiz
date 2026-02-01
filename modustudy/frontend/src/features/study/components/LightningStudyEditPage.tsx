@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Zap, MapPin, Users, Calendar } from 'lucide-react';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { ChevronLeft, Zap, MapPin, Users, Calendar, Loader2 } from 'lucide-react';
 import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { Button } from '@/shared/components/Button';
 import { Input } from '@/shared/components/Input';
@@ -8,7 +8,19 @@ import { Select } from '@/shared/components/Select';
 import { cn } from '@/shared/utils/cn';
 import { DatePicker } from './DatePicker';
 import { TimePicker } from './TimePicker';
-import { getTopics, getFormats, createStudy, getProvinces, getDistricts, type TopicParent, type FormatItem, type StudyCreatePayload, type RegionItem } from '@/api/endpoints/studyApi';
+import {
+    getTopics,
+    getFormats,
+    updateStudy,
+    studyApi,
+    getProvinces,
+    getDistricts,
+    type TopicParent,
+    type FormatItem,
+    type StudyCreatePayload,
+    type StudyDetailResponse,
+    type RegionItem
+} from '@/api/endpoints/studyApi';
 import { useUIStore } from '@/store/uiStore';
 
 
@@ -46,8 +58,10 @@ const styles = {
     footer: "flex flex-col sm:flex-row sm:justify-end gap-3 pt-6 border-t border-gray-100"
 };
 
-const LightningStudyCreatePage: React.FC = () => {
+const LightningStudyEditPage: React.FC = () => {
     const navigate = useNavigate();
+    const { studyId } = useParams<{ studyId: string }>();
+    const [searchParams] = useSearchParams();
     const { showToast } = useUIStore();
 
     // 오늘 날짜 계산
@@ -57,8 +71,10 @@ const LightningStudyCreatePage: React.FC = () => {
     // 주제 및 형식 목록 상태
     const [topics, setTopics] = useState<TopicParent[]>([]);
     const [formats, setFormats] = useState<FormatItem[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [originalStudy, setOriginalStudy] = useState<StudyDetailResponse | null>(null);
+    const [currentMemberCount, setCurrentMemberCount] = useState(1); // 현재 참여 인원 (최소 인원 제한용)
 
     // 지역 목록 상태 (API에서 가져옴)
     const [provinces, setProvinces] = useState<RegionItem[]>([]);
@@ -69,7 +85,7 @@ const LightningStudyCreatePage: React.FC = () => {
         name: '',
         intro: '',
         description: '',
-        format: '문제 풀이', // 스터디 형식
+        format: '문제 풀이',
         topic: '알고리즘/코딩테스트',
         subTopic: '',
         meetingType: 'ONLINE',
@@ -80,7 +96,7 @@ const LightningStudyCreatePage: React.FC = () => {
         // 일정 정보 (1회성)
         meetingDate: '',
         meetingTime: '19:00',
-        duration: '2', // 예상 소요 시간 (시간)
+        duration: '2',
 
         // 공개 여부
         isPublic: true,
@@ -101,7 +117,7 @@ const LightningStudyCreatePage: React.FC = () => {
         const element = document.getElementById(id);
         const container = document.getElementById('main-content-scroll');
         if (element && container) {
-            const offset = 24; // 여유 공간
+            const offset = 24;
             const elementRect = element.getBoundingClientRect().top;
             const containerRect = container.getBoundingClientRect().top;
             const offsetPosition = elementRect - containerRect + container.scrollTop - offset;
@@ -113,28 +129,109 @@ const LightningStudyCreatePage: React.FC = () => {
         }
     };
 
-    // 주제, 형식, 지역 목록 불러오기
+    // 기존 스터디 데이터 로드
     useEffect(() => {
-        const fetchData = async () => {
+        const fetchStudyData = async () => {
+            if (!studyId) return;
+
             setIsLoading(true);
             try {
-                const [topicsData, formatsData, provincesData] = await Promise.all([
+                // 병렬로 데이터 로드 (멤버 수, 지역 목록 포함)
+                const [study, topicsData, formatsData, memberCount, provincesData] = await Promise.all([
+                    studyApi.getStudyDetail(Number(studyId)),
                     getTopics(),
                     getFormats(),
+                    studyApi.getMemberCount(Number(studyId)),
                     getProvinces(),
                 ]);
+
+                setOriginalStudy(study);
                 setTopics(topicsData);
                 setFormats(formatsData);
                 setProvinces(provincesData);
+                // 현재 멤버 수 설정 (최소 1명 - 스터디장)
+                setCurrentMemberCount(Math.max(1, memberCount));
+
+                // 주제 매핑 (topic.name에서 부모/자식 찾기)
+                let parentTopicName = '알고리즘/코딩테스트';
+                let childTopicName = '';
+
+                if (study.topic) {
+                    // topic이 자식 토픽인 경우, 부모를 찾아야 함
+                    for (const parent of topicsData) {
+                        const foundChild = parent.children.find(c => c.id === study.topic.id);
+                        if (foundChild) {
+                            parentTopicName = parent.name;
+                            childTopicName = foundChild.name;
+                            break;
+                        }
+                        // 부모 자체가 선택된 경우
+                        if (parent.id === study.topic.id) {
+                            parentTopicName = parent.name;
+                            break;
+                        }
+                    }
+                }
+
+                // 형식 매핑
+                let formatName = '문제 풀이';
+                if (study.format) {
+                    formatName = study.format.name;
+                }
+
+                // 기존 지역 정보 처리 (regionId가 있으면 해당 구/군 ID를 설정하고 시/도도 찾아야 함)
+                let provinceId: number | null = null;
+                let districtId: number | null = null;
+
+                if (study.regionId) {
+                    // regionId가 있으면 해당 지역의 시/도를 찾기 위해 각 시/도의 구/군 목록 확인
+                    districtId = study.regionId;
+                    // 시/도 찾기 - 각 시/도의 구/군 목록을 확인해야 함
+                    for (const province of provincesData) {
+                        try {
+                            const districtsData = await getDistricts(province.id);
+                            const foundDistrict = districtsData.find(d => d.id === study.regionId);
+                            if (foundDistrict) {
+                                provinceId = province.id;
+                                setDistricts(districtsData);
+                                break;
+                            }
+                        } catch (e) {
+                            // 무시
+                        }
+                    }
+                }
+
+                // 폼 데이터 설정
+                setFormData({
+                    name: study.name || '',
+                    intro: study.intro || '',
+                    description: study.description || '',
+                    format: formatName,
+                    topic: parentTopicName,
+                    subTopic: childTopicName,
+                    meetingType: study.meetingType || 'ONLINE',
+                    maxMembers: study.maxMembers || 4,
+                    provinceId,
+                    districtId,
+                    meetingDate: study.startDate || '',
+                    meetingTime: study.scheduleTime ? study.scheduleTime.substring(0, 5) : '19:00',
+                    duration: '2',
+                    isPublic: study.isPublic !== false,
+                    goal: study.goal || '',
+                });
+
             } catch (error) {
-                console.error('주제/형식/지역 목록 불러오기 실패:', error);
-                showToast('데이터를 불러오는데 실패했습니다.', 'error');
+                console.error('스터디 정보 로드 실패:', error);
+                showToast('스터디 정보를 불러오는데 실패했습니다.', 'error');
+                navigate('/study');
             } finally {
                 setIsLoading(false);
             }
         };
-        fetchData();
-    }, []);
+
+        fetchStudyData();
+    }, [studyId]);
 
     // 시/도 변경 시 구/군 목록 가져오기
     useEffect(() => {
@@ -151,8 +248,11 @@ const LightningStudyCreatePage: React.FC = () => {
                 setDistricts([]);
             }
         };
-        fetchDistricts();
-    }, [formData.provinceId]);
+        // 초기 로드 시에는 이미 districts가 설정되어 있으므로 건너뜀
+        if (!isLoading) {
+            fetchDistricts();
+        }
+    }, [formData.provinceId, isLoading]);
 
     useEffect(() => {
         const container = document.getElementById('main-content-scroll');
@@ -160,7 +260,7 @@ const LightningStudyCreatePage: React.FC = () => {
         const handleScroll = () => {
             if (!container) return;
 
-            const scrollPosition = container.scrollTop + 100; // 트리거 포인트 조정
+            const scrollPosition = container.scrollTop + 100;
 
             for (const section of sections) {
                 const element = document.getElementById(section.id);
@@ -179,7 +279,7 @@ const LightningStudyCreatePage: React.FC = () => {
 
         if (container) {
             container.addEventListener('scroll', handleScroll);
-            handleScroll(); // 초기 상태 설정
+            handleScroll();
         }
 
         return () => {
@@ -208,6 +308,8 @@ const LightningStudyCreatePage: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (!studyId) return;
 
         // 필수 필드 검증
         if (!formData.name.trim()) {
@@ -261,23 +363,9 @@ const LightningStudyCreatePage: React.FC = () => {
             const startDate = formData.meetingDate;
             const endDate = formData.meetingDate;
 
-            // 모집 기간 설정 (즉시 모집 시작, 모임 전날까지 모집)
-            const today = new Date();
-            const recruitStartDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-
-            // 모집 종료일은 모임 전날로 설정
-            const meetingDateObj = new Date(formData.meetingDate);
-            meetingDateObj.setDate(meetingDateObj.getDate() - 1);
-            const recruitEndDate = `${meetingDateObj.getFullYear()}-${String(meetingDateObj.getMonth() + 1).padStart(2, '0')}-${String(meetingDateObj.getDate()).padStart(2, '0')}`;
-
-            // 모집 상태 결정
-            const todayObj = new Date();
-            todayObj.setHours(0, 0, 0, 0);
-            const recruitStartObj = new Date(recruitStartDate);
-            let status = 'RECRUITING'; // 기본값: 모집중
-            if (recruitStartObj > todayObj) {
-                status = 'PENDING'; // 모집시작일이 미래면 대기중
-            }
+            // 모집 기간 유지 (기존 값 사용 또는 새로 설정)
+            const recruitStartDate = originalStudy?.recruitStartDate || formattedToday;
+            const recruitEndDate = formData.meetingDate;
 
             const payload: StudyCreatePayload = {
                 name: formData.name,
@@ -287,39 +375,52 @@ const LightningStudyCreatePage: React.FC = () => {
                 formatId,
                 studyType: 'LIGHTNING',
                 meetingType: formData.meetingType,
-                regionId: formData.districtId || undefined, // 오프라인일 때만 설정
+                regionId: formData.districtId || undefined,
                 scheduleTime: formData.meetingTime || undefined,
                 maxMembers: formData.maxMembers,
                 isPublic: formData.isPublic,
                 startDate,
                 endDate,
-                totalSessions: 1, // 번개 스터디는 1회성
+                totalSessions: 1,
                 recruitStartDate,
                 recruitEndDate,
                 goal: formData.goal || undefined,
-                status,
             };
 
-            console.log('번개 스터디 생성 payload:', payload);
-            console.log('선택된 주제:', formData.topic, '/', formData.subTopic);
-            console.log('선택된 형식:', formData.format);
-            console.log('매핑된 topicId:', topicId, '/ formatId:', formatId);
+            console.log('번개 스터디 수정 payload:', payload);
 
-            const createdStudy = await createStudy(payload);
-            console.log('번개 스터디 생성 성공:', createdStudy);
+            await updateStudy(Number(studyId), payload);
 
-            showToast('번개 스터디가 개설되었습니다!', 'success');
-            navigate('/study');
+            showToast('번개 스터디가 수정되었습니다!', 'success');
+            // from 파라미터에 따라 이전 페이지로 이동
+            const from = searchParams.get('from');
+            if (from === 'detail') {
+                navigate(`/study/v3/${studyId}`);
+            } else {
+                navigate(`/study/manage/${studyId}`);
+            }
         } catch (error: any) {
-            console.error('번개 스터디 생성 실패:', error);
-            console.error('에러 응답:', error?.response);
-            console.error('에러 데이터:', error?.response?.data);
-            const message = error?.response?.data?.error?.message || error?.response?.data?.message || '번개 스터디 개설에 실패했습니다.';
+            console.error('번개 스터디 수정 실패:', error);
+            const message = error?.response?.data?.error?.message || error?.response?.data?.message || '번개 스터디 수정에 실패했습니다.';
             showToast(message, 'error');
         } finally {
             setIsSubmitting(false);
         }
     };
+
+    // 로딩 중 화면
+    if (isLoading) {
+        return (
+            <UserLayoutV2>
+                <div className="flex items-center justify-center min-h-[60vh]">
+                    <div className="text-center">
+                        <Loader2 size={48} className="animate-spin text-amber-500 mx-auto mb-4" />
+                        <p className="text-gray-500">스터디 정보를 불러오는 중...</p>
+                    </div>
+                </div>
+            </UserLayoutV2>
+        );
+    }
 
     return (
         <UserLayoutV2>
@@ -328,7 +429,7 @@ const LightningStudyCreatePage: React.FC = () => {
                 <div className="mb-8">
                     <div className="flex items-center gap-3">
                         <button
-                            onClick={() => navigate('/study/create')}
+                            onClick={() => navigate(`/study/manage/${studyId}`)}
                             className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
                         >
                             <ChevronLeft size={24} />
@@ -336,9 +437,9 @@ const LightningStudyCreatePage: React.FC = () => {
                         <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
                             <Zap size={22} className="text-amber-500" />
                         </div>
-                        <h1 className="text-2xl font-bold text-gray-800">번개 스터디 개설</h1>
+                        <h1 className="text-2xl font-bold text-gray-800">번개 스터디 수정</h1>
                     </div>
-                    <p className="text-gray-500 text-sm mt-0.5 ml-16">1회성 빠른 스터디를 만들어보세요</p>
+                    <p className="text-gray-500 text-sm mt-0.5 ml-16">스터디 정보를 수정하세요</p>
                 </div>
 
                 <form onSubmit={handleSubmit}>
@@ -430,8 +531,14 @@ const LightningStudyCreatePage: React.FC = () => {
                                                 <div className="flex items-center justify-center gap-2">
                                                     <button
                                                         type="button"
-                                                        onClick={() => setFormData(prev => ({ ...prev, maxMembers: Math.max(2, prev.maxMembers - 1) }))}
-                                                        className="w-10 h-10 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-600 font-bold transition-all"
+                                                        onClick={() => setFormData(prev => ({ ...prev, maxMembers: Math.max(currentMemberCount, prev.maxMembers - 1) }))}
+                                                        disabled={formData.maxMembers <= currentMemberCount}
+                                                        className={cn(
+                                                            "w-10 h-10 flex items-center justify-center rounded-lg font-bold transition-all",
+                                                            formData.maxMembers <= currentMemberCount
+                                                                ? "bg-gray-100 text-gray-300 cursor-not-allowed"
+                                                                : "bg-gray-100 hover:bg-gray-200 text-gray-600"
+                                                        )}
                                                     >
                                                         −
                                                     </button>
@@ -446,6 +553,11 @@ const LightningStudyCreatePage: React.FC = () => {
                                                         +
                                                     </button>
                                                 </div>
+                                                {currentMemberCount > 1 && (
+                                                    <p className="text-xs text-amber-600 mt-1">
+                                                        현재 {currentMemberCount}명이 참여 중이므로 최소 인원은 {currentMemberCount}명입니다.
+                                                    </p>
+                                                )}
                                             </div>
 
                                             <div>
@@ -591,17 +703,17 @@ const LightningStudyCreatePage: React.FC = () => {
                                     variant="outline"
                                     size="lg"
                                     className="flex-1 sm:flex-none sm:min-w-[120px]"
-                                    onClick={() => navigate('/study/create')}
+                                    onClick={() => navigate(`/study/manage/${studyId}`)}
                                 >
                                     취소
                                 </Button>
                                 <Button
                                     type="submit"
                                     size="lg"
-                                    disabled={isSubmitting || isLoading}
+                                    disabled={isSubmitting}
                                     className="flex-1 sm:flex-none sm:min-w-[200px] bg-amber-500 hover:bg-amber-600 shadow-lg shadow-amber-500/20 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                                 >
-                                    {isSubmitting ? '개설 중...' : '번개 스터디 개설'}
+                                    {isSubmitting ? '수정 중...' : '수정 완료'}
                                 </Button>
                             </div>
                         </div>
@@ -636,4 +748,4 @@ const LightningStudyCreatePage: React.FC = () => {
     );
 };
 
-export default LightningStudyCreatePage;
+export default LightningStudyEditPage;

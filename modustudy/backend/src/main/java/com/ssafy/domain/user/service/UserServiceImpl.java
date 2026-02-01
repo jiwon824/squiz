@@ -69,6 +69,11 @@ public class UserServiceImpl implements UserService {
         // 닉네임 설정
         user.setNickname(request.getNickname().trim());
 
+        // 실명 설정
+        if (request.getName() != null && !request.getName().trim().isEmpty()) {
+            user.setName(request.getName().trim());
+        }
+
         // 비밀번호 설정 (암호화!)
         if (request.getPassword() != null && !request.getPassword().isEmpty()) {
             String encodedPassword = passwordEncoder.encode(request.getPassword());
@@ -115,6 +120,16 @@ public class UserServiceImpl implements UserService {
                 throw new IllegalArgumentException("이미 사용 중인 닉네임입니다.");
             }
             user.setNickname(trimmedNickname);
+        }
+
+        // 실명 업데이트
+        if (request.getName() != null && !request.getName().trim().isEmpty()) {
+            user.setName(request.getName().trim());
+        }
+
+        // 자기소개 업데이트
+        if (request.getBio() != null) {
+            user.setBio(request.getBio().trim());
         }
 
         return userRepository.save(user);

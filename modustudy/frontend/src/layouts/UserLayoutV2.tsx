@@ -426,7 +426,7 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEntering
                                                         onClick={() => setIsProfileOpen(false)}
                                                     >
                                                         <User size={16} />
-                                                        <span>마이 프로필</span>
+                                                        <span>내 프로필</span>
                                                     </Link>
                                                 </li>
                                                 <li>

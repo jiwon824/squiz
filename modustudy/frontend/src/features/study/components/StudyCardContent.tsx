@@ -80,15 +80,40 @@ const StudyCardContent: React.FC<StudyCardContentProps> = ({ study, onBookmarkTo
         }
     };
 
-    // 요일 포맷팅
+    // 지역 표시 텍스트 (meetingType에 따라 다르게 표시)
+    const getRegionText = () => {
+        if (study.meetingType === 'ONLINE') {
+            return '전국';
+        }
+        // 오프라인/혼합인 경우
+        return study.region?.name || '미지정';
+    };
+
+    // 요일 포맷팅 - 요일 순서대로 정렬 (대소문자/한글 모두 지원)
     const formatDays = (days: string) => {
-        const dayMap: { [key: string]: string } = {
-            MON: '월', TUE: '화', WED: '수', THU: '목', FRI: '금', SAT: '토', SUN: '일',
+        const dayOrder: { [key: string]: number } = {
+            MON: 0, mon: 0, '월': 0,
+            TUE: 1, tue: 1, '화': 1,
+            WED: 2, wed: 2, '수': 2,
+            THU: 3, thu: 3, '목': 3,
+            FRI: 4, fri: 4, '금': 4,
+            SAT: 5, sat: 5, '토': 5,
+            SUN: 6, sun: 6, '일': 6,
         };
-        return days
+        const dayMap: { [key: string]: string } = {
+            MON: '월', mon: '월', '월': '월',
+            TUE: '화', tue: '화', '화': '화',
+            WED: '수', wed: '수', '수': '수',
+            THU: '목', thu: '목', '목': '목',
+            FRI: '금', fri: '금', '금': '금',
+            SAT: '토', sat: '토', '토': '토',
+            SUN: '일', sun: '일', '일': '일',
+        };
+        const sortedDays = days
             .split(',')
-            .map((day) => dayMap[day.trim()] || day)
-            .join(', ');
+            .map((day) => day.trim())
+            .sort((a, b) => (dayOrder[a] ?? 99) - (dayOrder[b] ?? 99));
+        return sortedDays.map((day) => dayMap[day] || day).join(', ');
     };
 
     const statusConfig = getStatusConfig(study.status);
@@ -164,14 +189,12 @@ const StudyCardContent: React.FC<StudyCardContentProps> = ({ study, onBookmarkTo
                         </div>
                         <span className="text-text-secondary truncate">{formatDays(study.scheduleDays)}</span>
                     </div>
-                    {study.region && (
-                        <div className="flex items-center gap-3 text-xs font-bold text-text-tertiary overflow-hidden">
-                            <div className="p-1.5 bg-primary/5 rounded-lg text-primary/70">
-                                <MapPin size={16} />
-                            </div>
-                            <span className="text-text-secondary truncate">{study.region.name}</span>
+                    <div className="flex items-center gap-3 text-xs font-bold text-text-tertiary overflow-hidden">
+                        <div className="p-1.5 bg-primary/5 rounded-lg text-primary/70">
+                            <MapPin size={16} />
                         </div>
-                    )}
+                        <span className="text-text-secondary truncate">{getRegionText()}</span>
+                    </div>
                     <div className="flex items-center gap-3 text-xs font-bold text-text-tertiary">
                         <div className="p-1.5 bg-primary/5 rounded-lg text-primary/70">
                             <Clock size={16} />

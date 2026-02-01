@@ -65,6 +65,7 @@ export interface StudyDetailResponse {
   id: number;
   leaderId: number;
   name: string;
+  intro: string | null;
   description: string | null;
   topic: TopicInfo;
   format: FormatInfo | null;
@@ -303,7 +304,7 @@ export interface StudyListPageResponse {
 
 /**
  * 스터디 목록 조회 (페이지)
- * GET /api/v1/study
+ * GET /api/v1/study/search - 필터링 지원 엔드포인트 사용
  */
 export const getStudyList = async (params: StudyListParams = {}): Promise<StudyListPageResponse> => {
   const queryParams = new URLSearchParams();
@@ -316,9 +317,11 @@ export const getStudyList = async (params: StudyListParams = {}): Promise<StudyL
   if (params.difficulty) queryParams.set('difficulty', params.difficulty);
   if (params.status) queryParams.set('status', params.status);
 
-  console.log('[getStudyList] 요청:', "/api/v1/study");
-  const response = await api.get(`/api/v1/study?${queryParams.toString()}`);
-  console.log('[getStudyList] 응답:', response.data);
+  // 필터링 파라미터 사용 시 /search 엔드포인트 사용
+  const hasFilters = params.keyword || params.topicId || params.meetingType || params.difficulty || params.status;
+  const endpoint = hasFilters ? '/api/v1/study/search' : '/api/v1/study';
+
+  const response = await api.get(`${endpoint}?${queryParams.toString()}`);
 
   // 백엔드 응답 형식: { success: true, data: { content: [...], ... } }
   // 또는 직접 페이지 응답: { content: [...], ... }
