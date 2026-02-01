@@ -93,6 +93,12 @@ public class UserSectionAttemptQuestion extends BaseEntity {
     @Column(name = "answered_at")
     private LocalDateTime answeredAt;
 
+    /**
+     * 답변하는 데에 걸린 시간
+     */
+    @Column(name = "response_time_ms")
+    private Long responseTimeMs = 0L; // 기본값 0 설정
+
     @Builder
     public UserSectionAttemptQuestion(
             UserSectionAttempt attempt,
@@ -110,6 +116,18 @@ public class UserSectionAttemptQuestion extends BaseEntity {
      */
     public void saveAnswer(String answer) {
         this.userAnswer = answer;
+        this.answeredAt = LocalDateTime.now();
+    }
+
+    /**
+     * 사용자 답안과 응답 시간을 함께 저장한다.
+     *
+     * @param answer         사용자 답안
+     * @param responseTimeMs 응답 시간(ms)
+     */
+    public void saveAnswer(String answer, Long responseTimeMs) {
+        this.userAnswer = answer;
+        this.responseTimeMs = responseTimeMs;
         this.answeredAt = LocalDateTime.now();
     }
 

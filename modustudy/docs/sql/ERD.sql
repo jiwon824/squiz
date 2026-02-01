@@ -482,7 +482,7 @@ CREATE TABLE `meeting_photo` (
 );
 
 CREATE TABLE `meeting_recording` (
-	`meeting_recording_id`	BIGINT	NOT NULL,
+	`meeting_recording_id`	BIGINT PRIMARY KEY AUTO_INCREMENT,
 	`meeting_id`	BIGINT	NULL,
 	`recording_url`	VARCHAR(500)	NULL,
 	`format`	VARCHAR(20)	NULL,
@@ -845,7 +845,7 @@ CREATE TABLE IF NOT EXISTS `user_review_items` (
     `user_id` BIGINT NOT NULL,
     
     -- 다형성 구조 (코스 퀴즈, AI 생성 퀴즈 등 수용)
-    `content_type` VARCHAR(20) NOT NULL, -- 'STATIC_COURSE' 또는 'AI_GENERATED'
+    `content_type` ENUM('COURSE_QUESTION', 'STUDY_QUESTION') NOT NULL,
     `content_id` BIGINT NOT NULL,        -- 해당 퀴즈 테이블의 PK
     
     -- FSRS 핵심 변수 (지수 함수 정밀 연산을 위해 DOUBLE 사용)
