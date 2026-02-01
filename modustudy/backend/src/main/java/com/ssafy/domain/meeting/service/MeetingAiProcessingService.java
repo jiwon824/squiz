@@ -9,6 +9,7 @@ import com.ssafy.domain.meeting.entity.MeetingAudioRecording;
 import com.ssafy.domain.meeting.entity.MeetingAudioTrackType;
 import com.ssafy.domain.meeting.entity.MeetingStatus;
 import com.ssafy.domain.meeting.entity.MeetingSttSummary;
+import com.ssafy.domain.meeting.entity.SummarySource;
 import com.ssafy.domain.meeting.entity.SummaryStatus;
 import com.ssafy.domain.meeting.repository.MeetingAudioRecordingRepository;
 import com.ssafy.domain.notification.entity.NotificationType;
@@ -132,6 +133,12 @@ public class MeetingAiProcessingService {
             }
 
             MeetingSttSummary summary = meetingSttService.getOrCreateSummary(meetingId);
+
+            // 요약 소스 설정: 실시간 STT 세그먼트가 있으면 REALTIME_STT, 없으면 FULL_AUDIO
+            long segmentCount = speechSegmentService.countByMeetingId(meetingId);
+            SummarySource summarySource = segmentCount > 0 ? SummarySource.REALTIME_STT : SummarySource.FULL_AUDIO;
+            summary.updateSummarySource(summarySource);
+            log.info("요약 소스 설정 - meetingId: {}, source: {}, segmentCount: {}", meetingId, summarySource, segmentCount);
 
             if (result.getSummary() != null) {
                 String summaryFileUrl = localFileStorageService.saveMeetingTextContent(
