@@ -193,12 +193,14 @@ const StudyPageV2: React.FC = () => {
                 ? `recruitEndDate,${sortOption.order}`
                 : `createdAt,desc`;
 
+            const meetingTypeParam = filters.meetingType.length === 1 ? filters.meetingType[0] : undefined;
+
             const response = await getStudyList({
                 page: currentPage - 1, // API는 0-based
                 size: pageSize,
                 sort: sortParam,
                 keyword: searchKeyword || undefined,
-                meetingType: filters.meetingType.length === 1 ? filters.meetingType[0] : undefined,
+                meetingType: meetingTypeParam,
                 difficulty: filters.difficulty.length === 1 ? filters.difficulty[0] : undefined,
             });
 
