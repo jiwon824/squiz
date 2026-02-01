@@ -2,6 +2,7 @@ package com.ssafy.domain.meeting.service;
 
 import com.ssafy.common.storage.LocalFileStorageService;
 import com.ssafy.domain.ai.service.AiService;
+import com.ssafy.domain.meeting.dto.response.MeetingActionItemResponse;
 import com.ssafy.domain.meeting.entity.ActionItemStatus;
 import com.ssafy.domain.meeting.entity.Meeting;
 import com.ssafy.domain.meeting.entity.MeetingAudioRecording;
@@ -29,6 +30,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.ArrayList;
 
 @Service
 @RequiredArgsConstructor
@@ -146,20 +148,28 @@ public class MeetingAiProcessingService {
                 log.info("주요 내용(highlights) 저장 완료 - meetingId: {}, count: {}", meetingId, result.getHighlights().size());
             }
 
-            meetingSttService.saveSummary(summary);
-
             // 액션 아이템 저장
             if (result.getActionItems() != null && !result.getActionItems().isEmpty()) {
+                List<MeetingActionItemResponse> actionItemResponses = new ArrayList<>();
                 for (AiService.MeetingProcessResult.ActionItem item : result.getActionItems()) {
-                    meetingActionItemService.saveActionItem(
+                    var saved = meetingActionItemService.saveActionItem(
                             meetingId,
                             item.getContent(),
                             item.getUserId(),
                             ActionItemStatus.TODO
                     );
+                    actionItemResponses.add(new MeetingActionItemResponse(
+                            saved.getId(),
+                            saved.getContent(),
+                            saved.getAssigneeId(),
+                            saved.getStatus()
+                    ));
                 }
+                summary.updateActionItemsJson(helper.writeJson(actionItemResponses));
                 log.info("액션 아이템 저장 완료 - meetingId: {}, count: {}", meetingId, result.getActionItems().size());
             }
+
+            meetingSttService.saveSummary(summary);
 
             // 퀴즈 저장 (스터디 + 세션(회차) + 미팅 연결)
             if (result.getQuizRaw() != null && !result.getQuizRaw().isBlank()) {
