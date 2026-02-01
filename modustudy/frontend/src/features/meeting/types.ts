@@ -236,7 +236,8 @@ export type MeetingRoomEventType =
     | 'PRESENTER'
     | 'SPEAKING'
     | 'PRESENCE'
-    | 'MEETING_ENDED';
+    | 'MEETING_ENDED'
+    | 'MEETING_DURATION_UPDATED';
 
 export interface MeetingRoomEvent {
     type: MeetingRoomEventType;
@@ -249,6 +250,7 @@ export interface MeetingRoomEvent {
     deletedChatId?: number | null;
     presenterName?: string;
     presenterId?: number | null;
+    plannedDurationSeconds?: number | null;
 }
 
 export interface MeetingRequestPayload {
