@@ -524,4 +524,104 @@ class MessageServiceTest {
             assertThat(count).isEqualTo(1);
         }
     }
+
+    @Nested
+    @DisplayName("고정 메시지")
+    class PinnedMessage {
+
+        @Test
+        @DisplayName("성공 - 고정 메시지 목록 조회")
+        void getPinnedMessages_Success() {
+            // given
+            message1.pin();
+            messageRepository.flush();
+
+            // when
+            List<MessageResponse> response = messageService.getPinnedMessages(workspace.getId());
+
+            // then
+            assertThat(response).hasSize(1);
+            assertThat(response.get(0).getId()).isEqualTo(message1.getId());
+            assertThat(response.get(0).getIsPinned()).isTrue();
+        }
+
+        @Test
+        @DisplayName("성공 - 고정 메시지 없음")
+        void getPinnedMessages_Empty() {
+            // when
+            List<MessageResponse> response = messageService.getPinnedMessages(workspace.getId());
+
+            // then
+            assertThat(response).isEmpty();
+        }
+
+        @Test
+        @DisplayName("실패 - 존재하지 않는 워크스페이스")
+        void getPinnedMessages_WorkspaceNotFound() {
+            // when & then
+            assertThatThrownBy(() -> messageService.getPinnedMessages(99999L))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("워크스페이스를 찾을 수 없습니다");
+        }
+
+        @Test
+        @DisplayName("성공 - 메시지 고정 토글 (고정)")
+        void togglePinMessage_Pin() {
+            // when
+            MessageResponse response = messageService.togglePinMessage(message1.getId());
+
+            // then
+            assertThat(response.getIsPinned()).isTrue();
+        }
+
+        @Test
+        @DisplayName("성공 - 메시지 고정 토글 (해제)")
+        void togglePinMessage_Unpin() {
+            // given
+            message1.pin();
+            messageRepository.flush();
+
+            // when
+            MessageResponse response = messageService.togglePinMessage(message1.getId());
+
+            // then
+            assertThat(response.getIsPinned()).isFalse();
+        }
+
+        @Test
+        @DisplayName("실패 - 존재하지 않는 메시지")
+        void togglePinMessage_NotFound() {
+            // when & then
+            assertThatThrownBy(() -> messageService.togglePinMessage(99999L))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("메시지를 찾을 수 없습니다");
+        }
+
+        @Test
+        @DisplayName("실패 - 삭제된 메시지 고정 시도")
+        void togglePinMessage_Deleted() {
+            // given
+            message1.delete();
+            messageRepository.flush();
+
+            // when & then
+            assertThatThrownBy(() -> messageService.togglePinMessage(message1.getId()))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("삭제된 메시지는 고정할 수 없습니다");
+        }
+
+        @Test
+        @DisplayName("성공 - 고정 메시지 수 조회")
+        void getPinnedMessageCount_Success() {
+            // given
+            message1.pin();
+            messageRepository.flush();
+
+            // when
+            long count = messageService.getPinnedMessageCount(workspace.getId());
+
+            // then
+            assertThat(count).isEqualTo(1);
+        }
+    }
 }

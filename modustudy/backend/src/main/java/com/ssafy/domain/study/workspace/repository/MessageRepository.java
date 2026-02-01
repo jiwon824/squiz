@@ -109,6 +109,25 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
     long countByWorkspaceId(@Param("workspaceId") Long workspaceId);
 
     /**
+     * 워크스페이스 내 고정된 메시지 목록 조회
+     */
+    @Query("SELECT m FROM Message m " +
+            "WHERE m.workspaceId = :workspaceId " +
+            "AND m.isPinned = true " +
+            "AND m.isDeleted = false " +
+            "ORDER BY m.createdAt DESC")
+    List<Message> findPinnedMessages(@Param("workspaceId") Long workspaceId);
+
+    /**
+     * 워크스페이스 내 고정된 메시지 수 조회
+     */
+    @Query("SELECT COUNT(m) FROM Message m " +
+            "WHERE m.workspaceId = :workspaceId " +
+            "AND m.isPinned = true " +
+            "AND m.isDeleted = false")
+    long countPinnedMessages(@Param("workspaceId") Long workspaceId);
+
+    /**
      * 워크스페이스 ID로 모든 메시지 삭제 (워크스페이스 삭제 시)
      */
     @Modifying

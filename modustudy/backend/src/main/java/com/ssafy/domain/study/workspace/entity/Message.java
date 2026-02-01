@@ -44,6 +44,10 @@ public class Message {
     @Builder.Default
     private Boolean isDeleted = false;
 
+    @Column(name = "is_pinned", nullable = false)
+    @Builder.Default
+    private Boolean isPinned = false;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -82,6 +86,27 @@ public class Message {
      */
     public boolean isDeleted() {
         return this.isDeleted;
+    }
+
+    /**
+     * 메시지 고정
+     */
+    public void pin() {
+        this.isPinned = true;
+    }
+
+    /**
+     * 메시지 고정 해제
+     */
+    public void unpin() {
+        this.isPinned = false;
+    }
+
+    /**
+     * 고정 상태 토글
+     */
+    public void togglePin() {
+        this.isPinned = !this.isPinned;
     }
 
     /**
