@@ -135,6 +135,61 @@ function listProducers(room, excludeSocketId) {
   return producerInfos;
 }
 
+// 실시간 발화 감지기 초기화 (auto-start 지원)
+async function ensureSpeechDetector(roomId) {
+  if (speechDetectors.has(roomId)) return;
+
+  const room = rooms.get(roomId);
+  if (!room) return;
+
+  // roomId에서 meetingId 추출 (meeting-{id} 형식)
+  const meetingIdStr = roomId.replace('meeting-', '');
+  const meetingId = parseInt(meetingIdStr, 10);
+  if (isNaN(meetingId)) return;
+
+  try {
+    const speechDetector = createSpeechDetector({
+      router: room.router,
+      room,
+      meetingId,
+      config,
+      onSegmentReady: (segment) => {
+        // eslint-disable-next-line no-console
+        console.log('[speech] Segment ready callback', segment);
+      }
+    });
+    await speechDetector.initialize();
+
+    // 기존 오디오 Producer들 등록
+    for (const [peerId, peer] of room.peers) {
+      for (const [, entry] of peer.producers) {
+        if (entry.kind === 'audio') {
+          const userId = peer.authToken ? peerId : peer.displayName || peerId;
+          await speechDetector.addProducer(entry.producer, userId);
+        }
+      }
+    }
+
+    speechDetectors.set(roomId, speechDetector);
+    // eslint-disable-next-line no-console
+    console.log('[speech] SpeechDetector started (auto)', { roomId, meetingId });
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('[speech] SpeechDetector auto-start failed', { roomId, error: err.message });
+  }
+}
+
+// recordingManager.onProducersChanged 호출 후 SpeechDetector도 시작
+async function handleProducersChanged(roomId) {
+  if (recordingManager) {
+    await recordingManager.onProducersChanged(roomId);
+    // 녹음이 시작되었으면 SpeechDetector도 시작
+    if (recordingManager.recordings.has(roomId)) {
+      await ensureSpeechDetector(roomId);
+    }
+  }
+}
+
 io.on('connection', (socket) => {
   const authToken = socket.handshake.auth?.token || socket.handshake.query?.token;
   if (authToken) {
@@ -262,16 +317,12 @@ io.on('connection', (socket) => {
       producer.on('transportclose', () => {
         producer.close();
         peer.producers.delete(producer.id);
-        if (recordingManager) {
-          recordingManager.onProducersChanged(roomId);
-        }
+        handleProducersChanged(roomId);
       });
 
       // 새 Producer 알림 먼저 전송
       socket.to(roomId).emit('newProducer', { producerId: producer.id, producerPeerId: socket.id, kind });
-      if (recordingManager) {
-        recordingManager.onProducersChanged(roomId);
-      }
+      handleProducersChanged(roomId);
 
       // 실시간 발화 감지: 오디오 Producer 추가
       if (kind === 'audio') {
@@ -294,9 +345,7 @@ io.on('connection', (socket) => {
             existingVideoEntry.producer.close();
             peer.producers.delete(oldProducerId);
             socket.to(roomId).emit('producerClosed', { producerId: oldProducerId, peerId: socket.id });
-            if (recordingManager) {
-              recordingManager.onProducersChanged(roomId);
-            }
+            handleProducersChanged(roomId);
           }
         }, 300);
       }
@@ -335,9 +384,7 @@ io.on('connection', (socket) => {
       entry.producer.close();
       peer.producers.delete(producerId);
       socket.to(roomId).emit('producerClosed', { producerId, peerId: socket.id });
-      if (recordingManager) {
-        recordingManager.onProducersChanged(roomId);
-      }
+      handleProducersChanged(roomId);
       callback({ closed: true });
     } catch (err) {
       callback({ error: err.message });
@@ -425,9 +472,7 @@ io.on('connection', (socket) => {
       cleanPeer(peer);
       room.peers.delete(socket.id);
       socket.to(roomId).emit('peerLeft', { peerId: socket.id });
-      if (recordingManager) {
-        recordingManager.onProducersChanged(roomId);
-      }
+      handleProducersChanged(roomId);
       if (room.peers.size === 0) {
         if (recordingManager && recordingManager.recordings.has(roomId)) {
           if (emptyRoomStopTimers.has(roomId)) return;
