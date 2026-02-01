@@ -38,6 +38,7 @@ interface StudyDetail {
     scheduleDays?: string;
     scheduleTime?: string;
     maxMembers: number;
+    currentMembers?: number;  // 현재 참여 인원
     isPublic?: boolean;
     status: string;
     penaltyPolicy?: string;
@@ -200,7 +201,7 @@ const StudyDetailPageV3: React.FC = () => {
         status: computedStatus,
         isPublic: studyDetail.isPublic ?? true,
         maxMembers: studyDetail.maxMembers,
-        currentMembers: 1,
+        currentMembers: studyDetail.currentMembers || 1,  // API에서 받아온 값 사용 (0이면 최소 1명)
         difficulty: studyDetail.difficulty || 'INTERMEDIATE',
         scheduleDays: studyDetail.scheduleDays || '',
         scheduleTime: studyDetail.scheduleTime,
@@ -703,10 +704,12 @@ const StudyDetailPageV3: React.FC = () => {
                                     </div>
                                 </div>
 
+                                {/* 커리큘럼(세션) 섹션 - 번개 스터디는 숨김 */}
+                                {studyDetail.studyType !== 'LIGHTNING' && (
+                                <>
                                 {/* 구분선 */}
                                 <div className="mx-6 md:mx-8 border-t-2 border-gray-200" />
 
-                                {/* 커리큘럼(세션) 섹션 */}
                                 <div className="p-6 md:p-8">
                                     <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--color-text-primary)] mb-8">
                                         <div className="p-2 bg-[var(--color-primary-alpha-10)] rounded-xl">
@@ -803,6 +806,9 @@ const StudyDetailPageV3: React.FC = () => {
                                         </div>
                                     )}
                                 </div>
+                                </>
+                                )}
+
                             </div>
 
                             {/* 댓글 섹션 */}

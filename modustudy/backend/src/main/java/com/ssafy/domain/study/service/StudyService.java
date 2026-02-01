@@ -45,7 +45,12 @@ public class StudyService {
                 pageable.getPageNumber(), pageable.getPageSize());
 
         Page<Study> studies = studyRepository.findAllPublicStudies(Status.DRAFT, pageable);
-        return studies.map(StudyResponse::from);
+        return studies.map(study -> {
+            int currentMembers = studyMemberRepository.countByStudyIdAndStatus(study.getId(), MemberStatus.APPROVED) + 1;
+            StudyResponse response = StudyResponse.from(study);
+            response.setCurrentMembers(currentMembers);
+            return response;
+        });
     }
 
     /**
@@ -57,7 +62,12 @@ public class StudyService {
                 pageable.getPageNumber(), pageable.getPageSize());
 
         Page<Study> studies = studyRepository.findRecruitingStudies(pageable);
-        return studies.map(StudyResponse::from);
+        return studies.map(study -> {
+            int currentMembers = studyMemberRepository.countByStudyIdAndStatus(study.getId(), MemberStatus.APPROVED) + 1;
+            StudyResponse response = StudyResponse.from(study);
+            response.setCurrentMembers(currentMembers);
+            return response;
+        });
     }
 
     /**
@@ -72,7 +82,12 @@ public class StudyService {
                 condition.getMeetingType());
 
         Page<Study> studies = studyRepository.searchStudies(condition, pageable);
-        return studies.map(StudyResponse::from);
+        return studies.map(study -> {
+            int currentMembers = studyMemberRepository.countByStudyIdAndStatus(study.getId(), MemberStatus.APPROVED) + 1;
+            StudyResponse response = StudyResponse.from(study);
+            response.setCurrentMembers(currentMembers);
+            return response;
+        });
     }
 
     /**
@@ -83,7 +98,12 @@ public class StudyService {
         log.info("스터디장 {} 의 스터디 목록 조회", leaderId);
 
         Page<Study> studies = studyRepository.findByLeaderId(leaderId, pageable);
-        return studies.map(StudyResponse::from);
+        return studies.map(study -> {
+            int currentMembers = studyMemberRepository.countByStudyIdAndStatus(study.getId(), MemberStatus.APPROVED) + 1;
+            StudyResponse response = StudyResponse.from(study);
+            response.setCurrentMembers(currentMembers);
+            return response;
+        });
     }
 
     /**
@@ -94,7 +114,12 @@ public class StudyService {
         log.info("스터디장 {} 의 {} 상태 스터디 목록 조회", leaderId, status);
 
         Page<Study> studies = studyRepository.findByLeaderIdAndStatus(leaderId, status, pageable);
-        return studies.map(StudyResponse::from);
+        return studies.map(study -> {
+            int currentMembers = studyMemberRepository.countByStudyIdAndStatus(study.getId(), MemberStatus.APPROVED) + 1;
+            StudyResponse response = StudyResponse.from(study);
+            response.setCurrentMembers(currentMembers);
+            return response;
+        });
     }
 
     /**
@@ -116,7 +141,10 @@ public class StudyService {
             leader = userRepository.findById(study.getLeaderId()).orElse(null);
         }
 
-        return StudyResponse.from(study, leader);
+        // 현재 참여 인원 조회 (스터디장 포함이므로 +1)
+        int currentMembers = studyMemberRepository.countByStudyIdAndStatus(studyId, MemberStatus.APPROVED) + 1;
+
+        return StudyResponse.from(study, leader, currentMembers);
     }
 
     /**
