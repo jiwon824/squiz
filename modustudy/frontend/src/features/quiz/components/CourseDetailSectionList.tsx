@@ -132,15 +132,6 @@ export const CourseDetailSectionList = ({
                                     {section.name}
                                 </div>
 
-                                {/* 시도 횟수 */}
-                                {section.attemptCount > 0 && (
-                                    <div
-                                        className="text-xs mt-1"
-                                        style={{ color: 'var(--color-text-tertiary)' }}
-                                    >
-                                        {section.attemptCount}회 시도
-                                    </div>
-                                )}
                             </div>
 
                             {/* 최고 점수 배지 (완료된 경우만) */}

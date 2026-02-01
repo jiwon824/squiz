@@ -22,7 +22,7 @@ public class QuartzConfig {
         return TriggerBuilder.newTrigger()
                 .forJob(newsScrapingJobDetail())
                 .withIdentity("newsScrapingTrigger")
-                .withSchedule(CronScheduleBuilder.cronSchedule("0 0 * * * ?"))  // 10분마다 (개발용)
+                .withSchedule(CronScheduleBuilder.cronSchedule("0 0 */3 * * ?"))  // 3시간마다
                 .build();
     }
 }

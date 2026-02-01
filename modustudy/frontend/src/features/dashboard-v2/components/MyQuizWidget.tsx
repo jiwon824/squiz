@@ -67,7 +67,7 @@ const transformToQuizQuestions = (detail: StudyQuizDetail): QuizQuestion[] => {
     });
 };
 
-export const AIQuizWidget: React.FC = () => {
+export const MyQuizWidget: React.FC = () => {
     const [viewMode, setViewMode] = useState<ViewMode>('list');
     const [selectedQuizSet, setSelectedQuizSet] = useState<QuizSet | null>(null);
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -267,11 +267,11 @@ export const AIQuizWidget: React.FC = () => {
             <WidgetHeader
                 icon={Brain}
                 iconColor="secondary"
-                title={viewMode === 'list' ? 'AI 복습 퀴즈' : selectedQuizSet?.title || ''}
+                title={viewMode === 'list' ? '내 복습 퀴즈' : selectedQuizSet?.title || ''}
                 subtitle={viewMode === 'list' ? '스터디 내용 기반 자동 생성' : selectedQuizSet?.meetingTitle}
                 showBackButton={viewMode === 'quiz'}
                 onBack={handleBackToList}
-                maximizePath="/quiz/review"
+                maximizePath="/quiz/my-quiz"
                 rightActions={
                     viewMode === 'quiz' && score.total > 0 ? (
                         <div className="text-sm font-bold text-text-primary">

@@ -36,8 +36,6 @@ export type SectionStatus = 'Locked' | 'InProgress' | 'Completed';
  * @property {boolean} isUnlocked - 해금 여부 (true면 시작 가능)
  * @property {boolean} isPassed - 통과 여부 (true면 완료됨)
  * @property {number | null} bestScore - 최고 점수 (시도하지 않았으면 null)
- * @property {number} attemptCount - 시도 횟수
- * @property {number | null} inProgressAttemptId - 진행 중인 시도 ID (없으면 null)
  */
 export interface CourseDetailSection {
     sectionNumber: number;
@@ -45,8 +43,6 @@ export interface CourseDetailSection {
     isUnlocked: boolean;
     isPassed: boolean;
     bestScore: number | null;
-    attemptCount: number;
-    inProgressAttemptId: number | null;
 }
 
 // -----------------------------------------------------------------------------

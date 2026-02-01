@@ -42,7 +42,7 @@ services:
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
-      - APP_SFU_CONTROL_URL=http://3.38.92.48:4000
+      - APP_SFU_CONTROL_URL=https://3.38.92.48:4000
       - APP_SFU_BASE_URL=wss://i14d106.p.ssafy.io
       # TURN 불필요 - SFU가 AI 서버에서 직접 UDP 연결
       - APP_AI_SERVER_BASE_URL=http://3.38.92.48:8000

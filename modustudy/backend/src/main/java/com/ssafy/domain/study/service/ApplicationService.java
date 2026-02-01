@@ -71,8 +71,8 @@ public class ApplicationService {
             throw new IllegalStateException("본인이 만든 스터디에는 신청할 수 없습니다");
         }
 
-        // 5. 정원 초과 검증 (스터디장 포함이므로 +1)
-        int currentMembers = studyMemberRepository.countByStudyIdAndStatus(studyId, MemberStatus.APPROVED) + 1;
+        // 5. 정원 초과 검증 (스터디장도 StudyMember 테이블에 포함되어 있음)
+        int currentMembers = studyMemberRepository.countByStudyIdAndStatus(studyId, MemberStatus.APPROVED);
         if (study.getMaxMembers() != null && currentMembers >= study.getMaxMembers()) {
             log.warn("스터디 정원 초과 - studyId: {}, currentMembers: {}, maxMembers: {}",
                     studyId, currentMembers, study.getMaxMembers());
@@ -259,8 +259,8 @@ public class ApplicationService {
             throw new IllegalStateException("이미 처리된 신청입니다");
         }
 
-        // 5. 정원 초과 검증 (승인 시점 double-check, 스터디장 포함 +1)
-        int currentMembers = studyMemberRepository.countByStudyIdAndStatus(studyId, MemberStatus.APPROVED) + 1;
+        // 5. 정원 초과 검증 (승인 시점 double-check, 스터디장도 StudyMember에 포함됨)
+        int currentMembers = studyMemberRepository.countByStudyIdAndStatus(studyId, MemberStatus.APPROVED);
         if (study.getMaxMembers() != null && currentMembers >= study.getMaxMembers()) {
             log.warn("스터디 정원 초과로 승인 불가 - studyId: {}, currentMembers: {}, maxMembers: {}",
                     studyId, currentMembers, study.getMaxMembers());

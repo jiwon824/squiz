@@ -67,8 +67,6 @@ const mapAuthenticatedSectionToUiSection = (apiSection: SectionWithProgress): Co
         isUnlocked: apiSection.isUnlocked,
         isPassed: apiSection.isPassed,
         bestScore: apiSection.bestScore,
-        attemptCount: apiSection.attemptCount,
-        inProgressAttemptId: apiSection.inProgressAttemptId,
     };
 };
 
@@ -87,8 +85,6 @@ const mapPublicSectionToUiSection = (
         isUnlocked: index === 0,
         isPassed: false,
         bestScore: null,
-        attemptCount: 0,
-        inProgressAttemptId: null,
     };
 };
 
