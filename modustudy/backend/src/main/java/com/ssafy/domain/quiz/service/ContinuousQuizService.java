@@ -83,6 +83,7 @@ public class ContinuousQuizService {
         private final QuizCourseRepository quizCourseRepository;
         private final UserCourseProgressRepository userCourseProgressRepository;
         private final BadgeRepository badgeRepository;
+        private final UserReviewItemRepository reviewItemRepository;
 
         // ==================== 코스 조회 ====================
 
