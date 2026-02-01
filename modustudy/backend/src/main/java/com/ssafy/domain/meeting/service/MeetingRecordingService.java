@@ -5,9 +5,13 @@ import com.ssafy.config.SfuProperties;
 import com.ssafy.domain.meeting.dto.request.MeetingRecordingRequest;
 import com.ssafy.domain.meeting.dto.response.MeetingRecordingResponse;
 import com.ssafy.domain.meeting.entity.Meeting;
+import com.ssafy.domain.meeting.entity.MeetingAudioRecording;
+import com.ssafy.domain.meeting.entity.MeetingAudioTrackType;
 import com.ssafy.domain.meeting.entity.MeetingRecording;
 import com.ssafy.domain.meeting.entity.RecordingStatus;
+import com.ssafy.domain.meeting.repository.MeetingAudioRecordingRepository;
 import com.ssafy.domain.meeting.repository.MeetingRecordingRepository;
+import com.ssafy.domain.meeting.repository.MeetingRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +33,8 @@ public class MeetingRecordingService {
     private static final Logger log = LoggerFactory.getLogger(MeetingRecordingService.class);
 
     private final MeetingRecordingRepository meetingRecordingRepository;
+    private final MeetingAudioRecordingRepository meetingAudioRecordingRepository;
+    private final MeetingRepository meetingRepository;
     private final LocalFileStorageService localFileStorageService;
     private final SfuProperties sfuProperties;
     private final RestTemplate restTemplate;
@@ -65,6 +71,59 @@ public class MeetingRecordingService {
             meeting.updateRecordingStatus(RecordingStatus.READY);
         }
         return toRecordingResponse(recording);
+    }
+
+    /**
+     * 내부 API용 - meetingId만으로 오디오 녹음 파일 업로드
+     * AI 서버에서 전처리 후 호출
+     */
+    @Transactional
+    public MeetingRecordingResponse uploadRecordingVideoInternal(Long meetingId, MultipartFile video) {
+        Meeting meeting = meetingRepository.findById(meetingId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "MEETING_NOT_FOUND"));
+        if (video == null || video.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "AUDIO_REQUIRED");
+        }
+        String recordingUrl = localFileStorageService.saveMeetingRecordingVideo(meetingId, video);
+        String format = helper.extractFileExtension(video.getOriginalFilename());
+        Long fileSize = video.getSize();
+
+        // MeetingAudioRecording 테이블에 MIXED 타입으로 저장 (AI 스케줄러가 확인)
+        var existingAudio = meetingAudioRecordingRepository
+                .findByMeetingIdAndTrackTypeOrderByCreatedAtAsc(meetingId, MeetingAudioTrackType.MIXED);
+
+        MeetingAudioRecording audioRecording;
+        if (existingAudio.isEmpty()) {
+            audioRecording = MeetingAudioRecording.builder()
+                    .meetingId(meetingId)
+                    .userId(null)
+                    .trackType(MeetingAudioTrackType.MIXED)
+                    .recordingUrl(recordingUrl)
+                    .format(format)
+                    .fileSize(fileSize)
+                    .build();
+            meetingAudioRecordingRepository.save(audioRecording);
+            log.info("MIXED 오디오 녹음 저장 - meetingId: {}, url: {}", meetingId, recordingUrl);
+        } else {
+            audioRecording = existingAudio.get(0);
+            audioRecording.updateRecording(recordingUrl, format, fileSize);
+            log.info("MIXED 오디오 녹음 업데이트 - meetingId: {}, url: {}", meetingId, recordingUrl);
+        }
+
+        meeting.updateRecordingStatus(RecordingStatus.READY);
+
+        // 응답용 DTO 생성
+        return new MeetingRecordingResponse(
+                audioRecording.getId(),
+                recordingUrl,
+                format,
+                null,  // durationSeconds
+                null,  // startedAt
+                null,  // endedAt
+                fileSize,
+                RecordingStatus.READY.name(),
+                audioRecording.getCreatedAt()
+        );
     }
 
     @Transactional

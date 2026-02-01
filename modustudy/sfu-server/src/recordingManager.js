@@ -693,7 +693,14 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
       const exited = await waitForExitWithTimeout(proc, Math.max(800, RECORDING_STOP_GRACE_MS));
       if (!exited && !proc.killed) {
         proc.kill('SIGINT');
-        await waitForExit(proc);
+        // SIGINT 후 3초 대기, 안 되면 SIGKILL
+        const exitedAfterInt = await waitForExitWithTimeout(proc, 3000);
+        if (!exitedAfterInt && !proc.killed) {
+          // eslint-disable-next-line no-console
+          console.warn('[recording] ffmpeg not responding to SIGINT, sending SIGKILL', { roomId: state.roomId });
+          proc.kill('SIGKILL');
+          await waitForExitWithTimeout(proc, 1000);
+        }
       }
     }
     if (segment.segmentPath && segment.startedAt && state.segmentMeta) {
@@ -1359,7 +1366,37 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
       const fileSize = fs.existsSync(outputPath) ? fs.statSync(outputPath).size : null;
       const videoStartOffsetMs =
         state.firstVideoAt && state.startedAt ? Math.max(0, state.firstVideoAt - state.startedAt) : null;
-      return { status: 'stopped', outputPath, fileSize, videoStartOffsetMs };
+
+      // AI 서버로 녹음 파일 업로드 (concat 완료 직후, HTTP 응답과 무관하게)
+      if (config.aiServerUrl && state.meetingId) {
+        const uploadData = {
+          meeting_id: state.meetingId,
+          file_path: outputPath
+        };
+        // eslint-disable-next-line no-console
+        console.log('[recording] uploading to AI server (from stopRecording)', {
+          aiServerUrl: config.aiServerUrl,
+          meetingId: state.meetingId,
+          outputPath
+        });
+        // 비동기 업로드 (결과 대기하지 않음)
+        fetch(`${config.aiServerUrl}/api/upload-recording`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(uploadData)
+        })
+          .then((res) => res.json())
+          .then((result) => {
+            // eslint-disable-next-line no-console
+            console.log('[recording] AI upload success', { meetingId: state.meetingId, result });
+          })
+          .catch((err) => {
+            // eslint-disable-next-line no-console
+            console.error('[recording] AI upload failed', { meetingId: state.meetingId, error: err.message });
+          });
+      }
+
+      return { status: 'stopped', outputPath, fileSize, videoStartOffsetMs, meetingId: state.meetingId };
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error('[recording] concat failed', err);

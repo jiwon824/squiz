@@ -6,6 +6,7 @@ import com.ssafy.domain.study.workspace.dto.response.MessagePageResponse;
 import com.ssafy.domain.study.workspace.dto.response.MessageResponse;
 import com.ssafy.domain.study.workspace.entity.MessageType;
 import com.ssafy.domain.study.workspace.service.MessageService;
+import com.ssafy.domain.study.workspace.websocket.WorkspaceWebSocketEvent;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +16,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -30,6 +32,7 @@ import java.util.List;
 public class MessageController {
 
     private final MessageService messageService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     /**
      * 메시지 생성
@@ -230,6 +233,60 @@ public class MessageController {
         long count = messageService.getMessageCount(workspaceId);
 
         log.info("API 응답 - 메시지 수: {}", count);
+
+        return ResponseEntity.ok(count);
+    }
+
+    /**
+     * 고정된 메시지 목록 조회
+     */
+    @GetMapping("/pinned")
+    public ResponseEntity<List<MessageResponse>> getPinnedMessages(
+            @PathVariable Long workspaceId) {
+
+        log.info("API 호출 - 고정 메시지 조회: workspaceId={}", workspaceId);
+
+        List<MessageResponse> response = messageService.getPinnedMessages(workspaceId);
+
+        log.info("API 응답 - 고정 메시지: count={}", response.size());
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 메시지 고정/해제 토글
+     */
+    @PatchMapping("/{messageId}/pin")
+    public ResponseEntity<MessageResponse> togglePinMessage(
+            @PathVariable Long workspaceId,
+            @PathVariable Long messageId,
+            @RequestHeader("User-Id") Long userId) {
+
+        log.info("API 호출 - 메시지 고정 토글: workspaceId={}, messageId={}, userId={}", workspaceId, messageId, userId);
+
+        MessageResponse response = messageService.togglePinMessage(messageId);
+
+        // WebSocket으로 PIN 이벤트 브로드캐스트
+        WorkspaceWebSocketEvent pinEvent = WorkspaceWebSocketEvent.pinMessage(response, userId);
+        messagingTemplate.convertAndSend("/topic/workspace/" + workspaceId, pinEvent);
+
+        log.info("API 응답 - 메시지 고정 토글 완료: isPinned={}", response.getIsPinned());
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 고정된 메시지 수 조회
+     */
+    @GetMapping("/pinned/count")
+    public ResponseEntity<Long> getPinnedMessageCount(
+            @PathVariable Long workspaceId) {
+
+        log.info("API 호출 - 고정 메시지 수 조회: workspaceId={}", workspaceId);
+
+        long count = messageService.getPinnedMessageCount(workspaceId);
+
+        log.info("API 응답 - 고정 메시지 수: {}", count);
 
         return ResponseEntity.ok(count);
     }

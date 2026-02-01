@@ -26,6 +26,7 @@ import { QuizNavigation } from './components/QuizNavigation';
 import { QuizExitModal } from './components/QuizExitModal';
 import { Button } from '@/shared/components/Button';
 import { useUIStore } from '@/store/uiStore';
+import { useTimer } from './hooks/useTimer';
 
 import {
     startOrResumeAttempt,
@@ -115,6 +116,9 @@ export const QuizSession = () => {
     const [isExitModalOpen, setIsExitModalOpen] = useState(false);
     const [isResumed, setIsResumed] = useState(false);
     const [hasChanges, setHasChanges] = useState(false);
+
+    // FSRS 응답 시간 측정용 타이머
+    const { start: startTimer, stop: stopTimer } = useTimer();
 
     // 브라우저 뒤로가기/새로고침 시 경고 (beforeunload)
     useEffect(() => {
@@ -231,6 +235,17 @@ export const QuizSession = () => {
         initializeSession();
     }, [courseId, sectionNumber, initialAttemptId]);
 
+    // 문제 전환 시 타이머 재시작 및 답안 상태 초기화
+    useEffect(() => {
+        if (questions.length > 0 && currentIndex < questions.length) {
+            startTimer();
+            const q = questions[currentIndex];
+            console.log(
+                `[QuizSession] 새 문제 로드: #${currentIndex + 1}/${questions.length}, questionId=${q?.id}, 타이머 재시작`
+            );
+        }
+    }, [currentIndex, questions.length, startTimer]);
+
     // 현재 문제
     const currentQuestion = questions[currentIndex] || null;
 
@@ -242,9 +257,13 @@ export const QuizSession = () => {
         return Object.values(answers).filter(isValidAnswer).length;
     }, [answers]);
 
-    // 답안 변경 핸들러
+    // 답안 변경 핸들러 (타이머 정지 → 응답 시간 측정 → API 전송)
     const handleAnswerChange = useCallback(async (answer: string | string[]) => {
         if (!attemptData || !currentQuestion || !courseId || !sectionNumber) return;
+
+        // 타이머 정지하여 응답 시간 측정
+        const responseTimeMs = stopTimer();
+        console.log(`[QuizSession] 답안 제출 준비: questionId=${currentQuestion.id}, responseTimeMs=${responseTimeMs}ms`);
 
         // 로컬 상태 업데이트
         setAnswers(prev => ({
@@ -253,7 +272,7 @@ export const QuizSession = () => {
         }));
         setHasChanges(true);
 
-        // API로 답안 저장
+        // API로 답안 + 응답 시간 저장
         setIsSaving(true);
         try {
             await saveAnswerApi(
@@ -261,16 +280,17 @@ export const QuizSession = () => {
                 parseInt(sectionNumber, 10),
                 attemptData.attemptId,
                 parseInt(currentQuestion.id, 10),
-                answer
+                answer,
+                responseTimeMs
             );
-            console.log('[QuizSession] 답안 저장 완료:', currentQuestion.id);
+            console.log(`[QuizSession] 서버 저장 완료: questionId=${currentQuestion.id}, responseTimeMs=${responseTimeMs}ms`);
         } catch (err) {
             console.error('[QuizSession] 답안 저장 실패:', err);
             // 실패해도 로컬 상태는 유지 (다음 저장 시 재시도)
         } finally {
             setIsSaving(false);
         }
-    }, [attemptData, currentQuestion, courseId, sectionNumber]);
+    }, [attemptData, currentQuestion, courseId, sectionNumber, stopTimer]);
 
     // 이전 문제로 이동
     const handlePrevious = useCallback(() => {

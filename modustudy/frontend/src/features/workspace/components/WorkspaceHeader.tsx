@@ -7,6 +7,13 @@ interface WorkspaceHeaderProps {
   onToggleMembers?: () => void;
   isMembersVisible?: boolean;
   onGoBack?: () => void;
+  // 검색 관련
+  onToggleSearch?: () => void;
+  isSearchOpen?: boolean;
+  // 고정 메시지 관련
+  onTogglePinned?: () => void;
+  isPinnedOpen?: boolean;
+  pinnedCount?: number;
 }
 
 export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
@@ -15,6 +22,11 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
   onToggleMembers,
   isMembersVisible = true,
   onGoBack,
+  onToggleSearch,
+  isSearchOpen = false,
+  onTogglePinned,
+  isPinnedOpen = false,
+  pinnedCount = 0,
 }) => {
   return (
     <div className="workspace-header">
@@ -43,13 +55,30 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
         </button>
 
         {/* 검색 버튼 */}
-        <button className="workspace-header__action-btn" title="검색">
+        <button
+          className={cn(
+            'workspace-header__action-btn',
+            isSearchOpen && 'workspace-header__action-btn--active'
+          )}
+          onClick={onToggleSearch}
+          title="검색"
+        >
           <Search size={22} />
         </button>
 
         {/* 핀 메시지 */}
-        <button className="workspace-header__action-btn" title="고정된 메시지">
+        <button
+          className={cn(
+            'workspace-header__action-btn',
+            isPinnedOpen && 'workspace-header__action-btn--active'
+          )}
+          onClick={onTogglePinned}
+          title="고정된 메시지"
+        >
           <Pin size={22} />
+          {pinnedCount > 0 && (
+            <span className="workspace-header__badge">{pinnedCount}</span>
+          )}
         </button>
       </div>
     </div>

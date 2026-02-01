@@ -69,6 +69,8 @@ class QuizSectionAttemptServiceTest {
 
         @Mock
         private UserCourseProgressRepository progressRepository;
+        @Mock
+        private FsrsService fsrsService;
 
         @Mock
         private BadgeRepository badgeRepository;
@@ -731,7 +733,7 @@ class QuizSectionAttemptServiceTest {
 
                         // 단일 답안 요청 데이터 (문제 1번에 대한 답안)
                         SaveAnswerRequest request = new SaveAnswerRequest(
-                                        new SaveAnswerRequest.AnswerItem(questionId, "1"));
+                                        new SaveAnswerRequest.AnswerItem(questionId, "1", 1000L));
 
                         // [수정] attemptQuestionRepository.findByAttemptIdAndQuestionId() Mock
                         given(attemptQuestionRepository.findByAttemptIdAndQuestionId(attemptId, questionId))
@@ -769,7 +771,7 @@ class QuizSectionAttemptServiceTest {
 
                         // 새로운 답안으로 덮어쓰기
                         SaveAnswerRequest request = new SaveAnswerRequest(
-                                        new SaveAnswerRequest.AnswerItem(questionId, "NEW_ANSWER"));
+                                        new SaveAnswerRequest.AnswerItem(questionId, "NEW_ANSWER", 1000L));
 
                         // [수정] attemptQuestionRepository Mock
                         given(attemptQuestionRepository.findByAttemptIdAndQuestionId(attemptId, questionId))
@@ -799,7 +801,7 @@ class QuizSectionAttemptServiceTest {
                         Long nonExistentQuestionId = 999L;
 
                         SaveAnswerRequest request = new SaveAnswerRequest(
-                                        new SaveAnswerRequest.AnswerItem(nonExistentQuestionId, "1"));
+                                        new SaveAnswerRequest.AnswerItem(nonExistentQuestionId, "1", 1000L));
 
                         // [수정] attemptQuestionRepository Mock - 문제를 찾을 수 없음
                         given(attemptQuestionRepository.findByAttemptIdAndQuestionId(attemptId, nonExistentQuestionId))
@@ -834,7 +836,7 @@ class QuizSectionAttemptServiceTest {
                         ReflectionTestUtils.setField(aq1, "attempt", testAttempt);
 
                         SaveAnswerRequest request = new SaveAnswerRequest(
-                                        new SaveAnswerRequest.AnswerItem(questionId, "1"));
+                                        new SaveAnswerRequest.AnswerItem(questionId, "1", 1000L));
 
                         // [수정] attemptQuestionRepository Mock
                         given(attemptQuestionRepository.findByAttemptIdAndQuestionId(attemptId, questionId))
@@ -871,7 +873,7 @@ class QuizSectionAttemptServiceTest {
                         ReflectionTestUtils.setField(aq1, "attempt", testAttempt);
 
                         SaveAnswerRequest request = new SaveAnswerRequest(
-                                        new SaveAnswerRequest.AnswerItem(questionId, "1"));
+                                        new SaveAnswerRequest.AnswerItem(questionId, "1", 1000L));
 
                         // [수정] attemptQuestionRepository Mock
                         given(attemptQuestionRepository.findByAttemptIdAndQuestionId(attemptId, questionId))

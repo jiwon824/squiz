@@ -240,8 +240,8 @@ class AttendanceServiceTest {
         }
 
         @Test
-        @DisplayName("온라인 세션 시작 10분 이후면 자동 출석이 거절된다")
-        void autoAttendance_rejectedAfterWindow() {
+        @DisplayName("온라인 세션 시작 10분 이후면 LATE로 기록된다")
+        void autoAttendance_lateAfterWindow() {
             StudySession lateSession = studySessionRepository.save(StudySession.builder()
                     .studyId(study.getId())
                     .sessionNumber(4)
@@ -252,11 +252,14 @@ class AttendanceServiceTest {
                     .build());
             studySessionRepository.flush();
 
-            assertThatThrownBy(() -> attendanceService.checkAttendanceAutoOnline(
+            AttendanceResponse response = attendanceService.checkAttendanceAutoOnline(
                     study.getId(),
                     lateSession.getId(),
                     member.getId()
-            )).isInstanceOf(IllegalStateException.class);
+            );
+
+            assertThat(response.checkType()).isEqualTo(AttendanceCheckType.AUTO);
+            assertThat(response.status()).isEqualTo(AttendanceStatus.LATE);
         }
     }
 

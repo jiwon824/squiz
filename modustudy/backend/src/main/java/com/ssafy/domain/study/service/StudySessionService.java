@@ -418,4 +418,28 @@ public class StudySessionService {
                     session.getId(), e.getMessage());
         }
     }
+
+    /**
+     * 사용자가 참여한 모든 스터디의 세션 조회 (기간별)
+     */
+    public List<StudySessionResponse> getMyStudySessions(Long userId, LocalDateTime startDate, LocalDateTime endDate) {
+        // 사용자가 참여한 스터디 목록 조회
+        List<StudyMember> myStudies = studyMemberRepository.findByUserIdAndStatus(userId, MemberStatus.APPROVED);
+        
+        if (myStudies.isEmpty()) {
+            return List.of();
+        }
+        
+        List<Long> studyIds = myStudies.stream()
+                .map(StudyMember::getStudyId)
+                .toList();
+        
+        // 해당 스터디들의 세션 조회
+        List<StudySession> sessions = studySessionRepository.findByStudyIdInAndScheduledAtBetween(
+                studyIds, startDate, endDate);
+        
+        return sessions.stream()
+                .map(StudySessionResponse::from)
+                .toList();
+    }
 }

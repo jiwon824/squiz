@@ -4,7 +4,7 @@
  * 각 알림 타입별 ON/OFF 토글을 제공합니다.
  */
 
-import { Bell, Calendar, CheckCircle, BookOpen, HelpCircle, Settings } from 'lucide-react';
+import { Bell, Calendar, CheckCircle, BookOpen, HelpCircle, Settings, UserPlus } from 'lucide-react';
 import { useSettingStore } from '../store/settingStore';
 import { ToggleSwitch } from './ToggleSwitch';
 import type { NotificationType } from '../types';
@@ -38,6 +38,11 @@ const notificationConfig: Record<
         icon: HelpCircle,
         color: '#ec4899',
         description: '퀴즈 관련 알림',
+    },
+    FRIEND: {
+        icon: UserPlus,
+        color: '#06b6d4',
+        description: '친구 요청 및 수락 알림',
     },
     SYSTEM: {
         icon: Settings,

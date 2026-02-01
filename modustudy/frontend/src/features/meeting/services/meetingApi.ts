@@ -112,13 +112,12 @@ export const meetingApi = {
         return data.data;
     },
 
-    /** AI 서버로 음성 STT 요청 */
+    /** AI 서버로 음성 STT 요청 (nginx 프록시 사용) */
     async speechToText(audioBlob: Blob): Promise<{ text: string; duration: number }> {
-        const aiServerUrl = import.meta.env.VITE_AI_SERVER_URL || 'http://18.207.138.18:8000';
         const formData = new FormData();
         formData.append('file', audioBlob, 'audio.webm');
 
-        const response = await fetch(`${aiServerUrl}/api/stt`, {
+        const response = await fetch('/api/stt', {
             method: 'POST',
             body: formData,
         });

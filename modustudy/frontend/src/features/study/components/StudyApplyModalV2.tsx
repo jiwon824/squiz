@@ -3,7 +3,6 @@ import { Send, CheckCircle, AlertCircle, Loader2, Users, Calendar, MapPin } from
 import { Study } from '../services/studyService';
 import { studyApi } from '@/api/endpoints/studyApi';
 import { Modal, Button, FormField } from '@/shared/components';
-import { cn } from '@/shared/utils/cn';
 
 interface StudyApplyModalV2Props {
     study: Study;
@@ -74,6 +73,27 @@ const StudyApplyModalV2: React.FC<StudyApplyModalV2Props> = ({ study, isOpen, on
         }
     };
 
+    // 요일 포맷팅 (번개 스터디는 "오늘" 표시)
+    const formatScheduleDays = () => {
+        if (study.scheduleDays) {
+            // MON,WED,FRI -> 월, 수, 금
+            const dayMap: Record<string, string> = {
+                'MON': '월', 'TUE': '화', 'WED': '수',
+                'THU': '목', 'FRI': '금', 'SAT': '토', 'SUN': '일'
+            };
+            return study.scheduleDays.split(',').map(d => dayMap[d.trim()] || d).join(', ');
+        }
+
+        // 번개 스터디이거나 scheduleDays가 없는 경우
+        if (study.studyType === 'LIGHTNING') {
+            const today = new Date();
+            const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+            return `오늘 (${dayNames[today.getDay()]})`;
+        }
+
+        return '협의 후 결정';
+    };
+
     return (
         <Modal isOpen={isOpen} onClose={handleClose} title="스터디 참여 신청" maxWidth="md">
             <div className="space-y-6">
@@ -91,7 +111,7 @@ const StudyApplyModalV2: React.FC<StudyApplyModalV2Props> = ({ study, isOpen, on
                                         <Users size={14} className="text-[var(--color-primary)]" />
                                     </div>
                                     <span className="text-[var(--color-text-secondary)]">
-                                        {study.currentMembers}/{study.maxMembers}명
+                                        {study.currentMembers || 1}/{study.maxMembers}명
                                     </span>
                                 </div>
 
@@ -109,7 +129,7 @@ const StudyApplyModalV2: React.FC<StudyApplyModalV2Props> = ({ study, isOpen, on
                                         <Calendar size={14} className="text-[var(--color-primary)]" />
                                     </div>
                                     <span className="text-[var(--color-text-secondary)] truncate">
-                                        {study.scheduleDays}
+                                        {formatScheduleDays()}
                                     </span>
                                 </div>
                             </div>

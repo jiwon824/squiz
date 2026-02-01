@@ -29,7 +29,7 @@ export const ToastContainer = () => {
     if (toasts.length === 0) return null;
 
     return (
-        <div className="fixed bottom-6 right-6 z-[9999] flex flex-col gap-3 pointer-events-auto">
+        <div className="fixed bottom-6 right-6 z-[10050] flex flex-col gap-3 pointer-events-auto">
             {toasts.map((toast) => {
                 const style = toastStyles[toast.type];
                 const Icon = style.icon;

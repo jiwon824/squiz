@@ -195,6 +195,7 @@ class AttendanceControllerTest {
                         LocalDate.of(2026, 1, 29),
                         10L,
                         AttendanceStatus.PRESENT,
+                        AttendanceExcuseStatus.PENDING,
                         AttendanceCheckType.AUTO,
                         LocalDateTime.of(2026, 1, 29, 10, 0)
                 ))

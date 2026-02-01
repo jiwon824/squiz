@@ -1874,7 +1874,7 @@ const StudyCreatePage: React.FC = () => {
             {/* 스터디 선호 설정 필요 모달 */}
             {showPreferenceModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                    <div className="bg-white rounded-2xl shadow-xl max-w-md w-full mx-4 overflow-hidden">
+                    <div className="bg-white rounded-2xl shadow-xl max-w-xl w-full mx-4 overflow-hidden">
                         <div className="p-6">
                             <div className="flex items-center gap-3 mb-4">
                                 <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">

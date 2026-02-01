@@ -43,15 +43,12 @@ public class LocalFileStorageService {
     }
 
     public String saveMeetingRecordingVideo(Long meetingId, MultipartFile file) {
-        String originalName = file.getOriginalFilename();
-        String safeName = originalName == null ? "recording" : originalName.replace("\\", "_").replace("/", "_");
-        String extension = extractExtension(safeName);
-        String timestamp = LocalDateTime.now().format(FILE_TS);
-        String filename = timestamp + "-" + UUID.randomUUID() + extension;
+        // 음성 녹음 파일을 voice 디렉토리에 voice.webm으로 저장
+        String filename = "voice.webm";
         Path targetDir = basePath.resolve("meetings")
                 .resolve(String.valueOf(meetingId))
                 .resolve("recordings")
-                .resolve("video")
+                .resolve("voice")
                 .normalize();
         Path targetFile = targetDir.resolve(filename).normalize();
         if (!targetFile.startsWith(targetDir)) {
@@ -63,7 +60,7 @@ public class LocalFileStorageService {
         } catch (IOException e) {
             throw new IllegalStateException("Failed to store file", e);
         }
-        return "/uploads/meetings/" + meetingId + "/recordings/video/" + filename;
+        return "/uploads/meetings/" + meetingId + "/recordings/voice/" + filename;
     }
 
     public String saveMeetingRecordingAudio(Long meetingId, Long userId, boolean mixed, MultipartFile file) {

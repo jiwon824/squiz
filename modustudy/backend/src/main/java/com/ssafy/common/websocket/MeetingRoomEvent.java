@@ -5,7 +5,7 @@ import java.util.List;
 
 public class MeetingRoomEvent {
     // WebSocket event envelope for room presence/chat/presenter updates.
-    public enum Type { JOIN, LEAVE, CHAT, CHAT_HISTORY, CHAT_DELETED, PRESENTER, SPEAKING, PRESENCE, MEETING_ENDED }
+    public enum Type { JOIN, LEAVE, CHAT, CHAT_HISTORY, CHAT_DELETED, PRESENTER, SPEAKING, PRESENCE, MEETING_ENDED, MEETING_DURATION_UPDATED }
 
     private Type type;
     private String roomId;
@@ -17,6 +17,7 @@ public class MeetingRoomEvent {
     private Long deletedChatId;
     private String presenterName;
     private Long presenterId;
+    private Integer plannedDurationSeconds;
 
     public MeetingRoomEvent() {
     }
@@ -104,5 +105,13 @@ public class MeetingRoomEvent {
 
     public void setDeletedChatId(Long deletedChatId) {
         this.deletedChatId = deletedChatId;
+    }
+
+    public Integer getPlannedDurationSeconds() {
+        return plannedDurationSeconds;
+    }
+
+    public void setPlannedDurationSeconds(Integer plannedDurationSeconds) {
+        this.plannedDurationSeconds = plannedDurationSeconds;
     }
 }

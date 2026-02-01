@@ -249,18 +249,66 @@ public class AiService {
     }
 
     /**
+     * 실시간 STT transcript 기반 요약 작업 등록 (비동기)
+     * 미팅 중 실시간으로 수집된 STT 결과를 바로 Claude API로 요약
+     * STT 단계를 건너뛰어 처리 시간 단축
+     *
+     * @param transcript 실시간 STT로 수집된 transcript (화자: 텍스트 형식)
+     * @param speakerIds 화자 ID 목록 (액션아이템 추천용)
+     * @param generateQuiz 퀴즈 생성 여부
+     * @return job_id (비동기 작업 ID)
+     */
+    public String summarizeTranscriptAsync(String transcript, List<Long> speakerIds, boolean generateQuiz) {
+        log.info("[AI 요약 요청] transcript 길이: {}, 화자 수: {}, 퀴즈생성: {}", transcript.length(), speakerIds.size(), generateQuiz);
+        log.info("[AI 요약 요청] transcript 미리보기: {}", transcript.length() > 200 ? transcript.substring(0, 200) + "..." : transcript);
+
+        try {
+            Map<String, Object> body = new HashMap<>();
+            body.put("transcript", transcript);
+            body.put("speaker_ids", speakerIds);
+            body.put("generate_quiz", generateQuiz);
+
+            log.info("[AI 요약 요청] AI 서버 호출 시작 - url: {}/api/summarize-transcript", aiServerBaseUrl);
+            String responseBody = callAiServer("/api/summarize-transcript", body);
+            log.info("[AI 요약 요청] AI 서버 응답 수신 - 길이: {}", responseBody != null ? responseBody.length() : 0);
+
+            @SuppressWarnings("unchecked")
+            Map<String, Object> result = objectMapper.readValue(responseBody, Map.class);
+            String status = (String) result.get("status");
+            log.info("[AI 요약 요청] 응답 상태: {}, 전체 응답: {}", status, result);
+
+            if ("error".equals(status)) {
+                String message = (String) result.get("message");
+                throw new RuntimeException("Transcript 요약 실패: " + message);
+            }
+
+            String jobId = (String) result.get("job_id");
+            log.info("[AI 요약 요청] 작업 등록 완료 - jobId: {}", jobId);
+            return jobId;
+
+        } catch (Exception e) {
+            log.error("[AI 요약 요청] 실패: {}", e.getMessage(), e);
+            throw new RuntimeException("Transcript 요약 서비스를 일시적으로 사용할 수 없습니다.", e);
+        }
+    }
+
+    /**
      * 미팅 처리 작업 상태 조회
      */
     public MeetingProcessResult getMeetingProcessResult(String jobId) {
-        log.info("미팅 처리 결과 조회 - jobId: {}", jobId);
+        log.info("[AI 결과 조회] jobId: {}, aiServerUrl: {}", jobId, aiServerBaseUrl);
 
         try {
             ResponseEntity<String> response = restTemplate.getForEntity(
                     aiServerBaseUrl + "/api/jobs/" + jobId, String.class);
 
+            log.info("[AI 결과 조회] 응답 수신 - statusCode: {}, bodyLength: {}",
+                    response.getStatusCode(), response.getBody() != null ? response.getBody().length() : 0);
+
             @SuppressWarnings("unchecked")
             Map<String, Object> result = objectMapper.readValue(response.getBody(), Map.class);
             String status = (String) result.get("status");
+            log.info("[AI 결과 조회] 작업 상태: {}", status);
 
             MeetingProcessResult processResult = new MeetingProcessResult();
             processResult.setStatus(status);
@@ -277,12 +325,18 @@ public class AiService {
                     processResult.setKeywords(keywords != null ? keywords : List.of());
 
                     @SuppressWarnings("unchecked")
+                    List<String> highlights = (List<String>) data.get("highlights");
+                    processResult.setHighlights(highlights != null ? highlights : List.of());
+
+                    @SuppressWarnings("unchecked")
                     List<Map<String, Object>> actionItems = (List<Map<String, Object>>) data.get("action_items");
                     if (actionItems != null) {
                         List<MeetingProcessResult.ActionItem> items = new ArrayList<>();
                         for (Map<String, Object> item : actionItems) {
                             MeetingProcessResult.ActionItem actionItem = new MeetingProcessResult.ActionItem();
-                            actionItem.setUserId(((Number) item.get("user_id")).longValue());
+                            // user_id가 null일 수 있음 (전체 액션아이템)
+                            Object userIdObj = item.get("user_id");
+                            actionItem.setUserId(userIdObj != null ? ((Number) userIdObj).longValue() : null);
                             actionItem.setContent((String) item.get("content"));
                             items.add(actionItem);
                         }
@@ -316,6 +370,7 @@ public class AiService {
         private String transcript;
         private String summary;
         private List<String> keywords = new ArrayList<>();
+        private List<String> highlights = new ArrayList<>();
         private List<ActionItem> actionItems = new ArrayList<>();
         private String quizRaw;
         private String error;

@@ -13,6 +13,7 @@ public enum NotificationType {
     STUDY_UPDATE("스터디 업데이트"),
     STUDY_APPLICATION("스터디 신청 알림"),
     QUIZ("퀴즈 알림"),
+    FRIEND("친구 알림"),
     SYSTEM("시스템 알림");
 
     private final String displayName;

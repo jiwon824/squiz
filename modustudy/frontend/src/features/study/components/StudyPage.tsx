@@ -90,7 +90,7 @@ const StudyPageV2: React.FC = () => {
         status: item.status,
         isPublic: true,
         maxMembers: item.maxMembers,
-        currentMembers: 1, // API에서 제공하지 않으면 기본값
+        currentMembers: item.currentMembers || 1, // API에서 받아온 값 사용
         difficulty: item.difficulty || 'BEGINNER',
         scheduleDays: item.scheduleDays || '',
         scheduleTime: item.scheduleTime,
@@ -120,7 +120,7 @@ const StudyPageV2: React.FC = () => {
         status: item.status,
         isPublic: true,
         maxMembers: item.maxMembers,
-        currentMembers: 1, // API에서 제공하지 않으면 기본값
+        currentMembers: item.currentMembers || 1, // API에서 받아온 값 사용
         difficulty: item.difficulty || 'BEGINNER',
         scheduleDays: item.scheduleDays || '',
         scheduleTime: item.scheduleTime,
