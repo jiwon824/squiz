@@ -11,6 +11,7 @@ import lombok.Getter;
 public class UserDTO {
     private Long id;
     private String email;
+    private String name;
     private String nickname;
     private String profileImage;
     private String loginProvider;
@@ -29,6 +30,7 @@ public class UserDTO {
         return UserDTO.builder()
                 .id(user.getId())
                 .email(user.getEmail())
+                .name(user.getName())
                 .nickname(user.getNickname())
                 .profileImage(user.getProfileImage())
                 .loginProvider(provider)
@@ -40,6 +42,7 @@ public class UserDTO {
         return UserDTO.builder()
                 .id(user.getId())
                 .email(user.getEmail())
+                .name(user.getName())
                 .nickname(user.getNickname())
                 .profileImage(user.getProfileImage())
                 .loginProvider(provider != null ? provider.name() : null)  // 👈 Enum이니까 .name() 호출

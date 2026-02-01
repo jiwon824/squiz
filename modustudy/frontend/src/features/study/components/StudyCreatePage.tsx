@@ -37,6 +37,7 @@ const StudyCreatePage: React.FC = () => {
     const editStudyId = searchParams.get('studyId');
     const isEditMode = !!editStudyId;
     const [isLoadingStudy, setIsLoadingStudy] = useState(false);
+    const [currentMemberCount, setCurrentMemberCount] = useState(1); // 현재 참여 인원 (최소 인원 제한용)
 
     // API 데이터 상태
     const [topics, setTopics] = useState<TopicParent[]>([]);
@@ -126,11 +127,15 @@ const StudyCreatePage: React.FC = () => {
         const loadStudyData = async () => {
             setIsLoadingStudy(true);
             try {
-                // 스터디 정보와 세션(커리큘럼) 정보를 함께 로드
-                const [study, sessions] = await Promise.all([
+                // 스터디 정보, 세션(커리큘럼), 멤버 수를 함께 로드
+                const [study, sessions, memberCount] = await Promise.all([
                     studyApi.getStudyDetail(Number(editStudyId)),
-                    getStudySessions(Number(editStudyId))
+                    getStudySessions(Number(editStudyId)),
+                    studyApi.getMemberCount(Number(editStudyId))
                 ]);
+
+                // 현재 멤버 수 설정 (최소 1명 - 스터디장)
+                setCurrentMemberCount(Math.max(1, memberCount));
 
                 // 토픽 ID로 대분류 찾기
                 let topicParentId: number | null = null;
@@ -175,7 +180,7 @@ const StudyCreatePage: React.FC = () => {
                     recruitStartDate: study.recruitStartDate || null,
                     recruitEndDate: study.recruitEndDate || null,
                     scheduleDays: study.scheduleDays ? study.scheduleDays.split(',') : [],
-                    scheduleTime: study.scheduleTime || '19:00',
+                    scheduleTime: study.scheduleTime ? study.scheduleTime.substring(0, 5) : '19:00',
                     studyType: study.studyType || 'PLANNED',
                     isPublic: study.isPublic !== false,
                     penaltyPolicy: study.penaltyPolicy || 'NORMAL',
@@ -980,7 +985,13 @@ const StudyCreatePage: React.FC = () => {
                 // 수정 모드
                 await updateStudy(Number(editStudyId), payload);
                 showToast('스터디가 수정되었습니다!', 'success');
-                navigate(`/study/v3/${editStudyId}`);
+                // from 파라미터에 따라 이전 페이지로 이동
+                const from = searchParams.get('from');
+                if (from === 'manage') {
+                    navigate(`/study/manage/${editStudyId}`);
+                } else {
+                    navigate(`/study/v3/${editStudyId}`);
+                }
             } else {
                 // 생성 모드
                 const createdStudy = await createStudy(payload);
@@ -1312,8 +1323,17 @@ const StudyCreatePage: React.FC = () => {
                                             <div className="flex items-center justify-center gap-2">
                                                 <button
                                                     type="button"
-                                                    onClick={() => setFormData(prev => ({ ...prev, maxMembers: Math.max(2, prev.maxMembers - 1) }))}
-                                                    className="w-10 h-10 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-600 font-bold transition-all"
+                                                    onClick={() => {
+                                                        const minMembers = isEditMode ? currentMemberCount : 2;
+                                                        setFormData(prev => ({ ...prev, maxMembers: Math.max(minMembers, prev.maxMembers - 1) }));
+                                                    }}
+                                                    disabled={isEditMode && formData.maxMembers <= currentMemberCount}
+                                                    className={cn(
+                                                        "w-10 h-10 flex items-center justify-center rounded-lg font-bold transition-all",
+                                                        isEditMode && formData.maxMembers <= currentMemberCount
+                                                            ? "bg-gray-100 text-gray-300 cursor-not-allowed"
+                                                            : "bg-gray-100 hover:bg-gray-200 text-gray-600"
+                                                    )}
                                                 >
                                                     −
                                                 </button>
@@ -1328,7 +1348,10 @@ const StudyCreatePage: React.FC = () => {
                                                             setFormData(prev => ({ ...prev, maxMembers: Math.min(50, val) }));
                                                         }
                                                     }}
-                                                    onBlur={() => setFormData(prev => ({ ...prev, maxMembers: Math.max(2, prev.maxMembers) }))}
+                                                    onBlur={() => {
+                                                        const minMembers = isEditMode ? currentMemberCount : 2;
+                                                        setFormData(prev => ({ ...prev, maxMembers: Math.max(minMembers, prev.maxMembers) }));
+                                                    }}
                                                     className="flex-1 text-center py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                                                 />
                                                 <button
@@ -1339,6 +1362,11 @@ const StudyCreatePage: React.FC = () => {
                                                     +
                                                 </button>
                                             </div>
+                                            {isEditMode && currentMemberCount > 1 && (
+                                                <p className="text-xs text-primary mt-1">
+                                                    현재 {currentMemberCount}명이 참여 중이므로 최소 인원은 {currentMemberCount}명입니다.
+                                                </p>
+                                            )}
                                         </div>
 
                                         <div>
