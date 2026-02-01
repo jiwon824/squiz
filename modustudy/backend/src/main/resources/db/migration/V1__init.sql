@@ -1,7 +1,9 @@
 -- =============================================
 -- ModuStudy Database Schema
--- Flyway Migration V1 - Initial Schema
+-- Flyway Migration V1 - Complete Schema (2024-02 Consolidated)
 -- =============================================
+
+SET FOREIGN_KEY_CHECKS = 0;
 
 -- =============================================
 -- 1. 사용자/인증
@@ -24,6 +26,9 @@ CREATE TABLE IF NOT EXISTS `user` (
     `bio` TEXT,
     `interests` JSON,
     `tech_stacks` JSON,
+    `available_days` JSON COMMENT '가능한 요일 (JSON 배열)',
+    `preferred_time_slots` JSON COMMENT '선호 시간대 (JSON 배열)',
+    `preferred_duration_weeks` INT COMMENT '선호 스터디 기간 (주)',
     `leader_rating` FLOAT DEFAULT 0.0,
     `leader_review_count` INT DEFAULT 0,
     `last_login_at` TIMESTAMP NULL,
@@ -37,6 +42,10 @@ CREATE TABLE IF NOT EXISTS `user_social_account` (
     `provider` ENUM('GOOGLE', 'KAKAO', 'NAVER') NOT NULL,
     `provider_user_id` VARCHAR(100) NOT NULL,
     `email` VARCHAR(100),
+    `access_token` VARCHAR(2048) COMMENT 'OAuth Access Token',
+    `refresh_token` VARCHAR(512) COMMENT 'OAuth Refresh Token',
+    `token_expires_at` TIMESTAMP NULL COMMENT '토큰 만료 시간',
+    `calendar_id` VARCHAR(255) DEFAULT 'primary' COMMENT '연동된 Google Calendar ID',
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON DELETE CASCADE,
     UNIQUE KEY `uk_provider_user` (`provider`, `provider_user_id`)
@@ -98,6 +107,16 @@ CREATE TABLE IF NOT EXISTS `refresh_token` (
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON DELETE CASCADE,
     UNIQUE KEY `uk_refresh_token` (`token`)
+);
+
+CREATE TABLE IF NOT EXISTS `password_reset_token` (
+    `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
+    `user_id` BIGINT NOT NULL,
+    `token` VARCHAR(255) NOT NULL,
+    `expires_at` TIMESTAMP NOT NULL,
+    `is_used` BOOLEAN DEFAULT FALSE,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON DELETE CASCADE
 );
 
 -- =============================================
@@ -164,24 +183,54 @@ CREATE TABLE IF NOT EXISTS `direct_message` (
 );
 
 -- =============================================
--- 2. 스터디
+-- 2. 스터디 (Topic/Format 정규화 적용)
 -- =============================================
 
 CREATE TABLE IF NOT EXISTS `region` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
     `code` VARCHAR(100) NOT NULL UNIQUE,
     `name` VARCHAR(50) NOT NULL,
+    `full_name` VARCHAR(100),
+    `level` INT NOT NULL DEFAULT 1,
+    `parent_id` BIGINT,
     `sort_order` INT DEFAULT 0,
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (`parent_id`) REFERENCES `region`(`id`) ON DELETE SET NULL,
+    INDEX `idx_region_parent` (`parent_id`),
+    INDEX `idx_region_level` (`level`)
 );
+
+-- Topic 테이블 (계층 구조: 대분류 - 소분류)
+CREATE TABLE IF NOT EXISTS `topic` (
+    `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
+    `name` VARCHAR(50) NOT NULL,
+    `parent_id` BIGINT,
+    `icon` VARCHAR(50),
+    `sort_order` INT DEFAULT 0,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (`parent_id`) REFERENCES `topic`(`id`) ON DELETE CASCADE,
+    INDEX `idx_topic_parent` (`parent_id`),
+    INDEX `idx_topic_sort` (`sort_order`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Format 테이블
+CREATE TABLE IF NOT EXISTS `format` (
+    `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
+    `name` VARCHAR(50) NOT NULL UNIQUE,
+    `description` VARCHAR(200),
+    `icon` VARCHAR(50),
+    `sort_order` INT DEFAULT 0,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX `idx_format_sort` (`sort_order`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `study` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
     `leader_id` BIGINT NOT NULL,
     `name` VARCHAR(100) NOT NULL,
     `description` TEXT,
-    `topic` VARCHAR(50) NOT NULL,
-    `format` VARCHAR(50),
+    `topic_id` BIGINT NOT NULL,
+    `format_id` BIGINT,
     `study_type` ENUM('PLANNED', 'LIGHTNING') NOT NULL,
     `meeting_type` ENUM('ONLINE', 'OFFLINE', 'HYBRID') DEFAULT 'ONLINE',
     `region_id` BIGINT,
@@ -209,17 +258,22 @@ CREATE TABLE IF NOT EXISTS `study` (
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (`leader_id`) REFERENCES `user`(`id`),
-    FOREIGN KEY (`region_id`) REFERENCES `region`(`id`)
+    FOREIGN KEY (`region_id`) REFERENCES `region`(`id`),
+    FOREIGN KEY (`topic_id`) REFERENCES `topic`(`id`) ON DELETE RESTRICT,
+    FOREIGN KEY (`format_id`) REFERENCES `format`(`id`) ON DELETE SET NULL,
+    INDEX `idx_study_topic` (`topic_id`),
+    INDEX `idx_study_format` (`format_id`)
 );
 
 CREATE TABLE IF NOT EXISTS `study_template` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
     `user_id` BIGINT,
     `name` VARCHAR(100) NOT NULL,
+    `intro` VARCHAR(200),
     `is_system` BOOLEAN DEFAULT FALSE,
     `template_type` VARCHAR(50),
-    `topic` VARCHAR(50),
-    `format` VARCHAR(50),
+    `topic_id` BIGINT,
+    `format_id` BIGINT,
     `meeting_type` ENUM('ONLINE', 'OFFLINE', 'HYBRID'),
     `description` TEXT,
     `textbook` VARCHAR(500),
@@ -230,7 +284,11 @@ CREATE TABLE IF NOT EXISTS `study_template` (
     `penalty_policy` ENUM('STRICT', 'NORMAL', 'LENIENT', 'RATIO', 'NONE'),
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON DELETE CASCADE
+    FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`topic_id`) REFERENCES `topic`(`id`) ON DELETE SET NULL,
+    FOREIGN KEY (`format_id`) REFERENCES `format`(`id`) ON DELETE SET NULL,
+    INDEX `idx_study_template_topic` (`topic_id`),
+    INDEX `idx_study_template_format` (`format_id`)
 );
 
 CREATE TABLE IF NOT EXISTS `study_comment` (
@@ -319,35 +377,33 @@ CREATE TABLE IF NOT EXISTS `study_leader_review` (
 );
 
 -- =============================================
--- 3. 채널/채팅
+-- 3. 워크스페이스/채팅 (channel -> workspace)
 -- =============================================
 
-CREATE TABLE IF NOT EXISTS `channel` (
+CREATE TABLE IF NOT EXISTS `workspace` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
-    `study_id` BIGINT NOT NULL,
-    `name` VARCHAR(100) NOT NULL,
-    `type` ENUM('TEXT', 'VOICE') NOT NULL,
-    `voice_room_type` ENUM('DISCUSSION', 'MEETING'),
-    `description` VARCHAR(500),
-    `is_default` BOOLEAN DEFAULT FALSE,
-    `is_temporary` BOOLEAN DEFAULT FALSE,
-    `sort_order` INT DEFAULT 0,
+    `study_id` BIGINT NOT NULL UNIQUE,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (`study_id`) REFERENCES `study`(`id`) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS `message` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
-    `channel_id` BIGINT NOT NULL,
+    `workspace_id` BIGINT NOT NULL,
     `user_id` BIGINT NOT NULL,
     `content` TEXT NOT NULL,
     `message_type` ENUM('TEXT', 'IMAGE', 'FILE', 'SYSTEM') DEFAULT 'TEXT',
     `file_url` VARCHAR(500),
     `is_deleted` BOOLEAN DEFAULT FALSE,
+    `is_pinned` BOOLEAN NOT NULL DEFAULT FALSE,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (`channel_id`) REFERENCES `channel`(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`user_id`) REFERENCES `user`(`id`)
+    FOREIGN KEY (`workspace_id`) REFERENCES `workspace`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`user_id`) REFERENCES `user`(`id`),
+    INDEX `idx_message_workspace_id` (`workspace_id`),
+    INDEX `idx_message_user_id` (`user_id`),
+    INDEX `idx_message_created_at` (`created_at`),
+    INDEX `idx_message_pinned` (`workspace_id`, `is_pinned`)
 );
 
 -- =============================================
@@ -358,22 +414,23 @@ CREATE TABLE IF NOT EXISTS `meeting` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
     `study_id` BIGINT NOT NULL,
     `session_id` BIGINT,
-    `channel_id` BIGINT,
+    `workspace_id` BIGINT,
     `title` VARCHAR(200),
     `started_at` TIMESTAMP NULL,
     `ended_at` TIMESTAMP NULL,
     `duration_seconds` INT,
+    `planned_duration_seconds` INT,
     `participant_count` INT DEFAULT 0,
     `status` ENUM('WAITING', 'IN_PROGRESS', 'ENDED') DEFAULT 'WAITING',
     `recording_status` ENUM('WAITING', 'RECORDING', 'READY', 'FAILED') DEFAULT 'WAITING',
     `stt_status` ENUM('PENDING', 'PROCESSING', 'DONE', 'FAILED') DEFAULT 'PENDING',
     `summary_status` ENUM('PENDING', 'PROCESSING', 'DONE', 'FAILED') DEFAULT 'PENDING',
     `auto_share_summary` BOOLEAN DEFAULT FALSE,
-    `share_channel_id` BIGINT NULL,
+    `share_workspace_id` BIGINT NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (`study_id`) REFERENCES `study`(`id`) ON DELETE CASCADE,
     FOREIGN KEY (`session_id`) REFERENCES `study_session`(`id`),
-    FOREIGN KEY (`channel_id`) REFERENCES `channel`(`id`)
+    FOREIGN KEY (`workspace_id`) REFERENCES `workspace`(`id`)
 );
 
 CREATE TABLE IF NOT EXISTS `meeting_participant` (
@@ -503,6 +560,7 @@ CREATE TABLE IF NOT EXISTS `meeting_stt_summary` (
     `file_url` VARCHAR(500) NOT NULL,
     `action_items` JSON NULL,
     `keywords` JSON NULL,
+    `highlights_json` TEXT COMMENT '주요 내용 JSON 배열',
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (`meeting_id`) REFERENCES `meeting`(`id`) ON DELETE CASCADE,
@@ -525,6 +583,7 @@ CREATE TABLE IF NOT EXISTS `attendance` (
     `excuse_reason` TEXT,
     `excuse_status` ENUM('PENDING', 'APPROVED', 'REJECTED'),
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (`session_id`) REFERENCES `study_session`(`id`) ON DELETE CASCADE,
     FOREIGN KEY (`user_id`) REFERENCES `user`(`id`),
     FOREIGN KEY (`checked_by`) REFERENCES `user`(`id`),
@@ -754,22 +813,29 @@ CREATE TABLE IF NOT EXISTS `study_quiz_attempt` (
     `score` INT DEFAULT 0,
     `total_questions` INT,
     `correct_count` INT,
-    `completed_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `status` ENUM('IN_PROGRESS', 'COMPLETED', 'ABANDONED') DEFAULT 'IN_PROGRESS',
+    `started_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `last_answered_at` TIMESTAMP NULL,
+    `current_question_index` INT DEFAULT 0,
+    `completed_at` TIMESTAMP NULL,
     FOREIGN KEY (`quiz_id`) REFERENCES `study_quiz`(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`user_id`) REFERENCES `user`(`id`)
+    FOREIGN KEY (`user_id`) REFERENCES `user`(`id`),
+    INDEX `idx_quiz_attempt_status` (`quiz_id`, `status`)
 );
 
-CREATE TABLE IF NOT EXISTS `wrong_answer_note` (
+CREATE TABLE IF NOT EXISTS `study_quiz_answer` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
-    `user_id` BIGINT NOT NULL,
+    `attempt_id` BIGINT NOT NULL,
     `question_id` BIGINT NOT NULL,
-    `user_answer` VARCHAR(500),
-    `review_count` INT DEFAULT 0,
-    `last_reviewed_at` TIMESTAMP NULL,
-    `is_mastered` BOOLEAN DEFAULT FALSE,
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`question_id`) REFERENCES `study_quiz_question`(`id`) ON DELETE CASCADE
+    `question_index` INT NOT NULL COMMENT '문제 순서 (0부터 시작)',
+    `user_answer` JSON COMMENT '사용자 답변',
+    `is_correct` BOOLEAN DEFAULT FALSE,
+    `response_time_ms` BIGINT DEFAULT 0 COMMENT '응답 시간(ms)',
+    `answered_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (`attempt_id`) REFERENCES `study_quiz_attempt`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`question_id`) REFERENCES `study_quiz_question`(`id`) ON DELETE CASCADE,
+    UNIQUE KEY `uk_attempt_question` (`attempt_id`, `question_id`),
+    INDEX `idx_attempt_index` (`attempt_id`, `question_index`)
 );
 
 CREATE TABLE IF NOT EXISTS `quiz_course` (
@@ -828,14 +894,37 @@ CREATE TABLE IF NOT EXISTS `user_course_progress` (
 CREATE TABLE IF NOT EXISTS `user_section_attempt` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
     `user_id` BIGINT NOT NULL,
-    `section_id` BIGINT NOT NULL,
+    `quiz_course_id` BIGINT NOT NULL,
+    `section_number` INT NOT NULL,
     `score` INT DEFAULT 0,
     `correct_count` INT DEFAULT 0,
     `total_questions` INT DEFAULT 0,
     `is_passed` BOOLEAN DEFAULT FALSE,
+    `status` ENUM('IN_PROGRESS', 'SUBMITTED', 'ABANDONED') DEFAULT 'IN_PROGRESS',
+    `completed_at` TIMESTAMP NULL,
     `attempted_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `version` BIGINT NOT NULL DEFAULT 0,
     FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`section_id`) REFERENCES `quiz_course_section`(`id`) ON DELETE CASCADE
+    FOREIGN KEY (`quiz_course_id`, `section_number`) REFERENCES `quiz_course_section`(`course_id`, `section_number`) ON DELETE CASCADE,
+    INDEX `idx_attempt_user_section_status` (`user_id`, `quiz_course_id`, `section_number`, `status`)
+);
+
+CREATE TABLE IF NOT EXISTS `user_section_attempt_question` (
+    `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
+    `attempt_id` BIGINT NOT NULL,
+    `question_id` BIGINT NOT NULL,
+    `order_index` INT NOT NULL,
+    `user_answer` VARCHAR(500),
+    `is_correct` BOOLEAN,
+    `response_time_ms` BIGINT DEFAULT 0 COMMENT '응답 시간(ms)',
+    `answered_at` TIMESTAMP NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `version` BIGINT NOT NULL DEFAULT 0,
+    FOREIGN KEY (`attempt_id`) REFERENCES `user_section_attempt`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`question_id`) REFERENCES `quiz_course_question`(`id`),
+    UNIQUE KEY `uk_attempt_question` (`attempt_id`, `question_id`),
+    INDEX `idx_attempt_question_order` (`attempt_id`, `order_index`)
 );
 
 -- =============================================
@@ -1082,7 +1171,7 @@ CREATE TABLE IF NOT EXISTS `retrospective_item` (
 CREATE TABLE IF NOT EXISTS `notification` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
     `user_id` BIGINT NOT NULL,
-    `type` ENUM('CHAT', 'SCHEDULE', 'ATTENDANCE', 'STUDY_UPDATE', 'QUIZ', 'SYSTEM') NOT NULL,
+    `type` ENUM('CHAT', 'SCHEDULE', 'ATTENDANCE', 'STUDY_UPDATE', 'STUDY_APPLICATION', 'QUIZ', 'SYSTEM') NOT NULL,
     `title` VARCHAR(200) NOT NULL,
     `content` TEXT,
     `reference_type` VARCHAR(50),
@@ -1343,3 +1432,146 @@ CREATE TABLE IF NOT EXISTS `news_bookmark` (
     FOREIGN KEY (`news_id`) REFERENCES `it_news`(`id`) ON DELETE CASCADE,
     UNIQUE KEY `uk_user_news` (`user_id`, `news_id`)
 );
+
+-- =============================================
+-- 18. Google Calendar 연동
+-- =============================================
+
+CREATE TABLE IF NOT EXISTS `calendar_watch` (
+    `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
+    `user_id` BIGINT NOT NULL,
+    `channel_id` VARCHAR(255) NOT NULL COMMENT 'Google Channel ID',
+    `resource_id` VARCHAR(255) NOT NULL COMMENT 'Google Resource ID',
+    `expires_at` TIMESTAMP NOT NULL COMMENT 'Watch 만료 시간',
+    `sync_token` VARCHAR(255) NULL COMMENT 'Delta Sync용 토큰',
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON DELETE CASCADE,
+    UNIQUE KEY `uk_calendar_watch_channel` (`channel_id`),
+    INDEX `idx_calendar_watch_user` (`user_id`),
+    INDEX `idx_calendar_watch_expires` (`expires_at`)
+);
+
+CREATE TABLE IF NOT EXISTS `study_session_calendar_mapping` (
+    `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
+    `session_id` BIGINT NOT NULL,
+    `user_id` BIGINT NOT NULL,
+    `google_event_id` VARCHAR(255) NOT NULL COMMENT 'Google Calendar Event ID',
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (`session_id`) REFERENCES `study_session`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON DELETE CASCADE,
+    UNIQUE KEY `uk_session_user_mapping` (`session_id`, `user_id`),
+    INDEX `idx_session_mapping_session` (`session_id`),
+    INDEX `idx_session_mapping_user` (`user_id`)
+);
+
+-- =============================================
+-- 19. 템플릿 사용 로그
+-- =============================================
+
+CREATE TABLE IF NOT EXISTS `template_usage_log` (
+    `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
+    `user_id` BIGINT NOT NULL,
+    `template_id` BIGINT NOT NULL,
+    `study_id` BIGINT,
+    `used_as_is` BOOLEAN DEFAULT FALSE,
+    `modifications` JSON,
+    `user_tech_stack` JSON,
+    `user_schedule` JSON,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`template_id`) REFERENCES `study_template`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`study_id`) REFERENCES `study`(`id`) ON DELETE SET NULL,
+    INDEX `idx_template_usage_user` (`user_id`),
+    INDEX `idx_template_usage_template` (`template_id`)
+);
+
+-- =============================================
+-- 20. 스터디 추천 로그 (파인튜닝 데이터 수집)
+-- =============================================
+
+CREATE TABLE IF NOT EXISTS `study_recommend_log` (
+    `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
+    `user_id` BIGINT NOT NULL,
+    `recommend_type` ENUM('GENERAL', 'TOPIC') NOT NULL DEFAULT 'GENERAL',
+    `topic_id` BIGINT,
+    `result_count` INT NOT NULL DEFAULT 0,
+    `user_tech_snapshot` JSON,
+    `user_schedule_snapshot` JSON,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`topic_id`) REFERENCES `topic`(`id`) ON DELETE SET NULL,
+    INDEX `idx_recommend_log_user` (`user_id`),
+    INDEX `idx_recommend_log_created` (`created_at`)
+);
+
+CREATE TABLE IF NOT EXISTS `study_recommend_item` (
+    `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
+    `log_id` BIGINT NOT NULL,
+    `study_id` BIGINT NOT NULL,
+    `rank_position` INT NOT NULL,
+    `matching_score` DECIMAL(7,2),
+    `tech_match_count` INT DEFAULT 0,
+    `schedule_match_count` INT DEFAULT 0,
+    `topic_match_count` INT DEFAULT 0,
+    `match_reason` VARCHAR(500),
+    FOREIGN KEY (`log_id`) REFERENCES `study_recommend_log`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`study_id`) REFERENCES `study`(`id`) ON DELETE CASCADE,
+    INDEX `idx_recommend_item_log` (`log_id`)
+);
+
+CREATE TABLE IF NOT EXISTS `study_recommend_action` (
+    `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
+    `log_id` BIGINT NOT NULL,
+    `item_id` BIGINT,
+    `study_id` BIGINT NOT NULL,
+    `action_type` ENUM('CLICK', 'APPLY', 'BOOKMARK', 'DISMISS') NOT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (`log_id`) REFERENCES `study_recommend_log`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`item_id`) REFERENCES `study_recommend_item`(`id`) ON DELETE SET NULL,
+    FOREIGN KEY (`study_id`) REFERENCES `study`(`id`) ON DELETE CASCADE,
+    INDEX `idx_recommend_action_log` (`log_id`),
+    INDEX `idx_recommend_action_type` (`action_type`)
+);
+
+-- =============================================
+-- 21. FSRS 복습 시스템
+-- =============================================
+
+CREATE TABLE IF NOT EXISTS `user_review_items` (
+    `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
+    `user_id` BIGINT NOT NULL,
+    `content_type` VARCHAR(20) NOT NULL,
+    `content_id` BIGINT NOT NULL,
+    `stability` DOUBLE NOT NULL DEFAULT 0.0,
+    `difficulty` DOUBLE NOT NULL DEFAULT 5.0,
+    `elapsed_days` INT DEFAULT 0,
+    `scheduled_days` INT DEFAULT 0,
+    `reps` INT DEFAULT 0,
+    `lapses` INT DEFAULT 0,
+    `state` INT DEFAULT 0,
+    `last_elapsed_days` INT DEFAULT 0,
+    `last_response_time_ms` BIGINT DEFAULT 0,
+    `retrievability` DOUBLE DEFAULT 0.0,
+    `last_reviewed_at` TIMESTAMP NULL,
+    `next_review_at` TIMESTAMP NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY `uk_user_content` (`user_id`, `content_type`, `content_id`),
+    FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON DELETE CASCADE,
+    INDEX `idx_user_next_review` (`user_id`, `next_review_at`)
+);
+
+CREATE TABLE IF NOT EXISTS `user_review_log` (
+    `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
+    `review_item_id` BIGINT NOT NULL,
+    `is_correct` BOOLEAN NOT NULL,
+    `response_time_ms` BIGINT NOT NULL,
+    `stability` DOUBLE NOT NULL,
+    `difficulty` DOUBLE NOT NULL,
+    `reviewed_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (`review_item_id`) REFERENCES `user_review_items`(`id`) ON DELETE CASCADE,
+    INDEX `idx_review_log_item` (`review_item_id`, `reviewed_at`)
+);
+
+SET FOREIGN_KEY_CHECKS = 1;

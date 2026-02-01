@@ -117,9 +117,14 @@ public class MeetingController {
             @Valid @RequestBody MeetingPlannedDurationRequest request
     ) {
         Long userId = userDetails == null ? null : userDetails.getUser().getId();
-        return ResponseEntity.ok(ApiResponse.success(
-                meetingService.updatePlannedDuration(studyId, meetingId, requireUserId(userId), request.plannedDurationSeconds())
-        ));
+        MeetingDetailResponse response = meetingService.updatePlannedDuration(
+                studyId, meetingId, requireUserId(userId), request.plannedDurationSeconds()
+        );
+        String roomId = "meeting-" + meetingId;
+        MeetingRoomEvent event = new MeetingRoomEvent(MeetingRoomEvent.Type.MEETING_DURATION_UPDATED, roomId);
+        event.setPlannedDurationSeconds(response.plannedDurationSeconds());
+        messagingTemplate.convertAndSend("/topic/rooms/" + roomId + "/events", event);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @PostMapping("/{meetingId}/join")
