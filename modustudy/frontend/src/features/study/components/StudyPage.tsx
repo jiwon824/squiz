@@ -5,7 +5,7 @@ import StudyListContainer from './StudyListContainer';
 import StudyCardContentV2 from './StudyCardContentV2';
 import StudyFilter, { FilterState } from './StudyFilter';
 import { Study, SortOption } from '../services/studyService';
-import { getStudyList, getLeaderInfo, StudyListItem, LeaderInfoResponse } from '@/api/endpoints/studyApi';
+import { getStudyList, getLeaderInfo, getProvinces, getDistricts, StudyListItem, LeaderInfoResponse, type RegionItem, studyApi } from '@/api/endpoints/studyApi';
 import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { Button } from '@/shared/components';
 import { cn } from '@/shared/utils/cn';
@@ -57,6 +57,8 @@ const StudyPageV2: React.FC = () => {
     const [studies, setStudies] = useState<Study[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchKeyword, setSearchKeyword] = useState('');
+    // 지역 데이터 맵 (regionId -> region name)
+    const [regionMap, setRegionMap] = useState<Map<number, string>>(new Map());
     const [filters, setFilters] = useState<FilterState>({
         status: [],
         topic: [],
@@ -108,76 +110,132 @@ const StudyPageV2: React.FC = () => {
     });
 
     // 리더 정보가 포함된 스터디 변환 (별도 API 조회 결과 사용)
-    const convertToStudyWithLeader = (item: StudyListItem, leaderInfo?: LeaderInfoResponse): Study => ({
-        id: item.id,
-        leaderId: leaderInfo?.userId || item.leader?.id || item.leaderId || 0,
-        name: item.name,
-        description: item.description || '',
-        topic: item.topic?.name || '',
-        format: item.format?.name || '',
-        studyType: item.studyType,
-        meetingType: item.meetingType,
-        status: item.status,
-        isPublic: true,
-        maxMembers: item.maxMembers,
-        currentMembers: item.currentMembers || 1, // API에서 받아온 값 사용
-        difficulty: item.difficulty || 'BEGINNER',
-        scheduleDays: item.scheduleDays || '',
-        scheduleTime: item.scheduleTime,
-        regionId: item.regionId,
-        recruitEndDate: item.recruitEndDate,
-        leader: {
-            id: leaderInfo?.userId || item.leader?.id || item.leaderId || 0,
-            nickname: leaderInfo?.nickname || item.leader?.nickname || '스터디장',
-            profileImage: leaderInfo?.profileImage || item.leader?.profileImage || null,
-            leaderRating: leaderInfo?.leaderRating ?? item.leader?.leaderRating ?? null,
-            leaderReviewCount: leaderInfo?.leaderReviewCount || item.leader?.leaderReviewCount || 0,
-        },
-        isBookmarked: false,
-        createdAt: item.createdAt,
-    });
+    const convertToStudyWithLeader = (item: StudyListItem, leaderInfo?: LeaderInfoResponse, regionNameMap?: Map<number, string>, isBookmarked?: boolean): Study => {
+        // regionId가 있으면 region 객체 생성
+        let region: { id: number; name: string } | undefined;
+        if (item.regionId && regionNameMap && regionNameMap.has(item.regionId)) {
+            region = {
+                id: item.regionId,
+                name: regionNameMap.get(item.regionId)!
+            };
+        }
+
+        return {
+            id: item.id,
+            leaderId: leaderInfo?.userId || item.leader?.id || item.leaderId || 0,
+            name: item.name,
+            description: item.description || '',
+            topic: item.topic?.name || '',
+            format: item.format?.name || '',
+            studyType: item.studyType,
+            meetingType: item.meetingType,
+            status: item.status,
+            isPublic: true,
+            maxMembers: item.maxMembers,
+            currentMembers: item.currentMembers || 1, // API에서 받아온 값 사용
+            difficulty: item.difficulty || 'BEGINNER',
+            scheduleDays: item.scheduleDays || '',
+            scheduleTime: item.scheduleTime,
+            regionId: item.regionId,
+            region, // region 객체 추가
+            recruitEndDate: item.recruitEndDate,
+            leader: {
+                id: leaderInfo?.userId || item.leader?.id || item.leaderId || 0,
+                nickname: leaderInfo?.nickname || item.leader?.nickname || '스터디장',
+                profileImage: leaderInfo?.profileImage || item.leader?.profileImage || null,
+                leaderRating: leaderInfo?.leaderRating ?? item.leader?.leaderRating ?? null,
+                leaderReviewCount: leaderInfo?.leaderReviewCount || item.leader?.leaderReviewCount || 0,
+            },
+            isBookmarked: isBookmarked ?? false,
+            createdAt: item.createdAt,
+        };
+    };
+
+    // 지역 데이터 로드 (최초 1회)
+    const loadRegionData = async (): Promise<Map<number, string>> => {
+        // 이미 로드된 경우 기존 맵 반환
+        if (regionMap.size > 0) {
+            return regionMap;
+        }
+
+        const newRegionMap = new Map<number, string>();
+        try {
+            const provinces = await getProvinces();
+            // 각 시/도에 대해 구/군 목록 병렬 로드
+            await Promise.all(provinces.map(async (province) => {
+                try {
+                    const districts = await getDistricts(province.id);
+                    districts.forEach((district) => {
+                        // "시/도 구/군" 형식으로 저장
+                        newRegionMap.set(district.id, `${province.name} ${district.name}`);
+                    });
+                } catch (err) {
+                    console.warn(`${province.name} 구/군 목록 로드 실패:`, err);
+                }
+            }));
+            setRegionMap(newRegionMap);
+        } catch (error) {
+            console.error('지역 데이터 로드 실패:', error);
+        }
+        return newRegionMap;
+    };
 
     // API에서 스터디 목록 로드 (리더 정보 포함)
     const loadStudies = async () => {
         setIsLoading(true);
         try {
+            // 지역 데이터 먼저 로드
+            const currentRegionMap = await loadRegionData();
+
             const sortParam = sortOption.field === 'createdAt'
                 ? `createdAt,${sortOption.order}`
                 : sortOption.field === 'recruitEndDate'
                 ? `recruitEndDate,${sortOption.order}`
                 : `createdAt,desc`;
 
+            const meetingTypeParam = filters.meetingType.length === 1 ? filters.meetingType[0] : undefined;
+
             const response = await getStudyList({
                 page: currentPage - 1, // API는 0-based
                 size: pageSize,
                 sort: sortParam,
                 keyword: searchKeyword || undefined,
-                meetingType: filters.meetingType.length === 1 ? filters.meetingType[0] : undefined,
+                meetingType: meetingTypeParam,
                 difficulty: filters.difficulty.length === 1 ? filters.difficulty[0] : undefined,
             });
-
-            console.log('[스터디 목록 API 응답]', response);
 
             // 안전한 배열 처리 (백엔드 순환 참조 에러 대비)
             const content = response?.content || [];
 
-            // 각 스터디에 대해 리더 정보 병렬 조회
+            // 각 스터디에 대해 리더 정보 및 북마크 상태 병렬 조회
             const leaderInfoMap = new Map<number, LeaderInfoResponse>();
-            const leaderInfoPromises = content.map(async (item) => {
+            const bookmarkMap = new Map<number, boolean>();
+
+            const fetchPromises = content.map(async (item) => {
+                // 리더 정보 조회
                 try {
                     const leaderInfo = await getLeaderInfo(item.id);
                     leaderInfoMap.set(item.id, leaderInfo);
                 } catch (err) {
                     console.warn(`스터디 ${item.id} 리더 정보 조회 실패:`, err);
                 }
+                // 북마크 상태 조회
+                try {
+                    const isBookmarked = await studyApi.checkBookmark(item.id);
+                    bookmarkMap.set(item.id, isBookmarked);
+                } catch (err) {
+                    // 로그인 안 된 경우 등 실패 시 false로 처리
+                    bookmarkMap.set(item.id, false);
+                }
             });
 
-            await Promise.all(leaderInfoPromises);
+            await Promise.all(fetchPromises);
 
-            // 리더 정보를 포함하여 스터디 변환
+            // 리더 정보, 지역 정보, 북마크 상태를 포함하여 스터디 변환
             const convertedStudies = content.map((item) => {
                 const leaderInfo = leaderInfoMap.get(item.id);
-                return convertToStudyWithLeader(item, leaderInfo);
+                const isBookmarked = bookmarkMap.get(item.id);
+                return convertToStudyWithLeader(item, leaderInfo, currentRegionMap, isBookmarked);
             });
 
             console.log('[변환된 스터디]', convertedStudies);
@@ -195,6 +253,19 @@ const StudyPageV2: React.FC = () => {
     // 초기 로드 및 필터/정렬/페이지 변경 시 재로드
     useEffect(() => {
         loadStudies();
+    }, [currentPage, sortOption, filters.meetingType, filters.difficulty]);
+
+    // 페이지 포커스 복귀 시 북마크 상태 동기화를 위해 리로드
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                loadStudies();
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
     }, [currentPage, sortOption, filters.meetingType, filters.difficulty]);
 
     // 검색 시 페이지 리셋 후 로드
@@ -237,13 +308,17 @@ const StudyPageV2: React.FC = () => {
     };
 
     // 찜하기 토글 핸들러
-    const handleBookmarkToggle = (studyId: number) => {
-        // TODO: API 연동 필요
-        setStudies((prev) =>
-            prev.map((study) =>
-                study.id === studyId ? { ...study, isBookmarked: !study.isBookmarked } : study
-            )
-        );
+    const handleBookmarkToggle = async (studyId: number) => {
+        try {
+            await studyApi.toggleBookmark(studyId);
+            setStudies((prev) =>
+                prev.map((study) =>
+                    study.id === studyId ? { ...study, isBookmarked: !study.isBookmarked } : study
+                )
+            );
+        } catch (error) {
+            console.error('북마크 토글 실패:', error);
+        }
     };
 
     // 스터디 클릭 핸들러 (V3 페이지로 이동)

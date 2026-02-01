@@ -4,7 +4,7 @@
  * =============================================================================
  *
  * 퀴즈 코스 관련 API 호출을 담당하는 모듈입니다.
- * Base URL: /api/v1/quiz-courses
+ * Base URL: /api/v1/continuous-quiz/courses
  *
  * =============================================================================
  */
@@ -75,8 +75,6 @@ export interface SectionWithProgress extends SectionInfo {
     isUnlocked: boolean;
     isPassed: boolean;
     bestScore: number | null;
-    attemptCount: number;
-    inProgressAttemptId: number | null;
 }
 
 /** 사용자 진행 상황 */
@@ -254,11 +252,11 @@ export interface SaveAnswerRequest {
 
 /**
  * 코스 목록 조회
- * GET /api/v1/quiz-courses
+ * GET /api/v1/continuous-quiz/courses
  * 인증: 불필요
  */
 export const fetchCourses = async (): Promise<CourseListItem[]> => {
-    const response = await api.get<ApiResponse<CourseListData>>('/api/v1/quiz-courses');
+    const response = await api.get<ApiResponse<CourseListData>>('/api/v1/continuous-quiz/courses');
     if (!response.data.success) {
         throw new Error(response.data.error?.message || '코스 목록을 불러오는데 실패했습니다.');
     }
@@ -267,11 +265,11 @@ export const fetchCourses = async (): Promise<CourseListItem[]> => {
 
 /**
  * 코스 상세 조회
- * GET /api/v1/quiz-courses/{courseId}
+ * GET /api/v1/continuous-quiz/courses/{courseId}
  * 인증: 불필요
  */
 export const fetchCourseDetail = async (courseId: number): Promise<CourseDetailData> => {
-    const response = await api.get<ApiResponse<CourseDetailData>>(`/api/v1/quiz-courses/${courseId}`);
+    const response = await api.get<ApiResponse<CourseDetailData>>(`/api/v1/continuous-quiz/courses/${courseId}`);
     if (!response.data.success) {
         throw new Error(response.data.error?.message || '코스 정보를 불러오는데 실패했습니다.');
     }
@@ -280,12 +278,12 @@ export const fetchCourseDetail = async (courseId: number): Promise<CourseDetailD
 
 /**
  * 섹션 목록 조회 (진행 상황 포함)
- * GET /api/v1/quiz-courses/{courseId}/sections
+ * GET /api/v1/continuous-quiz/courses/{courseId}/sections
  * 인증: 필요
  */
 export const fetchSectionsWithProgress = async (courseId: number): Promise<SectionsWithProgressData> => {
     const response = await api.get<ApiResponse<SectionsWithProgressData>>(
-        `/api/v1/quiz-courses/${courseId}/sections`
+        `/api/v1/continuous-quiz/courses/${courseId}/sections`
     );
     if (!response.data.success) {
         throw new Error(response.data.error?.message || '섹션 목록을 불러오는데 실패했습니다.');

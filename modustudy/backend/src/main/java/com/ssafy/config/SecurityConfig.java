@@ -56,8 +56,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/studies/**").permitAll()
                         .requestMatchers("/files/**").permitAll()
                         .requestMatchers("/api/v1/notifications/**").permitAll()
-                        // 퀴즈 코스
-                        .requestMatchers("/api/v1/quiz-courses/**").permitAll()
+                        // 퀴즈 코스 (공개 조회)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/continuous-quiz/courses", "/api/v1/continuous-quiz/courses/*").permitAll()
                         // 게이미피케이션
                         .requestMatchers("/api/v1/gamification/test/**", "/api/v1/gamification/stats").permitAll()
                         // 데일리

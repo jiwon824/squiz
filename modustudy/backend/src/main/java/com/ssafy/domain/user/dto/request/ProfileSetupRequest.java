@@ -8,6 +8,7 @@ import java.util.List;
 @NoArgsConstructor
 public class ProfileSetupRequest {
     // 필수
+    private String name;
     private String nickname;
     private String password;
 

@@ -4,7 +4,7 @@ import { Skeleton } from '../shared/components';
 
 // Dashboard V2 (메인 대시보드)
 import { DashboardV2, GuestDashboardV2, UserDashboardV2 } from '../features/dashboard-v2';
-import { StudyAfterQuiz } from '../features/dashboard-v2/pages/StudyAfterQuiz';
+import { MyQuizPage } from '../features/dashboard-v2/pages/MyQuizPage';
 import { STTReportPage } from '../features/dashboard-v2/pages/STTReportPage';
 import { LearningArchivePage } from '../features/dashboard-v2/pages/LearningArchivePage';
 import { MyCreatedStudiesPage } from '../features/dashboard-v2/pages/MyCreatedStudiesPage';
@@ -21,9 +21,7 @@ import ReuseTest from '../features/reuseTest';
 const QuizGameSelection = lazy(() =>
     import('../features/quiz').then(m => ({ default: m.QuizGameSelection }))
 );
-const ReviewQuizPage = lazy(() =>
-    import('../features/quiz').then(m => ({ default: m.ReviewQuizPage }))
-);
+
 const CommentleQuiz = lazy(() =>
     import('../features/quiz').then(m => ({ default: m.CommentleQuiz }))
 );
@@ -32,9 +30,6 @@ const QuizCourseList = lazy(() =>
 );
 const CourseDetail = lazy(() =>
     import('../features/quiz').then(m => ({ default: m.CourseDetail }))
-);
-const QuizSessionPage = lazy(() =>
-    import('../features/quiz').then(m => ({ default: m.QuizSession }))
 );
 const ContinuousQuizSessionPage = lazy(() =>
     import('../features/quiz').then(m => ({ default: m.ContinuousQuizSession }))
@@ -65,6 +60,9 @@ const StudyCreatePage = lazy(() =>
 );
 const LightningStudyCreatePage = lazy(() =>
     import('../features/study').then(m => ({ default: m.LightningStudyCreatePage }))
+);
+const LightningStudyEditPage = lazy(() =>
+    import('../features/study').then(m => ({ default: m.LightningStudyEditPage }))
 );
 const StudyDetailPageV3 = lazy(() =>
     import('../features/study').then(m => ({ default: m.StudyDetailPageV3 }))
@@ -158,9 +156,9 @@ export const AppRouter = () => {
 
                 {/* 퀴즈 */}
                 <Route path="/quiz" element={<QuizGameSelection />} />
-                <Route path="/test/quiz" element={<ReviewQuizPage />} />
+
                 {/* 내 브랜치 추가 */}
-                <Route path="/quiz/review" element={<UserLayoutV2><StudyAfterQuiz /></UserLayoutV2>} />
+                <Route path="/quiz/my-quiz" element={<UserLayoutV2><MyQuizPage /></UserLayoutV2>} />
                 <Route path="/meeting-report" element={<UserLayoutV2><STTReportPage /></UserLayoutV2>} />
                 <Route path="/learning-archive" element={<UserLayoutV2><LearningArchivePage /></UserLayoutV2>} />
                 <Route path="/my-studies/created" element={<UserLayoutV2><MyCreatedStudiesPage /></UserLayoutV2>} />
@@ -168,15 +166,6 @@ export const AppRouter = () => {
                 <Route path="/quiz-commentle" element={<CommentleQuiz />} />
                 <Route path="/quiz-practice" element={<QuizCourseList />} />
                 <Route path="/quiz-practice/:courseId" element={<CourseDetail />} />
-                {/* origin/dev: sectionId -> sectionNumber 변경 */}
-                <Route
-                    path="/quiz-practice/:courseId/section/:sectionNumber/session"
-                    element={<QuizSessionPage />}
-                />
-                <Route
-                    path="/quiz-practice/:courseId/section/:sectionNumber/session/:attemptId"
-                    element={<QuizSessionPage />}
-                />
                 {/* 연속 학습 모드 (Sayvoca 스타일) */}
                 <Route
                     path="/continuous-quiz/:courseId/section/:sectionNumber"
@@ -188,6 +177,7 @@ export const AppRouter = () => {
                 <Route path="/study/create" element={<StudyTypeSelectPage />} />
                 <Route path="/study/create/planned" element={<StudyCreatePage />} />
                 <Route path="/study/create/lightning" element={<LightningStudyCreatePage />} />
+                <Route path="/study/edit/lightning/:studyId" element={<LightningStudyEditPage />} />
                 <Route path="/study/:id" element={<StudyDetailPageV3 />} />
                 <Route path="/study/v3/:id" element={<StudyDetailPageV3 />} />
                 <Route path="/study/manage/:id" element={<StudyManagementPage />} />

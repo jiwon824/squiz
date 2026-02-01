@@ -46,7 +46,7 @@ public class StudyService {
 
         Page<Study> studies = studyRepository.findAllPublicStudies(Status.DRAFT, pageable);
         return studies.map(study -> {
-            int currentMembers = studyMemberRepository.countByStudyIdAndStatus(study.getId(), MemberStatus.APPROVED) + 1;
+            int currentMembers = studyMemberRepository.countByStudyIdAndStatus(study.getId(), MemberStatus.APPROVED);
             StudyResponse response = StudyResponse.from(study);
             response.setCurrentMembers(currentMembers);
             return response;
@@ -63,7 +63,7 @@ public class StudyService {
 
         Page<Study> studies = studyRepository.findRecruitingStudies(pageable);
         return studies.map(study -> {
-            int currentMembers = studyMemberRepository.countByStudyIdAndStatus(study.getId(), MemberStatus.APPROVED) + 1;
+            int currentMembers = studyMemberRepository.countByStudyIdAndStatus(study.getId(), MemberStatus.APPROVED);
             StudyResponse response = StudyResponse.from(study);
             response.setCurrentMembers(currentMembers);
             return response;
@@ -83,7 +83,7 @@ public class StudyService {
 
         Page<Study> studies = studyRepository.searchStudies(condition, pageable);
         return studies.map(study -> {
-            int currentMembers = studyMemberRepository.countByStudyIdAndStatus(study.getId(), MemberStatus.APPROVED) + 1;
+            int currentMembers = studyMemberRepository.countByStudyIdAndStatus(study.getId(), MemberStatus.APPROVED);
             StudyResponse response = StudyResponse.from(study);
             response.setCurrentMembers(currentMembers);
             return response;
@@ -99,7 +99,7 @@ public class StudyService {
 
         Page<Study> studies = studyRepository.findByLeaderId(leaderId, pageable);
         return studies.map(study -> {
-            int currentMembers = studyMemberRepository.countByStudyIdAndStatus(study.getId(), MemberStatus.APPROVED) + 1;
+            int currentMembers = studyMemberRepository.countByStudyIdAndStatus(study.getId(), MemberStatus.APPROVED);
             StudyResponse response = StudyResponse.from(study);
             response.setCurrentMembers(currentMembers);
             return response;
@@ -115,7 +115,7 @@ public class StudyService {
 
         Page<Study> studies = studyRepository.findByLeaderIdAndStatus(leaderId, status, pageable);
         return studies.map(study -> {
-            int currentMembers = studyMemberRepository.countByStudyIdAndStatus(study.getId(), MemberStatus.APPROVED) + 1;
+            int currentMembers = studyMemberRepository.countByStudyIdAndStatus(study.getId(), MemberStatus.APPROVED);
             StudyResponse response = StudyResponse.from(study);
             response.setCurrentMembers(currentMembers);
             return response;
@@ -141,8 +141,8 @@ public class StudyService {
             leader = userRepository.findById(study.getLeaderId()).orElse(null);
         }
 
-        // 현재 참여 인원 조회 (스터디장 포함이므로 +1)
-        int currentMembers = studyMemberRepository.countByStudyIdAndStatus(studyId, MemberStatus.APPROVED) + 1;
+        // 현재 참여 인원 조회 (스터디장도 StudyMember 테이블에 포함되어 있음)
+        int currentMembers = studyMemberRepository.countByStudyIdAndStatus(studyId, MemberStatus.APPROVED);
 
         return StudyResponse.from(study, leader, currentMembers);
     }

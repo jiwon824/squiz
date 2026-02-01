@@ -75,8 +75,12 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
 
     // 답안이 변경되면 입력 상태 동기화
     useEffect(() => {
-        if (question.type === 'short-answer' && typeof currentAnswer === 'string') {
-            setTextInput(currentAnswer);
+        if (question.type === 'short-answer') {
+            if (typeof currentAnswer === 'string') {
+                setTextInput(currentAnswer);
+            } else if (currentAnswer === undefined || currentAnswer === null) {
+                setTextInput('');
+            }
         }
     }, [currentAnswer, question.type]);
 

@@ -8,15 +8,28 @@ import com.ssafy.domain.quiz.entity.UserReviewItem;
 import com.ssafy.domain.quiz.entity.UserReviewLog;
 import com.ssafy.domain.quiz.repository.UserReviewItemRepository;
 import com.ssafy.domain.quiz.repository.UserReviewLogRepository;
+import com.ssafy.domain.quiz.util.QuizGradingUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ssafy.domain.quiz.dto.response.OptionItem;
+import com.ssafy.domain.quiz.dto.response.TodayReviewResponse.QuestionDetail;
+import com.ssafy.domain.quiz.dto.response.TodayReviewResponse.ReviewItemDto;
+import com.ssafy.domain.quiz.entity.QuizCourseQuestion;
+import com.ssafy.domain.quiz.repository.ContinuousQuizRepository;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * FSRS v14 기반 간격 반복 복습 서비스
@@ -33,15 +46,18 @@ public class FsrsService {
     private final UserReviewItemRepository reviewItemRepository;
     private final UserReviewLogRepository reviewLogRepository;
 
+    private final ContinuousQuizRepository continuousQuizRepository;
+    private final ObjectMapper objectMapper;
+
     // ── Rating 자동 산출 ──
 
     /**
      * 정답 여부와 응답 시간으로 FSRS Rating(1~4)을 자동 산출한다.
      * <ul>
-     *   <li>오답 → 1 (Again)</li>
-     *   <li>정답 &amp; 응답 시간 &gt; 5초 → 2 (Hard)</li>
-     *   <li>정답 &amp; 2초 &lt; 응답 시간 ≤ 5초 → 3 (Good)</li>
-     *   <li>정답 &amp; 응답 시간 ≤ 2초 → 4 (Easy)</li>
+     * <li>오답 → 1 (Again)</li>
+     * <li>정답 &amp; 응답 시간 &gt; 5초 → 2 (Hard)</li>
+     * <li>정답 &amp; 2초 &lt; 응답 시간 ≤ 5초 → 3 (Good)</li>
+     * <li>정답 &amp; 응답 시간 ≤ 2초 → 4 (Easy)</li>
      * </ul>
      */
     public int calculateRating(boolean isCorrect, long responseTimeMs) {
@@ -85,16 +101,53 @@ public class FsrsService {
     // ── 복습 처리 (Upsert + Log) ──
 
     /**
-     * 복습 결과를 처리한다.
-     * <ol>
-     *   <li>UserReviewItem을 조회하거나 신규 생성 (Upsert)</li>
-     *   <li>FSRS v14 알고리즘으로 상태 갱신</li>
-     *   <li>UserReviewLog에 이력 기록</li>
-     * </ol>
+     * 복습 결과를 처리하고 FSRS 상태를 업데이트한다. (서버 사이드 채점 포함)
+     *
+     * @param userId         사용자 ID
+     * @param contentType    콘텐츠 유형
+     * @param contentId      콘텐츠 ID
+     * @param userAnswer     사용자 답안
+     * @param responseTimeMs 응답 시간 (밀리초)
+     * @return 업데이트된 UserReviewItem
      */
     @Transactional
     public UserReviewItem processReview(Long userId, ReviewContentType contentType,
-                                        Long contentId, boolean isCorrect, long responseTimeMs) {
+            Long contentId, String userAnswer, long responseTimeMs) {
+
+        boolean isCorrect = false;
+
+        // 1. 정답 조회 및 채점
+        if (contentType == ReviewContentType.COURSE_QUESTION) {
+            // 문제 조회
+            QuizCourseQuestion question = continuousQuizRepository.findById(contentId)
+                    .orElseThrow(() -> new IllegalArgumentException("Question not found: " + contentId));
+
+            String correctAnswer = question.getCorrectAnswer();
+            isCorrect = QuizGradingUtils.grade(userAnswer, correctAnswer, question.getQuestionType(),
+                    question.getOptions());
+
+        } else if (contentType == ReviewContentType.STUDY_QUESTION) {
+            // TODO: 스터디 퀴즈(GPT 생성)의 경우 정답 저장 방식에 따라 처리 필요
+            // 현재는 임시로 정답 처리 (또는 별도 조회 로직 구현)
+            log.warn("Study question grading not fully implemented yet. Assuming correct.");
+            isCorrect = true;
+        }
+
+        // 2. FSRS 로직 위임
+        return processReviewResult(userId, contentType, contentId, isCorrect, responseTimeMs);
+    }
+
+    /**
+     * 복습 결과(정답 여부)를 기반으로 FSRS 상태를 업데이트한다.
+     * <ol>
+     * <li>UserReviewItem을 조회하거나 신규 생성 (Upsert)</li>
+     * <li>FSRS v14 알고리즘으로 상태 갱신</li>
+     * <li>UserReviewLog에 이력 기록</li>
+     * </ol>
+     */
+    @Transactional
+    public UserReviewItem processReviewResult(Long userId, ReviewContentType contentType,
+            Long contentId, boolean isCorrect, long responseTimeMs) {
 
         int rating = calculateRating(isCorrect, responseTimeMs);
 
@@ -125,7 +178,7 @@ public class FsrsService {
         reviewLogRepository.save(reviewLog);
 
         log.info("복습 처리 완료 - userId: {}, contentType: {}, contentId: {}, rating: {}, " +
-                        "stability: {}, nextReview: {}",
+                "stability: {}, nextReview: {}",
                 userId, contentType, contentId, rating,
                 String.format("%.2f", item.getStability()), item.getNextReviewAt());
 
@@ -133,10 +186,86 @@ public class FsrsService {
     }
 
     /**
+     * 특정 사용자의 복습 예정 항목을 조회하고, 문제 정보(지문, 보기, 정답 등)를 함께 반환한다.
+     */
+    public List<ReviewItemDto> getTodayReviewsWithQuestions(Long userId) {
+        // 1. 복습 예정 항목 조회
+        List<UserReviewItem> dueItems = reviewItemRepository.findDueItems(userId, LocalDateTime.now());
+
+        // (테스트용) 내일 이 시간까지 포함해서 조회
+        // List<UserReviewItem> dueItems = reviewItemRepository.findDueItems(userId,
+        // LocalDateTime.now().plusDays(1));
+        return enrichReviewItems(dueItems);
+    }
+
+    /**
+     * 특정 사용자의 오답 노트(많이 틀린 문제)를 조회하고, 문제 정보와 함께 반환한다.
+     */
+    public List<ReviewItemDto> getWrongAnswersWithQuestions(Long userId) {
+        // 1. 오답 노트 조회
+        List<UserReviewItem> wrongItems = reviewItemRepository.findWrongAnswers(userId);
+        return enrichReviewItems(wrongItems);
+    }
+
+    private List<ReviewItemDto> enrichReviewItems(List<UserReviewItem> items) {
+        if (items.isEmpty()) {
+            return List.of();
+        }
+
+        // 2. COURSE_QUESTION ID 수집
+        List<Long> courseQuestionIds = items.stream()
+                .filter(item -> item.getContentType() == ReviewContentType.COURSE_QUESTION)
+                .map(UserReviewItem::getContentId)
+                .toList();
+
+        // 3. 문제 일괄 조회
+        Map<Long, QuizCourseQuestion> questionMap = continuousQuizRepository.findAllById(courseQuestionIds).stream()
+                .collect(Collectors.toMap(QuizCourseQuestion::getId, Function.identity()));
+
+        // 4. DTO 조립
+        return items.stream().map(item -> {
+            QuestionDetail questionDetail = null;
+
+            if (item.getContentType() == ReviewContentType.COURSE_QUESTION) {
+                QuizCourseQuestion q = questionMap.get(item.getContentId());
+                if (q != null) {
+                    List<OptionItem> options = parseOptions(q.getOptions());
+                    String category = q.getSection().getCourse().getName(); // 코스명을 카테고리로 사용
+
+                    questionDetail = new QuestionDetail(
+                            q.getQuestionNumber(),
+                            q.getQuestionText(),
+                            q.getQuestionType(),
+                            options,
+                            q.getCorrectAnswer(),
+                            q.getExplanation(),
+                            category,
+                            item.getLastReviewedAt());
+                }
+            }
+            // TODO: STUDY_QUESTION 처리 로직 추가 가능
+
+            return ReviewItemDto.from(item, questionDetail);
+        }).toList();
+    }
+
+    /**
      * 특정 사용자의 복습 예정 항목을 조회한다. (nextReviewAt ≤ 현재 시각)
      */
     public List<UserReviewItem> getDueItems(Long userId) {
         return reviewItemRepository.findDueItems(userId, LocalDateTime.now());
+    }
+
+    private List<OptionItem> parseOptions(String json) {
+        if (json == null || json.isBlank())
+            return null;
+        try {
+            return objectMapper.readValue(json, new TypeReference<List<OptionItem>>() {
+            });
+        } catch (JsonProcessingException e) {
+            log.warn("옵션 파싱 실패: {}", json, e);
+            return List.of();
+        }
     }
 
     // ── 복습 통계 조회 ──
@@ -190,11 +319,12 @@ public class FsrsService {
     }
 
     // ══════════════════════════════════════════════════════
-    //  Private — FSRS v14 핵심 수식
+    // Private — FSRS v14 핵심 수식
     // ══════════════════════════════════════════════════════
 
     /**
      * 새 카드(state=NEW)의 초기 안정성/난이도를 설정한다.
+     * 
      * <pre>
      * S0(G) = w[G - 1]
      * D0(G) = w[4] - exp(w[5] * (G - 1)) + 1
@@ -223,6 +353,7 @@ public class FsrsService {
 
     /**
      * 기존 카드(Learning/Review/Relearning)의 FSRS 상태를 갱신한다.
+     * 
      * <pre>
      * Retrievability:  R = (1 + FACTOR * t / S) ^ DECAY
      * Difficulty:      D' = D - w[6] * (G - 3)  →  mean reversion
@@ -277,6 +408,7 @@ public class FsrsService {
 
     /**
      * 난이도 갱신 — Mean Reversion 적용
+     * 
      * <pre>
      * D0(G) = w[4] - exp(w[5] * (G - 1)) + 1
      * D'    = D - w[6] * (G - 3)
@@ -296,6 +428,7 @@ public class FsrsService {
 
     /**
      * Retrievability 계산 (Power Forgetting Curve)
+     * 
      * <pre>
      * R(t, S) = (1 + FACTOR * t / S) ^ DECAY
      * </pre>
@@ -306,15 +439,16 @@ public class FsrsService {
         }
         return Math.pow(
                 1 + FsrsConstants.FACTOR * elapsedDays / stability,
-                FsrsConstants.DECAY
-        );
+                FsrsConstants.DECAY);
     }
 
     /**
      * 안정성(Stability)으로부터 다음 복습 간격(일)을 산출한다.
+     * 
      * <pre>
-     * interval = S / FACTOR * (desired_retention ^ (1/DECAY) - 1)
+     * interval = S / FACTOR * (desired_retention ^ (1 / DECAY) - 1)
      * </pre>
+     * 
      * DESIRED_RETENTION = 0.9, DECAY = -0.5 일 때 interval ≈ S (설계 의도)
      */
     private int calculateScheduledDays(double stability) {

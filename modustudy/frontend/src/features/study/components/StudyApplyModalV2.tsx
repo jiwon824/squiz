@@ -73,15 +73,33 @@ const StudyApplyModalV2: React.FC<StudyApplyModalV2Props> = ({ study, isOpen, on
         }
     };
 
-    // 요일 포맷팅 (번개 스터디는 "오늘" 표시)
+    // 요일 포맷팅 (번개 스터디는 "오늘" 표시) - 요일 순서대로 정렬
     const formatScheduleDays = () => {
         if (study.scheduleDays) {
-            // MON,WED,FRI -> 월, 수, 금
-            const dayMap: Record<string, string> = {
-                'MON': '월', 'TUE': '화', 'WED': '수',
-                'THU': '목', 'FRI': '금', 'SAT': '토', 'SUN': '일'
+            // MON,WED,FRI -> 월, 수, 금 (요일 순서대로 정렬)
+            // 대소문자/한글 모두 지원
+            const dayOrder: Record<string, number> = {
+                'MON': 0, 'mon': 0, '월': 0,
+                'TUE': 1, 'tue': 1, '화': 1,
+                'WED': 2, 'wed': 2, '수': 2,
+                'THU': 3, 'thu': 3, '목': 3,
+                'FRI': 4, 'fri': 4, '금': 4,
+                'SAT': 5, 'sat': 5, '토': 5,
+                'SUN': 6, 'sun': 6, '일': 6,
             };
-            return study.scheduleDays.split(',').map(d => dayMap[d.trim()] || d).join(', ');
+            const dayMap: Record<string, string> = {
+                'MON': '월', 'mon': '월', '월': '월',
+                'TUE': '화', 'tue': '화', '화': '화',
+                'WED': '수', 'wed': '수', '수': '수',
+                'THU': '목', 'thu': '목', '목': '목',
+                'FRI': '금', 'fri': '금', '금': '금',
+                'SAT': '토', 'sat': '토', '토': '토',
+                'SUN': '일', 'sun': '일', '일': '일',
+            };
+            const sortedDays = study.scheduleDays.split(',')
+                .map(d => d.trim())
+                .sort((a, b) => (dayOrder[a] ?? 99) - (dayOrder[b] ?? 99));
+            return sortedDays.map(d => dayMap[d] || d).join(', ');
         }
 
         // 번개 스터디이거나 scheduleDays가 없는 경우

@@ -154,10 +154,6 @@ export const QuizCourseList = () => {
     // EVENT HANDLERS - 이벤트 핸들러 함수
     // =========================================================================
 
-    const handleSectionClick = (courseId: string, sectionId: string) => {
-        console.log(`퀴즈 시작: 코스 ${courseId}, 섹션 ${sectionId}`);
-    };
-
     const handleCardClick = (courseId: string) => {
         // courseId가 유효하지 않은 경우 네비게이션 방지
         if (!courseId || courseId === 'undefined' || courseId === 'null') {
@@ -366,7 +362,6 @@ export const QuizCourseList = () => {
                             <CourseCard
                                 key={course.id}
                                 course={course}
-                                onSectionClick={handleSectionClick}
                                 onCardClick={handleCardClick}
                             />
                         ))}
