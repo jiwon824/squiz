@@ -17,8 +17,7 @@ import java.util.stream.Collectors;
  * 퀴즈 채점 로직을 담당하는 유틸리티 클래스.
  *
  * <p>
- * UserSectionAttemptQuestion(퀴즈 코스)와 FsrsService(복습),
- * ContinuousQuizService(연속질문) 등
+ * ContinuousQuizService(연속 학습)와 FsrsService(FSRS 복습) 등
  * 여러 도메인에서 동일한 채점 기준을 적용하기 위해 분리됨.
  * </p>
  */

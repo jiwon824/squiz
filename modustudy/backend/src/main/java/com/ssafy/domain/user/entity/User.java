@@ -2,7 +2,7 @@ package com.ssafy.domain.user.entity;
 
 import com.ssafy.common.entity.BaseEntity;
 import com.ssafy.domain.quiz.entity.UserCourseProgress;
-import com.ssafy.domain.quiz.entity.UserSectionAttempt;
+
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -122,9 +122,4 @@ public class User extends BaseEntity {
     @OneToMany(mappedBy = "user")
     private List<UserCourseProgress> courseProgresses = new ArrayList<>();
 
-    /**
-     * 사용자의 섹션 시도 목록.
-     */
-    @OneToMany(mappedBy = "user")
-    private List<UserSectionAttempt> sectionAttempts = new ArrayList<>();
 }

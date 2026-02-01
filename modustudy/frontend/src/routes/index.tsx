@@ -31,9 +31,6 @@ const QuizCourseList = lazy(() =>
 const CourseDetail = lazy(() =>
     import('../features/quiz').then(m => ({ default: m.CourseDetail }))
 );
-const QuizSessionPage = lazy(() =>
-    import('../features/quiz').then(m => ({ default: m.QuizSession }))
-);
 const ContinuousQuizSessionPage = lazy(() =>
     import('../features/quiz').then(m => ({ default: m.ContinuousQuizSession }))
 );
@@ -166,15 +163,6 @@ export const AppRouter = () => {
                 <Route path="/quiz-commentle" element={<CommentleQuiz />} />
                 <Route path="/quiz-practice" element={<QuizCourseList />} />
                 <Route path="/quiz-practice/:courseId" element={<CourseDetail />} />
-                {/* origin/dev: sectionId -> sectionNumber 변경 */}
-                <Route
-                    path="/quiz-practice/:courseId/section/:sectionNumber/session"
-                    element={<QuizSessionPage />}
-                />
-                <Route
-                    path="/quiz-practice/:courseId/section/:sectionNumber/session/:attemptId"
-                    element={<QuizSessionPage />}
-                />
                 {/* 연속 학습 모드 (Sayvoca 스타일) */}
                 <Route
                     path="/continuous-quiz/:courseId/section/:sectionNumber"
