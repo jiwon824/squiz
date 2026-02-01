@@ -135,7 +135,7 @@ class ContinuousQuizServiceTest {
             assertThat(response.getReps()).isEqualTo(testReviewItem.getReps());
 
             // FsrsService 호출 검증
-            verify(fsrsService).processReview(
+            verify(fsrsService).processReviewResult(
                     TEST_USER_ID,
                     ReviewContentType.COURSE_QUESTION,
                     1L,
@@ -705,7 +705,7 @@ class ContinuousQuizServiceTest {
             // then: FsrsService가 1500ms로 호출되었는지 검증
             // FsrsService.calculateRating(true, 1500) → 4 (Easy)
             ArgumentCaptor<Long> responseTimeCaptor = ArgumentCaptor.forClass(Long.class);
-            verify(fsrsService).processReview(
+            verify(fsrsService).processReviewResult(
                     eq(TEST_USER_ID),
                     eq(ReviewContentType.COURSE_QUESTION),
                     eq(1L),
@@ -737,7 +737,7 @@ class ContinuousQuizServiceTest {
             // then: FsrsService가 6000ms로 호출되었는지 검증
             // FsrsService.calculateRating(true, 6000) → 2 (Hard)
             ArgumentCaptor<Long> responseTimeCaptor = ArgumentCaptor.forClass(Long.class);
-            verify(fsrsService).processReview(
+            verify(fsrsService).processReviewResult(
                     eq(TEST_USER_ID),
                     eq(ReviewContentType.COURSE_QUESTION),
                     eq(1L),
@@ -767,7 +767,7 @@ class ContinuousQuizServiceTest {
             continuousQuizService.submitAnswer(TEST_USER_ID, 1L, request);
 
             // then
-            verify(fsrsService).processReview(
+            verify(fsrsService).processReviewResult(
                     TEST_USER_ID,
                     ReviewContentType.COURSE_QUESTION,
                     1L,
@@ -797,7 +797,7 @@ class ContinuousQuizServiceTest {
 
             // then: isCorrect=false로 호출되었는지 검증
             ArgumentCaptor<Boolean> isCorrectCaptor = ArgumentCaptor.forClass(Boolean.class);
-            verify(fsrsService).processReview(
+            verify(fsrsService).processReviewResult(
                     eq(TEST_USER_ID),
                     eq(ReviewContentType.COURSE_QUESTION),
                     eq(1L),
