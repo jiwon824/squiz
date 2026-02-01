@@ -11,13 +11,18 @@ import com.ssafy.domain.user.dto.response.UserDTO;
 import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.service.UserService;
 import com.ssafy.domain.user.service.OAuth2Service;
+import com.ssafy.domain.user.dto.response.StatsResponse;
+import com.ssafy.domain.study.dto.response.StudySessionResponse;
+import com.ssafy.domain.study.service.StudySessionService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import com.ssafy.domain.user.dto.response.StatsResponse;
-
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 사용자 API Controller
@@ -29,6 +34,7 @@ public class UserController {
 
     private final UserService userService;
     private final OAuth2Service oAuth2Service;
+    private final StudySessionService studySessionService;
 
     /**
      * 내 정보 조회
@@ -104,6 +110,7 @@ public class UserController {
                 )
         );
     }
+
     /**
      * 스터디 선호 설정 조회
      * GET /api/v1/users/me/study-preference
@@ -145,5 +152,26 @@ public class UserController {
     public ResponseEntity<ApiResponse<StatsResponse>> getServiceStats() {
         StatsResponse stats = userService.getServiceStats();
         return ResponseEntity.ok(ApiResponse.success(stats));
+    }
+
+    /**
+     * 내 스터디 세션 조회 (기간별)
+     * GET /api/v1/users/me/study-sessions?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
+     */
+    @GetMapping("/me/study-sessions")
+    public ResponseEntity<List<StudySessionResponse>> getMyStudySessions(
+            Authentication authentication,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+
+        SsafyUserDetails userDetails = (SsafyUserDetails) authentication.getPrincipal();
+        Long userId = userDetails.getUser().getId();
+
+        LocalDateTime startDateTime = startDate.atStartOfDay();
+        LocalDateTime endDateTime = endDate.plusDays(1).atStartOfDay();
+
+        List<StudySessionResponse> sessions = studySessionService.getMyStudySessions(userId, startDateTime, endDateTime);
+
+        return ResponseEntity.ok(sessions);
     }
 }

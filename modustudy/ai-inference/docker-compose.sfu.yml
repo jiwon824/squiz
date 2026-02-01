@@ -3,7 +3,7 @@
 # ===========================================
 
 services:
-  sfu:
+  squiz-sfu:
     image: tkdgns11/squiz-sfu:latest
     container_name: squiz-sfu
     network_mode: host

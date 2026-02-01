@@ -105,10 +105,10 @@ const DMListMini: React.FC = () => {
         }
     };
 
-    // 시간 포맷팅 (백엔드 LocalDateTime은 UTC, 타임존 정보 없이 반환됨)
+    // 시간 포맷팅 (백엔드 LocalDateTime은 KST, 타임존 정보 없이 반환됨)
     const formatTime = (dateString: string) => {
-        // 타임존 정보가 없는 경우 UTC로 해석
-        const normalized = dateString.includes('Z') || dateString.includes('+') ? dateString : dateString + 'Z';
+        // 타임존 정보가 없는 경우 KST(+09:00)로 해석
+        const normalized = dateString.includes('Z') || dateString.includes('+') ? dateString : dateString + '+09:00';
         const date = new Date(normalized);
         const now = new Date();
         const diff = now.getTime() - date.getTime();
