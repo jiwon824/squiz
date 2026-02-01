@@ -20,11 +20,13 @@ public record TodayReviewResponse(
         @Schema(description = "복습 예정 항목 목록") List<ReviewItemDto> items,
 
         @Schema(description = "총 항목 수", example = "5") int totalCount) {
+    
     /**
      * UserReviewItem 목록으로부터 응답 DTO를 생성한다 (문제 정보 없음).
      * 
      * @deprecated 문제 정보가 필요한 경우 서비스에서 직접 조립해야 함
      */
+    @Deprecated
     public static TodayReviewResponse from(List<UserReviewItem> items) {
         List<ReviewItemDto> dtos = items.stream()
                 .map(item -> ReviewItemDto.from(item, null))
