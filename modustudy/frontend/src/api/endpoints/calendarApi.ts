@@ -172,7 +172,7 @@ export const calendarApi = {
      * GET /api/v1/users/me/study-sessions?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
      */
     getMyStudySessions: async (startDate: string, endDate: string) => {
-        const response = await api.get<{ success: boolean; data: StudySessionDTO[] }>(
+        const response = await api.get<{ success?: boolean; data?: StudySessionDTO[] } | StudySessionDTO[]>(
             '/api/v1/users/me/study-sessions',
             {
                 params: { startDate, endDate },
@@ -181,7 +181,8 @@ export const calendarApi = {
                 }
             }
         );
-        return response.data.data;
+        const data = response.data as any;
+        return Array.isArray(data) ? data : (data?.data ?? []);
     },
 
     /**
@@ -189,13 +190,14 @@ export const calendarApi = {
      * GET /api/v1/studies/{studyId}/sessions?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
      */
     getStudySessions: async (studyId: number, startDate?: string, endDate?: string) => {
-        const response = await api.get<{ success: boolean; data: StudySessionDTO[] }>(
+        const response = await api.get<{ success?: boolean; data?: StudySessionDTO[] } | StudySessionDTO[]>(
             `/api/v1/studies/${studyId}/sessions`,
             {
                 params: { startDate, endDate }
             }
         );
-        return response.data.data;
+        const data = response.data as any;
+        return Array.isArray(data) ? data : (data?.data ?? []);
     },
 
     // ==================== Google Calendar ====================
