@@ -37,9 +37,6 @@ fun StudyHomeScreen(
     onNavigateToTeamDashboard: () -> Unit,
     onNavigateToApplicationManagement: () -> Unit,
     onNavigateToAttendanceCalendar: () -> Unit,
-    onNavigateToDailyReport: () -> Unit,
-    onNavigateToRetrospectiveList: () -> Unit,
-    onNavigateToAIChatbot: () -> Unit,
     onNavigateToExtendRecruitment: () -> Unit,
     onNavigateToTempChannel: () -> Unit,
     onNavigateToConvertToOfficial: () -> Unit
@@ -106,9 +103,7 @@ fun StudyHomeScreen(
             item {
                 ActivityMenus(
                     onAttendanceCalendarClick = onNavigateToAttendanceCalendar,
-                    onDailyReportClick = onNavigateToDailyReport,
-                    onRetrospectiveClick = onNavigateToRetrospectiveList,
-                    onAIChatbotClick = onNavigateToAIChatbot
+                    onRecordingClick = { /* TODO: 녹음/실시간 STT 화면 */ }
                 )
             }
 
@@ -340,9 +335,7 @@ private fun TeamQuickView(
 @Composable
 private fun ActivityMenus(
     onAttendanceCalendarClick: () -> Unit,
-    onDailyReportClick: () -> Unit,
-    onRetrospectiveClick: () -> Unit,
-    onAIChatbotClick: () -> Unit
+    onRecordingClick: () -> Unit
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -354,22 +347,10 @@ private fun ActivityMenus(
             onClick = onAttendanceCalendarClick
         )
         MenuCard(
-            icon = Icons.Outlined.EditNote,
-            title = "데일리 리포트",
-            subtitle = "오늘의 학습 내용을 기록하세요",
-            onClick = onDailyReportClick
-        )
-        MenuCard(
-            icon = Icons.Outlined.Psychology,
-            title = "회고 작성",
-            subtitle = "스터디 회고를 작성하세요",
-            onClick = onRetrospectiveClick
-        )
-        MenuCard(
-            icon = Icons.Outlined.SmartToy,
-            title = "AI 챗봇",
-            subtitle = "AI에게 질문하세요",
-            onClick = onAIChatbotClick
+            icon = Icons.Outlined.Mic,
+            title = "미팅 녹음",
+            subtitle = "실시간 STT로 회의 내용을 기록하세요",
+            onClick = onRecordingClick
         )
     }
 }

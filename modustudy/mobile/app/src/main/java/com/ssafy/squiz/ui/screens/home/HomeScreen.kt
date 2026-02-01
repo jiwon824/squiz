@@ -24,6 +24,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ssafy.squiz.data.remote.model.StudyDTO
 import com.ssafy.squiz.ui.components.*
 import com.ssafy.squiz.ui.theme.*
 
@@ -36,9 +38,11 @@ fun HomeScreen(
     onScheduleClick: () -> Unit,
     onBookmarkedClick: () -> Unit,
     onMyApplicationsClick: () -> Unit,
-    onTemplatesClick: () -> Unit
+    onTemplatesClick: () -> Unit,
+    viewModel: HomeViewModel = viewModel()
 ) {
-    var hasNotification by remember { mutableStateOf(true) }
+    val homeState by viewModel.homeState.collectAsState()
+    val unreadCount by viewModel.unreadCount.collectAsState()
 
     LazyColumn(
         modifier = Modifier
@@ -49,66 +53,114 @@ fun HomeScreen(
         // Top Bar
         item {
             HomeTopBar(
-                hasNotification = hasNotification,
+                hasNotification = unreadCount > 0,
                 onSearchClick = onSearchClick,
                 onNotificationClick = onNotificationClick
             )
         }
 
-        // Welcome Banner
-        item {
-            WelcomeBanner(
-                userName = "사용자",
-                onScheduleClick = onScheduleClick
-            )
-        }
+        when (val state = homeState) {
+            is HomeState.Loading -> {
+                item {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().height(200.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
+            }
+            is HomeState.Error -> {
+                item {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("데이터를 불러올 수 없습니다", color = MaterialTheme.colorScheme.error)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            TextButton(onClick = { viewModel.loadHomeData() }) {
+                                Text("다시 시도")
+                            }
+                        }
+                    }
+                }
+            }
+            is HomeState.Success -> {
+                val data = state.data
 
-        // Quick Actions
-        item {
-            QuickActionsSection(
-                onBookmarkedClick = onBookmarkedClick,
-                onMyApplicationsClick = onMyApplicationsClick,
-                onTemplatesClick = onTemplatesClick
-            )
-        }
+                // Welcome Banner
+                item {
+                    WelcomeBanner(
+                        userName = data.user.nickname,
+                        todayScheduleCount = data.todayScheduleCount,
+                        onScheduleClick = onScheduleClick
+                    )
+                }
 
-        // Recommended Studies
-        item {
-            SectionHeader(
-                title = "추천 스터디",
-                actionText = "전체보기",
-                onActionClick = onSearchClick
-            )
-        }
+                // Quick Actions
+                item {
+                    QuickActionsSection(
+                        onBookmarkedClick = onBookmarkedClick,
+                        onMyApplicationsClick = onMyApplicationsClick,
+                        onTemplatesClick = onTemplatesClick
+                    )
+                }
 
-        item {
-            RecommendedStudiesRow(onStudyClick = onStudyClick)
-        }
+                // Recommended Studies
+                if (data.recommendedStudies.isNotEmpty()) {
+                    item {
+                        SectionHeader(
+                            title = "추천 스터디",
+                            actionText = "전체보기",
+                            onActionClick = onSearchClick
+                        )
+                    }
 
-        // Popular Studies
-        item {
-            SectionHeader(
-                title = "인기 스터디",
-                actionText = "전체보기",
-                onActionClick = onSearchClick
-            )
-        }
+                    item {
+                        RecommendedStudiesRow(
+                            studies = data.recommendedStudies,
+                            onStudyClick = onStudyClick
+                        )
+                    }
+                }
 
-        item {
-            PopularStudiesColumn(onStudyClick = onStudyClick)
-        }
+                // Popular Studies
+                if (data.popularStudies.isNotEmpty()) {
+                    item {
+                        SectionHeader(
+                            title = "인기 스터디",
+                            actionText = "전체보기",
+                            onActionClick = onSearchClick
+                        )
+                    }
 
-        // Recent Studies
-        item {
-            SectionHeader(
-                title = "최근 본 스터디",
-                actionText = "전체보기",
-                onActionClick = onSearchClick
-            )
-        }
+                    item {
+                        PopularStudiesColumn(
+                            studies = data.popularStudies,
+                            onStudyClick = onStudyClick
+                        )
+                    }
+                }
 
-        item {
-            RecentStudiesRow(onStudyClick = onStudyClick)
+                // Recent Studies
+                if (data.recentStudies.isNotEmpty()) {
+                    item {
+                        SectionHeader(
+                            title = "최근 본 스터디",
+                            actionText = "전체보기",
+                            onActionClick = onSearchClick
+                        )
+                    }
+
+                    item {
+                        RecentStudiesRow(
+                            studies = data.recentStudies,
+                            onStudyClick = onStudyClick
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -190,6 +242,7 @@ private fun HomeTopBar(
 @Composable
 private fun WelcomeBanner(
     userName: String,
+    todayScheduleCount: Int,
     onScheduleClick: () -> Unit
 ) {
     Box(
@@ -238,7 +291,7 @@ private fun WelcomeBanner(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "2개의 스터디",
+                        text = "${todayScheduleCount}개의 스터디",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = Color.White
@@ -347,13 +400,7 @@ private fun QuickActionItem(
 }
 
 @Composable
-private fun RecommendedStudiesRow(onStudyClick: (Long) -> Unit) {
-    val studies = listOf(
-        StudyPreview(1, "알고리즘 스터디", "코딩테스트 대비", listOf("알고리즘", "코딩테스트"), 5, 8),
-        StudyPreview(2, "Spring Boot 마스터", "백엔드 심화 학습", listOf("Spring", "백엔드"), 4, 6),
-        StudyPreview(3, "React 프로젝트", "프론트엔드 실전", listOf("React", "프론트엔드"), 3, 5)
-    )
-
+private fun RecommendedStudiesRow(studies: List<StudyDTO>, onStudyClick: (Long) -> Unit) {
     LazyRow(
         contentPadding = PaddingValues(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -369,7 +416,7 @@ private fun RecommendedStudiesRow(onStudyClick: (Long) -> Unit) {
 
 @Composable
 private fun RecommendedStudyCard(
-    study: StudyPreview,
+    study: StudyDTO,
     onClick: () -> Unit
 ) {
     Card(
@@ -390,7 +437,7 @@ private fun RecommendedStudyCard(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = study.title,
+                        text = study.name,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
@@ -399,7 +446,7 @@ private fun RecommendedStudyCard(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = study.description,
+                        text = study.description ?: "",
                         fontSize = 13.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
@@ -407,8 +454,8 @@ private fun RecommendedStudyCard(
                     )
                 }
                 StatusBadge(
-                    text = "모집중",
-                    color = Success
+                    text = if (study.status == "RECRUITING") "모집중" else "진행중",
+                    color = if (study.status == "RECRUITING") Success else Info
                 )
             }
 
@@ -416,7 +463,7 @@ private fun RecommendedStudyCard(
 
             // Tags
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                study.tags.forEach { tag ->
+                study.tags?.take(2)?.forEach { tag ->
                     Surface(
                         shape = RoundedCornerShape(6.dp),
                         color = Primary.copy(alpha = 0.1f)
@@ -444,7 +491,7 @@ private fun RecommendedStudyCard(
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = "${study.currentMembers}/${study.maxMembers}명",
+                    text = "${study.currentMembers ?: 0}/${study.maxMembers}명",
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -454,12 +501,7 @@ private fun RecommendedStudyCard(
 }
 
 @Composable
-private fun PopularStudiesColumn(onStudyClick: (Long) -> Unit) {
-    val studies = listOf(
-        StudyPreview(4, "SQLD 자격증 스터디", "데이터베이스 자격증 취득", listOf("자격증", "SQL"), 6, 8),
-        StudyPreview(5, "면접 스터디", "취업 면접 대비", listOf("취업", "면접"), 4, 4)
-    )
-
+private fun PopularStudiesColumn(studies: List<StudyDTO>, onStudyClick: (Long) -> Unit) {
     Column(
         modifier = Modifier.padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -475,7 +517,7 @@ private fun PopularStudiesColumn(onStudyClick: (Long) -> Unit) {
 
 @Composable
 private fun PopularStudyCard(
-    study: StudyPreview,
+    study: StudyDTO,
     onClick: () -> Unit
 ) {
     Card(
@@ -520,7 +562,7 @@ private fun PopularStudyCard(
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = study.title,
+                    text = study.name,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -529,7 +571,7 @@ private fun PopularStudyCard(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    study.tags.take(2).forEach { tag ->
+                    study.tags?.take(2)?.forEach { tag ->
                         Text(
                             text = "#$tag",
                             fontSize = 12.sp,
@@ -540,14 +582,14 @@ private fun PopularStudyCard(
             }
 
             Column(horizontalAlignment = Alignment.End) {
-                if (study.currentMembers >= study.maxMembers) {
-                    StatusBadge(text = "마감", color = Error)
-                } else {
-                    StatusBadge(text = "모집중", color = Success)
-                }
+                val isFull = (study.currentMembers ?: 0) >= (study.maxMembers ?: Int.MAX_VALUE)
+                StatusBadge(
+                    text = if (isFull) "마감" else "모집중",
+                    color = if (isFull) Error else Success
+                )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "${study.currentMembers}/${study.maxMembers}명",
+                    text = "${study.currentMembers ?: 0}/${study.maxMembers}명",
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -557,12 +599,7 @@ private fun PopularStudyCard(
 }
 
 @Composable
-private fun RecentStudiesRow(onStudyClick: (Long) -> Unit) {
-    val studies = listOf(
-        StudyPreview(6, "Kotlin Coroutines", "비동기 프로그래밍", listOf("Kotlin"), 3, 5),
-        StudyPreview(7, "AWS 스터디", "클라우드 학습", listOf("AWS", "클라우드"), 5, 6)
-    )
-
+private fun RecentStudiesRow(studies: List<StudyDTO>, onStudyClick: (Long) -> Unit) {
     LazyRow(
         contentPadding = PaddingValues(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -578,7 +615,7 @@ private fun RecentStudiesRow(onStudyClick: (Long) -> Unit) {
 
 @Composable
 private fun RecentStudyCard(
-    study: StudyPreview,
+    study: StudyDTO,
     onClick: () -> Unit
 ) {
     Card(
@@ -593,7 +630,7 @@ private fun RecentStudyCard(
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Text(
-                text = study.title,
+                text = study.name,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -602,7 +639,7 @@ private fun RecentStudyCard(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = study.tags.joinToString(" ") { "#$it" },
+                text = study.tags?.joinToString(" ") { "#$it" } ?: "",
                 fontSize = 12.sp,
                 color = Primary,
                 maxLines = 1,
@@ -611,12 +648,3 @@ private fun RecentStudyCard(
         }
     }
 }
-
-private data class StudyPreview(
-    val id: Long,
-    val title: String,
-    val description: String,
-    val tags: List<String>,
-    val currentMembers: Int,
-    val maxMembers: Int
-)

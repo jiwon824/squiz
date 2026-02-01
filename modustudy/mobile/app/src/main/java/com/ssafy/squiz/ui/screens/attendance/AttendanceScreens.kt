@@ -33,6 +33,7 @@ import com.ssafy.squiz.ui.theme.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AttendanceMemberScreen(
+    studyId: Long,
     sessionId: Long,
     onBackClick: () -> Unit,
     onSuccess: () -> Unit
@@ -132,6 +133,7 @@ fun AttendanceMemberScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AttendanceLeaderScreen(
+    studyId: Long,
     sessionId: Long,
     onBackClick: () -> Unit
 ) {
@@ -297,6 +299,7 @@ fun AttendanceSuccessScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SelfAttendanceScreen(
+    studyId: Long,
     sessionId: Long,
     onBackClick: () -> Unit,
     onSuccess: () -> Unit

@@ -1,6 +1,5 @@
 package com.ssafy.squiz.ui.screens.study
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -18,7 +17,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
@@ -26,6 +24,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ssafy.squiz.data.remote.model.StudyDTO
 import com.ssafy.squiz.ui.components.*
 import com.ssafy.squiz.ui.theme.*
 
@@ -33,25 +33,24 @@ import com.ssafy.squiz.ui.theme.*
 @Composable
 fun StudySearchScreen(
     onBackClick: () -> Unit,
-    onStudyClick: (Long) -> Unit
+    onStudyClick: (Long) -> Unit,
+    viewModel: StudyViewModel = viewModel()
 ) {
-    var searchQuery by remember { mutableStateOf("") }
-    var selectedCategory by remember { mutableStateOf<String?>(null) }
-    var showFilterSheet by remember { mutableStateOf(false) }
-    var selectedStatus by remember { mutableStateOf<String?>(null) }
-    var selectedType by remember { mutableStateOf<String?>(null) }
+    val studiesState by viewModel.studiesState.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val selectedStatus by viewModel.selectedStatus.collectAsState()
+    val selectedMeetingType by viewModel.selectedMeetingType.collectAsState()
+    val topics by viewModel.topics.collectAsState()
 
-    val categories = listOf("전체", "프로그래밍", "어학", "자격증", "취업", "기타")
-    val studies = remember {
-        listOf(
-            StudyItem(1, "알고리즘 스터디", "매주 알고리즘 문제 풀이", listOf("알고리즘", "코딩테스트"), 5, 8, "온라인", true),
-            StudyItem(2, "Spring Boot 마스터", "백엔드 심화 학습", listOf("Spring", "백엔드"), 4, 6, "온/오프", true),
-            StudyItem(3, "React 프로젝트", "프론트엔드 실전 프로젝트", listOf("React", "프론트"), 5, 5, "온라인", false),
-            StudyItem(4, "SQLD 자격증", "데이터베이스 자격증 취득", listOf("자격증", "SQL"), 6, 8, "온라인", true),
-            StudyItem(5, "영어 회화", "원어민과 함께하는 영어", listOf("어학", "영어"), 3, 4, "오프라인", true),
-            StudyItem(6, "취업 면접", "IT 기업 면접 대비", listOf("취업", "면접"), 4, 4, "온/오프", false)
-        )
+    var showFilterSheet by remember { mutableStateOf(false) }
+    var selectedCategory by remember { mutableStateOf<String?>(null) }
+
+    // 초기 로드
+    LaunchedEffect(Unit) {
+        viewModel.loadStudies(refresh = true)
     }
+
+    val categories = listOf("전체") + topics.map { it.name }
 
     Scaffold(
         topBar = {
@@ -95,13 +94,14 @@ fun StudySearchScreen(
                             Spacer(modifier = Modifier.width(8.dp))
                             BasicTextField(
                                 value = searchQuery,
-                                onValueChange = { searchQuery = it },
+                                onValueChange = { viewModel.updateSearchQuery(it) },
                                 modifier = Modifier.weight(1f),
                                 textStyle = TextStyle(
                                     fontSize = 15.sp,
                                     color = MaterialTheme.colorScheme.onSurface
                                 ),
                                 cursorBrush = SolidColor(Primary),
+                                singleLine = true,
                                 decorationBox = { innerTextField ->
                                     if (searchQuery.isEmpty()) {
                                         Text(
@@ -115,7 +115,7 @@ fun StudySearchScreen(
                             )
                             if (searchQuery.isNotEmpty()) {
                                 IconButton(
-                                    onClick = { searchQuery = "" },
+                                    onClick = { viewModel.updateSearchQuery("") },
                                     modifier = Modifier.size(20.dp)
                                 ) {
                                     Icon(
@@ -130,13 +130,22 @@ fun StudySearchScreen(
 
                     Spacer(modifier = Modifier.width(8.dp))
 
+                    // 검색 버튼
+                    IconButton(onClick = { viewModel.search() }) {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = "검색",
+                            tint = Primary
+                        )
+                    }
+
                     IconButton(
                         onClick = { showFilterSheet = true }
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.FilterList,
                             contentDescription = "필터",
-                            tint = if (selectedStatus != null || selectedType != null) Primary
+                            tint = if (selectedStatus != null || selectedMeetingType != null) Primary
                                    else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -155,6 +164,8 @@ fun StudySearchScreen(
                             selected = isSelected,
                             onClick = {
                                 selectedCategory = if (category == "전체") null else category
+                                val topicId = topics.find { it.name == category }?.id
+                                viewModel.updateTopicFilter(topicId)
                             }
                         )
                     }
@@ -164,26 +175,82 @@ fun StudySearchScreen(
             }
         }
     ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            item {
-                Text(
-                    text = "검색 결과 ${studies.size}개",
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+        when (val state = studiesState) {
+            is StudiesUiState.Loading -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = Primary)
+                }
             }
 
-            items(studies) { study ->
-                StudySearchCard(
-                    study = study,
-                    onClick = { onStudyClick(study.id) }
-                )
+            is StudiesUiState.Success -> {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    item {
+                        Text(
+                            text = "검색 결과 ${state.totalCount}개",
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    items(state.studies) { study ->
+                        StudySearchCard(
+                            study = study,
+                            onClick = { onStudyClick(study.id) },
+                            onBookmarkClick = { viewModel.toggleBookmark(study.id) {} }
+                        )
+                    }
+
+                    // 더 불러오기
+                    if (state.hasMore) {
+                        item {
+                            LaunchedEffect(Unit) {
+                                viewModel.loadMore()
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    color = Primary
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            is StudiesUiState.Error -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = state.message,
+                            color = Error
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(onClick = { viewModel.loadStudies(refresh = true) }) {
+                            Text("다시 시도")
+                        }
+                    }
+                }
             }
         }
     }
@@ -196,14 +263,11 @@ fun StudySearchScreen(
         ) {
             FilterBottomSheetContent(
                 selectedStatus = selectedStatus,
-                selectedType = selectedType,
-                onStatusChange = { selectedStatus = it },
-                onTypeChange = { selectedType = it },
+                selectedType = selectedMeetingType,
+                onStatusChange = { viewModel.updateStatusFilter(it) },
+                onTypeChange = { viewModel.updateMeetingTypeFilter(it) },
                 onApply = { showFilterSheet = false },
-                onReset = {
-                    selectedStatus = null
-                    selectedType = null
-                }
+                onReset = { viewModel.resetFilters() }
             )
         }
     }
@@ -211,9 +275,13 @@ fun StudySearchScreen(
 
 @Composable
 private fun StudySearchCard(
-    study: StudyItem,
-    onClick: () -> Unit
+    study: StudyDTO,
+    onClick: () -> Unit,
+    onBookmarkClick: () -> Unit
 ) {
+    val isRecruiting = study.status == "RECRUITING"
+    val tags = study.tags ?: emptyList()
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -232,7 +300,7 @@ private fun StudySearchCard(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = study.title,
+                        text = study.name,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
@@ -241,7 +309,7 @@ private fun StudySearchCard(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = study.description,
+                        text = study.description ?: "",
                         fontSize = 14.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 2,
@@ -252,32 +320,33 @@ private fun StudySearchCard(
                 Spacer(modifier = Modifier.width(12.dp))
 
                 StatusBadge(
-                    text = if (study.isRecruiting) "모집중" else "마감",
-                    color = if (study.isRecruiting) Success else Error
+                    text = if (isRecruiting) "모집중" else "마감",
+                    color = if (isRecruiting) Success else Error
                 )
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
             // Tags
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                study.tags.forEach { tag ->
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = Primary.copy(alpha = 0.1f)
-                    ) {
-                        Text(
-                            text = tag,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            fontSize = 12.sp,
-                            color = Primary,
-                            fontWeight = FontWeight.Medium
-                        )
+            if (tags.isNotEmpty()) {
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    tags.take(3).forEach { tag ->
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = Primary.copy(alpha = 0.1f)
+                        ) {
+                            Text(
+                                text = tag,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                fontSize = 12.sp,
+                                color = Primary,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
                 }
+                Spacer(modifier = Modifier.height(12.dp))
             }
-
-            Spacer(modifier = Modifier.height(12.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -293,7 +362,7 @@ private fun StudySearchCard(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "${study.currentMembers}/${study.maxMembers}명",
+                        text = "${study.currentMembers ?: 0}/${study.maxMembers}명",
                         fontSize = 13.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -308,19 +377,19 @@ private fun StudySearchCard(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = study.type,
+                        text = study.meetingType ?: "온라인",
                         fontSize = 13.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
                 Icon(
-                    imageVector = Icons.Outlined.BookmarkBorder,
+                    imageVector = if (study.isBookmarked == true) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
                     contentDescription = "찜하기",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = if (study.isBookmarked == true) Primary else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier
                         .size(24.dp)
-                        .clickable { /* Toggle bookmark */ }
+                        .clickable { onBookmarkClick() }
                 )
             }
         }
@@ -336,8 +405,8 @@ private fun FilterBottomSheetContent(
     onApply: () -> Unit,
     onReset: () -> Unit
 ) {
-    val statusOptions = listOf("모집중", "진행중", "마감")
-    val typeOptions = listOf("온라인", "오프라인", "온/오프")
+    val statusOptions = listOf("RECRUITING" to "모집중", "IN_PROGRESS" to "진행중", "COMPLETED" to "마감")
+    val typeOptions = listOf("ONLINE" to "온라인", "OFFLINE" to "오프라인", "HYBRID" to "온/오프")
 
     Column(
         modifier = Modifier
@@ -370,12 +439,12 @@ private fun FilterBottomSheetContent(
         )
         Spacer(modifier = Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            statusOptions.forEach { status ->
+            statusOptions.forEach { (value, label) ->
                 FilterChip(
-                    text = status,
-                    isSelected = selectedStatus == status,
+                    text = label,
+                    isSelected = selectedStatus == value,
                     onClick = {
-                        onStatusChange(if (selectedStatus == status) null else status)
+                        onStatusChange(if (selectedStatus == value) null else value)
                     }
                 )
             }
@@ -392,12 +461,12 @@ private fun FilterBottomSheetContent(
         )
         Spacer(modifier = Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            typeOptions.forEach { type ->
+            typeOptions.forEach { (value, label) ->
                 FilterChip(
-                    text = type,
-                    isSelected = selectedType == type,
+                    text = label,
+                    isSelected = selectedType == value,
                     onClick = {
-                        onTypeChange(if (selectedType == type) null else type)
+                        onTypeChange(if (selectedType == value) null else value)
                     }
                 )
             }
@@ -443,14 +512,3 @@ private fun FilterChip(
         )
     }
 }
-
-private data class StudyItem(
-    val id: Long,
-    val title: String,
-    val description: String,
-    val tags: List<String>,
-    val currentMembers: Int,
-    val maxMembers: Int,
-    val type: String,
-    val isRecruiting: Boolean
-)
