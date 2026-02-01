@@ -58,12 +58,12 @@ const MeetingControls: React.FC<MeetingControlsProps> = ({
                         >
                             화면
                         </button>
-                        {/* <button
+                        <button
                             className={`meeting-control ${shareMode === 'mixed' ? 'active' : ''}`}
                             onClick={() => onShareModeChange('mixed')}
                         >
                             화면+캠
-                        </button> */}
+                        </button>
                     </div>
                 )}
             </div>
