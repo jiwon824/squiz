@@ -2013,6 +2013,8 @@ const MeetingRoomPage: React.FC = () => {
                 if (event.presenterId !== undefined && event.presenterId !== null) {
                     setPresenterId(event.presenterId);
                 }
+            } else if (event.type === 'MEETING_DURATION_UPDATED') {
+                setPlannedDurationSeconds(event.plannedDurationSeconds ?? null);
             }
             const presenterNameFromEvent = event.presenterName ?? presenterName;
             if (
