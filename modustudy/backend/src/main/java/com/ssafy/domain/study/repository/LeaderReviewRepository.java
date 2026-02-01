@@ -36,4 +36,9 @@ public interface LeaderReviewRepository extends JpaRepository<LeaderReview, Long
      * 특정 스터디 + 평가자로 리뷰 존재 여부 확인 (중복 방지)
      */
     boolean existsByStudyIdAndReviewerId(Long studyId, Long reviewerId);
+
+    /**
+     * 특정 스터디 + 평가자로 리뷰 조회 (내 리뷰 조회)
+     */
+    java.util.Optional<LeaderReview> findByStudyIdAndReviewerId(Long studyId, Long reviewerId);
 }
