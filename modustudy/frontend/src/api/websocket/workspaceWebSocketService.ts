@@ -145,6 +145,12 @@ class WorkspaceWebSocketService {
         case 'PRESENCE':
           this.handlers.onPresence?.(event);
           break;
+        case 'PIN':
+          console.log('[Workspace WS] PIN 이벤트 수신:', event);
+          this.handlers.onPin?.(event);
+          break;
+        default:
+          console.log('[Workspace WS] 알 수 없는 이벤트 타입:', event.type, event);
       }
     } catch (e) {
       console.error('[Workspace WS] 이벤트 파싱 실패:', e);

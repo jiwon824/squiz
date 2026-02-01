@@ -5,11 +5,12 @@ import { WorkspaceHeader } from './WorkspaceHeader';
 import { WorkspaceSidebar } from './WorkspaceSidebar';
 import { ChatArea } from './ChatArea';
 import { MessageInput } from './MessageInput';
-import { MemberList, type WorkspaceMember } from './MemberList';
+import { RightSidebar, type SidebarContent, type WorkspaceMember } from './RightSidebar';
 import { WorkspaceCalendarArea } from './WorkspaceCalendarArea';
 import { MaterialArea } from '@/features/material';
 import MeetingHistoryPanel from '@/features/meeting/components/MeetingHistoryPanel';
 import MeetingDetailPanel from '@/features/meeting/components/MeetingDetailPanel';
+import { SearchPanel } from './SearchPanel';
 import { workspaceApi } from '@/api/endpoints/workspaceApi';
 import { studyApi, type StudyMemberResponse } from '@/api/endpoints/studyApi';
 import { sessionApi, type StudySessionResponse } from '@/api/endpoints/sessionApi';
@@ -59,7 +60,8 @@ export const WorkspacePage: React.FC = () => {
   const [workspace, setWorkspace] = useState<WorkspaceResponse | null>(null);
   const [messages, setMessages] = useState<MessageResponse[]>([]);
   const [members, setMembers] = useState<WorkspaceMember[]>([]);
-  const [isMembersVisible, setIsMembersVisible] = useState(true);
+  // 오른쪽 사이드바 상태 (통합: none, members, pinned)
+  const [activeRightSidebar, setActiveRightSidebar] = useState<SidebarContent>('members');
   const [isLoading, setIsLoading] = useState(true);
   const [isMessagesLoading, setIsMessagesLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -75,6 +77,13 @@ export const WorkspacePage: React.FC = () => {
   const [activeMeetingId, setActiveMeetingId] = useState<number | null>(null);
   const [activeMeetingEnded, setActiveMeetingEnded] = useState<boolean | null>(null);
   const [selectedMeetingId, setSelectedMeetingId] = useState<number | null>(null);
+
+  // 검색 패널 상태
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  // 고정 메시지 데이터
+  const [pinnedMessages, setPinnedMessages] = useState<MessageResponse[]>([]);
+  // 스크롤할 메시지 ID
+  const [scrollToMessageId, setScrollToMessageId] = useState<number | null>(null);
 
   const idleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isIdleRef = useRef(false);
@@ -256,6 +265,23 @@ export const WorkspacePage: React.FC = () => {
     loadInitialData();
   }, [studyId, navigate, showToast]);
 
+  // 고정 메시지 로드
+  useEffect(() => {
+    if (!workspace) return;
+
+    const loadPinnedMessages = async () => {
+      try {
+        const pinnedData = await workspaceApi.getPinnedMessages(workspace.id);
+        setPinnedMessages(pinnedData);
+      } catch (err) {
+        // 고정 메시지 로드 실패는 무시
+        console.warn('고정 메시지 로드 실패:', err);
+      }
+    };
+
+    loadPinnedMessages();
+  }, [workspace?.id]);
+
   // WebSocket 연결 관리
   useEffect(() => {
     if (!workspace || !currentUser?.id || !currentUser?.nickname) return;
@@ -337,6 +363,52 @@ export const WorkspacePage: React.FC = () => {
                 : m
             )
           );
+        }
+      },
+      onPin: (event: WorkspaceWebSocketEvent) => {
+        // 메시지 고정/해제 시
+        console.log('[Workspace] PIN 이벤트 수신:', event);
+        if (event.message && event.messageId) {
+          // isPinned 또는 pinned 필드 확인 (Jackson 직렬화 대응)
+          const msg = event.message as any;
+          const isPinned = msg.isPinned ?? msg.pinned ?? false;
+          const messageId = event.messageId;
+
+          console.log('[Workspace] PIN 처리:', { messageId, isPinned });
+
+          // 메시지 목록의 isPinned 상태 업데이트
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === messageId ? { ...m, isPinned } : m
+            )
+          );
+
+          // 고정 메시지 목록 업데이트
+          if (isPinned) {
+            // 고정됨 - 목록에 추가
+            const newPinnedMessage: MessageResponse = {
+              id: event.message.id,
+              workspaceId: event.message.workspaceId,
+              content: event.message.content,
+              messageType: event.message.messageType,
+              createdAt: event.message.createdAt,
+              updatedAt: event.message.updatedAt,
+              isPinned: true,
+              author: {
+                id: event.message.userId,
+                nickname: event.message.nickname,
+                profileImageUrl: event.message.profileImageUrl || null,
+              },
+            };
+            setPinnedMessages((prev) => {
+              const exists = prev.some((m) => m.id === messageId);
+              if (exists) return prev;
+              return [...prev, newPinnedMessage];
+            });
+          } else {
+            // 해제됨 - 목록에서 제거
+            setPinnedMessages((prev) => prev.filter((m) => m.id !== messageId));
+          }
         }
       },
       onConnectionChange: (status) => {
@@ -507,8 +579,90 @@ export const WorkspacePage: React.FC = () => {
 
   // 멤버 목록 토글
   const handleToggleMembers = useCallback(() => {
-    setIsMembersVisible((prev) => !prev);
+    setActiveRightSidebar((prev) => {
+      // 이미 멤버 목록이면 닫기, 아니면 멤버 목록으로 전환
+      return prev === 'members' ? 'none' : 'members';
+    });
   }, []);
+
+  // 검색 패널 토글
+  const handleToggleSearch = useCallback(() => {
+    setIsSearchOpen((prev) => !prev);
+  }, []);
+
+  // 고정 메시지 패널 토글
+  const handleTogglePinned = useCallback(() => {
+    setActiveRightSidebar((prev) => {
+      // 이미 고정 메시지면 닫기, 아니면 고정 메시지로 전환
+      return prev === 'pinned' ? 'none' : 'pinned';
+    });
+  }, []);
+
+  // 메시지 고정/해제 토글
+  const handlePinToggle = useCallback(async (messageId: number) => {
+    if (!workspace) return;
+    try {
+      const updatedMessage = await workspaceApi.togglePinMessage(workspace.id, messageId);
+
+      if (updatedMessage.isPinned) {
+        // 고정됨 - 목록에 추가
+        setPinnedMessages((prev) => {
+          const exists = prev.some((m) => m.id === messageId);
+          if (exists) return prev;
+          return [...prev, updatedMessage];
+        });
+      } else {
+        // 해제됨 - 목록에서 제거
+        setPinnedMessages((prev) => prev.filter((m) => m.id !== messageId));
+      }
+
+      // 메시지 목록의 isPinned 상태도 업데이트
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === messageId ? { ...m, isPinned: updatedMessage.isPinned } : m
+        )
+      );
+    } catch (err) {
+      showToast?.('메시지 고정 상태 변경에 실패했습니다.', 'error');
+    }
+  }, [workspace, showToast]);
+
+  // 고정 메시지 해제 (패널에서 사용)
+  const handleUnpinMessage = useCallback(async (messageId: number) => {
+    if (!workspace) return;
+    try {
+      await workspaceApi.togglePinMessage(workspace.id, messageId);
+      setPinnedMessages((prev) => prev.filter((m) => m.id !== messageId));
+
+      // 메시지 목록의 isPinned 상태도 업데이트
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === messageId ? { ...m, isPinned: false } : m
+        )
+      );
+    } catch (err) {
+      showToast?.('고정 해제에 실패했습니다.', 'error');
+    }
+  }, [workspace, showToast]);
+
+  // 검색/고정 메시지 클릭 시 해당 메시지로 이동
+  const handleMessageNavigate = useCallback((messageId: number) => {
+    setActiveMenu('chat');
+    // 약간의 딜레이 후 스크롤 (탭 전환 완료 후)
+    setTimeout(() => {
+      setScrollToMessageId(messageId);
+    }, 50);
+  }, []);
+
+  // 스크롤 완료 후 상태 초기화
+  const handleScrollComplete = useCallback(() => {
+    setScrollToMessageId(null);
+  }, []);
+
+  // 고정된 메시지 ID 목록 (ChatArea에 전달용)
+  const pinnedMessageIds = useMemo(() => {
+    return pinnedMessages.map((m) => m.id);
+  }, [pinnedMessages]);
 
   // 이전 메시지 로드 (무한 스크롤)
   const handleLoadMore = useCallback(async () => {
@@ -603,8 +757,13 @@ export const WorkspacePage: React.FC = () => {
           studyName={studyName}
           memberCount={members.length}
           onToggleMembers={handleToggleMembers}
-          isMembersVisible={isMembersVisible}
+          isMembersVisible={activeRightSidebar === 'members'}
           onGoBack={handleGoBack}
+          onToggleSearch={handleToggleSearch}
+          isSearchOpen={isSearchOpen}
+          onTogglePinned={handleTogglePinned}
+          isPinnedOpen={activeRightSidebar === 'pinned'}
+          pinnedCount={pinnedMessages.length}
         />
 
         {/* 본문 영역 */}
@@ -630,6 +789,10 @@ export const WorkspacePage: React.FC = () => {
                   onLoadMore={handleLoadMore}
                   hasMore={hasMoreMessages}
                   currentUserId={currentUser?.id}
+                  pinnedMessageIds={pinnedMessageIds}
+                  onPinToggle={handlePinToggle}
+                  scrollToMessageId={scrollToMessageId}
+                  onScrollComplete={handleScrollComplete}
                 />
                 <MessageInput
                   onSend={handleSendMessage}
@@ -664,13 +827,26 @@ export const WorkspacePage: React.FC = () => {
         </div>
       </div>
 
-      {/* 멤버 목록 사이드바 */}
-      <MemberList
+      {/* 검색 패널 */}
+      {workspace && (
+        <SearchPanel
+          workspaceId={workspace.id}
+          isOpen={isSearchOpen}
+          onClose={() => setIsSearchOpen(false)}
+          onMessageClick={handleMessageNavigate}
+        />
+      )}
+
+      {/* 오른쪽 통합 사이드바 */}
+      <RightSidebar
+        activeContent={activeRightSidebar}
         members={members}
-        isVisible={isMembersVisible}
         onMemberClick={() => {
           // TODO: 멤버 클릭 프로필 보기 기능 추가
         }}
+        pinnedMessages={pinnedMessages}
+        onUnpin={handleUnpinMessage}
+        onPinnedMessageClick={handleMessageNavigate}
       />
     </div>
   );

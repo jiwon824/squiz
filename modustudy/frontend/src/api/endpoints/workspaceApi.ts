@@ -23,6 +23,7 @@ interface BackendMessageResponse {
   messageType: string;
   fileUrl: string | null;
   isDeleted: boolean;
+  isPinned: boolean;
   createdAt: string;
   updatedAt: string | null;
 }
@@ -38,6 +39,7 @@ const transformMessage = (msg: BackendMessageResponse): MessageResponse => ({
   },
   content: msg.isDeleted ? '삭제된 메시지입니다.' : msg.content,
   messageType: msg.messageType as MessageResponse['messageType'],
+  isPinned: msg.isPinned ?? false,
   createdAt: msg.createdAt,
   updatedAt: msg.updatedAt,
 });
@@ -212,6 +214,39 @@ export const workspaceApi = {
    */
   getMessageCount: async (workspaceId: number) => {
     const response = await api.get<any>(`/api/v1/workspaces/${workspaceId}/messages/count`);
+    return response.data as number;
+  },
+
+  // ============ 고정 메시지 API ============
+
+  /**
+   * 고정된 메시지 목록 조회
+   * GET /api/v1/workspaces/{workspaceId}/messages/pinned
+   */
+  getPinnedMessages: async (workspaceId: number) => {
+    const response = await api.get<any>(`/api/v1/workspaces/${workspaceId}/messages/pinned`);
+    const data = response.data;
+    const messages = Array.isArray(data) ? data : (data.data || []);
+    return messages.map(transformMessage) as MessageResponse[];
+  },
+
+  /**
+   * 메시지 고정/해제 토글
+   * PATCH /api/v1/workspaces/{workspaceId}/messages/{messageId}/pin
+   */
+  togglePinMessage: async (workspaceId: number, messageId: number) => {
+    const response = await api.patch<any>(
+      `/api/v1/workspaces/${workspaceId}/messages/${messageId}/pin`
+    );
+    return transformMessage(response.data) as MessageResponse;
+  },
+
+  /**
+   * 고정된 메시지 수 조회
+   * GET /api/v1/workspaces/{workspaceId}/messages/pinned/count
+   */
+  getPinnedMessageCount: async (workspaceId: number) => {
+    const response = await api.get<any>(`/api/v1/workspaces/${workspaceId}/messages/pinned/count`);
     return response.data as number;
   },
 };
