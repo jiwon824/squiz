@@ -82,8 +82,8 @@ public class GoogleCalendarService {
 
     /**
      * 스터디 세션을 Google Calendar에 이벤트로 생성
+     * 외부 API 호출이므로 트랜잭션에서 분리 (실패해도 세션 생성에 영향 없도록)
      */
-    @Transactional
     public String createEvent(Long userId, StudySession session, String studyTitle) {
         try {
             Calendar calendarService = getCalendarClient(userId);
@@ -106,8 +106,8 @@ public class GoogleCalendarService {
 
     /**
      * Google Calendar 이벤트 수정
+     * 외부 API 호출이므로 트랜잭션에서 분리 (실패해도 세션 수정에 영향 없도록)
      */
-    @Transactional
     public void updateEvent(Long userId, StudySession session, String googleEventId, String studyTitle) {
         try {
             Calendar calendarService = getCalendarClient(userId);
@@ -128,8 +128,8 @@ public class GoogleCalendarService {
 
     /**
      * Google Calendar 이벤트 삭제
+     * 외부 API 호출이므로 트랜잭션에서 분리
      */
-    @Transactional
     public void deleteEvent(Long userId, String googleEventId) {
         try {
             Calendar calendarService = getCalendarClient(userId);

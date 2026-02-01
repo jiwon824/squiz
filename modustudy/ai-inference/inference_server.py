@@ -1225,12 +1225,14 @@ def process_meeting_job(job_id: str, file_path: str, generate_quiz_flag: bool):
 
 
 # ===== Claude API 설정 =====
-CLAUDE_API_KEY = os.getenv("CLAUDE_API_KEY", "")
-CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-3-haiku-20240307")
+# GMS 프록시를 통한 Claude Opus 4.5 사용
+CLAUDE_API_URL = os.getenv("CLAUDE_API_URL", "https://gms.ssafy.io/gmsapi/api.anthropic.com/v1/messages")
+CLAUDE_API_KEY = os.getenv("CLAUDE_API_KEY", "S14P12D106-920db8ac-0258-4cad-9a06-933880419794")
+CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-opus-4-5-20251101")
 
 
-def call_claude(prompt: str, max_tokens: int = 2048) -> str:
-    """Claude API 호출"""
+def call_claude(prompt: str, max_tokens: int = 4096) -> str:
+    """Claude API 호출 (GMS 프록시 경유, Opus 4.5)"""
     if not CLAUDE_API_KEY:
         logger.warning("[CLAUDE] API 키 없음 - Claude 호출 스킵")
         return None
@@ -1242,7 +1244,7 @@ def call_claude(prompt: str, max_tokens: int = 2048) -> str:
 
     try:
         response = httpx.post(
-            "https://api.anthropic.com/v1/messages",
+            CLAUDE_API_URL,
             headers={
                 "x-api-key": CLAUDE_API_KEY,
                 "anthropic-version": "2023-06-01",
@@ -2220,6 +2222,7 @@ if __name__ == "__main__":
     logger.info(f"Server: http://{HOST}:{PORT}")
     logger.info(f"Backend URL: {BACKEND_URL}")
     logger.info(f"Claude Model: {CLAUDE_MODEL}")
+    logger.info(f"Claude API URL: {CLAUDE_API_URL}")
     logger.info(f"Claude API Key: {'설정됨' if CLAUDE_API_KEY else '미설정'}")
     logger.info("=" * 60)
 
