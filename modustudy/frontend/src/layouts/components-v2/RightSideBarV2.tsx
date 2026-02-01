@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+﻿import React, { useRef, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useUIStore } from '@/store/uiStore';
@@ -11,61 +11,162 @@ import { useFriendStore } from '@/features/friend/store/friendStore';
 import { cn } from '@/shared/utils/cn';
 import { calendarApi, StudySessionDTO } from '@/api/endpoints/calendarApi';
 import { studyApi } from '@/api/endpoints/studyApi';
+import { meetingApi } from '@/features/meeting/services/meetingApi';
+import { formatDate } from '@/features/calendar/utils';
 
-// 미팅 일정 타입
+// 다가오는 미팅 정보
 interface UpcomingMeeting {
     id: number;
     studyId: number;
     studyName: string;
     meetingTitle: string;
     scheduledAt: Date;
+    durationMinutes: number | null;
     status: string;
+    meetingId: number | null;
 }
 
-// 미팅 퀵 액세스 위젯
+// 다가오는 미팅 빠른 접근
 const MeetingQuickAccess: React.FC = () => {
     const navigate = useNavigate();
+    const { showToast } = useUIStore();
     const [meetings, setMeetings] = useState<UpcomingMeeting[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [now, setNow] = useState(() => new Date());
 
-    // 마운트 시 다가오는 미팅 로드
+    useEffect(() => {
+        const timer = window.setInterval(() => {
+            setNow(new Date());
+        }, 1000);
+        return () => window.clearInterval(timer);
+    }, []);
+
+    const resolveNextSession = (sessions: StudySessionDTO[], currentTime: Date) => {
+        const candidates = sessions.filter((session) => {
+            if (session.status === 'CANCELLED') return false;
+            const startAt = new Date(session.scheduledAt).getTime();
+            const durationMinutes = session.durationMinutes || 60;
+            const endAt = startAt + durationMinutes * 60 * 1000;
+            return endAt >= currentTime.getTime();
+        });
+
+        const inProgress = candidates.filter((session) => {
+            const startAt = new Date(session.scheduledAt).getTime();
+            const durationMinutes = session.durationMinutes || 60;
+            const endAt = startAt + durationMinutes * 60 * 1000;
+            return startAt <= currentTime.getTime() && currentTime.getTime() <= endAt;
+        });
+
+        if (inProgress.length > 0) {
+            return inProgress.sort(
+                (a, b) => new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime()
+            )[0];
+        }
+
+        const upcoming = candidates
+            .filter((session) => new Date(session.scheduledAt).getTime() > currentTime.getTime())
+            .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
+
+        return upcoming[0] || null;
+    };
+
+    const formatCountdown = (scheduledAt: Date) => {
+        const diffMs = scheduledAt.getTime() - now.getTime();
+        if (diffMs <= 0) return '진행 중';
+        const totalSeconds = Math.floor(diffMs / 1000);
+        const seconds = totalSeconds % 60;
+        const totalMinutes = Math.floor(totalSeconds / 60);
+        const minutes = totalMinutes % 60;
+        const totalHours = Math.floor(totalMinutes / 60);
+        const hours = totalHours % 24;
+        const days = Math.floor(totalHours / 24);
+
+        const time = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        return days > 0 ? `${days}일 ${time}` : time;
+    };
+
     useEffect(() => {
         const loadUpcomingMeetings = async () => {
             try {
                 setIsLoading(true);
 
-                // 오늘부터 7일 후까지 세션 조회
                 const today = new Date();
-                const nextWeek = new Date(today);
-                nextWeek.setDate(nextWeek.getDate() + 7);
+                const endDate = new Date(today);
+                endDate.setDate(endDate.getDate() + 365);
 
-                const startDate = today.toISOString().split('T')[0];
-                const endDate = nextWeek.toISOString().split('T')[0];
+                const startDate = formatDate(today);
+                const endDateString = formatDate(endDate);
 
-                // 내 스터디 세션 조회
-                const sessions = await calendarApi.getMyStudySessions(startDate, endDate);
+                let sessions = await calendarApi.getMyStudySessions(startDate, endDateString);
 
-                // 내 스터디 목록 조회 (스터디 이름 매핑용)
                 const studiesResponse = await studyApi.getMyStudies(0, 50);
                 const studyMap = new Map<number, string>();
-                studiesResponse.content.forEach(study => {
+                studiesResponse.content.forEach((study) => {
                     studyMap.set(study.id, study.name);
                 });
 
-                // SCHEDULED 상태만 필터링하고 시간순 정렬
-                const upcomingMeetings: UpcomingMeeting[] = sessions
-                    .filter(s => s.status === 'SCHEDULED')
-                    .map(s => ({
-                        id: s.id,
-                        studyId: s.studyId,
-                        studyName: studyMap.get(s.studyId) || `스터디 ${s.studyId}`,
-                        meetingTitle: s.title,
-                        scheduledAt: new Date(s.scheduledAt),
-                        status: s.status,
-                    }))
-                    .filter(m => m.scheduledAt > new Date()) // 미래 일정만
-                    .sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime())
-                    .slice(0, 5); // 최대 5개
+                if (sessions.length === 0 && studiesResponse.content.length > 0) {
+                    const sessionLists = await Promise.all(
+                        studiesResponse.content.map(async (study) => {
+                            try {
+                                return await calendarApi.getStudySessions(study.id, startDate, endDateString);
+                            } catch (error) {
+                                console.warn('[MeetingQuickAccess] study sessions load failed', study.id, error);
+                                return [];
+                            }
+                        })
+                    );
+                    sessions = sessionLists.flat();
+                }
+
+                const sessionsByStudy = new Map<number, StudySessionDTO[]>();
+                sessions.forEach((session) => {
+                    const list = sessionsByStudy.get(session.studyId) || [];
+                    list.push(session);
+                    sessionsByStudy.set(session.studyId, list);
+                });
+
+                const studyIds = Array.from(sessionsByStudy.keys());
+                const meetingsByStudy = await Promise.all(
+                    studyIds.map(async (studyId) => {
+                        try {
+                            const meetings = await meetingApi.listMeetings(studyId, { page: 0, size: 50 });
+                            return { studyId, meetings: meetings.content };
+                        } catch (error) {
+                            console.warn('[MeetingQuickAccess] meeting list load failed', studyId, error);
+                            return { studyId, meetings: [] };
+                        }
+                    })
+                );
+
+                const meetingsLookup = new Map<number, typeof meetingsByStudy[number]['meetings']>();
+                meetingsByStudy.forEach((item) => {
+                    meetingsLookup.set(item.studyId, item.meetings);
+                });
+
+                const upcomingMeetings: UpcomingMeeting[] = studyIds
+                    .map((studyId) => {
+                        const nextSession = resolveNextSession(sessionsByStudy.get(studyId) || [], today);
+                        if (!nextSession) return null;
+
+                        const meetingsList = meetingsLookup.get(studyId) || [];
+                        const matchingMeeting = meetingsList.find(
+                            (meeting) => meeting.session?.id === nextSession.id && !meeting.endedAt
+                        );
+
+                        return {
+                            id: nextSession.id,
+                            studyId,
+                            studyName: studyMap.get(studyId) || `스터디 ${studyId}`,
+                            meetingTitle: nextSession.title || '스터디 세션',
+                            scheduledAt: new Date(nextSession.scheduledAt),
+                            durationMinutes: nextSession.durationMinutes || null,
+                            status: nextSession.status,
+                            meetingId: matchingMeeting?.id ?? null,
+                        };
+                    })
+                    .filter((item): item is UpcomingMeeting => Boolean(item))
+                    .sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime());
 
                 setMeetings(upcomingMeetings);
             } catch (err) {
@@ -76,27 +177,9 @@ const MeetingQuickAccess: React.FC = () => {
         };
 
         loadUpcomingMeetings();
+        const refreshTimer = window.setInterval(loadUpcomingMeetings, 60000);
+        return () => window.clearInterval(refreshTimer);
     }, []);
-
-    // 남은 시간 계산
-    const getTimeUntil = (scheduledAt: Date) => {
-        const now = new Date();
-        const diff = scheduledAt.getTime() - now.getTime();
-        const minutes = Math.floor(diff / 1000 / 60);
-        const hours = Math.floor(minutes / 60);
-
-        if (minutes < 0) return '시작됨';
-        if (minutes < 60) return `${minutes}분 후`;
-        return `${hours}시간 ${minutes % 60}분 후`;
-    };
-
-    // 미팅 참여 가능 여부 (10분 전부터)
-    const canJoin = (scheduledAt: Date) => {
-        const now = new Date();
-        const diff = scheduledAt.getTime() - now.getTime();
-        const minutes = Math.floor(diff / 1000 / 60);
-        return minutes <= 10 && minutes >= 0;
-    };
 
     return (
         <div className="h-full bg-transparent flex flex-col">
@@ -122,13 +205,13 @@ const MeetingQuickAccess: React.FC = () => {
                     </div>
                 ) : (
                     meetings.map((meeting) => {
-                        const joinable = canJoin(meeting.scheduledAt);
+                        const hasStarted = meeting.scheduledAt.getTime() - now.getTime() <= 0;
                         return (
                             <motion.div
                                 key={meeting.id}
                                 className={cn(
                                     'p-3 rounded-lg border transition-all',
-                                    joinable
+                                    hasStarted
                                         ? 'border-study-green bg-study-green/5 shadow-sm'
                                         : 'border-gray-200 bg-gray-50/50'
                                 )}
@@ -139,34 +222,32 @@ const MeetingQuickAccess: React.FC = () => {
                                         <h4 className="font-bold text-sm text-study-text-dark line-clamp-1">
                                             {meeting.meetingTitle}
                                         </h4>
-                                        <p className="text-xs text-gray-500 mt-0.5">
-                                            {meeting.studyName}
-                                        </p>
+                                        <p className="text-xs text-gray-500 mt-0.5">{meeting.studyName}</p>
                                     </div>
                                 </div>
 
                                 <div className="flex items-center gap-2 text-xs text-gray-600 mb-3">
                                     <Clock size={12} />
-                                    <span className={joinable ? 'text-study-green font-bold' : ''}>
-                                        {getTimeUntil(meeting.scheduledAt)}
+                                    <span className={hasStarted ? 'text-study-green font-bold' : ''}>
+                                        {formatCountdown(meeting.scheduledAt)}
                                     </span>
                                 </div>
 
-                                <button
-                                    onClick={() =>
-                                        navigate(`/study/${meeting.studyId}/meetings/${meeting.id}/room`)
-                                    }
-                                    disabled={!joinable}
-                                    className={cn(
-                                        'w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all',
-                                        joinable
-                                            ? 'bg-study-green text-white hover:bg-study-green/90 hover:scale-105 active:scale-95'
-                                            : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                                    )}
-                                >
-                                    <Play size={14} />
-                                    {joinable ? '지금 참여하기' : '대기 중'}
-                                </button>
+                                {hasStarted && (
+                                    <button
+                                        onClick={() => {
+                                            if (!meeting.meetingId) {
+                                                showToast?.('미팅 생성중입니다. 잠시후 다시 시도해주세요.', 'info');
+                                                return;
+                                            }
+                                            navigate(`/study/${meeting.studyId}/meetings/${meeting.meetingId}/room`);
+                                        }}
+                                        className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all bg-study-green text-white hover:bg-study-green/90 hover:scale-105 active:scale-95"
+                                    >
+                                        <Play size={14} />
+                                        미팅 참여하기
+                                    </button>
+                                )}
                             </motion.div>
                         );
                     })
@@ -200,7 +281,7 @@ export const RightSideBarV2: React.FC = () => {
         fetchReceivedRequests();
     }, [isLoggedIn, fetchUnreadCount, fetchReceivedRequests]);
 
-    // 외부 클릭 시 닫기
+    // 바깥 클릭 시 닫기
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (activeRightTab && panelRef.current && !panelRef.current.contains(event.target as Node)) {
@@ -217,7 +298,7 @@ export const RightSideBarV2: React.FC = () => {
 
     return (
         <div className="flex h-full" ref={panelRef}>
-            {/* 확장 패널 영역 */}
+            {/* 확장 오른쪽 영역 */}
             <AnimatePresence>
                 {activeRightTab && (
                     <motion.div
@@ -238,7 +319,7 @@ export const RightSideBarV2: React.FC = () => {
 
             {/* 고정 아이콘 바 */}
             <div className="w-14 h-full flex flex-col items-center py-4 gap-4 bg-slate-200">
-                {/* 미팅 버튼 (새로 추가!) */}
+                {/* 미팅 버튼 */}
                 <button
                     onClick={() => toggleRightTab('meeting')}
                     className={cn(
