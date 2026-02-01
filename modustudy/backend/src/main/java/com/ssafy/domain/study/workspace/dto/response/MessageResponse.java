@@ -1,5 +1,6 @@
 package com.ssafy.domain.study.workspace.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.ssafy.domain.study.workspace.entity.Message;
 import com.ssafy.domain.study.workspace.entity.MessageType;
 import lombok.Builder;
@@ -19,7 +20,10 @@ public class MessageResponse {
     private String content;
     private MessageType messageType;
     private String fileUrl;
+    @JsonProperty("isDeleted")
     private Boolean isDeleted;
+    @JsonProperty("isPinned")
+    private Boolean isPinned;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -32,6 +36,7 @@ public class MessageResponse {
                 .messageType(message.getMessageType())
                 .fileUrl(message.getFileUrl())
                 .isDeleted(message.getIsDeleted())
+                .isPinned(message.getIsPinned())
                 .createdAt(message.getCreatedAt())
                 .updatedAt(message.getUpdatedAt())
                 .build();
@@ -51,6 +56,7 @@ public class MessageResponse {
                 .messageType(message.getMessageType())
                 .fileUrl(message.getFileUrl())
                 .isDeleted(message.getIsDeleted())
+                .isPinned(message.getIsPinned())
                 .createdAt(message.getCreatedAt())
                 .updatedAt(message.getUpdatedAt())
                 .build();
@@ -68,6 +74,7 @@ public class MessageResponse {
                 .messageType(message.getMessageType())
                 .fileUrl(null)
                 .isDeleted(true)
+                .isPinned(false)
                 .createdAt(message.getCreatedAt())
                 .updatedAt(message.getUpdatedAt())
                 .build();
