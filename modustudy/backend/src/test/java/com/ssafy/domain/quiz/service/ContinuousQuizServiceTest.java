@@ -110,7 +110,7 @@ class ContinuousQuizServiceTest {
 
             given(learningRepository.findById(1L))
                     .willReturn(Optional.of(testQuestion));
-            given(fsrsService.processReview(
+            given(fsrsService.processReviewResult(
                     eq(TEST_USER_ID),
                     eq(ReviewContentType.COURSE_QUESTION),
                     eq(1L),
@@ -154,7 +154,7 @@ class ContinuousQuizServiceTest {
 
             given(learningRepository.findById(1L))
                     .willReturn(Optional.of(testQuestion));
-            given(fsrsService.processReview(
+            given(fsrsService.processReviewResult(
                     eq(TEST_USER_ID),
                     eq(ReviewContentType.COURSE_QUESTION),
                     eq(1L),
@@ -182,7 +182,7 @@ class ContinuousQuizServiceTest {
 
             given(learningRepository.findById(1L))
                     .willReturn(Optional.of(testQuestion));
-            given(fsrsService.processReview(
+            given(fsrsService.processReviewResult(
                     eq(TEST_USER_ID),
                     eq(ReviewContentType.COURSE_QUESTION),
                     eq(1L),
@@ -207,7 +207,7 @@ class ContinuousQuizServiceTest {
 
             given(learningRepository.findById(1L))
                     .willReturn(Optional.of(testQuestion));
-            given(fsrsService.processReview(
+            given(fsrsService.processReviewResult(
                     anyLong(), any(), anyLong(), eq(true), anyLong()
             )).willReturn(testReviewItem);
 
@@ -228,7 +228,7 @@ class ContinuousQuizServiceTest {
 
             given(learningRepository.findById(1L))
                     .willReturn(Optional.of(testQuestion));
-            given(fsrsService.processReview(
+            given(fsrsService.processReviewResult(
                     anyLong(), any(), anyLong(), eq(false), anyLong()
             )).willReturn(testReviewItem);
 
@@ -249,7 +249,7 @@ class ContinuousQuizServiceTest {
 
             given(learningRepository.findById(1L))
                     .willReturn(Optional.of(testQuestion));
-            given(fsrsService.processReview(
+            given(fsrsService.processReviewResult(
                     anyLong(), any(), anyLong(), eq(false), anyLong()
             )).willReturn(testReviewItem);
 
@@ -293,7 +293,7 @@ class ContinuousQuizServiceTest {
 
             given(learningRepository.findById(10L))
                     .willReturn(Optional.of(mcQuestion));
-            given(fsrsService.processReview(
+            given(fsrsService.processReviewResult(
                     eq(TEST_USER_ID), any(), eq(10L), eq(true), anyLong()
             )).willReturn(testReviewItem);
 
@@ -321,7 +321,7 @@ class ContinuousQuizServiceTest {
 
             given(learningRepository.findById(11L))
                     .willReturn(Optional.of(mcQuestion));
-            given(fsrsService.processReview(
+            given(fsrsService.processReviewResult(
                     eq(TEST_USER_ID), any(), eq(11L), eq(true), anyLong()
             )).willReturn(testReviewItem);
 
@@ -349,7 +349,7 @@ class ContinuousQuizServiceTest {
 
             given(learningRepository.findById(12L))
                     .willReturn(Optional.of(mcmQuestion));
-            given(fsrsService.processReview(
+            given(fsrsService.processReviewResult(
                     eq(TEST_USER_ID), any(), eq(12L), eq(true), anyLong()
             )).willReturn(testReviewItem);
 
@@ -377,7 +377,7 @@ class ContinuousQuizServiceTest {
 
             given(learningRepository.findById(13L))
                     .willReturn(Optional.of(mcmQuestion));
-            given(fsrsService.processReview(
+            given(fsrsService.processReviewResult(
                     eq(TEST_USER_ID), any(), eq(13L), eq(true), anyLong()
             )).willReturn(testReviewItem);
 
@@ -405,7 +405,7 @@ class ContinuousQuizServiceTest {
 
             given(learningRepository.findById(14L))
                     .willReturn(Optional.of(mcQuestion));
-            given(fsrsService.processReview(
+            given(fsrsService.processReviewResult(
                     eq(TEST_USER_ID), any(), eq(14L), eq(false), anyLong()
             )).willReturn(testReviewItem);
 
@@ -433,7 +433,7 @@ class ContinuousQuizServiceTest {
 
             given(learningRepository.findById(15L))
                     .willReturn(Optional.of(mcQuestion));
-            given(fsrsService.processReview(
+            given(fsrsService.processReviewResult(
                     eq(TEST_USER_ID), any(), eq(15L), eq(true), anyLong()
             )).willReturn(testReviewItem);
 
@@ -462,7 +462,7 @@ class ContinuousQuizServiceTest {
 
             given(learningRepository.findById(16L))
                     .willReturn(Optional.of(mcmQuestion));
-            given(fsrsService.processReview(
+            given(fsrsService.processReviewResult(
                     eq(TEST_USER_ID), any(), eq(16L), eq(true), anyLong()
             )).willReturn(testReviewItem);
 
@@ -490,7 +490,7 @@ class ContinuousQuizServiceTest {
 
             given(learningRepository.findById(17L))
                     .willReturn(Optional.of(mcQuestion));
-            given(fsrsService.processReview(
+            given(fsrsService.processReviewResult(
                     eq(TEST_USER_ID), any(), eq(17L), eq(true), anyLong()
             )).willReturn(testReviewItem);
 
@@ -568,7 +568,7 @@ class ContinuousQuizServiceTest {
 
             given(learningRepository.findById(1L))
                     .willReturn(Optional.of(testQuestion));
-            given(fsrsService.processReview(
+            given(fsrsService.processReviewResult(
                     eq(TEST_USER_ID), any(), eq(1L), eq(true), eq(2000L)
             )).willReturn(testReviewItem);
             given(learningRepository.findNextQuestionProbabilistic(
@@ -604,7 +604,7 @@ class ContinuousQuizServiceTest {
 
             given(learningRepository.findById(1L))
                     .willReturn(Optional.of(testQuestion));
-            given(fsrsService.processReview(anyLong(), any(), anyLong(), anyBoolean(), anyLong()))
+            given(fsrsService.processReviewResult(anyLong(), any(), anyLong(), anyBoolean(), anyLong()))
                     .willReturn(testReviewItem);
             given(learningRepository.findNextQuestionProbabilistic(
                     TEST_COURSE_ID, TEST_SECTION_NUMBER, TEST_USER_ID, 1L  // excludeId = 1L
@@ -627,7 +627,7 @@ class ContinuousQuizServiceTest {
 
             given(learningRepository.findById(1L))
                     .willReturn(Optional.of(testQuestion));
-            given(fsrsService.processReview(anyLong(), any(), anyLong(), anyBoolean(), anyLong()))
+            given(fsrsService.processReviewResult(anyLong(), any(), anyLong(), anyBoolean(), anyLong()))
                     .willReturn(testReviewItem);
             // 첫 번째 조회 (excludeId=1L): 결과 없음
             given(learningRepository.findNextQuestionProbabilistic(
@@ -656,7 +656,7 @@ class ContinuousQuizServiceTest {
 
             given(learningRepository.findById(1L))
                     .willReturn(Optional.of(testQuestion));
-            given(fsrsService.processReview(anyLong(), any(), anyLong(), anyBoolean(), anyLong()))
+            given(fsrsService.processReviewResult(anyLong(), any(), anyLong(), anyBoolean(), anyLong()))
                     .willReturn(testReviewItem);
             given(learningRepository.findNextQuestionProbabilistic(
                     anyLong(), anyInt(), anyLong(), anyLong()
@@ -691,7 +691,7 @@ class ContinuousQuizServiceTest {
 
             given(learningRepository.findById(1L))
                     .willReturn(Optional.of(testQuestion));
-            given(fsrsService.processReview(
+            given(fsrsService.processReviewResult(
                     eq(TEST_USER_ID),
                     eq(ReviewContentType.COURSE_QUESTION),
                     eq(1L),
@@ -723,7 +723,7 @@ class ContinuousQuizServiceTest {
 
             given(learningRepository.findById(1L))
                     .willReturn(Optional.of(testQuestion));
-            given(fsrsService.processReview(
+            given(fsrsService.processReviewResult(
                     eq(TEST_USER_ID),
                     eq(ReviewContentType.COURSE_QUESTION),
                     eq(1L),
@@ -755,7 +755,7 @@ class ContinuousQuizServiceTest {
 
             given(learningRepository.findById(1L))
                     .willReturn(Optional.of(testQuestion));
-            given(fsrsService.processReview(
+            given(fsrsService.processReviewResult(
                     eq(TEST_USER_ID),
                     eq(ReviewContentType.COURSE_QUESTION),
                     eq(1L),
@@ -784,7 +784,7 @@ class ContinuousQuizServiceTest {
 
             given(learningRepository.findById(1L))
                     .willReturn(Optional.of(testQuestion));
-            given(fsrsService.processReview(
+            given(fsrsService.processReviewResult(
                     eq(TEST_USER_ID),
                     eq(ReviewContentType.COURSE_QUESTION),
                     eq(1L),

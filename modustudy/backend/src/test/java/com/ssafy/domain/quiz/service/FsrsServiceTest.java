@@ -327,6 +327,14 @@ class FsrsServiceTest {
                 @Test
                 @DisplayName("신규 복습 항목을 생성하고 FSRS 상태를 초기화한다")
                 void shouldCreateNewReviewItemAndInitializeFsrs() {
+                        // given: 채점용 문제 mock
+                        QuizCourseQuestion mockQuestion = QuizCourseQuestion.builder()
+                                        .questionType(QuestionType.SHORT_ANSWER)
+                                        .correctAnswer("answer")
+                                        .build();
+                        given(continuousQuizRepository.findById(TEST_CONTENT_ID))
+                                        .willReturn(Optional.of(mockQuestion));
+
                         // given: 기존 복습 항목 없음
                         given(reviewItemRepository.findByUserIdAndContentTypeAndContentId(
                                         TEST_USER_ID, ReviewContentType.COURSE_QUESTION, TEST_CONTENT_ID))
@@ -341,7 +349,7 @@ class FsrsServiceTest {
                                         TEST_USER_ID,
                                         ReviewContentType.COURSE_QUESTION,
                                         TEST_CONTENT_ID,
-                                        true, // 정답
+                                        "answer", // 정답에 해당하는 사용자 답안
                                         1500L // 1500ms → Easy
                         );
 
@@ -360,6 +368,14 @@ class FsrsServiceTest {
                 @Test
                 @DisplayName("기존 복습 항목을 업데이트한다")
                 void shouldUpdateExistingReviewItem() {
+                        // given: 채점용 문제 mock
+                        QuizCourseQuestion mockQuestion = QuizCourseQuestion.builder()
+                                        .questionType(QuestionType.SHORT_ANSWER)
+                                        .correctAnswer("answer")
+                                        .build();
+                        given(continuousQuizRepository.findById(TEST_CONTENT_ID))
+                                        .willReturn(Optional.of(mockQuestion));
+
                         // given: 기존 복습 항목 존재
                         UserReviewItem existingItem = UserReviewItem.builder()
                                         .id(1L)
@@ -387,7 +403,7 @@ class FsrsServiceTest {
                                         TEST_USER_ID,
                                         ReviewContentType.COURSE_QUESTION,
                                         TEST_CONTENT_ID,
-                                        true,
+                                        "answer", // 정답에 해당하는 사용자 답안
                                         3000L // 3000ms → Good
                         );
 
@@ -399,7 +415,14 @@ class FsrsServiceTest {
                 @Test
                 @DisplayName("복습 로그(UserReviewLog)를 생성한다")
                 void shouldCreateReviewLog() {
-                        // given
+                        // given: 채점용 문제 mock
+                        QuizCourseQuestion mockQuestion = QuizCourseQuestion.builder()
+                                        .questionType(QuestionType.SHORT_ANSWER)
+                                        .correctAnswer("answer")
+                                        .build();
+                        given(continuousQuizRepository.findById(TEST_CONTENT_ID))
+                                        .willReturn(Optional.of(mockQuestion));
+
                         given(reviewItemRepository.findByUserIdAndContentTypeAndContentId(
                                         anyLong(), any(), anyLong())).willReturn(Optional.empty());
                         given(reviewItemRepository.save(any(UserReviewItem.class)))
@@ -412,7 +435,7 @@ class FsrsServiceTest {
                                         TEST_USER_ID,
                                         ReviewContentType.COURSE_QUESTION,
                                         TEST_CONTENT_ID,
-                                        true,
+                                        "answer", // 정답에 해당하는 사용자 답안
                                         2000L);
 
                         // then: 복습 로그 생성 검증
@@ -429,6 +452,14 @@ class FsrsServiceTest {
                 @Test
                 @DisplayName("오답 시 lapses가 증가하고 Relearning/Learning 상태로 전이")
                 void shouldIncreaseLapsesOnIncorrectAnswer() {
+                        // given: 채점용 문제 mock
+                        QuizCourseQuestion mockQuestion = QuizCourseQuestion.builder()
+                                        .questionType(QuestionType.SHORT_ANSWER)
+                                        .correctAnswer("answer")
+                                        .build();
+                        given(continuousQuizRepository.findById(TEST_CONTENT_ID))
+                                        .willReturn(Optional.of(mockQuestion));
+
                         // given: Review 상태의 기존 항목
                         UserReviewItem existingItem = UserReviewItem.builder()
                                         .id(1L)
@@ -456,7 +487,7 @@ class FsrsServiceTest {
                                         TEST_USER_ID,
                                         ReviewContentType.COURSE_QUESTION,
                                         TEST_CONTENT_ID,
-                                        false, // 오답
+                                        "wrong", // 오답에 해당하는 사용자 답안
                                         4000L);
 
                         // then

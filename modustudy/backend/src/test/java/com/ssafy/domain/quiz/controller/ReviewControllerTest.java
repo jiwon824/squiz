@@ -74,7 +74,7 @@ class ReviewControllerTest {
         ReviewSubmitRequest request = new ReviewSubmitRequest(
                 ReviewContentType.COURSE_QUESTION,
                 100L,
-                true,
+                "0",    // 사용자 답안 (서버에서 채점)
                 1500L);
 
         UserReviewItem mockItem = UserReviewItem.builder()
@@ -86,7 +86,7 @@ class ReviewControllerTest {
                 .nextReviewAt(LocalDateTime.now().plusDays(1))
                 .build();
 
-        given(fsrsService.processReview(anyLong(), any(), anyLong(), any(Boolean.class), anyLong()))
+        given(fsrsService.processReview(anyLong(), any(), anyLong(), any(String.class), anyLong()))
                 .willReturn(mockItem);
 
         // when & then
