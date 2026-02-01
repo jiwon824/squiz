@@ -11,14 +11,15 @@ ALTER TABLE `study` ADD COLUMN `format_id` BIGINT NULL AFTER `topic_id`;
 -- 주의: 기존 데이터가 없으면 이 단계는 스킵됨
 
 -- topic 매핑 (정확히 일치하는 소분류 또는 대분류 찾기)
+-- COLLATE 명시로 utf8mb4_0900_ai_ci와 utf8mb4_unicode_ci 충돌 해결
 UPDATE `study` s
-INNER JOIN `topic` t ON s.topic = t.name
+INNER JOIN `topic` t ON s.topic COLLATE utf8mb4_unicode_ci = t.name
 SET s.topic_id = t.id
 WHERE s.topic_id IS NULL;
 
 -- format 매핑
 UPDATE `study` s
-INNER JOIN `format` f ON s.format = f.name
+INNER JOIN `format` f ON s.format COLLATE utf8mb4_unicode_ci = f.name
 SET s.format_id = f.id
 WHERE s.format_id IS NULL AND s.format IS NOT NULL;
 
@@ -27,15 +28,15 @@ WHERE s.format_id IS NULL AND s.format IS NOT NULL;
 UPDATE `study` s
 SET s.topic_id = (
     SELECT id FROM `topic`
-    WHERE name = '백준'
-    AND parent_id = (SELECT id FROM `topic` WHERE name = '알고리즘/코딩테스트' AND parent_id IS NULL LIMIT 1)
+    WHERE name COLLATE utf8mb4_unicode_ci = '백준'
+    AND parent_id = (SELECT id FROM `topic` WHERE name COLLATE utf8mb4_unicode_ci = '알고리즘/코딩테스트' AND parent_id IS NULL LIMIT 1)
     LIMIT 1
 )
 WHERE s.topic_id IS NULL;
 
 -- format이 매핑되지 않은 경우 "문제 풀이"로 기본 설정
 UPDATE `study` s
-SET s.format_id = (SELECT id FROM `format` WHERE name = '문제 풀이' LIMIT 1)
+SET s.format_id = (SELECT id FROM `format` WHERE name COLLATE utf8mb4_unicode_ci = '문제 풀이' LIMIT 1)
 WHERE s.format_id IS NULL AND s.format IS NOT NULL;
 
 -- 4. topic_id를 NOT NULL로 변경 (필수 컬럼)
@@ -63,14 +64,14 @@ ALTER TABLE `study` DROP COLUMN `format`;
 ALTER TABLE `study_template` ADD COLUMN `topic_id` BIGINT NULL AFTER `template_type`;
 ALTER TABLE `study_template` ADD COLUMN `format_id` BIGINT NULL AFTER `topic_id`;
 
--- 기존 데이터 매핑
+-- 기존 데이터 매핑 (COLLATE 명시)
 UPDATE `study_template` st
-INNER JOIN `topic` t ON st.topic = t.name
+INNER JOIN `topic` t ON st.topic COLLATE utf8mb4_unicode_ci = t.name
 SET st.topic_id = t.id
 WHERE st.topic_id IS NULL AND st.topic IS NOT NULL;
 
 UPDATE `study_template` st
-INNER JOIN `format` f ON st.format = f.name
+INNER JOIN `format` f ON st.format COLLATE utf8mb4_unicode_ci = f.name
 SET st.format_id = f.id
 WHERE st.format_id IS NULL AND st.format IS NOT NULL;
 
