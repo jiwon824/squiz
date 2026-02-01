@@ -985,7 +985,13 @@ const StudyCreatePage: React.FC = () => {
                 // 수정 모드
                 await updateStudy(Number(editStudyId), payload);
                 showToast('스터디가 수정되었습니다!', 'success');
-                navigate(`/study/v3/${editStudyId}`);
+                // from 파라미터에 따라 이전 페이지로 이동
+                const from = searchParams.get('from');
+                if (from === 'manage') {
+                    navigate(`/study/manage/${editStudyId}`);
+                } else {
+                    navigate(`/study/v3/${editStudyId}`);
+                }
             } else {
                 // 생성 모드
                 const createdStudy = await createStudy(payload);

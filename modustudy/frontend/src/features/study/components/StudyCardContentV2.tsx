@@ -69,6 +69,15 @@ const StudyCardContentV2: React.FC<StudyCardContentV2Props> = ({ study, variant 
     const isFullCapacity = study.currentMembers >= study.maxMembers;
     const isLightning = study.studyType === 'LIGHTNING';
 
+    // 마감 임박 조건: 모집 인원 1명 남음 OR 마감일이 오늘
+    // 모집중 상태에서만 표시 (RECRUITING 또는 완료/취소가 아닌 상태)
+    const remainingSlots = study.maxMembers - study.currentMembers;
+    const isNotClosed = study.status !== 'COMPLETED' && study.status !== 'CANCELLED';
+    const isClosingSoon = isNotClosed && !isFullCapacity && (
+        remainingSlots === 1 ||
+        (study.recruitEndDate && isDeadlineToday(study.recruitEndDate))
+    );
+
     // 지역 표시 텍스트 (meetingType에 따라 다르게 표시)
     const getRegionText = () => {
         if (study.meetingType === 'ONLINE') {
@@ -180,7 +189,7 @@ const StudyCardContentV2: React.FC<StudyCardContentV2Props> = ({ study, variant 
                 </div>
 
                 {/* 모집 마감 임박 표시 */}
-                {study.recruitEndDate && study.status === 'RECRUITING' && isDeadlineSoon(study.recruitEndDate) && (
+                {isClosingSoon && (
                     <div className="absolute top-0 left-4 bg-[var(--color-warning)] text-white text-[9px] font-bold px-2 py-0.5 rounded-b">
                         마감 임박
                     </div>
@@ -284,7 +293,7 @@ const StudyCardContentV2: React.FC<StudyCardContentV2Props> = ({ study, variant 
             </div>
 
             {/* 모집 마감 임박 표시 */}
-            {study.recruitEndDate && study.status === 'RECRUITING' && isDeadlineSoon(study.recruitEndDate) && (
+            {isClosingSoon && (
                 <div className="absolute top-0 left-0 right-0 bg-[var(--color-warning)] text-white text-[10px] font-bold text-center py-1 rounded-t-2xl">
                     마감 임박
                 </div>
@@ -317,12 +326,14 @@ const InfoChip: React.FC<InfoChipProps> = ({ icon, text, highlight }) => (
     </div>
 );
 
-// 마감일 임박 체크 함수 (3일 이내)
-const isDeadlineSoon = (dateStr: string): boolean => {
+// 마감일이 오늘인지 체크 (날짜만 비교)
+const isDeadlineToday = (dateStr: string): boolean => {
     const deadline = new Date(dateStr);
     const today = new Date();
-    const diffDays = Math.ceil((deadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-    return diffDays >= 0 && diffDays <= 3;
+    // 날짜만 비교 (시간 제외)
+    return deadline.getFullYear() === today.getFullYear() &&
+           deadline.getMonth() === today.getMonth() &&
+           deadline.getDate() === today.getDate();
 };
 
 export default StudyCardContentV2;

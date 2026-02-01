@@ -510,11 +510,11 @@ const StudyDetailPageV3: React.FC = () => {
                                                             <>
                                                                 <button
                                                                     onClick={() => {
-                                                                        // 스터디 타입에 따라 다른 수정 페이지로 이동
+                                                                        // 스터디 타입에 따라 다른 수정 페이지로 이동 (from=detail로 돌아올 페이지 지정)
                                                                         if (study.studyType === 'LIGHTNING') {
-                                                                            navigate(`/study/edit/lightning/${study.id}`);
+                                                                            navigate(`/study/edit/lightning/${study.id}?from=detail`);
                                                                         } else {
-                                                                            navigate(`/study/create/planned?studyId=${study.id}`);
+                                                                            navigate(`/study/create/planned?studyId=${study.id}&from=detail`);
                                                                         }
                                                                         setIsMenuOpen(false);
                                                                     }}

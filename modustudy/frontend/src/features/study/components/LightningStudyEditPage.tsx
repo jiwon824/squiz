@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ChevronLeft, Zap, MapPin, Users, Calendar, Loader2 } from 'lucide-react';
 import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { Button } from '@/shared/components/Button';
@@ -61,6 +61,7 @@ const styles = {
 const LightningStudyEditPage: React.FC = () => {
     const navigate = useNavigate();
     const { studyId } = useParams<{ studyId: string }>();
+    const [searchParams] = useSearchParams();
     const { showToast } = useUIStore();
 
     // 오늘 날짜 계산
@@ -391,7 +392,13 @@ const LightningStudyEditPage: React.FC = () => {
             await updateStudy(Number(studyId), payload);
 
             showToast('번개 스터디가 수정되었습니다!', 'success');
-            navigate(`/study/manage/${studyId}`);
+            // from 파라미터에 따라 이전 페이지로 이동
+            const from = searchParams.get('from');
+            if (from === 'detail') {
+                navigate(`/study/v3/${studyId}`);
+            } else {
+                navigate(`/study/manage/${studyId}`);
+            }
         } catch (error: any) {
             console.error('번개 스터디 수정 실패:', error);
             const message = error?.response?.data?.error?.message || error?.response?.data?.message || '번개 스터디 수정에 실패했습니다.';

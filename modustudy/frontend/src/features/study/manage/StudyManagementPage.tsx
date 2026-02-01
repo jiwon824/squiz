@@ -109,12 +109,12 @@ const StudyManagementPage: React.FC = () => {
                         </div>
                         <button
                             onClick={() => {
-                                // 스터디 타입에 따라 다른 수정 페이지로 이동
+                                // 스터디 타입에 따라 다른 수정 페이지로 이동 (from=manage로 돌아올 페이지 지정)
                                 if ((study as any).studyType === 'LIGHTNING') {
-                                    navigate(`/study/edit/lightning/${study.id}`);
+                                    navigate(`/study/edit/lightning/${study.id}?from=manage`);
                                 } else {
                                     // 일반 스터디는 StudyCreatePage의 수정 모드 사용
-                                    navigate(`/study/create/planned?studyId=${study.id}`);
+                                    navigate(`/study/create/planned?studyId=${study.id}&from=manage`);
                                 }
                             }}
                             className="flex items-center gap-2 px-4 py-2.5 bg-primary/10 hover:bg-primary/20 text-primary rounded-xl transition-colors font-medium"
