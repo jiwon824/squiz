@@ -4,7 +4,6 @@ import com.ssafy.domain.study.entity.Format;
 import com.ssafy.domain.study.entity.Topic;
 import com.ssafy.domain.study.repository.FormatRepository;
 import com.ssafy.domain.study.repository.TopicRepository;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,16 +19,13 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * V9, V10 DB 마이그레이션 통합 테스트
- * - Topic/Format 테이블 생성 및 초기 데이터 검증
- * - study 테이블 스키마 변경 검증 (VARCHAR → FK)
- *
- * 주의: 이 테스트는 Flyway 마이그레이션이 적용된 실제 DB 환경에서 수동 실행해야 합니다.
- * 테스트 환경에서는 Flyway가 비활성화되어 순환 의존성 문제가 발생합니다.
+ * Topic/Format DB 마이그레이션 통합 테스트
+ * - V1: 전체 스키마 (topic, format 테이블 포함)
+ * - V2: Topic/Format 초기 데이터
+ * - study 테이블 FK 검증 (topic_id, format_id)
  */
 @SpringBootTest
 @Transactional
-@Disabled("Flyway 마이그레이션 테스트는 실제 DB 환경에서 수동 실행 필요 - 테스트 환경에서 순환 의존성 발생")
 @DisplayName("Topic/Format 마이그레이션 통합 테스트")
 public class TopicFormatIntegrationTest {
 
@@ -43,7 +39,7 @@ public class TopicFormatIntegrationTest {
     private DataSource dataSource;
 
     @Test
-    @DisplayName("V9: Topic 테이블이 생성되고 10개 대분류가 존재한다")
+    @DisplayName("V2: Topic 테이블에 10개 대분류가 존재한다")
     void testTopicParentCategoriesExist() {
         // Given & When
         List<Topic> allTopics = topicRepository.findAll();
@@ -61,7 +57,7 @@ public class TopicFormatIntegrationTest {
     }
 
     @Test
-    @DisplayName("V9: Format 테이블이 생성되고 8개 형식이 존재한다")
+    @DisplayName("V2: Format 테이블에 8개 형식이 존재한다")
     void testFormatCategoriesExist() {
         // Given & When
         List<Format> allFormats = formatRepository.findAll();
@@ -73,7 +69,7 @@ public class TopicFormatIntegrationTest {
     }
 
     @Test
-    @DisplayName("V9: '알고리즘/코딩테스트' 대분류 아래 소분류들이 존재한다")
+    @DisplayName("V2: '알고리즘/코딩테스트' 대분류 아래 소분류들이 존재한다")
     void testAlgorithmTopicHierarchy() {
         // Given & When
         List<Topic> allTopics = topicRepository.findAll();
@@ -100,7 +96,7 @@ public class TopicFormatIntegrationTest {
     }
 
     @Test
-    @DisplayName("V10: study 테이블에 topic_id 컬럼이 존재한다 (VARCHAR topic 제거됨)")
+    @DisplayName("V1: study 테이블에 topic_id 컬럼이 존재한다")
     void testStudyTableSchemaChanged() throws Exception {
         // Given & When
         try (Connection conn = dataSource.getConnection();
@@ -124,15 +120,15 @@ public class TopicFormatIntegrationTest {
 
             // Then
             assertThat(hasTopicId).isTrue()
-                .withFailMessage("study 테이블에 topic_id 컬럼이 없습니다. V10 마이그레이션을 확인하세요.");
+                .withFailMessage("study 테이블에 topic_id 컬럼이 없습니다. V1 마이그레이션을 확인하세요.");
 
             assertThat(hasOldTopic).isFalse()
-                .withFailMessage("study 테이블에 기존 topic VARCHAR 컬럼이 남아있습니다. V10 마이그레이션을 확인하세요.");
+                .withFailMessage("study 테이블에 기존 topic VARCHAR 컬럼이 남아있습니다. V1 마이그레이션을 확인하세요.");
         }
     }
 
     @Test
-    @DisplayName("V10: study 테이블에 format_id 컬럼이 존재한다 (VARCHAR format 제거됨)")
+    @DisplayName("V1: study 테이블에 format_id 컬럼이 존재한다")
     void testStudyTableFormatIdExists() throws Exception {
         // Given & When
         try (Connection conn = dataSource.getConnection();
@@ -156,15 +152,15 @@ public class TopicFormatIntegrationTest {
 
             // Then
             assertThat(hasFormatId).isTrue()
-                .withFailMessage("study 테이블에 format_id 컬럼이 없습니다. V10 마이그레이션을 확인하세요.");
+                .withFailMessage("study 테이블에 format_id 컬럼이 없습니다. V1 마이그레이션을 확인하세요.");
 
             assertThat(hasOldFormat).isFalse()
-                .withFailMessage("study 테이블에 기존 format VARCHAR 컬럼이 남아있습니다. V10 마이그레이션을 확인하세요.");
+                .withFailMessage("study 테이블에 기존 format VARCHAR 컬럼이 남아있습니다. V1 마이그레이션을 확인하세요.");
         }
     }
 
     @Test
-    @DisplayName("V10: topic_id와 format_id에 외래 키가 설정되어 있다")
+    @DisplayName("V1: topic_id와 format_id에 외래 키가 설정되어 있다")
     void testForeignKeysExist() throws Exception {
         // Given & When
         try (Connection conn = dataSource.getConnection();
