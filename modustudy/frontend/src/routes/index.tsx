@@ -60,6 +60,9 @@ const StudyCreatePage = lazy(() =>
 const LightningStudyCreatePage = lazy(() =>
     import('../features/study').then(m => ({ default: m.LightningStudyCreatePage }))
 );
+const LightningStudyEditPage = lazy(() =>
+    import('../features/study').then(m => ({ default: m.LightningStudyEditPage }))
+);
 const StudyDetailPageV3 = lazy(() =>
     import('../features/study').then(m => ({ default: m.StudyDetailPageV3 }))
 );
@@ -176,6 +179,7 @@ export const AppRouter = () => {
                 <Route path="/study/create" element={<StudyTypeSelectPage />} />
                 <Route path="/study/create/planned" element={<StudyCreatePage />} />
                 <Route path="/study/create/lightning" element={<LightningStudyCreatePage />} />
+                <Route path="/study/edit/lightning/:studyId" element={<LightningStudyEditPage />} />
                 <Route path="/study/:id" element={<StudyDetailPageV3 />} />
                 <Route path="/study/v3/:id" element={<StudyDetailPageV3 />} />
                 <Route path="/study/manage/:id" element={<StudyManagementPage />} />

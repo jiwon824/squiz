@@ -65,6 +65,7 @@ export interface StudyDetailResponse {
   id: number;
   leaderId: number;
   name: string;
+  intro: string | null;
   description: string | null;
   topic: TopicInfo;
   format: FormatInfo | null;

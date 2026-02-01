@@ -10,7 +10,7 @@ import ExcuseManagement from './components/ExcuseManagement';
 import { Study } from '../services/studyService';
 import { studyApi } from '@/api/endpoints/studyApi';
 import { BackButton } from '@/shared/components';
-import { Settings } from 'lucide-react';
+import { Settings, Pencil } from 'lucide-react';
 import { useUIStore } from '@/store/uiStore';
 
 export type ManageTab = 'dashboard' | 'applicants' | 'members' | 'attendance' | 'excuse';
@@ -97,14 +97,31 @@ const StudyManagementPage: React.FC = () => {
                         />
                         <span className="text-sm font-medium text-gray-600">스터디로 돌아가기</span>
                     </div>
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
-                            <Settings size={24} className="text-primary" />
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
+                                <Settings size={24} className="text-primary" />
+                            </div>
+                            <div>
+                                <h1 className="text-2xl font-bold text-text-primary">{study.name}</h1>
+                                <p className="text-text-secondary text-sm">스터디 관리 대시보드</p>
+                            </div>
                         </div>
-                        <div>
-                            <h1 className="text-2xl font-bold text-text-primary">{study.name}</h1>
-                            <p className="text-text-secondary text-sm">스터디 관리 대시보드</p>
-                        </div>
+                        <button
+                            onClick={() => {
+                                // 스터디 타입에 따라 다른 수정 페이지로 이동
+                                if ((study as any).studyType === 'LIGHTNING') {
+                                    navigate(`/study/edit/lightning/${study.id}`);
+                                } else {
+                                    // 일반 스터디는 StudyCreatePage의 수정 모드 사용
+                                    navigate(`/study/create/planned?studyId=${study.id}`);
+                                }
+                            }}
+                            className="flex items-center gap-2 px-4 py-2.5 bg-primary/10 hover:bg-primary/20 text-primary rounded-xl transition-colors font-medium"
+                        >
+                            <Pencil size={18} />
+                            <span>스터디 수정</span>
+                        </button>
                     </div>
                 </header>
 

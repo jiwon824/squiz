@@ -455,7 +455,12 @@ const StudyDetailPageV3: React.FC = () => {
                                                             <>
                                                                 <button
                                                                     onClick={() => {
-                                                                        navigate(`/study/create/planned?studyId=${study.id}`);
+                                                                        // 스터디 타입에 따라 다른 수정 페이지로 이동
+                                                                        if (study.studyType === 'LIGHTNING') {
+                                                                            navigate(`/study/edit/lightning/${study.id}`);
+                                                                        } else {
+                                                                            navigate(`/study/create/planned?studyId=${study.id}`);
+                                                                        }
                                                                         setIsMenuOpen(false);
                                                                     }}
                                                                     className="w-full px-4 py-3 text-left text-sm font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-primary-alpha-10)] hover:text-[var(--color-primary)] transition-colors flex items-center gap-2"
