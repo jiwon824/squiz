@@ -124,7 +124,7 @@ public class FsrsService {
 
             String correctAnswer = question.getCorrectAnswer();
             isCorrect = QuizGradingUtils.grade(userAnswer, correctAnswer, question.getQuestionType(),
-                    question.getOptions());
+                    question.getOptions(), question.getKeywords());
 
         } else if (contentType == ReviewContentType.STUDY_QUESTION) {
             // TODO: 스터디 퀴즈(GPT 생성)의 경우 정답 저장 방식에 따라 처리 필요

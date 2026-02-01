@@ -30,7 +30,7 @@ public class QuizGradingUtils {
      * 답안을 채점한다 (옵션 정보 없이 - 단순 비교).
      */
     public static boolean grade(String userAnswer, String correctAnswer, QuestionType questionType) {
-        return grade(userAnswer, correctAnswer, questionType, null);
+        return grade(userAnswer, correctAnswer, questionType, null, null);
     }
 
     /**
@@ -44,6 +44,21 @@ public class QuizGradingUtils {
      */
     public static boolean grade(String userAnswer, String correctAnswer, QuestionType questionType,
             String optionsJson) {
+        return grade(userAnswer, correctAnswer, questionType, optionsJson, null);
+    }
+
+    /**
+     * 답안을 채점한다 (키워드 기반 서술형 채점 지원).
+     *
+     * @param userAnswer    사용자가 제출한 답안
+     * @param correctAnswer 정답
+     * @param questionType  문제 유형
+     * @param optionsJson   보기 옵션 JSON (객관식 ID 매핑용)
+     * @param keywordsJson  서술형 채점용 키워드 JSON 배열 (예: ["키워드1", "키워드2"])
+     * @return 정답 여부 (true/false)
+     */
+    public static boolean grade(String userAnswer, String correctAnswer, QuestionType questionType,
+            String optionsJson, String keywordsJson) {
         if (userAnswer == null || userAnswer.isBlank()) {
             return false;
         }
@@ -59,7 +74,12 @@ public class QuizGradingUtils {
             return true;
         }
 
-        // 2. 객관식 문제이고 options가 있는 경우, ID로 텍스트 찾아 비교
+        // 2. 서술형 문제이고 키워드가 있는 경우, 키워드 기반 채점
+        if (questionType == QuestionType.SHORT_ANSWER && keywordsJson != null && !keywordsJson.isBlank()) {
+            return checkShortAnswerWithKeywords(trimmedUserAnswer, keywordsJson);
+        }
+
+        // 3. 객관식 문제이고 options가 있는 경우, ID로 텍스트 찾아 비교
         if ((questionType == QuestionType.MULTIPLE_CHOICE ||
                 questionType == QuestionType.MULTIPLE_CHOICE_MULTIPLE)
                 && optionsJson != null && !optionsJson.isBlank()) {
@@ -67,6 +87,44 @@ public class QuizGradingUtils {
         }
 
         return false;
+    }
+
+    /**
+     * 서술형 답안을 키워드 기반으로 채점한다.
+     * 모든 키워드가 사용자 답변에 포함되어 있어야 정답 처리.
+     *
+     * @param userAnswer   사용자 답변
+     * @param keywordsJson 키워드 JSON 배열
+     * @return 정답 여부
+     */
+    private static boolean checkShortAnswerWithKeywords(String userAnswer, String keywordsJson) {
+        try {
+            JsonNode root = objectMapper.readTree(keywordsJson);
+            if (!root.isArray() || root.isEmpty()) {
+                return false;
+            }
+
+            String normalizedUserAnswer = userAnswer.toLowerCase().replaceAll("\\s+", " ");
+
+            for (JsonNode keywordNode : root) {
+                String keyword = keywordNode.asText().toLowerCase().trim();
+                if (keyword.isEmpty()) {
+                    continue;
+                }
+                // 키워드가 사용자 답변에 포함되어 있는지 확인
+                if (!normalizedUserAnswer.contains(keyword)) {
+                    log.debug("키워드 '{}' 미포함, 오답 처리", keyword);
+                    return false;
+                }
+            }
+
+            log.debug("모든 키워드 포함, 정답 처리");
+            return true;
+
+        } catch (Exception e) {
+            log.warn("키워드 JSON 파싱 실패: {}", keywordsJson, e);
+            return false;
+        }
     }
 
     private static boolean checkMultipleChoiceAnswer(QuestionType questionType,
