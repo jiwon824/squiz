@@ -462,14 +462,16 @@ class MessageControllerTest {
         void togglePinMessage_Success() throws Exception {
             // when & then - 고정
             mockMvc.perform(patch("/api/v1/workspaces/{workspaceId}/messages/{messageId}/pin",
-                            workspace.getId(), message1.getId()))
+                            workspace.getId(), message1.getId())
+                            .header("User-Id", user1.getId()))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.id").value(message1.getId()))
                     .andExpect(jsonPath("$.isPinned").value(true));
 
             // when & then - 해제
             mockMvc.perform(patch("/api/v1/workspaces/{workspaceId}/messages/{messageId}/pin",
-                            workspace.getId(), message1.getId()))
+                            workspace.getId(), message1.getId())
+                            .header("User-Id", user1.getId()))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.id").value(message1.getId()))
                     .andExpect(jsonPath("$.isPinned").value(false));
@@ -480,7 +482,8 @@ class MessageControllerTest {
         void togglePinMessage_NotFound() throws Exception {
             // when & then
             mockMvc.perform(patch("/api/v1/workspaces/{workspaceId}/messages/{messageId}/pin",
-                            workspace.getId(), 99999L))
+                            workspace.getId(), 99999L)
+                            .header("User-Id", user1.getId()))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.message").value(containsString("찾을 수 없습니다")));
         }
