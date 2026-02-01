@@ -83,4 +83,15 @@ public interface StudySessionRepository extends JpaRepository<StudySession, Long
      * 특정 상태의 세션이 존재하는지 확인
      */
     boolean existsByStudyIdAndStatus(Long studyId, SessionStatus status);
+
+    /**
+     * 여러 스터디의 특정 기간 내 세션 조회
+     */
+    @Query("SELECT s FROM StudySession s WHERE s.studyId IN :studyIds " +
+            "AND s.scheduledAt BETWEEN :startDateTime AND :endDateTime " +
+            "ORDER BY s.scheduledAt ASC")
+    List<StudySession> findByStudyIdInAndScheduledAtBetween(
+            @Param("studyIds") List<Long> studyIds,
+            @Param("startDateTime") LocalDateTime startDateTime,
+            @Param("endDateTime") LocalDateTime endDateTime);
 }
