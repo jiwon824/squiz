@@ -30,6 +30,7 @@ export interface MessageResponse {
   author: MessageAuthorResponse;
   content: string;
   messageType: MessageType;
+  isPinned?: boolean;
   createdAt: string;
   updatedAt: string | null;
 }

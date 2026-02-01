@@ -390,10 +390,12 @@ CREATE TABLE `message` (
     `message_type` ENUM('TEXT', 'IMAGE', 'FILE', 'SYSTEM') DEFAULT 'TEXT',
     `file_url` VARCHAR(500),
     `is_deleted` BOOLEAN DEFAULT FALSE,
+    `is_pinned` BOOLEAN DEFAULT FALSE,              -- 메시지 고정 여부
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (`workspace_id`) REFERENCES `workspace`(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`user_id`) REFERENCES `user`(`id`)
+    FOREIGN KEY (`user_id`) REFERENCES `user`(`id`),
+    INDEX `idx_message_pinned` (`workspace_id`, `is_pinned`)
 );
 
 -- =============================================

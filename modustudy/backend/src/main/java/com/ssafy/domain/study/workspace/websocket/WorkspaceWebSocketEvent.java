@@ -16,7 +16,8 @@ public class WorkspaceWebSocketEvent {
         LEAVE,          // 워크스페이스 퇴장
         DELETE,         // 메시지 삭제
         UPDATE,         // 메시지 수정
-        PRESENCE        // 온라인/자리비움 상태
+        PRESENCE,       // 온라인/자리비움 상태
+        PIN             // 메시지 고정/해제
     }
 
     private Type type;
@@ -118,6 +119,18 @@ public class WorkspaceWebSocketEvent {
         event.setSenderNickname(nickname);
         event.setSenderProfileImageUrl(profileImageUrl);
         event.setPresenceStatus(status);
+        return event;
+    }
+
+    /**
+     * 메시지 고정/해제 이벤트 생성
+     */
+    public static WorkspaceWebSocketEvent pinMessage(MessageResponse message, Long userId) {
+        WorkspaceWebSocketEvent event = new WorkspaceWebSocketEvent(Type.PIN);
+        event.setMessage(message);
+        event.setWorkspaceId(message.getWorkspaceId());
+        event.setMessageId(message.getId());
+        event.setSenderId(userId);
         return event;
     }
 

@@ -371,6 +371,77 @@ class MessageRepositoryTest {
     }
 
     @Nested
+    @DisplayName("고정 메시지")
+    class PinnedMessage {
+
+        @Test
+        @DisplayName("성공 - 고정 메시지 목록 조회")
+        void findPinnedMessages_Success() {
+            // given
+            message1.pin();
+            messageRepository.flush();
+
+            // when
+            List<Message> pinnedMessages = messageRepository.findPinnedMessages(workspace.getId());
+
+            // then
+            assertThat(pinnedMessages).hasSize(1);
+            assertThat(pinnedMessages.get(0).getId()).isEqualTo(message1.getId());
+            assertThat(pinnedMessages.get(0).getIsPinned()).isTrue();
+        }
+
+        @Test
+        @DisplayName("성공 - 고정 메시지 없음")
+        void findPinnedMessages_Empty() {
+            // when
+            List<Message> pinnedMessages = messageRepository.findPinnedMessages(workspace.getId());
+
+            // then
+            assertThat(pinnedMessages).isEmpty();
+        }
+
+        @Test
+        @DisplayName("성공 - 삭제된 메시지는 고정 목록에서 제외")
+        void findPinnedMessages_ExcludeDeleted() {
+            // given
+            message1.pin();
+            message1.delete();
+            messageRepository.flush();
+
+            // when
+            List<Message> pinnedMessages = messageRepository.findPinnedMessages(workspace.getId());
+
+            // then
+            assertThat(pinnedMessages).isEmpty();
+        }
+
+        @Test
+        @DisplayName("성공 - 고정 메시지 수 조회")
+        void countPinnedMessages_Success() {
+            // given
+            message1.pin();
+            message2.pin();
+            messageRepository.flush();
+
+            // when
+            long count = messageRepository.countPinnedMessages(workspace.getId());
+
+            // then
+            assertThat(count).isEqualTo(2);
+        }
+
+        @Test
+        @DisplayName("성공 - 고정 메시지 수 0")
+        void countPinnedMessages_Zero() {
+            // when
+            long count = messageRepository.countPinnedMessages(workspace.getId());
+
+            // then
+            assertThat(count).isZero();
+        }
+    }
+
+    @Nested
     @DisplayName("메시지 삭제")
     class DeleteMessage {
 
@@ -452,6 +523,49 @@ class MessageRepositoryTest {
             // then
             assertThat(imageMessage.hasFile()).isTrue();
             assertThat(textMessage.hasFile()).isFalse();
+        }
+
+        @Test
+        @DisplayName("성공 - 메시지 고정/해제 토글")
+        void togglePin_Success() {
+            // given
+            assertThat(message1.getIsPinned()).isFalse();
+
+            // when - 고정
+            message1.togglePin();
+
+            // then
+            assertThat(message1.getIsPinned()).isTrue();
+
+            // when - 해제
+            message1.togglePin();
+
+            // then
+            assertThat(message1.getIsPinned()).isFalse();
+        }
+
+        @Test
+        @DisplayName("성공 - 메시지 고정")
+        void pin_Success() {
+            // when
+            message1.pin();
+
+            // then
+            assertThat(message1.getIsPinned()).isTrue();
+        }
+
+        @Test
+        @DisplayName("성공 - 메시지 고정 해제")
+        void unpin_Success() {
+            // given
+            message1.pin();
+            assertThat(message1.getIsPinned()).isTrue();
+
+            // when
+            message1.unpin();
+
+            // then
+            assertThat(message1.getIsPinned()).isFalse();
         }
     }
 }
