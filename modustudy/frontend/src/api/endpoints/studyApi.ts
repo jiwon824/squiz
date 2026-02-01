@@ -268,6 +268,7 @@ export interface StudyListItem {
   meetingType: string;
   status: string;
   maxMembers: number;
+  currentMembers?: number; // 현재 참여 인원 (스터디장 포함)
   difficulty?: string;
   regionId?: number;
   scheduleDays?: string;
