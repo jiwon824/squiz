@@ -2,7 +2,7 @@ package com.ssafy.squiz.data.remote
 
 import com.ssafy.squiz.BuildConfig
 import com.ssafy.squiz.data.local.AuthManager
-import com.ssafy.squiz.data.remote.api.AuthApi
+import com.ssafy.squiz.data.remote.api.*
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -28,7 +28,7 @@ object RetrofitClient {
     }
 
     /**
-     * Auth Interceptor - JWT 토큰 자동 추가
+     * Auth Interceptor - JWT 토큰 및 User-Id 헤더 자동 추가
      */
     private val authInterceptor = Interceptor { chain ->
         val originalRequest = chain.request()
@@ -38,8 +38,10 @@ object RetrofitClient {
         val isAuthRequired = noAuthPaths.none { originalRequest.url.encodedPath.startsWith(it) }
 
         val request = if (isAuthRequired && authManager?.getAccessToken() != null) {
+            val userId = authManager?.getCurrentUserId() ?: 0L
             originalRequest.newBuilder()
                 .header("Authorization", "Bearer ${authManager?.getAccessToken()}")
+                .header("User-Id", userId.toString())
                 .build()
         } else {
             originalRequest
@@ -88,5 +90,54 @@ object RetrofitClient {
      */
     val authApi: AuthApi by lazy {
         retrofit.create(AuthApi::class.java)
+    }
+
+    /**
+     * Notification API
+     */
+    val notificationApi: NotificationApi by lazy {
+        retrofit.create(NotificationApi::class.java)
+    }
+
+    /**
+     * Study API
+     */
+    val studyApi: StudyApi by lazy {
+        retrofit.create(StudyApi::class.java)
+    }
+
+    /**
+     * Review API (FSRS)
+     */
+    val reviewApi: ReviewApi by lazy {
+        retrofit.create(ReviewApi::class.java)
+    }
+
+    /**
+     * Attendance API (BLE 출석)
+     */
+    val attendanceApi: AttendanceApi by lazy {
+        retrofit.create(AttendanceApi::class.java)
+    }
+
+    /**
+     * User API
+     */
+    val userApi: UserApi by lazy {
+        retrofit.create(UserApi::class.java)
+    }
+
+    /**
+     * Schedule API
+     */
+    val scheduleApi: ScheduleApi by lazy {
+        retrofit.create(ScheduleApi::class.java)
+    }
+
+    /**
+     * Home API
+     */
+    val homeApi: HomeApi by lazy {
+        retrofit.create(HomeApi::class.java)
     }
 }

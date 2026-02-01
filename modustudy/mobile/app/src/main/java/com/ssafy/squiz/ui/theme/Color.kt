@@ -2,24 +2,24 @@ package com.ssafy.squiz.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Primary Brand Colors - Modern Purple
-val Primary = Color(0xFF6C5CE7)
-val PrimaryVariant = Color(0xFF5849C2)
-val PrimaryLight = Color(0xFFA29BFE)
-val PrimaryContainer = Color(0xFFE8E5FF)
+// Primary Brand Colors - Google Blue
+val Primary = Color(0xFF4285F4)
+val PrimaryVariant = Color(0xFF1A73E8)
+val PrimaryLight = Color(0xFF7BAAF7)
+val PrimaryContainer = Color(0xFFE8F0FE)
 
-// Secondary Colors - Teal Accent
-val Secondary = Color(0xFF00CEC9)
-val SecondaryVariant = Color(0xFF00A8A3)
-val SecondaryLight = Color(0xFF81ECEC)
-val SecondaryContainer = Color(0xFFD4FFFE)
+// Secondary Colors - Google Green
+val Secondary = Color(0xFF34A853)
+val SecondaryVariant = Color(0xFF1E8E3E)
+val SecondaryLight = Color(0xFF81C995)
+val SecondaryContainer = Color(0xFFE6F4EA)
 
-// Tertiary Colors - Coral
-val Tertiary = Color(0xFFFF7675)
-val TertiaryContainer = Color(0xFFFFE5E5)
+// Tertiary Colors - Google Yellow (Accent)
+val Tertiary = Color(0xFFFBBC04)
+val TertiaryContainer = Color(0xFFFEF7E0)
 
 // Background & Surface
-val Background = Color(0xFFFAFAFA)
+val Background = Color(0xFFF8F9FA)
 val BackgroundDark = Color(0xFF121212)
 val Surface = Color(0xFFFFFFFF)
 val SurfaceDark = Color(0xFF1E1E1E)
@@ -34,24 +34,24 @@ val OnBackgroundSecondary = Color(0xFF636E72)
 val OnSurface = Color(0xFF2D3436)
 val OnSurfaceDark = Color(0xFFE0E0E0)
 
-// Status Colors
-val Success = Color(0xFF00B894)
-val Warning = Color(0xFFFDCB6E)
-val Error = Color(0xFFE17055)
-val Info = Color(0xFF74B9FF)
+// Status Colors - Google 색상 팔레트
+val Success = Color(0xFF34A853)  // Google Green
+val Warning = Color(0xFFFBBC04)  // Google Yellow
+val Error = Color(0xFFEA4335)    // Google Red
+val Info = Color(0xFF4285F4)     // Google Blue
 
-// Study Status
-val StatusRecruiting = Color(0xFF00B894)
-val StatusInProgress = Color(0xFF6C5CE7)
-val StatusCompleted = Color(0xFF636E72)
-val StatusPending = Color(0xFFFDCB6E)
-val StatusCancelled = Color(0xFFE17055)
+// Study Status - Google 색상 팔레트
+val StatusRecruiting = Color(0xFF34A853)  // Green - 모집중
+val StatusInProgress = Color(0xFF4285F4)  // Blue - 진행중
+val StatusCompleted = Color(0xFF5F6368)   // Google Gray - 완료
+val StatusPending = Color(0xFFFBBC04)     // Yellow - 대기중
+val StatusCancelled = Color(0xFFEA4335)   // Red - 취소됨
 
-// Attendance Status
-val AttendancePresent = Color(0xFF00B894)
-val AttendanceLate = Color(0xFFFDCB6E)
-val AttendanceAbsent = Color(0xFFE17055)
-val AttendanceExcused = Color(0xFF74B9FF)
+// Attendance Status - Google 색상 팔레트
+val AttendancePresent = Color(0xFF34A853)   // Green - 출석
+val AttendanceLate = Color(0xFFFBBC04)      // Yellow - 지각
+val AttendanceAbsent = Color(0xFFEA4335)    // Red - 결석
+val AttendanceExcused = Color(0xFF4285F4)   // Blue - 사유결석
 
 // Grass (Activity) Colors - GitHub style
 val GrassLevel0 = Color(0xFFEBEDF0)
@@ -65,10 +65,10 @@ val KakaoYellow = Color(0xFFFEE500)
 val NaverGreen = Color(0xFF03C75A)
 val GoogleWhite = Color(0xFFFFFFFF)
 
-// Gradient
-val GradientStart = Color(0xFF6C5CE7)
-val GradientMiddle = Color(0xFF74B9FF)
-val GradientEnd = Color(0xFF00CEC9)
+// Gradient - Google 색상 팔레트
+val GradientStart = Color(0xFF4285F4)   // Google Blue
+val GradientMiddle = Color(0xFF34A853)  // Google Green
+val GradientEnd = Color(0xFF1A73E8)     // Google Blue Dark
 
 // Card & Border
 val CardBorder = Color(0xFFE0E0E0)

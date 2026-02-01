@@ -66,7 +66,7 @@ def parse_action_items_from_8b(local_summary: str) -> list:
     8B 출력 형식:
     ## 요약
     ...
-    ## 액션 아이템
+    ## 액션 아이템 (팀 전체 대상 - 닉네임 제외)
     - 할 일 1
     - 할 일 2
     ## 키워드
@@ -1424,8 +1424,8 @@ def process_meeting_full_job(job_id: str, mixed_path: str, individual_paths: lis
 ## 다룬 내용
 - [토픽별 요점]
 
-## 액션 아이템
-- [할 일]
+## 액션 아이템 (팀 전체 대상 - 닉네임 제외)
+- [닉네임 없이 할 일 내용만]
 
 ## 키워드
 [쉼표로 구분]
@@ -1456,7 +1456,8 @@ def process_meeting_full_job(job_id: str, mixed_path: str, individual_paths: lis
         if generate_quiz:
             quiz_instruction = """
 6. **퀴즈**: 스터디 내용 복습을 위한 퀴즈를 5문제 이상 생성해주세요.
-   - MULTIPLE_CHOICE(객관식)와 SHORT_ANSWER(단답형) 혼합
+   - MULTIPLE_CHOICE(객관식)와 SHORT_ANSWER(서술형) 혼합
+   - SHORT_ANSWER 문제는 반드시 answer_keywords 배열 포함 (채점용 핵심 키워드 3-5개)
    - 난이도: EASY, MEDIUM, HARD 섞어서
    - 각 문제에 정답과 해설 포함"""
 
@@ -1508,10 +1509,17 @@ def process_meeting_full_job(job_id: str, mixed_path: str, individual_paths: lis
   "keywords": ["키워드1", "키워드2", ...],
   "quiz": [
     {{
-      "question": "문제 내용",
-      "type": "객관식",
+      "question": "객관식 문제 내용",
+      "type": "MULTIPLE_CHOICE",
       "options": ["A. 보기1", "B. 보기2", "C. 보기3", "D. 보기4"],
       "answer": "A",
+      "explanation": "해설"
+    }},
+    {{
+      "question": "서술형 문제 내용",
+      "type": "SHORT_ANSWER",
+      "answer": "모범 답안",
+      "answer_keywords": ["필수키워드1", "필수키워드2", "선택키워드3"],
       "explanation": "해설"
     }}
   ]
@@ -1919,8 +1927,8 @@ def process_recording_and_send_results(meeting_id: int, audio_path: str, origina
 ## 다룬 내용
 - [토픽별 요점]
 
-## 액션 아이템
-- [할 일]
+## 액션 아이템 (팀 전체 대상 - 닉네임 제외)
+- [닉네임 없이 할 일 내용만]
 
 ## 키워드
 [쉼표로 구분]
@@ -2030,8 +2038,8 @@ def process_transcript_summary(job_id: str, transcript: str, speaker_ids: List[i
 ## 다룬 내용
 - [토픽별 요점]
 
-## 액션 아이템
-- [할 일]
+## 액션 아이템 (팀 전체 대상 - 닉네임 제외)
+- [닉네임 없이 할 일 내용만]
 
 ## 키워드
 [쉼표로 구분]
@@ -2064,7 +2072,8 @@ def process_transcript_summary(job_id: str, transcript: str, speaker_ids: List[i
         if generate_quiz:
             quiz_instruction = """
 4. **퀴즈**: 스터디 내용 복습을 위한 퀴즈를 5문제 이상 생성해주세요.
-   - MULTIPLE_CHOICE(객관식)와 SHORT_ANSWER(단답형) 혼합
+   - MULTIPLE_CHOICE(객관식)와 SHORT_ANSWER(서술형) 혼합
+   - SHORT_ANSWER 문제는 반드시 answer_keywords 배열 포함 (채점용 핵심 키워드 3-5개)
    - 난이도: EASY, MEDIUM, HARD 섞어서
    - 각 문제에 정답과 해설 포함"""
 
@@ -2114,10 +2123,17 @@ def process_transcript_summary(job_id: str, transcript: str, speaker_ids: List[i
   "keywords": ["키워드1", "키워드2", ...],
   "quiz": [
     {{
-      "question": "문제 내용",
-      "type": "객관식",
+      "question": "객관식 문제 내용",
+      "type": "MULTIPLE_CHOICE",
       "options": ["A. 보기1", "B. 보기2", "C. 보기3", "D. 보기4"],
       "answer": "A",
+      "explanation": "해설"
+    }},
+    {{
+      "question": "서술형 문제 내용",
+      "type": "SHORT_ANSWER",
+      "answer": "모범 답안",
+      "answer_keywords": ["필수키워드1", "필수키워드2", "선택키워드3"],
       "explanation": "해설"
     }}
   ]

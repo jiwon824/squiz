@@ -41,6 +41,14 @@ public class StudyQuizQuestion extends BaseEntity {
     @Column(name = "correct_answer", nullable = false, length = 500)
     private String correctAnswer;
 
+    /**
+     * 서술형 문제 채점용 키워드 (JSON 배열)
+     * 예: ["키워드1", "키워드2", "키워드3"]
+     */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "answer_keywords", columnDefinition = "json")
+    private String answerKeywords;
+
     @Column(columnDefinition = "TEXT")
     private String explanation;
 
