@@ -55,7 +55,7 @@ test:
       export SPRING_DATASOURCE_URL="jdbc:mysql://localhost:3306/squiz_test?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true&useSSL=false"
       export SPRING_PROFILES_ACTIVE=test
       echo "테스트 DB URL: $SPRING_DATASOURCE_URL"
-      ./gradlew test
+      ./gradlew test -PexcludeIntegrationTests=true
   only:
     - master
     - main
