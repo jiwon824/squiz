@@ -110,7 +110,7 @@ const StudyPageV2: React.FC = () => {
     });
 
     // 리더 정보가 포함된 스터디 변환 (별도 API 조회 결과 사용)
-    const convertToStudyWithLeader = (item: StudyListItem, leaderInfo?: LeaderInfoResponse, regionNameMap?: Map<number, string>): Study => {
+    const convertToStudyWithLeader = (item: StudyListItem, leaderInfo?: LeaderInfoResponse, regionNameMap?: Map<number, string>, isBookmarked?: boolean): Study => {
         // regionId가 있으면 region 객체 생성
         let region: { id: number; name: string } | undefined;
         if (item.regionId && regionNameMap && regionNameMap.has(item.regionId)) {
@@ -146,7 +146,7 @@ const StudyPageV2: React.FC = () => {
                 leaderRating: leaderInfo?.leaderRating ?? item.leader?.leaderRating ?? null,
                 leaderReviewCount: leaderInfo?.leaderReviewCount || item.leader?.leaderReviewCount || 0,
             },
-            isBookmarked: false,
+            isBookmarked: isBookmarked ?? false,
             createdAt: item.createdAt,
         };
     };
@@ -207,23 +207,35 @@ const StudyPageV2: React.FC = () => {
             // 안전한 배열 처리 (백엔드 순환 참조 에러 대비)
             const content = response?.content || [];
 
-            // 각 스터디에 대해 리더 정보 병렬 조회
+            // 각 스터디에 대해 리더 정보 및 북마크 상태 병렬 조회
             const leaderInfoMap = new Map<number, LeaderInfoResponse>();
-            const leaderInfoPromises = content.map(async (item) => {
+            const bookmarkMap = new Map<number, boolean>();
+
+            const fetchPromises = content.map(async (item) => {
+                // 리더 정보 조회
                 try {
                     const leaderInfo = await getLeaderInfo(item.id);
                     leaderInfoMap.set(item.id, leaderInfo);
                 } catch (err) {
                     console.warn(`스터디 ${item.id} 리더 정보 조회 실패:`, err);
                 }
+                // 북마크 상태 조회
+                try {
+                    const isBookmarked = await studyApi.checkBookmark(item.id);
+                    bookmarkMap.set(item.id, isBookmarked);
+                } catch (err) {
+                    // 로그인 안 된 경우 등 실패 시 false로 처리
+                    bookmarkMap.set(item.id, false);
+                }
             });
 
-            await Promise.all(leaderInfoPromises);
+            await Promise.all(fetchPromises);
 
-            // 리더 정보 및 지역 정보를 포함하여 스터디 변환
+            // 리더 정보, 지역 정보, 북마크 상태를 포함하여 스터디 변환
             const convertedStudies = content.map((item) => {
                 const leaderInfo = leaderInfoMap.get(item.id);
-                return convertToStudyWithLeader(item, leaderInfo, currentRegionMap);
+                const isBookmarked = bookmarkMap.get(item.id);
+                return convertToStudyWithLeader(item, leaderInfo, currentRegionMap, isBookmarked);
             });
 
             console.log('[변환된 스터디]', convertedStudies);
@@ -241,6 +253,19 @@ const StudyPageV2: React.FC = () => {
     // 초기 로드 및 필터/정렬/페이지 변경 시 재로드
     useEffect(() => {
         loadStudies();
+    }, [currentPage, sortOption, filters.meetingType, filters.difficulty]);
+
+    // 페이지 포커스 복귀 시 북마크 상태 동기화를 위해 리로드
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                loadStudies();
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
     }, [currentPage, sortOption, filters.meetingType, filters.difficulty]);
 
     // 검색 시 페이지 리셋 후 로드
