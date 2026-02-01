@@ -53,7 +53,7 @@ export const getWrongAnswers = async (): Promise<TodayReviewResponse> => {
 export interface ReviewSubmitRequest {
     contentType: 'COURSE_QUESTION' | 'STUDY_QUESTION';
     contentId: number;
-    userAnswer: string;
+    userAnswer: string | null;
     responseTimeMs: number;
 }
 

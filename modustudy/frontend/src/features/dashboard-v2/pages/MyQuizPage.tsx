@@ -64,7 +64,7 @@ export const MyQuizPage: React.FC = () => {
 
     // 퀴즈 재도전 상태
     const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
-    const [shortAnswer, setShortAnswer] = useState('');
+    const [shortAnswer, setShortAnswer] = useState<string | null>('');
     const [showResult, setShowResult] = useState(false);
 
     // Timer Hook
@@ -153,12 +153,11 @@ export const MyQuizPage: React.FC = () => {
     };
 
     const handleSubmitShort = async () => {
-        if (!shortAnswer.trim() || !selectedReviewItem) return;
+        if ((shortAnswer !== null && !shortAnswer.trim()) || !selectedReviewItem) return;
 
         setShowResult(true);
 
         const responseTimeMs = timer.stop();
-
 
         try {
             await submitReview({
@@ -170,6 +169,12 @@ export const MyQuizPage: React.FC = () => {
         } catch (e) {
             console.error("Review submission failed", e);
         }
+
+        setIsRetrying(false);
+        setSelectedReviewItem(null);
+        setSelectedAnswer(null);
+        setShortAnswer('');
+        setShowResult(false);
     };
 
     const handleFinishRetry = () => {
@@ -301,7 +306,7 @@ export const MyQuizPage: React.FC = () => {
                                                 const question = selectedReviewItem.question;
                                                 const isCorrect = ['MULTIPLE_CHOICE', 'MULTIPLE_CHOICE_MULTIPLE'].includes(question.questionType)
                                                     ? String(selectedAnswer) === String(question.correctAnswer)
-                                                    : shortAnswer.trim().toLowerCase() === String(question.correctAnswer).trim().toLowerCase();
+                                                    : shortAnswer?.trim().toLowerCase() === String(question.correctAnswer).trim().toLowerCase();
 
                                                 return (
                                                     <div className={cn(
