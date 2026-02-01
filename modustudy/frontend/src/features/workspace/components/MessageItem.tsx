@@ -1,3 +1,4 @@
+import { Pin } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 import type { MessageResponse } from '../types';
 
@@ -9,6 +10,8 @@ interface MessageItemProps {
   isGrouped?: boolean; // 같은 사용자의 연속 메시지인 경우
   isOwnMessage?: boolean; // 내가 보낸 메시지인 경우
   isLastInGroup?: boolean; // 연속 메시지 그룹의 마지막인 경우 (전송됨 표시용)
+  isPinned?: boolean; // 고정된 메시지인 경우
+  onPinToggle?: (messageId: number) => void; // 고정/해제 토글
 }
 
 // 시간 포맷 (오늘이면 시간만, 아니면 날짜+시간)
@@ -61,6 +64,8 @@ export const MessageItem: React.FC<MessageItemProps> = ({
   isGrouped = false,
   isOwnMessage = false,
   isLastInGroup = false,
+  isPinned = false,
+  onPinToggle,
 }) => {
   const isSystemMessage = message.messageType === 'SYSTEM';
 
@@ -75,24 +80,49 @@ export const MessageItem: React.FC<MessageItemProps> = ({
     );
   }
 
+  // 핀 버튼 렌더링
+  const renderPinButton = () => {
+    if (!onPinToggle) return null;
+    return (
+      <button
+        onClick={() => onPinToggle(message.id)}
+        className={cn(
+          'message-item__pin-btn',
+          'flex items-center justify-center w-6 h-6 rounded',
+          'transition-all duration-150',
+          isPinned
+            ? 'text-yellow-500'
+            : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 opacity-0 group-hover:opacity-100'
+        )}
+        title={isPinned ? '고정 해제' : '메시지 고정'}
+      >
+        <Pin size={14} className={isPinned ? 'fill-current' : ''} />
+      </button>
+    );
+  };
+
   // 그룹화된 메시지 (같은 사용자 연속 메시지) - 아바타 없이 말풍선만
   if (isGrouped) {
     return (
-      <div className={cn('flex gap-2 mb-1', isOwnMessage ? 'flex-row-reverse' : 'flex-row')}>
+      <div className={cn('group relative flex gap-2 mb-1', isOwnMessage ? 'flex-row-reverse' : 'flex-row')}>
         {/* 아바타 자리 (빈 공간) */}
         <div className="w-10 flex-shrink-0" />
 
         {/* 말풍선 + 전송됨 */}
         <div className={cn('flex flex-col max-w-[70%]', isOwnMessage ? 'items-end' : 'items-start')}>
-          <div
-            className={cn(
-              'px-4 py-2 rounded-2xl text-sm break-words',
-              isOwnMessage
-                ? 'bg-blue-500 text-white rounded-tr-sm'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-tl-sm'
-            )}
-          >
-            {renderMessageContent(message.content)}
+          <div className="flex items-center gap-1">
+            {isOwnMessage && renderPinButton()}
+            <div
+              className={cn(
+                'px-4 py-2 rounded-2xl text-sm break-words',
+                isOwnMessage
+                  ? 'bg-blue-500 text-white rounded-tr-sm'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-tl-sm'
+              )}
+            >
+              {renderMessageContent(message.content)}
+            </div>
+            {!isOwnMessage && renderPinButton()}
           </div>
           {/* 읽음 상태 (내 메시지 그룹의 마지막만) - 슬라이드 애니메이션 */}
           {isOwnMessage && isLastInGroup && (
@@ -107,7 +137,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
 
   // 일반 메시지 - 아바타 + 이름 + 말풍선
   return (
-    <div className={cn('flex gap-2 mb-3', isOwnMessage ? 'flex-row-reverse' : 'flex-row')}>
+    <div className={cn('group relative flex gap-2 mb-3', isOwnMessage ? 'flex-row-reverse' : 'flex-row')}>
       {/* 아바타 */}
       <div className="flex-shrink-0">
         <div
@@ -143,16 +173,20 @@ export const MessageItem: React.FC<MessageItemProps> = ({
           <time className="text-[10px] text-gray-400 dark:text-gray-500">{formatTime(message.createdAt)}</time>
         </div>
 
-        {/* 말풍선 */}
-        <div
-          className={cn(
-            'px-4 py-2 rounded-2xl text-sm break-words',
-            isOwnMessage
-              ? 'bg-blue-500 text-white rounded-tr-sm'
-              : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-tl-sm'
-          )}
-        >
-          {renderMessageContent(message.content)}
+        {/* 말풍선 + 핀 버튼 */}
+        <div className="flex items-center gap-1">
+          {isOwnMessage && renderPinButton()}
+          <div
+            className={cn(
+              'px-4 py-2 rounded-2xl text-sm break-words',
+              isOwnMessage
+                ? 'bg-blue-500 text-white rounded-tr-sm'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-tl-sm'
+            )}
+          >
+            {renderMessageContent(message.content)}
+          </div>
+          {!isOwnMessage && renderPinButton()}
         </div>
 
         {/* 읽음 상태 (내 메시지 그룹의 마지막만) - 슬라이드 애니메이션 */}

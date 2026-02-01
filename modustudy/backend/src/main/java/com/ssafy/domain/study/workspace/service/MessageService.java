@@ -299,4 +299,68 @@ public class MessageService {
     public long getMessageCount(Long workspaceId) {
         return messageRepository.countByWorkspaceId(workspaceId);
     }
+
+    /**
+     * 고정된 메시지 목록 조회
+     */
+    public List<MessageResponse> getPinnedMessages(Long workspaceId) {
+        log.info("고정 메시지 조회 요청 - workspaceId: {}", workspaceId);
+
+        if (!workspaceRepository.existsById(workspaceId)) {
+            log.warn("워크스페이스를 찾을 수 없습니다 - workspaceId: {}", workspaceId);
+            throw new IllegalArgumentException("워크스페이스를 찾을 수 없습니다.");
+        }
+
+        List<Message> messages = messageRepository.findPinnedMessages(workspaceId);
+
+        List<Long> userIds = messages.stream()
+                .map(Message::getUserId)
+                .distinct()
+                .collect(Collectors.toList());
+
+        Map<Long, User> userMap = userRepository.findAllById(userIds).stream()
+                .collect(Collectors.toMap(User::getId, Function.identity()));
+
+        return messages.stream()
+                .map(message -> {
+                    User user = userMap.get(message.getUserId());
+                    String nickname = user != null ? user.getNickname() : "알 수 없음";
+                    return MessageResponse.of(message, nickname, null);
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 메시지 고정/해제 토글
+     */
+    @Transactional
+    public MessageResponse togglePinMessage(Long messageId) {
+        log.info("메시지 고정 토글 요청 - messageId: {}", messageId);
+
+        Message message = messageRepository.findById(messageId)
+                .orElseThrow(() -> {
+                    log.warn("메시지를 찾을 수 없습니다 - messageId: {}", messageId);
+                    return new IllegalArgumentException("메시지를 찾을 수 없습니다.");
+                });
+
+        if (message.isDeleted()) {
+            log.warn("삭제된 메시지는 고정할 수 없습니다 - messageId: {}", messageId);
+            throw new IllegalStateException("삭제된 메시지는 고정할 수 없습니다.");
+        }
+
+        message.togglePin();
+        log.info("메시지 고정 토글 완료 - messageId: {}, isPinned: {}", messageId, message.getIsPinned());
+
+        User user = userRepository.findById(message.getUserId()).orElse(null);
+        String nickname = user != null ? user.getNickname() : "알 수 없음";
+
+        return MessageResponse.of(message, nickname, null);
+    }
+
+    /**
+     * 고정된 메시지 수 조회
+     */
+    public long getPinnedMessageCount(Long workspaceId) {
+        return messageRepository.countPinnedMessages(workspaceId);
+    }
 }

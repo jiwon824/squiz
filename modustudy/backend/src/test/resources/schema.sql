@@ -96,11 +96,13 @@ CREATE TABLE `message` (
     `message_type` VARCHAR(20) NOT NULL DEFAULT 'TEXT',
     `file_url` VARCHAR(500),
     `is_deleted` BOOLEAN DEFAULT FALSE,
+    `is_pinned` BOOLEAN DEFAULT FALSE,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX `idx_message_workspace_id` (`workspace_id`),
     INDEX `idx_message_user_id` (`user_id`),
-    INDEX `idx_message_created_at` (`created_at`)
+    INDEX `idx_message_created_at` (`created_at`),
+    INDEX `idx_message_pinned` (`workspace_id`, `is_pinned`)
 );
 SET FOREIGN_KEY_CHECKS=1;
 

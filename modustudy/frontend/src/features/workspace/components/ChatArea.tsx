@@ -9,6 +9,14 @@ interface ChatAreaProps {
   hasMore?: boolean;
   /** 현재 로그인한 사용자 ID (내 메시지 구분용) - string 또는 number */
   currentUserId?: string | number;
+  /** 고정된 메시지 ID 목록 */
+  pinnedMessageIds?: number[];
+  /** 메시지 고정/해제 토글 */
+  onPinToggle?: (messageId: number) => void;
+  /** 스크롤할 메시지 ID (검색/고정 메시지 클릭 시) */
+  scrollToMessageId?: number | null;
+  /** 스크롤 완료 후 콜백 */
+  onScrollComplete?: () => void;
 }
 
 // 날짜 포맷 (구분선용)
@@ -57,7 +65,13 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
   onLoadMore,
   hasMore = false,
   currentUserId,
+  pinnedMessageIds = [],
+  onPinToggle,
+  scrollToMessageId,
+  onScrollComplete,
 }) => {
+  // 고정 메시지 ID Set (빠른 조회용)
+  const pinnedSet = new Set(pinnedMessageIds);
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -65,6 +79,32 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages.length]);
+
+  // 특정 메시지로 스크롤
+  useEffect(() => {
+    if (!scrollToMessageId || !scrollRef.current) return;
+
+    // 약간의 딜레이 후 스크롤 (DOM 업데이트 대기)
+    const timer = setTimeout(() => {
+      const messageElement = scrollRef.current?.querySelector(
+        `[data-message-id="${scrollToMessageId}"]`
+      );
+
+      if (messageElement) {
+        messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        // 하이라이트 효과 적용
+        messageElement.classList.add('message-highlight');
+        setTimeout(() => {
+          messageElement.classList.remove('message-highlight');
+        }, 2000);
+      }
+
+      onScrollComplete?.();
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [scrollToMessageId, onScrollComplete]);
 
   // 스크롤 상단 도달 시 이전 메시지 로드
   const handleScroll = () => {
@@ -121,13 +161,16 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
       const isLastInGroup = !nextMessage || String(nextMessage.author.id) !== String(message.author.id);
 
       elements.push(
-        <MessageItem
-          key={message.id}
-          message={message}
-          isGrouped={isGroupedMessage(message, previousMessage)}
-          isOwnMessage={isOwn}
-          isLastInGroup={isLastInGroup}
-        />
+        <div key={message.id} data-message-id={message.id}>
+          <MessageItem
+            message={message}
+            isGrouped={isGroupedMessage(message, previousMessage)}
+            isOwnMessage={isOwn}
+            isLastInGroup={isLastInGroup}
+            isPinned={pinnedSet.has(message.id)}
+            onPinToggle={onPinToggle}
+          />
+        </div>
       );
     });
 
