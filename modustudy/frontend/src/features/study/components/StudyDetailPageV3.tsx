@@ -4,14 +4,15 @@ import {
     Heart, Users, Clock, MapPin,
     Target, Award, AlertTriangle, Share2,
     BookOpen, Monitor, Handshake, Layers, MoreVertical,
-    Calendar, CalendarDays, Bookmark, FileText, GraduationCap, Info, Loader2, Pencil, Quote, Trash2
+    Calendar, CalendarDays, Bookmark, FileText, GraduationCap, Info, Loader2, Pencil, Quote, Trash2, Star
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { studyService, Study } from '../services/studyService';
-import { studyApi, getStudySessions, StudySessionItem, deleteStudy, getLeaderReviews, getLeaderInfo, LeaderReviewResponse, LeaderInfoResponse, getProvinces, getDistricts } from '@/api/endpoints/studyApi';
+import { studyApi, getStudySessions, StudySessionItem, deleteStudy, getLeaderReviews, getLeaderInfo, LeaderReviewResponse, LeaderInfoResponse, getProvinces, getDistricts, getMyLeaderReview } from '@/api/endpoints/studyApi';
 import StudyApplyModalV2 from './StudyApplyModalV2';
 import { StudyReportModal } from './StudyReportModal';
 import LeaderReviewModal from './LeaderReviewModal';
+import LeaderReviewWriteModal from './LeaderReviewWriteModal';
 import StudyListContainer from './StudyListContainer';
 import StudyLeaderCard from './StudyLeaderCard';
 import StudyCommentSection from './StudyCommentSection';
@@ -91,6 +92,9 @@ const StudyDetailPageV3: React.FC = () => {
     const [leaderReviewCount, setLeaderReviewCount] = useState(0);
     const [leaderInfo, setLeaderInfo] = useState<LeaderInfoResponse | null>(null);
     const [regionName, setRegionName] = useState<string | null>(null);
+    const [isReviewWriteModalOpen, setIsReviewWriteModalOpen] = useState(false);
+    const [myReview, setMyReview] = useState<LeaderReviewResponse | null>(null);
+    const [isMember, setIsMember] = useState(false);
     const { user } = useAuthStore();
 
     // 실제 API에서 스터디 상세 및 세션(커리큘럼) 조회
@@ -135,6 +139,22 @@ const StudyDetailPageV3: React.FC = () => {
                 } catch (bookmarkError) {
                     console.error('북마크 상태 조회 실패:', bookmarkError);
                 }
+
+                // 멤버 여부 확인 및 내 리뷰 조회 (로그인 상태일 때만)
+                if (user?.id) {
+                    try {
+                        const memberCheck = await studyApi.checkMembership(Number(id), Number(user.id));
+                        setIsMember(memberCheck);
+
+                        // 멤버이고 스터디가 완료 상태면 내 리뷰 조회
+                        if (memberCheck && data.status === 'COMPLETED') {
+                            const myReviewData = await getMyLeaderReview(Number(id));
+                            setMyReview(myReviewData);
+                        }
+                    } catch (memberError) {
+                        console.error('멤버 확인 실패:', memberError);
+                    }
+                }
             } catch (error) {
                 console.error('스터디 상세 조회 실패:', error);
                 showToast('스터디 정보를 불러올 수 없습니다.', 'error');
@@ -143,7 +163,7 @@ const StudyDetailPageV3: React.FC = () => {
             }
         };
         fetchStudyData();
-    }, [id]);
+    }, [id, user?.id]);
 
     // regionId가 있으면 지역 이름 조회
     useEffect(() => {
@@ -886,6 +906,63 @@ const StudyDetailPageV3: React.FC = () => {
 
                             </div>
 
+                            {/* 스터디장 평가 섹션 (완료된 스터디 + 멤버 + 스터디장 아닐 때) */}
+                            {study.status === 'COMPLETED' && isMember && !isOwner && (
+                                <div className="mt-6 bg-white rounded-2xl border border-[var(--color-border)] p-6 shadow-sm">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-yellow-50 rounded-xl">
+                                                <Star size={20} className="text-yellow-500" />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-bold text-[var(--color-text-primary)]">
+                                                    스터디장 평가
+                                                </h3>
+                                                <p className="text-sm text-[var(--color-text-tertiary)]">
+                                                    {myReview
+                                                        ? '작성한 리뷰를 수정하거나 삭제할 수 있습니다.'
+                                                        : `${study.leader.nickname}님의 스터디 운영은 어떠셨나요?`}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <Button
+                                            variant={myReview ? 'outline' : 'primary'}
+                                            onClick={() => setIsReviewWriteModalOpen(true)}
+                                            leftIcon={myReview ? <Pencil size={16} /> : <Star size={16} />}
+                                        >
+                                            {myReview ? '리뷰 수정' : '리뷰 작성'}
+                                        </Button>
+                                    </div>
+                                    {myReview && (
+                                        <div className="mt-4 pt-4 border-t border-[var(--color-border-light)]">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <div className="flex gap-0.5">
+                                                    {[1, 2, 3, 4, 5].map((v) => (
+                                                        <Star
+                                                            key={v}
+                                                            size={14}
+                                                            className={cn(
+                                                                v <= myReview.rating
+                                                                    ? 'text-yellow-400 fill-current'
+                                                                    : 'text-gray-300'
+                                                            )}
+                                                        />
+                                                    ))}
+                                                </div>
+                                                <span className="text-sm font-medium text-[var(--color-text-primary)]">
+                                                    {myReview.rating.toFixed(1)}
+                                                </span>
+                                            </div>
+                                            {myReview.comment && (
+                                                <p className="text-sm text-[var(--color-text-secondary)]">
+                                                    {myReview.comment}
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
                             {/* 댓글 섹션 */}
                             <div className="mt-6">
                                 <StudyCommentSection
@@ -934,6 +1011,27 @@ const StudyDetailPageV3: React.FC = () => {
                 leaderNickname={study.leader.nickname}
                 reviews={leaderReviews}
                 averageRating={leaderAvgRating}
+            />
+
+            <LeaderReviewWriteModal
+                isOpen={isReviewWriteModalOpen}
+                onClose={() => setIsReviewWriteModalOpen(false)}
+                studyId={study.id}
+                leaderNickname={study.leader.nickname}
+                existingReview={myReview}
+                onSuccess={async () => {
+                    // 리뷰 작성/수정/삭제 후 데이터 새로고침
+                    try {
+                        const myReviewData = await getMyLeaderReview(study.id);
+                        setMyReview(myReviewData);
+                        const leaderData = await getLeaderInfo(study.id);
+                        setLeaderInfo(leaderData);
+                        setLeaderAvgRating(leaderData.leaderRating);
+                        setLeaderReviewCount(leaderData.leaderReviewCount || 0);
+                    } catch (error) {
+                        console.error('리뷰 데이터 새로고침 실패:', error);
+                    }
+                }}
             />
 
             {/* 스터디 삭제 확인 모달 */}

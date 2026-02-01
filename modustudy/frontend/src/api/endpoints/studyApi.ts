@@ -759,6 +759,92 @@ export const getLeaderReviews = async (
   return data;
 };
 
+// 스터디장 리뷰 작성 요청 타입
+export interface LeaderReviewCreateRequest {
+  rating: number;
+  comment?: string;
+}
+
+// 스터디장 리뷰 수정 요청 타입
+export interface LeaderReviewUpdateRequest {
+  rating: number;
+  comment?: string;
+}
+
+/**
+ * 스터디장 리뷰 작성
+ * POST /api/v1/study/{studyId}/leader/reviews
+ */
+export const createLeaderReview = async (
+  studyId: number,
+  request: LeaderReviewCreateRequest
+): Promise<LeaderReviewResponse> => {
+  const response = await api.post(`/api/v1/study/${studyId}/leader/reviews`, request);
+  const data = response.data;
+  if (data.data) {
+    return data.data;
+  }
+  return data;
+};
+
+/**
+ * 내 리뷰 조회 (특정 스터디에서 내가 작성한 리뷰)
+ * GET /api/v1/study/{studyId}/leader/reviews/my
+ */
+export const getMyLeaderReview = async (
+  studyId: number
+): Promise<LeaderReviewResponse | null> => {
+  try {
+    const response = await api.get(`/api/v1/study/${studyId}/leader/reviews/my`);
+    // 204 No Content인 경우 null 반환
+    if (response.status === 204 || !response.data) {
+      return null;
+    }
+    const data = response.data;
+    if (data.data) {
+      return data.data;
+    }
+    return data;
+  } catch (error: any) {
+    // 404나 204는 리뷰가 없는 것으로 처리
+    if (error.response?.status === 404 || error.response?.status === 204) {
+      return null;
+    }
+    throw error;
+  }
+};
+
+/**
+ * 스터디장 리뷰 수정
+ * PUT /api/v1/study/{studyId}/leader/reviews/{reviewId}
+ */
+export const updateLeaderReview = async (
+  studyId: number,
+  reviewId: number,
+  request: LeaderReviewUpdateRequest
+): Promise<LeaderReviewResponse> => {
+  const response = await api.put(
+    `/api/v1/study/${studyId}/leader/reviews/${reviewId}`,
+    request
+  );
+  const data = response.data;
+  if (data.data) {
+    return data.data;
+  }
+  return data;
+};
+
+/**
+ * 스터디장 리뷰 삭제
+ * DELETE /api/v1/study/{studyId}/leader/reviews/{reviewId}
+ */
+export const deleteLeaderReview = async (
+  studyId: number,
+  reviewId: number
+): Promise<void> => {
+  await api.delete(`/api/v1/study/${studyId}/leader/reviews/${reviewId}`);
+};
+
 // 내 스터디 템플릿 목록 조회
 export interface StudyTemplateItem {
   id: number;
