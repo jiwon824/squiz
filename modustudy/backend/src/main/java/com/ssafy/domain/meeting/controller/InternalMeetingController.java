@@ -1,10 +1,14 @@
 package com.ssafy.domain.meeting.controller;
 
 import com.ssafy.common.response.ApiResponse;
+import com.ssafy.domain.meeting.dto.request.MeetingTextFileUpsertRequest;
 import com.ssafy.domain.meeting.dto.request.SpeechSegmentRequest;
 import com.ssafy.domain.meeting.dto.response.MeetingRecordingResponse;
+import com.ssafy.domain.meeting.dto.response.MeetingSttFileResponse;
+import com.ssafy.domain.meeting.dto.response.MeetingSttSummaryResponse;
 import com.ssafy.domain.meeting.dto.response.SpeechSegmentResponse;
 import com.ssafy.domain.meeting.service.MeetingRecordingService;
+import com.ssafy.domain.meeting.service.MeetingSttService;
 import com.ssafy.domain.meeting.service.SpeechSegmentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -26,6 +30,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class InternalMeetingController {
 
     private final MeetingRecordingService meetingRecordingService;
+    private final MeetingSttService meetingSttService;
     private final SpeechSegmentService speechSegmentService;
 
     @PostMapping("/{meetingId}/recording/video")
@@ -47,5 +52,39 @@ public class InternalMeetingController {
         SpeechSegmentResponse response = speechSegmentService.processSpeechSegment(meetingId, request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(response));
+    }
+
+    @PostMapping("/{meetingId}/stt/file")
+    @Operation(summary = "STT 파일 정보 저장 (내부용)", description = "AI 서버에서 생성한 STT 파일 경로를 저장")
+    public ResponseEntity<ApiResponse<MeetingSttFileResponse>> upsertSttFile(
+            @PathVariable Long meetingId,
+            @RequestBody(required = false) MeetingTextFileUpsertRequest request
+    ) {
+        String fileUrl = request == null ? null : request.fileUrl();
+        MeetingSttFileResponse response = meetingSttService.upsertSttFileInternal(meetingId, fileUrl);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
+    }
+
+    @PostMapping("/{meetingId}/summary/file")
+    @Operation(summary = "Summary 파일 정보 저장 (내부용)", description = "AI 서버에서 생성한 summary 파일 경로를 저장")
+    public ResponseEntity<ApiResponse<MeetingSttSummaryResponse>> upsertSummaryFile(
+            @PathVariable Long meetingId,
+            @RequestBody(required = false) MeetingTextFileUpsertRequest request
+    ) {
+        String fileUrl = request == null ? null : request.fileUrl();
+        MeetingSttSummaryResponse response = meetingSttService.upsertSummaryFileInternal(meetingId, fileUrl);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
+    }
+
+    @PostMapping("/{meetingId}/ai-result")
+    @Operation(summary = "AI 처리 결과 저장 (내부용)", description = "AI 서버에서 STT/요약 처리 후 결과 텍스트를 직접 저장")
+    public ResponseEntity<ApiResponse<MeetingSttSummaryResponse>> saveAiResult(
+            @PathVariable Long meetingId,
+            @RequestBody java.util.Map<String, String> request
+    ) {
+        String sttText = request.get("sttText");
+        String summaryText = request.get("summaryText");
+        MeetingSttSummaryResponse response = meetingSttService.saveAiResultDirect(meetingId, sttText, summaryText);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
     }
 }

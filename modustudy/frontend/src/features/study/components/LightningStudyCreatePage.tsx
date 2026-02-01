@@ -8,6 +8,8 @@ import { Select } from '@/shared/components/Select';
 import { cn } from '@/shared/utils/cn';
 import { DatePicker } from './DatePicker';
 import { TimePicker } from './TimePicker';
+import { getTopics, getFormats, createStudy, type TopicParent, type FormatItem, type StudyCreatePayload } from '@/api/endpoints/studyApi';
+import { useUIStore } from '@/store/uiStore';
 
 // 시/도 데이터
 const CITIES = ['서울특별시', '부산광역시', '대구광역시', '인천광역시', '광주광역시', '대전광역시', '울산광역시', '세종특별자치시', '경기도', '강원도', '충청북도', '충청남도', '전라북도', '전라남도', '경상북도', '경상남도', '제주특별자치도'];
@@ -69,10 +71,17 @@ const styles = {
 
 const LightningStudyCreatePage: React.FC = () => {
     const navigate = useNavigate();
+    const { showToast } = useUIStore();
 
     // 오늘 날짜 계산
     const today = new Date();
     const formattedToday = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+    // 주제 및 형식 목록 상태
+    const [topics, setTopics] = useState<TopicParent[]>([]);
+    const [formats, setFormats] = useState<FormatItem[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const [formData, setFormData] = useState({
         // 기본 정보
@@ -122,6 +131,27 @@ const LightningStudyCreatePage: React.FC = () => {
             });
         }
     };
+
+    // 주제 및 형식 목록 불러오기
+    useEffect(() => {
+        const fetchData = async () => {
+            setIsLoading(true);
+            try {
+                const [topicsData, formatsData] = await Promise.all([
+                    getTopics(),
+                    getFormats(),
+                ]);
+                setTopics(topicsData);
+                setFormats(formatsData);
+            } catch (error) {
+                console.error('주제/형식 목록 불러오기 실패:', error);
+                showToast('주제 및 형식 목록을 불러오는데 실패했습니다.', 'error');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchData();
+    }, []);
 
     useEffect(() => {
         const container = document.getElementById('main-content-scroll');
@@ -175,11 +205,117 @@ const LightningStudyCreatePage: React.FC = () => {
         setFormData(prev => ({ ...prev, topic, subTopic: '' }));
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        console.log('번개 스터디 생성:', { ...formData, studyType: 'LIGHTNING' });
-        // TODO: API 호출
-        navigate('/study');
+
+        // 필수 필드 검증
+        if (!formData.name.trim()) {
+            showToast('스터디 이름을 입력해주세요.', 'error');
+            return;
+        }
+        if (!formData.meetingDate) {
+            showToast('모임 날짜를 선택해주세요.', 'error');
+            return;
+        }
+
+        // 오프라인 모임 시 지역 선택 필수 (현재는 온라인만 지원)
+        if (formData.meetingType === 'OFFLINE' && !formData.city) {
+            showToast('오프라인 모임은 지역 선택이 필요합니다. 현재는 온라인 모임만 지원합니다.', 'warning');
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            // topic과 format을 ID로 매핑
+            let topicId: number | undefined;
+            let formatId: number | undefined;
+
+            // 세부 주제 ID 찾기
+            if (formData.topic && formData.subTopic) {
+                const parentTopic = topics.find(t => t.name === formData.topic);
+                if (parentTopic) {
+                    const childTopic = parentTopic.children.find(c => c.name === formData.subTopic);
+                    if (childTopic) {
+                        topicId = childTopic.id;
+                    }
+                }
+            }
+
+            // 형식 ID 찾기
+            if (formData.format) {
+                const foundFormat = formats.find(f => f.name === formData.format);
+                if (foundFormat) {
+                    formatId = foundFormat.id;
+                }
+            }
+
+            // topicId 필수 검증
+            if (!topicId) {
+                showToast('세부 주제를 선택해주세요.', 'error');
+                setIsSubmitting(false);
+                return;
+            }
+
+            // 번개 스터디는 1회성이므로 startDate = endDate = meetingDate
+            const startDate = formData.meetingDate;
+            const endDate = formData.meetingDate;
+
+            // 모집 기간 설정 (즉시 모집 시작, 모임 당일까지 모집)
+            const today = new Date();
+            const recruitStartDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+            // 모집 종료일은 모임 당일로 설정 (시작 전까지 모집)
+            const recruitEndDate = formData.meetingDate;
+
+            // 모집 상태 결정
+            const todayObj = new Date();
+            todayObj.setHours(0, 0, 0, 0);
+            const recruitStartObj = new Date(recruitStartDate);
+            let status = 'RECRUITING'; // 기본값: 모집중
+            if (recruitStartObj > todayObj) {
+                status = 'PENDING'; // 모집시작일이 미래면 대기중
+            }
+
+            const payload: StudyCreatePayload = {
+                name: formData.name,
+                intro: formData.intro || undefined,
+                description: formData.description || undefined,
+                topicId,
+                formatId,
+                studyType: 'LIGHTNING',
+                meetingType: formData.meetingType,
+                regionId: undefined, // 오프라인일 때만 설정 (번개 스터디에서는 간소화)
+                scheduleTime: formData.meetingTime || undefined,
+                maxMembers: formData.maxMembers,
+                isPublic: formData.isPublic,
+                startDate,
+                endDate,
+                totalSessions: 1, // 번개 스터디는 1회성
+                recruitStartDate,
+                recruitEndDate,
+                goal: formData.goal || undefined,
+                status,
+            };
+
+            console.log('번개 스터디 생성 payload:', payload);
+            console.log('선택된 주제:', formData.topic, '/', formData.subTopic);
+            console.log('선택된 형식:', formData.format);
+            console.log('매핑된 topicId:', topicId, '/ formatId:', formatId);
+
+            const createdStudy = await createStudy(payload);
+            console.log('번개 스터디 생성 성공:', createdStudy);
+
+            showToast('번개 스터디가 개설되었습니다!', 'success');
+            navigate('/study');
+        } catch (error: any) {
+            console.error('번개 스터디 생성 실패:', error);
+            console.error('에러 응답:', error?.response);
+            console.error('에러 데이터:', error?.response?.data);
+            const message = error?.response?.data?.error?.message || error?.response?.data?.message || '번개 스터디 개설에 실패했습니다.';
+            showToast(message, 'error');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -459,10 +595,10 @@ const LightningStudyCreatePage: React.FC = () => {
                                 <Button
                                     type="submit"
                                     size="lg"
-                                    className="flex-1 sm:flex-none sm:min-w-[200px] bg-amber-500 hover:bg-amber-600 shadow-lg shadow-amber-500/20"
+                                    disabled={isSubmitting || isLoading}
+                                    className="flex-1 sm:flex-none sm:min-w-[200px] bg-amber-500 hover:bg-amber-600 shadow-lg shadow-amber-500/20 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                                 >
-                                    <Zap size={18} className="mr-2" />
-                                    번개 스터디 개설
+                                    {isSubmitting ? '개설 중...' : '번개 스터디 개설'}
                                 </Button>
                             </div>
                         </div>

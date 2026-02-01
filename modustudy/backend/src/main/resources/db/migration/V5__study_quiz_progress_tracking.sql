@@ -75,13 +75,14 @@ SET @sql := IF(
 PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
+
 -- 1.1 study_quiz_attempt 테이블에 진행 상태 컬럼 추가
--- (컬럼이 이미 존재하는지 체크하는 로직은 생략하고, Flyway 관례따라 변경)
-ALTER TABLE `study_quiz_attempt`
-ADD COLUMN `status` ENUM('IN_PROGRESS', 'COMPLETED', 'ABANDONED') DEFAULT 'IN_PROGRESS',
-ADD COLUMN `started_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-ADD COLUMN `last_answered_at` TIMESTAMP NULL,
-ADD COLUMN `current_question_index` INT DEFAULT 0;
+-- (주석 처리: 위의 조건부 로직에서 이미 처리됨)
+-- ALTER TABLE `study_quiz_attempt`
+-- ADD COLUMN `status` ENUM('IN_PROGRESS', 'COMPLETED', 'ABANDONED') DEFAULT 'IN_PROGRESS',
+-- ADD COLUMN `started_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+-- ADD COLUMN `last_answered_at` TIMESTAMP NULL,
+-- ADD COLUMN `current_question_index` INT DEFAULT 0;
 
 -- 기존 데이터는 완료된 것으로 처리
 SET @has_completed_at := (

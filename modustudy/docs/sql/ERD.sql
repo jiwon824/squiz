@@ -205,6 +205,7 @@ CREATE TABLE `study` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
     `leader_id` BIGINT NOT NULL,
     `name` VARCHAR(100) NOT NULL,
+    `intro` VARCHAR(200),                        -- 한줄 소개
     `description` TEXT,
     `topic_id` BIGINT NOT NULL,               -- 알고리즘/CS/자격증/프로젝트 등
     `format_id` BIGINT,                       -- 문제풀이/독서/강의수강/프로젝트
@@ -245,10 +246,11 @@ CREATE TABLE `study_template` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
     `user_id` BIGINT,                            -- NULL이면 시스템 템플릿
     `name` VARCHAR(100) NOT NULL,                -- 템플릿 이름
+    `intro` VARCHAR(200),                        -- 한줄 소개
     `is_system` BOOLEAN DEFAULT FALSE,           -- 시스템 기본 템플릿 여부
     `template_type` VARCHAR(50),                 -- ALGORITHM, CS, INTERVIEW, PROJECT, CERTIFICATE, READING
-    `topic` VARCHAR(50),
-    `format` VARCHAR(50),
+    `topic_id` BIGINT,                           -- Topic 테이블 참조
+    `format_id` BIGINT,                          -- Format 테이블 참조
     `meeting_type` ENUM('ONLINE', 'OFFLINE', 'HYBRID'),
     `description` TEXT,
     `textbook` VARCHAR(500),
@@ -259,7 +261,9 @@ CREATE TABLE `study_template` (
     `penalty_policy` ENUM('STRICT', 'NORMAL', 'LENIENT', 'RATIO', 'NONE'),
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON DELETE CASCADE
+    FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`topic_id`) REFERENCES `topic`(`id`) ON DELETE SET NULL,
+    FOREIGN KEY (`format_id`) REFERENCES `format`(`id`) ON DELETE SET NULL
 );
 
 -- 스터디 모집글 댓글
@@ -416,6 +420,7 @@ CREATE TABLE `meeting` (
 	`auto_share_summary`	BOOLEAN DEFAULT FALSE,
 	`share_workspace_id`	BIGINT	NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (`study_id`) REFERENCES `study`(`id`) ON DELETE CASCADE,
     FOREIGN KEY (`session_id`) REFERENCES `study_session`(`id`),
     FOREIGN KEY (`workspace_id`) REFERENCES `workspace`(`id`)

@@ -8,6 +8,7 @@ import type {
     MeetingDetailResponse,
     MeetingTranscriptItemResponse,
     MeetingListItemResponse,
+    MeetingActionItemResponse,
 } from '@/features/meeting/types';
 import { MOCK_REPORTS } from '@/features/dashboard-v2/components/stt-report/constants';
 
@@ -37,24 +38,90 @@ const transformTranscript = (item: MeetingTranscriptItemResponse): TranscriptIte
     text: item.content,
 });
 
+/**
+ * summary 텍스트에서 섹션별 내용 파싱
+ * AI 서버에서 "📌 주요 내용:", "📝 요약:", "📋 액션 아이템:", "📚 학습 피드백:" 포맷으로 전송
+ */
+const parseSummarySections = (rawSummary: string): {
+    highlights: string[];
+    summary: string;
+    actionItemsFromSummary: string[];
+} => {
+    const result = {
+        highlights: [] as string[],
+        summary: rawSummary,
+        actionItemsFromSummary: [] as string[],
+    };
+
+    if (!rawSummary) return result;
+
+    // 📌 주요 내용 섹션 파싱
+    const highlightsMatch = rawSummary.match(/📌\s*주요\s*내용[:\s]*\n([\s\S]*?)(?=\n\n📝|\n\n📋|\n\n📚|$)/);
+    if (highlightsMatch) {
+        const highlightsSection = highlightsMatch[1];
+        result.highlights = highlightsSection
+            .split('\n')
+            .map(line => line.replace(/^[•\-\*]\s*/, '').trim())
+            .filter(line => line.length > 0);
+    }
+
+    // 📝 요약 섹션 파싱 (없으면 전체 텍스트 사용)
+    const summaryMatch = rawSummary.match(/📝\s*요약[:\s]*\n([\s\S]*?)(?=\n\n📋|\n\n📚|$)/);
+    if (summaryMatch) {
+        result.summary = summaryMatch[1].trim();
+    } else if (!highlightsMatch) {
+        // 섹션 포맷이 아닌 경우 전체를 요약으로 사용
+        result.summary = rawSummary;
+    }
+
+    // 📋 액션 아이템 섹션 파싱 (DB actionItems와 병합용)
+    const actionItemsMatch = rawSummary.match(/📋\s*액션\s*아이템[:\s]*\n([\s\S]*?)(?=\n\n📚|$)/);
+    if (actionItemsMatch) {
+        const actionSection = actionItemsMatch[1];
+        result.actionItemsFromSummary = actionSection
+            .split('\n')
+            .map(line => line.replace(/^[•\-\*]\s*/, '').trim())
+            .filter(line => line.length > 0);
+    }
+
+    return result;
+};
+
 /** 백엔드 응답 조합 → UI MeetingReport 변환 */
 const transformToMeetingReport = (
     detail: MeetingDetailResponse,
     transcripts: MeetingTranscriptItemResponse[],
     studyName: string,
-): MeetingReport => ({
-    id: detail.id,
-    studyName,
-    meetingTitle: detail.title,
-    date: detail.startedAt?.split('T')[0] ?? '',
-    duration: formatDuration(detail.durationSeconds),
-    participants: detail.participants.map(p => p.nickname),
-    summary: detail.summary?.summary ?? '',
-    keywords: detail.keywords ?? [],
-    highlights: [],
-    actionItems: detail.summary?.actionItems?.map(a => a.content) ?? [],
-    transcript: transcripts.map(transformTranscript),
-});
+    actionItemsFromDb?: MeetingActionItemResponse[],
+): MeetingReport => {
+    const rawSummary = detail.summary?.summary ?? '';
+    const parsed = parseSummarySections(rawSummary);
+
+    // 우선순위: 1) DB에서 직접 조회한 actionItems, 2) summary 응답의 actionItems, 3) summary 텍스트에서 파싱
+    const directDbItems = actionItemsFromDb?.map(a => a.content) ?? [];
+    const summaryResponseItems = detail.summary?.actionItems?.map(a => a.content) ?? [];
+    const finalActionItems = directDbItems.length > 0
+        ? directDbItems
+        : (summaryResponseItems.length > 0 ? summaryResponseItems : parsed.actionItemsFromSummary);
+
+    // 우선순위: 1) API 응답의 highlights, 2) summary 텍스트에서 파싱
+    const apiHighlights = detail.summary?.highlights ?? [];
+    const finalHighlights = apiHighlights.length > 0 ? apiHighlights : parsed.highlights;
+
+    return {
+        id: detail.id,
+        studyName,
+        meetingTitle: detail.title,
+        date: detail.startedAt?.split('T')[0] ?? '',
+        duration: formatDuration(detail.durationSeconds),
+        participants: detail.participants.map(p => p.nickname),
+        summary: parsed.summary,
+        keywords: detail.keywords ?? [],
+        highlights: finalHighlights,
+        actionItems: finalActionItems,
+        transcript: transcripts.map(transformTranscript),
+    };
+};
 
 /** 목록 아이템 → 간략 MeetingReport 변환 (상세 조회 전) */
 const transformListItemToReport = (
@@ -178,12 +245,14 @@ export const useSttStore = create<SttState>((set, get) => ({
 
         set({ isLoading: true, error: null });
         try {
-            const [detail, transcripts] = await Promise.all([
+            // 상세, 트랜스크립트, 액션아이템 병렬 조회
+            const [detail, transcripts, actionItemsFromDb] = await Promise.all([
                 meetingApi.getMeetingDetail(studyId, meetingId),
                 meetingApi.getTranscripts(studyId, meetingId),
+                meetingApi.getActionItems(studyId, meetingId).catch(() => []),
             ]);
 
-            const report = transformToMeetingReport(detail, transcripts, studyName);
+            const report = transformToMeetingReport(detail, transcripts, studyName, actionItemsFromDb);
 
             set(state => ({
                 selectedReport: report,

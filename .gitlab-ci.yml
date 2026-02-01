@@ -198,3 +198,43 @@ deploy:
     - main
   tags:
     - docker
+
+# ===========================================
+# Deploy AI Server (SFU + AI Inference)
+# AI 서버(3.38.92.48)에 SFU 배포
+# ===========================================
+deploy-ai-server:
+  stage: deploy
+  before_script:
+    # SSH 키 권한 설정
+    - chmod 600 $AI_SERVER_KEY
+    # known_hosts 추가 (SSH 프롬프트 방지)
+    - mkdir -p ~/.ssh
+    - ssh-keyscan -H 3.38.92.48 >> ~/.ssh/known_hosts 2>/dev/null
+  script:
+    - echo "AI 서버 배포 시작..."
+    # Docker Hub 로그인
+    - echo "$DOCKER_HUB_TOKEN" | docker login -u "$DOCKER_HUB_USER" --password-stdin
+    # SFU 이미지 Pull & 재시작
+    # SFU 코드 복사 & 컨테이너 재시작
+    - ssh -i $AI_SERVER_KEY ubuntu@3.38.92.48 "
+        echo '=== SFU 배포 ===' &&
+        docker pull $SFU_IMAGE:latest &&
+        cd /home/ubuntu/ai-inference &&
+        docker compose -f docker-compose.sfu.yml up -d --force-recreate squiz-sfu &&
+        echo 'SFU 완료'
+      "
+    # AI Inference 코드 복사 & 컨테이너 재시작
+    - scp -i $AI_SERVER_KEY -r modustudy/ai-inference/inference_server.py ubuntu@3.38.92.48:/home/ubuntu/ai-inference/
+    - ssh -i $AI_SERVER_KEY ubuntu@3.38.92.48 "
+        echo '=== AI Inference 배포 ===' &&
+        docker cp /home/ubuntu/ai-inference/inference_server.py modustudy-ai-inference-gpu:/app/inference_server.py &&
+        docker restart modustudy-ai-inference-gpu &&
+        echo 'AI Inference 완료'
+      "
+    - echo "AI 서버 배포 완료!"
+  only:
+    - master
+    - main
+  tags:
+    - docker

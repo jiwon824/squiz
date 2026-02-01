@@ -38,15 +38,20 @@ public class MeetingSttSummary extends BaseEntity {
     @Column(name = "keywords")
     private String keywordsJson;
 
+    @Lob
+    @Column(name = "highlights_json")
+    private String highlightsJson;
+
     @Builder
     private MeetingSttSummary(Long meetingId, Long userId, MeetingTextTrackType trackType, String fileUrl,
-                              String actionItemsJson, String keywordsJson) {
+                              String actionItemsJson, String keywordsJson, String highlightsJson) {
         this.meetingId = meetingId;
         this.userId = userId;
         this.trackType = trackType;
         this.fileUrl = fileUrl;
         this.actionItemsJson = actionItemsJson;
         this.keywordsJson = keywordsJson;
+        this.highlightsJson = highlightsJson;
     }
 
     public void updateFileUrl(String fileUrl) {
@@ -59,5 +64,9 @@ public class MeetingSttSummary extends BaseEntity {
 
     public void updateKeywordsJson(String keywordsJson) {
         this.keywordsJson = keywordsJson;
+    }
+
+    public void updateHighlightsJson(String highlightsJson) {
+        this.highlightsJson = highlightsJson;
     }
 }
