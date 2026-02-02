@@ -495,7 +495,7 @@ const StudyDetailPageV3: React.FC = () => {
                                             {statusConfig.text}
                                         </span>
                                         {isClosed && (
-                                            <span className="px-3 py-1 rounded-full text-xs font-bold bg-gray-500 text-white">
+                                            <span className="px-3 py-1 rounded-full text-xs font-bold bg-gray-400 text-white">
                                                 마감
                                             </span>
                                         )}

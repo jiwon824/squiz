@@ -125,7 +125,7 @@ const StudyCardContentV2: React.FC<StudyCardContentV2Props> = ({ study, variant 
                             </span>
                         )}
                         {isClosed && (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-500 text-white">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-400 text-white">
                                 마감
                             </span>
                         )}
@@ -231,7 +231,7 @@ const StudyCardContentV2: React.FC<StudyCardContentV2Props> = ({ study, variant 
                         </span>
                     )}
                     {isClosed && (
-                        <span className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-gray-500 text-white">
+                        <span className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-gray-400 text-white">
                             마감
                         </span>
                     )}
