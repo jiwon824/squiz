@@ -7,6 +7,7 @@ export interface SfuConsumerPayload {
     stream: MediaStream;
     kind: 'audio' | 'video';
     peerId?: string;
+    displayName?: string;
 }
 
 interface SfuCallbacks {
@@ -52,11 +53,11 @@ export const createSfuClient = (baseUrl: string) => {
         roomId = targetRoomId;
         socket = io(baseUrl, { transports: ['websocket'] });
 
-        socket.on('newProducer', async ({ producerId, producerPeerId, kind }) => {
+        socket.on('newProducer', async ({ producerId, producerPeerId, kind, displayName }) => {
             console.log('[sfu] newProducer event', { producerId, producerPeerId, kind });
             const consumerData = await consume(producerId);
             if (consumerData && onNewConsumer) {
-                onNewConsumer({ ...consumerData, peerId: producerPeerId, kind });
+                onNewConsumer({ ...consumerData, peerId: producerPeerId, kind, displayName });
             }
         });
 
@@ -85,13 +86,13 @@ export const createSfuClient = (baseUrl: string) => {
 
         console.log('[sfu] existingProducers', joinData.existingProducers);
         if (joinData.existingProducers) {
-            const producers = joinData.existingProducers as Array<{ producerId: string; peerId: string; kind: string }>;
+            const producers = joinData.existingProducers as Array<{ producerId: string; peerId: string; kind: string; displayName?: string }>;
             // 기존 producer를 병렬로 consume하여 초기 로딩 시간 단축
             const results = await Promise.allSettled(
                 producers.map(async (info) => {
                     const consumerData = await consume(info.producerId);
                     if (consumerData && onNewConsumer) {
-                        onNewConsumer({ ...consumerData, peerId: info.peerId, kind: info.kind as 'audio' | 'video' });
+                        onNewConsumer({ ...consumerData, peerId: info.peerId, kind: info.kind as 'audio' | 'video', displayName: info.displayName });
                     }
                 })
             );

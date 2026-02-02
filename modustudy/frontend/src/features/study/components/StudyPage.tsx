@@ -8,6 +8,7 @@ import { Study, SortOption } from '../services/studyService';
 import { getStudyList, getLeaderInfo, getProvinces, getDistricts, StudyListItem, LeaderInfoResponse, type RegionItem, studyApi } from '@/api/endpoints/studyApi';
 import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { Button } from '@/shared/components';
+import { Select } from '@/shared/components/Select';
 import { cn } from '@/shared/utils/cn';
 
 // 반짝이는 shimmer 효과 CSS
@@ -426,20 +427,17 @@ const StudyPageV2: React.FC = () => {
                                 </div>
 
                                 {/* 정렬 */}
-                                <select
+                                <Select
                                     value={currentSortValue}
-                                    onChange={(e) => handleSortChange(e.target.value)}
-                                    className="h-11 px-3 pr-8 bg-[var(--color-background)] rounded-xl text-xs font-semibold text-[var(--color-text-primary)] focus:outline-none cursor-pointer appearance-none"
-                                    style={{
-                                        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235F6368' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
-                                        backgroundRepeat: 'no-repeat',
-                                        backgroundPosition: 'right 10px center'
-                                    }}
-                                >
-                                    <option value="latest">최신순</option>
-                                    <option value="popular">인기순</option>
-                                    <option value="deadline">마감임박순</option>
-                                </select>
+                                    onChange={(value) => handleSortChange(value)}
+                                    options={[
+                                        { value: 'latest', label: '최신순' },
+                                        { value: 'popular', label: '인기순' },
+                                        { value: 'deadline', label: '마감임박순' },
+                                    ]}
+                                    className="w-auto mb-0"
+                                    buttonClassName="h-11 px-3 py-2 text-xs font-semibold rounded-xl bg-[var(--color-background)]"
+                                />
 
                                 {/* 뷰 모드 전환 */}
                                 <div className="flex items-center h-11 bg-[var(--color-background)] rounded-xl px-1">
