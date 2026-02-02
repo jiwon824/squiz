@@ -1,7 +1,7 @@
 ﻿import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ChevronLeft } from 'lucide-react';
 import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
+import { PageNavHeader } from '@/shared/components/layouts/PageNavHeader';
 import { useAuthStore } from '@/store/authStore';
 import MeetingStartModal from './MeetingStartModal';
 import { meetingApi } from '../services/meetingApi';
@@ -96,19 +96,14 @@ const MeetingHistoryPage: React.FC = () => {
         <UserLayoutV2 isEnteringFromWorkspace={isEnteringFromWorkspace} isExitingToWorkspace={isExiting}>
             <div className="meeting-history">
                 <div className="meeting-history__header">
-                    <div className="meeting-history__header-left">
-                        <button
-                            className="meeting-history__back-btn"
-                            onClick={handleNavigateToWorkspace}
-                            title="워크스페이스로 돌아가기"
-                        >
-                            <ChevronLeft size={24} />
-                        </button>
-                        <div>
-                            <h1>미팅 기록</h1>
-                            <p className="meeting-history__subtitle">날짜별로 미팅을 확인해보세요.</p>
-                        </div>
-                    </div>
+                    <PageNavHeader
+                        title="회의 목록"
+                        breadcrumbs={[
+                            { label: '스터디', path: `/study/${numericStudyId}` },
+                            { label: '회의 목록' },
+                        ]}
+                        onBack={handleNavigateToWorkspace}
+                    />
                 </div>
 
                 <div className="meeting-history__filters">

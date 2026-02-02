@@ -10,8 +10,7 @@
  * =============================================================================
  */
 
-import { ArrowLeft, BookOpen } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { BookOpen } from 'lucide-react';
 import type { CourseCategory } from '../types/QuizCourse.types';
 import { CATEGORY_CONFIG } from '../types/QuizCourse.types';
 
@@ -34,44 +33,10 @@ export const CourseDetailHeader = ({
     description,
     category,
 }: CourseDetailHeaderProps) => {
-    const navigate = useNavigate();
     const categoryConfig = CATEGORY_CONFIG[category];
 
     return (
         <div style={{ marginBottom: 'var(--spacing-xl)' }}>
-            {/* 뒤로 가기 버튼 */}
-            <div className="mb-4">
-                <button
-                    onClick={() => navigate('/quiz-practice')}
-                    style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        padding: '0.5rem 1rem',
-                        borderRadius: 'var(--radius-md)',
-                        color: 'var(--color-text-secondary)',
-                        fontWeight: '600',
-                        transition: 'all 0.2s',
-                        background: 'transparent',
-                        border: 'none',
-                        cursor: 'pointer',
-                    }}
-                    onMouseEnter={(e) => {
-                        e.currentTarget.style.background = 'var(--color-background-secondary)';
-                        e.currentTarget.style.color = 'var(--color-text-primary)';
-                        e.currentTarget.style.transform = 'translateX(-2px)';
-                    }}
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.background = 'transparent';
-                        e.currentTarget.style.color = 'var(--color-text-secondary)';
-                        e.currentTarget.style.transform = 'translateX(0)';
-                    }}
-                >
-                    <ArrowLeft size={20} />
-                    <span>코스 목록으로 돌아가기</span>
-                </button>
-            </div>
-
             {/* 헤더 카드 */}
             <div
                 style={{

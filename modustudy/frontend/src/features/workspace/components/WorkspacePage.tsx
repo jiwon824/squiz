@@ -1,6 +1,7 @@
 ﻿import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { cn } from '@/shared/utils/cn';
+import { Breadcrumb } from '@/shared/components/layouts/Breadcrumb';
 import { WorkspaceHeader } from './WorkspaceHeader';
 import { WorkspaceSidebar } from './WorkspaceSidebar';
 import { ChatArea } from './ChatArea';
@@ -822,6 +823,14 @@ export const WorkspacePage: React.FC = () => {
     )}>
       {/* 메인 콘텐츠 영역 */}
       <div className="workspace-content">
+        {/* 브레드크럼 */}
+        <Breadcrumb
+          items={[
+            { label: '스터디', path: `/study/${studyId}` },
+            { label: '워크스페이스' },
+          ]}
+          className="px-4 pt-2"
+        />
         {/* 상단 헤더 */}
         <WorkspaceHeader
           studyName={studyName}

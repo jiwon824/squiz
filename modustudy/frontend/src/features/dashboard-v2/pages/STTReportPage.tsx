@@ -19,12 +19,14 @@ import {
     AArrowDown,
     Type,
     BookOpen,
+    ClipboardCheck,
 } from 'lucide-react';
 import { cn, conditionalClasses } from '@/shared/utils/cn';
 import { Dropdown } from '@/shared/components';
 import { PageNavHeader } from '@/shared/components/layouts';
 import {
     SummaryView,
+    QuizView,
     TranscriptView,
     ActionItemsView,
     StatsView,
@@ -43,6 +45,7 @@ interface StudyOption {
 // 탭 정의
 const TABS = [
     { id: 'summary' as TabType, label: '요약', icon: FileText },
+    { id: 'quiz' as TabType, label: '테스트', icon: ClipboardCheck },
     { id: 'transcript' as TabType, label: '전체 기록', icon: MessageSquare },
     { id: 'action' as TabType, label: '액션 아이템', icon: ListChecks },
     { id: 'stats' as TabType, label: '통계', icon: BarChart3 },
@@ -209,14 +212,14 @@ export const STTReportPage: React.FC = () => {
 
                 {/* 좌측 사이드바 + 우측 콘텐츠 */}
                 <div className={cn(
-                    'bg-surface rounded-2xl shadow-md',
-                    'border border-border overflow-hidden'
+                    'bg-surface rounded-2xl shadow-[0_4px_15px_rgba(0,0,0,0.05)]',
+                    'overflow-hidden'
                 )}>
                     <div className="flex">
                         {/* 좌측: 미팅 리스트 + 탭 */}
                         <div className={cn(
-                            'w-80 flex-shrink-0 relative flex flex-col',
-                            'bg-background/70'
+                            'w-80 flex-shrink-0 flex flex-col',
+                            'bg-background/70 border-r border-border'
                         )}>
                             {/* 스터디 선택 드롭다운 */}
                             <div className="p-4 border-b border-border" ref={studyDropdownRef}>
@@ -322,8 +325,8 @@ export const STTReportPage: React.FC = () => {
                                                     'w-full p-4 text-left transition-all border-b border-border',
                                                     conditionalClasses.state(
                                                         isSelected,
-                                                        'bg-surface border-l-4 border-l-primary -mr-px z-10',
-                                                        'hover:bg-surface-hover'
+                                                        'bg-white border-l-4 border-l-primary',
+                                                        'hover:bg-gray-100'
                                                     )
                                                 )}
                                             >
@@ -355,8 +358,8 @@ export const STTReportPage: React.FC = () => {
                                                 'w-full flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors relative',
                                                 conditionalClasses.state(
                                                     isActive,
-                                                    'text-primary bg-surface -mr-px z-10',
-                                                    'text-text-secondary hover:text-text-primary hover:bg-surface-hover border-b border-border'
+                                                    'text-primary bg-white',
+                                                    'text-text-secondary hover:text-text-primary hover:bg-gray-100 border-b border-border'
                                                 )
                                             )}
                                         >
@@ -373,8 +376,6 @@ export const STTReportPage: React.FC = () => {
                                 })}
                             </div>
 
-                            {/* 우측 border line */}
-                            <div className="absolute top-0 right-0 bottom-0 w-px bg-border" />
                         </div>
 
                         {/* 우측 콘텐츠 영역 */}
@@ -477,6 +478,15 @@ export const STTReportPage: React.FC = () => {
                                                         report={selectedReport}
                                                         onSummaryChange={handleSummaryChange}
                                                         onTabChange={setActiveTab}
+                                                    />
+                                                </motion.div>
+                                            )}
+
+                                            {activeTab === 'quiz' && selectedStudyId && (
+                                                <motion.div key="quiz" {...TAB_ANIMATION}>
+                                                    <QuizView
+                                                        studyId={selectedStudyId}
+                                                        meetingId={selectedReport.id}
                                                     />
                                                 </motion.div>
                                             )}

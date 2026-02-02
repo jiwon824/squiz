@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ChevronLeft, Zap, MapPin, Users, Calendar, Loader2 } from 'lucide-react';
+import { Zap, MapPin, Users, Calendar, Loader2 } from 'lucide-react';
+import { PageNavHeader } from '@/shared/components/layouts/PageNavHeader';
 import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { Button } from '@/shared/components/Button';
 import { Input } from '@/shared/components/Input';
@@ -425,21 +426,14 @@ const LightningStudyEditPage: React.FC = () => {
         <UserLayoutV2>
             <div className="max-w-6xl mx-auto px-4 py-8">
                 {/* 헤더 */}
-                <div className="mb-8">
-                    <div className="flex items-center gap-3">
-                        <button
-                            onClick={() => navigate(`/study/manage/${studyId}`)}
-                            className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
-                        >
-                            <ChevronLeft size={24} />
-                        </button>
-                        <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
-                            <Zap size={22} className="text-amber-500" />
-                        </div>
-                        <h1 className="text-2xl font-bold text-gray-800">번개 스터디 수정</h1>
-                    </div>
-                    <p className="text-gray-500 text-sm mt-0.5 ml-16">스터디 정보를 수정하세요</p>
-                </div>
+                <PageNavHeader
+                    title="번개 스터디 수정"
+                    breadcrumbs={[
+                        { label: '스터디', path: '/study' },
+                        { label: '번개 스터디 수정' },
+                    ]}
+                    onBack={() => navigate(`/study/manage/${studyId}`)}
+                />
 
                 <form onSubmit={handleSubmit}>
                     <div className="flex flex-col lg:flex-row gap-8 items-start relative">
