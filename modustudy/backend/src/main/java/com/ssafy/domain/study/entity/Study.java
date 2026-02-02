@@ -172,4 +172,33 @@ public class Study {
         this.recruitEndDate = newEndDate;
         this.extensionCount++;
     }
+
+    /**
+     * 스터디 시작 가능 여부 확인
+     * - 모집완료/시작대기 또는 확정대기 상태에서만 시작 가능
+     */
+    public boolean canStart() {
+        return this.status == Status.RECRUIT_CLOSED || this.status == Status.PENDING;
+    }
+
+    /**
+     * 모집 연장 가능 여부 확인
+     * - 모집중 또는 확정대기 상태에서만 연장 가능
+     * - 최대 1회 연장 가능
+     */
+    public boolean canExtendRecruitment() {
+        boolean validStatus = this.status == Status.RECRUITING || this.status == Status.PENDING;
+        int currentExtensionCount = this.extensionCount != null ? this.extensionCount : 0;
+        return validStatus && currentExtensionCount < 1;
+    }
+
+    /**
+     * 스터디 시작 처리
+     */
+    public void start() {
+        if (!canStart()) {
+            throw new StudyException.CannotStartStudyException();
+        }
+        this.status = Status.IN_PROGRESS;
+    }
 }

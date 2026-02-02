@@ -68,10 +68,23 @@ const StudyManagementPage: React.FC = () => {
 
     if (!study) return null;
 
+    // 스터디 정보 새로고침
+    const refreshStudyData = async () => {
+        if (!id) return;
+        try {
+            const data = await studyApi.getStudyDetail(Number(id));
+            if (data) {
+                setStudy(data as unknown as Study);
+            }
+        } catch (error) {
+            console.error('스터디 정보 새로고침 실패:', error);
+        }
+    };
+
     const renderContent = () => {
         switch (activeTab) {
             case 'dashboard':
-                return <TeamDashboard study={study} />;
+                return <TeamDashboard study={study} onStudyUpdate={refreshStudyData} />;
             case 'applicants':
                 return <ApplicantManagement studyId={study.id} />;
             case 'members':

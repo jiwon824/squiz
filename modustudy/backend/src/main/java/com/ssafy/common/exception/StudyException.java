@@ -75,7 +75,27 @@ public class StudyException {
     public static class NotRecruitingException extends BusinessException {
         public NotRecruitingException() {
             super(HttpStatus.BAD_REQUEST, "NOT_RECRUITING",
-                    "모집 중인 스터디만 기간을 연장할 수 있습니다");
+                    "모집 중 또는 확정대기 상태의 스터디만 기간을 연장할 수 있습니다");
+        }
+    }
+
+    /**
+     * 스터디 시작 불가 (400)
+     */
+    public static class CannotStartStudyException extends BusinessException {
+        public CannotStartStudyException() {
+            super(HttpStatus.BAD_REQUEST, "CANNOT_START_STUDY",
+                    "모집완료/시작대기 또는 확정대기 상태에서만 스터디를 시작할 수 있습니다");
+        }
+    }
+
+    /**
+     * 이미 워크스페이스가 존재함 (409)
+     */
+    public static class WorkspaceAlreadyExistsException extends BusinessException {
+        public WorkspaceAlreadyExistsException() {
+            super(HttpStatus.CONFLICT, "WORKSPACE_ALREADY_EXISTS",
+                    "이미 해당 스터디의 워크스페이스가 존재합니다");
         }
     }
 }
