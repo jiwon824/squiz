@@ -314,19 +314,7 @@ export const ShortAnswerQuiz: React.FC<ShortAnswerQuizProps> = ({
                         >
                             제출하기
                         </button>
-                        <button
-                            onClick={() => {
-                                onChangeAnswer(null);
-                                onSubmit();
-                            }}
-                            className={cn(
-                                'px-6 py-3 rounded-xl font-bold transition-all',
-                                'bg-gray-100 hover:bg-gray-200 text-text-secondary',
-                                'disabled:opacity-50 disabled:cursor-not-allowed'
-                            )}
-                        >
-                            잘 모르겠습니다
-                        </button>
+
                     </>
                 ) : onNext ? (
                     <button
