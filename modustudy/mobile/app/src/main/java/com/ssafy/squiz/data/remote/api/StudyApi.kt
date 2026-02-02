@@ -126,4 +126,20 @@ interface StudyApi {
     suspend fun getChildTopics(
         @Path("parentId") parentId: Long
     ): Response<List<TopicDTO>>
+
+    /**
+     * 스터디의 다음 예정 세션 조회
+     */
+    @GET("api/v1/studies/{studyId}/sessions/next")
+    suspend fun getNextSession(
+        @Path("studyId") studyId: Long
+    ): Response<StudySessionDTO>
+
+    /**
+     * 스터디의 세션 목록 조회
+     */
+    @GET("api/v1/studies/{studyId}/sessions")
+    suspend fun getStudySessions(
+        @Path("studyId") studyId: Long
+    ): Response<List<StudySessionDTO>>
 }

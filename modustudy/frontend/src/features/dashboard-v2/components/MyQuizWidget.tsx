@@ -162,10 +162,10 @@ export const MyQuizWidget: React.FC = () => {
             <WidgetContainer>
                 <WidgetHeader
                     icon={Brain}
+                    iconColor="neutral"
                     title="오늘의 복습"
                     subtitle="FSRS 알고리즘 기반"
                     maximizePath="/quiz/my-quiz"
-                    iconColor="secondary"
                 />
                 <div className="flex items-center justify-center h-64 text-text-tertiary">
                     <Loader2 className="animate-spin mr-2" size={20} />
@@ -180,7 +180,7 @@ export const MyQuizWidget: React.FC = () => {
             {/* 헤더 */}
             <WidgetHeader
                 icon={Brain}
-                iconColor="secondary"
+                iconColor="neutral"
                 title={viewMode === 'list' ? '오늘의 복습' : (selectedReviewItem?.question.category || '복습 퀴즈')}
                 subtitle={viewMode === 'list' ? `${reviewItems.length}개의 복습 대기 중` : 'AI 맞춤형 복습'}
                 showBackButton={viewMode === 'quiz'}

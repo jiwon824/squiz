@@ -29,6 +29,8 @@ interface QuestionCardProps {
     currentAnswer?: string | string[];
     /** 답안 변경 핸들러 */
     onAnswerChange: (answer: string | string[]) => void;
+    /** 제출 핸들러 (Enter 키 등) */
+    onSubmit?: () => void;
     /** 추가 CSS 클래스 */
     className?: string;
 }
@@ -272,6 +274,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
     questionNumber,
     currentAnswer,
     onAnswerChange,
+    onSubmit,
     className,
 }) => {
     // 단답형 입력 상태
@@ -311,6 +314,17 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
     const handleTextInput = (value: string) => {
         setTextInput(value);
         onAnswerChange(value);
+    };
+
+    // 엔터 키 핸들러 (IME 입력 고려)
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        // IME 조합 중일 때는 무시 (한글 입력 등)
+        if (e.nativeEvent.isComposing) return;
+        if (e.key !== 'Enter' || !onSubmit) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+        onSubmit();
     };
 
     // 선택지가 선택되었는지 확인
@@ -454,6 +468,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
                             type="text"
                             value={textInput}
                             onChange={(e) => handleTextInput(e.target.value)}
+                            onKeyDown={handleKeyDown}
                             placeholder="답을 입력하세요..."
                             className="w-full px-4 py-3 rounded-xl text-base font-medium transition-all duration-200 focus:outline-none focus:ring-2"
                             style={{

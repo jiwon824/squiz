@@ -13,6 +13,7 @@ const ICON_BG_STYLES = {
     accent: 'bg-accent/10',
     warning: 'bg-warning/10',
     error: 'bg-error/10',
+    neutral: 'bg-gray-100',
 } as const;
 
 const ICON_TEXT_STYLES = {
@@ -21,6 +22,7 @@ const ICON_TEXT_STYLES = {
     accent: 'text-accent',
     warning: 'text-warning',
     error: 'text-error',
+    neutral: 'text-gray-900',
 } as const;
 
 export type WidgetColorType = keyof typeof ICON_BG_STYLES;

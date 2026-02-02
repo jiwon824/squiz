@@ -38,6 +38,7 @@ fun MainScreen(
     onNavigateToStudyDetail: (Long) -> Unit,
     onNavigateToStudySearch: () -> Unit,
     onNavigateToNotifications: () -> Unit,
+    onNavigateToDmList: () -> Unit,
     onNavigateToStudyHome: (Long) -> Unit,
     onNavigateToQuizSolve: (Long) -> Unit,
     onNavigateToWrongNotes: () -> Unit,
@@ -83,10 +84,21 @@ fun MainScreen(
                     onStudyClick = onNavigateToStudyDetail,
                     onSearchClick = onNavigateToStudySearch,
                     onNotificationClick = onNavigateToNotifications,
+                    onDmClick = onNavigateToDmList,
                     onScheduleClick = onNavigateToScheduleList,
                     onBookmarkedClick = onNavigateToBookmarkedStudies,
                     onMyApplicationsClick = onNavigateToMyApplications,
-                    onTemplatesClick = onNavigateToStudyTemplates
+                    onTemplatesClick = onNavigateToStudyTemplates,
+                    onStartReview = {
+                        // 퀴즈 탭으로 이동
+                        navController.navigate(NavRoutes.QuizHome.route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
                 )
             }
 

@@ -26,7 +26,8 @@ export function useTimer() {
 
   // 타이머 정지 및 최종 시간 반환
   const stop = useCallback((): number => {
-    if (!isRunning || startTimeRef.current === null) {
+    // 타이머가 실행 중이지 않고, 누적 시간도 없으면(시작조차 안 함) 경고
+    if ((!isRunning && accumulatedTimeRef.current === 0) || (isRunning && startTimeRef.current === null)) {
       console.warn('[useTimer] 타이머가 시작되지 않은 상태에서 stop 호출');
       return accumulatedTimeRef.current;
     }
@@ -77,5 +78,24 @@ export function useTimer() {
     };
   }, [isRunning]);
 
-  return { elapsedTime, isRunning, start, stop, reset };
+  // 타이머 일시정지
+  const pause = useCallback(() => {
+    if (!isRunning || startTimeRef.current === null) return;
+
+    accumulatedTimeRef.current += performance.now() - startTimeRef.current;
+    startTimeRef.current = null;
+    setIsRunning(false);
+    console.log(`[useTimer] 일시정지 (누적: ${Math.round(accumulatedTimeRef.current)}ms)`);
+  }, [isRunning]);
+
+  // 타이머 재개
+  const resume = useCallback(() => {
+    if (isRunning || startTimeRef.current !== null) return;
+
+    startTimeRef.current = performance.now();
+    setIsRunning(true);
+    console.log('[useTimer] 재개');
+  }, [isRunning]);
+
+  return { elapsedTime, isRunning, start, stop, reset, pause, resume };
 }

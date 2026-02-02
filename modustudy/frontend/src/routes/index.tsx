@@ -6,6 +6,7 @@ import { Skeleton } from '../shared/components';
 import { DashboardV2, GuestDashboardV2, UserDashboardV2 } from '../features/dashboard-v2';
 import { MyQuizPage } from '../features/dashboard-v2/pages/MyQuizPage';
 import { STTReportPage } from '../features/dashboard-v2/pages/STTReportPage';
+import { MeetingTestPage } from '../features/dashboard-v2/pages/MeetingTestPage';
 import { LearningArchivePage } from '../features/dashboard-v2/pages/LearningArchivePage';
 import { MyCreatedStudiesPage } from '../features/dashboard-v2/pages/MyCreatedStudiesPage';
 import { MyApplicationsPage } from '../features/dashboard-v2/pages/MyApplicationsPage';
@@ -160,6 +161,7 @@ export const AppRouter = () => {
                 {/* 내 브랜치 추가 */}
                 <Route path="/quiz/my-quiz" element={<UserLayoutV2><MyQuizPage /></UserLayoutV2>} />
                 <Route path="/meeting-report" element={<UserLayoutV2><STTReportPage /></UserLayoutV2>} />
+                <Route path="/meeting-test" element={<UserLayoutV2><MeetingTestPage /></UserLayoutV2>} />
                 <Route path="/learning-archive" element={<UserLayoutV2><LearningArchivePage /></UserLayoutV2>} />
                 <Route path="/my-studies/created" element={<UserLayoutV2><MyCreatedStudiesPage /></UserLayoutV2>} />
                 <Route path="/my-studies/applications" element={<UserLayoutV2><MyApplicationsPage /></UserLayoutV2>} />

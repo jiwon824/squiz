@@ -24,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -164,7 +165,7 @@ class StudySessionControllerTest {
     @Test
     @DisplayName("세션 생성 성공")
     void createSession_Success() throws Exception {
-        // given - 컨트롤러가 List를 받도록 변경되어 배열로 전송
+        // given
         StudySessionCreateRequest request = StudySessionCreateRequest.builder()
                 .title("2회차: 스택과 큐")
                 .description("스택과 큐 자료구조 학습")
@@ -173,11 +174,11 @@ class StudySessionControllerTest {
                 .isOnline(true)
                 .build();
 
-        // when & then - 배열로 전송하고 첫 번째 요소 검증
+        // when & then
         mockMvc.perform(post("/api/v1/studies/{studyId}/sessions", testStudy.getId())
                         .header("User-Id", leader.getId())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(java.util.List.of(request))))
+                        .content(objectMapper.writeValueAsString(List.of(request))))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$[0].id").exists())
                 .andExpect(jsonPath("$[0].studyId").value(testStudy.getId()))
@@ -189,7 +190,7 @@ class StudySessionControllerTest {
     @Test
     @DisplayName("세션 생성 실패 - 권한 없음")
     void createSession_NotLeader() throws Exception {
-        // given - 컨트롤러가 List를 받도록 변경되어 배열로 전송
+        // given
         StudySessionCreateRequest request = StudySessionCreateRequest.builder()
                 .title("2회차: 스택과 큐")
                 .scheduledAt(LocalDateTime.of(2025, 2, 12, 19, 0))
@@ -200,7 +201,7 @@ class StudySessionControllerTest {
         mockMvc.perform(post("/api/v1/studies/{studyId}/sessions", testStudy.getId())
                         .header("User-Id", member.getId())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(java.util.List.of(request))))
+                        .content(objectMapper.writeValueAsString(List.of(request))))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.message").value(containsString("스터디장만")));
     }
@@ -208,7 +209,7 @@ class StudySessionControllerTest {
     @Test
     @DisplayName("세션 생성 실패 - 존재하지 않는 스터디")
     void createSession_StudyNotFound() throws Exception {
-        // given - 컨트롤러가 List를 받도록 변경되어 배열로 전송
+        // given
         StudySessionCreateRequest request = StudySessionCreateRequest.builder()
                 .title("새 세션")
                 .scheduledAt(LocalDateTime.of(2025, 2, 12, 19, 0))
@@ -219,7 +220,7 @@ class StudySessionControllerTest {
         mockMvc.perform(post("/api/v1/studies/{studyId}/sessions", 99999L)
                         .header("User-Id", leader.getId())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(java.util.List.of(request))))
+                        .content(objectMapper.writeValueAsString(List.of(request))))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value(containsString("존재하지 않는 스터디")));
     }

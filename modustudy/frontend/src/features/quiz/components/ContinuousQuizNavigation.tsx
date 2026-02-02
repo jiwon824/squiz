@@ -21,6 +21,8 @@ import { cn } from '@/shared/utils/cn';
 interface ContinuousQuizNavigationProps {
     /** 제출 버튼 클릭 핸들러 */
     onSubmit: () => void;
+    /** 건너뛰기 버튼 클릭 핸들러 (옵션) */
+    onSkip?: () => void;
     /** 로딩 상태 (제출 중) */
     isLoading?: boolean;
     /** 제출 버튼 비활성화 여부 (답변 미완료 시) */
@@ -34,6 +36,7 @@ interface ContinuousQuizNavigationProps {
 // -----------------------------------------------------------------------------
 export const ContinuousQuizNavigation: React.FC<ContinuousQuizNavigationProps> = ({
     onSubmit,
+    onSkip,
     isLoading = false,
     isSubmitDisabled = false,
     className,
@@ -41,10 +44,22 @@ export const ContinuousQuizNavigation: React.FC<ContinuousQuizNavigationProps> =
     return (
         <div
             className={cn(
-                'flex items-center justify-center',
+                'flex items-center justify-center gap-3',
                 className
             )}
         >
+            {onSkip && (
+                <Button
+                    variant="google-ghost"
+                    size="lg"
+                    onClick={onSkip}
+                    disabled={isLoading}
+                    className="min-w-[120px] px-6 text-text-secondary hover:bg-gray-100"
+                >
+                    건너뛰기
+                </Button>
+            )}
+
             <Button
                 variant="google-primary"
                 size="lg"

@@ -1,5 +1,6 @@
-﻿import React, { useEffect, useRef } from 'react';
-import '../styles/MeetingRoom.css';
+import React, { useEffect, useRef } from 'react';
+import { cn, conditionalClasses } from '@/shared/utils/cn';
+import { Crown, UserCircle } from 'lucide-react';
 
 interface VideoTileProps {
     stream: MediaStream | null;
@@ -8,7 +9,8 @@ interface VideoTileProps {
     isLocal?: boolean;
 }
 
-const VideoTile: React.FC<VideoTileProps> = ({ stream, label, isPresenter, isLocal }) => {
+// 비디오 타일 컴포넌트
+const VideoTile: React.FC<VideoTileProps> = ({ stream, label, isPresenter }) => {
     const videoRef = useRef<HTMLVideoElement | null>(null);
 
     useEffect(() => {
@@ -21,11 +23,38 @@ const VideoTile: React.FC<VideoTileProps> = ({ stream, label, isPresenter, isLoc
     }, [stream]);
 
     return (
-        <div className={`meeting-video-tile ${isPresenter ? 'presenter' : ''}`}>
-            <video ref={videoRef} autoPlay playsInline muted />
-            <div className="meeting-video-tile__label">
+        <div className={cn(
+            'relative rounded-2xl overflow-hidden bg-gray-900 min-h-[200px] w-full h-full',
+            isPresenter && 'ring-2 ring-amber-400 ring-offset-2 ring-offset-gray-900'
+        )}>
+            {stream ? (
+                <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="w-full h-full object-contain block"
+                />
+            ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                    <UserCircle size={64} className="text-gray-600" />
+                </div>
+            )}
+
+            {/* 하단 그라데이션 오버레이 */}
+            <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
+
+            {/* 발표자 배지 (좌상단) */}
+            {isPresenter && (
+                <div className="absolute top-3 left-3 inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500 text-white text-xs font-medium rounded-full shadow-sm">
+                    <Crown size={12} />
+                    발표자
+                </div>
+            )}
+
+            {/* 이름 라벨 (좌하단) */}
+            <div className="absolute left-3 bottom-3 inline-flex items-center gap-1.5 text-white text-sm font-medium drop-shadow-md">
                 {label}
-                {isPresenter && <span className="meeting-video-tile__badge">발표자</span>}
             </div>
         </div>
     );
@@ -58,7 +87,14 @@ const MeetingVideoStage: React.FC<MeetingVideoStageProps> = ({
 
     return (
         <div
-            className={`meeting-video-stage${hasSingleTile ? ' meeting-video-stage--single' : ''}`}
+            className={cn(
+                'grid gap-3 h-full',
+                conditionalClasses.state(
+                    hasSingleTile,
+                    'grid-cols-1',
+                    'grid-cols-[repeat(auto-fit,minmax(240px,1fr))]'
+                )
+            )}
             ref={containerRef}
         >
             {localIsPresenter && localStream && (
@@ -73,7 +109,10 @@ const MeetingVideoStage: React.FC<MeetingVideoStageProps> = ({
                 />
             )}
             {!localStream && remoteVideoStreams.length === 0 && (
-                <div className="meeting-video-empty">미디어 스트림이 없습니다.</div>
+                <div className="flex flex-col items-center justify-center gap-3 py-12 text-gray-400">
+                    <UserCircle size={48} />
+                    <span className="text-sm">미디어 스트림이 없습니다.</span>
+                </div>
             )}
         </div>
     );

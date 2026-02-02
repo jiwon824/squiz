@@ -4,10 +4,8 @@ import axios from 'axios';
 import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
-import MeetingControls from './MeetingControls';
-import MeetingParticipants from './MeetingParticipants';
-import MeetingChatPanel from './MeetingChatPanel';
-import MeetingVideoStage from './MeetingVideoStage';
+import MeetingRoomHeader from './MeetingRoomHeader';
+import MeetingRoomContent from './MeetingRoomContent';
 import { meetingApi } from '../services/meetingApi';
 import { createMeetingWebsocket } from '../services/meetingWebsocket';
 import { createSfuClient, SfuConsumerPayload } from '../services/sfuClient';
@@ -23,7 +21,6 @@ import {
     MeetingRoomParticipant,
 } from '../types';
 import '../styles/MeetingRoom.css';
-import '../styles/MeetingShared.css';
 
 type PipPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 type ShareMode = 'camera' | 'screen' | 'mixed';
@@ -2389,20 +2386,17 @@ const MeetingRoomPage: React.FC = () => {
     if (roomGuardStatus === 'blocked') {
         return (
             <UserLayoutV2>
-                <div className="meeting-room meeting-room__blocked">
-                    <div className="meeting-room__blocked-card">
-                        <h1>회의 입장이 제한되었습니다</h1>
-                        <p>{roomGuardMessage}</p>
-                        <div className="meeting-room__blocked-actions">
-                            <button
-                                className="meeting-btn primary"
-                                onClick={() => navigate(meetingListPath)}
-                            >
-                                워크페이스로
-                            </button>
-                            <button className="meeting-btn ghost" onClick={() => navigate(-1)}>
+                <div className="flex items-center justify-center h-full p-8">
+                    <div className="max-w-[520px] w-full bg-white rounded-2xl p-8 shadow-sm text-center">
+                        <h1 className="text-xl font-bold text-gray-900 mb-2">회의 입장이 제한되었습니다</h1>
+                        <p className="text-gray-500 mb-6">{roomGuardMessage}</p>
+                        <div className="flex gap-3 justify-center flex-wrap">
+                            <Button variant="primary" size="sm" onClick={() => navigate(meetingListPath)}>
+                                워크스페이스로
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
                                 이전 화면
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 </div>
@@ -2412,9 +2406,9 @@ const MeetingRoomPage: React.FC = () => {
     if (roomGuardStatus === 'checking') {
         return (
             <UserLayoutV2>
-                <div className="meeting-room meeting-room__blocked">
-                    <div className="meeting-room__blocked-card">
-                        <p>{roomGuardMessage}</p>
+                <div className="flex items-center justify-center h-full p-8">
+                    <div className="max-w-[520px] w-full bg-white rounded-2xl p-8 shadow-sm text-center">
+                        <p className="text-gray-500">{roomGuardMessage}</p>
                     </div>
                 </div>
             </UserLayoutV2>
@@ -2433,93 +2427,55 @@ const MeetingRoomPage: React.FC = () => {
                         </div>
                     </div>
                 )}
-                <div className="meeting-room__meta">
-                    <div className="meeting-room__meta-row">
-                        <div className="meeting-room__meta-left">
-                            <div className="meeting-room__meta-title">
-                                <h1>{meetingTitle || '미팅 룸'}</h1>
-                                <div className="meeting-room__meta-times">
-                                    <div className="meeting-room__meta-time-row">
-                                        <div className="meeting-room__timer">
-                                            진행 시간: {formatDuration(elapsedSeconds)}
-                                        </div>
-                                        {plannedDurationSeconds ? (
-                                            <div className="meeting-room__timer">
-                                                예정 시간: {formatPlannedDuration(plannedDurationSeconds)}
-                                            </div>
-                                        ) : null}
-                                    </div>
-                                    {timeWarning && (
-                                        <div className="meeting-room__timer meeting-room__timer--warning">
-                                            {timeWarning}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                        <div className="meeting-room__meta-right">
-                            <div className="meeting-room__status">
-                                <span>{isPresenter ? '발표자 모드' : '참가자 모드'}</span>
-                            </div>
-                            <button className="meeting-btn ghost" onClick={() => navigate(meetingListPath)}>
-                                워크페이스로
-                            </button>
-                        </div>
-                    </div>
+                <MeetingRoomHeader
+                    meetingTitle={meetingTitle}
+                    elapsedLabel={formatDuration(elapsedSeconds)}
+                    plannedLabel={plannedDurationSeconds ? formatPlannedDuration(plannedDurationSeconds) : null}
+                    timeWarning={timeWarning}
+                    isPresenter={isPresenter}
+                    onGoList={() => navigate(meetingListPath)}
+                    micEnabled={micEnabled}
+                    micDisabled={false}
+                    shareMode={shareMode}
+                    onToggleMic={handleToggleMic}
+                    onShareModeChange={handleShareModeChange}
+                    onTogglePresenter={handleTogglePresenter}
+                    onEndMeeting={handleEndMeeting}
+                    canEndMeeting={canEndMeeting}
+                    captureDisabled={isCapturing}
+                    onCapture={handleCapture}
+                    canExtendMeeting={canEndMeeting}
+                    extendDisabled={
+                        plannedDurationSeconds !== null
+                            ? plannedDurationSeconds >= MAX_PLANNED_DURATION_SECONDS
+                            : true
+                    }
+                    onExtendMeeting={handleExtendMeeting}
+                    elapsedSeconds={elapsedSeconds}
+                    plannedDurationSeconds={plannedDurationSeconds}
+                />
 
-                    <MeetingControls
-                        isPresenter={isPresenter}
-                        micEnabled={micEnabled}
-                        micDisabled={false}
-                        shareMode={shareMode}
-                        onToggleMic={handleToggleMic}
-                        onShareModeChange={handleShareModeChange}
-                        onTogglePresenter={handleTogglePresenter}
-                        onEndMeeting={handleEndMeeting}
-                        canEndMeeting={canEndMeeting}
-                        captureDisabled={isCapturing}
-                        onCapture={handleCapture}
-                        canExtendMeeting={canEndMeeting}
-                        extendDisabled={
-                            plannedDurationSeconds !== null
-                                ? plannedDurationSeconds >= MAX_PLANNED_DURATION_SECONDS
-                                : true
-                        }
-                        onExtendMeeting={handleExtendMeeting}
-                    />
-                </div>
-
-                <div className="meeting-room__content">
-                    <div className="meeting-room__stage">
-                        <MeetingVideoStage
-                            localStream={localStream}
-                            localLabel={displayNameRef.current}
-                            localIsPresenter={isPresenter}
-                            containerRef={videoStageRef}
-                            remoteVideoStreams={remoteVideoStreams.map((item) => ({
-                                id: item.id,
-                                stream: item.stream,
-                                label: presenterName ? presenterLabel : item.label,
-                                isPresenter: Boolean(presenterName),
-                            }))}
-                        />
-                        <video ref={aiVideoRef} className="meeting-room__hidden-video" muted playsInline />
-                    </div>
-                    <div className="meeting-room__side">
-                        <MeetingParticipants
-                            participants={participants}
-                            presenterId={presenterId}
-                            presenterName={presenterName}
-                        />
-                        <MeetingChatPanel
-                            messages={chatMessages}
-                            onSend={handleSendChat}
-                            onDelete={handleDeleteChat}
-                            currentUserId={user?.id ?? null}
-                            currentSender={displayNameRef.current}
-                        />
-                    </div>
-                </div>
+                <MeetingRoomContent
+                    localStream={localStream}
+                    localLabel={displayNameRef.current}
+                    localIsPresenter={isPresenter}
+                    remoteVideoStreams={remoteVideoStreams.map((item) => ({
+                        id: item.id,
+                        stream: item.stream,
+                        label: presenterName ? presenterLabel : item.label,
+                        isPresenter: Boolean(presenterName),
+                    }))}
+                    videoStageRef={videoStageRef}
+                    aiVideoRef={aiVideoRef}
+                    participants={participants}
+                    presenterId={presenterId}
+                    presenterName={presenterName}
+                    chatMessages={chatMessages}
+                    onSendChat={handleSendChat}
+                    onDeleteChat={handleDeleteChat}
+                    currentUserId={user?.id ?? null}
+                    currentSender={displayNameRef.current}
+                />
             </div>
             <Modal
                 isOpen={isExtendConfirmOpen}
