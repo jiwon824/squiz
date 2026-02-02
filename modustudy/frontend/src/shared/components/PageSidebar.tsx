@@ -30,7 +30,7 @@ export const PageSidebar: React.FC<PageSidebarProps> = ({
     className,
 }) => {
     return (
-        <aside className={cn('w-56 flex-shrink-0', className)}>
+        <aside className={cn('w-72 flex-shrink-0', className)}>
             <nav className="bg-white rounded-[24px] p-6 shadow-[0_4px_15px_rgba(0,0,0,0.05)] sticky top-6 transition-all hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)]">
                 {title && (
                     <h2 className="text-lg font-extrabold text-text-primary mb-4 pl-2">
