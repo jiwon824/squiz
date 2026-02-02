@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useCalendarStore } from '../services/calendarStore';
 import { useUIStore } from '@/store/uiStore';
-import { formatDate } from '../utils';
 
 /**
  * Google Calendar 연동 훅
@@ -27,38 +26,19 @@ export const useGoogleCalendar = () => {
         checkGoogleStatus();
     }, []);
 
-    // Google 연동 시작
+    // Google 연동 시작 (리다이렉트 방식)
     const handleConnect = async () => {
         setConnecting(true);
         try {
             const authUrl = await connectGoogle();
 
-            // 새 창으로 OAuth 페이지 열기
-            const width = 600;
-            const height = 700;
-            const left = window.screen.width / 2 - width / 2;
-            const top = window.screen.height / 2 - height / 2;
+            // OAuth 시작 전 현재 경로 저장 (콜백 후 복귀용)
+            sessionStorage.setItem('oauth_redirect_path', '/calendar');
 
-            const popup = window.open(
-                authUrl,
-                'Google Calendar 연동',
-                `width=${width},height=${height},left=${left},top=${top}`
-            );
-
-            // 팝업 닫힘 감지 (OAuth 완료 후)
-            const checkPopup = setInterval(() => {
-                if (popup?.closed) {
-                    clearInterval(checkPopup);
-                    // 상태 재확인
-                    setTimeout(() => {
-                        checkGoogleStatus();
-                    }, 1000);
-                }
-            }, 500);
-
+            // Google OAuth 페이지로 리다이렉트
+            window.location.href = authUrl;
         } catch (error: any) {
             showToast(error.message || 'Google 연동에 실패했습니다.', 'error');
-        } finally {
             setConnecting(false);
         }
     };
@@ -80,16 +60,11 @@ export const useGoogleCalendar = () => {
         }
     };
 
-    // Google 동기화
-    const handleSync = async (currentDate: Date) => {
+    // Google 동기화 트리거
+    const handleSync = async () => {
         setSyncing(true);
         try {
-            const year = currentDate.getFullYear();
-            const month = currentDate.getMonth();
-            const startDate = formatDate(new Date(year, month, 1));
-            const endDate = formatDate(new Date(year, month + 1, 0));
-
-            await syncGoogle(startDate, endDate);
+            await syncGoogle();
             showToast('Google Calendar 동기화가 완료되었습니다.', 'success');
         } catch (error: any) {
             showToast(error.message || '동기화에 실패했습니다.', 'error');
