@@ -49,10 +49,10 @@ export const RecruitmentReportModal: React.FC<RecruitmentReportModalProps> = ({ 
 
                 <div className="flex justify-between items-center mb-6">
                     <div className="flex items-center gap-3">
-                        <div className="p-2 bg-error/10 text-error rounded-xl">
+                        <div className="flex-shrink-0 p-2 bg-error/10 text-error rounded-xl">
                             <AlertTriangle size={20} />
                         </div>
-                        <h3 className="text-xl font-bold text-text-primary tracking-tight">게시글 신고</h3>
+                        <h3 className="text-xl font-bold text-text-primary tracking-tight leading-tight">게시글 신고</h3>
                     </div>
                     <Button
                         variant="google-ghost"
