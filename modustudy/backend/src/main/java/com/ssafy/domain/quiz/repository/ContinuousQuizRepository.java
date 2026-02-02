@@ -1,6 +1,7 @@
 package com.ssafy.domain.quiz.repository;
 
 import com.ssafy.domain.quiz.entity.QuizCourseQuestion;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -64,10 +65,16 @@ public interface ContinuousQuizRepository extends JpaRepository<QuizCourseQuesti
         /**
          * 특정 섹션에서 가중치 기반 랜덤으로 여러 문제를 선택한다.
          *
+         * <p>
+         * Pageable을 통해 LIMIT을 처리한다.
+         * LIMIT :param은 MySQL 5.x / 특정 JDBC 드라이버에서 MySQLSyntaxErrorException을 유발할 수 있으므로
+         * Spring이 Pageable로 LIMIT 절을 주입하도록 위임한다.
+         * </p>
+         *
          * @param courseId      코스 ID
          * @param sectionNumber 섹션 번호
          * @param userId        사용자 ID
-         * @param limit         선택할 문제 수
+         * @param pageable      페이지 정보 (PageRequest.of(0, limit)로 호출)
          * @return 선택된 문제 목록
          */
         @Query(value = """
@@ -80,13 +87,12 @@ public interface ContinuousQuizRepository extends JpaRepository<QuizCourseQuesti
                         WHERE q.quiz_course_id = :courseId
                           AND q.section_number = :sectionNumber
                         ORDER BY -LN(1 - RAND()) / (1.0 / (COALESCE(uri.reps, 0) + 1))
-                        LIMIT :limit
                         """, nativeQuery = true)
         List<QuizCourseQuestion> findQuestionsWeightedRandom(
                         @Param("courseId") Long courseId,
                         @Param("sectionNumber") Integer sectionNumber,
                         @Param("userId") Long userId,
-                        @Param("limit") int limit);
+                        Pageable pageable);
 
         /**
          * 특정 코스 전체에서 가중치 기반 랜덤으로 다음 문제를 선택한다.
@@ -238,40 +244,43 @@ public interface ContinuousQuizRepository extends JpaRepository<QuizCourseQuesti
          * @return 선택된 문제 (Optional - 섹션에 문제가 아예 없는 경우에만 empty)
          */
         @Query(value = """
-                        (
-                            -- [1단계] 안 푼 문제 우선 조회: 학습 기록(user_review_items)이 없는 문제 중 랜덤 추출
-                            SELECT q.* FROM quiz_course_question q
-                            WHERE q.quiz_course_id = :courseId
-                              AND q.section_number = :sectionNumber
-                              AND NOT EXISTS (
-                                  SELECT 1 FROM user_review_items uri
-                                  WHERE uri.content_id = q.id
-                                    AND uri.user_id = :userId
-                                    AND uri.content_type = 'COURSE_QUESTION'
-                              )
-                            ORDER BY RAND()
-                            LIMIT 1
-                        )
-                        UNION ALL
-                        (
-                            -- [2단계] 복습 문제 조회: 모든 문제를 푼 경우, 가중치(복습 시점, 반복 횟수)에 따라 추출
-                            SELECT q.* FROM quiz_course_question q
-                            JOIN user_review_items uri ON uri.content_id = q.id
-                            WHERE q.quiz_course_id = :courseId
-                              AND q.section_number = :sectionNumber
-                              AND uri.user_id = :userId
-                              AND uri.content_type = 'COURSE_QUESTION'
-                            ORDER BY -LN(1 - RAND()) / (
-                                CASE
-                                    -- 복습 예정 시점이 지났으면 높은 가중치(5.0) 부여
-                                    WHEN uri.next_review_at <= NOW() THEN 5.0
-                                    -- 그 외에는 학습 횟수가 적을수록 높은 확률 부여
-                                    ELSE 1.0 / (uri.reps + 1)
-                                END
+                        SELECT combined.* FROM (
+                            (
+                                -- [1단계] 안 푼 문제 우선 조회: 학습 기록(user_review_items)이 없는 문제 중 랜덤 추출
+                                SELECT q.*, 1 AS priority FROM quiz_course_question q
+                                WHERE q.quiz_course_id = :courseId
+                                  AND q.section_number = :sectionNumber
+                                  AND NOT EXISTS (
+                                      SELECT 1 FROM user_review_items uri
+                                      WHERE uri.content_id = q.id
+                                        AND uri.user_id = :userId
+                                        AND uri.content_type = 'COURSE_QUESTION'
+                                  )
+                                ORDER BY RAND()
+                                LIMIT 1
                             )
-                            LIMIT 1
-                        )
+                            UNION ALL
+                            (
+                                -- [2단계] 복습 문제 조회: 모든 문제를 푼 경우, 가중치(복습 시점, 반복 횟수)에 따라 추출
+                                SELECT q.*, 2 AS priority FROM quiz_course_question q
+                                JOIN user_review_items uri ON uri.content_id = q.id
+                                WHERE q.quiz_course_id = :courseId
+                                  AND q.section_number = :sectionNumber
+                                  AND uri.user_id = :userId
+                                  AND uri.content_type = 'COURSE_QUESTION'
+                                ORDER BY -LN(1 - RAND()) / (
+                                    CASE
+                                        -- 복습 예정 시점이 지났으면 높은 가중치(5.0) 부여
+                                        WHEN uri.next_review_at <= NOW() THEN 5.0
+                                        -- 그 외에는 학습 횟수가 적을수록 높은 확률 부여
+                                        ELSE 1.0 / (uri.reps + 1)
+                                    END
+                                )
+                                LIMIT 1
+                            )
+                        ) AS combined
                         -- 전체 결과 중 최상위 1개만 선택 (1단계 결과가 있으면 2단계는 무시됨)
+                        ORDER BY combined.priority
                         LIMIT 1
                         """, nativeQuery = true)
         Optional<QuizCourseQuestion> findNextQuestionProbabilisticNoExclude(
