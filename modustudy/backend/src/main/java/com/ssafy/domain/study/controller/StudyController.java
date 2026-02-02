@@ -272,6 +272,26 @@ public class StudyController {
     }
 
     /**
+     * 스터디 시작하기
+     * POST /api/v1/study/{studyId}/start
+     * - 모집완료/시작대기 또는 확정대기 상태에서 스터디장이 호출
+     * - 워크스페이스 생성 및 상태를 진행중으로 변경
+     */
+    @PostMapping("/{studyId}/start")
+    public ResponseEntity<StudyResponse> startStudy(
+            @PathVariable Long studyId,
+            @RequestHeader("User-Id") Long userId) {
+
+        log.info("API 호출 - 스터디 시작: studyId={}, userId={}", studyId, userId);
+
+        StudyResponse response = studyService.startStudy(studyId, userId);
+
+        log.info("API 응답 - 스터디 시작 완료: studyId={}, status={}", studyId, response.getStatus());
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
      * 사용자 맞춤 스터디 참여 추천 (규칙 기반)
      * GET /api/v1/study/recommend?limit=10
      * 기술스택 + 일정 + 토픽 계층(연관 기술) + 스터디장 평점 기반 매칭

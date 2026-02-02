@@ -9,7 +9,8 @@ import { useUIStore, SidebarMode } from '@/store/uiStore';
 import { useAuthStore } from '@/store/authStore';
 import { useNotificationStore } from '@/features/notification/store/notificationStore';
 import { SquizLogoNew } from '@/shared/components/SquizLogoNew';
-import { Bell, User, Settings, LogOut } from 'lucide-react';
+import { Bell, User, Settings, LogOut, Check, X, Loader2 } from 'lucide-react';
+import { studyApi } from '@/api/endpoints/studyApi';
 import { cn } from '@/shared/utils/cn';
 
 // 기본 프로필 이미지 경로
@@ -34,12 +35,14 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEntering
     const activeRightTab = useUIStore((state) => state.activeRightTab);
     const setSidebarMode = useUIStore((state) => state.setSidebarMode);
     const setActiveRightTab = useUIStore((state) => state.setActiveRightTab);
+    const showToast = useUIStore((state) => state.showToast);
     const { user, logout, isLoggedIn } = useAuthStore();
     const { notifications, unreadCount, fetchNotifications, fetchUnreadCount, markNotificationAsRead } = useNotificationStore();
     const [windowWidth, setWindowWidth] = useState(window.innerWidth);
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isDashboardExiting, setIsDashboardExiting] = useState(false);
+    const [leavingStudyId, setLeavingStudyId] = useState<number | null>(null);  // 탈퇴 처리 중인 스터디 ID
     const notificationRef = useRef<HTMLDivElement>(null);
     const profileRef = useRef<HTMLDivElement>(null);
     const prevSidebarModeRef = useRef<SidebarMode | null>(null);
@@ -299,8 +302,20 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEntering
                                                         // 드롭다운 닫기
                                                         setIsNotificationOpen(false);
                                                         // 해당 페이지로 이동
-                                                        const { referenceType, referenceId } = notification;
+                                                        const { referenceType, referenceId, type } = notification;
                                                         if (referenceType && referenceId) {
+                                                            // 알림 타입에 따른 특수 처리
+                                                            if (type === 'STUDY_START') {
+                                                                // 스터디 시작 알림 → 워크스페이스(대시보드)로 이동
+                                                                navigate(`/study/${referenceId}/workspace`);
+                                                                return;
+                                                            }
+                                                            if (type === 'STUDY_EXTENSION') {
+                                                                // 스터디 연장 알림 → 상세 페이지로 이동 (참가/불참 모달 표시)
+                                                                navigate(`/study/${referenceId}?action=extension`);
+                                                                return;
+                                                            }
+
                                                             switch (referenceType) {
                                                                 case 'STUDY_APPLICATION':
                                                                     // 지원자 관리 탭으로 바로 이동
@@ -344,6 +359,49 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEntering
                                                                     minute: '2-digit'
                                                                 })}
                                                             </p>
+                                                            {/* 스터디 연장 알림일 경우 참가/불참 버튼 표시 */}
+                                                            {notification.type === 'STUDY_EXTENSION' && notification.referenceId && (
+                                                                <div className="flex gap-2 mt-2">
+                                                                    <button
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            // 참가 - 읽음 처리 후 드롭다운 닫기
+                                                                            markNotificationAsRead(notification.id);
+                                                                            showToast('스터디에 계속 참가합니다.', 'success');
+                                                                        }}
+                                                                        className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-green-500 hover:bg-green-600 rounded-lg transition-colors"
+                                                                    >
+                                                                        <Check size={14} />
+                                                                        참가
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={async (e) => {
+                                                                            e.stopPropagation();
+                                                                            if (leavingStudyId === notification.referenceId) return;
+                                                                            setLeavingStudyId(notification.referenceId);
+                                                                            try {
+                                                                                await studyApi.leaveStudy(notification.referenceId!);
+                                                                                markNotificationAsRead(notification.id);
+                                                                                showToast('스터디에서 탈퇴했습니다.', 'success');
+                                                                            } catch (error: any) {
+                                                                                const message = error.response?.data?.message || '스터디 탈퇴에 실패했습니다.';
+                                                                                showToast(message, 'error');
+                                                                            } finally {
+                                                                                setLeavingStudyId(null);
+                                                                            }
+                                                                        }}
+                                                                        disabled={leavingStudyId === notification.referenceId}
+                                                                        className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors disabled:opacity-50"
+                                                                    >
+                                                                        {leavingStudyId === notification.referenceId ? (
+                                                                            <Loader2 size={14} className="animate-spin" />
+                                                                        ) : (
+                                                                            <X size={14} />
+                                                                        )}
+                                                                        불참
+                                                                    </button>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 </div>
