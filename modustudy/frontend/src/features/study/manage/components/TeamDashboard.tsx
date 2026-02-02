@@ -2,12 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { Study } from '../../services/studyService';
 import {
     Users, TrendingUp, Calendar, Clock,
-    CheckCircle2, AlertCircle, Target, Award
+    CheckCircle2, AlertCircle, Target, Award,
+    Play, CalendarPlus, Loader2
 } from 'lucide-react';
 import { studyApi } from '@/api/endpoints/studyApi';
+import { useUIStore } from '@/store/uiStore';
 
 interface TeamDashboardProps {
     study: Study;
+    onStudyUpdate?: () => void;
 }
 
 interface DashboardStats {
@@ -21,7 +24,8 @@ interface DashboardStats {
     studyDays: number;
 }
 
-const TeamDashboard: React.FC<TeamDashboardProps> = ({ study }) => {
+const TeamDashboard: React.FC<TeamDashboardProps> = ({ study, onStudyUpdate }) => {
+    const { showToast } = useUIStore();
     const [stats, setStats] = useState<DashboardStats>({
         totalMembers: 0,
         maxMembers: study.maxMembers || 0,
@@ -33,6 +37,7 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ study }) => {
         studyDays: 0,
     });
     const [loading, setLoading] = useState(true);
+    const [actionLoading, setActionLoading] = useState<'start' | 'extend' | null>(null);
 
     useEffect(() => {
         fetchDashboardData();
@@ -81,6 +86,92 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ study }) => {
             setLoading(false);
         }
     };
+
+    // 스터디 시작 핸들러
+    const handleStartStudy = async () => {
+        if (actionLoading) return;
+
+        setActionLoading('start');
+        try {
+            await studyApi.startStudy(study.id);
+            showToast('스터디가 시작되었습니다!', 'success');
+            onStudyUpdate?.();
+        } catch (error: any) {
+            const message = error.response?.data?.message || error.response?.data?.error?.message || '스터디 시작에 실패했습니다.';
+            showToast(message, 'error');
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+    // 모집 연장 핸들러
+    const handleExtendRecruitment = async () => {
+        if (actionLoading) return;
+
+        // 현재 모집 종료일 + 7일 계산
+        const currentEndDate = (study as any).recruitEndDate
+            ? new Date((study as any).recruitEndDate)
+            : new Date();
+        currentEndDate.setDate(currentEndDate.getDate() + 7);
+        const newEndDate = currentEndDate.toISOString().split('T')[0]; // YYYY-MM-DD 형식
+
+        setActionLoading('extend');
+        try {
+            await studyApi.extendRecruitment(study.id, newEndDate);
+            showToast('모집 기간이 7일 연장되었습니다!', 'success');
+            onStudyUpdate?.();
+        } catch (error: any) {
+            const message = error.response?.data?.message || error.response?.data?.error?.message || '모집 연장에 실패했습니다.';
+            showToast(message, 'error');
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+    // 최소 인원 충족 여부 (스터디 시작 가능 조건)
+    const hasMinimumMembers = stats.totalMembers >= ((study as any).minMembers || 2);
+
+    // 최대 인원 충족 여부
+    const hasMaximumMembers = stats.totalMembers >= stats.maxMembers;
+
+    // 모집 마감일 확인 (프론트엔드에서 직접 체크)
+    const recruitEndDate = (study as any).recruitEndDate ? new Date((study as any).recruitEndDate) : null;
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);  // 마감일 당일까지는 모집 중으로 취급
+    const isRecruitmentEnded = recruitEndDate ? today > new Date(recruitEndDate) : false;
+
+    // 스터디 시작 가능 여부
+    // 1. RECRUIT_CLOSED: 최대 인원 충족 (마감일 전이라도 시작 가능)
+    // 2. 마감일 지남 + 최소 인원 충족
+    const canStartStudy =
+        study.status === 'RECRUIT_CLOSED' ||  // 최대 인원 충족
+        (isRecruitmentEnded && hasMinimumMembers);  // 마감일 지남 + 최소 인원 충족
+
+    // 모집 연장 가능 여부
+    // - 마감일 지남 + 최대 인원 미충족 + 연장 횟수 1회 미만
+    const extensionCount = (study as any).extensionCount || 0;
+    const canExtendRecruitment = isRecruitmentEnded && !hasMaximumMembers && extensionCount < 1;
+
+    // 상태 텍스트 변환 함수
+    const getStatusText = (status: string): string => {
+        switch (status) {
+            case 'RECRUITING':
+                return '모집 중';
+            case 'RECRUIT_CLOSED':
+                return '모집 완료';
+            case 'PENDING':
+                return '확정 대기';
+            case 'IN_PROGRESS':
+                return '진행 중';
+            case 'COMPLETED':
+                return '완료';
+            case 'CANCELLED':
+                return '취소됨';
+            default:
+                return '준비 중';
+        }
+    };
+
     if (loading) {
         return (
             <div className="text-center py-12">
@@ -117,7 +208,7 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ study }) => {
             value: `${stats.studyDays}일`,
             icon: <Clock size={20} />,
             color: 'secondary',
-            subtext: study.status === 'IN_PROGRESS' ? '진행 중' : '모집 중',
+            subtext: getStatusText(study.status),
         },
     ];
 
@@ -143,6 +234,53 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ study }) => {
                 <h2 className="text-xl font-bold text-text-primary">팀 대시보드</h2>
                 <p className="text-sm text-text-secondary mt-1">스터디 현황을 한눈에 확인하세요</p>
             </div>
+
+            {/* 스터디 관리 액션 버튼 */}
+            {(canStartStudy || canExtendRecruitment) && (
+                <div className="bg-primary/5 border border-primary/20 rounded-2xl p-5">
+                    <h3 className="text-sm font-bold text-text-primary mb-3 flex items-center gap-2">
+                        <Target size={16} className="text-primary" />
+                        스터디 관리
+                    </h3>
+                    <div className="flex flex-wrap gap-3">
+                        {/* 스터디 시작 버튼 */}
+                        {canStartStudy && (
+                            <button
+                                onClick={handleStartStudy}
+                                disabled={actionLoading !== null}
+                                className="flex items-center gap-2 px-5 py-3 bg-success hover:bg-success/90 text-white font-medium rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {actionLoading === 'start' ? (
+                                    <Loader2 size={18} className="animate-spin" />
+                                ) : (
+                                    <Play size={18} />
+                                )}
+                                <span>스터디 시작하기</span>
+                            </button>
+                        )}
+
+                        {/* 모집 연장 버튼 */}
+                        {canExtendRecruitment && (
+                            <button
+                                onClick={handleExtendRecruitment}
+                                disabled={actionLoading !== null}
+                                className="flex items-center gap-2 px-5 py-3 bg-info hover:bg-info/90 text-white font-medium rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {actionLoading === 'extend' ? (
+                                    <Loader2 size={18} className="animate-spin" />
+                                ) : (
+                                    <CalendarPlus size={18} />
+                                )}
+                                <span>모집 7일 연장</span>
+                            </button>
+                        )}
+                    </div>
+                    <p className="text-xs text-text-tertiary mt-3">
+                        {canStartStudy && '모집이 완료되면 스터디를 시작할 수 있습니다. '}
+                        {canExtendRecruitment && `모집 연장은 1회만 가능합니다. (현재 ${extensionCount}회 사용)`}
+                    </p>
+                </div>
+            )}
 
             {/* 통계 카드 그리드 */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

@@ -2,6 +2,8 @@ package com.ssafy.domain.study.service;
 
 import com.ssafy.common.exception.NotFoundException;
 import com.ssafy.common.exception.StudyException;
+import com.ssafy.domain.notification.entity.NotificationType;
+import com.ssafy.domain.notification.service.NotificationService;
 import com.ssafy.domain.study.dto.request.StudyCreateRequest;
 import com.ssafy.domain.study.dto.request.StudyUpdateRequest;
 import com.ssafy.domain.study.dto.response.StudyResponse;
@@ -10,6 +12,7 @@ import com.ssafy.domain.study.repository.FormatRepository;
 import com.ssafy.domain.study.repository.StudyMemberRepository;
 import com.ssafy.domain.study.repository.StudyRepository;
 import com.ssafy.domain.study.repository.TopicRepository;
+import com.ssafy.domain.study.workspace.service.WorkspaceService;
 import com.ssafy.domain.user.entity.Role;
 import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.repository.UserRepository;
@@ -35,6 +38,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.*;
 
 /**
@@ -57,6 +61,12 @@ class StudyServiceTest {
 
     @Mock
     private FormatRepository formatRepository;
+
+    @Mock
+    private WorkspaceService workspaceService;
+
+    @Mock
+    private NotificationService notificationService;
 
     @InjectMocks
     private StudyService studyService;
@@ -741,6 +751,460 @@ class StudyServiceTest {
             assertThat(result).isNotNull();
             assertThat(result.getContent()).hasSize(1);
             assertThat(result.getContent().get(0).getStatus()).isEqualTo(Status.RECRUITING);
+        }
+    }
+
+    // ============================================================
+    // 스터디 시작 테스트
+    // ============================================================
+
+    @Nested
+    @DisplayName("스터디 시작 테스트")
+    class StartStudyTest {
+
+        @Test
+        @DisplayName("스터디 시작 성공 - 모집완료 상태에서 시작")
+        void startStudy_Success_FromRecruitClosed() {
+            // given
+            Long studyId = 1L;
+            Long leaderId = 1L;
+
+            Study recruitClosedStudy = Study.builder()
+                    .id(studyId)
+                    .leaderId(leaderId)
+                    .name("알고리즘 마스터")
+                    .topic(childTopic)
+                    .status(Status.RECRUIT_CLOSED)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+
+            StudyMember leaderMember = StudyMember.builder()
+                    .studyId(studyId)
+                    .userId(leaderId)
+                    .role(MemberRole.LEADER)
+                    .status(MemberStatus.APPROVED)
+                    .build();
+
+            given(studyRepository.findById(studyId)).willReturn(Optional.of(recruitClosedStudy));
+            given(workspaceService.existsWorkspace(studyId)).willReturn(false);
+            given(studyMemberRepository.findByStudyIdAndStatus(studyId, MemberStatus.APPROVED))
+                    .willReturn(List.of(leaderMember));
+            given(userRepository.findById(leaderId)).willReturn(Optional.of(testUser));
+            given(studyMemberRepository.countByStudyIdAndStatus(studyId, MemberStatus.APPROVED)).willReturn(1);
+
+            // when
+            StudyResponse response = studyService.startStudy(studyId, leaderId);
+
+            // then
+            assertThat(response).isNotNull();
+            assertThat(recruitClosedStudy.getStatus()).isEqualTo(Status.IN_PROGRESS);
+
+            verify(workspaceService, times(1)).existsWorkspace(studyId);
+            verify(workspaceService, times(1)).createWorkspace(studyId);
+            verify(notificationService, times(1)).createNotification(
+                    eq(leaderId),
+                    eq(NotificationType.STUDY_START),
+                    any(),
+                    any(),
+                    eq("STUDY"),
+                    eq(studyId)
+            );
+        }
+
+        @Test
+        @DisplayName("스터디 시작 성공 - 확정대기 상태에서 시작")
+        void startStudy_Success_FromPending() {
+            // given
+            Long studyId = 1L;
+            Long leaderId = 1L;
+
+            Study pendingStudy = Study.builder()
+                    .id(studyId)
+                    .leaderId(leaderId)
+                    .name("알고리즘 마스터")
+                    .topic(childTopic)
+                    .status(Status.PENDING)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+
+            StudyMember leaderMember = StudyMember.builder()
+                    .studyId(studyId)
+                    .userId(leaderId)
+                    .role(MemberRole.LEADER)
+                    .status(MemberStatus.APPROVED)
+                    .build();
+
+            given(studyRepository.findById(studyId)).willReturn(Optional.of(pendingStudy));
+            given(workspaceService.existsWorkspace(studyId)).willReturn(false);
+            given(studyMemberRepository.findByStudyIdAndStatus(studyId, MemberStatus.APPROVED))
+                    .willReturn(List.of(leaderMember));
+            given(userRepository.findById(leaderId)).willReturn(Optional.of(testUser));
+            given(studyMemberRepository.countByStudyIdAndStatus(studyId, MemberStatus.APPROVED)).willReturn(1);
+
+            // when
+            StudyResponse response = studyService.startStudy(studyId, leaderId);
+
+            // then
+            assertThat(response).isNotNull();
+            assertThat(pendingStudy.getStatus()).isEqualTo(Status.IN_PROGRESS);
+
+            verify(workspaceService, times(1)).createWorkspace(studyId);
+        }
+
+        @Test
+        @DisplayName("스터디 시작 실패 - 권한 없음 (스터디장 아님)")
+        void startStudy_NotLeader() {
+            // given
+            Long studyId = 1L;
+            Long leaderId = 1L;
+            Long notLeaderId = 999L;
+
+            Study recruitClosedStudy = Study.builder()
+                    .id(studyId)
+                    .leaderId(leaderId)
+                    .name("알고리즘 마스터")
+                    .topic(childTopic)
+                    .status(Status.RECRUIT_CLOSED)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+
+            given(studyRepository.findById(studyId)).willReturn(Optional.of(recruitClosedStudy));
+
+            // when & then
+            assertThatThrownBy(() -> studyService.startStudy(studyId, notLeaderId))
+                    .isInstanceOf(StudyException.NotStudyLeaderException.class);
+
+            verify(workspaceService, never()).createWorkspace(any());
+        }
+
+        @Test
+        @DisplayName("스터디 시작 실패 - 모집중 상태에서는 시작 불가")
+        void startStudy_CannotStartFromRecruiting() {
+            // given
+            Long studyId = 1L;
+            Long leaderId = 1L;
+
+            given(studyRepository.findById(studyId)).willReturn(Optional.of(testStudy)); // testStudy는 RECRUITING 상태
+
+            // when & then
+            assertThatThrownBy(() -> studyService.startStudy(studyId, leaderId))
+                    .isInstanceOf(StudyException.CannotStartStudyException.class);
+
+            verify(workspaceService, never()).createWorkspace(any());
+        }
+
+        @Test
+        @DisplayName("스터디 시작 실패 - 워크스페이스 이미 존재")
+        void startStudy_WorkspaceAlreadyExists() {
+            // given
+            Long studyId = 1L;
+            Long leaderId = 1L;
+
+            Study recruitClosedStudy = Study.builder()
+                    .id(studyId)
+                    .leaderId(leaderId)
+                    .name("알고리즘 마스터")
+                    .topic(childTopic)
+                    .status(Status.RECRUIT_CLOSED)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+
+            given(studyRepository.findById(studyId)).willReturn(Optional.of(recruitClosedStudy));
+            given(workspaceService.existsWorkspace(studyId)).willReturn(true);
+
+            // when & then
+            assertThatThrownBy(() -> studyService.startStudy(studyId, leaderId))
+                    .isInstanceOf(StudyException.WorkspaceAlreadyExistsException.class);
+
+            verify(workspaceService, never()).createWorkspace(any());
+        }
+
+        @Test
+        @DisplayName("스터디 시작 실패 - 존재하지 않는 스터디")
+        void startStudy_StudyNotFound() {
+            // given
+            Long studyId = 999L;
+            Long leaderId = 1L;
+
+            given(studyRepository.findById(studyId)).willReturn(Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() -> studyService.startStudy(studyId, leaderId))
+                    .isInstanceOf(StudyException.StudyNotFoundException.class);
+
+            verify(workspaceService, never()).createWorkspace(any());
+        }
+    }
+
+    // ============================================================
+    // 모집 인원 충족 확인 테스트
+    // ============================================================
+
+    @Nested
+    @DisplayName("모집 인원 충족 확인 테스트")
+    class CheckAndUpdateRecruitmentStatusTest {
+
+        @Test
+        @DisplayName("모집 인원 충족 시 상태 변경 및 알림 발송")
+        void checkAndUpdateRecruitmentStatus_RecruitmentComplete() {
+            // given
+            Long studyId = 1L;
+            Long leaderId = 1L;
+            int maxMembers = 5;
+
+            Study recruitingStudy = Study.builder()
+                    .id(studyId)
+                    .leaderId(leaderId)
+                    .name("알고리즘 마스터")
+                    .topic(childTopic)
+                    .status(Status.RECRUITING)
+                    .maxMembers(maxMembers)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+
+            given(studyRepository.findById(studyId)).willReturn(Optional.of(recruitingStudy));
+            given(studyMemberRepository.countByStudyIdAndStatus(studyId, MemberStatus.APPROVED))
+                    .willReturn(maxMembers); // 인원 충족
+
+            // when
+            studyService.checkAndUpdateRecruitmentStatus(studyId);
+
+            // then
+            assertThat(recruitingStudy.getStatus()).isEqualTo(Status.RECRUIT_CLOSED);
+
+            verify(notificationService, times(1)).createNotification(
+                    eq(leaderId),
+                    eq(NotificationType.STUDY_RECRUITMENT_COMPLETE),
+                    any(),
+                    any(),
+                    eq("STUDY"),
+                    eq(studyId)
+            );
+        }
+
+        @Test
+        @DisplayName("모집 인원 미충족 시 상태 유지")
+        void checkAndUpdateRecruitmentStatus_NotFull() {
+            // given
+            Long studyId = 1L;
+            Long leaderId = 1L;
+            int maxMembers = 5;
+
+            Study recruitingStudy = Study.builder()
+                    .id(studyId)
+                    .leaderId(leaderId)
+                    .name("알고리즘 마스터")
+                    .topic(childTopic)
+                    .status(Status.RECRUITING)
+                    .maxMembers(maxMembers)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+
+            given(studyRepository.findById(studyId)).willReturn(Optional.of(recruitingStudy));
+            given(studyMemberRepository.countByStudyIdAndStatus(studyId, MemberStatus.APPROVED))
+                    .willReturn(3); // 인원 미충족
+
+            // when
+            studyService.checkAndUpdateRecruitmentStatus(studyId);
+
+            // then
+            assertThat(recruitingStudy.getStatus()).isEqualTo(Status.RECRUITING); // 상태 유지
+
+            verify(notificationService, never()).createNotification(any(), any(), any(), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("모집중 상태가 아닌 경우 스킵")
+        void checkAndUpdateRecruitmentStatus_SkipIfNotRecruiting() {
+            // given
+            Long studyId = 1L;
+            Long leaderId = 1L;
+
+            Study inProgressStudy = Study.builder()
+                    .id(studyId)
+                    .leaderId(leaderId)
+                    .name("알고리즘 마스터")
+                    .topic(childTopic)
+                    .status(Status.IN_PROGRESS) // 모집중이 아님
+                    .createdAt(LocalDateTime.now())
+                    .build();
+
+            given(studyRepository.findById(studyId)).willReturn(Optional.of(inProgressStudy));
+
+            // when
+            studyService.checkAndUpdateRecruitmentStatus(studyId);
+
+            // then
+            verify(studyMemberRepository, never()).countByStudyIdAndStatus(any(), any());
+            verify(notificationService, never()).createNotification(any(), any(), any(), any(), any(), any());
+        }
+    }
+
+    // ============================================================
+    // 모집 기간 연장 테스트 (확장)
+    // ============================================================
+
+    @Nested
+    @DisplayName("모집 기간 연장 테스트")
+    class ExtendRecruitmentTest {
+
+        @Test
+        @DisplayName("모집 기간 연장 성공 - 확정대기 상태에서 연장 시 모집중으로 변경 및 알림 발송")
+        void extendRecruitment_FromPending_Success() {
+            // given
+            Long studyId = 1L;
+            Long leaderId = 1L;
+            Long memberId = 2L;
+            LocalDate newEndDate = LocalDate.now().plusDays(14);
+
+            Study pendingStudy = Study.builder()
+                    .id(studyId)
+                    .leaderId(leaderId)
+                    .name("알고리즘 마스터")
+                    .topic(childTopic)
+                    .status(Status.PENDING)
+                    .recruitEndDate(LocalDate.now().minusDays(1))
+                    .extensionCount(0)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+
+            StudyMember leaderMember = StudyMember.builder()
+                    .studyId(studyId)
+                    .userId(leaderId)
+                    .role(MemberRole.LEADER)
+                    .status(MemberStatus.APPROVED)
+                    .build();
+
+            StudyMember normalMember = StudyMember.builder()
+                    .studyId(studyId)
+                    .userId(memberId)
+                    .role(MemberRole.MEMBER)
+                    .status(MemberStatus.APPROVED)
+                    .build();
+
+            given(studyRepository.findById(studyId)).willReturn(Optional.of(pendingStudy));
+            given(studyMemberRepository.findByStudyIdAndStatus(studyId, MemberStatus.APPROVED))
+                    .willReturn(List.of(leaderMember, normalMember));
+            given(userRepository.findById(leaderId)).willReturn(Optional.of(testUser));
+
+            // when
+            StudyResponse response = studyService.extendRecruitment(studyId, newEndDate, leaderId);
+
+            // then
+            assertThat(response).isNotNull();
+            assertThat(pendingStudy.getStatus()).isEqualTo(Status.RECRUITING);
+            assertThat(pendingStudy.getRecruitEndDate()).isEqualTo(newEndDate);
+            assertThat(pendingStudy.getExtensionCount()).isEqualTo(1);
+
+            // 스터디장을 제외한 멤버에게만 알림 발송
+            verify(notificationService, times(1)).createNotification(
+                    eq(memberId),
+                    eq(NotificationType.STUDY_EXTENSION),
+                    any(),
+                    any(),
+                    eq("STUDY"),
+                    eq(studyId)
+            );
+        }
+
+        @Test
+        @DisplayName("모집 기간 연장 성공 - 모집중 상태에서 연장 (알림 없음)")
+        void extendRecruitment_FromRecruiting_Success() {
+            // given
+            Long studyId = 1L;
+            Long leaderId = 1L;
+            LocalDate newEndDate = LocalDate.now().plusDays(14);
+
+            Study recruitingStudy = Study.builder()
+                    .id(studyId)
+                    .leaderId(leaderId)
+                    .name("알고리즘 마스터")
+                    .topic(childTopic)
+                    .status(Status.RECRUITING)
+                    .recruitEndDate(LocalDate.now().plusDays(3))
+                    .extensionCount(0)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+
+            given(studyRepository.findById(studyId)).willReturn(Optional.of(recruitingStudy));
+            given(userRepository.findById(leaderId)).willReturn(Optional.of(testUser));
+
+            // when
+            StudyResponse response = studyService.extendRecruitment(studyId, newEndDate, leaderId);
+
+            // then
+            assertThat(response).isNotNull();
+            assertThat(recruitingStudy.getStatus()).isEqualTo(Status.RECRUITING);
+            assertThat(recruitingStudy.getRecruitEndDate()).isEqualTo(newEndDate);
+            assertThat(recruitingStudy.getExtensionCount()).isEqualTo(1);
+
+            // 모집중 상태에서는 알림 없음
+            verify(notificationService, never()).createNotification(any(), any(), any(), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("모집 기간 연장 실패 - 이미 1회 연장한 경우")
+        void extendRecruitment_MaxExtensionReached() {
+            // given
+            Long studyId = 1L;
+            Long leaderId = 1L;
+            LocalDate newEndDate = LocalDate.now().plusDays(14);
+
+            Study alreadyExtendedStudy = Study.builder()
+                    .id(studyId)
+                    .leaderId(leaderId)
+                    .name("알고리즘 마스터")
+                    .topic(childTopic)
+                    .status(Status.RECRUITING)
+                    .recruitEndDate(LocalDate.now().plusDays(3))
+                    .extensionCount(1) // 이미 1회 연장됨
+                    .createdAt(LocalDateTime.now())
+                    .build();
+
+            given(studyRepository.findById(studyId)).willReturn(Optional.of(alreadyExtendedStudy));
+
+            // when & then
+            assertThatThrownBy(() -> studyService.extendRecruitment(studyId, newEndDate, leaderId))
+                    .isInstanceOf(StudyException.NotRecruitingException.class);
+        }
+
+        @Test
+        @DisplayName("모집 기간 연장 실패 - 권한 없음")
+        void extendRecruitment_NotLeader() {
+            // given
+            Long studyId = 1L;
+            Long notLeaderId = 999L;
+            LocalDate newEndDate = LocalDate.now().plusDays(14);
+
+            given(studyRepository.findById(studyId)).willReturn(Optional.of(testStudy));
+
+            // when & then
+            assertThatThrownBy(() -> studyService.extendRecruitment(studyId, newEndDate, notLeaderId))
+                    .isInstanceOf(StudyException.NotStudyLeaderException.class);
+        }
+
+        @Test
+        @DisplayName("모집 기간 연장 실패 - 진행중 상태에서 연장 불가")
+        void extendRecruitment_InvalidStatus() {
+            // given
+            Long studyId = 1L;
+            Long leaderId = 1L;
+            LocalDate newEndDate = LocalDate.now().plusDays(14);
+
+            Study inProgressStudy = Study.builder()
+                    .id(studyId)
+                    .leaderId(leaderId)
+                    .name("알고리즘 마스터")
+                    .topic(childTopic)
+                    .status(Status.IN_PROGRESS)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+
+            given(studyRepository.findById(studyId)).willReturn(Optional.of(inProgressStudy));
+
+            // when & then
+            assertThatThrownBy(() -> studyService.extendRecruitment(studyId, newEndDate, leaderId))
+                    .isInstanceOf(StudyException.NotRecruitingException.class);
         }
     }
 }

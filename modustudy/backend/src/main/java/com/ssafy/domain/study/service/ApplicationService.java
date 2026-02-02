@@ -33,6 +33,7 @@ public class ApplicationService {
     private final StudyMemberRepository studyMemberRepository;
     private final StudyRecommendService studyRecommendService;
     private final NotificationService notificationService;
+    private final StudyService studyService;
 
     // ============================================================
     // 신청 생성
@@ -286,7 +287,10 @@ public class ApplicationService {
         log.info("신청 승인 완료 - applicationId: {}, userId: {} 스터디 멤버로 추가됨",
                 applicationId, application.getUserId());
 
-        // 8. DTO 변환
+        // 8. 모집 인원 충족 여부 확인 및 상태 변경
+        studyService.checkAndUpdateRecruitmentStatus(studyId);
+
+        // 9. DTO 변환
         ApplicationResponse response = ApplicationResponse.from(updated);
         response.setStudyName(study.getName());
 

@@ -22,9 +22,15 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.ssafy.common.exception.StudyException;
+import com.ssafy.common.exception.handler.GlobalExceptionHandler;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willDoNothing;
+import static org.mockito.BDDMockito.willThrow;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.hamcrest.Matchers.*;
@@ -47,7 +53,8 @@ class StudyMemberControllerTest {
     void setUp() {
         mockMvc = MockMvcBuilders
                 .standaloneSetup(studyMemberController)
-                .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())  // 추가
+                .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
+                .setControllerAdvice(new GlobalExceptionHandler())  // 예외 핸들러 추가
                 .build();
 
         // 스터디장 응답
@@ -157,5 +164,64 @@ class StudyMemberControllerTest {
                 .andExpect(jsonPath("$.totalPages").value(2))
                 .andExpect(jsonPath("$.first").value(true))
                 .andExpect(jsonPath("$.last").value(false));
+    }
+
+    @Test
+    @DisplayName("스터디 탈퇴 성공")
+    void leaveStudy_Success() throws Exception {
+        // given
+        Long studyId = 1L;
+        Long userId = 2L;
+        willDoNothing().given(studyMemberService).leaveStudy(studyId, userId);
+
+        // when & then
+        mockMvc.perform(delete("/api/v1/study/{studyId}/members/leave", studyId)
+                        .header("User-Id", userId))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @DisplayName("스터디 탈퇴 실패 - 스터디장은 탈퇴 불가")
+    void leaveStudy_Fail_LeaderCannotLeave() throws Exception {
+        // given
+        Long studyId = 1L;
+        Long userId = 1L;  // 스터디장 ID
+        willThrow(new StudyException.InvalidStudyRequestException("스터디장은 탈퇴할 수 없습니다."))
+                .given(studyMemberService).leaveStudy(studyId, userId);
+
+        // when & then
+        mockMvc.perform(delete("/api/v1/study/{studyId}/members/leave", studyId)
+                        .header("User-Id", userId))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("스터디 탈퇴 실패 - 존재하지 않는 스터디")
+    void leaveStudy_Fail_StudyNotFound() throws Exception {
+        // given
+        Long studyId = 999L;
+        Long userId = 2L;
+        willThrow(new StudyException.StudyNotFoundException(studyId))
+                .given(studyMemberService).leaveStudy(studyId, userId);
+
+        // when & then
+        mockMvc.perform(delete("/api/v1/study/{studyId}/members/leave", studyId)
+                        .header("User-Id", userId))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("스터디 탈퇴 실패 - 멤버가 아닌 사용자")
+    void leaveStudy_Fail_NotAMember() throws Exception {
+        // given
+        Long studyId = 1L;
+        Long userId = 999L;
+        willThrow(new StudyException.InvalidStudyRequestException("스터디 멤버가 아닙니다."))
+                .given(studyMemberService).leaveStudy(studyId, userId);
+
+        // when & then
+        mockMvc.perform(delete("/api/v1/study/{studyId}/members/leave", studyId)
+                        .header("User-Id", userId))
+                .andExpect(status().isBadRequest());
     }
 }

@@ -6,7 +6,7 @@ import { Users, Clock, ChevronRight } from 'lucide-react';
 export interface StudyActivity {
     id: number;
     title: string;
-    status: 'active' | 'completed';
+    status: 'active' | 'completed' | 'pending';
     description: string;
     attendanceRate: number;
     participationDays: number;
@@ -20,8 +20,8 @@ export const StudyMylist: React.FC<StudyMylistProps> = ({ studies }) => {
     const navigate = useNavigate();
     const [isAllListOpen, setIsAllListOpen] = useState(false);
 
-    // 진행 중 및 예정 단계 필터링
-    const activeStudies = studies.filter(s => s.status === 'active');
+    // 진행 중 및 예정 단계 필터링 (active + pending)
+    const activeStudies = studies.filter(s => s.status === 'active' || s.status === 'pending');
     // 완료된 스터디 필터링
     const completedStudies = studies.filter(s => s.status === 'completed');
 
@@ -45,11 +45,14 @@ export const StudyMylist: React.FC<StudyMylistProps> = ({ studies }) => {
                     <h3 className="font-bold text-[#1a202c] group-hover:text-blue-600 transition-colors tracking-tight">
                         {study.title}
                     </h3>
-                    <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${study.status === 'active'
-                        ? 'bg-blue-50 text-blue-600 border border-blue-100'
-                        : 'bg-green-50 text-green-600 border border-green-100'
+                    <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold tracking-wider ${
+                        study.status === 'active'
+                            ? 'bg-blue-50 text-blue-600 border border-blue-100'
+                            : study.status === 'pending'
+                            ? 'bg-amber-50 text-amber-600 border border-amber-100'
+                            : 'bg-green-50 text-green-600 border border-green-100'
                         }`}>
-                        {study.status === 'active' ? 'IN PROGRESS' : 'COMPLETED'}
+                        {study.status === 'active' ? '진행중' : study.status === 'pending' ? '예정' : '완료'}
                     </span>
                 </div>
                 <p className="study-activity-desc text-sm text-gray-500 mb-4 line-clamp-1 leading-relaxed">{study.description}</p>

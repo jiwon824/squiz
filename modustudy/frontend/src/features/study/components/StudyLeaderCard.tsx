@@ -33,6 +33,7 @@ interface StudyLeaderCardProps {
     maxMembers: number;
     recruitEndDate?: string;
     isOwner: boolean;
+    isApplied?: boolean; // 이미 신청한 스터디인지 여부
     onInquiry: () => void;
     onKakaoInquiry?: () => void; // 카카오톡 문의 핸들러 (백엔드 연동 시 사용)
     onRatingClick: () => void;
@@ -47,6 +48,7 @@ const StudyLeaderCard: React.FC<StudyLeaderCardProps> = ({
     maxMembers,
     recruitEndDate,
     isOwner,
+    isApplied = false,
     onInquiry,
     onKakaoInquiry,
     onRatingClick,
@@ -90,6 +92,9 @@ const StudyLeaderCard: React.FC<StudyLeaderCardProps> = ({
 
     // 신청 버튼 텍스트 결정 (상태별 분기)
     const getApplyButtonText = () => {
+        // 이미 신청한 경우
+        if (isApplied) return '신청한 스터디';
+
         switch (studyStatus) {
             case 'RECRUITING':
                 if (currentMembers >= maxMembers) return '정원 마감';
@@ -136,7 +141,7 @@ const StudyLeaderCard: React.FC<StudyLeaderCardProps> = ({
     };
 
     // 신청 버튼 비활성화 여부
-    const isApplyDisabled = studyStatus !== 'RECRUITING' || currentMembers >= maxMembers;
+    const isApplyDisabled = isApplied || studyStatus !== 'RECRUITING' || currentMembers >= maxMembers;
 
     return (
         <div className="2xl:col-span-1">

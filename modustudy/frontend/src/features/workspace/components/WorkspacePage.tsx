@@ -184,7 +184,8 @@ export const WorkspacePage: React.FC = () => {
         ]);
 
         // 스터디 시작일 체크: 시작일 이전이면 상세 페이지로 리다이렉트
-        if (studyData?.startDate) {
+        // 단, 스터디 상태가 IN_PROGRESS이면 시작일과 관계없이 접근 허용
+        if (studyData?.startDate && studyData?.status !== 'IN_PROGRESS') {
           const today = new Date();
           today.setHours(0, 0, 0, 0);
           const startDate = new Date(studyData.startDate);
@@ -777,6 +778,7 @@ export const WorkspacePage: React.FC = () => {
             onToggleDarkMode={handleToggleDarkMode}
             activeSession={activeSession && activeMeetingEnded !== true ? activeSession : null}
             onNavigateToMeeting={handleNavigateToMeeting}
+            isLeader={isLeader}
           />
 
           {/* 메인 콘텐츠 영역 */}

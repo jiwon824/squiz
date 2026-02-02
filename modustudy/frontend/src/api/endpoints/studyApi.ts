@@ -515,6 +515,26 @@ export const studyApi = {
     return response.data;
   },
 
+  /**
+   * 특정 스터디에 대한 내 신청 여부 확인
+   * 내 신청 내역에서 해당 스터디 ID가 있는지 확인
+   */
+  checkMyApplication: async (studyId: number): Promise<{ hasApplied: boolean; status?: string }> => {
+    try {
+      // PENDING 상태의 신청 내역에서 확인
+      const response = await api.get<any>(`/api/v1/my/applications?status=PENDING&size=100`);
+      const applications = response.data?.content || [];
+      const found = applications.find((app: any) => app.studyId === studyId || app.study?.id === studyId);
+      if (found) {
+        return { hasApplied: true, status: found.status || 'PENDING' };
+      }
+      return { hasApplied: false };
+    } catch (error) {
+      console.error('신청 여부 확인 실패:', error);
+      return { hasApplied: false };
+    }
+  },
+
   // ========== 세션 및 출석 관리 ==========
 
   /**
@@ -641,6 +661,55 @@ export const studyApi = {
       console.error('북마크 여부 확인 실패:', error);
       return false;
     }
+  },
+
+  // ========== 스터디 모집 관리 (Recruitment Management) ==========
+
+  /**
+   * 스터디 시작 (모집완료/확정대기 → 진행중)
+   * POST /api/v1/study/{studyId}/start
+   */
+  startStudy: async (studyId: number): Promise<StudyDetailResponse> => {
+    const response = await api.post<any>(`/api/v1/study/${studyId}/start`);
+    const data = response.data;
+    if (data.data) {
+      return data.data;
+    }
+    return data;
+  },
+
+  /**
+   * 모집 기간 연장 (RECRUITING/PENDING 상태에서 7일 연장)
+   * PATCH /api/v1/study/{studyId}/extend-recruitment
+   * @param studyId 스터디 ID
+   * @param newEndDate 새로운 모집 종료일 (YYYY-MM-DD 형식)
+   */
+  extendRecruitment: async (studyId: number, newEndDate: string): Promise<StudyDetailResponse> => {
+    const response = await api.patch<any>(`/api/v1/study/${studyId}/extend-recruitment`, {
+      newEndDate,
+    });
+    const data = response.data;
+    if (data.data) {
+      return data.data;
+    }
+    return data;
+  },
+
+  /**
+   * 스터디 멤버 수 조회 (getStudyMemberCount 별칭)
+   * GET /api/v1/study/{studyId}/members/count
+   */
+  getStudyMemberCount: async (studyId: number) => {
+    const response = await api.get<any>(`/api/v1/study/${studyId}/members/count`);
+    return response.data as number;
+  },
+
+  /**
+   * 스터디 탈퇴 (본인만 가능)
+   * DELETE /api/v1/study/{studyId}/members/leave
+   */
+  leaveStudy: async (studyId: number): Promise<void> => {
+    await api.delete(`/api/v1/study/${studyId}/members/leave`);
   },
 };
 

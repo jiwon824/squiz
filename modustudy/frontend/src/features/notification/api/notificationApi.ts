@@ -12,8 +12,12 @@ export type NotificationType =
     | 'ATTENDANCE'
     | 'STUDY_UPDATE'
     | 'STUDY_APPLICATION'
+    | 'STUDY_RECRUITMENT_COMPLETE'
+    | 'STUDY_EXTENSION'
+    | 'STUDY_START'
     | 'QUIZ'
-    | 'SYSTEM';
+    | 'SYSTEM'
+    | 'FRIEND';
 
 // 알림 응답 타입
 export interface NotificationItem {
