@@ -1,0 +1,302 @@
+package com.ssafy.squiz.ui.screens.meeting
+
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.util.Log
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.ssafy.squiz.data.remote.RetrofitClient
+import com.ssafy.squiz.data.remote.model.*
+import com.ssafy.squiz.service.RecordingService
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
+import java.io.File
+
+// UI 상태 클래스들
+sealed class MeetingsUiState {
+    object Loading : MeetingsUiState()
+    data class Success(
+        val meetings: List<MeetingDTO>,
+        val totalCount: Long = 0,
+        val hasMore: Boolean = false
+    ) : MeetingsUiState()
+    data class Error(val message: String) : MeetingsUiState()
+}
+
+sealed class MeetingDetailUiState {
+    object Loading : MeetingDetailUiState()
+    data class Success(val meeting: MeetingDetailDTO) : MeetingDetailUiState()
+    data class Error(val message: String) : MeetingDetailUiState()
+}
+
+sealed class UploadUiState {
+    object Idle : UploadUiState()
+    data class Uploading(val progress: Int = 0) : UploadUiState()
+    data class Success(val message: String) : UploadUiState()
+    data class Error(val message: String) : UploadUiState()
+}
+
+class MeetingViewModel : ViewModel() {
+
+    companion object {
+        private const val TAG = "MeetingViewModel"
+    }
+
+    // 회의 목록 상태
+    private val _meetingsState = MutableStateFlow<MeetingsUiState>(MeetingsUiState.Loading)
+    val meetingsState: StateFlow<MeetingsUiState> = _meetingsState.asStateFlow()
+
+    // 회의 상세 상태
+    private val _meetingDetailState = MutableStateFlow<MeetingDetailUiState>(MeetingDetailUiState.Loading)
+    val meetingDetailState: StateFlow<MeetingDetailUiState> = _meetingDetailState.asStateFlow()
+
+    // 업로드 상태
+    private val _uploadState = MutableStateFlow<UploadUiState>(UploadUiState.Idle)
+    val uploadState: StateFlow<UploadUiState> = _uploadState.asStateFlow()
+
+    // 현재 회의 ID (녹음 시작 시 설정)
+    private val _currentMeetingId = MutableStateFlow<Long?>(null)
+    val currentMeetingId: StateFlow<Long?> = _currentMeetingId.asStateFlow()
+
+    // 녹음 상태 (RecordingService에서 가져옴)
+    val recordingState = RecordingService.recordingState
+
+    // 페이지네이션
+    private var currentPage = 0
+    private var isLastPage = false
+
+    /**
+     * 회의 목록 로드
+     */
+    fun loadMeetings(studyId: Long, refresh: Boolean = false) {
+        if (refresh) {
+            currentPage = 0
+            isLastPage = false
+        }
+        if (isLastPage && !refresh) return
+
+        viewModelScope.launch {
+            try {
+                if (refresh || _meetingsState.value is MeetingsUiState.Loading) {
+                    _meetingsState.value = MeetingsUiState.Loading
+                }
+
+                val response = RetrofitClient.meetingApi.getMeetings(
+                    studyId = studyId,
+                    page = currentPage,
+                    size = 20
+                )
+
+                if (response.isSuccessful) {
+                    val pageResponse = response.body()
+                    val meetings = pageResponse?.content ?: emptyList()
+
+                    val currentList = if (refresh) emptyList() else {
+                        (_meetingsState.value as? MeetingsUiState.Success)?.meetings ?: emptyList()
+                    }
+
+                    _meetingsState.value = MeetingsUiState.Success(
+                        meetings = currentList + meetings,
+                        totalCount = pageResponse?.totalElements ?: 0,
+                        hasMore = !(pageResponse?.last ?: true)
+                    )
+
+                    isLastPage = pageResponse?.last ?: true
+                    currentPage++
+                } else {
+                    _meetingsState.value = MeetingsUiState.Error("회의 목록을 불러오는데 실패했습니다. (${response.code()})")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "회의 목록 로드 실패", e)
+                _meetingsState.value = MeetingsUiState.Error(e.message ?: "네트워크 오류가 발생했습니다.")
+            }
+        }
+    }
+
+    /**
+     * 더 불러오기
+     */
+    fun loadMore(studyId: Long) {
+        if (!isLastPage) {
+            loadMeetings(studyId, refresh = false)
+        }
+    }
+
+    /**
+     * 회의 상세 로드
+     */
+    fun loadMeetingDetail(meetingId: Long) {
+        viewModelScope.launch {
+            _meetingDetailState.value = MeetingDetailUiState.Loading
+            try {
+                val response = RetrofitClient.meetingApi.getMeetingDetail(meetingId)
+
+                if (response.isSuccessful) {
+                    val detail = response.body()
+                    if (detail != null) {
+                        _meetingDetailState.value = MeetingDetailUiState.Success(detail)
+                    } else {
+                        _meetingDetailState.value = MeetingDetailUiState.Error("회의 정보를 찾을 수 없습니다.")
+                    }
+                } else {
+                    _meetingDetailState.value = MeetingDetailUiState.Error("회의 상세를 불러오는데 실패했습니다. (${response.code()})")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "회의 상세 로드 실패", e)
+                _meetingDetailState.value = MeetingDetailUiState.Error(e.message ?: "네트워크 오류가 발생했습니다.")
+            }
+        }
+    }
+
+    /**
+     * 녹음 시작 (서버에 회의 생성 후 로컬 녹음 시작)
+     */
+    fun startRecording(context: Context, studyId: Long, sessionId: Long? = null, title: String? = null) {
+        viewModelScope.launch {
+            try {
+                // 1. 서버에 녹음 시작 요청 (회의 생성)
+                val request = RecordingStartRequest(
+                    studyId = studyId,
+                    sessionId = sessionId,
+                    title = title
+                )
+                val response = RetrofitClient.meetingApi.startRecording(request)
+
+                if (response.isSuccessful) {
+                    val result = response.body()
+                    val meetingId = result?.meetingId
+
+                    if (meetingId != null) {
+                        _currentMeetingId.value = meetingId
+
+                        // 2. 로컬 녹음 서비스 시작
+                        val intent = Intent(context, RecordingService::class.java).apply {
+                            action = RecordingService.ACTION_START_RECORDING
+                            putExtra(RecordingService.EXTRA_STUDY_ID, studyId)
+                            putExtra(RecordingService.EXTRA_SESSION_ID, sessionId ?: -1L)
+                            putExtra(RecordingService.EXTRA_MEETING_ID, meetingId)
+                        }
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            context.startForegroundService(intent)
+                        } else {
+                            context.startService(intent)
+                        }
+
+                        Log.d(TAG, "녹음 시작 성공: meetingId=$meetingId")
+                    } else {
+                        Log.e(TAG, "녹음 시작 실패: meetingId가 없음")
+                    }
+                } else {
+                    Log.e(TAG, "녹음 시작 API 실패: ${response.code()}")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "녹음 시작 실패", e)
+            }
+        }
+    }
+
+    /**
+     * 녹음 중지 및 업로드
+     */
+    fun stopRecordingAndUpload(context: Context) {
+        viewModelScope.launch {
+            try {
+                val meetingId = _currentMeetingId.value
+                val elapsedSeconds = recordingState.value.elapsedSeconds
+
+                // 1. 로컬 녹음 중지
+                val intent = Intent(context, RecordingService::class.java).apply {
+                    action = RecordingService.ACTION_STOP_RECORDING
+                }
+                context.startService(intent)
+
+                // 녹음 파일 경로 가져오기
+                val audioFilePath = RecordingService.currentAudioFilePath
+
+                if (meetingId != null && audioFilePath != null) {
+                    // 2. 서버에 녹음 종료 알림
+                    val endRequest = RecordingEndRequest(
+                        meetingId = meetingId,
+                        duration = elapsedSeconds
+                    )
+                    RetrofitClient.meetingApi.endRecording(endRequest)
+
+                    // 3. 오디오 파일 업로드
+                    uploadAudioFile(meetingId, audioFilePath)
+                }
+
+                _currentMeetingId.value = null
+
+            } catch (e: Exception) {
+                Log.e(TAG, "녹음 중지 실패", e)
+                _uploadState.value = UploadUiState.Error(e.message ?: "녹음 중지 실패")
+            }
+        }
+    }
+
+    /**
+     * 오디오 파일 업로드
+     */
+    private suspend fun uploadAudioFile(meetingId: Long, filePath: String) {
+        try {
+            _uploadState.value = UploadUiState.Uploading(0)
+
+            val file = File(filePath)
+            if (!file.exists()) {
+                _uploadState.value = UploadUiState.Error("녹음 파일을 찾을 수 없습니다.")
+                return
+            }
+
+            val requestBody = file.asRequestBody("audio/mp4".toMediaTypeOrNull())
+            val multipartBody = MultipartBody.Part.createFormData("audio", file.name, requestBody)
+
+            val response = RetrofitClient.meetingApi.uploadAudio(meetingId, multipartBody)
+
+            if (response.isSuccessful) {
+                val result = response.body()
+                _uploadState.value = UploadUiState.Success(result?.message ?: "업로드 완료! AI 요약이 곧 생성됩니다.")
+                Log.d(TAG, "오디오 업로드 성공: $meetingId")
+
+                // 업로드 후 파일 삭제 (선택)
+                // file.delete()
+            } else {
+                _uploadState.value = UploadUiState.Error("업로드 실패: ${response.code()}")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "오디오 업로드 실패", e)
+            _uploadState.value = UploadUiState.Error(e.message ?: "업로드 중 오류 발생")
+        }
+    }
+
+    /**
+     * 업로드 상태 초기화
+     */
+    fun resetUploadState() {
+        _uploadState.value = UploadUiState.Idle
+    }
+
+    /**
+     * 회의 삭제
+     */
+    fun deleteMeeting(meetingId: Long, onResult: (Result<Unit>) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val response = RetrofitClient.meetingApi.deleteMeeting(meetingId)
+                if (response.isSuccessful) {
+                    onResult(Result.success(Unit))
+                } else {
+                    onResult(Result.failure(Exception("삭제 실패: ${response.code()}")))
+                }
+            } catch (e: Exception) {
+                onResult(Result.failure(e))
+            }
+        }
+    }
+}

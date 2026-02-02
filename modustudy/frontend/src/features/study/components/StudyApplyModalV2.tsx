@@ -44,7 +44,6 @@ const StudyApplyModalV2: React.FC<StudyApplyModalV2Props> = ({ study, isOpen, on
 
         try {
             const response = await studyApi.applyToStudy(study.id, message);
-            console.log('[StudyApplyModalV2] 신청 응답:', response);
             setStatus('success');
             setStatusMessage('스터디 신청이 완료되었습니다! 스터디장의 승인을 기다려주세요.');
         } catch (error: any) {

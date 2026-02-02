@@ -38,6 +38,22 @@ export interface StudyQuizDetail {
     questions: StudyQuizQuestion[];
 }
 
+
+export interface StudyQuizSubmitRequest {
+    userAnswer: string;
+    responseTimeMs: number;
+}
+
+export interface StudyQuizSubmitResponse {
+    isCorrect: boolean;
+    correctAnswer: string;
+    explanation: string | null;
+    scheduledMinutes: number;
+    nextReviewAt: string;
+    state: number;
+    reps: number;
+}
+
 /**
  * 스터디별 퀴즈 목록 조회
  * GET /api/v1/studies/{studyId}/quizzes
@@ -56,7 +72,25 @@ export const getQuizDetail = async (studyId: number, quizId: number): Promise<St
     return response.data;
 };
 
+/**
+ * 퀴즈 답안 제출
+ * POST /api/v1/studies/{studyId}/quizzes/{quizId}/questions/{questionId}/submit
+ */
+export const submitAnswer = async (
+    studyId: number,
+    quizId: number,
+    questionId: number,
+    data: StudyQuizSubmitRequest
+): Promise<StudyQuizSubmitResponse> => {
+    const response = await api.post(
+        `/api/v1/studies/${studyId}/quizzes/${quizId}/questions/${questionId}/submit`,
+        data
+    );
+    return response.data;
+};
+
 export const studyQuizApi = {
     getStudyQuizzes,
     getQuizDetail,
+    submitAnswer,
 };

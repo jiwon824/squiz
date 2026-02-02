@@ -159,7 +159,6 @@ const StudyDetailPage: React.FC = () => {
     };
 
     const handleReportSubmit = (reason: string) => {
-        console.log(`[REPORT] Study ID: ${study.id}, Reason: ${reason}`);
     };
 
     // 스터디장에게 문의하기 (친구 여부와 관계없이 DM 가능)

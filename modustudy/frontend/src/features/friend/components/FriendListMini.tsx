@@ -70,7 +70,7 @@ const FriendListMini: React.FC = () => {
     };
 
     return (
-        <div className="py-4 pl-2 pr-4 h-full flex flex-col bg-transparent">
+        <div className="py-4 pl-4 pr-4 h-full flex flex-col bg-transparent">
             {/* 헤더 */}
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2 text-study-blue">
@@ -179,15 +179,15 @@ const FriendListMini: React.FC = () => {
                             <div
                                 key={friend.id}
                                 onClick={() => handleFriendClick({ friendId: friend.friendId, nickname: friend.nickname, profileImage: friend.profileImage })}
-                                className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                                className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
                             >
-                                <div className="relative">
-                                    <div className="w-8 h-8 rounded-full bg-study-blue/10 flex items-center justify-center font-bold text-xs text-study-blue overflow-hidden">
+                                <div className="relative flex-shrink-0">
+                                    <div className="w-9 h-9 rounded-full bg-study-blue/10 flex items-center justify-center font-bold text-xs text-study-blue overflow-hidden">
                                         <img src={friend.profileImage || DEFAULT_PROFILE_IMAGE} alt={friend.nickname} className="w-full h-full object-cover" />
                                     </div>
                                     <div className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white ${getStatusColor(friend.status)}`} />
                                 </div>
-                                <span className="text-sm font-medium text-gray-700">{friend.nickname}</span>
+                                <span className="text-sm font-bold text-gray-800">{friend.nickname}</span>
                             </div>
                         ))}
                     </div>
