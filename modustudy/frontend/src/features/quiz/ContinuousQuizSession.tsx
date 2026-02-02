@@ -18,7 +18,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Loader2, AlertCircle, RefreshCw, CheckCircle, XCircle, Trophy } from 'lucide-react';
 
 import { QuestionCard } from './components/QuestionCard';
@@ -305,14 +305,6 @@ const SessionComplete: React.FC<SessionCompleteProps> = ({
                 {/* 버튼들 */}
                 <div className="flex flex-col gap-3">
                     <Button
-                        variant="google-primary"
-                        size="lg"
-                        onClick={onReturnToCourse}
-                        className="w-full"
-                    >
-                        코스로 돌아가기
-                    </Button>
-                    <Button
                         variant="google-outline"
                         size="md"
                         onClick={onRetry}
@@ -320,6 +312,14 @@ const SessionComplete: React.FC<SessionCompleteProps> = ({
                         className="w-full"
                     >
                         다시 학습하기
+                    </Button>
+                    <Button
+                        variant="google-primary"
+                        size="lg"
+                        onClick={onReturnToCourse}
+                        className="w-full"
+                    >
+                        코스로 돌아가기
                     </Button>
                 </div>
             </div>
@@ -336,7 +336,11 @@ export const ContinuousQuizSession = () => {
         sectionNumber: string;
     }>();
     const navigate = useNavigate();
+    const location = useLocation();
     const showToast = useUIStore((state) => state.showToast);
+
+    // 문제 제한 설정 (없으면 무제한)
+    const questionLimit = (location.state as { limit?: number })?.limit;
 
     // 현재 문제 상태
     const [currentQuestion, setCurrentQuestion] = useState<QuizQuestionType | null>(null);
@@ -450,6 +454,19 @@ export const ContinuousQuizSession = () => {
 
     // 피드백 확인 후 다음 문제로 전환 (사용자 클릭 필수)
     const handleNextQuestion = useCallback(() => {
+        // 목표 문제 수 달성 시 세션 종료
+        if (questionLimit && solvedCount >= questionLimit) {
+            const avgResponseTime = solvedCount > 0 ? Math.round(totalResponseTimeMs / solvedCount) : 0;
+            setSessionSummary({
+                totalQuestions: solvedCount,
+                correctCount: correctCount,
+                incorrectCount: solvedCount - correctCount,
+                averageResponseTimeMs: avgResponseTime,
+            });
+            setIsSessionComplete(true);
+            return;
+        }
+
         if (nextQuestionData) {
             const nextUiQuestion = mapApiQuestionToUiQuestion(nextQuestionData);
             setCurrentQuestion(nextUiQuestion);
@@ -459,7 +476,7 @@ export const ContinuousQuizSession = () => {
         setShowFeedback(false);
         setFeedbackData(null);
         setCurrentAnswer(undefined);
-    }, [nextQuestionData]);
+    }, [nextQuestionData, questionLimit, solvedCount, totalResponseTimeMs, correctCount]);
 
     // 답안 제출 핸들러 - useTimer로 시간 측정, 백엔드 isCorrect 기반 피드백
     const handleSubmit = useCallback(async () => {
@@ -668,12 +685,15 @@ export const ContinuousQuizSession = () => {
                         </span>
                     </div>
 
-                    {/* 진행 상황 카운터 (무한 루프 모드) */}
+                    {/* 진행 상황 카운터 */}
                     <div
                         className="flex items-center justify-between text-sm"
                         style={{ color: 'var(--color-text-secondary)' }}
                     >
-                        <span>풀이한 문제: <strong style={{ color: 'var(--color-primary)' }}>{solvedCount}</strong></span>
+                        <span>
+                            진행: <strong style={{ color: 'var(--color-primary)' }}>{solvedCount}</strong>
+                            {questionLimit ? ` / ${questionLimit}` : ' 문제'}
+                        </span>
                         <span>정답률: <strong style={{ color: 'var(--color-success)' }}>
                             {solvedCount > 0 ? Math.round((correctCount / solvedCount) * 100) : 0}%
                         </strong></span>

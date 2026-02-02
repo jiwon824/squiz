@@ -45,4 +45,9 @@ public interface UserReviewItemRepository extends JpaRepository<UserReviewItem, 
                         "WHERE r.userId = :userId AND r.lapses > 0 " +
                         "ORDER BY r.lapses DESC, r.nextReviewAt ASC")
         List<UserReviewItem> findWrongAnswers(@Param("userId") Long userId);
+
+        /**
+         * 사용자 및 콘텐츠 타입별 복습 항목 조회
+         */
+        List<UserReviewItem> findAllByUserIdAndContentType(Long userId, ReviewContentType contentType);
 }

@@ -237,6 +237,14 @@ export interface CourseProgressDetailData {
     sectionDetails: SectionDetail[];
 }
 
+export interface WeakConcept {
+    courseId: number;
+    courseName: string;
+    sectionNumber: number;
+    sectionName: string;
+    weaknessScore: number;
+}
+
 /** 답안 저장 요청 (answer is always serialized as string for backend compatibility) */
 export interface SaveAnswerRequest {
     answer: {
@@ -244,6 +252,18 @@ export interface SaveAnswerRequest {
         answer: string;
         responseTimeMs: number;
     };
+}
+
+// =============================================================================
+// Weak Concept Types
+// =============================================================================
+
+export interface WeakConcept {
+    courseId: number;
+    courseName: string;
+    sectionNumber: number;
+    sectionName: string;
+    weaknessScore: number;
 }
 
 // =============================================================================
@@ -452,6 +472,21 @@ export const fetchCourseProgressDetail = async (courseId: number): Promise<Cours
     );
     if (!response.data.success) {
         throw new Error(response.data.error?.message || '코스 진행 상세를 불러오는데 실패했습니다.');
+    }
+    return response.data.data;
+};
+
+/**
+ * 취약 개념 조회
+ * GET /api/v1/continuous-quiz/weak-concepts
+ * 인증: 필요
+ */
+export const fetchWeakConcepts = async (limit: number = 5): Promise<WeakConcept[]> => {
+    const response = await api.get<ApiResponse<WeakConcept[]>>(`/api/v1/continuous-quiz/weak-concepts`, {
+        params: { limit }
+    });
+    if (!response.data.success) {
+        throw new Error(response.data.error?.message || '취약 개념을 불러오는데 실패했습니다.');
     }
     return response.data.data;
 };

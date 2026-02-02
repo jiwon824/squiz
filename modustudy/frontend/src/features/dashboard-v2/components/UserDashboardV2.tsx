@@ -9,6 +9,7 @@ import { LearningArchiveWidget } from './LearningArchiveWidget';
 import { TodayGoalsCard } from './TodayGoalsCard';
 import { MyCreatedStudiesWidget } from './MyCreatedStudiesWidget';
 import { MyApplicationsWidget } from './MyApplicationsWidget';
+import { WeakConceptWidget } from '@/features/quiz/components/WeakConceptWidget';
 
 export const UserDashboardV2: React.FC = () => {
     const { user } = useAuthStore();
@@ -41,6 +42,12 @@ export const UserDashboardV2: React.FC = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <STTReportWidget />
                     <MyQuizWidget />
+                    <MyQuizWidget />
+                </div>
+
+                {/* 취약 개념 위젯 */}
+                <div className="h-96">
+                    <WeakConceptWidget />
                 </div>
 
                 {/* 학습 보관함 */}

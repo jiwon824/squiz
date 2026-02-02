@@ -88,14 +88,14 @@ public class FsrsService {
             updateExistingCard(item, rating);
         }
 
-        // 다음 복습 간격 계산
-        int scheduledDays = calculateScheduledDays(item.getStability());
-        item.setScheduledDays(scheduledDays);
+        // 다음 복습 간격 계산 (분 단위)
+        int scheduledMinutes = calculateScheduledMinutes(item.getStability());
+        item.setScheduledMinutes(scheduledMinutes);
         item.setReps(item.getReps() + 1);
 
         LocalDateTime now = LocalDateTime.now();
         item.setLastReviewedAt(now);
-        item.setNextReviewAt(now.plusDays(scheduledDays));
+        item.setNextReviewAt(now.plusMinutes(scheduledMinutes));
     }
 
     // ── 복습 처리 (Upsert + Log) ──
@@ -339,8 +339,8 @@ public class FsrsService {
 
         item.setStability(stability);
         item.setDifficulty(difficulty);
-        item.setElapsedDays(0);
-        item.setLastElapsedDays(0);
+        item.setElapsedMinutes(0);
+        item.setLastElapsedMinutes(0);
 
         // 상태 전이
         if (rating == FsrsConstants.RATING_AGAIN) {
@@ -365,13 +365,13 @@ public class FsrsService {
         double[] w = FsrsConstants.W;
         double S = item.getStability();
         double D = item.getDifficulty();
-        int elapsedDays = calculateElapsedDays(item);
+        int elapsedMinutes = calculateElapsedMinutes(item);
 
-        item.setLastElapsedDays(item.getElapsedDays());
-        item.setElapsedDays(elapsedDays);
+        item.setLastElapsedMinutes(item.getElapsedMinutes());
+        item.setElapsedMinutes(elapsedMinutes);
 
-        // Retrievability
-        double R = calculateRetrievability(elapsedDays, S);
+        // Retrievability (elapsedMinutes를 입력으로 받음)
+        double R = calculateRetrievability(elapsedMinutes, S);
         item.setRetrievability(R);
 
         // 난이도 갱신
@@ -432,40 +432,44 @@ public class FsrsService {
      * <pre>
      * R(t, S) = (1 + FACTOR * t / S) ^ DECAY
      * </pre>
+     * 
+     * 주의: elapsedMinutes를 '일' 단위로 변환하여 계산
      */
-    private double calculateRetrievability(int elapsedDays, double stability) {
+    private double calculateRetrievability(int elapsedMinutes, double stability) {
         if (stability <= 0) {
             return 0.0;
         }
+        double elapsedDays = elapsedMinutes / 1440.0;
         return Math.pow(
                 1 + FsrsConstants.FACTOR * elapsedDays / stability,
                 FsrsConstants.DECAY);
     }
 
     /**
-     * 안정성(Stability)으로부터 다음 복습 간격(일)을 산출한다.
+     * 안정성(Stability)으로부터 다음 복습 간격(분)을 산출한다.
      * 
      * <pre>
-     * interval = S / FACTOR * (desired_retention ^ (1 / DECAY) - 1)
+     * interval_days = S / FACTOR * (desired_retention ^ (1 / DECAY) - 1)
+     * interval_minutes = interval_days * 1440
      * </pre>
-     * 
-     * DESIRED_RETENTION = 0.9, DECAY = -0.5 일 때 interval ≈ S (설계 의도)
      */
-    private int calculateScheduledDays(double stability) {
-        double interval = stability / FsrsConstants.FACTOR
+    private int calculateScheduledMinutes(double stability) {
+        double intervalDays = stability / FsrsConstants.FACTOR
                 * (Math.pow(FsrsConstants.DESIRED_RETENTION, 1.0 / FsrsConstants.DECAY) - 1);
-        return Math.max(1, (int) Math.round(interval));
+
+        long intervalMinutes = Math.round(intervalDays * 1440.0);
+        return (int) Math.max(5, intervalMinutes); // 최소 5분 보장
     }
 
     /**
-     * 마지막 복습 이후 경과일 계산
+     * 마지막 복습 이후 경과분 계산
      */
-    private int calculateElapsedDays(UserReviewItem item) {
+    private int calculateElapsedMinutes(UserReviewItem item) {
         if (item.getLastReviewedAt() == null) {
             return 0;
         }
-        long days = Duration.between(item.getLastReviewedAt(), LocalDateTime.now()).toDays();
-        return Math.max(0, (int) days);
+        long minutes = Duration.between(item.getLastReviewedAt(), LocalDateTime.now()).toMinutes();
+        return Math.max(0, (int) minutes);
     }
 
     /**

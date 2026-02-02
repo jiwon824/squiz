@@ -15,6 +15,7 @@ import com.navercorp.nid.oauth.NidOAuthLogin
 import com.navercorp.nid.oauth.OAuthLoginCallback
 import com.ssafy.squiz.BuildConfig
 import com.ssafy.squiz.data.local.AuthManager
+import com.ssafy.squiz.base.SquizApplication
 import com.ssafy.squiz.data.remote.RetrofitClient
 import com.ssafy.squiz.data.remote.model.OAuth2CallbackRequest
 import kotlinx.coroutines.Dispatchers
@@ -190,6 +191,13 @@ class AuthRepository(
                     nickname = user.nickname ?: "",
                     profileImage = user.profileImage
                 )
+            }
+
+            // 로그인 성공 후 FCM 토큰 서버에 등록
+            try {
+                SquizApplication.getInstance().registerFcmTokenToServer()
+            } catch (e: Exception) {
+                Log.w(TAG, "FCM 토큰 등록 실패 (무시): ${e.message}")
             }
 
             AuthResult(
