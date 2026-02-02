@@ -37,10 +37,12 @@ object RetrofitClient {
         val noAuthPaths = listOf("/api/v1/auth/oauth", "/api/v1/auth/token/refresh")
         val isAuthRequired = noAuthPaths.none { originalRequest.url.encodedPath.startsWith(it) }
 
-        val request = if (isAuthRequired && authManager?.getAccessToken() != null) {
+        // accessToken을 한 번만 가져와서 사용 (두 번 호출 시 race condition 방지)
+        val accessToken = authManager?.getAccessToken()
+        val request = if (isAuthRequired && accessToken != null) {
             val userId = authManager?.getCurrentUserId() ?: 0L
             originalRequest.newBuilder()
-                .header("Authorization", "Bearer ${authManager?.getAccessToken()}")
+                .header("Authorization", "Bearer $accessToken")
                 .header("User-Id", userId.toString())
                 .build()
         } else {
