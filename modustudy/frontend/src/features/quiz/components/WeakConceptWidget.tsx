@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { fetchWeakConcepts, WeakConcept } from '../../../api/endpoints/quizCourseApi';
-import { FaBookOpen, FaExclamationTriangle } from 'react-icons/fa';
+import { BookOpen, AlertTriangle } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 
 export const WeakConceptWidget: React.FC = () => {
@@ -35,7 +35,7 @@ export const WeakConceptWidget: React.FC = () => {
   if (error) {
     return (
       <div className="bg-white rounded-2xl p-6 shadow-md border border-gray-100 h-full flex flex-col items-center justify-center">
-        <FaExclamationTriangle className="text-error mb-2" size={24} />
+        <AlertTriangle className="text-error mb-2" size={24} />
         <p className="text-text-secondary text-sm">{error}</p>
       </div>
     );
@@ -45,7 +45,7 @@ export const WeakConceptWidget: React.FC = () => {
     <div className="bg-white rounded-2xl p-6 shadow-md border border-gray-100 h-full flex flex-col">
       <div className="flex items-center gap-2 mb-4">
         <div className="p-2 bg-red-50 rounded-lg">
-          <FaExclamationTriangle className="text-error" size={20} />
+          <AlertTriangle className="text-error" size={20} />
         </div>
         <h3 className="text-lg font-bold text-text-primary">
           집중 학습 필요
@@ -54,7 +54,7 @@ export const WeakConceptWidget: React.FC = () => {
 
       {concepts.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center text-center p-4">
-          <FaBookOpen className="text-text-tertiary mb-3 opacity-50" size={32} />
+          <BookOpen className="text-text-tertiary mb-3 opacity-50" size={32} />
           <p className="text-text-secondary font-medium">발견된 취약점이 없습니다.</p>
           <p className="text-text-tertiary text-sm mt-1">완벽하게 이해하고 계시네요! 🎉</p>
         </div>

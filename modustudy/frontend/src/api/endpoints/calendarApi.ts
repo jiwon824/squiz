@@ -204,7 +204,7 @@ export const calendarApi = {
 
     /**
      * Google Calendar 연동 상태 확인
-     * GET /api/v1/calendar/google/status
+     * GET /api/v1/calendar/status
      */
     getGoogleCalendarStatus: async () => {
         const response = await api.get<{
@@ -212,10 +212,12 @@ export const calendarApi = {
             data: {
                 connected: boolean;
                 email?: string;
-                lastSyncAt?: string;
+                hasValidToken?: boolean;
+                calendarId?: string;
+                tokenExpiresAt?: string;
             }
         }>(
-            '/api/v1/calendar/google/status',
+            '/api/v1/calendar/status',
             {
                 headers: {
                     'User-Id': localStorage.getItem('userId') || ''
@@ -242,14 +244,17 @@ export const calendarApi = {
     },
 
     /**
-     * Google Calendar OAuth 콜백 처리
-     * POST /api/v1/calendar/google/callback
+     * Google Calendar 이벤트 조회
+     * GET /api/v1/calendar/events?startTime=ISO&endTime=ISO
      */
-    handleGoogleCallback: async (code: string) => {
-        const response = await api.post<{ success: boolean; data: { success: boolean } }>(
-            '/api/v1/calendar/google/callback',
-            { code },
+    getGoogleCalendarEvents: async (startTime: string, endTime: string) => {
+        const response = await api.get<{
+            success: boolean;
+            data: GoogleCalendarEventDTO[];
+        }>(
+            '/api/v1/calendar/events',
             {
+                params: { startTime, endTime },
                 headers: {
                     'User-Id': localStorage.getItem('userId') || ''
                 }
@@ -259,34 +264,32 @@ export const calendarApi = {
     },
 
     /**
-     * Google Calendar 이벤트 동기화
-     * POST /api/v1/calendar/google/sync
+     * Google Calendar 동기화 트리거 (Watch 등록)
+     * POST /api/v1/calendar/sync
      */
-    syncGoogleCalendar: async (startDate: string, endDate: string) => {
+    syncGoogleCalendar: async () => {
         const response = await api.post<{
             success: boolean;
-            data: {
-                events: GoogleCalendarEventDTO[];
-                syncedAt: string;
-            }
+            data: null;
+            message?: string;
         }>(
-            '/api/v1/calendar/google/sync',
-            { startDate, endDate },
+            '/api/v1/calendar/sync',
+            null,
             {
                 headers: {
                     'User-Id': localStorage.getItem('userId') || ''
                 }
             }
         );
-        return response.data.data;
+        return response.data;
     },
 
     /**
      * Google Calendar 연동 해제
-     * DELETE /api/v1/calendar/google/disconnect
+     * POST /api/v1/calendar/disconnect
      */
     disconnectGoogleCalendar: async () => {
-        await api.delete('/api/v1/calendar/google/disconnect', {
+        await api.post('/api/v1/calendar/disconnect', null, {
             headers: {
                 'User-Id': localStorage.getItem('userId') || ''
             }
