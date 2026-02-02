@@ -34,6 +34,210 @@ interface QuestionCardProps {
 }
 
 // -----------------------------------------------------------------------------
+// SQL 키워드 목록 (하이라이팅용)
+// -----------------------------------------------------------------------------
+const SQL_KEYWORDS = [
+    'SELECT', 'FROM', 'WHERE', 'INSERT', 'UPDATE', 'DELETE', 'CREATE', 'DROP',
+    'ALTER', 'TABLE', 'INDEX', 'JOIN', 'LEFT', 'RIGHT', 'INNER', 'OUTER',
+    'ON', 'AND', 'OR', 'NOT', 'IN', 'BETWEEN', 'LIKE', 'IS', 'NULL',
+    'ORDER', 'BY', 'GROUP', 'HAVING', 'LIMIT', 'OFFSET', 'DISTINCT',
+    'COUNT', 'SUM', 'AVG', 'MAX', 'MIN', 'AS', 'INTO', 'VALUES', 'SET',
+    'PRIMARY', 'KEY', 'FOREIGN', 'REFERENCES', 'CONSTRAINT', 'DEFAULT',
+    'UNION', 'ALL', 'EXISTS', 'CASE', 'WHEN', 'THEN', 'ELSE', 'END',
+    'ASC', 'DESC', 'TRUNCATE', 'VARCHAR', 'INT', 'INTEGER', 'BOOLEAN',
+    'DATE', 'DATETIME', 'TIMESTAMP', 'TEXT', 'FLOAT', 'DOUBLE', 'DECIMAL'
+];
+
+// -----------------------------------------------------------------------------
+// 문제 텍스트 파싱 및 렌더링 함수
+// -----------------------------------------------------------------------------
+
+/**
+ * 코드 블록 내 SQL 키워드 하이라이팅
+ */
+const highlightSqlKeywords = (code: string): React.ReactNode[] => {
+    // 키워드 패턴 생성 (대소문자 무시)
+    const keywordPattern = new RegExp(
+        `\\b(${SQL_KEYWORDS.join('|')})\\b`,
+        'gi'
+    );
+
+    const parts = code.split(keywordPattern);
+
+    return parts.map((part, index) => {
+        const isKeyword = SQL_KEYWORDS.some(
+            kw => kw.toLowerCase() === part.toLowerCase()
+        );
+
+        if (isKeyword) {
+            return (
+                <span
+                    key={index}
+                    style={{
+                        color: 'var(--color-primary)',
+                        fontWeight: 600,
+                    }}
+                >
+                    {part.toUpperCase()}
+                </span>
+            );
+        }
+
+        // 빈칸(____) 강조
+        if (part.includes('______') || part.includes('____')) {
+            const blankParts = part.split(/(_{4,})/g);
+            return blankParts.map((blankPart, blankIndex) => {
+                if (/^_{4,}$/.test(blankPart)) {
+                    return (
+                        <span
+                            key={`${index}-${blankIndex}`}
+                            style={{
+                                backgroundColor: 'var(--color-warning-light)',
+                                color: 'var(--color-warning-dark)',
+                                padding: '2px 8px',
+                                borderRadius: '4px',
+                                fontWeight: 700,
+                            }}
+                        >
+                            ?
+                        </span>
+                    );
+                }
+                return blankPart;
+            });
+        }
+
+        return part;
+    });
+};
+
+/**
+ * 문제 텍스트를 파싱하여 코드 블록을 분리하고 스타일링
+ * - 작은따옴표('...')로 감싸진 부분 → 코드 블록
+ * - 빈칸(______) → 강조 표시
+ */
+const parseQuestionText = (text: string): React.ReactNode => {
+    // 작은따옴표로 감싸진 코드 블록 찾기
+    const codeBlockPattern = /'([^']+)'/g;
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+    let match;
+    let keyIndex = 0;
+
+    while ((match = codeBlockPattern.exec(text)) !== null) {
+        // 코드 블록 이전 텍스트
+        if (match.index > lastIndex) {
+            const beforeText = text.slice(lastIndex, match.index);
+            parts.push(
+                <span key={`text-${keyIndex++}`}>
+                    {beforeText}
+                </span>
+            );
+        }
+
+        // 코드 블록 (SQL 하이라이팅 적용)
+        const codeContent = match[1];
+        parts.push(
+            <code
+                key={`code-${keyIndex++}`}
+                style={{
+                    display: 'block',
+                    backgroundColor: 'var(--color-gray-900)',
+                    color: 'var(--color-gray-100)',
+                    padding: '12px 16px',
+                    borderRadius: '8px',
+                    fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
+                    fontSize: '0.9em',
+                    lineHeight: 1.6,
+                    marginTop: '12px',
+                    marginBottom: '8px',
+                    overflowX: 'auto',
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word',
+                }}
+            >
+                {highlightSqlKeywords(codeContent)}
+            </code>
+        );
+
+        lastIndex = match.index + match[0].length;
+    }
+
+    // 남은 텍스트
+    if (lastIndex < text.length) {
+        const remainingText = text.slice(lastIndex);
+        // 남은 텍스트에서도 빈칸 처리
+        if (remainingText.includes('______') || remainingText.includes('____')) {
+            const blankParts = remainingText.split(/(_{4,})/g);
+            parts.push(
+                <span key={`text-${keyIndex++}`}>
+                    {blankParts.map((part, idx) => {
+                        if (/^_{4,}$/.test(part)) {
+                            return (
+                                <span
+                                    key={`blank-${idx}`}
+                                    style={{
+                                        backgroundColor: 'var(--color-warning-light)',
+                                        color: 'var(--color-warning-dark)',
+                                        padding: '2px 12px',
+                                        borderRadius: '4px',
+                                        fontWeight: 700,
+                                        margin: '0 4px',
+                                    }}
+                                >
+                                    ?
+                                </span>
+                            );
+                        }
+                        return part;
+                    })}
+                </span>
+            );
+        } else {
+            parts.push(
+                <span key={`text-${keyIndex++}`}>
+                    {remainingText}
+                </span>
+            );
+        }
+    }
+
+    // 코드 블록이 없으면 빈칸만 처리
+    if (parts.length === 0) {
+        if (text.includes('______') || text.includes('____')) {
+            const blankParts = text.split(/(_{4,})/g);
+            return (
+                <>
+                    {blankParts.map((part, idx) => {
+                        if (/^_{4,}$/.test(part)) {
+                            return (
+                                <span
+                                    key={`blank-${idx}`}
+                                    style={{
+                                        backgroundColor: 'var(--color-warning-light)',
+                                        color: 'var(--color-warning-dark)',
+                                        padding: '2px 12px',
+                                        borderRadius: '4px',
+                                        fontWeight: 700,
+                                        margin: '0 4px',
+                                    }}
+                                >
+                                    ?
+                                </span>
+                            );
+                        }
+                        return part;
+                    })}
+                </>
+            );
+        }
+        return text;
+    }
+
+    return <>{parts}</>;
+};
+
+// -----------------------------------------------------------------------------
 // 난이도 배지 색상 매핑
 // -----------------------------------------------------------------------------
 const difficultyColors: Record<string, { bg: string; text: string }> = {
@@ -181,12 +385,12 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
             </div>
 
             {/* 문제 내용 */}
-            <h3
+            <div
                 className="text-lg sm:text-xl font-semibold mb-6 leading-relaxed"
                 style={{ color: 'var(--color-text-primary)' }}
             >
-                {question.question}
-            </h3>
+                {parseQuestionText(question.question)}
+            </div>
 
             {/* 답변 영역 */}
             <div className="space-y-3">
