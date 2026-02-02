@@ -1,13 +1,19 @@
 package com.ssafy.domain.quiz.controller;
 
-import com.ssafy.domain.quiz.dto.response.StudyQuizListResponse;
+import com.ssafy.common.auth.SsafyUserDetails;
+import com.ssafy.common.response.ApiResponse;
+import com.ssafy.domain.quiz.dto.request.StudyQuizSubmitRequest;
 import com.ssafy.domain.quiz.dto.response.StudyQuizDetailResponse;
+import com.ssafy.domain.quiz.dto.response.StudyQuizListResponse;
+import com.ssafy.domain.quiz.dto.response.StudyQuizSubmitResponse;
 import com.ssafy.domain.quiz.entity.StudyQuiz;
 import com.ssafy.domain.quiz.service.StudyQuizService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -58,5 +64,26 @@ public class StudyQuizController {
         }
 
         return ResponseEntity.ok(StudyQuizDetailResponse.from(quiz));
+    }
+
+    /**
+     * 퀴즈 문제 답안 제출 — 채점 + FSRS 복습 스케줄링
+     */
+    @Operation(summary = "퀴즈 답안 제출",
+            description = "퀴즈 문제에 답안을 제출하고 채점 결과 및 FSRS 복습 스케줄을 반환합니다. 인증 필요.")
+    @PostMapping("/{quizId}/questions/{questionId}/submit")
+    public ApiResponse<StudyQuizSubmitResponse> submitAnswer(
+            @PathVariable Long studyId,
+            @PathVariable Long quizId,
+            @PathVariable Long questionId,
+            @Valid @RequestBody StudyQuizSubmitRequest request,
+            @AuthenticationPrincipal SsafyUserDetails userDetails) {
+
+        Long userId = userDetails.getUser().getId();
+
+        StudyQuizSubmitResponse response = studyQuizService.submitAnswer(
+                userId, questionId, request.userAnswer(), request.responseTimeMs());
+
+        return ApiResponse.success(response);
     }
 }

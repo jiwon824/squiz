@@ -22,7 +22,9 @@ import com.ssafy.domain.quiz.dto.response.OptionItem;
 import com.ssafy.domain.quiz.dto.response.TodayReviewResponse.QuestionDetail;
 import com.ssafy.domain.quiz.dto.response.TodayReviewResponse.ReviewItemDto;
 import com.ssafy.domain.quiz.entity.QuizCourseQuestion;
+import com.ssafy.domain.quiz.entity.StudyQuizQuestion;
 import com.ssafy.domain.quiz.repository.ContinuousQuizRepository;
+import com.ssafy.domain.quiz.repository.StudyQuizQuestionRepository;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -47,6 +49,7 @@ public class FsrsService {
     private final UserReviewLogRepository reviewLogRepository;
 
     private final ContinuousQuizRepository continuousQuizRepository;
+    private final StudyQuizQuestionRepository studyQuizQuestionRepository;
     private final ObjectMapper objectMapper;
 
     // ── Rating 자동 산출 ──
@@ -127,10 +130,12 @@ public class FsrsService {
                     question.getOptions(), question.getKeywords());
 
         } else if (contentType == ReviewContentType.STUDY_QUESTION) {
-            // TODO: 스터디 퀴즈(GPT 생성)의 경우 정답 저장 방식에 따라 처리 필요
-            // 현재는 임시로 정답 처리 (또는 별도 조회 로직 구현)
-            log.warn("Study question grading not fully implemented yet. Assuming correct.");
-            isCorrect = true;
+            StudyQuizQuestion question = studyQuizQuestionRepository.findById(contentId)
+                    .orElseThrow(() -> new IllegalArgumentException("Study question not found: " + contentId));
+
+            String correctAnswer = question.getCorrectAnswer();
+            isCorrect = QuizGradingUtils.grade(userAnswer, correctAnswer, question.getQuestionType(),
+                    question.getOptions(), question.getAnswerKeywords());
         }
 
         // 2. FSRS 로직 위임
@@ -178,9 +183,10 @@ public class FsrsService {
         reviewLogRepository.save(reviewLog);
 
         log.info("복습 처리 완료 - userId: {}, contentType: {}, contentId: {}, rating: {}, " +
-                "stability: {}, nextReview: {}",
+                "stability: {}, scheduledMinutes: {}, nextReview: {}",
                 userId, contentType, contentId, rating,
-                String.format("%.2f", item.getStability()), item.getNextReviewAt());
+                String.format("%.4f", item.getStability()), item.getScheduledMinutes(),
+                item.getNextReviewAt());
 
         return item;
     }
@@ -458,7 +464,7 @@ public class FsrsService {
                 * (Math.pow(FsrsConstants.DESIRED_RETENTION, 1.0 / FsrsConstants.DECAY) - 1);
 
         long intervalMinutes = Math.round(intervalDays * 1440.0);
-        return (int) Math.max(5, intervalMinutes); // 최소 5분 보장
+        return (int) Math.max(1, intervalMinutes); // 최소 1분 보장 (데모용)
     }
 
     /**
