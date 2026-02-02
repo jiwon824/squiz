@@ -52,7 +52,7 @@ export const STTReportWidget: React.FC = () => {
             <WidgetContainer>
                 <WidgetHeader
                     icon={FileText}
-                    iconColor="primary"
+                    iconColor="neutral"
                     title="미팅 리포트"
                     subtitle="최근 스터디 요약"
                     maximizePath="/meeting-report"
@@ -71,15 +71,15 @@ export const STTReportWidget: React.FC = () => {
             <WidgetContainer>
                 <WidgetHeader
                     icon={FileText}
-                    iconColor="primary"
+                    iconColor="neutral"
                     title="미팅 리포트"
                     subtitle="최근 스터디 요약"
                     maximizePath="/meeting-report"
                 />
-                <div className="flex flex-col items-center justify-center h-64 text-text-tertiary">
-                    <FileText className="mb-3 opacity-50" size={48} />
-                    <p>미팅 기록이 없습니다</p>
-                    <p className="text-sm mt-1">스터디 미팅 후 자동으로 생성됩니다</p>
+                <div className="text-center py-12">
+                    <FileText className="mx-auto text-gray-300 mb-4" size={48} />
+                    <p className="text-text-secondary">미팅 기록이 없습니다</p>
+                    <p className="text-sm text-text-tertiary mt-1">스터디 미팅 후 자동으로 생성됩니다</p>
                 </div>
             </WidgetContainer>
         );
@@ -90,7 +90,7 @@ export const STTReportWidget: React.FC = () => {
             {/* 헤더 - 공통 컴포넌트 사용 */}
             <WidgetHeader
                 icon={FileText}
-                iconColor="primary"
+                iconColor="neutral"
                 title="미팅 리포트"
                 subtitle="최근 스터디 요약"
                 maximizePath="/meeting-report"

@@ -5,10 +5,11 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Send, Search, ChevronRight, ChevronLeft, RefreshCw,
+  Search, ChevronRight, RefreshCw,
   Loader2, Clock, CheckCircle2, XCircle, Compass, Calendar
 } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
+import { PageNavHeader } from '@/shared/components/layouts';
 import { studyApi } from '@/api/endpoints/studyApi';
 
 // 신청 상태별 스타일
@@ -106,40 +107,20 @@ export const MyApplicationsPage: React.FC = () => {
   };
 
   return (
-    <div className="py-8">
-      <div className="max-w-[1400px] mx-auto px-8">
-        {/* 브레드크럼 */}
-        <div className="mb-6">
-          <nav className="flex items-center gap-1.5 text-sm mb-2">
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="text-text-tertiary hover:text-primary transition-colors"
-            >
-              대시보드
-            </button>
-            <ChevronRight size={14} className="text-text-tertiary" />
-            <span className="text-text-primary font-medium">신청한 스터디</span>
-          </nav>
-
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate(-1)}
-              className="text-text-tertiary hover:text-text-primary transition-colors"
-            >
-              <ChevronLeft size={24} strokeWidth={1.5} />
-            </button>
-            <div className="p-2 bg-violet-100 rounded-xl">
-              <Send size={20} className="text-violet-600" />
-            </div>
-            <h1 className="text-2xl font-bold text-text-primary mb-0">신청한 스터디</h1>
-            <span className="px-3 py-1 bg-violet-50 text-violet-600 rounded-full text-sm font-medium">
-              {applications.length}개
-            </span>
-          </div>
-        </div>
+    <div className="min-h-[calc(100vh-64px)] py-6 sm:py-8">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+        {/* 브레드크럼 + 헤더 */}
+        <PageNavHeader
+          title="신청한 스터디"
+          breadcrumbs={[
+            { label: '대시보드', path: '/dashboard' },
+            { label: '신청한 스터디' },
+          ]}
+          badge={{ text: `${applications.length}개`, className: 'bg-violet-50 text-violet-600' }}
+        />
 
         {/* 필터 탭 */}
-        <div className="flex items-center gap-2 mb-6">
+        <div className="flex flex-wrap items-center gap-2 mb-6">
           {([
             { key: 'ALL' as FilterStatus, label: '전체' },
             { key: 'PENDING' as FilterStatus, label: '대기중' },
@@ -150,7 +131,7 @@ export const MyApplicationsPage: React.FC = () => {
               key={tab.key}
               onClick={() => setFilter(tab.key)}
               className={cn(
-                'px-4 py-2 rounded-xl text-sm font-medium transition-all',
+                'px-3 sm:px-4 py-2 rounded-xl text-sm font-medium transition-all',
                 filter === tab.key
                   ? 'bg-violet-600 text-white shadow-sm'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -173,7 +154,8 @@ export const MyApplicationsPage: React.FC = () => {
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-violet-600 text-white font-semibold text-sm hover:bg-violet-700 transition-colors shadow-sm"
           >
             <Search size={16} />
-            스터디 찾아보기
+            <span className="hidden sm:inline">스터디 찾아보기</span>
+            <span className="sm:hidden">탐색</span>
           </button>
         </div>
 
@@ -243,16 +225,16 @@ export const MyApplicationsPage: React.FC = () => {
                     transition={{ delay: idx * 0.03 }}
                     onClick={() => navigate(`/study/${app.studyId}`)}
                     className={cn(
-                      'bg-white rounded-2xl p-5 border cursor-pointer',
+                      'bg-white rounded-2xl p-4 sm:p-5 border cursor-pointer',
                       'hover:shadow-lg hover:-translate-y-0.5',
                       'transition-all duration-200 group',
                       badge.cardBorder
                     )}
                   >
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3 sm:gap-4">
                       {/* 상태 아이콘 */}
                       <div className={cn(
-                        'w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0',
+                        'w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0',
                         app.status === 'PENDING' && 'bg-amber-50',
                         app.status === 'APPROVED' && 'bg-emerald-50',
                         app.status === 'REJECTED' && 'bg-red-50',
@@ -297,14 +279,14 @@ export const MyApplicationsPage: React.FC = () => {
 
                       {/* 상태 뱃지 */}
                       <span className={cn(
-                        'text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 flex-shrink-0',
+                        'text-xs font-bold px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full flex items-center gap-1.5 flex-shrink-0',
                         badge.className
                       )}>
                         <span className={cn('w-2 h-2 rounded-full', badge.dot)} />
                         {badge.label}
                       </span>
 
-                      <ChevronRight size={16} className="text-gray-300 flex-shrink-0" />
+                      <ChevronRight size={16} className="text-gray-300 flex-shrink-0 hidden sm:block" />
                     </div>
                   </motion.div>
                 );

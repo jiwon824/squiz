@@ -10,6 +10,7 @@ import {
 import { useAuthStore } from '@/store/authStore';
 import { studyService, Study } from '../services/studyService';
 import { studyApi, getStudySessions, StudySessionItem, deleteStudy, getLeaderReviews, getLeaderInfo, LeaderReviewResponse, LeaderInfoResponse, getProvinces, getDistricts, getMyLeaderReview } from '@/api/endpoints/studyApi';
+import { PageNavHeader } from '@/shared/components/layouts/PageNavHeader';
 import StudyApplyModalV2 from './StudyApplyModalV2';
 import { StudyReportModal } from './StudyReportModal';
 import LeaderReviewModal from './LeaderReviewModal';
@@ -18,7 +19,7 @@ import StudyListContainer from './StudyListContainer';
 import StudyLeaderCard from './StudyLeaderCard';
 import StudyCommentSection from './StudyCommentSection';
 import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
-import { Button, ArrowButton, Dropdown } from '@/shared/components';
+import { Button, Dropdown } from '@/shared/components';
 import { cn } from '@/shared/utils/cn';
 import { useDMStore } from '@/features/dm/store/dmStore';
 import { useUIStore } from '@/store/uiStore';
@@ -473,18 +474,14 @@ const StudyDetailPageV3: React.FC = () => {
             <StudyListContainer className="px-4 md:px-6">
                 <div className="max-w-8xl mx-auto py-8 animate-fadeIn">
                     {/* 상단 네비게이션 */}
-                    <div className="flex justify-between items-center mb-6">
-                        <div className="flex items-center gap-3">
-                            <ArrowButton
-                                direction="left"
-                                onClick={() => navigate('/study')}
-                                size="md"
-                            />
-                            <span className="text-sm font-semibold text-[var(--color-text-secondary)]">
-                                스터디 상세
-                            </span>
-                        </div>
-                    </div>
+                    <PageNavHeader
+                        title="스터디 상세"
+                        breadcrumbs={[
+                            { label: '스터디', path: '/study' },
+                            { label: '스터디 상세' },
+                        ]}
+                        onBack={() => navigate('/study')}
+                    />
 
                     {/* 메인 콘텐츠 */}
                     <div className="grid grid-cols-1 2xl:grid-cols-4 gap-6">

@@ -131,4 +131,11 @@ sealed class NavRoutes(val route: String) {
     object UserProfile : NavRoutes("user_profile/{userId}") {
         fun createRoute(userId: Long) = "user_profile/$userId"
     }
+
+    // DM (1:1 채팅)
+    object DmList : NavRoutes("dm_list")
+    object DmChat : NavRoutes("dm_chat/{conversationId}/{partnerId}/{partnerNickname}") {
+        fun createRoute(conversationId: Long, partnerId: Long, partnerNickname: String) =
+            "dm_chat/$conversationId/$partnerId/${java.net.URLEncoder.encode(partnerNickname, "UTF-8")}"
+    }
 }

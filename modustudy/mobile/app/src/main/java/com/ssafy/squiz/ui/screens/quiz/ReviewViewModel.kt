@@ -1,5 +1,6 @@
 package com.ssafy.squiz.ui.screens.quiz
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ssafy.squiz.data.remote.RetrofitClient
@@ -71,15 +72,23 @@ class ReviewViewModel : ViewModel() {
     private val _quizDetailState = MutableStateFlow<QuizDetailUiState>(QuizDetailUiState.Loading)
     val quizDetailState: StateFlow<QuizDetailUiState> = _quizDetailState.asStateFlow()
 
+    companion object {
+        private const val TAG = "ReviewViewModel"
+    }
+
     // 오늘 복습 로드 (실제 API 연동)
     fun loadTodayReviews() {
         viewModelScope.launch {
             _todayReviewState.value = TodayReviewUiState.Loading
             try {
+                Log.d(TAG, "오늘 복습 로드 시작")
                 val response = RetrofitClient.reviewApi.getTodayReviews()
+                Log.d(TAG, "오늘 복습 API 응답: ${response.code()}")
 
                 if (response.isSuccessful) {
                     val reviewResponse = response.body()?.data
+                    Log.d(TAG, "복습 데이터: items=${reviewResponse?.items?.size}, totalCount=${reviewResponse?.totalCount}")
+
                     if (reviewResponse != null) {
                         _todayReviewState.value = TodayReviewUiState.Success(
                             cards = reviewResponse.cards,
@@ -89,6 +98,7 @@ class ReviewViewModel : ViewModel() {
                         )
                     } else {
                         // 빈 데이터
+                        Log.w(TAG, "복습 데이터 없음")
                         _todayReviewState.value = TodayReviewUiState.Success(
                             cards = emptyList(),
                             dueCount = 0,
@@ -96,10 +106,21 @@ class ReviewViewModel : ViewModel() {
                             totalCount = 0
                         )
                     }
+                } else if (response.code() == 404) {
+                    // API 미구현 또는 데이터 없음
+                    Log.w(TAG, "복습 API 404 - 빈 목록으로 처리")
+                    _todayReviewState.value = TodayReviewUiState.Success(
+                        cards = emptyList(),
+                        dueCount = 0,
+                        newCount = 0,
+                        totalCount = 0
+                    )
                 } else {
+                    Log.e(TAG, "복습 API 실패: ${response.code()}")
                     _todayReviewState.value = TodayReviewUiState.Error("복습 카드를 불러오는데 실패했습니다. (${response.code()})")
                 }
             } catch (e: Exception) {
+                Log.e(TAG, "복습 로드 실패", e)
                 _todayReviewState.value = TodayReviewUiState.Error(e.message ?: "네트워크 오류가 발생했습니다.")
             }
         }

@@ -18,7 +18,9 @@ import com.ssafy.squiz.ui.screens.schedule.*
 import com.ssafy.squiz.ui.screens.quiz.*
 import com.ssafy.squiz.ui.screens.mypage.*
 import com.ssafy.squiz.ui.screens.meeting.*
+import com.ssafy.squiz.ui.screens.dm.*
 import com.ssafy.squiz.ui.screens.main.MainScreen
+import java.net.URLDecoder
 
 @Composable
 fun SquizNavHost(
@@ -87,6 +89,9 @@ fun SquizNavHost(
                 },
                 onNavigateToNotifications = {
                     navController.navigate(NavRoutes.Notifications.route)
+                },
+                onNavigateToDmList = {
+                    navController.navigate(NavRoutes.DmList.route)
                 },
                 onNavigateToStudyHome = { studyId ->
                     navController.navigate(NavRoutes.StudyHome.createRoute(studyId))
@@ -254,6 +259,13 @@ fun SquizNavHost(
                 },
                 onNavigateToMeetingList = {
                     navController.navigate(NavRoutes.MeetingList.createRoute(studyId))
+                },
+                onNavigateToAttendance = { sId, sessionId, isLeader ->
+                    if (isLeader) {
+                        navController.navigate(NavRoutes.AttendanceLeader.createRoute(sId, sessionId))
+                    } else {
+                        navController.navigate(NavRoutes.AttendanceMember.createRoute(sId, sessionId))
+                    }
                 }
             )
         }
@@ -276,9 +288,9 @@ fun SquizNavHost(
             route = NavRoutes.Chat.route,
             arguments = listOf(navArgument("channelId") { type = NavType.LongType })
         ) { backStackEntry ->
-            val channelId = backStackEntry.arguments?.getLong("channelId") ?: 0L
+            val studyId = backStackEntry.arguments?.getLong("channelId") ?: 0L
             ChatScreen(
-                channelId = channelId,
+                studyId = studyId,
                 onBackClick = { navController.popBackStack() }
             )
         }
@@ -684,6 +696,45 @@ fun SquizNavHost(
             val userId = backStackEntry.arguments?.getLong("userId") ?: 0L
             UserProfileScreen(
                 userId = userId,
+                onBackClick = { navController.popBackStack() },
+                onSendMessage = { partnerId, partnerNickname ->
+                    navController.navigate(NavRoutes.DmChat.createRoute(-1, partnerId, partnerNickname))
+                }
+            )
+        }
+
+        // DM (1:1 채팅)
+        composable(NavRoutes.DmList.route) {
+            DmListScreen(
+                onBackClick = { navController.popBackStack() },
+                onConversationClick = { conversationId, partnerId, partnerNickname ->
+                    navController.navigate(NavRoutes.DmChat.createRoute(conversationId, partnerId, partnerNickname))
+                }
+            )
+        }
+
+        composable(
+            route = NavRoutes.DmChat.route,
+            arguments = listOf(
+                navArgument("conversationId") { type = NavType.LongType },
+                navArgument("partnerId") { type = NavType.LongType },
+                navArgument("partnerNickname") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val conversationId = backStackEntry.arguments?.getLong("conversationId") ?: 0L
+            val partnerId = backStackEntry.arguments?.getLong("partnerId") ?: 0L
+            val partnerNickname = try {
+                URLDecoder.decode(
+                    backStackEntry.arguments?.getString("partnerNickname") ?: "",
+                    "UTF-8"
+                )
+            } catch (e: Exception) {
+                backStackEntry.arguments?.getString("partnerNickname") ?: ""
+            }
+            DmChatScreen(
+                conversationId = conversationId,
+                partnerId = partnerId,
+                partnerNickname = partnerNickname,
                 onBackClick = { navController.popBackStack() }
             )
         }

@@ -17,3 +17,6 @@ export type { PageLayoutProps } from './PageLayout';
 
 export { TabLayout, TabContent, TabContentWrapper } from './TabLayout';
 export type { TabLayoutProps, TabItem, TabContentProps } from './TabLayout';
+
+export { PostIt, getPostItTheme } from './PostIt';
+export type { PostItProps, PostItColor } from './PostIt';
