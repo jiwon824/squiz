@@ -1,7 +1,7 @@
 // STT 미팅 리포트 페이지
 // 서브컴포넌트로 분리된 대시보드형 레이아웃
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
