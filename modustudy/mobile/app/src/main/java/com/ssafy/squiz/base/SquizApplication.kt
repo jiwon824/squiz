@@ -165,12 +165,22 @@ class SquizApplication : Application() {
 
     /**
      * FCM 토큰 서버 등록
+     * accessToken이 있어야 User-Id 헤더가 전송됨
      */
     fun registerFcmTokenToServer(token: String? = fcmToken) {
         if (token == null) {
             Log.w(TAG, "FCM 토큰이 없습니다")
             return
         }
+
+        // accessToken이 없으면 등록 불가 (User-Id 헤더 전송 안됨)
+        val accessToken = authManager.getAccessToken()
+        if (accessToken == null) {
+            Log.w(TAG, "FCM 토큰 서버 등록 스킵: accessToken이 없습니다")
+            return
+        }
+
+        Log.d(TAG, "FCM 토큰 서버 등록 시도: userId=${authManager.getCurrentUserId()}")
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -180,7 +190,7 @@ class SquizApplication : Application() {
                 if (response.isSuccessful && response.body()?.success == true) {
                     Log.d(TAG, "FCM 토큰 서버 등록 성공")
                 } else {
-                    Log.e(TAG, "FCM 토큰 서버 등록 실패: ${response.errorBody()?.string()}")
+                    Log.e(TAG, "FCM 토큰 서버 등록 실패: ${response.code()} - ${response.errorBody()?.string()}")
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "FCM 토큰 서버 등록 오류: ${e.message}")
