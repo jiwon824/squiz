@@ -254,7 +254,7 @@ class FsrsServiceTest {
                                         .difficulty(5.0)
                                         .reps(3)
                                         .lapses(0)
-                                        .elapsedDays(3)
+                                        .elapsedMinutes(3 * 1440)
                                         .lastReviewedAt(LocalDateTime.now().minusDays(3))
                                         .build();
 
@@ -282,7 +282,7 @@ class FsrsServiceTest {
                                         .difficulty(5.0)
                                         .reps(5)
                                         .lapses(0)
-                                        .elapsedDays(5)
+                                        .elapsedMinutes(5 * 1440)
                                         .lastReviewedAt(LocalDateTime.now().minusDays(5))
                                         .build();
 
@@ -295,8 +295,8 @@ class FsrsServiceTest {
                 }
 
                 @Test
-                @DisplayName("scheduledDays는 최소 1일 이상이다")
-                void shouldHaveMinimumScheduledDaysOfOne() {
+                @DisplayName("scheduledMinutes는 최소 5분 이상이다")
+                void shouldHaveMinimumScheduledMinutesOfFive() {
                         // given: 신규 카드 (낮은 안정성)
                         UserReviewItem newItem = UserReviewItem.builder()
                                         .userId(TEST_USER_ID)
@@ -312,7 +312,7 @@ class FsrsServiceTest {
                         fsrsService.updateFsrsState(newItem, FsrsConstants.RATING_AGAIN);
 
                         // then
-                        assertThat(newItem.getScheduledDays()).isGreaterThanOrEqualTo(1);
+                        assertThat(newItem.getScheduledMinutes()).isGreaterThanOrEqualTo(5);
                 }
         }
 
@@ -554,7 +554,7 @@ class FsrsServiceTest {
 
                         QuizCourseSection section = QuizCourseSection.builder().course(course).build();
                         ReflectionTestUtils.setField(section, "quizCourseId", 10L); // Course ID와 일치시켜야 함
-                        ReflectionTestUtils.setField(section, "sectionNumber", 1);  // 섹션 번호 설정
+                        ReflectionTestUtils.setField(section, "sectionNumber", 1); // 섹션 번호 설정
 
                         QuizCourseQuestion question = QuizCourseQuestion.builder()
                                         .section(section)

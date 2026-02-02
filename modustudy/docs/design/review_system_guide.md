@@ -13,8 +13,9 @@
 - **pk**: `id`
 - **uk**: `user_id`, `content_type`, `content_id`
 - **핵심 필드**:
-  - `stability` (안정도): 기억이 유지되는 기간 (일 단위)
+  - `stability` (안정도): 기억이 유지되는 기간 (일 단위, 내부 계산용)
   - `difficulty` (난이도): 1(EASY) ~ 10(HARD)
+  - `scheduled_minutes` (다음 복습 간격): 분 단위
   - `next_review_at` (다음 복습 시점)
   - `state` (학습 단계): New(0), Learning(1), Review(2), Relearning(3)
 
@@ -57,7 +58,8 @@
 1. 학습 결과(정답 여부, 응답 시간) 수신
 2. 등급(Rating) 산출
 3. FSRS 알고리즘에 따른 Stability, Difficulty 재계산
-4. `next_review_at` 갱신 (현재 시간 + Stability * Factor)
+4. `scheduled_minutes` 계산 (Stability 기반, 최소 5분)
+5. `next_review_at` 갱신 (현재 시간 + scheduled_minutes)
 
 ## 4. 스터디 퀴즈 연동 가이드
 

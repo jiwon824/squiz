@@ -24,6 +24,8 @@ interface WorkspaceSidebarProps {
   activeSession?: StudySessionResponse | null;
   /** 미팅으로 이동 콜백 (전환 애니메이션 처리용) */
   onNavigateToMeeting?: () => void;
+  /** 스터디장 여부 (스터디 관리 버튼 표시용) */
+  isLeader?: boolean;
 }
 
 // 메뉴 아이템 타입
@@ -69,6 +71,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
   onToggleDarkMode,
   activeSession,
   onNavigateToMeeting,
+  isLeader = false,
 }) => {
   const navigate = useNavigate();
 
@@ -101,10 +104,10 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
       </div>
 
       {/* 구분선 */}
-      <div className="workspace-sidebar__divider" />
+      {/* <div className="workspace-sidebar__divider" /> */}
 
       {/* 테마 토글 */}
-      <div className="workspace-sidebar__quick-actions">
+      {/* <div className="workspace-sidebar__quick-actions">
         <div className="workspace-sidebar__section-title">테마</div>
 
         <button
@@ -119,7 +122,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
           </div>
           <span>{isDarkMode ? '다크 모드' : '라이트 모드'}</span>
         </button>
-      </div>
+      </div> */}
 
       {/* 구분선 */}
       <div className="workspace-sidebar__divider" />
@@ -136,13 +139,16 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
           <span>스터디 정보</span>
         </button>
 
-        <button
-          className="workspace-sidebar__action-btn"
-          onClick={() => studyId && navigate(`/study/manage/${studyId}`)}
-        >
-          <UserCog size={18} />
-          <span>스터디 관리</span>
-        </button>
+        {/* 스터디 관리 - 스터디장만 표시 */}
+        {isLeader && (
+          <button
+            className="workspace-sidebar__action-btn"
+            onClick={() => studyId && navigate(`/study/manage/${studyId}`)}
+          >
+            <UserCog size={18} />
+            <span>스터디 관리</span>
+          </button>
+        )}
       </div>
 
       {/* 하단 미팅 참여 버튼 - 진행 중인 세션이 있을 때만 표시 */}

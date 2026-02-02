@@ -82,13 +82,18 @@ export const QuizGameSelection = () => {
             <div className="max-w-7xl mx-auto">
                 {/* 상단 네비게이션 및 헤더 */}
                 <header className="mb-16 animate-fadeIn">
-                    <div className="flex items-center gap-4 mb-10">
+                    <div
+                        className="flex items-center gap-4 mb-10 cursor-pointer group w-fit"
+                        onClick={handleNavigateToDashboard}
+                    >
                         <ArrowButton
                             direction="left"
                             onClick={handleNavigateToDashboard}
                             size="md"
                         />
-                        <span className="text-sm font-bold text-text-secondary">대시보드로 돌아가기</span>
+                        <span className="text-sm font-bold text-text-secondary group-hover:text-text-primary transition-colors">
+                            대시보드로 돌아가기
+                        </span>
                     </div>
 
                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">

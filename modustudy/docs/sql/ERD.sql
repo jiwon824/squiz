@@ -851,14 +851,14 @@ CREATE TABLE IF NOT EXISTS `user_review_items` (
     -- FSRS 핵심 변수 (지수 함수 정밀 연산을 위해 DOUBLE 사용)
     `stability` DOUBLE NOT NULL DEFAULT 0.0,      -- 기억 안정성 (S)
     `difficulty` DOUBLE NOT NULL DEFAULT 5.0,     -- 난이도 (D, 1~10 사이 관리)
-    `elapsed_days` INT DEFAULT 0,        -- 마지막 복습 후 경과일
-    `scheduled_days` INT DEFAULT 0,      -- 다음 복습까지의 간격 (오차 보정용)
+    `elapsed_minutes` INT DEFAULT 0,        -- 마지막 복습 후 경과분
+    `scheduled_minutes` INT DEFAULT 0,      -- 다음 복습까지의 간격 (분 단위)
     `reps` INT DEFAULT 0,                -- 전체 복습 횟수
     `lapses` INT DEFAULT 0,              -- 잊어버린(틀린) 횟수
     `state` INT DEFAULT 0,               -- 상태 (0:New, 1:Learning, 2:Review, 3:Relearning)
     
     -- V15 추가: 상태 추적 고도화
-    `last_elapsed_days` INT DEFAULT 0,
+    `last_elapsed_minutes` INT DEFAULT 0,
     `last_response_time_ms` BIGINT DEFAULT 0,
     `retrievability` DOUBLE DEFAULT 0.0,
     

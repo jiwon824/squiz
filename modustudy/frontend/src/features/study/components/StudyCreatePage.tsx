@@ -446,6 +446,10 @@ const StudyCreatePage: React.FC = () => {
     };
 
     const addSession = () => {
+        // 총 회차 수를 초과하면 추가하지 않음
+        if (formData.curriculum.length >= formData.totalSessions) {
+            return;
+        }
         setFormData(prev => ({
             ...prev,
             curriculum: [...prev.curriculum, {
@@ -1374,8 +1378,12 @@ const StudyCreatePage: React.FC = () => {
                                             <div className="flex items-center justify-center gap-2">
                                                 <button
                                                     type="button"
-                                                    onClick={() => setFormData(prev => ({ ...prev, totalSessions: Math.max(1, prev.totalSessions - 1) }))}
+                                                    onClick={() => setFormData(prev => ({
+                                                        ...prev,
+                                                        totalSessions: Math.max(prev.curriculum.length, prev.totalSessions - 1)
+                                                    }))}
                                                     className="w-10 h-10 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-600 font-bold transition-all"
+                                                    disabled={formData.totalSessions <= formData.curriculum.length}
                                                 >
                                                     −
                                                 </button>
@@ -1390,7 +1398,10 @@ const StudyCreatePage: React.FC = () => {
                                                             setFormData(prev => ({ ...prev, totalSessions: Math.min(100, val) }));
                                                         }
                                                     }}
-                                                    onBlur={() => setFormData(prev => ({ ...prev, totalSessions: Math.max(1, prev.totalSessions) }))}
+                                                    onBlur={() => setFormData(prev => ({
+                                                        ...prev,
+                                                        totalSessions: Math.max(prev.curriculum.length, prev.totalSessions)
+                                                    }))}
                                                     className="flex-1 text-center py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                                                 />
                                                 <button
@@ -1401,6 +1412,11 @@ const StudyCreatePage: React.FC = () => {
                                                     +
                                                 </button>
                                             </div>
+                                            {formData.curriculum.length > 1 && (
+                                                <p className="text-xs text-gray-500 mt-1">
+                                                    이미 {formData.curriculum.length}회차까지 커리큘럼이 등록되어 최소 {formData.curriculum.length}회입니다.
+                                                </p>
+                                            )}
                                         </div>
 
                                         <div>
@@ -1639,6 +1655,9 @@ const StudyCreatePage: React.FC = () => {
                                             </h2>
                                             <p className="text-sm text-gray-500 mt-1">
                                                 회차별 학습 목표를 설정하면 참여자들이 스터디 방향을 파악하는 데 도움이 됩니다.
+                                                <span className="text-primary font-medium ml-1">
+                                                    (총 {formData.totalSessions}회차 중 {formData.curriculum.length}회차 등록됨)
+                                                </span>
                                             </p>
 
                                             <div className="space-y-3 mt-4">
@@ -1698,8 +1717,12 @@ const StudyCreatePage: React.FC = () => {
                                                     fullWidth
                                                     leftIcon={<Plus size={18} />}
                                                     className="border-dashed mt-2"
+                                                    disabled={formData.curriculum.length >= formData.totalSessions}
                                                 >
-                                                    회차 추가하기
+                                                    {formData.curriculum.length >= formData.totalSessions
+                                                        ? `모든 회차 등록 완료 (${formData.curriculum.length}/${formData.totalSessions}회차)`
+                                                        : `회차 추가하기 (${formData.curriculum.length}/${formData.totalSessions}회차)`
+                                                    }
                                                 </Button>
                                             </div>
                                         </div>

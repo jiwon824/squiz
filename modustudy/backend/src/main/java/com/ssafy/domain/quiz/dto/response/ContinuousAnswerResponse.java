@@ -9,7 +9,9 @@ import java.time.LocalDateTime;
 /**
  * Continuous Learning 모드 답변 결과 응답 DTO.
  *
- * <p>정답 여부, 해설, FSRS 갱신 정보를 포함한다.</p>
+ * <p>
+ * 정답 여부, 해설, FSRS 갱신 정보를 포함한다.
+ * </p>
  */
 @Getter
 @Builder
@@ -28,20 +30,24 @@ public class ContinuousAnswerResponse {
 
     /**
      * 기억 안정성 (S)
-     * <p>높을수록 오래 기억함</p>
+     * <p>
+     * 높을수록 오래 기억함
+     * </p>
      */
     private Double stability;
 
     /**
      * 난이도 (D, 1~10)
-     * <p>높을수록 어려운 문제</p>
+     * <p>
+     * 높을수록 어려운 문제
+     * </p>
      */
     private Double difficulty;
 
     /**
-     * 다음 복습까지의 간격 (일)
+     * 다음 복습까지의 간격 (분)
      */
-    private Integer scheduledDays;
+    private Integer scheduledMinutes;
 
     /**
      * 다음 복습 예정일
@@ -51,10 +57,10 @@ public class ContinuousAnswerResponse {
     /**
      * 학습 상태
      * <ul>
-     *   <li>0: New (새 문제)</li>
-     *   <li>1: Learning (학습 중)</li>
-     *   <li>2: Review (복습 단계)</li>
-     *   <li>3: Relearning (재학습 중)</li>
+     * <li>0: New (새 문제)</li>
+     * <li>1: Learning (학습 중)</li>
+     * <li>2: Review (복습 단계)</li>
+     * <li>3: Relearning (재학습 중)</li>
      * </ul>
      */
     private Integer state;
