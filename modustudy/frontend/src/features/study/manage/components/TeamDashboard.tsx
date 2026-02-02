@@ -134,15 +134,23 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ study, onStudyUpdate }) =
     // 최대 인원 충족 여부
     const hasMaximumMembers = stats.totalMembers >= stats.maxMembers;
 
+    // 모집 마감일 확인 (프론트엔드에서 직접 체크)
+    const recruitEndDate = (study as any).recruitEndDate ? new Date((study as any).recruitEndDate) : null;
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);  // 마감일 당일까지는 모집 중으로 취급
+    const isRecruitmentEnded = recruitEndDate ? today > new Date(recruitEndDate) : false;
+
     // 스터디 시작 가능 여부
-    // - RECRUIT_CLOSED: 모집 기간 전 최대 인원 충족 상태
-    // - PENDING + 최소 인원 충족: 모집 기간 종료 후 최소 인원은 충족된 상태
-    const canStartStudy = study.status === 'RECRUIT_CLOSED' || (study.status === 'PENDING' && hasMinimumMembers);
+    // 1. RECRUIT_CLOSED: 최대 인원 충족 (마감일 전이라도 시작 가능)
+    // 2. 마감일 지남 + 최소 인원 충족
+    const canStartStudy =
+        study.status === 'RECRUIT_CLOSED' ||  // 최대 인원 충족
+        (isRecruitmentEnded && hasMinimumMembers);  // 마감일 지남 + 최소 인원 충족
 
     // 모집 연장 가능 여부
-    // - PENDING + 최대 인원 미충족 + 연장 횟수 1회 미만
+    // - 마감일 지남 + 최대 인원 미충족 + 연장 횟수 1회 미만
     const extensionCount = (study as any).extensionCount || 0;
-    const canExtendRecruitment = study.status === 'PENDING' && !hasMaximumMembers && extensionCount < 1;
+    const canExtendRecruitment = isRecruitmentEnded && !hasMaximumMembers && extensionCount < 1;
 
     // 상태 텍스트 변환 함수
     const getStatusText = (status: string): string => {
