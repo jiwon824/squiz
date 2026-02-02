@@ -7,7 +7,7 @@ import java.util.Optional;
 
 public interface UserStatsRepository extends JpaRepository<UserStats, Long> {
 
-    Optional<UserStats> findByUserId(Long userId);
+    Optional<UserStats> findByUser_Id(Long userId);
 
-    boolean existsByUserId(Long userId);
+    boolean existsByUser_Id(Long userId);
 }

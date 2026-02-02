@@ -16,6 +16,7 @@ import com.ssafy.domain.study.workspace.service.WorkspaceService;
 import com.ssafy.domain.user.entity.Role;
 import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.repository.UserRepository;
+import org.springframework.context.ApplicationEventPublisher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -67,6 +68,9 @@ class StudyServiceTest {
 
     @Mock
     private NotificationService notificationService;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private StudyService studyService;

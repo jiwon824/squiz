@@ -43,13 +43,9 @@ const ApplicantManagement: React.FC<ApplicantManagementProps> = ({ studyId }) =>
                 filterStatus === 'all' ? undefined : filterStatus
             );
 
-            console.log('[ApplicantManagement] API 응답:', response);
-            console.log('[ApplicantManagement] 필터 상태:', filterStatus);
 
             // 응답 구조 확인 및 변환
             const content = response?.data?.content || response?.content || [];
-            console.log('[ApplicantManagement] content:', content);
-            console.log('[ApplicantManagement] 신청자 수:', content.length);
 
             const mappedApplicants: Applicant[] = content.map((app: any) => ({
                 applicationId: app.applicationId,
@@ -61,7 +57,6 @@ const ApplicantManagement: React.FC<ApplicantManagementProps> = ({ studyId }) =>
                 createdAt: app.createdAt || app.appliedAt || new Date().toISOString(),
             }));
 
-            console.log('[ApplicantManagement] 매핑된 신청자:', mappedApplicants);
             setApplicants(mappedApplicants);
         } catch (error) {
             console.error('신청자 목록 조회 실패:', error);

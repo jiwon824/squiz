@@ -35,10 +35,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ studyId, maxMembers
         setLoading(true);
         try {
             const response = await studyApi.getStudyMembers(studyId, 0, 100);
-            console.log('[MemberManagement] API 응답:', response);
             const content = response?.data?.content || response?.content || [];
-            console.log('[MemberManagement] content:', content);
-            console.log('[MemberManagement] 멤버 수:', content.length);
 
             const mappedMembers: Member[] = content.map((member: any) => ({
                 userId: member.userId || member.id,
@@ -49,7 +46,6 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ studyId, maxMembers
                 attendanceRate: member.attendanceRate || 0,
             }));
 
-            console.log('[MemberManagement] 매핑된 멤버:', mappedMembers);
             setMembers(mappedMembers);
         } catch (error) {
             console.error('멤버 목록 조회 실패:', error);

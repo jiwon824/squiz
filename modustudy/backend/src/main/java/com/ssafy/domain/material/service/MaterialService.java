@@ -14,12 +14,18 @@ import com.ssafy.domain.material.repository.MaterialCommentRepository;
 import com.ssafy.domain.material.repository.MaterialRepository;
 import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.repository.UserRepository;
+import com.ssafy.domain.study.entity.Study;
+import com.ssafy.domain.study.repository.StudyRepository;
+import com.ssafy.domain.gamification.event.MaterialUploadEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
 
 /**
  * 자료 서비스
@@ -33,6 +39,8 @@ public class MaterialService {
     private final MaterialRepository materialRepository;
     private final MaterialCommentRepository commentRepository;
     private final UserRepository userRepository;
+    private final StudyRepository studyRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * 자료 목록 조회 (동적 검색)
@@ -96,6 +104,18 @@ public class MaterialService {
         Material saved = materialRepository.save(material);
         log.info("링크 자료 생성 완료 - materialId: {}", saved.getId());
 
+        // 게이미피케이션 이벤트 발행 - 자료 업로드
+        Study study = studyRepository.findById(studyId).orElse(null);
+        String studyName = study != null ? study.getName() : "";
+        eventPublisher.publishEvent(new MaterialUploadEvent(
+                userId,
+                studyId,
+                studyName,
+                saved.getId(),
+                saved.getTitle(),
+                LocalDate.now()
+        ));
+
         return MaterialCreateResponse.from(saved);
     }
 
@@ -122,6 +142,18 @@ public class MaterialService {
 
         Material saved = materialRepository.save(material);
         log.info("파일 자료 생성 완료 - materialId: {}", saved.getId());
+
+        // 게이미피케이션 이벤트 발행 - 자료 업로드
+        Study study = studyRepository.findById(studyId).orElse(null);
+        String studyName = study != null ? study.getName() : "";
+        eventPublisher.publishEvent(new MaterialUploadEvent(
+                userId,
+                studyId,
+                studyName,
+                saved.getId(),
+                saved.getTitle(),
+                LocalDate.now()
+        ));
 
         return MaterialCreateResponse.from(saved);
     }

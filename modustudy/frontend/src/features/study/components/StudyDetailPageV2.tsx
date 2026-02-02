@@ -87,7 +87,6 @@ const StudyDetailPageV2: React.FC = () => {
     };
 
     const handleReportSubmit = (reason: string) => {
-        console.log(`[REPORT] Study ID: ${study.id}, Reason: ${reason}`);
         showToast('신고가 접수되었습니다.', 'success');
     };
 

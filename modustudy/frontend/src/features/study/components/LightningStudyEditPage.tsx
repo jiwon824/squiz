@@ -387,7 +387,6 @@ const LightningStudyEditPage: React.FC = () => {
                 goal: formData.goal || undefined,
             };
 
-            console.log('번개 스터디 수정 payload:', payload);
 
             await updateStudy(Number(studyId), payload);
 

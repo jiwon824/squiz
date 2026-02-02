@@ -70,6 +70,52 @@ public class StudySessionService {
         return StudySessionResponse.from(saved);
     }
 
+
+    /**
+     * 세션 일괄 생성 (커리큘럼용)
+     * 하나의 트랜잭션으로 여러 세션을 효율적으로 생성
+     */
+    @Transactional
+    public List<StudySessionResponse> createSessionsBulk(Long studyId, Long userId, List<StudySessionCreateRequest> requests) {
+        // 스터디 존재 확인 및 권한 검증
+        Study study = getStudyOrThrow(studyId);
+        validateStudyLeader(study, userId);
+
+        // 현재 최대 회차 번호 조회
+        Integer currentMaxNumber = studySessionRepository.findMaxSessionNumberByStudyId(studyId);
+
+        // 세션 일괄 생성
+        List<StudySession> sessions = new java.util.ArrayList<>();
+        for (int i = 0; i < requests.size(); i++) {
+            StudySessionCreateRequest request = requests.get(i);
+            StudySession session = StudySession.builder()
+                    .studyId(studyId)
+                    .sessionNumber(currentMaxNumber + i + 1)
+                    .title(request.getTitle())
+                    .description(request.getDescription())
+                    .scheduledAt(request.getScheduledAt())
+                    .durationMinutes(request.getDurationMinutes() != null ? request.getDurationMinutes() : 60)
+                    .location(request.getLocation())
+                    .isOnline(request.getIsOnline() != null ? request.getIsOnline() : true)
+                    .build();
+            sessions.add(session);
+        }
+
+        // 일괄 저장
+        List<StudySession> savedSessions = studySessionRepository.saveAll(sessions);
+        log.info("세션 일괄 생성 완료 - studyId: {}, count: {}", studyId, savedSessions.size());
+
+        // Google Calendar 동기화 (백그라운드 처리)
+        String studyName = study.getName();
+        for (StudySession session : savedSessions) {
+            syncSessionToMemberCalendars(session, studyName);
+        }
+
+        return savedSessions.stream()
+                .map(StudySessionResponse::from)
+                .toList();
+    }
+
     /**
      * 세션 단건 조회
      */

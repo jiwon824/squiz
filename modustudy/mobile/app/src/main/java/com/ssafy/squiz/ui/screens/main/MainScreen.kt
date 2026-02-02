@@ -47,6 +47,7 @@ fun MainScreen(
     onNavigateToMyApplications: () -> Unit,
     onNavigateToStudyTemplates: () -> Unit,
     onNavigateToScheduleList: () -> Unit,
+    onNavigateToStudyCreate: () -> Unit,
     onNavigateToLogin: () -> Unit
 ) {
     val context = LocalContext.current

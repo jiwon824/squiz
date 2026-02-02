@@ -110,15 +110,11 @@ const StudyDetailPageV3: React.FC = () => {
             try {
                 // 스터디 상세 조회
                 const data = await studyApi.getStudyDetail(Number(id));
-                console.log('[스터디 상세 API 응답]', data);
                 setStudyDetail(data as StudyDetail);
 
                 // 세션(커리큘럼) 목록 조회
                 try {
-                    console.log('[세션 조회 시작] studyId:', id);
                     const sessionData = await getStudySessions(Number(id));
-                    console.log('[세션 목록 API 응답]', sessionData);
-                    console.log('[세션 개수]', Array.isArray(sessionData) ? sessionData.length : 'not array');
                     setSessions(Array.isArray(sessionData) ? sessionData : []);
                 } catch (sessionError: any) {
                     console.error('세션 목록 조회 실패:', sessionError);
@@ -129,7 +125,6 @@ const StudyDetailPageV3: React.FC = () => {
                 // 스터디장 정보 조회 (평점, 리뷰 수 포함)
                 try {
                     const leaderData = await getLeaderInfo(Number(id));
-                    console.log('[스터디장 정보 API 응답]', leaderData);
                     setLeaderInfo(leaderData);
                     setLeaderAvgRating(leaderData.leaderRating);
                     setLeaderReviewCount(leaderData.leaderReviewCount || 0);
@@ -315,7 +310,6 @@ const StudyDetailPageV3: React.FC = () => {
     };
 
     const handleReportSubmit = (reason: string) => {
-        console.log(`[REPORT] Study ID: ${studyDetail.id}, Reason: ${reason}`);
         showToast('신고가 접수되었습니다.', 'success');
     };
 
@@ -473,7 +467,6 @@ const StudyDetailPageV3: React.FC = () => {
     const isClosed = isFullCapacity || isRecruitDeadlinePassed;
 
     // 디버그용: 콘솔에서 확인
-    console.log('[isOwner 확인]', { userId: user?.id, leaderId: study.leader?.id, isOwner });
 
     return (
         <UserLayoutV2>

@@ -64,7 +64,7 @@ test:
 
 # ===========================================
 # Build Images Stage (Docker 이미지 빌드 & Push)
-# 첫 배포 후에는 changes 조건을 다시 활성화하여 변경된 이미지만 빌드
+# 변경된 이미지만 빌드 (changes 조건 활성화)
 # ===========================================
 
 # Backend 이미지 빌드
@@ -81,9 +81,8 @@ build-backend-image:
     refs:
       - master
       - main
-    # 첫 배포 완료 후 아래 changes 조건 활성화
-    # changes:
-    #   - modustudy/backend/**/*
+    changes:
+      - modustudy/backend/**/*
   tags:
     - docker
 
@@ -101,9 +100,8 @@ build-frontend-image:
     refs:
       - master
       - main
-    # 첫 배포 완료 후 아래 changes 조건 활성화
-    # changes:
-    #   - modustudy/frontend/**/*
+    changes:
+      - modustudy/frontend/**/*
   tags:
     - docker
 
@@ -121,9 +119,8 @@ build-sfu-image:
     refs:
       - master
       - main
-    # 첫 배포 완료 후 아래 changes 조건 활성화
-    # changes:
-    #   - modustudy/sfu-server/**/*
+    changes:
+      - modustudy/sfu-server/**/*
   tags:
     - docker
 
@@ -141,34 +138,10 @@ build-ai-image:
     refs:
       - master
       - main
-    # 첫 배포 완료 후 아래 changes 조건 활성화
-    # changes:
-    #   - modustudy/backend/cs-quiz-ai-service/**/*
+    changes:
+      - modustudy/backend/cs-quiz-ai-service/**/*
   tags:
     - docker
-
-# ===========================================
-# Migrate Stage (DB 마이그레이션) - 비활성화
-# JPA ddl-auto=update 사용으로 Flyway 불필요
-# ===========================================
-# migrate:
-#   stage: migrate
-#   script:
-#     - cd modustudy/backend
-#     - chmod +x gradlew
-#     # 배포 전 DB 백업 (버전 포함)
-#     - sudo /usr/bin/bash /home/ubuntu/squiz/scripts/backup-db.sh manual
-#     # 리소스 컴파일 (classpath:db/migration 사용을 위해 필요)
-#     - ./gradlew classes
-#     # Flyway 마이그레이션 실행
-#     - source /etc/environment && ./gradlew flywayInfo
-#     - source /etc/environment && ./gradlew flywayMigrate
-#   only:
-#     - master
-#     - main
-#   tags:
-#     - docker
-#   allow_failure: false
 
 # ===========================================
 # Deploy Stage (단일 환경 배포)
