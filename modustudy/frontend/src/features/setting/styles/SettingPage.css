@@ -15,85 +15,6 @@
 }
 
 /* ============================================
-   사이드바 네비게이션
-   ============================================ */
-.setting-sidebar {
-    width: 260px;
-    flex-shrink: 0;
-}
-
-.setting-sidebar-card {
-    background: white;
-    border-radius: 24px;
-    padding: 1.5rem;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-    position: sticky;
-    top: 1.5rem;
-}
-
-.sidebar-title {
-    font-size: 1.25rem;
-    font-weight: 800;
-    color: #1a202c;
-    margin-bottom: 1.5rem;
-    padding-left: 0.5rem;
-}
-
-.sidebar-menu {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.sidebar-item {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 1rem 1.25rem;
-    border-radius: 16px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border: 1px solid transparent;
-    background: transparent;
-    width: 100%;
-    text-align: left;
-}
-
-.sidebar-item:hover {
-    background: #f8fafc;
-}
-
-.sidebar-item.active {
-    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
-    color: white;
-    box-shadow: 0 4px 12px var(--color-primary-alpha-30);
-}
-
-.sidebar-item-icon {
-    width: 20px;
-    height: 20px;
-    flex-shrink: 0;
-}
-
-.sidebar-item-content {
-    flex: 1;
-    min-width: 0;
-}
-
-.sidebar-item-label {
-    font-size: 0.9375rem;
-    font-weight: 600;
-    display: block;
-}
-
-.sidebar-item-desc {
-    font-size: 0.75rem;
-    opacity: 0.7;
-    margin-top: 0.125rem;
-    display: block;
-}
-
-/* ============================================
    컨텐츠 영역
    ============================================ */
 .setting-content {
@@ -687,32 +608,6 @@
     .setting-container {
         flex-direction: column;
     }
-
-    .setting-sidebar {
-        width: 100%;
-    }
-
-    .setting-sidebar-card {
-        position: relative;
-        top: 0;
-    }
-
-    .sidebar-menu {
-        flex-direction: row;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-    }
-
-    .sidebar-item {
-        flex: 1;
-        min-width: 120px;
-        justify-content: center;
-        padding: 0.875rem 1rem;
-    }
-
-    .sidebar-item-desc {
-        display: none;
-    }
 }
 
 /* 모바일 (767px 이하) */
@@ -782,16 +677,5 @@
     .btn-primary,
     .btn-secondary {
         width: 100%;
-    }
-
-    .sidebar-item {
-        min-width: 0;
-        flex: 1 1 calc(50% - 0.25rem);
-    }
-
-    .sidebar-item-content {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
     }
 }

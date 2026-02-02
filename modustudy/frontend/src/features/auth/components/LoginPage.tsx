@@ -2,9 +2,15 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AuthLayout from './AuthLayout';
 import { PasswordResetModal } from './PasswordResetModal';
+import { TermsModal } from './TermsModal';
 import { authApi } from '@/api/endpoints/authApi';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
+import '../styles/AuthLayout.css';
+
+// md 파일을 raw text로 import
+import termsText from '../terms-of-use.md?raw';
+import privacyText from '../privacy-policy.md?raw';
 
 export const LoginPage = () => {
     const navigate = useNavigate();
@@ -22,6 +28,9 @@ export const LoginPage = () => {
 
     // 비밀번호 재설정 모달 상태
     const [showPasswordResetModal, setShowPasswordResetModal] = useState(false);
+
+    // 약관 모달 상태
+    const [termsModalContent, setTermsModalContent] = useState<{ title: string; content: string } | null>(null);
 
     // 저장된 이메일 불러오기
     useEffect(() => {
@@ -159,11 +168,11 @@ export const LoginPage = () => {
                     <label className="flex items-center gap-2 cursor-pointer">
                         <input
                             type="checkbox"
-                            className="rounded-sm border-study-blue/30"
+                            className="rounded-sm accent-study-blue"
                             checked={rememberEmail}
                             onChange={(e) => setRememberEmail(e.target.checked)}
                         />
-                        <span className="text-study-text/70">아이디 기억</span>
+                        <span className="text-study-blue">아이디 기억</span>
                     </label>
                     <button
                         type="button"
@@ -188,28 +197,6 @@ export const LoginPage = () => {
 
                 {/* 소셜 로그인 버튼 그룹 - 동그란 아이콘 버튼 */}
                 <div className="social-login-circle-group">
-                    {/* 카카오 로그인 버튼 */}
-                    <button
-                        type="button"
-                        className="social-circle-btn kakao"
-                        onClick={async () => {
-                            try {
-                                console.log('[INFO] 카카오 로그인 시도');
-                                sessionStorage.setItem('oauth_provider', 'kakao');
-                                const { authUrl } = await authApi.getKakaoAuthUrl();
-                                window.location.href = authUrl;
-                            } catch (error) {
-                                console.error('Failed to get Kakao Auth URL:', error);
-                                showToast('카카오 로그인 페이지를 불러오는데 실패했습니다.', 'error');
-                            }
-                        }}
-                        title="카카오 로그인"
-                    >
-                        <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
-                            <path d="M12 3C6.48 3 2 6.58 2 11c0 2.8 1.86 5.26 4.64 6.68-.15.56-.52 2.02-.6 2.33-.09.38.14.42.29.31.12-.09 1.94-1.32 2.73-1.86.56.08 1.13.12 1.94.12 5.52 0 10-3.58 10-8 0-4.42-4.48-8-10-8z" />
-                        </svg>
-                    </button>
-
                     {/* 구글 로그인 버튼 */}
                     <button
                         type="button"
@@ -232,6 +219,28 @@ export const LoginPage = () => {
                             <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
                             <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
                             <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                        </svg>
+                    </button>
+
+                    {/* 카카오 로그인 버튼 */}
+                    <button
+                        type="button"
+                        className="social-circle-btn kakao"
+                        onClick={async () => {
+                            try {
+                                console.log('[INFO] 카카오 로그인 시도');
+                                sessionStorage.setItem('oauth_provider', 'kakao');
+                                const { authUrl } = await authApi.getKakaoAuthUrl();
+                                window.location.href = authUrl;
+                            } catch (error) {
+                                console.error('Failed to get Kakao Auth URL:', error);
+                                showToast('카카오 로그인 페이지를 불러오는데 실패했습니다.', 'error');
+                            }
+                        }}
+                        title="카카오 로그인"
+                    >
+                        <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                            <path d="M12 3C6.48 3 2 6.58 2 11c0 2.8 1.86 5.26 4.64 6.68-.15.56-.52 2.02-.6 2.33-.09.38.14.42.29.31.12-.09 1.94-1.32 2.73-1.86.56.08 1.13.12 1.94.12 5.52 0 10-3.58 10-8 0-4.42-4.48-8-10-8z" />
                         </svg>
                     </button>
 
@@ -265,11 +274,37 @@ export const LoginPage = () => {
                 소셜 인증 후 회원가입 가능합니다!
             </p>
 
+            {/* 약관 링크 */}
+            <div className="terms-links">
+                <button
+                    type="button"
+                    onClick={() => setTermsModalContent({ title: '서비스 이용약관', content: termsText })}
+                >
+                    이용약관
+                </button>
+                <span className="terms-links-divider">|</span>
+                <button
+                    type="button"
+                    onClick={() => setTermsModalContent({ title: '개인정보처리방침', content: privacyText })}
+                >
+                    개인정보 보호 정책
+                </button>
+            </div>
+
             {/* 비밀번호 재설정 모달 */}
             <PasswordResetModal
                 isOpen={showPasswordResetModal}
                 onClose={() => setShowPasswordResetModal(false)}
             />
+
+            {/* 약관 모달 */}
+            {termsModalContent && (
+                <TermsModal
+                    title={termsModalContent.title}
+                    content={termsModalContent.content}
+                    onClose={() => setTermsModalContent(null)}
+                />
+            )}
         </AuthLayout>
     );
 };

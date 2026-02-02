@@ -12,6 +12,7 @@ export * from './Skeleton';
 export * from './FeatureCardLayout';
 export * from './Toast';
 export * from './Dropdown';
+export * from './PageSidebar';
 export * from './DatePicker';
 export * from './TimePicker';
 export * from './QuizForm';

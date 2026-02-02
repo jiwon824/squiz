@@ -129,7 +129,7 @@ function listProducers(room, excludeSocketId) {
   room.peers.forEach((peer, peerId) => {
     if (peerId === excludeSocketId) return;
     peer.producers.forEach((entry) => {
-      producerInfos.push({ producerId: entry.producer.id, peerId, kind: entry.kind });
+      producerInfos.push({ producerId: entry.producer.id, peerId, kind: entry.kind, displayName: peer.displayName });
     });
   });
   return producerInfos;
@@ -321,7 +321,7 @@ io.on('connection', (socket) => {
       });
 
       // 새 Producer 알림 먼저 전송
-      socket.to(roomId).emit('newProducer', { producerId: producer.id, producerPeerId: socket.id, kind });
+      socket.to(roomId).emit('newProducer', { producerId: producer.id, producerPeerId: socket.id, kind, displayName: peer.displayName });
       handleProducersChanged(roomId);
 
       // 실시간 발화 감지: 오디오 Producer 추가
