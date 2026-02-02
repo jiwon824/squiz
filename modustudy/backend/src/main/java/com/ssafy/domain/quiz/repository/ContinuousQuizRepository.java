@@ -209,33 +209,55 @@ public interface ContinuousQuizRepository extends JpaRepository<QuizCourseQuesti
             @Param("excludeId") Long excludeId);
 
     /**
-     * 확률적 가중치 기반 다음 문제 선택 (제외 문제 없음).
+     * 안 푼 문제를 우선적으로 조회하고, 모든 문제를 풀었을 경우 확률적 가중치 기반으로 다음 복습 문제를 선택합니다.
      *
-     * <p>첫 문제 조회 시 사용. excludeId가 필요 없는 경우.</p>
+     * <p>
+     * 1순위: 해당 섹션에서 사용자가 한 번도 풀지 않은 문제 중 랜덤 선택 <br>
+     * 2순위: 모든 문제를 풀었다면, 복습 주기(next_review_at)와 학습 횟수(reps)를 고려한 가중치 기반 선택
+     * </p>
      *
      * @param courseId      코스 ID
      * @param sectionNumber 섹션 번호
      * @param userId        사용자 ID
-     * @return 선택된 문제 (Optional - 섹션에 문제가 없을 때만 empty)
+     * @return 선택된 문제 (Optional - 섹션에 문제가 아예 없는 경우에만 empty)
      */
     @Query(value = """
-            SELECT q.*
-            FROM quiz_course_question q
-            LEFT JOIN user_review_items uri
-                ON uri.content_type = 'COURSE_QUESTION'
-                AND uri.content_id = q.id
-                AND uri.user_id = :userId
-            WHERE q.quiz_course_id = :courseId
-              AND q.section_number = :sectionNumber
-            ORDER BY -LOG(1 - RAND()) / (
-                CASE
-                    WHEN uri.id IS NULL THEN 10.0
-                    WHEN uri.next_review_at <= NOW() THEN 5.0
-                    ELSE 1.0 / (COALESCE(uri.reps, 0) + 1)
-                END
-            )
-            LIMIT 1
-            """, nativeQuery = true)
+    (
+        -- [1단계] 안 푼 문제 우선 조회: 학습 기록(user_review_items)이 없는 문제 중 랜덤 추출
+        SELECT q.* FROM quiz_course_question q
+        WHERE q.quiz_course_id = :courseId 
+          AND q.section_number = :sectionNumber
+          AND NOT EXISTS (
+              SELECT 1 FROM user_review_items uri 
+              WHERE uri.content_id = q.id 
+                AND uri.user_id = :userId 
+                AND uri.content_type = 'COURSE_QUESTION'
+          )
+        ORDER BY RAND()
+        LIMIT 1
+    )
+    UNION ALL
+    (
+        -- [2단계] 복습 문제 조회: 모든 문제를 푼 경우, 가중치(복습 시점, 반복 횟수)에 따라 추출
+        SELECT q.* FROM quiz_course_question q
+        JOIN user_review_items uri ON uri.content_id = q.id
+        WHERE q.quiz_course_id = :courseId 
+          AND q.section_number = :sectionNumber
+          AND uri.user_id = :userId
+          AND uri.content_type = 'COURSE_QUESTION'
+        ORDER BY -LOG(1 - RAND()) / (
+            CASE 
+                -- 복습 예정 시점이 지났으면 높은 가중치(5.0) 부여
+                WHEN uri.next_review_at <= NOW() THEN 5.0
+                -- 그 외에는 학습 횟수가 적을수록 높은 확률 부여
+                ELSE 1.0 / (uri.reps + 1)
+            END
+        )
+        LIMIT 1
+    )
+    -- 전체 결과 중 최상위 1개만 선택 (1단계 결과가 있으면 2단계는 무시됨)
+    LIMIT 1
+    """, nativeQuery = true)
     Optional<QuizCourseQuestion> findNextQuestionProbabilisticNoExclude(
             @Param("courseId") Long courseId,
             @Param("sectionNumber") Integer sectionNumber,
