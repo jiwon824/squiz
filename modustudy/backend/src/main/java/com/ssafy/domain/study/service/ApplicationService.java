@@ -12,13 +12,16 @@ import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.repository.UserRepository;
 import com.ssafy.domain.notification.entity.NotificationType;
 import com.ssafy.domain.notification.service.NotificationService;
+import com.ssafy.domain.gamification.event.StudyJoinEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Service
@@ -34,6 +37,7 @@ public class ApplicationService {
     private final StudyRecommendService studyRecommendService;
     private final NotificationService notificationService;
     private final StudyService studyService;
+    private final ApplicationEventPublisher eventPublisher;
 
     // ============================================================
     // 신청 생성
@@ -287,10 +291,23 @@ public class ApplicationService {
         log.info("신청 승인 완료 - applicationId: {}, userId: {} 스터디 멤버로 추가됨",
                 applicationId, application.getUserId());
 
-        // 8. 모집 인원 충족 여부 확인 및 상태 변경
+        // 8. 게이미피케이션 이벤트 발행 - 스터디 가입
+        // 첫 스터디 여부 확인 (현재 가입한 스터디 제외하고 다른 승인된 멤버십이 있는지)
+        int otherMemberships = studyMemberRepository.findByUserIdAndStatus(application.getUserId(), MemberStatus.APPROVED).size();
+        boolean isFirstStudy = otherMemberships <= 1; // 방금 가입한 것만 있으면 첫 스터디
+
+        eventPublisher.publishEvent(new StudyJoinEvent(
+                application.getUserId(),
+                studyId,
+                study.getName(),
+                LocalDate.now(),
+                isFirstStudy
+        ));
+
+        // 9. 모집 인원 충족 여부 확인 및 상태 변경
         studyService.checkAndUpdateRecruitmentStatus(studyId);
 
-        // 9. DTO 변환
+        // 10. DTO 변환
         ApplicationResponse response = ApplicationResponse.from(updated);
         response.setStudyName(study.getName());
 

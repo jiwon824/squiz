@@ -10,8 +10,9 @@ import { StudyMylist, StudyActivity } from './StudyMylist';
 import { LegoActivityGraph } from './LegoActivityGraph';
 import { MyApplicationList } from './MyApplicationList';
 import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
-import { gamificationApi } from '@/api/endpoints/gamificationApi';
+import { gamificationApi, UserStatsResponse } from '@/api/endpoints/gamificationApi';
 import { studyApi, StudyListResponse } from '@/api/endpoints/studyApi';
+import { LevelProgressBar } from '@/features/gamification/components';
 
 // 프로필 통계 타입
 interface ProfileStats {
@@ -44,6 +45,7 @@ export const ProfilePage = () => {
         studyHours: 0,
         quizCount: 0,
     });
+    const [gamificationStats, setGamificationStats] = useState<UserStatsResponse | null>(null);
     const [myStudies, setMyStudies] = useState<StudyActivity[]>([]);
     const [activityData, setActivityData] = useState<number[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -63,6 +65,7 @@ export const ProfilePage = () => {
                 // 통계 데이터 처리
                 if (statsRes.status === 'fulfilled') {
                     const s = statsRes.value;
+                    setGamificationStats(s); // 전체 게이미피케이션 통계 저장
                     setStats({
                         studyCount: s.totalStudiesJoined || 0,
                         totalStudyTime: Math.floor((s.totalActivityDays || 0) * 2), // 활동일 × 평균 학습시간 가정
@@ -171,6 +174,10 @@ export const ProfilePage = () => {
                             avatar: user?.avatar,
                             bio: user?.bio
                         }}
+                        levelInfo={gamificationStats ? {
+                            level: gamificationStats.level,
+                            levelName: gamificationStats.levelName,
+                        } : null}
                         isEditable={true}
                         onEditClick={() => setIsEditModalOpen(true)}
                         onImageEditClick={handleImageClick}
@@ -325,6 +332,16 @@ export const ProfilePage = () => {
                             </div>
                         </div>
                     </div>
+
+                    {/* 레벨 상세 카드 */}
+                    {gamificationStats && (
+                        <div className="mt-6">
+                            <LevelProgressBar
+                                stats={gamificationStats}
+                                variant="full"
+                            />
+                        </div>
+                    )}
 
                     {/* 내 스터디 신청 내역 */}
                     <div style={{ marginTop: '3rem' }}>
