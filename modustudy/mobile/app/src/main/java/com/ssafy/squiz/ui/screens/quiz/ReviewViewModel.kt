@@ -117,13 +117,19 @@ class ReviewViewModel : ViewModel() {
                     if (stats != null) {
                         _statsState.value = ReviewStatsUiState.Success(stats)
                     } else {
-                        // 기본 통계
+                        // 기본 통계 - 백엔드 필드명 사용
                         _statsState.value = ReviewStatsUiState.Success(
                             ReviewStatsResponse(
-                                totalCards = 0,
-                                reviewedToday = 0,
-                                streak = 0,
-                                masteredCards = 0
+                                totalItems = 0,
+                                dueItems = 0,
+                                newItems = 0,
+                                learningItems = 0,
+                                reviewItems = 0,
+                                relearningItems = 0,
+                                averageStability = 0.0,
+                                totalReps = 0,
+                                totalLapses = 0,
+                                proficiency = 0.0
                             )
                         )
                     }
@@ -159,10 +165,13 @@ class ReviewViewModel : ViewModel() {
 
         viewModelScope.launch {
             try {
-                // API 호출
+                // API 호출 - 백엔드 형식에 맞게 요청
                 val request = ReviewSubmitRequest(
-                    cardId = currentCard.id,
-                    rating = rating.value
+                    contentType = currentCard.contentType ?: "COURSE_QUESTION",
+                    contentId = currentCard.contentId ?: currentCard.id,
+                    userAnswer = if (rating == FsrsRating.GOOD || rating == FsrsRating.EASY)
+                        currentCard.answer else null, // 정답 여부에 따라 userAnswer 설정
+                    responseTimeMs = 3000 // 기본 응답 시간
                 )
                 RetrofitClient.reviewApi.submitReview(request)
                 // API 실패 시에도 로컬에서는 진행 (오프라인 대응)
