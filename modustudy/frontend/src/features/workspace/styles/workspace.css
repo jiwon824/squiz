@@ -657,17 +657,17 @@
   flex: 1;
 }
 
-.workspace-sidebar__menu-item {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 12px;
+	.workspace-sidebar__menu-item {
+	  width: 100%;
+	  display: flex;
+	  align-items: center;
+	  gap: 16px;
+	  padding: 12px 16px;
   border: none;
   border-radius: var(--radius-sm);
   background: none;
   color: var(--ws-text-tertiary);
-  font-size: 14px;
+	  font-size: 17px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -716,27 +716,27 @@
   padding: 8px;
 }
 
-.workspace-sidebar__section-title {
-  padding: 0 12px;
-  margin-bottom: 8px;
-  font-size: 11px;
+	.workspace-sidebar__section-title {
+	  padding: 0 16px;
+	  margin-bottom: 12px;
+	  font-size: 13px;
   font-weight: 600;
   text-transform: uppercase;
   color: var(--ws-text-tertiary);
   letter-spacing: 0.02em;
 }
 
-.workspace-sidebar__action-btn {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 6px 12px;
+	.workspace-sidebar__action-btn {
+	  width: 100%;
+	  display: flex;
+	  align-items: center;
+	  gap: 16px;
+	  padding: 10px 16px;
   border: none;
   border-radius: var(--radius-sm);
   background: none;
   color: var(--ws-text-tertiary);
-  font-size: 13px;
+	  font-size: 15px;
   cursor: pointer;
   transition: all 0.15s ease;
   text-align: left;
@@ -821,18 +821,18 @@
   border-top: 1px solid var(--ws-border);
 }
 
-.workspace-sidebar__meeting-btn {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 10px 16px;
+	.workspace-sidebar__meeting-btn {
+	  width: 100%;
+	  display: flex;
+	  align-items: center;
+	  justify-content: center;
+	  gap: 12px;
+	  padding: 14px 18px;
   border: none;
   border-radius: var(--radius-2xl);
   background-color: var(--color-google-green);
   color: #fff;
-  font-size: 14px;
+	  font-size: 16px;
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.15s ease;
@@ -868,19 +868,19 @@
 }
 
 /* 세션 정보 표시 */
-.workspace-sidebar__session-info {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  margin-top: 8px;
-  padding: 8px;
+	.workspace-sidebar__session-info {
+	  display: flex;
+	  flex-direction: column;
+	  align-items: center;
+	  gap: 6px;
+	  margin-top: 12px;
+	  padding: 12px;
   background-color: var(--ws-surface-hover);
   border-radius: var(--radius-md);
 }
 
-.workspace-sidebar__session-title {
-  font-size: 12px;
+	.workspace-sidebar__session-title {
+	  font-size: 14px;
   font-weight: 600;
   color: var(--ws-text-primary);
   text-align: center;
@@ -890,8 +890,8 @@
   max-width: 100%;
 }
 
-.workspace-sidebar__session-time {
-  font-size: 11px;
+	.workspace-sidebar__session-time {
+	  font-size: 13px;
   color: var(--ws-text-tertiary);
 }
 

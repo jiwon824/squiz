@@ -316,16 +316,19 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEntering
                                                                 return;
                                                             }
 
-                                                            switch (referenceType) {
-                                                                case 'STUDY_APPLICATION':
-                                                                    // 지원자 관리 탭으로 바로 이동
-                                                                    navigate(`/study/manage/${referenceId}?tab=applicants`);
-                                                                    break;
-                                                                case 'STUDY':
-                                                                    navigate(`/study/${referenceId}`);
-                                                                    break;
-                                                                case 'STUDY_SESSION':
-                                                                case 'MEETING':
+                                                                switch (referenceType) {
+                                                                    case 'STUDY_APPLICATION':
+                                                                        // 지원자 관리 탭으로 바로 이동
+                                                                        navigate(`/study/manage/${referenceId}?tab=applicants`);
+                                                                        break;
+                                                                    case 'STUDY_EXCUSE':
+                                                                        navigate(`/study/manage/${referenceId}?tab=excuse`);
+                                                                        break;
+                                                                    case 'STUDY':
+                                                                        navigate(`/study/${referenceId}`);
+                                                                        break;
+                                                                    case 'STUDY_SESSION':
+                                                                    case 'MEETING':
                                                                     navigate(`/study/${referenceId}/workspace`);
                                                                     break;
                                                                 case 'SCHEDULE':

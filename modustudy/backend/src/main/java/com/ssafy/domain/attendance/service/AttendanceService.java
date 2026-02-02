@@ -12,6 +12,8 @@ import com.ssafy.domain.attendance.entity.AttendanceCheckType;
 import com.ssafy.domain.attendance.entity.AttendanceExcuseStatus;
 import com.ssafy.domain.attendance.entity.AttendanceStatus;
 import com.ssafy.domain.attendance.repository.AttendanceRepository;
+import com.ssafy.domain.notification.entity.NotificationType;
+import com.ssafy.domain.notification.service.NotificationService;
 import com.ssafy.domain.study.entity.MemberRole;
 import com.ssafy.domain.study.entity.MemberStatus;
 import com.ssafy.domain.study.entity.Study;
@@ -43,6 +45,7 @@ public class AttendanceService {
     private final StudyMemberRepository studyMemberRepository;
     private final StudyRepository studyRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     public MessageResponse startBleAttendance(Long studyId, Long sessionId, Long leaderId) {
         StudySession session = getSessionOrThrow(sessionId, studyId);
@@ -172,7 +175,34 @@ public class AttendanceService {
         if (attendance.getStatus() == null || attendance.getStatus() == AttendanceStatus.PRESENT) {
             attendance.setStatus(AttendanceStatus.ABSENT);
         }
-        return AttendanceResponse.from(attendanceRepository.save(attendance));
+        Attendance saved = attendanceRepository.save(attendance);
+
+        try {
+            Study study = getStudyOrThrow(studyId);
+            User submitter = getUserOrThrow(userId);
+            Long leaderId = study.getLeaderId();
+            if (leaderId != null && !leaderId.equals(userId)) {
+                String title = "결석 소명이 제출되었습니다";
+                String sessionLabel = session.getTitle() != null && !session.getTitle().isBlank()
+                        ? session.getTitle()
+                        : session.getSessionNumber() + "회차 세션";
+                String submitterName = submitter.getNickname() != null ? submitter.getNickname() : submitter.getName();
+                String content = String.format("'%s' %s에 %s님이 결석 소명을 제출했습니다.",
+                        study.getName(), sessionLabel, submitterName);
+                notificationService.createNotification(
+                        leaderId,
+                        NotificationType.ATTENDANCE,
+                        title,
+                        content,
+                        "STUDY_EXCUSE",
+                        studyId
+                );
+            }
+        } catch (Exception e) {
+            // 알림 실패는 출결 처리에 영향 주지 않음
+        }
+
+        return AttendanceResponse.from(saved);
     }
 
     public AttendanceResponse decideExcuse(
@@ -193,7 +223,33 @@ public class AttendanceService {
             attendance.setExcuseStatus(AttendanceExcuseStatus.REJECTED);
         }
         attendance.setCheckedBy(getUserOrThrow(leaderId));
-        return AttendanceResponse.from(attendanceRepository.save(attendance));
+        Attendance saved = attendanceRepository.save(attendance);
+
+        try {
+            Study study = getStudyOrThrow(studyId);
+            String title = request.status() == AttendanceExcuseStatus.APPROVED
+                    ? "결석 소명이 승인되었습니다"
+                    : "결석 소명이 거절되었습니다";
+            String sessionLabel = session.getTitle() != null && !session.getTitle().isBlank()
+                    ? session.getTitle()
+                    : session.getSessionNumber() + "회차 세션";
+            String content = String.format("'%s' %s의 결석 소명이 %s되었습니다.",
+                    study.getName(),
+                    sessionLabel,
+                    request.status() == AttendanceExcuseStatus.APPROVED ? "승인" : "거절");
+            notificationService.createNotification(
+                    targetUserId,
+                    NotificationType.ATTENDANCE,
+                    title,
+                    content,
+                    "STUDY_SESSION",
+                    studyId
+            );
+        } catch (Exception e) {
+            // 알림 실패는 출결 처리에 영향 주지 않음
+        }
+
+        return AttendanceResponse.from(saved);
     }
 
     public void initializeAttendanceRows(StudySession session) {

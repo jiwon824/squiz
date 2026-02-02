@@ -9,7 +9,6 @@ interface MessageItemProps {
   message: MessageResponse;
   isGrouped?: boolean; // 같은 사용자의 연속 메시지인 경우
   isOwnMessage?: boolean; // 내가 보낸 메시지인 경우
-  isLastInGroup?: boolean; // 연속 메시지 그룹의 마지막인 경우 (전송됨 표시용)
   isPinned?: boolean; // 고정된 메시지인 경우
   onPinToggle?: (messageId: number) => void; // 고정/해제 토글
 }
@@ -63,7 +62,6 @@ export const MessageItem: React.FC<MessageItemProps> = ({
   message,
   isGrouped = false,
   isOwnMessage = false,
-  isLastInGroup = false,
   isPinned = false,
   onPinToggle,
 }) => {
@@ -124,12 +122,6 @@ export const MessageItem: React.FC<MessageItemProps> = ({
             </div>
             {!isOwnMessage && renderPinButton()}
           </div>
-          {/* 읽음 상태 (내 메시지 그룹의 마지막만) - 슬라이드 애니메이션 */}
-          {isOwnMessage && isLastInGroup && (
-            <div className="text-[10px] text-gray-400 dark:text-gray-500 mt-1 animate-slide-down">
-              전송됨
-            </div>
-          )}
         </div>
       </div>
     );
@@ -188,13 +180,6 @@ export const MessageItem: React.FC<MessageItemProps> = ({
           </div>
           {!isOwnMessage && renderPinButton()}
         </div>
-
-        {/* 읽음 상태 (내 메시지 그룹의 마지막만) - 슬라이드 애니메이션 */}
-        {isOwnMessage && isLastInGroup && (
-          <div className="text-[10px] text-gray-400 dark:text-gray-500 mt-1 animate-slide-down">
-            전송됨
-          </div>
-        )}
       </div>
     </div>
   );
