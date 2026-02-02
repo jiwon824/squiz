@@ -1,4 +1,4 @@
-﻿import React, { useRef, useEffect, useState } from 'react';
+﻿import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useUIStore } from '@/store/uiStore';
@@ -25,6 +25,34 @@ interface UpcomingMeeting {
     status: string;
     meetingId: number | null;
 }
+const resolveNextSession = (sessions: StudySessionDTO[], currentTime: Date) => {
+    const candidates = sessions.filter((session) => {
+        if (session.status === 'CANCELLED') return false;
+        const startAt = new Date(session.scheduledAt).getTime();
+        const durationMinutes = session.durationMinutes || 60;
+        const endAt = startAt + durationMinutes * 60 * 1000;
+        return endAt >= currentTime.getTime();
+    });
+
+    const inProgress = candidates.filter((session) => {
+        const startAt = new Date(session.scheduledAt).getTime();
+        const durationMinutes = session.durationMinutes || 60;
+        const endAt = startAt + durationMinutes * 60 * 1000;
+        return startAt <= currentTime.getTime() && currentTime.getTime() <= endAt;
+    });
+
+    if (inProgress.length > 0) {
+        return inProgress.sort(
+            (a, b) => new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime()
+        )[0];
+    }
+
+    const upcoming = candidates
+        .filter((session) => new Date(session.scheduledAt).getTime() > currentTime.getTime())
+        .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
+
+    return upcoming[0] || null;
+};
 
 // 다가오는 미팅 빠른 접근
 const MeetingQuickAccess: React.FC = () => {
@@ -40,35 +68,6 @@ const MeetingQuickAccess: React.FC = () => {
         }, 1000);
         return () => window.clearInterval(timer);
     }, []);
-
-    const resolveNextSession = (sessions: StudySessionDTO[], currentTime: Date) => {
-        const candidates = sessions.filter((session) => {
-            if (session.status === 'CANCELLED') return false;
-            const startAt = new Date(session.scheduledAt).getTime();
-            const durationMinutes = session.durationMinutes || 60;
-            const endAt = startAt + durationMinutes * 60 * 1000;
-            return endAt >= currentTime.getTime();
-        });
-
-        const inProgress = candidates.filter((session) => {
-            const startAt = new Date(session.scheduledAt).getTime();
-            const durationMinutes = session.durationMinutes || 60;
-            const endAt = startAt + durationMinutes * 60 * 1000;
-            return startAt <= currentTime.getTime() && currentTime.getTime() <= endAt;
-        });
-
-        if (inProgress.length > 0) {
-            return inProgress.sort(
-                (a, b) => new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime()
-            )[0];
-        }
-
-        const upcoming = candidates
-            .filter((session) => new Date(session.scheduledAt).getTime() > currentTime.getTime())
-            .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
-
-        return upcoming[0] || null;
-    };
 
     const formatCountdown = (scheduledAt: Date) => {
         const diffMs = scheduledAt.getTime() - now.getTime();
@@ -273,6 +272,108 @@ export const RightSideBarV2: React.FC = () => {
     const panelRef = useRef<HTMLDivElement>(null);
     const { unreadCount, fetchUnreadCount } = useDMStore();
     const { receivedRequests, fetchReceivedRequests } = useFriendStore();
+    const [badgeMeetings, setBadgeMeetings] = useState<UpcomingMeeting[]>([]);
+    const [badgeNow, setBadgeNow] = useState(() => new Date());
+
+    useEffect(() => {
+        const timer = window.setInterval(() => {
+            setBadgeNow(new Date());
+        }, 1000);
+        return () => window.clearInterval(timer);
+    }, []);
+
+    const loadMeetingBadge = useCallback(async () => {
+        const today = new Date();
+        const endDate = new Date(today);
+        endDate.setDate(endDate.getDate() + 365);
+
+        const startDate = formatDate(today);
+        const endDateString = formatDate(endDate);
+
+        let sessions = await calendarApi.getMyStudySessions(startDate, endDateString);
+
+        const studiesResponse = await studyApi.getMyStudies(0, 50);
+        const studyMap = new Map<number, string>();
+        studiesResponse.content.forEach((study) => {
+            studyMap.set(study.id, study.name);
+        });
+
+        if (sessions.length === 0 && studiesResponse.content.length > 0) {
+            const sessionLists = await Promise.all(
+                studiesResponse.content.map(async (study) => {
+                    try {
+                        return await calendarApi.getStudySessions(study.id, startDate, endDateString);
+                    } catch (error) {
+                        console.warn('[MeetingBadge] study sessions load failed', study.id, error);
+                        return [];
+                    }
+                })
+            );
+            sessions = sessionLists.flat();
+        }
+
+        const sessionsByStudy = new Map<number, StudySessionDTO[]>();
+        sessions.forEach((session) => {
+            const list = sessionsByStudy.get(session.studyId) || [];
+            list.push(session);
+            sessionsByStudy.set(session.studyId, list);
+        });
+
+        const studyIds = Array.from(sessionsByStudy.keys());
+        return studyIds
+            .map((studyId) => {
+                const nextSession = resolveNextSession(sessionsByStudy.get(studyId) || [], today);
+                if (!nextSession) return null;
+                return {
+                    id: nextSession.id,
+                    studyId,
+                    studyName: studyMap.get(studyId) || `스터디 ${studyId}`,
+                    meetingTitle: nextSession.title || '스터디 세션',
+                    scheduledAt: new Date(nextSession.scheduledAt),
+                    durationMinutes: nextSession.durationMinutes || null,
+                    status: nextSession.status,
+                    meetingId: null,
+                };
+            })
+            .filter((item): item is UpcomingMeeting => Boolean(item))
+            .sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime());
+    }, []);
+
+    useEffect(() => {
+        if (!isLoggedIn) {
+            setBadgeMeetings([]);
+            return;
+        }
+        let cancelled = false;
+        const load = async () => {
+            try {
+                const data = await loadMeetingBadge();
+                if (!cancelled) {
+                    setBadgeMeetings(data);
+                }
+            } catch (error) {
+                console.warn('[MeetingBadge] load failed', error);
+            }
+        };
+
+        load();
+        const refreshTimer = window.setInterval(load, 60000);
+        return () => {
+            cancelled = true;
+            window.clearInterval(refreshTimer);
+        };
+    }, [isLoggedIn, loadMeetingBadge]);
+
+    const hasActiveMeeting = useMemo(() => {
+        const nowTime = badgeNow.getTime();
+        return badgeMeetings.some((meeting) => {
+            if (meeting.status === 'CANCELLED') return false;
+            const startAt = meeting.scheduledAt.getTime();
+            const durationMinutes = meeting.durationMinutes || 60;
+            const endAt = startAt + durationMinutes * 60 * 1000;
+            return startAt <= nowTime && nowTime <= endAt;
+        });
+    }, [badgeMeetings, badgeNow]);
 
     // 초기 데이터 로드 (로그인 상태일 때만)
     useEffect(() => {
@@ -311,7 +412,9 @@ export const RightSideBarV2: React.FC = () => {
                         <div className="w-64 h-full">
                             {activeRightTab === 'friend' && <FriendListMini />}
                             {activeRightTab === 'dm' && <DMListMini />}
-                            {activeRightTab === 'meeting' && <MeetingQuickAccess />}
+                            {activeRightTab === 'meeting' && (
+                                <MeetingQuickAccess />
+                            )}
                         </div>
                     </motion.div>
                 )}
@@ -330,7 +433,9 @@ export const RightSideBarV2: React.FC = () => {
                 >
                     <Video size={20} className="group-hover:scale-110 transition-transform" />
                     {/* 알림 배지 */}
-                    <div className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-study-green rounded-full border-2 border-white animate-pulse" />
+                    {hasActiveMeeting && (
+                        <div className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-study-green rounded-full border-2 border-white animate-pulse" />
+                    )}
                 </button>
 
                 <div className="w-8 h-px bg-gray-100 my-1" />
@@ -363,3 +468,24 @@ export const RightSideBarV2: React.FC = () => {
         </div>
     );
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
