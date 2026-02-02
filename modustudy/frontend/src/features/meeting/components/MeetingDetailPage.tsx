@@ -111,6 +111,10 @@ const MeetingDetailPage: React.FC = () => {
 
     const handleSaveSelection = async () => {
         if (!numericStudyId || !numericMeetingId || !canSelectPhotos || isSavingSelection) return;
+        if (selectedPhotoIds.size === 0) {
+            showToast('이미지 선택 후 클릭해주세요.', 'warning');
+            return;
+        }
         setIsSavingSelection(true);
         try {
             const updated = await meetingApi.selectPhotos(
@@ -119,8 +123,10 @@ const MeetingDetailPage: React.FC = () => {
                 Array.from(selectedPhotoIds)
             );
             setPhotos(updated);
+            showToast('보고서에 이미지가 첨부되었습니다.', 'success');
         } catch (error) {
             console.error('Failed to save report photo selection', error);
+            showToast('이미지 첨부에 실패했습니다.', 'error');
         } finally {
             setIsSavingSelection(false);
         }
@@ -204,14 +210,20 @@ const MeetingDetailPage: React.FC = () => {
                                     />
                                     전체 선택
                                 </label>
-                                <button
-                                    type="button"
-                                    className="meeting-btn ghost"
-                                    onClick={handleSaveSelection}
-                                    disabled={isSavingSelection}
-                                >
-                                    보고서용 이미지
-                                </button>
+                                <div className="meeting-tooltip-wrapper">
+                                    <button
+                                        type="button"
+                                        className="meeting-btn ghost"
+                                        onClick={handleSaveSelection}
+                                        disabled={isSavingSelection}
+                                        aria-label="보고서용 이미지"
+                                    >
+                                        보고서용 이미지
+                                    </button>
+                                    <span className="meeting-tooltip" role="tooltip">
+                                        이미지 체크 후 클릭하면 pdf, markdown 보고서에 첨부됩니다.
+                                    </span>
+                                </div>
                                 <button
                                     type="button"
                                     className="meeting-btn ghost"

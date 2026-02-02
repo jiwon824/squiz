@@ -125,7 +125,7 @@ const StudyApplyModalV2: React.FC<StudyApplyModalV2Props> = ({ study, isOpen, on
 
                             <div className="grid grid-cols-3 gap-4">
                                 <div className="flex items-center gap-2 text-sm">
-                                    <div className="p-1.5 bg-[var(--color-primary-alpha-10)] rounded-lg">
+                                    <div className="flex-shrink-0 p-1.5 bg-[var(--color-primary-alpha-10)] rounded-lg">
                                         <Users size={14} className="text-[var(--color-primary)]" />
                                     </div>
                                     <span className="text-[var(--color-text-secondary)]">
@@ -134,7 +134,7 @@ const StudyApplyModalV2: React.FC<StudyApplyModalV2Props> = ({ study, isOpen, on
                                 </div>
 
                                 <div className="flex items-center gap-2 text-sm">
-                                    <div className="p-1.5 bg-[var(--color-primary-alpha-10)] rounded-lg">
+                                    <div className="flex-shrink-0 p-1.5 bg-[var(--color-primary-alpha-10)] rounded-lg">
                                         <MapPin size={14} className="text-[var(--color-primary)]" />
                                     </div>
                                     <span className="text-[var(--color-text-secondary)]">
@@ -143,7 +143,7 @@ const StudyApplyModalV2: React.FC<StudyApplyModalV2Props> = ({ study, isOpen, on
                                 </div>
 
                                 <div className="flex items-center gap-2 text-sm">
-                                    <div className="p-1.5 bg-[var(--color-primary-alpha-10)] rounded-lg">
+                                    <div className="flex-shrink-0 p-1.5 bg-[var(--color-primary-alpha-10)] rounded-lg">
                                         <Calendar size={14} className="text-[var(--color-primary)]" />
                                     </div>
                                     <span className="text-[var(--color-text-secondary)] truncate">

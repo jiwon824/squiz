@@ -2,10 +2,15 @@ package com.ssafy.domain.quiz.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ssafy.domain.quiz.dto.response.StudyQuizSubmitResponse;
+import com.ssafy.domain.quiz.entity.ReviewContentType;
 import com.ssafy.domain.quiz.entity.StudyQuiz;
 import com.ssafy.domain.quiz.entity.StudyQuizQuestion;
+import com.ssafy.domain.quiz.entity.UserReviewItem;
 import com.ssafy.domain.quiz.entity.enums.QuestionType;
+import com.ssafy.domain.quiz.repository.StudyQuizQuestionRepository;
 import com.ssafy.domain.quiz.repository.StudyQuizRepository;
+import com.ssafy.domain.quiz.util.QuizGradingUtils;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,6 +32,8 @@ public class StudyQuizService {
     private static final Logger log = LoggerFactory.getLogger(StudyQuizService.class);
 
     private final StudyQuizRepository studyQuizRepository;
+    private final StudyQuizQuestionRepository studyQuizQuestionRepository;
+    private final FsrsService fsrsService;
     private final ObjectMapper objectMapper;
 
     /**
@@ -173,6 +180,33 @@ public class StudyQuizService {
                 .answerKeywords(answerKeywordsJson)
                 .explanation(explanation)
                 .build();
+    }
+
+    /**
+     * 스터디 퀴즈 답안 제출 — 채점 + FSRS 복습 스케줄링
+     *
+     * @param userId         사용자 ID
+     * @param questionId     문제 ID
+     * @param userAnswer     사용자 답안
+     * @param responseTimeMs 응답 시간 (밀리초)
+     * @return 채점 결과 + FSRS 스케줄 응답
+     */
+    @Transactional
+    public StudyQuizSubmitResponse submitAnswer(Long userId, Long questionId,
+                                                 String userAnswer, long responseTimeMs) {
+        StudyQuizQuestion question = studyQuizQuestionRepository.findById(questionId)
+                .orElseThrow(() -> new IllegalArgumentException("문제를 찾을 수 없습니다: " + questionId));
+
+        // 채점
+        boolean isCorrect = QuizGradingUtils.grade(userAnswer, question.getCorrectAnswer(),
+                question.getQuestionType(), question.getOptions(), question.getAnswerKeywords());
+
+        // FSRS 복습 스케줄링 (채점 결과 직접 전달)
+        UserReviewItem item = fsrsService.processReviewResult(
+                userId, ReviewContentType.STUDY_QUESTION, questionId, isCorrect, responseTimeMs);
+
+        return StudyQuizSubmitResponse.from(item, isCorrect,
+                question.getCorrectAnswer(), question.getExplanation());
     }
 
     /**

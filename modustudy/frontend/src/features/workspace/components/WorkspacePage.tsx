@@ -84,6 +84,10 @@ export const WorkspacePage: React.FC = () => {
   const [pinnedMessages, setPinnedMessages] = useState<MessageResponse[]>([]);
   // 스크롤할 메시지 ID
   const [scrollToMessageId, setScrollToMessageId] = useState<number | null>(null);
+  // 이전 메시지 로딩 중 여부 (스크롤 위치 보존용)
+  const [isLoadingOlderMessages, setIsLoadingOlderMessages] = useState(false);
+  // 네비게이션 대상 메시지 ID (찾을 때까지 계속 로드)
+  const [pendingNavigateMessageId, setPendingNavigateMessageId] = useState<number | null>(null);
 
   const idleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isIdleRef = useRef(false);
@@ -649,15 +653,43 @@ export const WorkspacePage: React.FC = () => {
   // 검색/고정 메시지 클릭 시 해당 메시지로 이동
   const handleMessageNavigate = useCallback((messageId: number) => {
     setActiveMenu('chat');
-    // 약간의 딜레이 후 스크롤 (탭 전환 완료 후)
-    setTimeout(() => {
-      setScrollToMessageId(messageId);
-    }, 50);
-  }, []);
+
+    // 현재 로드된 메시지에서 찾기
+    const messageExists = messages.some((m) => m.id === messageId);
+
+    if (messageExists) {
+      // 메시지가 이미 로드되어 있으면 바로 스크롤
+      setTimeout(() => {
+        setScrollToMessageId(messageId);
+      }, 50);
+    } else if (hasMoreMessages) {
+      // 메시지가 로드되지 않았고 더 로드할 수 있으면 로드 시작
+      setPendingNavigateMessageId(messageId);
+      setScrollToMessageId(messageId); // ChatArea에서 onMessageNotFound 트리거
+    } else {
+      // 더 이상 로드할 메시지가 없음
+      showToast?.('해당 메시지를 찾을 수 없습니다.', 'warning');
+    }
+  }, [messages, hasMoreMessages, showToast]);
+
+  // 메시지를 찾지 못했을 때 (ChatArea에서 호출)
+  // pendingNavigateMessageId를 설정하면 useEffect에서 자동으로 로드
+  const handleMessageNotFound = useCallback((messageId: number) => {
+    if (hasMoreMessages) {
+      // 아직 더 로드할 메시지가 있으면 대기 ID 설정 (useEffect에서 로드 처리)
+      setPendingNavigateMessageId(messageId);
+    } else {
+      // 더 이상 로드할 메시지가 없음
+      setPendingNavigateMessageId(null);
+      setScrollToMessageId(null);
+      showToast?.('해당 메시지를 찾을 수 없습니다.', 'warning');
+    }
+  }, [hasMoreMessages, showToast]);
 
   // 스크롤 완료 후 상태 초기화
   const handleScrollComplete = useCallback(() => {
     setScrollToMessageId(null);
+    setPendingNavigateMessageId(null);
   }, []);
 
   // 고정된 메시지 ID 목록 (ChatArea에 전달용)
@@ -670,19 +702,56 @@ export const WorkspacePage: React.FC = () => {
     if (!workspace || isMessagesLoading || !hasMoreMessages) return;
 
     setIsMessagesLoading(true);
+    setIsLoadingOlderMessages(true);
     try {
       const nextPage = currentPage + 1;
       const messagesData = await workspaceApi.getMessages(workspace.id, nextPage);
       // 이전 메시지를 위에 추가
-      setMessages((prev) => [...messagesData.content.reverse(), ...prev]);
+      const newMessages = messagesData.content.reverse();
+      setMessages((prev) => [...newMessages, ...prev]);
       setHasMoreMessages(!messagesData.last);
       setCurrentPage(nextPage);
+
+      // 네비게이션 대기 중인 메시지가 있으면 확인
+      if (pendingNavigateMessageId) {
+        const found = newMessages.some((m) => m.id === pendingNavigateMessageId);
+        if (found) {
+          // 메시지를 찾음 - 스크롤 실행
+          setTimeout(() => {
+            setScrollToMessageId(pendingNavigateMessageId);
+            setPendingNavigateMessageId(null);
+          }, 100);
+        } else if (messagesData.last) {
+          // 더 이상 로드할 메시지가 없음
+          setPendingNavigateMessageId(null);
+          showToast?.('해당 메시지를 찾을 수 없습니다.', 'warning');
+        }
+        // 아직 못 찾았고 더 있으면 계속 로드됨 (handleMessageNotFound에서 처리)
+      }
     } catch (err) {
       // 이전 메시지 로드 실패는 무시
+      setPendingNavigateMessageId(null);
     } finally {
       setIsMessagesLoading(false);
+      setIsLoadingOlderMessages(false);
     }
-  }, [workspace, isMessagesLoading, hasMoreMessages, currentPage]);
+  }, [workspace, isMessagesLoading, hasMoreMessages, currentPage, pendingNavigateMessageId, showToast]);
+
+  // 네비게이션 대기 중인 메시지가 있고 로딩 중이 아니면 계속 로드
+  useEffect(() => {
+    if (pendingNavigateMessageId && hasMoreMessages && !isMessagesLoading) {
+      // 현재 메시지 목록에 있는지 확인
+      const exists = messages.some((m) => m.id === pendingNavigateMessageId);
+      if (!exists) {
+        // 아직 못 찾았으면 계속 로드
+        handleLoadMore();
+      } else {
+        // 찾았으면 스크롤
+        setScrollToMessageId(pendingNavigateMessageId);
+        setPendingNavigateMessageId(null);
+      }
+    }
+  }, [pendingNavigateMessageId, messages, hasMoreMessages, isMessagesLoading, handleLoadMore]);
 
   // 뒤로가기 (대시보드로 이동, 전환 애니메이션 포함)
   const handleGoBack = useCallback(() => {
@@ -795,6 +864,8 @@ export const WorkspacePage: React.FC = () => {
                   onPinToggle={handlePinToggle}
                   scrollToMessageId={scrollToMessageId}
                   onScrollComplete={handleScrollComplete}
+                  isLoadingOlder={isLoadingOlderMessages}
+                  onMessageNotFound={handleMessageNotFound}
                 />
                 <MessageInput
                   onSend={handleSendMessage}
