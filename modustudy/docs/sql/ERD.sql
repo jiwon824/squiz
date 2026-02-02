@@ -23,7 +23,6 @@ CREATE TABLE `user` (
     `leader_review_count` INT DEFAULT 0,          -- 스터디장 평가 수 (캐싱)
     `last_login_at` TIMESTAMP,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
@@ -206,6 +205,7 @@ CREATE TABLE `study` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
     `leader_id` BIGINT NOT NULL,
     `name` VARCHAR(100) NOT NULL,
+    `intro` VARCHAR(200),                        -- 한줄 소개
     `description` TEXT,
     `topic_id` BIGINT NOT NULL,               -- 알고리즘/CS/자격증/프로젝트 등
     `format_id` BIGINT,                       -- 문제풀이/독서/강의수강/프로젝트
@@ -246,10 +246,11 @@ CREATE TABLE `study_template` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
     `user_id` BIGINT,                            -- NULL이면 시스템 템플릿
     `name` VARCHAR(100) NOT NULL,                -- 템플릿 이름
+    `intro` VARCHAR(200),                        -- 한줄 소개
     `is_system` BOOLEAN DEFAULT FALSE,           -- 시스템 기본 템플릿 여부
     `template_type` VARCHAR(50),                 -- ALGORITHM, CS, INTERVIEW, PROJECT, CERTIFICATE, READING
-    `topic` VARCHAR(50),
-    `format` VARCHAR(50),
+    `topic_id` BIGINT,                           -- Topic 테이블 참조
+    `format_id` BIGINT,                          -- Format 테이블 참조
     `meeting_type` ENUM('ONLINE', 'OFFLINE', 'HYBRID'),
     `description` TEXT,
     `textbook` VARCHAR(500),
@@ -260,7 +261,9 @@ CREATE TABLE `study_template` (
     `penalty_policy` ENUM('STRICT', 'NORMAL', 'LENIENT', 'RATIO', 'NONE'),
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON DELETE CASCADE
+    FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`topic_id`) REFERENCES `topic`(`id`) ON DELETE SET NULL,
+    FOREIGN KEY (`format_id`) REFERENCES `format`(`id`) ON DELETE SET NULL
 );
 
 -- 스터디 모집글 댓글
@@ -387,10 +390,12 @@ CREATE TABLE `message` (
     `message_type` ENUM('TEXT', 'IMAGE', 'FILE', 'SYSTEM') DEFAULT 'TEXT',
     `file_url` VARCHAR(500),
     `is_deleted` BOOLEAN DEFAULT FALSE,
+    `is_pinned` BOOLEAN DEFAULT FALSE,              -- 메시지 고정 여부
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (`workspace_id`) REFERENCES `workspace`(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`user_id`) REFERENCES `user`(`id`)
+    FOREIGN KEY (`user_id`) REFERENCES `user`(`id`),
+    INDEX `idx_message_pinned` (`workspace_id`, `is_pinned`)
 );
 
 -- =============================================
@@ -417,6 +422,7 @@ CREATE TABLE `meeting` (
 	`auto_share_summary`	BOOLEAN DEFAULT FALSE,
 	`share_workspace_id`	BIGINT	NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (`study_id`) REFERENCES `study`(`id`) ON DELETE CASCADE,
     FOREIGN KEY (`session_id`) REFERENCES `study_session`(`id`),
     FOREIGN KEY (`workspace_id`) REFERENCES `workspace`(`id`)
@@ -476,7 +482,7 @@ CREATE TABLE `meeting_photo` (
 );
 
 CREATE TABLE `meeting_recording` (
-	`meeting_recording_id`	BIGINT	NOT NULL,
+	`meeting_recording_id`	BIGINT PRIMARY KEY AUTO_INCREMENT,
 	`meeting_id`	BIGINT	NULL,
 	`recording_url`	VARCHAR(500)	NULL,
 	`format`	VARCHAR(20)	NULL,
@@ -839,7 +845,7 @@ CREATE TABLE IF NOT EXISTS `user_review_items` (
     `user_id` BIGINT NOT NULL,
     
     -- 다형성 구조 (코스 퀴즈, AI 생성 퀴즈 등 수용)
-    `content_type` VARCHAR(20) NOT NULL, -- 'STATIC_COURSE' 또는 'AI_GENERATED'
+    `content_type` ENUM('COURSE_QUESTION', 'STUDY_QUESTION') NOT NULL,
     `content_id` BIGINT NOT NULL,        -- 해당 퀴즈 테이블의 PK
     
     -- FSRS 핵심 변수 (지수 함수 정밀 연산을 위해 DOUBLE 사용)
@@ -894,8 +900,7 @@ CREATE TABLE IF NOT EXISTS `quiz_course` (
 );
 
 CREATE TABLE IF NOT EXISTS `quiz_course_section` (
-    `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
-    `course_id` BIGINT NOT NULL,
+    `quiz_course_id` BIGINT NOT NULL,
     `section_number` INT NOT NULL,
     `name` VARCHAR(100) NOT NULL,
     `description` TEXT,
@@ -903,21 +908,25 @@ CREATE TABLE IF NOT EXISTS `quiz_course_section` (
     `pass_score` INT DEFAULT 70,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (`course_id`) REFERENCES `quiz_course`(`id`) ON DELETE CASCADE,
-    UNIQUE KEY `uk_course_section` (`course_id`, `section_number`)
+    PRIMARY KEY (`quiz_course_id`, `section_number`),
+    FOREIGN KEY (`quiz_course_id`) REFERENCES `quiz_course`(`id`) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS `quiz_course_question` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
-    `section_id` BIGINT NOT NULL,
+    `quiz_course_id` BIGINT NOT NULL,
+    `section_number` INT NOT NULL,
     `question_number` INT NOT NULL,
     `question_text` TEXT NOT NULL,
     `question_type` ENUM('MULTIPLE_CHOICE', 'SHORT_ANSWER', 'MULTIPLE_CHOICE_MULTIPLE') DEFAULT 'MULTIPLE_CHOICE',
     `options` JSON,
     `correct_answer` VARCHAR(500) NOT NULL,
     `explanation` TEXT,
+    `keywords` JSON DEFAULT NULL COMMENT '서술형 채점용 핵심 키워드 JSON 배열',
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (`section_id`) REFERENCES `quiz_course_section`(`id`) ON DELETE CASCADE
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (`quiz_course_id`, `section_number`) REFERENCES `quiz_course_section`(`quiz_course_id`, `section_number`) ON DELETE CASCADE,
+    INDEX `idx_quiz_course_question_type` (`question_type`)
 );
 
 CREATE TABLE IF NOT EXISTS `user_course_progress` (
@@ -945,12 +954,12 @@ CREATE TABLE IF NOT EXISTS `user_section_attempt` (
     `total_questions` INT DEFAULT 0,
     `is_passed` BOOLEAN DEFAULT FALSE,
     `status` ENUM('IN_PROGRESS', 'SUBMITTED', 'ABANDONED') DEFAULT 'IN_PROGRESS',
-    `version` BIGINT NOT NULL DEFAULT 0, -- 낙관적 잠금용
+    `version` BIGINT NOT NULL DEFAULT 0,
     `started_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `completed_at` TIMESTAMP NULL,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON DELETE CASCADE,
-    -- 복합키 참조 (V5 대응)
-    FOREIGN KEY (`quiz_course_id`, `section_number`) REFERENCES `quiz_course_section`(`course_id`, `section_number`) ON DELETE CASCADE,
+    FOREIGN KEY (`quiz_course_id`, `section_number`) REFERENCES `quiz_course_section`(`quiz_course_id`, `section_number`) ON DELETE CASCADE,
     INDEX `idx_attempt_user_section_status` (`user_id`, `quiz_course_id`, `section_number`, `status`)
 );
 
@@ -1203,7 +1212,7 @@ CREATE TABLE `retrospective_item` (
 CREATE TABLE `notification` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
     `user_id` BIGINT NOT NULL,
-    `type` ENUM('CHAT', 'SCHEDULE', 'ATTENDANCE', 'STUDY_UPDATE', 'QUIZ', 'SYSTEM') NOT NULL,
+    `type` ENUM('CHAT', 'SCHEDULE', 'ATTENDANCE', 'STUDY_UPDATE', 'STUDY_APPLICATION', 'QUIZ', 'SYSTEM') NOT NULL,
     `title` VARCHAR(200) NOT NULL,
     `content` TEXT,
     `reference_type` VARCHAR(50),                -- study, meeting, quiz_contest 등
@@ -1629,4 +1638,4 @@ CREATE INDEX IDX_QRTZ_FT_INST_JOB_REQ_RCVRY ON QRTZ_FIRED_TRIGGERS(SCHED_NAME, I
 CREATE INDEX IDX_QRTZ_FT_J_G ON QRTZ_FIRED_TRIGGERS(SCHED_NAME, JOB_NAME, JOB_GROUP);
 CREATE INDEX IDX_QRTZ_FT_JG ON QRTZ_FIRED_TRIGGERS(SCHED_NAME, JOB_GROUP);
 CREATE INDEX IDX_QRTZ_FT_T_G ON QRTZ_FIRED_TRIGGERS(SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP);
-CREATE INDEX IDX_QRTZ_FT_TG ON QRTZ_FIRED_TRIGGERS(SCHED_NAME, TRIGGER_GROUP);s
+CREATE INDEX IDX_QRTZ_FT_TG ON QRTZ_FIRED_TRIGGERS(SCHED_NAME, TRIGGER_GROUP);

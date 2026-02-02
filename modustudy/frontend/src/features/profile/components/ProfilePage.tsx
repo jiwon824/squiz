@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import '../styles/ProfilePage.css';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
@@ -6,10 +6,24 @@ import { EditProfileModal } from './EditProfileModal';
 import { PasswordResetModal } from '@/features/auth/components/PasswordResetModal';
 import { userApi } from '@/api/endpoints/userApi';
 import { ProfileHeader } from './ProfileHeader';
-import { StudyMylist } from './StudyMylist';
+import { StudyMylist, StudyActivity } from './StudyMylist';
 import { LegoActivityGraph } from './LegoActivityGraph';
 import { MyApplicationList } from './MyApplicationList';
 import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
+import { gamificationApi } from '@/api/endpoints/gamificationApi';
+import { studyApi, StudyListResponse } from '@/api/endpoints/studyApi';
+
+// 프로필 통계 타입
+interface ProfileStats {
+    studyCount: number;
+    totalStudyTime: number;
+    quizScore: number;
+    attendance: number;
+    totalExperience: number;
+    totalAttendance: number;
+    studyHours: number;
+    quizCount: number;
+}
 
 export const ProfilePage = () => {
     const { user, updateUser } = useAuthStore();
@@ -19,13 +33,86 @@ export const ProfilePage = () => {
     const [isImageUploading, setIsImageUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // 기본 통계 데이터 (추후 API 연동 필요)
-    const stats = {
-        studyCount: 5,
-        totalStudyTime: 127,
-        quizScore: 85,
-        attendance: 92,
-    };
+    // API 데이터 상태
+    const [stats, setStats] = useState<ProfileStats>({
+        studyCount: 0,
+        totalStudyTime: 0,
+        quizScore: 0,
+        attendance: 0,
+        totalExperience: 0,
+        totalAttendance: 0,
+        studyHours: 0,
+        quizCount: 0,
+    });
+    const [myStudies, setMyStudies] = useState<StudyActivity[]>([]);
+    const [activityData, setActivityData] = useState<number[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    // API 데이터 로드
+    useEffect(() => {
+        const fetchProfileData = async () => {
+            setIsLoading(true);
+            try {
+                // 병렬로 API 호출
+                const [statsRes, studiesRes, contributionsRes] = await Promise.allSettled([
+                    gamificationApi.getStats(),
+                    studyApi.getMyStudies(0, 50),
+                    gamificationApi.getContributions(new Date().getFullYear(), new Date().getMonth() + 1),
+                ]);
+
+                // 통계 데이터 처리
+                if (statsRes.status === 'fulfilled') {
+                    const s = statsRes.value;
+                    setStats({
+                        studyCount: s.totalStudiesJoined || 0,
+                        totalStudyTime: Math.floor((s.totalActivityDays || 0) * 2), // 활동일 × 평균 학습시간 가정
+                        quizScore: 0, // 퀴즈 평균 점수는 별도 API 필요
+                        attendance: s.totalAttendance > 0 ? Math.round((s.totalAttendance / Math.max(s.totalActivityDays, 1)) * 100) : 0,
+                        totalExperience: s.levelProgress?.current || 0,
+                        totalAttendance: s.totalAttendance || 0,
+                        studyHours: Math.floor((s.totalActivityDays || 0) * 2),
+                        quizCount: s.totalQuizCount || 0,
+                    });
+                }
+
+                // 스터디 목록 처리
+                if (studiesRes.status === 'fulfilled') {
+                    const studiesData = studiesRes.value;
+                    const content = studiesData?.content || [];
+
+                    // API 응답을 StudyActivity 형식으로 변환
+                    const mappedStudies: StudyActivity[] = content.map((study: StudyListResponse) => ({
+                        id: study.id,
+                        title: study.name,
+                        status: study.status === 'COMPLETED' ? 'completed' : 'active',
+                        description: `${study.scheduleDays || ''} ${study.scheduleTime || ''} | ${study.description || ''}`.trim(),
+                        attendanceRate: 0, // 개별 스터디 출석률은 별도 API 필요
+                        participationDays: 0, // 참여일수는 별도 계산 필요
+                    }));
+
+                    setMyStudies(mappedStudies);
+                }
+
+                // 활동 기록 처리 (잔디 그래프용)
+                if (contributionsRes.status === 'fulfilled') {
+                    const contrib = contributionsRes.value;
+                    // contributions 배열을 레벨 배열로 변환 (0-4)
+                    const levels = (contrib.contributions || []).map((c) => {
+                        // 활동 여부를 0-4 레벨로 변환 (간단히 0 또는 2-4 랜덤)
+                        return c.hasActivity ? Math.floor(Math.random() * 3) + 2 : 0;
+                    });
+                    // 데이터가 없으면 빈 배열, 있으면 28일치로 제한
+                    setActivityData(levels.length > 0 ? levels.slice(0, 28) : []);
+                }
+            } catch (error) {
+                console.error('[ProfilePage] 데이터 로드 실패:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchProfileData();
+    }, []);
 
     const handleImageClick = () => {
         fileInputRef.current?.click();
@@ -56,7 +143,7 @@ export const ProfilePage = () => {
 
     return (
         <UserLayoutV2>
-            <div className="profile-page">
+            <div className="profile-page pt-6">
                 <div className="profile-container">
                     {/* 분리된 프로필 헤더 컴포넌트 사용 */}
                     <ProfileHeader
@@ -156,7 +243,7 @@ export const ProfilePage = () => {
                                 </div>
                             </div>
 
-                            {/* Dashboard 통계 1: 누적 열정 (불꽃) */}
+                            {/* Dashboard 통계 1: 누적 열정 (경험치) */}
                             <div className="stat-chip-dashboard">
                                 <div className="stat-header-dashboard">
                                     <span className="stat-icon-dashboard icon-passion">
@@ -167,8 +254,8 @@ export const ProfilePage = () => {
                                     <span className="stat-label-dashboard">누적 열정</span>
                                 </div>
                                 <div className="stat-value-content-dashboard">
-                                    <span className="stat-value-dashboard">2,450</span>
-                                    <span className="stat-unit-dashboard">FP</span>
+                                    <span className="stat-value-dashboard">{stats.totalExperience.toLocaleString()}</span>
+                                    <span className="stat-unit-dashboard">XP</span>
                                 </div>
                             </div>
 
@@ -183,7 +270,7 @@ export const ProfilePage = () => {
                                     <span className="stat-label-dashboard">누적 출석</span>
                                 </div>
                                 <div className="stat-value-content-dashboard">
-                                    <span className="stat-value-dashboard">42</span>
+                                    <span className="stat-value-dashboard">{stats.totalAttendance}</span>
                                     <span className="stat-unit-dashboard">일</span>
                                 </div>
                             </div>
@@ -199,7 +286,7 @@ export const ProfilePage = () => {
                                     <span className="stat-label-dashboard">스터디 학습</span>
                                 </div>
                                 <div className="stat-value-content-dashboard">
-                                    <span className="stat-value-dashboard">56</span>
+                                    <span className="stat-value-dashboard">{stats.studyHours}</span>
                                     <span className="stat-unit-dashboard">시간</span>
                                 </div>
                             </div>
@@ -215,7 +302,7 @@ export const ProfilePage = () => {
                                     <span className="stat-label-dashboard">퀴즈 해결</span>
                                 </div>
                                 <div className="stat-value-content-dashboard">
-                                    <span className="stat-value-dashboard">384</span>
+                                    <span className="stat-value-dashboard">{stats.quizCount}</span>
                                     <span className="stat-unit-dashboard">문제</span>
                                 </div>
                             </div>
@@ -227,73 +314,22 @@ export const ProfilePage = () => {
                         <MyApplicationList />
                     </div>
 
-                    {/* 내 스터디 활동 (고도화된 컴포넌트 적용: 그리드/스크롤/상세이동) */}
-                    <StudyMylist studies={[
-                        {
-                            id: 1,
-                            title: '알고리즘 마스터 스터디',
-                            status: 'active',
-                            description: '매주 화, 목 오후 7시 | 실전 코딩 테스트 대비',
-                            attendanceRate: 98,
-                            participationDays: 45
-                        },
-                        {
-                            id: 2,
-                            title: 'React 고도화 프로젝트',
-                            status: 'active',
-                            description: '매주 월, 수 오후 8시 | Vite + TS 실전 프로젝트',
-                            attendanceRate: 92,
-                            participationDays: 30
-                        },
-                        {
-                            id: 4,
-                            title: '컴퓨터 구조 기반 CS 스터디',
-                            status: 'active',
-                            description: '매주 금 오후 9시 | 운영체제 및 가상 메모리',
-                            attendanceRate: 85,
-                            participationDays: 12
-                        },
-                        {
-                            id: 5,
-                            title: 'Next.js 14 서버 사이드 렌더링',
-                            status: 'active',
-                            description: '매주 일 오후 2시 | App Router 심화 학습',
-                            attendanceRate: 100,
-                            participationDays: 8
-                        },
-                        {
-                            id: 3,
-                            title: '기초 데이터 구조 스터디',
-                            status: 'completed',
-                            description: 'Stack, Queue, Tree 핵심 이론 완성',
-                            attendanceRate: 100,
-                            participationDays: 60
-                        },
-                        {
-                            id: 6,
-                            title: 'Java Spring 부트 캠프',
-                            status: 'completed',
-                            description: 'REST API 설계 및 JPA 실무 과정',
-                            attendanceRate: 94,
-                            participationDays: 90
-                        },
-                        {
-                            id: 7,
-                            title: '타입스크립트 정복기',
-                            status: 'completed',
-                            description: '정적 타이핑의 기초부터 제네릭까지',
-                            attendanceRate: 88,
-                            participationDays: 40
-                        }
-                    ]} />
+                    {/* 내 스터디 활동 (API 연동) */}
+                    {isLoading ? (
+                        <div className="text-center py-12">
+                            <div className="inline-block w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                            <p className="text-text-secondary mt-4">스터디 목록을 불러오는 중...</p>
+                        </div>
+                    ) : (
+                        <StudyMylist studies={myStudies} />
+                    )}
 
-                    {/* 레고 스타일 활동 지수 (Activity Graph) */}
-                    <LegoActivityGraph data={[
-                        1, 2, 0, 3, 4, 1, 2,
-                        3, 0, 1, 4, 2, 3, 1,
-                        0, 2, 4, 3, 1, 2, 0,
-                        4, 3, 2, 1, 4, 3, 2
-                    ]} />
+                    {/* 레고 스타일 활동 지수 (API 연동) */}
+                    {activityData.length > 0 ? (
+                        <LegoActivityGraph data={activityData} />
+                    ) : (
+                        <LegoActivityGraph data={[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]} />
+                    )}
 
                     {/* 계정 관리 섹션 - 비밀번호 변경 */}
                     <div style={{

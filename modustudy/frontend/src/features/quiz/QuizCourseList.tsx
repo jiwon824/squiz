@@ -154,10 +154,6 @@ export const QuizCourseList = () => {
     // EVENT HANDLERS - 이벤트 핸들러 함수
     // =========================================================================
 
-    const handleSectionClick = (courseId: string, sectionId: string) => {
-        console.log(`퀴즈 시작: 코스 ${courseId}, 섹션 ${sectionId}`);
-    };
-
     const handleCardClick = (courseId: string) => {
         // courseId가 유효하지 않은 경우 네비게이션 방지
         if (!courseId || courseId === 'undefined' || courseId === 'null') {
@@ -366,7 +362,6 @@ export const QuizCourseList = () => {
                             <CourseCard
                                 key={course.id}
                                 course={course}
-                                onSectionClick={handleSectionClick}
                                 onCardClick={handleCardClick}
                             />
                         ))}
@@ -394,7 +389,7 @@ export const QuizCourseList = () => {
                         }}
                     >
                         <p style={{ color: 'var(--color-text-secondary)' }}>
-                            <strong>Tip:</strong> 코스를 클릭하여 섹션을 확인하세요. 섹션을 완료하면 진행률이 업데이트됩니다!
+                            <strong>Tip:</strong> 코스를 클릭하면 원하는 섹션의 문제를 풀 수 있습니다!
                         </p>
                     </div>
                 )}

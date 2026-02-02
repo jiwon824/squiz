@@ -51,14 +51,28 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
+        // 닉네임 필수 체크
+        if (request.getNickname() == null || request.getNickname().trim().isEmpty()) {
+            throw new IllegalArgumentException("닉네임은 필수입니다.");
+        }
+
+        // 닉네임 길이 체크 (50자 제한)
+        if (request.getNickname().length() > 50) {
+            throw new IllegalArgumentException("닉네임은 50자 이내로 입력해주세요.");
+        }
+
         // 닉네임 중복 체크
-        if (request.getNickname() != null &&
-                userRepository.existsByNickname(request.getNickname())) {
+        if (userRepository.existsByNickname(request.getNickname().trim())) {
             throw new IllegalArgumentException("이미 사용 중인 닉네임입니다.");
         }
 
         // 닉네임 설정
-        user.setNickname(request.getNickname());
+        user.setNickname(request.getNickname().trim());
+
+        // 실명 설정
+        if (request.getName() != null && !request.getName().trim().isEmpty()) {
+            user.setName(request.getName().trim());
+        }
 
         // 비밀번호 설정 (암호화!)
         if (request.getPassword() != null && !request.getPassword().isEmpty()) {
@@ -88,15 +102,34 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
-        // 닉네임 변경 시 중복 체크
-        if (request.getNickname() != null &&
-                !request.getNickname().equals(user.getNickname())) {
+        // 닉네임 필수 체크
+        if (request.getNickname() == null || request.getNickname().trim().isEmpty()) {
+            throw new IllegalArgumentException("닉네임은 필수입니다.");
+        }
 
-            if (userRepository.existsByNickname(request.getNickname())) {
+        // 닉네임 길이 체크 (50자 제한)
+        if (request.getNickname().length() > 50) {
+            throw new IllegalArgumentException("닉네임은 50자 이내로 입력해주세요.");
+        }
+
+        String trimmedNickname = request.getNickname().trim();
+
+        // 닉네임 변경 시 중복 체크
+        if (!trimmedNickname.equals(user.getNickname())) {
+            if (userRepository.existsByNickname(trimmedNickname)) {
                 throw new IllegalArgumentException("이미 사용 중인 닉네임입니다.");
             }
+            user.setNickname(trimmedNickname);
+        }
 
-            user.setNickname(request.getNickname());
+        // 실명 업데이트
+        if (request.getName() != null && !request.getName().trim().isEmpty()) {
+            user.setName(request.getName().trim());
+        }
+
+        // 자기소개 업데이트
+        if (request.getBio() != null) {
+            user.setBio(request.getBio().trim());
         }
 
         return userRepository.save(user);

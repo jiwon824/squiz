@@ -592,4 +592,88 @@ class StudySessionServiceTest {
                 .isOnline(true)
                 .build());
     }
+
+    @Nested
+    @DisplayName("내 스터디 세션 조회")
+    class GetMyStudySessions {
+
+        @Autowired
+        private com.ssafy.domain.study.repository.StudyMemberRepository studyMemberRepository;
+
+        @Test
+        @DisplayName("성공 - 참여한 스터디의 세션 조회")
+        void getMyStudySessions_Success() {
+            // given
+            // 사용자를 스터디 멤버로 추가
+            studyMemberRepository.save(StudyMember.builder()
+                    .studyId(study.getId())
+                    .userId(otherUser.getId())
+                    .status(MemberStatus.APPROVED)
+                    .role(MemberRole.MEMBER)
+                    .build());
+            studyMemberRepository.flush();
+
+            // 세션 생성
+            LocalDateTime now = LocalDateTime.now();
+            createTestSessionWithScheduledAt(study.getId(), 1, "1회차", now.plusDays(1));
+            createTestSessionWithScheduledAt(study.getId(), 2, "2회차", now.plusDays(3));
+            studySessionRepository.flush();
+
+            // when
+            List<StudySessionResponse> sessions = studySessionService.getMyStudySessions(
+                    otherUser.getId(),
+                    now,
+                    now.plusDays(7)
+            );
+
+            // then
+            assertThat(sessions).hasSize(2);
+        }
+
+        @Test
+        @DisplayName("성공 - 참여한 스터디가 없으면 빈 목록 반환")
+        void getMyStudySessions_NoStudies_ReturnsEmpty() {
+            // given
+            LocalDateTime now = LocalDateTime.now();
+
+            // when
+            List<StudySessionResponse> sessions = studySessionService.getMyStudySessions(
+                    otherUser.getId(),
+                    now,
+                    now.plusDays(7)
+            );
+
+            // then
+            assertThat(sessions).isEmpty();
+        }
+
+        @Test
+        @DisplayName("성공 - 기간 내 세션만 조회")
+        void getMyStudySessions_FilterByDateRange() {
+            // given
+            studyMemberRepository.save(StudyMember.builder()
+                    .studyId(study.getId())
+                    .userId(otherUser.getId())
+                    .status(MemberStatus.APPROVED)
+                    .role(MemberRole.MEMBER)
+                    .build());
+            studyMemberRepository.flush();
+
+            LocalDateTime now = LocalDateTime.now();
+            createTestSessionWithScheduledAt(study.getId(), 1, "1회차", now.plusDays(1));
+            createTestSessionWithScheduledAt(study.getId(), 2, "2회차", now.plusDays(10)); // 범위 외
+            studySessionRepository.flush();
+
+            // when
+            List<StudySessionResponse> sessions = studySessionService.getMyStudySessions(
+                    otherUser.getId(),
+                    now,
+                    now.plusDays(7)
+            );
+
+            // then
+            assertThat(sessions).hasSize(1);
+            assertThat(sessions.get(0).getTitle()).isEqualTo("1회차");
+        }
+    }
 }

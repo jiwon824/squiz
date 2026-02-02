@@ -1,0 +1,71 @@
+/**
+ * =============================================================================
+ * ContinuousQuizNavigation.tsx - 연속 학습 모드 네비게이션 컴포넌트
+ * =============================================================================
+ *
+ * 목적 (PURPOSE):
+ * 연속 학습 모드(Sayvoca 스타일)를 위한 전진 전용 네비게이션입니다.
+ * - "이전" 버튼 없음 (forward-only flow)
+ * - "제출" 버튼만 제공
+ *
+ * =============================================================================
+ */
+
+import { Send, Loader2 } from 'lucide-react';
+import { Button } from '@/shared/components/Button';
+import { cn } from '@/shared/utils/cn';
+
+// -----------------------------------------------------------------------------
+// Props 인터페이스
+// -----------------------------------------------------------------------------
+interface ContinuousQuizNavigationProps {
+    /** 제출 버튼 클릭 핸들러 */
+    onSubmit: () => void;
+    /** 로딩 상태 (제출 중) */
+    isLoading?: boolean;
+    /** 제출 버튼 비활성화 여부 (답변 미완료 시) */
+    isSubmitDisabled?: boolean;
+    /** 추가 CSS 클래스 */
+    className?: string;
+}
+
+// -----------------------------------------------------------------------------
+// 컴포넌트
+// -----------------------------------------------------------------------------
+export const ContinuousQuizNavigation: React.FC<ContinuousQuizNavigationProps> = ({
+    onSubmit,
+    isLoading = false,
+    isSubmitDisabled = false,
+    className,
+}) => {
+    return (
+        <div
+            className={cn(
+                'flex items-center justify-center',
+                className
+            )}
+        >
+            <Button
+                variant="google-primary"
+                size="lg"
+                onClick={onSubmit}
+                disabled={isSubmitDisabled || isLoading}
+                isLoading={isLoading}
+                rightIcon={!isLoading && <Send size={20} />}
+                className={cn(
+                    'min-w-[200px] px-8',
+                    isSubmitDisabled && !isLoading && 'opacity-50 cursor-not-allowed'
+                )}
+            >
+                {isLoading ? (
+                    <span className="flex items-center gap-2">
+                        <Loader2 size={18} className="animate-spin" />
+                        채점 중...
+                    </span>
+                ) : (
+                    '제출하기'
+                )}
+            </Button>
+        </div>
+    );
+};

@@ -1,12 +1,13 @@
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
-import { MeetingRoomEvent, MeetingRoomChatMessage } from '../types';
+import { MeetingRoomEvent, MeetingRoomChatMessage, SpeechSegment } from '../types';
 
 export interface MeetingWebsocketClient {
     connect: () => Promise<Client>;
     disconnect: () => void;
     subscribeRoomEvents: (roomId: string, handler: (event: MeetingRoomEvent) => void) => () => void;
     subscribeChatHistory: (roomId: string, handler: (event: MeetingRoomEvent) => void) => () => void;
+    subscribeSpeech: (roomId: string, handler: (segment: SpeechSegment) => void) => () => void;
     joinRoom: (roomId: string, payload: { displayName: string; roomTitle?: string }) => void;
     sendChat: (roomId: string, payload: MeetingRoomChatMessage) => void;
     setPresenter: (roomId: string, payload: { displayName: string; action?: 'claim' | 'release' }) => void;
@@ -71,6 +72,17 @@ export const createMeetingWebsocket = (baseUrl?: string): MeetingWebsocketClient
         return () => subscription.unsubscribe();
     };
 
+    // 실시간 발화 자막 구독
+    const subscribeSpeech = (roomId: string, handler: (segment: SpeechSegment) => void) => {
+        if (!client) {
+            return () => {};
+        }
+        const subscription = client.subscribe(`/topic/rooms/${roomId}/speech`, (message) => {
+            handler(JSON.parse(message.body));
+        });
+        return () => subscription.unsubscribe();
+    };
+
     const joinRoom = (roomId: string, payload: { displayName: string; roomTitle?: string }) => {
         if (!client) return;
         client.publish({
@@ -116,6 +128,7 @@ export const createMeetingWebsocket = (baseUrl?: string): MeetingWebsocketClient
         disconnect,
         subscribeRoomEvents,
         subscribeChatHistory,
+        subscribeSpeech,
         joinRoom,
         sendChat,
         setPresenter,

@@ -44,17 +44,9 @@ services:
       - squiz-network
 
   # ===========================================
-  # TURN Server (coturn)
+  # SFU/TURN - AI 서버(3.38.92.48)로 이전됨
+  # ai-inference/docker-compose.sfu.yml 참고
   # ===========================================
-  coturn:
-    image: coturn/coturn:latest
-    container_name: squiz-coturn
-    volumes:
-      - ./turnserver.conf:/etc/turnserver.conf:ro
-    command: ["-c", "/etc/turnserver.conf"]
-    restart: unless-stopped
-    networks:
-      - squiz-network
 
   # ===========================================
   # Monitor Server (서버 모니터링)

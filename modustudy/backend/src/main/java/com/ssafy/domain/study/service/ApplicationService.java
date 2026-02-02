@@ -71,7 +71,15 @@ public class ApplicationService {
             throw new IllegalStateException("본인이 만든 스터디에는 신청할 수 없습니다");
         }
 
-        // 5. 신청 생성
+        // 5. 정원 초과 검증 (스터디장도 StudyMember 테이블에 포함되어 있음)
+        int currentMembers = studyMemberRepository.countByStudyIdAndStatus(studyId, MemberStatus.APPROVED);
+        if (study.getMaxMembers() != null && currentMembers >= study.getMaxMembers()) {
+            log.warn("스터디 정원 초과 - studyId: {}, currentMembers: {}, maxMembers: {}",
+                    studyId, currentMembers, study.getMaxMembers());
+            throw new IllegalStateException("스터디 정원이 가득 찼습니다");
+        }
+
+        // 6. 신청 생성
         StudyApplication application = StudyApplication.builder()
                 .studyId(studyId)
                 .userId(userId)
@@ -83,10 +91,10 @@ public class ApplicationService {
 
         log.info("스터디 신청 생성 완료 - applicationId: {}", saved.getId());
 
-        // 6. 추천 반응 자동 기록 (추천에서 온 지원인지 감지)
+        // 7. 추천 반응 자동 기록 (추천에서 온 지원인지 감지)
         studyRecommendService.tryLogAction(userId, studyId, StudyRecommendAction.ActionType.APPLY);
 
-        // 7. 스터디장에게 알림 전송
+        // 8. 스터디장에게 알림 전송
         // referenceId에 studyId를 저장하여 프론트엔드에서 /study/manage/{studyId}로 이동 가능하게 함
         String notificationTitle = "새로운 스터디 신청";
         String notificationContent = String.format("%s님이 '%s' 스터디에 참가 신청을 했습니다.",
@@ -102,7 +110,7 @@ public class ApplicationService {
         );
         log.info("스터디장에게 알림 전송 완료 - leaderId: {}", study.getLeaderId());
 
-        // 8. DTO 변환 및 추가 정보 설정
+        // 9. DTO 변환 및 추가 정보 설정
         ApplicationResponse response = ApplicationResponse.from(saved);
         response.setStudyName(study.getName());
         response.setUserInfo(user.getName(), user.getNickname(), user.getEmail());
@@ -251,11 +259,19 @@ public class ApplicationService {
             throw new IllegalStateException("이미 처리된 신청입니다");
         }
 
-        // 5. 승인 처리
+        // 5. 정원 초과 검증 (승인 시점 double-check, 스터디장도 StudyMember에 포함됨)
+        int currentMembers = studyMemberRepository.countByStudyIdAndStatus(studyId, MemberStatus.APPROVED);
+        if (study.getMaxMembers() != null && currentMembers >= study.getMaxMembers()) {
+            log.warn("스터디 정원 초과로 승인 불가 - studyId: {}, currentMembers: {}, maxMembers: {}",
+                    studyId, currentMembers, study.getMaxMembers());
+            throw new IllegalStateException("스터디 정원이 가득 차서 승인할 수 없습니다");
+        }
+
+        // 6. 승인 처리
         application.approve();
         StudyApplication updated = applicationRepository.save(application);
 
-        // 6. ⭐ StudyMember 추가 (핵심 로직)
+        // 7. ⭐ StudyMember 추가 (핵심 로직)
         StudyMember member = StudyMember.builder()
                 .studyId(studyId)
                 .userId(application.getUserId())
@@ -279,7 +295,7 @@ public class ApplicationService {
         log.info("신청 승인 완료 - applicationId: {}, userId: {} 스터디 멤버로 추가됨",
                 applicationId, application.getUserId());
 
-        // 7. DTO 변환
+        // 8. DTO 변환
         ApplicationResponse response = ApplicationResponse.from(updated);
         response.setStudyName(study.getName());
 

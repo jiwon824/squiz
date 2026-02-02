@@ -35,10 +35,14 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
 
     boolean existsByStudyIdAndStatus(Long studyId, MeetingStatus status);
 
+    boolean existsBySessionId(Long sessionId);
+
     /**
      * AI 처리가 필요한 미팅 목록 조회
      * - status = ENDED
      * - summaryStatus = PROCESSING
      */
     List<Meeting> findByStatusAndSummaryStatus(MeetingStatus status, SummaryStatus summaryStatus);
+
+    List<Meeting> findTop200ByStatusOrderByEndedAtDesc(MeetingStatus status);
 }

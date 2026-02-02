@@ -56,14 +56,16 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/studies/**").permitAll()
                         .requestMatchers("/files/**").permitAll()
                         .requestMatchers("/api/v1/notifications/**").permitAll()
-                        // 퀴즈 코스
-                        .requestMatchers("/api/v1/quiz-courses/**").permitAll()
+                        // 퀴즈 코스 (공개 조회)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/continuous-quiz/courses", "/api/v1/continuous-quiz/courses/*").permitAll()
                         // 게이미피케이션
                         .requestMatchers("/api/v1/gamification/test/**", "/api/v1/gamification/stats").permitAll()
                         // 데일리
                         .requestMatchers("/api/v1/dailies/**").permitAll()
                         // AI (테스트용 permitAll)
                         .requestMatchers("/api/v1/ai/**").permitAll()
+                        // 서버 간 내부 통신 API (AI 서버 → 백엔드)
+                        .requestMatchers("/api/internal/**").permitAll()
                         // 나머지는 인증 필요
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

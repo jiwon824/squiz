@@ -1,16 +1,20 @@
-import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+﻿import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { cn } from '@/shared/utils/cn';
 import { WorkspaceHeader } from './WorkspaceHeader';
 import { WorkspaceSidebar } from './WorkspaceSidebar';
 import { ChatArea } from './ChatArea';
 import { MessageInput } from './MessageInput';
-import { MemberList, type WorkspaceMember } from './MemberList';
+import { RightSidebar, type SidebarContent, type WorkspaceMember } from './RightSidebar';
 import { WorkspaceCalendarArea } from './WorkspaceCalendarArea';
 import { MaterialArea } from '@/features/material';
+import MeetingHistoryPanel from '@/features/meeting/components/MeetingHistoryPanel';
+import MeetingDetailPanel from '@/features/meeting/components/MeetingDetailPanel';
+import { SearchPanel } from './SearchPanel';
 import { workspaceApi } from '@/api/endpoints/workspaceApi';
 import { studyApi, type StudyMemberResponse } from '@/api/endpoints/studyApi';
 import { sessionApi, type StudySessionResponse } from '@/api/endpoints/sessionApi';
+import { meetingApi } from '@/features/meeting/services/meetingApi';
 import { useUIStore } from '@/store/uiStore';
 import { useAuthStore } from '@/store/authStore';
 import { workspaceWebSocket } from '@/api/websocket/workspaceWebSocketService';
@@ -39,6 +43,7 @@ const toWorkspaceMember = (member: StudyMemberResponse): WorkspaceMember => ({
   profileImageUrl: member.userProfileImage || null,
   role: member.role,
   isOnline: false, // 온라인 상태는 별도 WebSocket으로 관리 필요
+  isIdle: false,
 });
 
 export const WorkspacePage: React.FC = () => {
@@ -47,7 +52,7 @@ export const WorkspacePage: React.FC = () => {
   const showToast = useUIStore((state) => state.showToast);
   const currentUser = useAuthStore((state) => state.user);
 
-  // studyId 파싱 (테스트 모드용 기본값)
+  // studyId 파싱 (테스트 모드용 기본값?)
   const studyId = studyIdParam ? Number(studyIdParam) : undefined;
 
   // 상태
@@ -55,7 +60,8 @@ export const WorkspacePage: React.FC = () => {
   const [workspace, setWorkspace] = useState<WorkspaceResponse | null>(null);
   const [messages, setMessages] = useState<MessageResponse[]>([]);
   const [members, setMembers] = useState<WorkspaceMember[]>([]);
-  const [isMembersVisible, setIsMembersVisible] = useState(true);
+  // 오른쪽 사이드바 상태 (통합: none, members, pinned)
+  const [activeRightSidebar, setActiveRightSidebar] = useState<SidebarContent>('members');
   const [isLoading, setIsLoading] = useState(true);
   const [isMessagesLoading, setIsMessagesLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -68,8 +74,48 @@ export const WorkspacePage: React.FC = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isWebSocketConnected, setIsWebSocketConnected] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
+  const [activeMeetingId, setActiveMeetingId] = useState<number | null>(null);
+  const [activeMeetingEnded, setActiveMeetingEnded] = useState<boolean | null>(null);
+  const [selectedMeetingId, setSelectedMeetingId] = useState<number | null>(null);
 
-  // 미팅에서 진입 시 애니메이션 플래그 (최초 렌더 시 한 번만 확인)
+  // 검색 패널 상태
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  // 고정 메시지 데이터
+  const [pinnedMessages, setPinnedMessages] = useState<MessageResponse[]>([]);
+  // 스크롤할 메시지 ID
+  const [scrollToMessageId, setScrollToMessageId] = useState<number | null>(null);
+
+  const idleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isIdleRef = useRef(false);
+
+  const applyPresence = useCallback((onlineIds: number[]) => {
+    const onlineSet = new Set(onlineIds.map((id) => Number(id)));
+    setMembers((prev) =>
+      prev.map((m) => ({ ...m, isOnline: onlineSet.has(m.id), isIdle: false }))
+    );
+  }, []);
+
+  const scheduleIdleTimer = useCallback(() => {
+    if (idleTimeoutRef.current) {
+      clearTimeout(idleTimeoutRef.current);
+    }
+    idleTimeoutRef.current = setTimeout(() => {
+      if (!isIdleRef.current) {
+        isIdleRef.current = true;
+        workspaceWebSocket.sendPresence('IDLE');
+      }
+    }, 3 * 60 * 1000);
+  }, []);
+
+  const handleUserActivity = useCallback(() => {
+    if (isIdleRef.current) {
+      isIdleRef.current = false;
+      workspaceWebSocket.sendPresence('ACTIVE');
+    }
+    scheduleIdleTimer();
+  }, [scheduleIdleTimer]);
+
+  // 미팅에서 진입 애니메이션 플래그(최초 렌더 한 번만 확인)
   const isEnteringFromMeeting = useMemo(() => {
     const flag = sessionStorage.getItem('fromMeeting') === 'true';
     if (flag) {
@@ -78,7 +124,7 @@ export const WorkspacePage: React.FC = () => {
     return flag;
   }, []);
 
-  // 대시보드에서 진입 시 애니메이션 플래그 (최초 렌더 시 한 번만 확인)
+  // 대시보드에서 진입 애니메이션 플래그(최초 렌더 한 번만 확인)
   const isEnteringFromDashboard = useMemo(() => {
     const flag = sessionStorage.getItem('fromDashboard') === 'true';
     if (flag) {
@@ -87,12 +133,39 @@ export const WorkspacePage: React.FC = () => {
     return flag;
   }, []);
 
-  // WebSocket 핸들러를 위한 ref (상태 변경 시에도 최신 값 참조)
+  // WebSocket 핸들러를 위한 ref (상태 변경 시 최신 값 참조)
   const messagesRef = useRef<MessageResponse[]>([]);
   messagesRef.current = messages;
 
   // 초기 데이터 로드
   useEffect(() => {
+    const pendingMenu = sessionStorage.getItem('workspaceActiveMenu');
+    if (pendingMenu) {
+      if (pendingMenu === 'chat' || pendingMenu === 'materials' || pendingMenu === 'calendar' || pendingMenu === 'meeting') {
+        setActiveMenu(pendingMenu);
+      }
+      sessionStorage.removeItem('workspaceActiveMenu');
+    }
+    if (pendingMenu === 'meeting') {
+      const reloadFlag = sessionStorage.getItem('workspaceMeetingReloaded');
+      if (reloadFlag) {
+        sessionStorage.removeItem('workspaceMeetingReloaded');
+      } else {
+        let hasMeetingEndFlag = false;
+        for (let i = 0; i < sessionStorage.length; i += 1) {
+          const key = sessionStorage.key(i);
+          if (key && key.startsWith('meeting-end-reload-')) {
+            hasMeetingEndFlag = true;
+            sessionStorage.removeItem(key);
+          }
+        }
+        if (hasMeetingEndFlag) {
+          sessionStorage.setItem('workspaceMeetingReloaded', '1');
+          window.location.reload();
+          return;
+        }
+      }
+    }
     const loadInitialData = async () => {
       if (!studyId) {
         setIsLoading(false);
@@ -110,7 +183,7 @@ export const WorkspacePage: React.FC = () => {
           studyApi.getStudyMembers(studyId),
         ]);
 
-        // 스터디 시작일 체크: 시작일 전이면 상세페이지로 리다이렉트
+        // 스터디 시작일 체크: 시작일 이전이면 상세 페이지로 리다이렉트
         if (studyData?.startDate) {
           const today = new Date();
           today.setHours(0, 0, 0, 0);
@@ -123,7 +196,7 @@ export const WorkspacePage: React.FC = () => {
               month: 'long',
               day: 'numeric'
             });
-            showToast?.(`워크스페이스는 스터디 시작일(${formattedDate})부터 이용 가능합니다.`, 'info');
+            showToast?.(`워크스페이스는 스터디 시작일(${formattedDate})부터 이용할 수 있습니다.`, 'info');
             navigate(`/study/v3/${studyId}`);
             return;
           }
@@ -149,9 +222,22 @@ export const WorkspacePage: React.FC = () => {
         try {
           workspaceData = await workspaceApi.getWorkspaceByStudyId(studyId);
         } catch (wsError: any) {
+          const status = wsError?.response?.status;
           // 워크스페이스가 없으면 생성
-          if (wsError?.response?.status === 400 || wsError?.response?.status === 404) {
-            workspaceData = await workspaceApi.createWorkspace(studyId);
+          if (status === 400 || status === 404) {
+            try {
+              workspaceData = await workspaceApi.createWorkspace(studyId);
+            } catch (createError: any) {
+              const createStatus = createError?.response?.status;
+              const createMessage = createError?.response?.data?.message || createError?.message || '';
+              if (createStatus === 409 || createMessage.includes('이미') || createMessage.toLowerCase().includes('exist')) {
+                workspaceData = await workspaceApi.getWorkspaceByStudyId(studyId);
+              } else {
+                throw createError;
+              }
+            }
+          } else if (status === 409) {
+            workspaceData = await workspaceApi.getWorkspaceByStudyId(studyId);
           } else {
             throw wsError;
           }
@@ -169,7 +255,7 @@ export const WorkspacePage: React.FC = () => {
           err?.response?.data?.message ||
           err?.response?.data?.error ||
           err?.message ||
-          '워크스페이스를 불러오는데 실패했습니다.';
+          '워크스페이스를 불러오는 데 실패했습니다.';
         setError(errorMessage);
       } finally {
         setIsLoading(false);
@@ -178,6 +264,23 @@ export const WorkspacePage: React.FC = () => {
 
     loadInitialData();
   }, [studyId, navigate, showToast]);
+
+  // 고정 메시지 로드
+  useEffect(() => {
+    if (!workspace) return;
+
+    const loadPinnedMessages = async () => {
+      try {
+        const pinnedData = await workspaceApi.getPinnedMessages(workspace.id);
+        setPinnedMessages(pinnedData);
+      } catch (err) {
+        // 고정 메시지 로드 실패는 무시
+        console.warn('고정 메시지 로드 실패:', err);
+      }
+    };
+
+    loadPinnedMessages();
+  }, [workspace?.id]);
 
   // WebSocket 연결 관리
   useEffect(() => {
@@ -218,7 +321,7 @@ export const WorkspacePage: React.FC = () => {
         if (event.senderId) {
           setMembers((prev) =>
             prev.map((m) =>
-              m.id === event.senderId ? { ...m, isOnline: true } : m
+              m.id === event.senderId ? { ...m, isOnline: true, isIdle: false } : m
             )
           );
         }
@@ -228,10 +331,21 @@ export const WorkspacePage: React.FC = () => {
         if (event.senderId) {
           setMembers((prev) =>
             prev.map((m) =>
-              m.id === event.senderId ? { ...m, isOnline: false } : m
+              m.id === event.senderId ? { ...m, isOnline: false, isIdle: false } : m
             )
           );
         }
+      },
+      onPresence: (event: WorkspaceWebSocketEvent) => {
+        if (!event.senderId || !event.presenceStatus) return;
+        const isIdle = event.presenceStatus === 'IDLE';
+        setMembers((prev) =>
+          prev.map((m) =>
+            m.id === event.senderId
+              ? { ...m, isOnline: true, isIdle }
+              : m
+          )
+        );
       },
       onDelete: (event: WorkspaceWebSocketEvent) => {
         // 메시지 삭제 시
@@ -251,10 +365,64 @@ export const WorkspacePage: React.FC = () => {
           );
         }
       },
+      onPin: (event: WorkspaceWebSocketEvent) => {
+        // 메시지 고정/해제 시
+        console.log('[Workspace] PIN 이벤트 수신:', event);
+        if (event.message && event.messageId) {
+          // isPinned 또는 pinned 필드 확인 (Jackson 직렬화 대응)
+          const msg = event.message as any;
+          const isPinned = msg.isPinned ?? msg.pinned ?? false;
+          const messageId = event.messageId;
+
+          console.log('[Workspace] PIN 처리:', { messageId, isPinned });
+
+          // 메시지 목록의 isPinned 상태 업데이트
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === messageId ? { ...m, isPinned } : m
+            )
+          );
+
+          // 고정 메시지 목록 업데이트
+          if (isPinned) {
+            // 고정됨 - 목록에 추가
+            const newPinnedMessage: MessageResponse = {
+              id: event.message.id,
+              workspaceId: event.message.workspaceId,
+              content: event.message.content,
+              messageType: event.message.messageType,
+              createdAt: event.message.createdAt,
+              updatedAt: event.message.updatedAt,
+              isPinned: true,
+              author: {
+                id: event.message.userId,
+                nickname: event.message.nickname,
+                profileImageUrl: event.message.profileImageUrl || null,
+              },
+            };
+            setPinnedMessages((prev) => {
+              const exists = prev.some((m) => m.id === messageId);
+              if (exists) return prev;
+              return [...prev, newPinnedMessage];
+            });
+          } else {
+            // 해제됨 - 목록에서 제거
+            setPinnedMessages((prev) => prev.filter((m) => m.id !== messageId));
+          }
+        }
+      },
       onConnectionChange: (status) => {
         setIsWebSocketConnected(status === 'CONNECTED');
         if (status === 'CONNECTED') {
           console.log('[Workspace] WebSocket 연결 완료');
+          workspaceApi
+            .getWorkspacePresence(workspace.id)
+            .then((onlineIds) => {
+              applyPresence(onlineIds);
+            })
+            .catch(() => {
+              // presence 조회 실패는 무시
+            });
         }
       },
       onError: (errorMessage) => {
@@ -267,7 +435,34 @@ export const WorkspacePage: React.FC = () => {
       workspaceWebSocket.disconnect();
       setIsWebSocketConnected(false);
     };
-  }, [workspace?.id, currentUser?.id, currentUser?.nickname]);
+  }, [workspace?.id, currentUser?.id, currentUser?.nickname, applyPresence]);
+
+  // 사용자 활동 감지 (3분 이상 미활동 시 자리비움 처리)
+  useEffect(() => {
+    if (!isWebSocketConnected) {
+      if (idleTimeoutRef.current) {
+        clearTimeout(idleTimeoutRef.current);
+        idleTimeoutRef.current = null;
+      }
+      return;
+    }
+
+    isIdleRef.current = false;
+    workspaceWebSocket.sendPresence('ACTIVE');
+    scheduleIdleTimer();
+
+    const events: Array<keyof WindowEventMap> = ['mousemove', 'keydown', 'scroll', 'touchstart'];
+    const listener = () => handleUserActivity();
+    events.forEach((event) => window.addEventListener(event, listener, { passive: true }));
+
+    return () => {
+      events.forEach((event) => window.removeEventListener(event, listener));
+      if (idleTimeoutRef.current) {
+        clearTimeout(idleTimeoutRef.current);
+        idleTimeoutRef.current = null;
+      }
+    };
+  }, [isWebSocketConnected, handleUserActivity, scheduleIdleTimer]);
 
   // 세션 목록 로드
   const loadSessions = useCallback(async () => {
@@ -285,7 +480,7 @@ export const WorkspacePage: React.FC = () => {
     loadSessions();
   }, [loadSessions]);
 
-  // 10초마다 현재 시간 갱신 (진행 중 세션 실시간 감지)
+  // 10초마다 현재 시간 갱신 (진행 중인 세션 재확인)
   useEffect(() => {
     // 초기 체크
     setCurrentTime(new Date());
@@ -296,7 +491,7 @@ export const WorkspacePage: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // 5분마다 세션 목록 갱신 (새 세션 반영)
+  // 5분마다 세션 목록 갱신 (신규 세션 반영)
   useEffect(() => {
     const interval = setInterval(() => {
       loadSessions();
@@ -306,10 +501,50 @@ export const WorkspacePage: React.FC = () => {
 
   // 현재 진행 중인 세션 찾기
   const activeSession = useMemo(() => {
-    // currentTime을 의존성으로 사용해 주기적으로 재계산
+    // currentTime은 종속성 갱신을 위한 더미 참조
     void currentTime;
-    return sessions.find(isSessionInProgress) || null;
+    const inProgress = sessions.filter(isSessionInProgress);
+    if (inProgress.length === 0) return null;
+    return inProgress.reduce((latest, session) => {
+      const latestTime = new Date(latest.scheduledAt).getTime();
+      const sessionTime = new Date(session.scheduledAt).getTime();
+      return sessionTime > latestTime ? session : latest;
+    }, inProgress[0]);
   }, [sessions, currentTime]);
+
+  useEffect(() => {
+    if (!studyId || !activeSession) {
+      setActiveMeetingId(null);
+      setActiveMeetingEnded(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const meetings = await meetingApi.listMeetings(studyId, { page: 0, size: 20 });
+        const match = meetings.content.find((meeting) => meeting.session?.id === activeSession.id);
+        if (!cancelled) {
+          if (match) {
+            const ended = Boolean(match.endedAt);
+            setActiveMeetingEnded(ended);
+            setActiveMeetingId(ended ? null : match.id);
+          } else {
+            setActiveMeetingEnded(null);
+            setActiveMeetingId(null);
+          }
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setActiveMeetingId(null);
+          setActiveMeetingEnded(null);
+        }
+        console.warn('Failed to resolve active meeting id', error);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeSession, studyId]);
 
   // 다크모드 토글
   const handleToggleDarkMode = useCallback(() => {
@@ -328,7 +563,7 @@ export const WorkspacePage: React.FC = () => {
         // WebSocket으로 메시지 전송
         workspaceWebSocket.sendMessage(content, 'TEXT');
       } else {
-        // WebSocket 미연결 시 REST API 폴백
+        // WebSocket 미연결 시 REST API 대체
         workspaceApi
           .sendMessage(workspace.id, { content, messageType: 'TEXT' })
           .then((newMessage) => {
@@ -344,8 +579,90 @@ export const WorkspacePage: React.FC = () => {
 
   // 멤버 목록 토글
   const handleToggleMembers = useCallback(() => {
-    setIsMembersVisible((prev) => !prev);
+    setActiveRightSidebar((prev) => {
+      // 이미 멤버 목록이면 닫기, 아니면 멤버 목록으로 전환
+      return prev === 'members' ? 'none' : 'members';
+    });
   }, []);
+
+  // 검색 패널 토글
+  const handleToggleSearch = useCallback(() => {
+    setIsSearchOpen((prev) => !prev);
+  }, []);
+
+  // 고정 메시지 패널 토글
+  const handleTogglePinned = useCallback(() => {
+    setActiveRightSidebar((prev) => {
+      // 이미 고정 메시지면 닫기, 아니면 고정 메시지로 전환
+      return prev === 'pinned' ? 'none' : 'pinned';
+    });
+  }, []);
+
+  // 메시지 고정/해제 토글
+  const handlePinToggle = useCallback(async (messageId: number) => {
+    if (!workspace) return;
+    try {
+      const updatedMessage = await workspaceApi.togglePinMessage(workspace.id, messageId);
+
+      if (updatedMessage.isPinned) {
+        // 고정됨 - 목록에 추가
+        setPinnedMessages((prev) => {
+          const exists = prev.some((m) => m.id === messageId);
+          if (exists) return prev;
+          return [...prev, updatedMessage];
+        });
+      } else {
+        // 해제됨 - 목록에서 제거
+        setPinnedMessages((prev) => prev.filter((m) => m.id !== messageId));
+      }
+
+      // 메시지 목록의 isPinned 상태도 업데이트
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === messageId ? { ...m, isPinned: updatedMessage.isPinned } : m
+        )
+      );
+    } catch (err) {
+      showToast?.('메시지 고정 상태 변경에 실패했습니다.', 'error');
+    }
+  }, [workspace, showToast]);
+
+  // 고정 메시지 해제 (패널에서 사용)
+  const handleUnpinMessage = useCallback(async (messageId: number) => {
+    if (!workspace) return;
+    try {
+      await workspaceApi.togglePinMessage(workspace.id, messageId);
+      setPinnedMessages((prev) => prev.filter((m) => m.id !== messageId));
+
+      // 메시지 목록의 isPinned 상태도 업데이트
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === messageId ? { ...m, isPinned: false } : m
+        )
+      );
+    } catch (err) {
+      showToast?.('고정 해제에 실패했습니다.', 'error');
+    }
+  }, [workspace, showToast]);
+
+  // 검색/고정 메시지 클릭 시 해당 메시지로 이동
+  const handleMessageNavigate = useCallback((messageId: number) => {
+    setActiveMenu('chat');
+    // 약간의 딜레이 후 스크롤 (탭 전환 완료 후)
+    setTimeout(() => {
+      setScrollToMessageId(messageId);
+    }, 50);
+  }, []);
+
+  // 스크롤 완료 후 상태 초기화
+  const handleScrollComplete = useCallback(() => {
+    setScrollToMessageId(null);
+  }, []);
+
+  // 고정된 메시지 ID 목록 (ChatArea에 전달용)
+  const pinnedMessageIds = useMemo(() => {
+    return pinnedMessages.map((m) => m.id);
+  }, [pinnedMessages]);
 
   // 이전 메시지 로드 (무한 스크롤)
   const handleLoadMore = useCallback(async () => {
@@ -355,12 +672,12 @@ export const WorkspacePage: React.FC = () => {
     try {
       const nextPage = currentPage + 1;
       const messagesData = await workspaceApi.getMessages(workspace.id, nextPage);
-      // 이전 메시지는 앞에 추가
+      // 이전 메시지를 위에 추가
       setMessages((prev) => [...messagesData.content.reverse(), ...prev]);
       setHasMoreMessages(!messagesData.last);
       setCurrentPage(nextPage);
     } catch (err) {
-      // 이전 메시지 로드 실패 시 무시
+      // 이전 메시지 로드 실패는 무시
     } finally {
       setIsMessagesLoading(false);
     }
@@ -381,17 +698,21 @@ export const WorkspacePage: React.FC = () => {
   const handleNavigateToMeeting = useCallback(() => {
     if (!studyId) return;
 
+    if (!activeMeetingId) {
+      showToast?.('미팅 생성중입니다. 잠시후 다시 접속해주세요.', 'info');
+      return;
+    }
+
     // 퇴장 애니메이션 시작
     setIsExiting(true);
 
-    // 미팅 페이지에서 진입 애니메이션을 위한 플래그 설정
-    sessionStorage.setItem('fromWorkspace', 'true');
-
     // 애니메이션 완료 후 네비게이션 (500ms)
     setTimeout(() => {
-      navigate(`/study/${studyId}/meetings`);
+      // 미팅 페이지에서 진입 애니메이션을 위한 플래그 설정
+      sessionStorage.setItem('fromWorkspace', 'true');
+      navigate(`/study/${studyId}/meetings/${activeMeetingId}/room`);
     }, 500);
-  }, [navigate, studyId]);
+  }, [navigate, studyId, activeMeetingId, showToast]);
 
   // 로딩 상태
   if (isLoading) {
@@ -410,7 +731,7 @@ export const WorkspacePage: React.FC = () => {
     return (
       <div className={cn('workspace-container', isDarkMode && 'workspace-container--dark')}>
         <div className="workspace-error">
-          <span className="workspace-error__icon">⚠️</span>
+          <span className="workspace-error__icon">!</span>
           <h2>오류가 발생했습니다</h2>
           <p>{error}</p>
           <button onClick={handleGoBack} className="workspace-error__btn">
@@ -429,15 +750,20 @@ export const WorkspacePage: React.FC = () => {
       isEnteringFromMeeting && 'workspace-container--entering',
       isEnteringFromDashboard && 'workspace-container--entering-from-dashboard'
     )}>
-      {/* 메인 컨텐츠 영역 */}
+      {/* 메인 콘텐츠 영역 */}
       <div className="workspace-content">
         {/* 상단 헤더 */}
         <WorkspaceHeader
           studyName={studyName}
           memberCount={members.length}
           onToggleMembers={handleToggleMembers}
-          isMembersVisible={isMembersVisible}
+          isMembersVisible={activeRightSidebar === 'members'}
           onGoBack={handleGoBack}
+          onToggleSearch={handleToggleSearch}
+          isSearchOpen={isSearchOpen}
+          onTogglePinned={handleTogglePinned}
+          isPinnedOpen={activeRightSidebar === 'pinned'}
+          pinnedCount={pinnedMessages.length}
         />
 
         {/* 본문 영역 */}
@@ -449,7 +775,7 @@ export const WorkspacePage: React.FC = () => {
             onMenuChange={setActiveMenu}
             isDarkMode={isDarkMode}
             onToggleDarkMode={handleToggleDarkMode}
-            activeSession={activeSession}
+            activeSession={activeSession && activeMeetingEnded !== true ? activeSession : null}
             onNavigateToMeeting={handleNavigateToMeeting}
           />
 
@@ -463,6 +789,10 @@ export const WorkspacePage: React.FC = () => {
                   onLoadMore={handleLoadMore}
                   hasMore={hasMoreMessages}
                   currentUserId={currentUser?.id}
+                  pinnedMessageIds={pinnedMessageIds}
+                  onPinToggle={handlePinToggle}
+                  scrollToMessageId={scrollToMessageId}
+                  onScrollComplete={handleScrollComplete}
                 />
                 <MessageInput
                   onSend={handleSendMessage}
@@ -476,18 +806,55 @@ export const WorkspacePage: React.FC = () => {
             {activeMenu === 'calendar' && studyId && (
               <WorkspaceCalendarArea studyId={studyId} isLeader={isLeader} onSessionChange={loadSessions} />
             )}
+
+            {activeMenu === 'meeting' && studyId && (
+              <div className="workspace-main__scroll">
+                {selectedMeetingId ? (
+                  <MeetingDetailPanel
+                    studyId={studyId}
+                    meetingId={selectedMeetingId}
+                    onBack={() => setSelectedMeetingId(null)}
+                  />
+                ) : (
+                  <MeetingHistoryPanel
+                    studyId={studyId}
+                    onSelectMeeting={(meetingId) => setSelectedMeetingId(meetingId)}
+                  />
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* 멤버 목록 사이드바 */}
-      <MemberList
+      {/* 검색 패널 */}
+      {workspace && (
+        <SearchPanel
+          workspaceId={workspace.id}
+          isOpen={isSearchOpen}
+          onClose={() => setIsSearchOpen(false)}
+          onMessageClick={handleMessageNavigate}
+        />
+      )}
+
+      {/* 오른쪽 통합 사이드바 */}
+      <RightSidebar
+        activeContent={activeRightSidebar}
         members={members}
-        isVisible={isMembersVisible}
         onMemberClick={() => {
-          // TODO: 멤버 클릭 시 프로필 보기 등 기능 추가
+          // TODO: 멤버 클릭 프로필 보기 기능 추가
         }}
+        pinnedMessages={pinnedMessages}
+        onUnpin={handleUnpinMessage}
+        onPinnedMessageClick={handleMessageNavigate}
       />
     </div>
   );
 };
+
+
+
+
+
+
+

@@ -1,5 +1,5 @@
 # AI 추론 서버 Dockerfile (GPU 버전)
-# CUDA 12.4 지원
+# CUDA 12.4 지원, 모델 3개 (8B, 14B, Whisper large-v3)
 
 FROM nvidia/cuda:12.4.0-devel-ubuntu22.04
 
@@ -35,13 +35,18 @@ COPY inference_server.py .
 # 모델 디렉토리
 RUN mkdir -p /app/models
 
-# 환경 변수
+# 환경 변수 - LLM
 ENV MODEL_PATH=/app/models/qwen3-8b-summarizer-q4km.gguf
-ENV WHISPER_MODEL=medium
-ENV WHISPER_DEVICE=cuda
+ENV RECOMMEND_MODEL_PATH=/app/models/qwen3-14b.Q4_K_M.gguf
 ENV N_CTX=4096
 ENV N_GPU_LAYERS=-1
 ENV N_THREADS=4
+
+# 환경 변수 - Whisper
+ENV WHISPER_MODEL=large-v3
+ENV WHISPER_DEVICE=cuda
+
+# 환경 변수 - Server
 ENV HOST=0.0.0.0
 ENV PORT=8000
 

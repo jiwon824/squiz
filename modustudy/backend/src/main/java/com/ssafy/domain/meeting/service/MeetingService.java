@@ -10,11 +10,17 @@ import com.ssafy.domain.meeting.entity.MeetingSttSummary;
 import com.ssafy.domain.meeting.entity.MeetingTextTrackType;
 import com.ssafy.domain.meeting.entity.MeetingType;
 import com.ssafy.domain.meeting.entity.SummaryStatus;
+import com.ssafy.domain.meeting.repository.MeetingActionItemRepository;
 import com.ssafy.domain.meeting.repository.MeetingParticipantRepository;
 import com.ssafy.domain.meeting.repository.MeetingPhotoRepository;
 import com.ssafy.domain.meeting.repository.MeetingRepository;
 import com.ssafy.domain.meeting.repository.MeetingSttFileRepository;
 import com.ssafy.domain.meeting.repository.MeetingSttSummaryRepository;
+import com.ssafy.domain.attendance.service.AttendanceService;
+import com.ssafy.domain.study.entity.Study;
+import com.ssafy.domain.study.repository.StudyRepository;
+import com.ssafy.domain.study.repository.StudySessionRepository;
+import com.ssafy.domain.study.service.StudySessionService;
 import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -45,7 +51,12 @@ public class MeetingService {
     private final MeetingPhotoRepository meetingPhotoRepository;
     private final MeetingSttFileRepository meetingSttFileRepository;
     private final MeetingSttSummaryRepository meetingSttSummaryRepository;
+    private final MeetingActionItemRepository meetingActionItemRepository;
+    private final AttendanceService attendanceService;
     private final UserRepository userRepository;
+    private final StudyRepository studyRepository;
+    private final StudySessionRepository studySessionRepository;
+    private final StudySessionService studySessionService;
     private final SfuProperties sfuProperties;
     private final MeetingServiceHelper helper;
     private final MeetingRecordingService meetingRecordingService;
@@ -102,14 +113,42 @@ public class MeetingService {
                 .orElse(null);
         SummaryStatus summaryStatus = helper.resolveSummaryStatus(meeting);
         String summaryText = summary == null ? null : helper.readUploadedTextFile(summary.getFileUrl());
-        MeetingSummaryResponse summaryResponse = summary == null ? null : new MeetingSummaryResponse(
-                summary.getId(),
-                summaryText,
-                helper.parseActionItems(summary.getActionItemsJson()),
-                helper.parseKeywords(summary.getKeywordsJson()),
-                summaryStatus.name(),
-                summary.getCreatedAt()
-        );
+
+        // meeting_action_item 테이블에서 직접 조회 (meeting_stt_summary.action_items_json 대신)
+        List<MeetingActionItemResponse> actionItems = meetingActionItemRepository.findByMeetingId(meetingId).stream()
+                .map(item -> new MeetingActionItemResponse(
+                        item.getId(),
+                        item.getContent(),
+                        item.getAssigneeId(),
+                        item.getStatus()))
+                .toList();
+
+        // summary가 없어도 actionItems가 있으면 summaryResponse 생성
+        MeetingSummaryResponse summaryResponse;
+        if (summary != null) {
+            summaryResponse = new MeetingSummaryResponse(
+                    summary.getId(),
+                    summaryText,
+                    actionItems,
+                    helper.parseKeywords(summary.getKeywordsJson()),
+                    helper.parseKeywords(summary.getHighlightsJson()),  // highlights도 문자열 배열이므로 동일 메서드 사용
+                    summaryStatus.name(),
+                    summary.getCreatedAt()
+            );
+        } else if (!actionItems.isEmpty()) {
+            // summary 엔티티는 없지만 actionItems가 있는 경우
+            summaryResponse = new MeetingSummaryResponse(
+                    null,
+                    null,
+                    actionItems,
+                    List.of(),
+                    List.of(),
+                    summaryStatus.name(),
+                    null
+            );
+        } else {
+            summaryResponse = null;
+        }
 
         return new MeetingDetailResponse(
                 meeting.getId(),
@@ -140,13 +179,8 @@ public class MeetingService {
         }
         MeetingType meetingType = request.meetingType() == null ? MeetingType.OTHER : request.meetingType();
         boolean autoShareSummary = Boolean.TRUE.equals(request.autoShareSummary());
-        int plannedDurationSeconds = request.plannedDurationSeconds() == null ? 3600 : request.plannedDurationSeconds();
-        if (plannedDurationSeconds <= 0) {
-            plannedDurationSeconds = 3600;
-        }
-        if (plannedDurationSeconds > MAX_PLANNED_DURATION_SECONDS) {
-            plannedDurationSeconds = MAX_PLANNED_DURATION_SECONDS;
-        }
+        int plannedDurationSeconds = resolvePlannedDurationSeconds(
+                studyId, request.sessionId(), request.plannedDurationSeconds());
         Meeting meeting = Meeting.start(studyId, request.sessionId(), request.workspaceId(),
                 request.title(), meetingType, autoShareSummary, request.shareWorkspaceId(), LocalDateTime.now(),
                 plannedDurationSeconds);
@@ -158,7 +192,9 @@ public class MeetingService {
     }
 
     @Transactional
-    public MeetingDetailResponse updatePlannedDuration(Long studyId, Long meetingId, Integer plannedDurationSeconds) {
+    public MeetingDetailResponse updatePlannedDuration(Long studyId, Long meetingId, Long userId,
+                                                       Integer plannedDurationSeconds) {
+        validateLeader(studyId, userId);
         if (plannedDurationSeconds == null || plannedDurationSeconds <= 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "PLANNED_DURATION_REQUIRED");
         }
@@ -174,11 +210,16 @@ public class MeetingService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "PLANNED_DURATION_CANNOT_DECREASE");
         }
         meeting.updatePlannedDurationSeconds(plannedDurationSeconds);
+        if (meeting.getSessionId() != null) {
+            int minutes = (int) Math.ceil(plannedDurationSeconds / 60.0);
+            studySessionService.updateDurationFromMeeting(studyId, meeting.getSessionId(), minutes);
+        }
         return getMeetingDetail(studyId, meetingId);
     }
 
     @Transactional
-    public MeetingEndResponse endMeeting(Long studyId, Long meetingId) {
+    public MeetingEndResponse endMeeting(Long studyId, Long meetingId, Long userId) {
+        validateLeader(studyId, userId);
         Meeting meeting = helper.getMeetingOrThrow(studyId, meetingId);
         if (meeting.getStatus() == MeetingStatus.ENDED) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "MEETING_ALREADY_ENDED");
@@ -195,6 +236,22 @@ public class MeetingService {
         meeting.updateSummaryStatus(SummaryStatus.PROCESSING);
         meetingAudioService.finalizeIndividualVoiceRecordings(meetingId, participants);
         meetingRecordingService.triggerSfuRecordingStop(meetingId);
+        if (meeting.getSessionId() != null && meeting.getDurationSeconds() != null) {
+            int minutes = (int) Math.ceil(meeting.getDurationSeconds() / 60.0);
+            studySessionService.updateDurationFromMeeting(studyId, meeting.getSessionId(), minutes);
+        }
+        // 미팅 종료 시 참가하지 않은 멤버 ABSENT 처리
+        if (meeting.getSessionId() != null) {
+            List<Long> participantUserIds = participants.stream()
+                    .map(MeetingParticipant::getUserId)
+                    .collect(Collectors.toList());
+            try {
+                attendanceService.markAbsentForNonParticipants(studyId, meeting.getSessionId(), participantUserIds);
+            } catch (Exception ex) {
+                log.warn("Failed to mark absent for non-participants. studyId={}, sessionId={}, error={}",
+                        studyId, meeting.getSessionId(), ex.getMessage());
+            }
+        }
         return new MeetingEndResponse(meeting.getDurationSeconds(), meeting.getParticipantCount(),
                 meeting.getSummaryStatus().name());
     }
@@ -206,6 +263,7 @@ public class MeetingService {
         if (meeting.getStatus() == MeetingStatus.ENDED) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "MEETING_ALREADY_ENDED");
         }
+        meeting.startFromWaiting(LocalDateTime.now());
         MeetingParticipant participant = meetingParticipantRepository.findTopByMeetingIdAndUserIdOrderByJoinedAtDesc(meetingId, userId)
                 .orElseGet(() -> MeetingParticipant.join(meetingId, userId, LocalDateTime.now()));
         if (participant.getId() != null) {
@@ -214,6 +272,19 @@ public class MeetingService {
         meetingParticipantRepository.save(participant);
         int participantCount = meetingParticipantRepository.countByMeetingId(meetingId);
         meeting.updateParticipantCount(participantCount);
+
+        if (meeting.getSessionId() != null) {
+            studySessionRepository.findById(meeting.getSessionId()).ifPresent(session -> {
+                if (Boolean.TRUE.equals(session.getIsOnline())) {
+                    try {
+                        attendanceService.checkAttendanceAutoOnline(studyId, session.getId(), userId);
+                    } catch (Exception ex) {
+                        log.warn("Auto attendance check failed. studyId={}, sessionId={}, userId={}, error={}",
+                                studyId, session.getId(), userId, ex.getMessage());
+                    }
+                }
+            });
+        }
 
         // 참가할 때마다 SFU 녹음 시작 시도 (이미 녹음 중이면 SFU에서 already-recording 반환)
         meetingRecordingService.triggerSfuRecordingStart(meetingId);
@@ -244,5 +315,33 @@ public class MeetingService {
         MeetingParticipant participant = meetingParticipantRepository.findTopByMeetingIdAndUserIdOrderByJoinedAtDesc(meetingId, userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "NOT_IN_MEETING"));
         participant.updateMute(muted);
+    }
+
+    private void validateLeader(Long studyId, Long userId) {
+        Study study = studyRepository.findById(studyId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "STUDY_NOT_FOUND"));
+        if (!study.getLeaderId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "LEADER_ONLY");
+        }
+    }
+
+    private int resolvePlannedDurationSeconds(Long studyId, Long sessionId, Integer requestedSeconds) {
+        int planned = requestedSeconds == null ? 3600 : requestedSeconds;
+        if (planned <= 0) {
+            planned = 3600;
+        }
+        if (sessionId != null && requestedSeconds == null) {
+            Integer minutes = studySessionRepository.findById(sessionId)
+                    .filter(session -> session.getStudyId().equals(studyId))
+                    .map(session -> session.getDurationMinutes())
+                    .orElse(null);
+            if (minutes != null && minutes > 0) {
+                planned = minutes * 60;
+            }
+        }
+        if (planned > MAX_PLANNED_DURATION_SECONDS) {
+            planned = MAX_PLANNED_DURATION_SECONDS;
+        }
+        return planned;
     }
 }

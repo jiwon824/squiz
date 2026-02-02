@@ -265,6 +265,22 @@ public class StudySessionService {
         return new SessionStatistics(totalCount, completedCount, scheduledCount, cancelledCount);
     }
 
+    /**
+     * 미팅 결과에 맞춰 세션 진행 시간을 갱신
+     */
+    @Transactional
+    public void updateDurationFromMeeting(Long studyId, Long sessionId, Integer durationMinutes) {
+        if (durationMinutes == null || durationMinutes <= 0) {
+            return;
+        }
+        Study study = getStudyOrThrow(studyId);
+        StudySession session = getSessionOrThrow(sessionId);
+        validateSessionBelongsToStudy(session, studyId);
+
+        session.setDurationMinutes(durationMinutes);
+        updateSessionInMemberCalendars(session, study.getName());
+    }
+
     private Study getStudyOrThrow(Long studyId) {
         return studyRepository.findById(studyId)
                 .orElseThrow(() -> new StudyException.StudyNotFoundException(studyId));
@@ -401,5 +417,29 @@ public class StudySessionService {
             log.error("세션 시작 알림 전송 중 오류 발생 - sessionId: {}, error: {}",
                     session.getId(), e.getMessage());
         }
+    }
+
+    /**
+     * 사용자가 참여한 모든 스터디의 세션 조회 (기간별)
+     */
+    public List<StudySessionResponse> getMyStudySessions(Long userId, LocalDateTime startDate, LocalDateTime endDate) {
+        // 사용자가 참여한 스터디 목록 조회
+        List<StudyMember> myStudies = studyMemberRepository.findByUserIdAndStatus(userId, MemberStatus.APPROVED);
+        
+        if (myStudies.isEmpty()) {
+            return List.of();
+        }
+        
+        List<Long> studyIds = myStudies.stream()
+                .map(StudyMember::getStudyId)
+                .toList();
+        
+        // 해당 스터디들의 세션 조회
+        List<StudySession> sessions = studySessionRepository.findByStudyIdInAndScheduledAtBetween(
+                studyIds, startDate, endDate);
+        
+        return sessions.stream()
+                .map(StudySessionResponse::from)
+                .toList();
     }
 }

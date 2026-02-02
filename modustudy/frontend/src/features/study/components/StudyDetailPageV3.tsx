@@ -4,14 +4,15 @@ import {
     Heart, Users, Clock, MapPin,
     Target, Award, AlertTriangle, Share2,
     BookOpen, Monitor, Handshake, Layers, MoreVertical,
-    Calendar, CalendarDays, Bookmark, FileText, GraduationCap, Info, Loader2, Pencil, Quote, Trash2
+    Calendar, CalendarDays, Bookmark, FileText, GraduationCap, Info, Loader2, Pencil, Quote, Trash2, Star
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { studyService, Study } from '../services/studyService';
-import { studyApi, getStudySessions, StudySessionItem, deleteStudy } from '@/api/endpoints/studyApi';
+import { studyApi, getStudySessions, StudySessionItem, deleteStudy, getLeaderReviews, getLeaderInfo, LeaderReviewResponse, LeaderInfoResponse, getProvinces, getDistricts, getMyLeaderReview } from '@/api/endpoints/studyApi';
 import StudyApplyModalV2 from './StudyApplyModalV2';
 import { StudyReportModal } from './StudyReportModal';
 import LeaderReviewModal from './LeaderReviewModal';
+import LeaderReviewWriteModal from './LeaderReviewWriteModal';
 import StudyListContainer from './StudyListContainer';
 import StudyLeaderCard from './StudyLeaderCard';
 import StudyCommentSection from './StudyCommentSection';
@@ -20,7 +21,6 @@ import { Button, ArrowButton, Dropdown } from '@/shared/components';
 import { cn } from '@/shared/utils/cn';
 import { useDMStore } from '@/features/dm/store/dmStore';
 import { useUIStore } from '@/store/uiStore';
-import { getReviewsByLeaderId, getLeaderAverageRating, getRegionById, LeaderReview } from '../mockData';
 
 // API 응답 타입 (StudyResponse 구조)
 interface StudyDetail {
@@ -38,6 +38,7 @@ interface StudyDetail {
     scheduleDays?: string;
     scheduleTime?: string;
     maxMembers: number;
+    currentMembers?: number;  // 현재 참여 인원
     isPublic?: boolean;
     status: string;
     penaltyPolicy?: string;
@@ -84,8 +85,14 @@ const StudyDetailPageV3: React.FC = () => {
     const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
     const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
-    const [leaderReviews, setLeaderReviews] = useState<LeaderReview[]>([]);
-    const [leaderAvgRating, setLeaderAvgRating] = useState(0);
+    const [leaderReviews, setLeaderReviews] = useState<LeaderReviewResponse[]>([]);
+    const [leaderAvgRating, setLeaderAvgRating] = useState<number | null>(null);
+    const [leaderReviewCount, setLeaderReviewCount] = useState(0);
+    const [leaderInfo, setLeaderInfo] = useState<LeaderInfoResponse | null>(null);
+    const [regionName, setRegionName] = useState<string | null>(null);
+    const [isReviewWriteModalOpen, setIsReviewWriteModalOpen] = useState(false);
+    const [myReview, setMyReview] = useState<LeaderReviewResponse | null>(null);
+    const [isMember, setIsMember] = useState(false);
     const { user } = useAuthStore();
 
     // 실제 API에서 스터디 상세 및 세션(커리큘럼) 조회
@@ -111,6 +118,41 @@ const StudyDetailPageV3: React.FC = () => {
                     console.error('세션 에러 상세:', sessionError?.response?.data || sessionError?.message);
                     setSessions([]);
                 }
+
+                // 스터디장 정보 조회 (평점, 리뷰 수 포함)
+                try {
+                    const leaderData = await getLeaderInfo(Number(id));
+                    console.log('[스터디장 정보 API 응답]', leaderData);
+                    setLeaderInfo(leaderData);
+                    setLeaderAvgRating(leaderData.leaderRating);
+                    setLeaderReviewCount(leaderData.leaderReviewCount || 0);
+                } catch (leaderError) {
+                    console.error('스터디장 정보 조회 실패:', leaderError);
+                }
+
+                // 북마크 상태 조회
+                try {
+                    const bookmarked = await studyApi.checkBookmark(Number(id));
+                    setIsBookmarked(bookmarked);
+                } catch (bookmarkError) {
+                    console.error('북마크 상태 조회 실패:', bookmarkError);
+                }
+
+                // 멤버 여부 확인 및 내 리뷰 조회 (로그인 상태일 때만)
+                if (user?.id) {
+                    try {
+                        const memberCheck = await studyApi.checkMembership(Number(id), Number(user.id));
+                        setIsMember(memberCheck);
+
+                        // 멤버이고 스터디가 완료 상태면 내 리뷰 조회
+                        if (memberCheck && data.status === 'COMPLETED') {
+                            const myReviewData = await getMyLeaderReview(Number(id));
+                            setMyReview(myReviewData);
+                        }
+                    } catch (memberError) {
+                        console.error('멤버 확인 실패:', memberError);
+                    }
+                }
             } catch (error) {
                 console.error('스터디 상세 조회 실패:', error);
                 showToast('스터디 정보를 불러올 수 없습니다.', 'error');
@@ -119,7 +161,38 @@ const StudyDetailPageV3: React.FC = () => {
             }
         };
         fetchStudyData();
-    }, [id]);
+    }, [id, user?.id]);
+
+    // regionId가 있으면 지역 이름 조회
+    useEffect(() => {
+        const fetchRegionName = async () => {
+            if (!studyDetail?.regionId) {
+                setRegionName(null);
+                return;
+            }
+
+            try {
+                // 모든 시/도를 가져와서 각 시/도의 구/군에서 regionId 찾기
+                const provinces = await getProvinces();
+                for (const province of provinces) {
+                    const districts = await getDistricts(province.id);
+                    const foundDistrict = districts.find(d => d.id === studyDetail.regionId);
+                    if (foundDistrict) {
+                        // 시/도 + 구/군 형태로 표시
+                        setRegionName(`${province.name} ${foundDistrict.name}`);
+                        return;
+                    }
+                }
+                // 못 찾으면 미지정
+                setRegionName(null);
+            } catch (error) {
+                console.error('지역 정보 조회 실패:', error);
+                setRegionName(null);
+            }
+        };
+
+        fetchRegionName();
+    }, [studyDetail?.regionId]);
 
 
     // 로딩 상태
@@ -169,7 +242,7 @@ const StudyDetailPageV3: React.FC = () => {
         status: computedStatus,
         isPublic: studyDetail.isPublic ?? true,
         maxMembers: studyDetail.maxMembers,
-        currentMembers: 1,
+        currentMembers: studyDetail.currentMembers || 1,  // API에서 받아온 값 사용 (0이면 최소 1명)
         difficulty: studyDetail.difficulty || 'INTERMEDIATE',
         scheduleDays: studyDetail.scheduleDays || '',
         scheduleTime: studyDetail.scheduleTime,
@@ -178,18 +251,25 @@ const StudyDetailPageV3: React.FC = () => {
         recruitEndDate: studyDetail.recruitEndDate,
         leader: {
             id: studyDetail.leader?.id || 0,
-            nickname: studyDetail.leader?.nickname || '스터디장',
+            nickname: leaderInfo?.nickname || studyDetail.leader?.nickname || '스터디장',
             profileImage: studyDetail.leader?.profileImage || null,
-            leaderRating: 4.5,
-            leaderReviewCount: 0,
+            leaderRating: leaderInfo?.leaderRating ?? null,
+            leaderReviewCount: leaderInfo?.leaderReviewCount || 0,
         },
-        isBookmarked: false,
+        isBookmarked: isBookmarked,
         createdAt: studyDetail.createdAt,
     };
 
-    const handleBookmarkToggle = () => {
-        setIsBookmarked(!isBookmarked);
-        showToast(isBookmarked ? '찜 목록에서 제거되었습니다.' : '찜 목록에 추가되었습니다.', 'success');
+    const handleBookmarkToggle = async () => {
+        if (!studyDetail?.id) return;
+        try {
+            await studyApi.toggleBookmark(studyDetail.id);
+            setIsBookmarked(!isBookmarked);
+            showToast(isBookmarked ? '찜 목록에서 제거되었습니다.' : '찜 목록에 추가되었습니다.', 'success');
+        } catch (error) {
+            console.error('북마크 토글 실패:', error);
+            showToast('북마크 처리 중 오류가 발생했습니다.', 'error');
+        }
     };
 
     const handleReportSubmit = (reason: string) => {
@@ -210,13 +290,27 @@ const StudyDetailPageV3: React.FC = () => {
     };
 
     // 평점 클릭 시 리뷰 목록 모달 열기
-    const handleRatingClick = () => {
-        if (!studyDetail.leader) return;
-        const reviews = getReviewsByLeaderId(studyDetail.leader.id);
-        const avgRating = getLeaderAverageRating(studyDetail.leader.id);
-        setLeaderReviews(reviews);
-        setLeaderAvgRating(avgRating > 0 ? avgRating : 4.5);
-        setIsReviewModalOpen(true);
+    const handleRatingClick = async () => {
+        if (!studyDetail.id) return;
+
+        try {
+            // 리뷰 목록 조회
+            const reviewData = await getLeaderReviews(studyDetail.id);
+            setLeaderReviews(reviewData.content || []);
+
+            // 평균 평점 계산
+            if (reviewData.content && reviewData.content.length > 0) {
+                const sum = reviewData.content.reduce((acc, review) => acc + review.rating, 0);
+                setLeaderAvgRating(sum / reviewData.content.length);
+            } else {
+                setLeaderAvgRating(0);
+            }
+            setLeaderReviewCount(reviewData.totalElements || 0);
+            setIsReviewModalOpen(true);
+        } catch (error) {
+            console.error('리뷰 조회 실패:', error);
+            showToast('리뷰를 불러오는데 실패했습니다.', 'error');
+        }
     };
 
     // 스터디 삭제 핸들러
@@ -282,14 +376,38 @@ const StudyDetailPageV3: React.FC = () => {
         }
     };
 
-    // 요일 포맷팅 (MON,WED,FRI -> 월, 수, 금)
+    // 요일 포맷팅 (MON,WED,FRI -> 월, 수, 금) - 요일 순서대로 정렬
     const formatScheduleDays = (days: string) => {
+        // 번개 스터디이고 scheduleDays가 없으면 startDate의 요일 표시
+        if (!days && studyDetail?.studyType === 'LIGHTNING' && studyDetail?.startDate) {
+            const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+            const startDate = new Date(studyDetail.startDate);
+            return dayNames[startDate.getDay()];
+        }
         if (!days) return '협의 후 결정';
-        const dayMap: Record<string, string> = {
-            'MON': '월', 'TUE': '화', 'WED': '수',
-            'THU': '목', 'FRI': '금', 'SAT': '토', 'SUN': '일'
+        // 대소문자/한글 모두 지원
+        const dayOrder: Record<string, number> = {
+            'MON': 0, 'mon': 0, '월': 0,
+            'TUE': 1, 'tue': 1, '화': 1,
+            'WED': 2, 'wed': 2, '수': 2,
+            'THU': 3, 'thu': 3, '목': 3,
+            'FRI': 4, 'fri': 4, '금': 4,
+            'SAT': 5, 'sat': 5, '토': 5,
+            'SUN': 6, 'sun': 6, '일': 6,
         };
-        return days.split(',').map(d => dayMap[d.trim()] || d).join(', ');
+        const dayMap: Record<string, string> = {
+            'MON': '월', 'mon': '월', '월': '월',
+            'TUE': '화', 'tue': '화', '화': '화',
+            'WED': '수', 'wed': '수', '수': '수',
+            'THU': '목', 'thu': '목', '목': '목',
+            'FRI': '금', 'fri': '금', '금': '금',
+            'SAT': '토', 'sat': '토', '토': '토',
+            'SUN': '일', 'sun': '일', '일': '일',
+        };
+        const sortedDays = days.split(',')
+            .map(d => d.trim())
+            .sort((a, b) => (dayOrder[a] ?? 99) - (dayOrder[b] ?? 99));
+        return sortedDays.map(d => dayMap[d] || d).join(', ');
     };
 
     // 날짜 범위 포맷팅
@@ -410,7 +528,14 @@ const StudyDetailPageV3: React.FC = () => {
                                                         label: '수정하기',
                                                         value: 'edit',
                                                         icon: <Pencil size={16} />,
-                                                        onClick: () => navigate(`/study/create/planned?studyId=${study.id}`),
+                                                        onClick: () => {
+                                                            // 스터디 타입에 따라 다른 수정 페이지로 이동 (from=detail로 돌아올 페이지 지정)
+                                                            if (study.studyType === 'LIGHTNING') {
+                                                                navigate(`/study/edit/lightning/${study.id}?from=detail`);
+                                                            } else {
+                                                                navigate(`/study/create/planned?studyId=${study.id}&from=detail`);
+                                                            }
+                                                        },
                                                     },
                                                     {
                                                         label: '삭제하기',
@@ -494,7 +619,7 @@ const StudyDetailPageV3: React.FC = () => {
                                                 <p className="text-[var(--color-text-primary)] leading-relaxed pb-4 border-b border-[var(--color-border)]">
                                                     {study.meetingType === 'ONLINE'
                                                         ? '전국'
-                                                        : study.region?.name || getRegionById(study.regionId!)?.name || '미지정'}
+                                                        : regionName || '미지정'}
                                                 </p>
                                             </div>
                                             <div>
@@ -636,10 +761,12 @@ const StudyDetailPageV3: React.FC = () => {
                                     </div>
                                 </div>
 
+                                {/* 커리큘럼(세션) 섹션 - 번개 스터디는 숨김 */}
+                                {studyDetail.studyType !== 'LIGHTNING' && (
+                                <>
                                 {/* 구분선 */}
                                 <div className="mx-6 md:mx-8 border-t-2 border-gray-200" />
 
-                                {/* 커리큘럼(세션) 섹션 */}
                                 <div className="p-6 md:p-8">
                                     <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--color-text-primary)] mb-8">
                                         <div className="p-2 bg-[var(--color-primary-alpha-10)] rounded-xl">
@@ -736,7 +863,67 @@ const StudyDetailPageV3: React.FC = () => {
                                         </div>
                                     )}
                                 </div>
+                                </>
+                                )}
+
                             </div>
+
+                            {/* 스터디장 평가 섹션 (완료된 스터디 + 멤버 + 스터디장 아닐 때) */}
+                            {study.status === 'COMPLETED' && isMember && !isOwner && (
+                                <div className="mt-6 bg-white rounded-2xl border border-[var(--color-border)] p-6 shadow-sm">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-yellow-50 rounded-xl">
+                                                <Star size={20} className="text-yellow-500" />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-bold text-[var(--color-text-primary)]">
+                                                    스터디장 평가
+                                                </h3>
+                                                <p className="text-sm text-[var(--color-text-tertiary)]">
+                                                    {myReview
+                                                        ? '작성한 리뷰를 수정하거나 삭제할 수 있습니다.'
+                                                        : `${study.leader.nickname}님의 스터디 운영은 어떠셨나요?`}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <Button
+                                            variant={myReview ? 'outline' : 'primary'}
+                                            onClick={() => setIsReviewWriteModalOpen(true)}
+                                            leftIcon={myReview ? <Pencil size={16} /> : <Star size={16} />}
+                                        >
+                                            {myReview ? '리뷰 수정' : '리뷰 작성'}
+                                        </Button>
+                                    </div>
+                                    {myReview && (
+                                        <div className="mt-4 pt-4 border-t border-[var(--color-border-light)]">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <div className="flex gap-0.5">
+                                                    {[1, 2, 3, 4, 5].map((v) => (
+                                                        <Star
+                                                            key={v}
+                                                            size={14}
+                                                            className={cn(
+                                                                v <= myReview.rating
+                                                                    ? 'text-yellow-400 fill-current'
+                                                                    : 'text-gray-300'
+                                                            )}
+                                                        />
+                                                    ))}
+                                                </div>
+                                                <span className="text-sm font-medium text-[var(--color-text-primary)]">
+                                                    {myReview.rating.toFixed(1)}
+                                                </span>
+                                            </div>
+                                            {myReview.comment && (
+                                                <p className="text-sm text-[var(--color-text-secondary)]">
+                                                    {myReview.comment}
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                             {/* 댓글 섹션 */}
                             <div className="mt-6">
@@ -786,6 +973,27 @@ const StudyDetailPageV3: React.FC = () => {
                 leaderNickname={study.leader.nickname}
                 reviews={leaderReviews}
                 averageRating={leaderAvgRating}
+            />
+
+            <LeaderReviewWriteModal
+                isOpen={isReviewWriteModalOpen}
+                onClose={() => setIsReviewWriteModalOpen(false)}
+                studyId={study.id}
+                leaderNickname={study.leader.nickname}
+                existingReview={myReview}
+                onSuccess={async () => {
+                    // 리뷰 작성/수정/삭제 후 데이터 새로고침
+                    try {
+                        const myReviewData = await getMyLeaderReview(study.id);
+                        setMyReview(myReviewData);
+                        const leaderData = await getLeaderInfo(study.id);
+                        setLeaderInfo(leaderData);
+                        setLeaderAvgRating(leaderData.leaderRating);
+                        setLeaderReviewCount(leaderData.leaderReviewCount || 0);
+                    } catch (error) {
+                        console.error('리뷰 데이터 새로고침 실패:', error);
+                    }
+                }}
             />
 
             {/* 스터디 삭제 확인 모달 */}

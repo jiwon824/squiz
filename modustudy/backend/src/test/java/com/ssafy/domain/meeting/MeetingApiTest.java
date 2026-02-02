@@ -219,6 +219,7 @@ class MeetingApiTest {
                 "summary",
                 List.of(new MeetingActionItemResponse(1L, "todo", null, ActionItemStatus.TODO)),
                 List.of("DP"),
+                List.of("주요 내용 1", "주요 내용 2"),
                 "DONE",
                 LocalDateTime.of(2025, 1, 15, 20, 40)
         );
@@ -282,10 +283,11 @@ class MeetingApiTest {
     @DisplayName("미팅 종료: 요약 상태 반환")
     void endMeeting() throws Exception {
         // given
-        when(meetingService.endMeeting(1L, 2L)).thenReturn(new MeetingEndResponse(5400, 5, "PROCESSING"));
+        when(meetingService.endMeeting(1L, 2L, 1L)).thenReturn(new MeetingEndResponse(5400, 5, "PROCESSING"));
 
         // when & then
-        mockMvc.perform(put("/api/v1/studies/1/meetings/2/end"))
+        mockMvc.perform(put("/api/v1/studies/1/meetings/2/end")
+                        .with(authentication(authUser(1L))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.summaryStatus").value("PROCESSING"));
     }
@@ -314,13 +316,14 @@ class MeetingApiTest {
                 List.of(),
                 null
         );
-        when(meetingService.updatePlannedDuration(1L, 2L, 7200)).thenReturn(detail);
+        when(meetingService.updatePlannedDuration(1L, 2L, 1L, 7200)).thenReturn(detail);
 
         // when & then
         MeetingPlannedDurationRequest request = new MeetingPlannedDurationRequest(7200);
         mockMvc.perform(put("/api/v1/studies/1/meetings/2/duration")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(request))
+                        .with(authentication(authUser(1L))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.plannedDurationSeconds").value(7200));
     }
@@ -353,6 +356,7 @@ class MeetingApiTest {
                 "summary",
                 List.of(new MeetingActionItemResponse(1L, "todo", null, ActionItemStatus.TODO)),
                 List.of("DP"),
+                List.of("주요 내용 1", "주요 내용 2"),
                 "DONE",
                 LocalDateTime.of(2025, 1, 15, 20, 40)
         );

@@ -129,3 +129,5 @@ jacoco.xml
 modustudy/backend/src/main/java/com/ssafy/nul
 tmpclaude-*
 modustudy/ai-training/data_collection/nul
+migration_backup/
+nul

@@ -23,6 +23,9 @@ RUN npm ci
 # 소스 코드 복사
 COPY . .
 
+# 프로덕션 환경변수 설정
+ENV VITE_SFU_URL=wss://i14d106.p.ssafy.io
+
 # node_modules 실행 권한 부여 후 빌드 (타입 체크 스킵)
 RUN chmod -R +x node_modules/.bin && ./node_modules/.bin/vite build
 

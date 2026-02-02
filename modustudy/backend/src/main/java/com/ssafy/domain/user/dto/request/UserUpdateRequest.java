@@ -6,5 +6,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor
 public class UserUpdateRequest {
+    private String name;
     private String nickname;
+    private String bio;
 }

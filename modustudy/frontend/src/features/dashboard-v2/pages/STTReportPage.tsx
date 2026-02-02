@@ -18,6 +18,7 @@ import {
     AArrowUp,
     AArrowDown,
     Type,
+    BookOpen,
 } from 'lucide-react';
 import { cn, conditionalClasses } from '@/shared/utils/cn';
 import { Dropdown } from '@/shared/components';
@@ -31,7 +32,13 @@ import {
 } from '../components/stt-report';
 import type { TabType, TranscriptItem, ExportScope } from '../components/stt-report';
 import { useSttStore } from '@/store/sttStore';
+import { studyApi } from '@/api/endpoints/studyApi';
 import '../styles/DashboardV2.css';
+
+interface StudyOption {
+    id: number;
+    name: string;
+}
 
 // 탭 정의
 const TABS = [
@@ -68,16 +75,67 @@ export const STTReportPage: React.FC = () => {
         fetchMeetings,
         updateSummary,
         updateTranscript,
+        setStudy,
+        studyId: currentStudyId,
     } = useSttStore();
 
     const [activeTab, setActiveTab] = useState<TabType>('summary');
     const [searchQuery, setSearchQuery] = useState('');
     const [textSize, setTextSize] = useState<'sm' | 'base' | 'lg'>('base');
 
-    // 마운트 시 미팅 목록 조회
+    // 스터디 목록 상태
+    const [studies, setStudies] = useState<StudyOption[]>([]);
+    const [selectedStudyId, setSelectedStudyId] = useState<number | null>(null);
+    const [showStudyDropdown, setShowStudyDropdown] = useState(false);
+    const [studiesLoading, setStudiesLoading] = useState(true);
+    const studyDropdownRef = useRef<HTMLDivElement>(null);
+
+    // 마운트 시 스터디 목록 조회
     useEffect(() => {
-        fetchMeetings();
-    }, [fetchMeetings]);
+        const loadStudies = async () => {
+            try {
+                setStudiesLoading(true);
+                const response = await studyApi.getMyStudies(0, 50);
+                const studyOptions = response.content.map(s => ({
+                    id: s.id,
+                    name: s.name,
+                }));
+                setStudies(studyOptions);
+
+                // 첫 번째 스터디 자동 선택
+                if (studyOptions.length > 0 && !selectedStudyId) {
+                    setSelectedStudyId(studyOptions[0].id);
+                }
+            } catch (err) {
+                console.error('스터디 목록 조회 실패:', err);
+            } finally {
+                setStudiesLoading(false);
+            }
+        };
+        loadStudies();
+    }, []);
+
+    // 선택된 스터디가 변경되면 미팅 목록 조회
+    useEffect(() => {
+        if (selectedStudyId) {
+            const selectedStudy = studies.find(s => s.id === selectedStudyId);
+            setStudy(selectedStudyId, selectedStudy?.name || '');
+            fetchMeetings();
+        }
+    }, [selectedStudyId, studies, setStudy, fetchMeetings]);
+
+    // 스터디 드롭다운 외부 클릭 시 닫기
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (studyDropdownRef.current && !studyDropdownRef.current.contains(e.target as Node)) {
+                setShowStudyDropdown(false);
+            }
+        };
+        if (showStudyDropdown) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [showStudyDropdown]);
 
 
     // 검색 필터링
@@ -160,6 +218,70 @@ export const STTReportPage: React.FC = () => {
                             'w-80 flex-shrink-0 relative flex flex-col',
                             'bg-background/70'
                         )}>
+                            {/* 스터디 선택 드롭다운 */}
+                            <div className="p-4 border-b border-border" ref={studyDropdownRef}>
+                                <div className="relative">
+                                    <button
+                                        onClick={() => setShowStudyDropdown(prev => !prev)}
+                                        disabled={studiesLoading || studies.length === 0}
+                                        className={cn(
+                                            'w-full flex items-center justify-between px-3 py-2.5 text-sm',
+                                            'border border-border rounded-google bg-surface',
+                                            'hover:border-primary/50 transition-colors',
+                                            'disabled:opacity-50 disabled:cursor-not-allowed'
+                                        )}
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <BookOpen size={16} className="text-primary" />
+                                            <span className="font-medium text-text-primary truncate">
+                                                {studiesLoading
+                                                    ? '로딩 중...'
+                                                    : studies.length === 0
+                                                        ? '참여 중인 스터디 없음'
+                                                        : studies.find(s => s.id === selectedStudyId)?.name || '스터디 선택'}
+                                            </span>
+                                        </div>
+                                        <ChevronDown size={16} className={cn(
+                                            'text-text-tertiary transition-transform',
+                                            showStudyDropdown && 'rotate-180'
+                                        )} />
+                                    </button>
+
+                                    {/* 스터디 드롭다운 메뉴 */}
+                                    <AnimatePresence>
+                                        {showStudyDropdown && studies.length > 0 && (
+                                            <motion.div
+                                                initial={{ opacity: 0, y: -5 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                exit={{ opacity: 0, y: -5 }}
+                                                className={cn(
+                                                    'absolute left-0 right-0 top-full mt-1 z-50',
+                                                    'bg-surface border border-border rounded-google shadow-lg',
+                                                    'max-h-48 overflow-y-auto'
+                                                )}
+                                            >
+                                                {studies.map(study => (
+                                                    <button
+                                                        key={study.id}
+                                                        onClick={() => {
+                                                            setSelectedStudyId(study.id);
+                                                            setShowStudyDropdown(false);
+                                                        }}
+                                                        className={cn(
+                                                            'w-full px-3 py-2 text-left text-sm',
+                                                            'hover:bg-surface-hover transition-colors',
+                                                            selectedStudyId === study.id && 'bg-primary/10 text-primary font-medium'
+                                                        )}
+                                                    >
+                                                        {study.name}
+                                                    </button>
+                                                ))}
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
+                            </div>
+
                             {/* 검색 */}
                             <div className="p-4 border-b border-border">
                                 <div className="relative">
@@ -180,34 +302,45 @@ export const STTReportPage: React.FC = () => {
 
                             {/* 미팅 리스트 */}
                             <div className="flex-1 overflow-y-auto max-h-[500px]">
-                                {filteredReports.map((report) => {
-                                    const isSelected = selectedReport?.id === report.id;
-                                    return (
-                                        <button
-                                            key={report.id}
-                                            onClick={() => selectReport(report)}
-                                            className={cn(
-                                                'w-full p-4 text-left transition-all border-b border-border',
-                                                conditionalClasses.state(
-                                                    isSelected,
-                                                    'bg-surface border-l-4 border-l-primary -mr-px z-10',
-                                                    'hover:bg-surface-hover'
-                                                )
-                                            )}
-                                        >
-                                            <h4 className="font-bold text-text-primary text-sm mb-0.5">
-                                                {report.studyName}
-                                            </h4>
-                                            <p className="text-xs text-text-secondary truncate">
-                                                {report.meetingTitle}
-                                            </p>
-                                            <div className="flex items-center gap-2 mt-2 text-xs text-text-tertiary">
-                                                <Calendar size={12} />
-                                                <span>{report.date}</span>
-                                            </div>
-                                        </button>
-                                    );
-                                })}
+                                {isLoading ? (
+                                    <div className="flex items-center justify-center h-32 text-text-tertiary text-sm">
+                                        미팅 목록 로딩 중...
+                                    </div>
+                                ) : filteredReports.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center h-32 text-text-tertiary text-sm">
+                                        <FileText size={24} className="mb-2 opacity-50" />
+                                        <span>미팅 기록이 없습니다</span>
+                                    </div>
+                                ) : (
+                                    filteredReports.map((report) => {
+                                        const isSelected = selectedReport?.id === report.id;
+                                        return (
+                                            <button
+                                                key={report.id}
+                                                onClick={() => selectReport(report)}
+                                                className={cn(
+                                                    'w-full p-4 text-left transition-all border-b border-border',
+                                                    conditionalClasses.state(
+                                                        isSelected,
+                                                        'bg-surface border-l-4 border-l-primary -mr-px z-10',
+                                                        'hover:bg-surface-hover'
+                                                    )
+                                                )}
+                                            >
+                                                <h4 className="font-bold text-text-primary text-sm mb-0.5">
+                                                    {report.studyName}
+                                                </h4>
+                                                <p className="text-xs text-text-secondary truncate">
+                                                    {report.meetingTitle}
+                                                </p>
+                                                <div className="flex items-center gap-2 mt-2 text-xs text-text-tertiary">
+                                                    <Calendar size={12} />
+                                                    <span>{report.date}</span>
+                                                </div>
+                                            </button>
+                                        );
+                                    })
+                                )}
                             </div>
 
                             {/* 탭 네비게이션 */}

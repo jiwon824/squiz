@@ -35,7 +35,7 @@ export const courseDetailMockData: Record<string, CourseDetail> = {
                 isUnlocked: true,
                 isPassed: true,
                 bestScore: 90,
-                attemptCount: 2,
+
             },
             {
                 sectionNumber: 2,
@@ -43,7 +43,7 @@ export const courseDetailMockData: Record<string, CourseDetail> = {
                 isUnlocked: true,
                 isPassed: true,
                 bestScore: 85,
-                attemptCount: 1,
+
             },
             {
                 sectionNumber: 3,
@@ -51,7 +51,7 @@ export const courseDetailMockData: Record<string, CourseDetail> = {
                 isUnlocked: true,
                 isPassed: false,
                 bestScore: null,
-                attemptCount: 0,
+
             },
             {
                 sectionNumber: 4,
@@ -59,7 +59,7 @@ export const courseDetailMockData: Record<string, CourseDetail> = {
                 isUnlocked: false,
                 isPassed: false,
                 bestScore: null,
-                attemptCount: 0,
+
             },
             {
                 sectionNumber: 5,
@@ -67,7 +67,7 @@ export const courseDetailMockData: Record<string, CourseDetail> = {
                 isUnlocked: false,
                 isPassed: false,
                 bestScore: null,
-                attemptCount: 0,
+
             },
         ],
     },
@@ -88,7 +88,7 @@ export const courseDetailMockData: Record<string, CourseDetail> = {
                 isUnlocked: true,
                 isPassed: true,
                 bestScore: 95,
-                attemptCount: 1,
+
             },
             {
                 sectionNumber: 2,
@@ -96,7 +96,7 @@ export const courseDetailMockData: Record<string, CourseDetail> = {
                 isUnlocked: true,
                 isPassed: false,
                 bestScore: 60,
-                attemptCount: 2,
+
             },
             {
                 sectionNumber: 3,
@@ -104,7 +104,7 @@ export const courseDetailMockData: Record<string, CourseDetail> = {
                 isUnlocked: false,
                 isPassed: false,
                 bestScore: null,
-                attemptCount: 0,
+
             },
         ],
     },
@@ -125,7 +125,7 @@ export const courseDetailMockData: Record<string, CourseDetail> = {
                 isUnlocked: true,
                 isPassed: true,
                 bestScore: 100,
-                attemptCount: 1,
+
             },
             {
                 sectionNumber: 2,
@@ -133,7 +133,7 @@ export const courseDetailMockData: Record<string, CourseDetail> = {
                 isUnlocked: true,
                 isPassed: true,
                 bestScore: 80,
-                attemptCount: 3,
+
             },
             {
                 sectionNumber: 3,
@@ -141,7 +141,7 @@ export const courseDetailMockData: Record<string, CourseDetail> = {
                 isUnlocked: true,
                 isPassed: false,
                 bestScore: null,
-                attemptCount: 0,
+
             },
             {
                 sectionNumber: 4,
@@ -149,7 +149,7 @@ export const courseDetailMockData: Record<string, CourseDetail> = {
                 isUnlocked: false,
                 isPassed: false,
                 bestScore: null,
-                attemptCount: 0,
+
             },
         ],
     },
@@ -170,7 +170,7 @@ export const courseDetailMockData: Record<string, CourseDetail> = {
                 isUnlocked: true,
                 isPassed: true,
                 bestScore: 88,
-                attemptCount: 1,
+
             },
             {
                 sectionNumber: 2,
@@ -178,7 +178,7 @@ export const courseDetailMockData: Record<string, CourseDetail> = {
                 isUnlocked: true,
                 isPassed: false,
                 bestScore: null,
-                attemptCount: 0,
+
             },
             {
                 sectionNumber: 3,
@@ -186,7 +186,7 @@ export const courseDetailMockData: Record<string, CourseDetail> = {
                 isUnlocked: false,
                 isPassed: false,
                 bestScore: null,
-                attemptCount: 0,
+
             },
             {
                 sectionNumber: 4,
@@ -194,7 +194,7 @@ export const courseDetailMockData: Record<string, CourseDetail> = {
                 isUnlocked: false,
                 isPassed: false,
                 bestScore: null,
-                attemptCount: 0,
+
             },
         ],
     },
@@ -215,7 +215,7 @@ export const courseDetailMockData: Record<string, CourseDetail> = {
                 isUnlocked: true,
                 isPassed: true,
                 bestScore: 92,
-                attemptCount: 1,
+
             },
             {
                 sectionNumber: 2,
@@ -223,7 +223,7 @@ export const courseDetailMockData: Record<string, CourseDetail> = {
                 isUnlocked: true,
                 isPassed: true,
                 bestScore: 78,
-                attemptCount: 2,
+
             },
             {
                 sectionNumber: 3,
@@ -231,7 +231,7 @@ export const courseDetailMockData: Record<string, CourseDetail> = {
                 isUnlocked: true,
                 isPassed: false,
                 bestScore: null,
-                attemptCount: 0,
+
             },
             {
                 sectionNumber: 4,
@@ -239,7 +239,7 @@ export const courseDetailMockData: Record<string, CourseDetail> = {
                 isUnlocked: false,
                 isPassed: false,
                 bestScore: null,
-                attemptCount: 0,
+
             },
         ],
     },
@@ -260,7 +260,7 @@ export const courseDetailMockData: Record<string, CourseDetail> = {
                 isUnlocked: true,
                 isPassed: false,
                 bestScore: null,
-                attemptCount: 0,
+
             },
             {
                 sectionNumber: 2,
@@ -268,7 +268,7 @@ export const courseDetailMockData: Record<string, CourseDetail> = {
                 isUnlocked: false,
                 isPassed: false,
                 bestScore: null,
-                attemptCount: 0,
+
             },
             {
                 sectionNumber: 3,
@@ -276,7 +276,7 @@ export const courseDetailMockData: Record<string, CourseDetail> = {
                 isUnlocked: false,
                 isPassed: false,
                 bestScore: null,
-                attemptCount: 0,
+
             },
             {
                 sectionNumber: 4,
@@ -284,7 +284,7 @@ export const courseDetailMockData: Record<string, CourseDetail> = {
                 isUnlocked: false,
                 isPassed: false,
                 bestScore: null,
-                attemptCount: 0,
+
             },
         ],
     },
@@ -305,7 +305,7 @@ export const courseDetailMockData: Record<string, CourseDetail> = {
                 isUnlocked: true,
                 isPassed: true,
                 bestScore: 100,
-                attemptCount: 1,
+
             },
             {
                 sectionNumber: 2,
@@ -313,7 +313,7 @@ export const courseDetailMockData: Record<string, CourseDetail> = {
                 isUnlocked: true,
                 isPassed: true,
                 bestScore: 95,
-                attemptCount: 1,
+
             },
             {
                 sectionNumber: 3,
@@ -321,7 +321,7 @@ export const courseDetailMockData: Record<string, CourseDetail> = {
                 isUnlocked: true,
                 isPassed: true,
                 bestScore: 88,
-                attemptCount: 2,
+
             },
             {
                 sectionNumber: 4,
@@ -329,7 +329,7 @@ export const courseDetailMockData: Record<string, CourseDetail> = {
                 isUnlocked: true,
                 isPassed: false,
                 bestScore: null,
-                attemptCount: 0,
+
             },
         ],
     },
@@ -350,7 +350,7 @@ export const courseDetailMockData: Record<string, CourseDetail> = {
                 isUnlocked: true,
                 isPassed: false,
                 bestScore: null,
-                attemptCount: 0,
+
             },
             {
                 sectionNumber: 2,
@@ -358,7 +358,7 @@ export const courseDetailMockData: Record<string, CourseDetail> = {
                 isUnlocked: false,
                 isPassed: false,
                 bestScore: null,
-                attemptCount: 0,
+
             },
             {
                 sectionNumber: 3,
@@ -366,7 +366,7 @@ export const courseDetailMockData: Record<string, CourseDetail> = {
                 isUnlocked: false,
                 isPassed: false,
                 bestScore: null,
-                attemptCount: 0,
+
             },
             {
                 sectionNumber: 4,
@@ -374,7 +374,7 @@ export const courseDetailMockData: Record<string, CourseDetail> = {
                 isUnlocked: false,
                 isPassed: false,
                 bestScore: null,
-                attemptCount: 0,
+
             },
             {
                 sectionNumber: 5,
@@ -382,7 +382,7 @@ export const courseDetailMockData: Record<string, CourseDetail> = {
                 isUnlocked: false,
                 isPassed: false,
                 bestScore: null,
-                attemptCount: 0,
+
             },
         ],
     },

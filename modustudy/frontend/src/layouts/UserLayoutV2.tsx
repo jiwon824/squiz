@@ -365,99 +365,117 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEntering
                             )}
                         </div>
 
-                        {/* 프로필 드롭다운 */}
+                        {/* 프로필 드롭다운 / 로그인 버튼 */}
                         <div ref={profileRef} className="relative">
-                            <button
-                                onClick={() => {
-                                    setIsProfileOpen(!isProfileOpen);
-                                    setIsNotificationOpen(false);
-                                }}
-                                className={cn(
-                                    'flex items-center p-1 rounded-lg transition-colors',
-                                    'hover:bg-white/50',
-                                    isProfileOpen && 'bg-white/60'
-                                )}
-                                aria-label="Profile menu"
-                            >
-                                <div className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-gradient-to-br from-study-blue to-study-blue-dark flex items-center justify-center text-white text-sm font-bold overflow-hidden">
-                                    <img
-                                        src={user?.avatar || DEFAULT_PROFILE_IMAGE}
-                                        alt="Profile"
-                                        className="w-full h-full object-cover"
-                                    />
-                                </div>
-                            </button>
-
-                            {/* 프로필 드롭다운 메뉴 */}
-                            {isProfileOpen && (
-                                <div className={cn(
-                                    'absolute right-0 mt-2 w-60 bg-white rounded-lg shadow-lg border border-gray-200',
-                                    'animate-in fade-in slide-in-from-top-2 duration-200 z-50'
-                                )}>
-                                    {/* 헤더 */}
-                                    <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
-                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-study-blue to-study-blue-dark flex items-center justify-center text-white text-sm font-bold overflow-hidden">
+                            {/* 로그인 상태에 따라 다른 UI 표시 */}
+                            {isLoggedIn ? (
+                                <>
+                                    <button
+                                        onClick={() => {
+                                            setIsProfileOpen(!isProfileOpen);
+                                            setIsNotificationOpen(false);
+                                        }}
+                                        className={cn(
+                                            'flex items-center p-1 rounded-lg transition-colors',
+                                            'hover:bg-white/50',
+                                            isProfileOpen && 'bg-white/60'
+                                        )}
+                                        aria-label="Profile menu"
+                                    >
+                                        <div className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-gradient-to-br from-study-blue to-study-blue-dark flex items-center justify-center text-white text-sm font-bold overflow-hidden">
                                             <img
                                                 src={user?.avatar || DEFAULT_PROFILE_IMAGE}
                                                 alt="Profile"
                                                 className="w-full h-full object-cover"
                                             />
                                         </div>
-                                        <div>
-                                            <h6 className="text-base font-semibold text-gray-900">
-                                                {user?.nickname || user?.name || '사용자'}
-                                            </h6>
-                                            <small className="text-gray-500">회원</small>
+                                    </button>
+
+                                    {/* 프로필 드롭다운 메뉴 */}
+                                    {isProfileOpen && (
+                                        <div className={cn(
+                                            'absolute right-0 mt-2 w-60 bg-white rounded-lg shadow-lg border border-gray-200',
+                                            'animate-in fade-in slide-in-from-top-2 duration-200 z-50'
+                                        )}>
+                                            {/* 헤더 */}
+                                            <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
+                                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-study-blue to-study-blue-dark flex items-center justify-center text-white text-sm font-bold overflow-hidden">
+                                                    <img
+                                                        src={user?.avatar || DEFAULT_PROFILE_IMAGE}
+                                                        alt="Profile"
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <h6 className="text-base font-semibold text-gray-900">
+                                                        {user?.nickname || user?.name || '사용자'}
+                                                    </h6>
+                                                    <small className="text-gray-500">회원</small>
+                                                </div>
+                                            </div>
+
+                                            {/* 메뉴 아이템 */}
+                                            <ul className="py-2">
+                                                <li>
+                                                    <Link
+                                                        to="/profile"
+                                                        className={cn(
+                                                            'flex items-center gap-2 px-4 py-2 text-sm text-gray-700',
+                                                            'hover:bg-gray-50 transition-colors no-underline'
+                                                        )}
+                                                        onClick={() => setIsProfileOpen(false)}
+                                                    >
+                                                        <User size={16} />
+                                                        <span>내 프로필</span>
+                                                    </Link>
+                                                </li>
+                                                <li>
+                                                    <Link
+                                                        to="/setting"
+                                                        className={cn(
+                                                            'flex items-center gap-2 px-4 py-2 text-sm text-gray-700',
+                                                            'hover:bg-gray-50 transition-colors no-underline'
+                                                        )}
+                                                        onClick={() => setIsProfileOpen(false)}
+                                                    >
+                                                        <Settings size={16} />
+                                                        <span>설정</span>
+                                                    </Link>
+                                                </li>
+                                            </ul>
+
+                                            {/* 푸터 - 로그아웃 버튼 (현재 페이지 유지) */}
+                                            <div className="px-3 py-2 border-t border-gray-100">
+                                                <button
+                                                    onClick={() => {
+                                                        logout();
+                                                        setIsProfileOpen(false);
+                                                        // 로그인 페이지로 리다이렉트하지 않음 - 현재 페이지 유지
+                                                    }}
+                                                    className={cn(
+                                                        'w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg',
+                                                        'bg-red-50 text-red-600 hover:bg-red-100 transition-colors text-sm font-medium'
+                                                    )}
+                                                >
+                                                    <LogOut size={16} />
+                                                    <span>로그아웃</span>
+                                                </button>
+                                            </div>
                                         </div>
-                                    </div>
-
-                                    {/* 메뉴 아이템 */}
-                                    <ul className="py-2">
-                                        <li>
-                                            <Link
-                                                to="/profile"
-                                                className={cn(
-                                                    'flex items-center gap-2 px-4 py-2 text-sm text-gray-700',
-                                                    'hover:bg-gray-50 transition-colors no-underline'
-                                                )}
-                                                onClick={() => setIsProfileOpen(false)}
-                                            >
-                                                <User size={16} />
-                                                <span>마이 프로필</span>
-                                            </Link>
-                                        </li>
-                                        <li>
-                                            <Link
-                                                to="/setting"
-                                                className={cn(
-                                                    'flex items-center gap-2 px-4 py-2 text-sm text-gray-700',
-                                                    'hover:bg-gray-50 transition-colors no-underline'
-                                                )}
-                                                onClick={() => setIsProfileOpen(false)}
-                                            >
-                                                <Settings size={16} />
-                                                <span>설정</span>
-                                            </Link>
-                                        </li>
-                                    </ul>
-
-                                    {/* 푸터 */}
-                                    <div className="px-3 py-2 border-t border-gray-100">
-                                        <button
-                                            onClick={() => {
-                                                logout();
-                                                setIsProfileOpen(false);
-                                            }}
-                                            className={cn(
-                                                'w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg',
-                                                'bg-red-50 text-red-600 hover:bg-red-100 transition-colors text-sm font-medium'
-                                            )}
-                                        >
-                                            <LogOut size={16} />
-                                            <span>로그아웃</span>
-                                        </button>
-                                    </div>
-                                </div>
+                                    )}
+                                </>
+                            ) : (
+                                /* 비로그인 상태: 로그인 버튼 표시 (알림 버튼과 동일 스타일) */
+                                <button
+                                    onClick={() => navigate('/login')}
+                                    className={cn(
+                                        'p-2 rounded-lg transition-colors relative',
+                                        'hover:bg-white/50'
+                                    )}
+                                    aria-label="로그인"
+                                >
+                                    <User size={20} className="text-gray-700" />
+                                </button>
                             )}
                         </div>
                         </div>

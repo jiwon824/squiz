@@ -26,7 +26,7 @@ export const DashboardV2 = () => {
 export { GuestDashboardV2 } from './components/GuestDashboardV2';
 export { UserDashboardV2 } from './components/UserDashboardV2';
 export { STTReportWidget } from './components/STTReportWidget';
-export { AIQuizWidget } from './components/AIQuizWidget';
+export { MyQuizWidget as AIQuizWidget } from './components/MyQuizWidget';
 export { LearningArchiveWidget } from './components/LearningArchiveWidget';
 export { TodayGoalsCard } from './components/TodayGoalsCard';
 export { GoalsEditModal } from './components/GoalsEditModal';

@@ -10,6 +10,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import jakarta.persistence.EntityManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +37,9 @@ class DataInitializerTest {
     @Autowired
     private RegionRepository regionRepository;
 
+    @Autowired
+    private EntityManager entityManager;
+
     private DataInitializer dataInitializer;
 
     @BeforeEach
@@ -44,6 +48,8 @@ class DataInitializerTest {
         topicRepository.deleteAll();
         formatRepository.deleteAll();
         regionRepository.deleteAll();
+        entityManager.flush();
+        entityManager.clear();
 
         dataInitializer = new DataInitializer(topicRepository, formatRepository, regionRepository);
     }

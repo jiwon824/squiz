@@ -1,6 +1,6 @@
 /**
  * 스터디 API
- * 스터디 조회/생성/수정 및 멤버 관련 API 엔드포인트
+ * 스터디 조회/생성/수정 및 멤버 관련 API 모음
  */
 
 import api from '../axios';
@@ -15,7 +15,7 @@ export interface TopicInfo {
   sortOrder: number;
 }
 
-// 토픽 자식 (계층 구조용)
+// 토픽 자식 (계층 구조)
 export interface TopicChild {
   id: number;
   name: string;
@@ -23,7 +23,7 @@ export interface TopicChild {
   sortOrder: number;
 }
 
-// 토픽 부모 (계층 구조용)
+// 토픽 부모 (계층 구조)
 export interface TopicParent {
   id: number;
   name: string;
@@ -41,7 +41,7 @@ export interface FormatInfo {
   sortOrder: number;
 }
 
-// 형식 아이템 (별칭)
+// 형식 아이템(별칭)
 export interface FormatItem {
   id: number;
   name: string;
@@ -65,6 +65,7 @@ export interface StudyDetailResponse {
   id: number;
   leaderId: number;
   name: string;
+  intro: string | null;
   description: string | null;
   topic: TopicInfo;
   format: FormatInfo | null;
@@ -135,7 +136,7 @@ export interface StudyMemberResponse {
   joinedAt: string;
 }
 
-// 페이징 응답
+// 페이지 응답
 export interface PageResponse<T> {
   content: T[];
   pageable: {
@@ -196,7 +197,7 @@ export interface AiStudyPlanRequest {
   techStack?: string[];
   schedule?: string[];
   durationWeeks?: number;  // 선호 스터디 기간 (주)
-  totalSessions?: number;  // 총 회차 (요일수 × 주수)
+  totalSessions?: number;  // 총 회차 (요일 수 × 주수)
 }
 
 // 주차별 커리큘럼 아이템
@@ -225,7 +226,7 @@ export interface AiStudyPlanResponse {
     days: string[];
     time: string;
   };
-  // 새로 추가: 주차별 커리큘럼
+  // 추가: 주차별 커리큘럼
   curriculum?: AiCurriculumItem[];
 }
 
@@ -268,6 +269,7 @@ export interface StudyListItem {
   meetingType: string;
   status: string;
   maxMembers: number;
+  currentMembers?: number; // 현재 참여 인원 (스터디장 포함)
   difficulty?: string;
   regionId?: number;
   scheduleDays?: string;
@@ -283,6 +285,8 @@ export interface StudyListItem {
     id: number;
     nickname: string;
     profileImage?: string;
+    leaderRating?: number | null;
+    leaderReviewCount?: number;
   };
 }
 
@@ -299,8 +303,8 @@ export interface StudyListPageResponse {
 }
 
 /**
- * 스터디 목록 조회 (페이징)
- * GET /api/v1/study
+ * 스터디 목록 조회 (페이지)
+ * GET /api/v1/study/search - 필터링 지원 엔드포인트 사용
  */
 export const getStudyList = async (params: StudyListParams = {}): Promise<StudyListPageResponse> => {
   const queryParams = new URLSearchParams();
@@ -313,22 +317,24 @@ export const getStudyList = async (params: StudyListParams = {}): Promise<StudyL
   if (params.difficulty) queryParams.set('difficulty', params.difficulty);
   if (params.status) queryParams.set('status', params.status);
 
-  console.log('[getStudyList] 요청:', `/api/v1/study?${queryParams.toString()}`);
-  const response = await api.get(`/api/v1/study?${queryParams.toString()}`);
-  console.log('[getStudyList] 응답:', response.data);
+  // 필터링 파라미터 사용 시 /search 엔드포인트 사용
+  const hasFilters = params.keyword || params.topicId || params.meetingType || params.difficulty || params.status;
+  const endpoint = hasFilters ? '/api/v1/study/search' : '/api/v1/study';
+
+  const response = await api.get(`${endpoint}?${queryParams.toString()}`);
 
   // 백엔드 응답 형식: { success: true, data: { content: [...], ... } }
-  // 또는 직접 페이징 응답: { content: [...], ... }
+  // 또는 직접 페이지 응답: { content: [...], ... }
   const data = response.data;
   if (data.data && data.data.content !== undefined) {
     // { success: true, data: { content: [...] } } 형식
     return data.data;
   } else if (data.content !== undefined) {
-    // { content: [...] } 형식 (직접 페이징 응답)
+    // { content: [...] } 형식 (직접 페이지 응답)
     return data;
   } else {
-    // 빈 응답 처리
-    console.warn('[getStudyList] 예상치 못한 응답 구조:', data);
+    // 예외 응답 처리
+    console.warn('[getStudyList] 예상하지 못한 응답 구조:', data);
     return {
       content: [],
       pageable: { pageNumber: 0, pageSize: 12 },
@@ -365,13 +371,15 @@ export const studyApi = {
     const response = await api.get<any>(`/api/v1/study/${studyId}`);
     let data = response.data;
 
-    // 백엔드 순환참조로 인해 JSON이 문자열로 올 수 있음 - name 필드만 추출
+    // 기존 백엔드 응답이 문자열인 경우 간단 파싱
     if (typeof data === 'string') {
       const nameMatch = data.match(/"name"\s*:\s*"([^"]+)"/);
       const idMatch = data.match(/"id"\s*:\s*(\d+)/);
+      const leaderMatch = data.match(/"leaderId"\s*:\s*(\d+)/);
       data = {
         id: idMatch ? parseInt(idMatch[1]) : 0,
-        name: nameMatch ? nameMatch[1] : '스터디',
+        leaderId: leaderMatch ? parseInt(leaderMatch[1]) : undefined,
+        name: nameMatch ? nameMatch[1] : 'Study',
       };
     }
 
@@ -528,6 +536,29 @@ export const studyApi = {
   },
 
   /**
+   * 출석 달력 조회 (내 출석)
+   * GET /api/v1/studies/{studyId}/attendance/calendar?year=&month=
+   */
+  getAttendanceCalendar: async (studyId: number, year: number, month: number) => {
+    const response = await api.get<any>(
+      `/api/v1/studies/${studyId}/attendance/calendar?year=${year}&month=${month}`
+    );
+    return response.data;
+  },
+
+  /**
+   * 결석 소명 제출
+   * POST /api/v1/studies/{studyId}/sessions/{sessionId}/attendance/excuse
+   */
+  submitExcuse: async (studyId: number, sessionId: number, reason: string) => {
+    const response = await api.post<any>(
+      `/api/v1/studies/${studyId}/sessions/${sessionId}/attendance/excuse`,
+      { reason }
+    );
+    return response.data;
+  },
+
+  /**
    * 소명 승인/거절
    * PATCH /api/v1/studies/{studyId}/sessions/{sessionId}/attendance/{targetUserId}/excuse
    */
@@ -541,7 +572,7 @@ export const studyApi = {
     const response = await api.patch<any>(
       `/api/v1/studies/${studyId}/sessions/${sessionId}/attendance/${targetUserId}/excuse`,
       {
-        decision,
+        status: decision,
         decisionReason,
       }
     );
@@ -655,6 +686,163 @@ export const updateStudy = async (studyId: number, data: StudyCreatePayload) => 
 export const deleteStudy = async (studyId: number) => {
   const response = await api.delete(`/api/v1/study/${studyId}`);
   return response.data;
+};
+
+// ========== 스터디장 리뷰 (Leader Review) ==========
+
+// 스터디장 정보 응답 타입
+export interface LeaderInfoResponse {
+  userId: number;
+  name: string;
+  nickname: string;
+  email: string;
+  profileImage: string | null;
+  leaderRating: number | null;
+  leaderReviewCount: number;
+  currentLevel: number;
+  levelName: string;
+}
+
+// 스터디장 리뷰 응답 타입
+export interface LeaderReviewResponse {
+  reviewId: number;
+  reviewerId: number;
+  reviewerName: string;
+  reviewerNickname: string;
+  studyId: number;
+  studyName: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+}
+
+// 스터디장 리뷰 페이지 응답 타입
+export interface LeaderReviewPageResponse {
+  content: LeaderReviewResponse[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+  first: boolean;
+  last: boolean;
+}
+
+/**
+ * 스터디장 정보 조회
+ * GET /api/v1/study/{studyId}/leader
+ */
+export const getLeaderInfo = async (studyId: number): Promise<LeaderInfoResponse> => {
+  const response = await api.get(`/api/v1/study/${studyId}/leader`);
+  const data = response.data;
+  if (data.data) {
+    return data.data;
+  }
+  return data;
+};
+
+/**
+ * 스터디장 리뷰 목록 조회
+ * GET /api/v1/study/{studyId}/leader/reviews
+ */
+export const getLeaderReviews = async (
+  studyId: number,
+  page = 0,
+  size = 10
+): Promise<LeaderReviewPageResponse> => {
+  const response = await api.get(`/api/v1/study/${studyId}/leader/reviews`, {
+    params: { page, size },
+  });
+  const data = response.data;
+  if (data.data) {
+    return data.data;
+  }
+  return data;
+};
+
+// 스터디장 리뷰 작성 요청 타입
+export interface LeaderReviewCreateRequest {
+  rating: number;
+  comment?: string;
+}
+
+// 스터디장 리뷰 수정 요청 타입
+export interface LeaderReviewUpdateRequest {
+  rating: number;
+  comment?: string;
+}
+
+/**
+ * 스터디장 리뷰 작성
+ * POST /api/v1/study/{studyId}/leader/reviews
+ */
+export const createLeaderReview = async (
+  studyId: number,
+  request: LeaderReviewCreateRequest
+): Promise<LeaderReviewResponse> => {
+  const response = await api.post(`/api/v1/study/${studyId}/leader/reviews`, request);
+  const data = response.data;
+  if (data.data) {
+    return data.data;
+  }
+  return data;
+};
+
+/**
+ * 내 리뷰 조회 (특정 스터디에서 내가 작성한 리뷰)
+ * GET /api/v1/study/{studyId}/leader/reviews/my
+ */
+export const getMyLeaderReview = async (
+  studyId: number
+): Promise<LeaderReviewResponse | null> => {
+  try {
+    const response = await api.get(`/api/v1/study/${studyId}/leader/reviews/my`);
+    // 204 No Content인 경우 null 반환
+    if (response.status === 204 || !response.data) {
+      return null;
+    }
+    const data = response.data;
+    if (data.data) {
+      return data.data;
+    }
+    return data;
+  } catch (error: any) {
+    // 404나 204는 리뷰가 없는 것으로 처리
+    if (error.response?.status === 404 || error.response?.status === 204) {
+      return null;
+    }
+    throw error;
+  }
+};
+
+/**
+ * 스터디장 리뷰 수정
+ * PUT /api/v1/study/{studyId}/leader/reviews/{reviewId}
+ */
+export const updateLeaderReview = async (
+  studyId: number,
+  reviewId: number,
+  request: LeaderReviewUpdateRequest
+): Promise<LeaderReviewResponse> => {
+  const response = await api.put(
+    `/api/v1/study/${studyId}/leader/reviews/${reviewId}`,
+    request
+  );
+  const data = response.data;
+  if (data.data) {
+    return data.data;
+  }
+  return data;
+};
+
+/**
+ * 스터디장 리뷰 삭제
+ * DELETE /api/v1/study/{studyId}/leader/reviews/{reviewId}
+ */
+export const deleteLeaderReview = async (
+  studyId: number,
+  reviewId: number
+): Promise<void> => {
+  await api.delete(`/api/v1/study/${studyId}/leader/reviews/${reviewId}`);
 };
 
 // 내 스터디 템플릿 목록 조회
@@ -1155,8 +1343,16 @@ export const generateStudyPlanStream = async (
       }
     }
     console.warn('[SSE 스트림 종료] complete 이벤트 없이 종료됨');
-    callbacks.onError(new Error('스트림이 완료 이벤트 없이 종료되었습니다'));
+    callbacks.onError(new Error('스트림이 완료 이벤트 없이 종료되었습니다.'));
   } catch (error) {
     callbacks.onError(error instanceof Error ? error : new Error(String(error)));
   }
 };
+
+
+
+
+
+
+
+

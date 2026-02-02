@@ -8,6 +8,7 @@ import com.ssafy.domain.friend.entity.UserBlock;
 import com.ssafy.domain.friend.mapper.FriendshipMapper;
 import com.ssafy.domain.friend.mapper.UserBlockMapper;
 import com.ssafy.domain.friend.mapper.UserSearchMapper;
+import com.ssafy.domain.notification.service.NotificationService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -37,6 +38,9 @@ class FriendServiceTest {
 
     @Mock
     private UserSearchMapper userSearchMapper;
+
+    @Mock
+    private NotificationService notificationService;
 
     @InjectMocks
     private FriendService friendService;

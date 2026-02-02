@@ -38,7 +38,7 @@ export interface Study {
         id: number;
         nickname: string;
         profileImage: string | null;
-        leaderRating: number;
+        leaderRating: number | null; // null이면 리뷰가 없는 상태
         leaderReviewCount: number;
     };
     curriculum?: Array<{

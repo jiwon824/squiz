@@ -426,4 +426,88 @@ class MessageControllerTest {
                     .andExpect(content().string("1"));
         }
     }
+
+    @Nested
+    @DisplayName("고정 메시지")
+    class PinnedMessage {
+
+        @Test
+        @DisplayName("성공 - 고정 메시지 목록 조회")
+        void getPinnedMessages_Success() throws Exception {
+            // given
+            message1.pin();
+            messageRepository.flush();
+
+            // when & then
+            mockMvc.perform(get("/api/v1/workspaces/{workspaceId}/messages/pinned", workspace.getId()))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$").isArray())
+                    .andExpect(jsonPath("$", hasSize(1)))
+                    .andExpect(jsonPath("$[0].id").value(message1.getId()))
+                    .andExpect(jsonPath("$[0].isPinned").value(true));
+        }
+
+        @Test
+        @DisplayName("성공 - 고정 메시지 없음")
+        void getPinnedMessages_Empty() throws Exception {
+            // when & then
+            mockMvc.perform(get("/api/v1/workspaces/{workspaceId}/messages/pinned", workspace.getId()))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$").isArray())
+                    .andExpect(jsonPath("$", hasSize(0)));
+        }
+
+        @Test
+        @DisplayName("성공 - 메시지 고정 토글")
+        void togglePinMessage_Success() throws Exception {
+            // when & then - 고정
+            mockMvc.perform(patch("/api/v1/workspaces/{workspaceId}/messages/{messageId}/pin",
+                            workspace.getId(), message1.getId())
+                            .header("User-Id", user1.getId()))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(message1.getId()))
+                    .andExpect(jsonPath("$.isPinned").value(true));
+
+            // when & then - 해제
+            mockMvc.perform(patch("/api/v1/workspaces/{workspaceId}/messages/{messageId}/pin",
+                            workspace.getId(), message1.getId())
+                            .header("User-Id", user1.getId()))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(message1.getId()))
+                    .andExpect(jsonPath("$.isPinned").value(false));
+        }
+
+        @Test
+        @DisplayName("실패 - 존재하지 않는 메시지 고정 시도")
+        void togglePinMessage_NotFound() throws Exception {
+            // when & then
+            mockMvc.perform(patch("/api/v1/workspaces/{workspaceId}/messages/{messageId}/pin",
+                            workspace.getId(), 99999L)
+                            .header("User-Id", user1.getId()))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.message").value(containsString("찾을 수 없습니다")));
+        }
+
+        @Test
+        @DisplayName("성공 - 고정 메시지 수 조회")
+        void getPinnedMessageCount_Success() throws Exception {
+            // given
+            message1.pin();
+            messageRepository.flush();
+
+            // when & then
+            mockMvc.perform(get("/api/v1/workspaces/{workspaceId}/messages/pinned/count", workspace.getId()))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string("1"));
+        }
+
+        @Test
+        @DisplayName("성공 - 고정 메시지 수 0")
+        void getPinnedMessageCount_Zero() throws Exception {
+            // when & then
+            mockMvc.perform(get("/api/v1/workspaces/{workspaceId}/messages/pinned/count", workspace.getId()))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string("0"));
+        }
+    }
 }

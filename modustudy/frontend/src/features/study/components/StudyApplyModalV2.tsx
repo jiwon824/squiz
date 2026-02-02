@@ -3,7 +3,6 @@ import { Send, CheckCircle, AlertCircle, Loader2, Users, Calendar, MapPin } from
 import { Study } from '../services/studyService';
 import { studyApi } from '@/api/endpoints/studyApi';
 import { Modal, Button, FormField } from '@/shared/components';
-import { cn } from '@/shared/utils/cn';
 
 interface StudyApplyModalV2Props {
     study: Study;
@@ -74,6 +73,45 @@ const StudyApplyModalV2: React.FC<StudyApplyModalV2Props> = ({ study, isOpen, on
         }
     };
 
+    // 요일 포맷팅 (번개 스터디는 "오늘" 표시) - 요일 순서대로 정렬
+    const formatScheduleDays = () => {
+        if (study.scheduleDays) {
+            // MON,WED,FRI -> 월, 수, 금 (요일 순서대로 정렬)
+            // 대소문자/한글 모두 지원
+            const dayOrder: Record<string, number> = {
+                'MON': 0, 'mon': 0, '월': 0,
+                'TUE': 1, 'tue': 1, '화': 1,
+                'WED': 2, 'wed': 2, '수': 2,
+                'THU': 3, 'thu': 3, '목': 3,
+                'FRI': 4, 'fri': 4, '금': 4,
+                'SAT': 5, 'sat': 5, '토': 5,
+                'SUN': 6, 'sun': 6, '일': 6,
+            };
+            const dayMap: Record<string, string> = {
+                'MON': '월', 'mon': '월', '월': '월',
+                'TUE': '화', 'tue': '화', '화': '화',
+                'WED': '수', 'wed': '수', '수': '수',
+                'THU': '목', 'thu': '목', '목': '목',
+                'FRI': '금', 'fri': '금', '금': '금',
+                'SAT': '토', 'sat': '토', '토': '토',
+                'SUN': '일', 'sun': '일', '일': '일',
+            };
+            const sortedDays = study.scheduleDays.split(',')
+                .map(d => d.trim())
+                .sort((a, b) => (dayOrder[a] ?? 99) - (dayOrder[b] ?? 99));
+            return sortedDays.map(d => dayMap[d] || d).join(', ');
+        }
+
+        // 번개 스터디이거나 scheduleDays가 없는 경우
+        if (study.studyType === 'LIGHTNING') {
+            const today = new Date();
+            const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+            return `오늘 (${dayNames[today.getDay()]})`;
+        }
+
+        return '협의 후 결정';
+    };
+
     return (
         <Modal isOpen={isOpen} onClose={handleClose} title="스터디 참여 신청" maxWidth="md">
             <div className="space-y-6">
@@ -91,7 +129,7 @@ const StudyApplyModalV2: React.FC<StudyApplyModalV2Props> = ({ study, isOpen, on
                                         <Users size={14} className="text-[var(--color-primary)]" />
                                     </div>
                                     <span className="text-[var(--color-text-secondary)]">
-                                        {study.currentMembers}/{study.maxMembers}명
+                                        {study.currentMembers || 1}/{study.maxMembers}명
                                     </span>
                                 </div>
 
@@ -109,7 +147,7 @@ const StudyApplyModalV2: React.FC<StudyApplyModalV2Props> = ({ study, isOpen, on
                                         <Calendar size={14} className="text-[var(--color-primary)]" />
                                     </div>
                                     <span className="text-[var(--color-text-secondary)] truncate">
-                                        {study.scheduleDays}
+                                        {formatScheduleDays()}
                                     </span>
                                 </div>
                             </div>

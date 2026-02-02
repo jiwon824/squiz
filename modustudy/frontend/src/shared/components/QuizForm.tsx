@@ -100,13 +100,13 @@ export const MultipleChoiceQuiz: React.FC<MultipleChoiceQuizProps> = ({
                             !showResult && selectedAnswer !== index && 'border-gray-200 hover:border-gray-300',
                             showResult && index === correctAnswerIndex && 'border-accent bg-accent/10',
                             showResult &&
-                                index === selectedAnswer &&
-                                index !== correctAnswerIndex &&
-                                'border-error bg-error/10',
+                            index === selectedAnswer &&
+                            index !== correctAnswerIndex &&
+                            'border-error bg-error/10',
                             showResult &&
-                                index !== correctAnswerIndex &&
-                                index !== selectedAnswer &&
-                                'border-gray-200 opacity-50'
+                            index !== correctAnswerIndex &&
+                            index !== selectedAnswer &&
+                            'border-gray-200 opacity-50'
                         )}
                     >
                         <div className="flex items-center justify-between">
@@ -175,9 +175,9 @@ export const MultipleChoiceQuiz: React.FC<MultipleChoiceQuizProps> = ({
 export interface ShortAnswerQuizProps {
     quiz: QuizQuestion;
     questionNumber?: number;
-    userAnswer: string;
+    userAnswer: string | null;
     showResult: boolean;
-    onChangeAnswer: (value: string) => void;
+    onChangeAnswer: (value: string | null) => void;
     onSubmit: () => void;
     onNext?: () => void;
     isLastQuestion?: boolean;
@@ -197,7 +197,7 @@ export const ShortAnswerQuiz: React.FC<ShortAnswerQuizProps> = ({
 }) => {
     const inputRef = useRef<HTMLInputElement>(null);
     const correctAnswer = String(quiz.correctAnswer);
-    const isCorrect = showResult && userAnswer.trim().toLowerCase() === correctAnswer.toLowerCase();
+    const isCorrect = showResult && userAnswer?.trim().toLowerCase() === correctAnswer.toLowerCase();
 
     // 마운트 시 자동 포커스
     useEffect(() => {
@@ -208,7 +208,7 @@ export const ShortAnswerQuiz: React.FC<ShortAnswerQuizProps> = ({
 
     // 엔터 키로 제출
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter' && !showResult && userAnswer.trim()) {
+        if (e.key === 'Enter' && !showResult && userAnswer?.trim()) {
             e.preventDefault();
             onSubmit();
         }
@@ -248,7 +248,7 @@ export const ShortAnswerQuiz: React.FC<ShortAnswerQuizProps> = ({
                 <input
                     ref={inputRef}
                     type="text"
-                    value={userAnswer}
+                    value={userAnswer || ''}
                     onChange={(e) => !showResult && onChangeAnswer(e.target.value)}
                     onKeyDown={handleKeyDown}
                     disabled={showResult}
@@ -299,17 +299,32 @@ export const ShortAnswerQuiz: React.FC<ShortAnswerQuizProps> = ({
             {/* 버튼 */}
             <div className="flex gap-3">
                 {!showResult ? (
-                    <button
-                        onClick={onSubmit}
-                        disabled={!userAnswer.trim()}
-                        className={cn(
-                            'flex-1 py-3 rounded-xl font-bold transition-all',
-                            'bg-primary hover:bg-primary-dark text-white',
-                            'disabled:opacity-50 disabled:cursor-not-allowed'
-                        )}
-                    >
-                        제출하기
-                    </button>
+                    <>
+                        <button
+                            onClick={onSubmit}
+                            disabled={!userAnswer?.trim()}
+                            className={cn(
+                                'flex-1 py-3 rounded-xl font-bold transition-all',
+                                'bg-primary hover:bg-primary-dark text-white',
+                                'disabled:opacity-50 disabled:cursor-not-allowed'
+                            )}
+                        >
+                            제출하기
+                        </button>
+                        <button
+                            onClick={() => {
+                                onChangeAnswer(null);
+                                onSubmit();
+                            }}
+                            className={cn(
+                                'px-6 py-3 rounded-xl font-bold transition-all',
+                                'bg-gray-100 hover:bg-gray-200 text-text-secondary',
+                                'disabled:opacity-50 disabled:cursor-not-allowed'
+                            )}
+                        >
+                            잘 모르겠습니다
+                        </button>
+                    </>
                 ) : onNext ? (
                     <button
                         onClick={onNext}

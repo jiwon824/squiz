@@ -34,6 +34,7 @@ public class StudyResponse {
     private String scheduleDays;
     private LocalTime scheduleTime;
     private Integer maxMembers;
+    private Integer currentMembers;  // 현재 참여 인원
     private Boolean isPublic;
     private Status status;
     private PenaltyPolicy penaltyPolicy;
@@ -190,5 +191,14 @@ public class StudyResponse {
      */
     public static StudyResponse from(Study study) {
         return from(study, null);
+    }
+
+    /**
+     * Study Entity → Response (스터디장 정보 + 현재 멤버 수 포함)
+     */
+    public static StudyResponse from(Study study, User leader, Integer currentMembers) {
+        StudyResponse response = from(study, leader);
+        response.setCurrentMembers(currentMembers);
+        return response;
     }
 }
