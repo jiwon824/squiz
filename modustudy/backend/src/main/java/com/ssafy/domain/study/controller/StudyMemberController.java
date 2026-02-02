@@ -66,4 +66,22 @@ public class StudyMemberController {
 
         return ResponseEntity.ok(isMember);
     }
+
+    /**
+     * 스터디 탈퇴 (본인만 가능)
+     * DELETE /api/v1/study/{studyId}/members/leave
+     */
+    @DeleteMapping("/{studyId}/members/leave")
+    public ResponseEntity<Void> leaveStudy(
+            @PathVariable Long studyId,
+            @RequestHeader("User-Id") Long userId) {
+
+        log.info("API 호출 - 스터디 탈퇴: studyId={}, userId={}", studyId, userId);
+
+        studyMemberService.leaveStudy(studyId, userId);
+
+        log.info("API 응답 - 스터디 탈퇴 완료: studyId={}, userId={}", studyId, userId);
+
+        return ResponseEntity.noContent().build();
+    }
 }

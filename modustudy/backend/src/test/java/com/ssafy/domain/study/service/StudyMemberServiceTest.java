@@ -4,12 +4,15 @@ import com.ssafy.common.exception.StudyException;
 import com.ssafy.domain.study.dto.response.StudyMemberResponse;
 import com.ssafy.domain.study.entity.MemberRole;
 import com.ssafy.domain.study.entity.MemberStatus;
+import com.ssafy.domain.study.entity.Study;
 import com.ssafy.domain.study.entity.StudyMember;
 import com.ssafy.domain.study.repository.StudyMemberRepository;
 import com.ssafy.domain.study.repository.StudyRepository;
 import com.ssafy.domain.user.entity.Role;
 import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.repository.UserRepository;
+
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -325,6 +328,159 @@ class StudyMemberServiceTest {
 
             // then
             assertThat(result).isTrue();
+        }
+    }
+
+    // ============================================================
+    // 스터디 탈퇴 테스트
+    // ============================================================
+
+    @Nested
+    @DisplayName("스터디 탈퇴 테스트")
+    class LeaveStudyTest {
+
+        private Study study;
+
+        @BeforeEach
+        void setUpStudy() {
+            // 스터디 (스터디장 ID = 1L)
+            study = Study.builder()
+                    .leaderId(1L)
+                    .name("테스트 스터디")
+                    .build();
+            ReflectionTestUtils.setField(study, "id", 1L);
+        }
+
+        @Test
+        @DisplayName("스터디 탈퇴 성공 - 일반 멤버 탈퇴")
+        void leaveStudy_Success() {
+            // given
+            Long studyId = 1L;
+            Long userId = 2L; // 일반 멤버
+
+            given(studyRepository.findById(studyId)).willReturn(Optional.of(study));
+            given(studyMemberRepository.findByStudyIdAndUserId(studyId, userId))
+                    .willReturn(Optional.of(normalMember));
+
+            // when
+            studyMemberService.leaveStudy(studyId, userId);
+
+            // then
+            assertThat(normalMember.getStatus()).isEqualTo(MemberStatus.LEFT);
+            assertThat(normalMember.getLeftAt()).isNotNull();
+
+            verify(studyRepository, times(1)).findById(studyId);
+            verify(studyMemberRepository, times(1)).findByStudyIdAndUserId(studyId, userId);
+            verify(studyMemberRepository, times(1)).save(normalMember);
+        }
+
+        @Test
+        @DisplayName("스터디 탈퇴 실패 - 스터디장은 탈퇴 불가")
+        void leaveStudy_LeaderCannotLeave() {
+            // given
+            Long studyId = 1L;
+            Long leaderId = 1L; // 스터디장
+
+            given(studyRepository.findById(studyId)).willReturn(Optional.of(study));
+
+            // when & then
+            assertThatThrownBy(() -> studyMemberService.leaveStudy(studyId, leaderId))
+                    .isInstanceOf(StudyException.InvalidStudyRequestException.class)
+                    .hasMessageContaining("스터디장은 탈퇴할 수 없습니다");
+
+            verify(studyMemberRepository, never()).findByStudyIdAndUserId(any(), any());
+            verify(studyMemberRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("스터디 탈퇴 실패 - 존재하지 않는 스터디")
+        void leaveStudy_StudyNotFound() {
+            // given
+            Long studyId = 999L;
+            Long userId = 2L;
+
+            given(studyRepository.findById(studyId)).willReturn(Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() -> studyMemberService.leaveStudy(studyId, userId))
+                    .isInstanceOf(StudyException.StudyNotFoundException.class);
+
+            verify(studyMemberRepository, never()).findByStudyIdAndUserId(any(), any());
+            verify(studyMemberRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("스터디 탈퇴 실패 - 멤버가 아닌 사용자")
+        void leaveStudy_NotMember() {
+            // given
+            Long studyId = 1L;
+            Long userId = 999L; // 멤버 아님
+
+            given(studyRepository.findById(studyId)).willReturn(Optional.of(study));
+            given(studyMemberRepository.findByStudyIdAndUserId(studyId, userId))
+                    .willReturn(Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() -> studyMemberService.leaveStudy(studyId, userId))
+                    .isInstanceOf(StudyException.InvalidStudyRequestException.class)
+                    .hasMessageContaining("스터디 멤버가 아닙니다");
+
+            verify(studyMemberRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("스터디 탈퇴 실패 - 승인되지 않은 멤버 (PENDING 상태)")
+        void leaveStudy_NotApprovedMember() {
+            // given
+            Long studyId = 1L;
+            Long userId = 3L;
+
+            StudyMember pendingMember = StudyMember.builder()
+                    .id(3L)
+                    .studyId(studyId)
+                    .userId(userId)
+                    .role(MemberRole.MEMBER)
+                    .status(MemberStatus.PENDING)
+                    .build();
+
+            given(studyRepository.findById(studyId)).willReturn(Optional.of(study));
+            given(studyMemberRepository.findByStudyIdAndUserId(studyId, userId))
+                    .willReturn(Optional.of(pendingMember));
+
+            // when & then
+            assertThatThrownBy(() -> studyMemberService.leaveStudy(studyId, userId))
+                    .isInstanceOf(StudyException.InvalidStudyRequestException.class)
+                    .hasMessageContaining("승인된 멤버만 탈퇴할 수 있습니다");
+
+            verify(studyMemberRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("스터디 탈퇴 실패 - 이미 탈퇴한 멤버 (LEFT 상태)")
+        void leaveStudy_AlreadyLeft() {
+            // given
+            Long studyId = 1L;
+            Long userId = 4L;
+
+            StudyMember leftMember = StudyMember.builder()
+                    .id(4L)
+                    .studyId(studyId)
+                    .userId(userId)
+                    .role(MemberRole.MEMBER)
+                    .status(MemberStatus.LEFT)
+                    .leftAt(LocalDateTime.now().minusDays(1))
+                    .build();
+
+            given(studyRepository.findById(studyId)).willReturn(Optional.of(study));
+            given(studyMemberRepository.findByStudyIdAndUserId(studyId, userId))
+                    .willReturn(Optional.of(leftMember));
+
+            // when & then
+            assertThatThrownBy(() -> studyMemberService.leaveStudy(studyId, userId))
+                    .isInstanceOf(StudyException.InvalidStudyRequestException.class)
+                    .hasMessageContaining("승인된 멤버만 탈퇴할 수 있습니다");
+
+            verify(studyMemberRepository, never()).save(any());
         }
     }
 }

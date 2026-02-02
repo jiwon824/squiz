@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
     Heart, Users, Clock, MapPin,
     Target, Award, AlertTriangle, Share2,
     BookOpen, Monitor, Handshake, Layers, MoreVertical,
-    Calendar, CalendarDays, Bookmark, FileText, GraduationCap, Info, Loader2, Pencil, Quote, Trash2, Star
+    Calendar, CalendarDays, Bookmark, FileText, GraduationCap, Info, Loader2, Pencil, Quote, Trash2, Star,
+    CalendarPlus, UserMinus, CheckCircle
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { studyService, Study } from '../services/studyService';
@@ -72,6 +73,7 @@ interface StudyDetail {
 const StudyDetailPageV3: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
     const [studyDetail, setStudyDetail] = useState<StudyDetail | null>(null);
     const [sessions, setSessions] = useState<StudySessionItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -96,6 +98,10 @@ const StudyDetailPageV3: React.FC = () => {
     const [myReview, setMyReview] = useState<LeaderReviewResponse | null>(null);
     const [isMember, setIsMember] = useState(false);
     const { user } = useAuthStore();
+
+    // 모집 연장 참가 확인 모달 상태
+    const [isExtensionModalOpen, setIsExtensionModalOpen] = useState(false);
+    const [isLeavingStudy, setIsLeavingStudy] = useState(false);
 
     // 실제 API에서 스터디 상세 및 세션(커리큘럼) 조회
     useEffect(() => {
@@ -212,6 +218,35 @@ const StudyDetailPageV3: React.FC = () => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, [isMenuOpen]);
+
+    // 쿼리 파라미터로 모집 연장 모달 표시 (알림에서 이동 시)
+    useEffect(() => {
+        const action = searchParams.get('action');
+        if (action === 'extension' && isMember && !isLoading) {
+            setIsExtensionModalOpen(true);
+            // 쿼리 파라미터 제거
+            searchParams.delete('action');
+            setSearchParams(searchParams, { replace: true });
+        }
+    }, [searchParams, isMember, isLoading]);
+
+    // 스터디 탈퇴 핸들러
+    const handleLeaveStudy = async () => {
+        if (!studyDetail?.id || isLeavingStudy) return;
+
+        setIsLeavingStudy(true);
+        try {
+            await studyApi.leaveStudy(studyDetail.id);
+            showToast('스터디에서 탈퇴했습니다.', 'success');
+            setIsExtensionModalOpen(false);
+            navigate('/study');
+        } catch (error: any) {
+            const message = error.response?.data?.message || error.response?.data?.error?.message || '스터디 탈퇴에 실패했습니다.';
+            showToast(message, 'error');
+        } finally {
+            setIsLeavingStudy(false);
+        }
+    };
 
     // 로딩 상태
     if (isLoading) {
@@ -1073,6 +1108,55 @@ const StudyDetailPageV3: React.FC = () => {
                                         삭제 중...
                                     </span>
                                 ) : '삭제'}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* 모집 연장 참가 확인 모달 */}
+            {isExtensionModalOpen && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-2xl p-6 w-full max-w-md mx-4 shadow-xl">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center">
+                                <CalendarPlus size={24} className="text-amber-500" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-[var(--color-text-primary)]">모집 기간 연장 안내</h3>
+                                <p className="text-sm text-[var(--color-text-tertiary)]">스터디 참가 여부를 확인해주세요</p>
+                            </div>
+                        </div>
+                        <div className="bg-amber-50 rounded-xl p-4 mb-6">
+                            <p className="text-[var(--color-text-secondary)] text-sm leading-relaxed">
+                                <strong className="text-[var(--color-text-primary)]">{studyDetail?.name}</strong> 스터디의 모집 기간이 연장되었습니다.
+                                <br /><br />
+                                계속 참가하시겠습니까? 불참을 선택하시면 스터디에서 탈퇴됩니다.
+                            </p>
+                        </div>
+                        <div className="flex gap-3">
+                            <Button
+                                variant="secondary"
+                                fullWidth
+                                onClick={handleLeaveStudy}
+                                disabled={isLeavingStudy}
+                                leftIcon={<UserMinus size={16} />}
+                                className="text-[var(--color-error)] border-[var(--color-error)] hover:bg-[var(--color-error-light)]"
+                            >
+                                {isLeavingStudy ? (
+                                    <span className="flex items-center gap-2">
+                                        <Loader2 size={16} className="animate-spin" />
+                                        처리 중...
+                                    </span>
+                                ) : '불참 (탈퇴)'}
+                            </Button>
+                            <Button
+                                variant="primary"
+                                fullWidth
+                                onClick={() => setIsExtensionModalOpen(false)}
+                                leftIcon={<CheckCircle size={16} />}
+                            >
+                                계속 참가
                             </Button>
                         </div>
                     </div>
