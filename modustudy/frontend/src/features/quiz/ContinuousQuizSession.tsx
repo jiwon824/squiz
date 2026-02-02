@@ -305,14 +305,6 @@ const SessionComplete: React.FC<SessionCompleteProps> = ({
                 {/* 버튼들 */}
                 <div className="flex flex-col gap-3">
                     <Button
-                        variant="google-primary"
-                        size="lg"
-                        onClick={onReturnToCourse}
-                        className="w-full"
-                    >
-                        코스로 돌아가기
-                    </Button>
-                    <Button
                         variant="google-outline"
                         size="md"
                         onClick={onRetry}
@@ -320,6 +312,14 @@ const SessionComplete: React.FC<SessionCompleteProps> = ({
                         className="w-full"
                     >
                         다시 학습하기
+                    </Button>
+                    <Button
+                        variant="google-primary"
+                        size="lg"
+                        onClick={onReturnToCourse}
+                        className="w-full"
+                    >
+                        코스로 돌아가기
                     </Button>
                 </div>
             </div>
