@@ -2128,7 +2128,7 @@ const MeetingRoomPage: React.FC = () => {
                 const withoutSamePeer = payload.peerId
                     ? prev.filter((item) => item.peerId !== payload.peerId)
                     : [];
-                const label = payload.peerId ? `참가자(${payload.peerId.slice(0, 6)})` : '참가자';
+                const label = payload.displayName || '참가자';
                 return [
                     ...withoutSamePeer,
                     {

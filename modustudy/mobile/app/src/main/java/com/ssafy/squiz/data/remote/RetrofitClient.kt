@@ -1,5 +1,6 @@
 package com.ssafy.squiz.data.remote
 
+import android.util.Log
 import com.ssafy.squiz.BuildConfig
 import com.ssafy.squiz.data.local.AuthManager
 import com.ssafy.squiz.data.remote.api.*
@@ -15,6 +16,8 @@ import java.util.concurrent.TimeUnit
  */
 object RetrofitClient {
 
+    private const val TAG = "squiz"
+
     // 서버 Base URL (프로덕션)
     private const val BASE_URL = "https://i14d106.p.ssafy.io/"
 
@@ -25,6 +28,7 @@ object RetrofitClient {
 
     fun init(authManager: AuthManager) {
         this.authManager = authManager
+        Log.d(TAG, "[RetrofitClient] init 완료")
     }
 
     /**
@@ -39,23 +43,37 @@ object RetrofitClient {
 
         // accessToken을 한 번만 가져와서 사용 (두 번 호출 시 race condition 방지)
         val accessToken = authManager?.getAccessToken()
+        val userId = authManager?.getCurrentUserId() ?: 0L
+
+        Log.d(TAG, "[Request] ${originalRequest.method} ${originalRequest.url}")
+        Log.d(TAG, "[Auth] isAuthRequired=$isAuthRequired, hasToken=${accessToken != null}, userId=$userId")
+
         val request = if (isAuthRequired && accessToken != null) {
-            val userId = authManager?.getCurrentUserId() ?: 0L
+            Log.d(TAG, "[Header] Authorization=Bearer ${accessToken.take(20)}..., User-Id=$userId")
             originalRequest.newBuilder()
                 .header("Authorization", "Bearer $accessToken")
                 .header("User-Id", userId.toString())
                 .build()
         } else {
+            if (isAuthRequired && accessToken == null) {
+                Log.w(TAG, "[Warning] 인증 필요한 요청인데 accessToken이 없음!")
+            }
             originalRequest
         }
 
-        chain.proceed(request)
+        val response = chain.proceed(request)
+
+        Log.d(TAG, "[Response] ${response.code} ${response.message} - ${originalRequest.url}")
+
+        response
     }
 
     /**
-     * Logging Interceptor (디버그용)
+     * Logging Interceptor (디버그용) - squiz 태그 사용
      */
-    private val loggingInterceptor = HttpLoggingInterceptor().apply {
+    private val loggingInterceptor = HttpLoggingInterceptor { message ->
+        Log.d(TAG, message)
+    }.apply {
         level = if (BuildConfig.DEBUG) {
             HttpLoggingInterceptor.Level.BODY
         } else {

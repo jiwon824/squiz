@@ -9,8 +9,8 @@ python-multipart>=0.0.6
 # LLM 추론 - Dockerfile에서 GPU 버전 별도 설치
 # llama-cpp-python
 
-# Whisper STT - Dockerfile에서 별도 설치
-# faster-whisper
+# Whisper STT
+faster-whisper>=1.0.0
 
 # Redis Queue
 redis>=5.0.0

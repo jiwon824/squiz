@@ -354,7 +354,7 @@ const DMListMini: React.FC = () => {
                                 </div>
                                 <div className="flex justify-between items-center pl-9">
                                     <p className="text-xs text-gray-500 truncate pr-4">{dm.lastMessage}</p>
-                                    {dm.unreadCount > 0 && (
+                                    {dm.unreadCount > 0 && !dm.lastMessageIsMine && (
                                         <span className={cn(
                                             'min-w-[18px] h-[18px] flex items-center justify-center',
                                             'bg-red-500 text-white text-[10px] rounded-full'

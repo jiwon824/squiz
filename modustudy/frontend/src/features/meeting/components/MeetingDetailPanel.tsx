@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
+﻿import React, { useEffect, useRef, useState } from 'react';
+import { useUIStore } from '@/store/uiStore';
 import { meetingApi } from '../services/meetingApi';
 import {
   MeetingChatMessageResponse,
@@ -22,6 +23,7 @@ const MeetingDetailPanel: React.FC<MeetingDetailPanelProps> = ({ studyId, meetin
   const [selectedPhotoIds, setSelectedPhotoIds] = useState<Set<number>>(new Set());
   const [isSavingSelection, setIsSavingSelection] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const showToast = useUIStore((state) => state.showToast);
   const canSelectPhotos = detail?.status === 'ENDED';
   const selectAllRef = useRef<HTMLInputElement | null>(null);
   const apiBaseUrl = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
@@ -99,6 +101,10 @@ const MeetingDetailPanel: React.FC<MeetingDetailPanelProps> = ({ studyId, meetin
 
   const handleSaveSelection = async () => {
     if (!studyId || !meetingId || !canSelectPhotos || isSavingSelection) return;
+    if (selectedPhotoIds.size === 0) {
+      showToast('이미지 선택 후 클릭해주세요.', 'warning');
+      return;
+    }
     setIsSavingSelection(true);
     try {
       const updated = await meetingApi.selectPhotos(
@@ -107,8 +113,10 @@ const MeetingDetailPanel: React.FC<MeetingDetailPanelProps> = ({ studyId, meetin
         Array.from(selectedPhotoIds)
       );
       setPhotos(updated);
+      showToast('보고서에 이미지가 첨부되었습니다.', 'success');
     } catch (error) {
       console.error('Failed to save report photo selection', error);
+      showToast('이미지 첨부에 실패했습니다.', 'error');
     } finally {
       setIsSavingSelection(false);
     }
@@ -188,14 +196,20 @@ const MeetingDetailPanel: React.FC<MeetingDetailPanelProps> = ({ studyId, meetin
                 />
                 전체 선택
               </label>
-              <button
-                type="button"
-                className="meeting-btn ghost"
-                onClick={handleSaveSelection}
-                disabled={isSavingSelection}
-              >
-                보고서용 이미지
-              </button>
+                            <div className="meeting-tooltip-wrapper">
+                <button
+                  type="button"
+                  className="meeting-btn ghost"
+                  onClick={handleSaveSelection}
+                  disabled={isSavingSelection}
+                  aria-label="보고서용 이미지"
+                >
+                  보고서용 이미지
+                </button>
+                <span className="meeting-tooltip" role="tooltip">
+                  이미지 체크 후 클릭하면 pdf, markdown 보고서에 첨부됩니다.
+                </span>
+              </div>
               <button
                 type="button"
                 className="meeting-btn ghost"
@@ -263,3 +277,5 @@ const MeetingDetailPanel: React.FC<MeetingDetailPanelProps> = ({ studyId, meetin
 };
 
 export default MeetingDetailPanel;
+
+

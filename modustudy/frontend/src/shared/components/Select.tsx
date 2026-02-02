@@ -101,7 +101,7 @@ export const Select: React.FC<SelectProps> = ({
                 </button>
 
                 {isOpen && (
-                    <div className="absolute z-50 w-full mt-1.5 bg-white border border-gray-100 rounded-xl shadow-lg max-h-60 overflow-y-auto animate-in fade-in zoom-in-95 duration-100">
+                    <div className="absolute z-50 w-full min-w-max mt-1.5 bg-white border border-gray-100 rounded-xl shadow-lg max-h-60 overflow-y-auto animate-in fade-in zoom-in-95 duration-100">
                         {normalizedOptions.length > 0 ? (
                             <div className="p-1">
                                 {normalizedOptions.map((option) => (
