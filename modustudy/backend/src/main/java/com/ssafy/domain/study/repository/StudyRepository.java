@@ -56,4 +56,37 @@ public interface StudyRepository extends JpaRepository<Study, Long>, StudyReposi
      * - 모집 기간 종료 스케줄러에서 사용
      */
     List<Study> findByStatusAndRecruitEndDateBefore(Status status, LocalDate date);
+
+    // ============================================
+    // 스케줄러용 메서드 (StudyStatusScheduler)
+    // ============================================
+
+    /**
+     * 특정 상태의 스터디 목록 조회
+     */
+    List<Study> findByStatus(Status status);
+
+    /**
+     * 특정 상태이고 모집 시작일이 특정 날짜 이하인 스터디 목록 조회
+     * - SCHEDULED → RECRUITING 전이용
+     */
+    List<Study> findByStatusAndRecruitStartDateLessThanEqual(Status status, LocalDate date);
+
+    /**
+     * 특정 상태이고 모집 종료일이 특정 날짜 미만인 스터디 목록 조회
+     * - RECRUITING → RECRUIT_CLOSED 전이용
+     */
+    List<Study> findByStatusAndRecruitEndDateLessThan(Status status, LocalDate date);
+
+    /**
+     * 특정 상태이고 시작일이 특정 날짜 이하인 스터디 목록 조회
+     * - RECRUIT_CLOSED → IN_PROGRESS 전이용
+     */
+    List<Study> findByStatusAndStartDateLessThanEqual(Status status, LocalDate date);
+
+    /**
+     * 특정 상태이고 종료일이 특정 날짜 미만인 스터디 목록 조회
+     * - IN_PROGRESS → COMPLETED 전이용
+     */
+    List<Study> findByStatusAndEndDateLessThan(Status status, LocalDate date);
 }

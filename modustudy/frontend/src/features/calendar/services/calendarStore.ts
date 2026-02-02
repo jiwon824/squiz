@@ -52,7 +52,7 @@ interface CalendarState {
 
     connectGoogle: () => Promise<string>;
     disconnectGoogle: () => Promise<void>;
-    syncGoogle: (startDate: string, endDate: string) => Promise<void>;
+    syncGoogle: () => Promise<void>;
     checkGoogleStatus: () => Promise<void>;
 }
 
@@ -286,19 +286,15 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
         }
     },
 
-    syncGoogle: async (startDate: string, endDate: string) => {
+    syncGoogle: async () => {
         set({ loading: true });
         try {
-            const googleSchedules = await calendarService.syncGoogleCalendar(startDate, endDate);
-
-            set(state => ({
-                schedules: [
-                    ...state.schedules.filter(s => s.source !== 'google'),
-                    ...googleSchedules
-                ],
+            // 동기화 트리거 (Watch 등록)
+            await calendarService.triggerGoogleSync();
+            set({
                 googleLastSyncAt: new Date().toISOString(),
                 loading: false
-            }));
+            });
         } catch (error: any) {
             set({
                 error: error.message || 'Google Calendar 동기화에 실패했습니다.',
@@ -314,8 +310,7 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
             const status = await calendarService.getGoogleCalendarStatus();
             set({
                 googleConnected: status.connected,
-                googleEmail: status.email || null,
-                googleLastSyncAt: status.lastSyncAt || null
+                googleEmail: status.email || null
             });
         } catch (error) {
             console.error('Google 상태 확인 실패:', error);

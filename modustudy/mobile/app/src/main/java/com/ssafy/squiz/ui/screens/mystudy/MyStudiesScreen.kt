@@ -109,10 +109,13 @@ fun MyStudiesScreen(
 
             is StudiesUiState.Success -> {
                 // 탭에 따라 필터링
+                // 백엔드 Status: DRAFT, SCHEDULED, RECRUITING, RECRUIT_CLOSED, PENDING, IN_PROGRESS, COMPLETED, CANCELLED
                 val studies = state.studies.filter { study ->
                     when (selectedTab) {
-                        0 -> study.status == "RECRUITING" || study.status == "IN_PROGRESS"
-                        else -> study.status == "COMPLETED"
+                        // 진행 중 탭: 완료/취소를 제외한 모든 상태
+                        0 -> study.status in listOf("RECRUITING", "IN_PROGRESS", "RECRUIT_CLOSED", "PENDING", "SCHEDULED", "DRAFT")
+                        // 완료 탭: 완료 및 취소 상태
+                        else -> study.status in listOf("COMPLETED", "CANCELLED")
                     }
                 }
 
@@ -147,10 +150,16 @@ private fun MyStudyCard(
     onClick: () -> Unit
 ) {
     val isLeader = study.isLeader == true
+    // 백엔드 Status enum에 맞춤
     val statusText = when (study.status) {
+        "DRAFT" -> "임시저장"
+        "SCHEDULED" -> "모집예정"
         "RECRUITING" -> "모집중"
+        "RECRUIT_CLOSED" -> "모집완료"
+        "PENDING" -> "확정대기"
         "IN_PROGRESS" -> "진행중"
         "COMPLETED" -> "완료"
+        "CANCELLED" -> "취소"
         else -> study.status ?: "준비중"
     }
     val progress = study.progress ?: 0
@@ -241,7 +250,10 @@ private fun MyStudyCard(
                     text = statusText,
                     color = when (study.status) {
                         "RECRUITING" -> Success
+                        "RECRUIT_CLOSED", "PENDING", "SCHEDULED" -> Warning
                         "IN_PROGRESS" -> Info
+                        "COMPLETED" -> Primary
+                        "CANCELLED" -> Error
                         else -> MaterialTheme.colorScheme.onSurfaceVariant
                     }
                 )

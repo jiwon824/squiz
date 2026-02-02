@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { RecruitmentList } from './components/RecruitmentList';
 import { RecruitmentForm } from './components/RecruitmentForm';
@@ -9,7 +9,7 @@ import {
     Users, Eye, Calendar, Tag, AlertTriangle
 } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
-import { Button, ArrowButton } from '@/shared/components';
+import { Button, ArrowButton, Dropdown } from '@/shared/components';
 
 // 기본 프로필 이미지 경로
 const DEFAULT_PROFILE_IMAGE = '/images/default-profile.png';
@@ -35,29 +35,9 @@ export const RecruitmentPage = () => {
     const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
     const [reportTargetId, setReportTargetId] = useState<string | null>(null);
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const menuRef = useRef<HTMLDivElement>(null);
-
     const { posts, deletePost, toggleComplete, report } = useRecruitmentStore();
 
     const selectedPost = posts.find(p => p.id === selectedPostId);
-
-    // 메뉴 외부 클릭 감지
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-                setIsMenuOpen(false);
-            }
-        };
-
-        if (isMenuOpen) {
-            document.addEventListener('mousedown', handleClickOutside);
-        }
-
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [isMenuOpen]);
 
     // Handlers
     const handleDetail = (id: string) => {
@@ -172,31 +152,29 @@ export const RecruitmentPage = () => {
                                         </Button>
 
                                         {/* 케밥 메뉴 */}
-                                        <div className="relative" ref={menuRef}>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                                                className="text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] rounded-full"
-                                            >
-                                                <MoreVertical size={20} />
-                                            </Button>
-
-                                            {isMenuOpen && (
-                                                <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl border border-[var(--color-border)] shadow-lg z-50 overflow-hidden">
-                                                    <button
-                                                        onClick={() => {
-                                                            handleReport(selectedPost.id);
-                                                            setIsMenuOpen(false);
-                                                        }}
-                                                        className="w-full px-4 py-3 text-left text-sm font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-error-light)] hover:text-[var(--color-error)] transition-colors flex items-center gap-2"
-                                                    >
-                                                        <AlertTriangle size={16} />
-                                                        <span>신고하기</span>
-                                                    </button>
-                                                </div>
+                                        <Dropdown
+                                            trigger={({ toggle }) => (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={toggle}
+                                                    className="text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] rounded-full"
+                                                >
+                                                    <MoreVertical size={20} />
+                                                </Button>
                                             )}
-                                        </div>
+                                            align="right"
+                                            menuClassName="w-48"
+                                            items={[
+                                                {
+                                                    label: '신고하기',
+                                                    value: 'report',
+                                                    icon: <AlertTriangle size={16} />,
+                                                    danger: true,
+                                                    onClick: () => handleReport(selectedPost.id),
+                                                },
+                                            ]}
+                                        />
                                     </div>
                                 </div>
 
