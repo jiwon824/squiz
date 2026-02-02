@@ -86,6 +86,8 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
   const isInitialLoadRef = useRef<boolean>(true);
   // 이전 메시지 로딩 상태 추적
   const wasLoadingOlderRef = useRef<boolean>(false);
+  // 첫 번째 메시지 ID 추적 (이전 메시지 로드 감지용)
+  const prevFirstMessageIdRef = useRef<number | null>(null);
 
   // 이전 메시지 로드 전 scrollHeight 저장
   useLayoutEffect(() => {
@@ -112,20 +114,48 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
       isInitialLoadRef.current = false;
       bottomRef.current?.scrollIntoView({ behavior: 'auto' });
       prevMessagesLengthRef.current = messages.length;
+      prevFirstMessageIdRef.current = messages[0]?.id ?? null;
       return;
     }
 
-    // 이전 메시지 로딩 중이 아니고, 메시지가 뒤에 추가된 경우 스크롤
-    const messagesAdded = messages.length > prevMessagesLengthRef.current;
-    const isNewMessageAdded = messagesAdded && !wasLoadingOlderRef.current;
+    // 첫 번째 메시지 ID가 바뀌었으면 이전 메시지가 앞에 추가된 것 (스크롤 처리 안함)
+    const currentFirstMessageId = messages[0]?.id ?? null;
+    const olderMessagesLoaded =
+      prevFirstMessageIdRef.current !== null &&
+      currentFirstMessageId !== null &&
+      prevFirstMessageIdRef.current !== currentFirstMessageId &&
+      messages.length > prevMessagesLengthRef.current;
 
-    if (isNewMessageAdded) {
-      // 새 메시지 추가 시 항상 맨 아래로 스크롤
-      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (olderMessagesLoaded) {
+      // 이전 메시지 로드 시 스크롤 처리 안함 (useLayoutEffect에서 복원)
+      prevMessagesLengthRef.current = messages.length;
+      prevFirstMessageIdRef.current = currentFirstMessageId;
+      return;
+    }
+
+    // 메시지가 추가된 경우만 스크롤 (뒤에 추가된 경우)
+    const messagesAdded = messages.length > prevMessagesLengthRef.current;
+
+    if (messagesAdded && scrollRef.current) {
+      const lastMessage = messages[messages.length - 1];
+      const isMyMessage = currentUserId !== undefined && String(lastMessage?.author?.id) === String(currentUserId);
+
+      if (isMyMessage) {
+        // 내가 보낸 메시지면 항상 맨 아래로 스크롤
+        bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+      } else {
+        // 다른 사람이 보낸 메시지면 하단 근처에 있을 때만 스크롤
+        const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+        const isNearBottom = scrollHeight - scrollTop - clientHeight < 150;
+        if (isNearBottom) {
+          bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }
+      }
     }
 
     prevMessagesLengthRef.current = messages.length;
-  }, [messages.length]);
+    prevFirstMessageIdRef.current = currentFirstMessageId;
+  }, [messages, currentUserId]);
 
   // 특정 메시지로 스크롤
   useEffect(() => {
