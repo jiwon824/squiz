@@ -1,12 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PasswordInput } from './PasswordInput';
+import { TermsModal } from './TermsModal';
 import { OAuthTempData } from '../types';
 import { authApi } from '@/api/endpoints/authApi';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import AuthLayout from './AuthLayout';
 import '../styles/AuthLayout.css';
+
+// md 파일을 raw text로 import
+import termsText from '../terms-of-use.md?raw';
+import privacyText from '../privacy-policy.md?raw';
 
 export const SignupPage = () => {
     const navigate = useNavigate();
@@ -18,6 +23,17 @@ export const SignupPage = () => {
     const isOAuthMode = searchParams.get('oauth') === 'true';
     const [oauthData, setOauthData] = useState<OAuthTempData | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+
+    // 약관 열람 여부 (보기를 해야 체크 가능)
+    const [viewedTerms, setViewedTerms] = useState(false);
+    const [viewedPrivacy, setViewedPrivacy] = useState(false);
+
+    // 약관 동의 상태
+    const [agreeTerms, setAgreeTerms] = useState(false);
+    const [agreePrivacy, setAgreePrivacy] = useState(false);
+
+    // 약관 모달 상태
+    const [modalContent, setModalContent] = useState<{ title: string; content: string; type: 'terms' | 'privacy' } | null>(null);
 
     // 폼 상태
     const [formData, setFormData] = useState({
@@ -56,6 +72,12 @@ export const SignupPage = () => {
     // 폼 제출
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // 약관 동의 확인
+        if (!agreeTerms || !agreePrivacy) {
+            showToast('서비스 이용약관과 개인정보처리방침에 동의해주세요.', 'warning');
+            return;
+        }
 
         if (formData.password.length < 8) {
             showToast('비밀번호는 8자 이상이어야 합니다.', 'warning');
@@ -202,11 +224,64 @@ export const SignupPage = () => {
                     onConfirmPasswordChange={(confirmPassword: string) => setFormData(prev => ({ ...prev, confirmPassword }))}
                 />
 
+                {/* 약관 동의 영역 */}
+                <div className="terms-agreement">
+                    <div className="terms-agreement-item">
+                        <input
+                            type="checkbox"
+                            id="agreeTerms"
+                            checked={agreeTerms}
+                            disabled={!viewedTerms}
+                            onChange={(e) => setAgreeTerms(e.target.checked)}
+                        />
+                        <label
+                            htmlFor="agreeTerms"
+                            style={!viewedTerms ? { color: '#94a3b8', cursor: 'default' } : {}}
+                        >
+                            서비스 이용약관에 동의합니다 (필수)
+                        </label>
+                        <button
+                            type="button"
+                            className="terms-view-btn"
+                            onClick={() => setModalContent({ title: '서비스 이용약관', content: termsText, type: 'terms' })}
+                        >
+                            보기
+                        </button>
+                    </div>
+                    <div className="terms-agreement-item">
+                        <input
+                            type="checkbox"
+                            id="agreePrivacy"
+                            checked={agreePrivacy}
+                            disabled={!viewedPrivacy}
+                            onChange={(e) => setAgreePrivacy(e.target.checked)}
+                        />
+                        <label
+                            htmlFor="agreePrivacy"
+                            style={!viewedPrivacy ? { color: '#94a3b8', cursor: 'default' } : {}}
+                        >
+                            개인정보처리방침에 동의합니다 (필수)
+                        </label>
+                        <button
+                            type="button"
+                            className="terms-view-btn"
+                            onClick={() => setModalContent({ title: '개인정보처리방침', content: privacyText, type: 'privacy' })}
+                        >
+                            보기
+                        </button>
+                    </div>
+                    {(!viewedTerms || !viewedPrivacy) && (
+                        <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0 }}>
+                            약관을 확인해야 동의할 수 있습니다
+                        </p>
+                    )}
+                </div>
+
                 <button
                     type="submit"
                     className="btn-primary"
                     style={{ marginTop: '1rem' }}
-                    disabled={isLoading}
+                    disabled={isLoading || !agreeTerms || !agreePrivacy}
                 >
                     {isLoading ? '처리 중...' : (isOAuthMode ? '가입 완료' : '가입하기')}
                 </button>
@@ -216,6 +291,19 @@ export const SignupPage = () => {
                 <p style={{ marginTop: '2rem', textAlign: 'center', fontSize: '0.9rem', color: 'var(--color-text-secondary)' }}>
                     이미 계정이 있으신가요? <a href="/login" className="text-study-blue font-bold hover:underline">로그인</a>
                 </p>
+            )}
+
+            {/* 약관 모달 */}
+            {modalContent && (
+                <TermsModal
+                    title={modalContent.title}
+                    content={modalContent.content}
+                    onClose={() => {
+                        if (modalContent.type === 'terms') setViewedTerms(true);
+                        if (modalContent.type === 'privacy') setViewedPrivacy(true);
+                        setModalContent(null);
+                    }}
+                />
             )}
         </AuthLayout>
     );
