@@ -81,10 +81,27 @@ export const ProfilePage = () => {
                     const content = studiesData?.content || [];
 
                     // API 응답을 StudyActivity 형식으로 변환
+                    // 상태 매핑: COMPLETED → 완료, IN_PROGRESS 또는 시작일 지남 → 진행중, 그 외 → 예정
+                    const mapStatus = (status: string, startDate?: string): 'active' | 'completed' | 'pending' => {
+                        if (status === 'COMPLETED') return 'completed';
+                        if (status === 'IN_PROGRESS') return 'active';
+
+                        // 시작일이 오늘이거나 지났으면 진행중으로 표시
+                        if (startDate) {
+                            const start = new Date(startDate);
+                            start.setHours(0, 0, 0, 0);
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            if (start <= today) return 'active';
+                        }
+
+                        return 'pending'; // RECRUITING, PENDING, SCHEDULED 등
+                    };
+
                     const mappedStudies: StudyActivity[] = content.map((study: StudyListResponse) => ({
                         id: study.id,
                         title: study.name,
-                        status: study.status === 'COMPLETED' ? 'completed' : 'active',
+                        status: mapStatus(study.status, study.startDate),
                         description: `${study.scheduleDays || ''} ${study.scheduleTime || ''} | ${study.description || ''}`.trim(),
                         attendanceRate: 0, // 개별 스터디 출석률은 별도 API 필요
                         participationDays: 0, // 참여일수는 별도 계산 필요
