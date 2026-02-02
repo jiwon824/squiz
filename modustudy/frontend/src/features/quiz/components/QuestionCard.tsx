@@ -29,6 +29,8 @@ interface QuestionCardProps {
     currentAnswer?: string | string[];
     /** 답안 변경 핸들러 */
     onAnswerChange: (answer: string | string[]) => void;
+    /** 제출 핸들러 (Enter 키 등) */
+    onSubmit?: () => void;
     /** 추가 CSS 클래스 */
     className?: string;
 }
@@ -314,12 +316,15 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
         onAnswerChange(value);
     };
 
-    // 엔터 키 핸들러
+    // 엔터 키 핸들러 (IME 입력 고려)
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter' && onSubmit) {
-            e.preventDefault();
-            onSubmit();
-        }
+        // IME 조합 중일 때는 무시 (한글 입력 등)
+        if (e.nativeEvent.isComposing) return;
+        if (e.key !== 'Enter' || !onSubmit) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+        onSubmit();
     };
 
     // 선택지가 선택되었는지 확인

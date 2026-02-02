@@ -91,6 +91,32 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({
     explanation,
     onContinue,
 }) => {
+    // 엔터 키로 다음 문제로 넘어가기
+    // 제출 시 Enter 키 이벤트가 모달에 전파되지 않도록 지연 등록
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // IME 조합 중일 때는 무시
+            if ((e as any).isComposing) return;
+            if (e.key !== 'Enter') return;
+
+            e.preventDefault();
+            e.stopPropagation();
+            onContinue();
+        };
+
+        // 100ms 지연으로 제출 Enter 키가 모달에 전파되는 것을 방지
+        const timeoutId = setTimeout(() => {
+            window.addEventListener('keydown', handleKeyDown);
+        }, 100);
+
+        return () => {
+            clearTimeout(timeoutId);
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [isOpen, onContinue]);
+
     if (!isOpen) return null;
 
     return (
@@ -483,6 +509,9 @@ export const ContinuousQuizSession = () => {
 
     // 답안 제출 핸들러 - useTimer로 시간 측정, 백엔드 isCorrect 기반 피드백
     const handleSubmit = useCallback(async () => {
+        // 피드백 모달이 열려있을 때는 제출 방지 (Enter 연타 버그 수정)
+        if (showFeedback) return;
+
         if (!currentApiQuestion) return;
 
         // 일반 제출인 경우 답안 확인
@@ -529,7 +558,7 @@ export const ContinuousQuizSession = () => {
         } finally {
             setIsSubmitting(false);
         }
-    }, [currentApiQuestion, currentAnswer, showToast, stopTimer]);
+    }, [currentApiQuestion, currentAnswer, showToast, stopTimer, showFeedback]);
 
     // 건너뛰기 버튼 클릭
     const handleSkipClick = useCallback(() => {
@@ -773,7 +802,7 @@ export const ContinuousQuizSession = () => {
                             questionNumber={solvedCount + 1}
                             currentAnswer={currentAnswer}
                             onAnswerChange={handleAnswerChange}
-                            onSubmit={handleSubmit}
+                            onSubmit={showFeedback ? undefined : handleSubmit}
                             className="mb-8"
                         />
 
