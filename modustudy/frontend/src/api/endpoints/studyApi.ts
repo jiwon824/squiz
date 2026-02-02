@@ -398,10 +398,13 @@ export const studyApi = {
   /**
    * 내 스터디 목록 조회
    * GET /api/v1/study/my
+   * @param page 페이지 번호
+   * @param size 페이지 크기
+   * @param status 스터디 상태 필터 (COMPLETED, IN_PROGRESS 등)
    */
-  getMyStudies: async (page = 0, size = 20) => {
+  getMyStudies: async (page = 0, size = 20, status?: string) => {
     const response = await api.get<any>('/api/v1/study/my', {
-      params: { page, size },
+      params: { page, size, status },
     });
     return response.data as PageResponse<StudyListResponse>;
   },

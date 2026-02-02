@@ -499,10 +499,11 @@ public class StudyService {
 
     /**
      * 내가 참여 중인 스터디 목록 조회
+     * - status 파라미터로 특정 상태의 스터디만 필터링 가능
      * - 순환참조 방지를 위해 StudyResponse DTO로 반환
      */
-    public Page<StudyResponse> getMyStudies(Long userId, Pageable pageable) {
-        log.info("내 스터디 목록 조회 - userId: {}", userId);
+    public Page<StudyResponse> getMyStudies(Long userId, Status status, Pageable pageable) {
+        log.info("내 스터디 목록 조회 - userId: {}, status: {}", userId, status);
 
         // 1. 내가 멤버인 스터디 ID 목록 조회
         List<StudyMember> myMemberships = studyMemberRepository.findByUserIdAndStatus(userId, MemberStatus.APPROVED);
@@ -523,7 +524,14 @@ public class StudyService {
         Set<Study> allStudies = new HashSet<>(leaderStudies.getContent());
         allStudies.addAll(memberStudies);
 
-        // 5. 스터디장 정보 일괄 조회 (N+1 방지)
+        // 5. 상태 필터링 (status 파라미터가 있는 경우)
+        if (status != null) {
+            allStudies = allStudies.stream()
+                    .filter(study -> study.getStatus() == status)
+                    .collect(java.util.stream.Collectors.toSet());
+        }
+
+        // 6. 스터디장 정보 일괄 조회 (N+1 방지)
         Set<Long> leaderIds = allStudies.stream()
                 .map(Study::getLeaderId)
                 .filter(id -> id != null)
@@ -531,7 +539,7 @@ public class StudyService {
         Map<Long, User> leaderMap = userRepository.findAllById(leaderIds).stream()
                 .collect(java.util.stream.Collectors.toMap(User::getId, u -> u));
 
-        // 6. 정렬 및 페이징 후 DTO 변환 (스터디장 정보 포함)
+        // 7. 정렬 및 페이징 후 DTO 변환 (스터디장 정보 포함)
         List<StudyResponse> sortedResponses = allStudies.stream()
                 .sorted(Comparator.comparing(Study::getCreatedAt).reversed())
                 .skip(pageable.getOffset())
@@ -539,7 +547,7 @@ public class StudyService {
                 .map(study -> StudyResponse.from(study, leaderMap.get(study.getLeaderId())))
                 .toList();
 
-        log.info("내 스터디 목록 조회 완료 - userId: {}, count: {}", userId, allStudies.size());
+        log.info("내 스터디 목록 조회 완료 - userId: {}, status: {}, count: {}", userId, status, allStudies.size());
 
         return new PageImpl<>(sortedResponses, pageable, allStudies.size());
     }
