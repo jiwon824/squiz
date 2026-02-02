@@ -1,5 +1,12 @@
 package com.ssafy.squiz.ui.screens.meeting
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import android.util.Log
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -22,10 +29,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ssafy.squiz.data.remote.model.MeetingDTO
 import com.ssafy.squiz.ui.components.EmptyState
 import com.ssafy.squiz.ui.theme.*
+
+private const val TAG = "MeetingListScreen"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,6 +49,46 @@ fun MeetingListScreen(
     val meetingsState by viewModel.meetingsState.collectAsState()
     val recordingState by viewModel.recordingState.collectAsState()
     val uploadState by viewModel.uploadState.collectAsState()
+
+    // 필요한 권한 목록
+    val requiredPermissions = remember {
+        buildList {
+            add(Manifest.permission.RECORD_AUDIO)
+            // Android 13+ 알림 권한
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                add(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }.toTypedArray()
+    }
+
+    // 권한 요청 런처
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val allGranted = permissions.values.all { it }
+        if (allGranted) {
+            Log.d(TAG, "모든 권한 승인됨, 녹음 시작")
+            viewModel.startRecording(context, studyId)
+        } else {
+            Log.w(TAG, "권한 거부됨: $permissions")
+            Toast.makeText(context, "녹음에는 마이크 권한이 필요합니다", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // 권한 확인 후 녹음 시작
+    fun checkPermissionsAndStartRecording() {
+        val allGranted = requiredPermissions.all { permission ->
+            ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+        }
+
+        if (allGranted) {
+            Log.d(TAG, "권한 이미 승인됨, 녹음 시작")
+            viewModel.startRecording(context, studyId)
+        } else {
+            Log.d(TAG, "권한 요청 필요: ${requiredPermissions.toList()}")
+            permissionLauncher.launch(requiredPermissions)
+        }
+    }
 
     // 데이터 로드
     LaunchedEffect(studyId) {
@@ -93,7 +143,7 @@ fun MeetingListScreen(
                 }
             } else {
                 FloatingActionButton(
-                    onClick = { viewModel.startRecording(context, studyId) },
+                    onClick = { checkPermissionsAndStartRecording() },
                     containerColor = Primary
                 ) {
                     Icon(Icons.Default.Mic, contentDescription = "녹음 시작", tint = Color.White)

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Archive, Search, Calendar, Grid, List, Loader2 } from 'lucide-react';
+import { BookOpen, Search, Calendar, Grid, List, Loader2 } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 import { WidgetHeader, WidgetContainer } from '@/shared/components/layouts';
 import { studyApi } from '@/api/endpoints/studyApi';
@@ -143,8 +143,8 @@ export const LearningArchiveWidget: React.FC = () => {
         return (
             <WidgetContainer>
                 <WidgetHeader
-                    icon={Archive}
-                    iconColor="accent"
+                    icon={BookOpen}
+                    iconColor="neutral"
                     title="학습 보관함"
                     subtitle="과거 스터디 기록"
                     maximizePath="/learning-archive"
@@ -161,8 +161,8 @@ export const LearningArchiveWidget: React.FC = () => {
         <WidgetContainer>
             {/* 헤더 - 공통 컴포넌트 사용 */}
             <WidgetHeader
-                icon={Archive}
-                iconColor="accent"
+                icon={BookOpen}
+                iconColor="neutral"
                 title="학습 보관함"
                 subtitle="과거 스터디 기록"
                 maximizePath="/learning-archive"
@@ -271,7 +271,7 @@ export const LearningArchiveWidget: React.FC = () => {
                     </div>
                 ) : (
                     <div className="text-center py-12">
-                        <Archive className="mx-auto mb-3 text-gray-300" size={48} />
+                        <BookOpen className="mx-auto mb-3 text-gray-300" size={48} />
                         <p className="text-text-tertiary">
                             {archives.length === 0
                                 ? '아직 학습 기록이 없습니다'

@@ -4,7 +4,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Search, ChevronRight, RefreshCw, Clock, CheckCircle2, XCircle, Compass, Loader2, Maximize2, Play } from 'lucide-react';
+import { Send, Search, ChevronRight, RefreshCw, Clock, CheckCircle2, XCircle, Compass, Loader2, Maximize2, Play, AlertCircle } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 import { studyApi } from '@/api/endpoints/studyApi';
 
@@ -92,7 +92,7 @@ export const MyApplicationsWidget: React.FC = () => {
   };
 
   return (
-    <div className="bg-gradient-to-br from-white to-violet-50/30 rounded-2xl p-6 shadow-md border border-violet-100/60 relative overflow-hidden">
+    <div className="bg-gradient-to-br from-white to-violet-50/30 rounded-2xl p-6 shadow-[0_4px_15px_rgba(0,0,0,0.05)] relative overflow-hidden">
       {/* 배경 장식 */}
       <div className="absolute top-0 right-0 w-24 h-24 bg-violet-100/20 rounded-full -translate-y-8 translate-x-8" />
       <div className="absolute bottom-0 left-0 w-16 h-16 bg-violet-100/15 rounded-full translate-y-6 -translate-x-6" />
@@ -127,14 +127,13 @@ export const MyApplicationsWidget: React.FC = () => {
 
       {/* 에러 상태 */}
       {!loading && error && (
-        <div className="text-center py-6">
-          <div className="w-12 h-12 mx-auto mb-3 bg-red-50 rounded-full flex items-center justify-center">
-            <RefreshCw size={20} className="text-red-400" />
-          </div>
-          <p className="text-gray-500 text-sm mb-3">목록을 불러오지 못했습니다</p>
+        <div className="text-center py-12">
+          <AlertCircle className="mx-auto text-gray-300 mb-4" size={48} />
+          <p className="text-text-secondary">불러오지 못했어요</p>
+          <p className="text-sm text-text-tertiary mt-1">네트워크 상태를 확인해주세요</p>
           <button
             onClick={fetchApplications}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-50 text-red-500 font-medium text-sm hover:bg-red-100 transition-colors"
+            className="inline-flex items-center gap-1.5 mt-3 px-4 py-2 text-sm font-medium text-text-tertiary hover:text-text-secondary transition-colors"
           >
             <RefreshCw size={14} />
             다시 시도
@@ -144,22 +143,16 @@ export const MyApplicationsWidget: React.FC = () => {
 
       {/* 빈 상태 */}
       {!loading && !error && applications.length === 0 && (
-        <div className="text-center py-6">
-          <div className="w-16 h-16 mx-auto mb-4 bg-violet-50 rounded-2xl flex items-center justify-center">
-            <Compass size={28} className="text-violet-300" />
-          </div>
-          <p className="text-gray-800 text-sm font-semibold mb-1">신청한 스터디가 없어요</p>
-          <p className="text-gray-400 text-xs mb-4">관심 있는 스터디를 찾아 참여해보세요</p>
+        <div className="text-center py-12">
+          <Compass className="mx-auto text-gray-300 mb-4" size={48} />
+          <p className="text-text-secondary">신청한 스터디가 없어요</p>
+          <p className="text-sm text-text-tertiary mt-1">관심 있는 스터디를 찾아 참여해보세요</p>
           <button
             onClick={() => navigate('/study')}
-            className={cn(
-              'inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl',
-              'bg-violet-600 text-white font-semibold text-sm',
-              'hover:bg-violet-700 transition-colors shadow-sm shadow-violet-200'
-            )}
+            className="inline-flex items-center gap-1 mt-4 text-sm font-medium text-text-tertiary hover:text-text-secondary transition-colors"
           >
-            <Search size={16} />
-            스터디 찾아보기
+            스터디 탐색하기
+            <ChevronRight size={14} />
           </button>
         </div>
       )}

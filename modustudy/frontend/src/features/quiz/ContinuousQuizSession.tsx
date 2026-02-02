@@ -20,6 +20,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Loader2, AlertCircle, RefreshCw, CheckCircle, XCircle, Trophy } from 'lucide-react';
+import { Breadcrumb } from '@/shared/components/layouts/Breadcrumb';
 
 import { QuestionCard } from './components/QuestionCard';
 import { ContinuousQuizNavigation } from './components/ContinuousQuizNavigation';
@@ -755,6 +756,13 @@ export const ContinuousQuizSession = () => {
                 }}
             >
                 <div className="max-w-3xl mx-auto px-4 py-4">
+                    <Breadcrumb
+                        items={[
+                            { label: '퀴즈', path: '/quiz' },
+                            { label: '연속 학습' },
+                        ]}
+                        className="mb-2"
+                    />
                     <div className="flex items-center justify-between mb-3">
                         <Button
                             variant="google-ghost"

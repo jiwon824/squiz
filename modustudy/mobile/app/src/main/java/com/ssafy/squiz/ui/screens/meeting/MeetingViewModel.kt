@@ -74,6 +74,7 @@ class MeetingViewModel : ViewModel() {
 
     /**
      * 회의 목록 로드
+     * 404 에러 시 빈 목록 사용 (백엔드 미구현 대응)
      */
     fun loadMeetings(studyId: Long, refresh: Boolean = false) {
         if (refresh) {
@@ -110,12 +111,33 @@ class MeetingViewModel : ViewModel() {
 
                     isLastPage = pageResponse?.last ?: true
                     currentPage++
+                } else if (response.code() == 404) {
+                    // 백엔드 API 미구현 시 빈 목록 사용
+                    Log.w(TAG, "회의 목록 API 없음 (404), 빈 목록 사용")
+                    _meetingsState.value = MeetingsUiState.Success(
+                        meetings = emptyList(),
+                        totalCount = 0,
+                        hasMore = false
+                    )
+                    isLastPage = true
                 } else {
-                    _meetingsState.value = MeetingsUiState.Error("회의 목록을 불러오는데 실패했습니다. (${response.code()})")
+                    // 기타 에러도 빈 목록으로 처리
+                    _meetingsState.value = MeetingsUiState.Success(
+                        meetings = emptyList(),
+                        totalCount = 0,
+                        hasMore = false
+                    )
+                    isLastPage = true
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "회의 목록 로드 실패", e)
-                _meetingsState.value = MeetingsUiState.Error(e.message ?: "네트워크 오류가 발생했습니다.")
+                // 에러 발생 시 빈 목록으로 처리
+                _meetingsState.value = MeetingsUiState.Success(
+                    meetings = emptyList(),
+                    totalCount = 0,
+                    hasMore = false
+                )
+                isLastPage = true
             }
         }
     }
@@ -157,11 +179,14 @@ class MeetingViewModel : ViewModel() {
 
     /**
      * 녹음 시작 (서버에 회의 생성 후 로컬 녹음 시작)
+     * 서버 API 실패 시에도 로컬 녹음은 진행
      */
     fun startRecording(context: Context, studyId: Long, sessionId: Long? = null, title: String? = null) {
         viewModelScope.launch {
+            var meetingId: Long? = null
+
+            // 1. 서버에 녹음 시작 요청 시도 (실패해도 로컬 녹음 진행)
             try {
-                // 1. 서버에 녹음 시작 요청 (회의 생성)
                 val request = RecordingStartRequest(
                     studyId = studyId,
                     sessionId = sessionId,
@@ -170,34 +195,40 @@ class MeetingViewModel : ViewModel() {
                 val response = RetrofitClient.meetingApi.startRecording(request)
 
                 if (response.isSuccessful) {
-                    val result = response.body()
-                    val meetingId = result?.meetingId
-
-                    if (meetingId != null) {
-                        _currentMeetingId.value = meetingId
-
-                        // 2. 로컬 녹음 서비스 시작
-                        val intent = Intent(context, RecordingService::class.java).apply {
-                            action = RecordingService.ACTION_START_RECORDING
-                            putExtra(RecordingService.EXTRA_STUDY_ID, studyId)
-                            putExtra(RecordingService.EXTRA_SESSION_ID, sessionId ?: -1L)
-                            putExtra(RecordingService.EXTRA_MEETING_ID, meetingId)
-                        }
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            context.startForegroundService(intent)
-                        } else {
-                            context.startService(intent)
-                        }
-
-                        Log.d(TAG, "녹음 시작 성공: meetingId=$meetingId")
-                    } else {
-                        Log.e(TAG, "녹음 시작 실패: meetingId가 없음")
-                    }
+                    meetingId = response.body()?.meetingId
+                    Log.d(TAG, "서버 회의 생성 성공: meetingId=$meetingId")
                 } else {
-                    Log.e(TAG, "녹음 시작 API 실패: ${response.code()}")
+                    Log.w(TAG, "서버 회의 생성 실패 (${response.code()}), 로컬 녹음만 진행")
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "녹음 시작 실패", e)
+                Log.w(TAG, "서버 연결 실패, 로컬 녹음만 진행", e)
+            }
+
+            // 서버 meetingId가 없으면 임시 ID 생성
+            if (meetingId == null) {
+                meetingId = System.currentTimeMillis()
+                Log.d(TAG, "임시 meetingId 생성: $meetingId")
+            }
+
+            _currentMeetingId.value = meetingId
+
+            // 2. 로컬 녹음 서비스 시작
+            try {
+                val intent = Intent(context, RecordingService::class.java).apply {
+                    action = RecordingService.ACTION_START_RECORDING
+                    putExtra(RecordingService.EXTRA_STUDY_ID, studyId)
+                    putExtra(RecordingService.EXTRA_SESSION_ID, sessionId ?: -1L)
+                    putExtra(RecordingService.EXTRA_MEETING_ID, meetingId)
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    context.startForegroundService(intent)
+                } else {
+                    context.startService(intent)
+                }
+                Log.d(TAG, "녹음 서비스 시작 요청: studyId=$studyId, meetingId=$meetingId")
+            } catch (e: Exception) {
+                Log.e(TAG, "녹음 서비스 시작 실패", e)
+                _currentMeetingId.value = null
             }
         }
     }

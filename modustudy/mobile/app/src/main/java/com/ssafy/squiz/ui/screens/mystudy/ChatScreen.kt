@@ -14,36 +14,55 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ssafy.squiz.data.remote.model.MessageDTO
 import com.ssafy.squiz.ui.components.SquizTopBar
 import com.ssafy.squiz.ui.components.ProfileImage
 import com.ssafy.squiz.ui.theme.*
+import kotlinx.coroutines.launch
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatScreen(
-    channelId: Long,
-    onBackClick: () -> Unit
+    studyId: Long,
+    onBackClick: () -> Unit,
+    viewModel: WorkspaceChatViewModel = viewModel()
 ) {
     var messageText by remember { mutableStateOf("") }
-    val messages = remember {
-        listOf(
-            ChatMessage(1, "김철수", null, "안녕하세요! 오늘 스터디 준비됐나요?", "14:00", false),
-            ChatMessage(2, "이영희", null, "네! 저는 준비 완료했어요 👍", "14:02", false),
-            ChatMessage(3, "나", null, "저도요! 오늘 문제 어렵던데...", "14:05", true),
-            ChatMessage(4, "박지민", null, "맞아요 ㅋㅋ 저도 고민 많이 했어요", "14:07", false),
-            ChatMessage(5, "김철수", null, "다들 고생했어요! 오늘 같이 풀어봐요", "14:10", false)
-        )
+    val workspaceState by viewModel.workspaceState.collectAsState()
+    val messagesState by viewModel.messagesState.collectAsState()
+    val isSending by viewModel.isSending.collectAsState()
+
+    val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+
+    // 워크스페이스 로드
+    LaunchedEffect(studyId) {
+        viewModel.loadWorkspace(studyId)
+    }
+
+    // 새 메시지 추가 시 스크롤
+    LaunchedEffect(messagesState) {
+        if (messagesState is MessagesUiState.Success) {
+            val messages = (messagesState as MessagesUiState.Success).messages
+            if (messages.isNotEmpty()) {
+                coroutineScope.launch {
+                    listState.animateScrollToItem(messages.size - 1)
+                }
+            }
+        }
     }
 
     Scaffold(
         topBar = {
             SquizTopBar(
-                title = "# 일반",
+                title = "채팅",
                 onBackClick = onBackClick,
                 actions = {
                     IconButton(onClick = { /* Search */ }) {
@@ -60,32 +79,110 @@ fun ChatScreen(
                 text = messageText,
                 onTextChange = { messageText = it },
                 onSend = {
-                    // TODO: Send message
+                    viewModel.sendMessage(messageText)
                     messageText = ""
                 },
-                onAttach = { /* Attach file */ }
+                onAttach = { /* Attach file */ },
+                isSending = isSending
             )
         }
     ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(vertical = 16.dp)
-        ) {
-            items(messages) { message ->
-                ChatBubble(message = message)
+        when (val state = messagesState) {
+            is MessagesUiState.Loading -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = Primary)
+                }
+            }
+            is MessagesUiState.Error -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = state.message,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        OutlinedButton(onClick = { viewModel.loadMessages() }) {
+                            Text("다시 시도")
+                        }
+                    }
+                }
+            }
+            is MessagesUiState.Success -> {
+                if (state.messages.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                imageVector = Icons.Outlined.Chat,
+                                contentDescription = null,
+                                modifier = Modifier.size(64.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "아직 메시지가 없습니다",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "첫 번째 메시지를 보내보세요!",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues)
+                            .padding(horizontal = 16.dp),
+                        state = listState,
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(vertical = 16.dp)
+                    ) {
+                        items(state.messages, key = { it.id }) { message ->
+                            ChatBubble(
+                                message = message,
+                                isMine = viewModel.isMyMessage(message)
+                            )
+                        }
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun ChatBubble(message: ChatMessage) {
-    if (message.isMine) {
-        // My message
+private fun ChatBubble(
+    message: MessageDTO,
+    isMine: Boolean
+) {
+    val formattedTime = remember(message.createdAt) {
+        try {
+            val dateTime = LocalDateTime.parse(message.createdAt.replace("Z", ""))
+            dateTime.format(DateTimeFormatter.ofPattern("HH:mm"))
+        } catch (e: Exception) {
+            message.createdAt.takeLast(5)
+        }
+    }
+
+    if (isMine) {
+        // 내 메시지
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.End
@@ -109,20 +206,20 @@ private fun ChatBubble(message: ChatMessage) {
                 }
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = message.time,
+                    text = formattedTime,
                     fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
     } else {
-        // Other's message
+        // 상대방 메시지
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Start
         ) {
             ProfileImage(
-                imageUrl = message.profileImage,
+                imageUrl = message.profileImageUrl,
                 size = 36.dp
             )
 
@@ -130,7 +227,7 @@ private fun ChatBubble(message: ChatMessage) {
 
             Column {
                 Text(
-                    text = message.senderName,
+                    text = message.nickname ?: "알 수 없음",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -154,7 +251,7 @@ private fun ChatBubble(message: ChatMessage) {
                 }
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = message.time,
+                    text = formattedTime,
                     fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -168,7 +265,8 @@ private fun ChatInputBar(
     text: String,
     onTextChange: (String) -> Unit,
     onSend: () -> Unit,
-    onAttach: () -> Unit
+    onAttach: () -> Unit,
+    isSending: Boolean = false
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -200,36 +298,36 @@ private fun ChatInputBar(
                     focusedBorderColor = Primary,
                     unfocusedBorderColor = MaterialTheme.colorScheme.outline
                 ),
-                maxLines = 4
+                maxLines = 4,
+                enabled = !isSending
             )
 
             Spacer(modifier = Modifier.width(8.dp))
 
             IconButton(
                 onClick = onSend,
-                enabled = text.isNotBlank(),
+                enabled = text.isNotBlank() && !isSending,
                 modifier = Modifier
                     .size(48.dp)
                     .background(
-                        if (text.isNotBlank()) Primary else MaterialTheme.colorScheme.surfaceVariant,
+                        if (text.isNotBlank() && !isSending) Primary else MaterialTheme.colorScheme.surfaceVariant,
                         CircleShape
                     )
             ) {
-                Icon(
-                    imageVector = Icons.Default.Send,
-                    contentDescription = "전송",
-                    tint = if (text.isNotBlank()) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                if (isSending) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = Color.White,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Send,
+                        contentDescription = "전송",
+                        tint = if (text.isNotBlank()) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }
 }
-
-private data class ChatMessage(
-    val id: Long,
-    val senderName: String,
-    val profileImage: String?,
-    val content: String,
-    val time: String,
-    val isMine: Boolean
-)

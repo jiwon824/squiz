@@ -33,7 +33,8 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Filter, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { Filter, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { PageNavHeader } from '@/shared/components/layouts/PageNavHeader';
 
 import { CourseCard } from './components/CourseCard';
 import { fetchCourses, CourseListItem } from '@/api/endpoints/quizCourseApi';
@@ -181,54 +182,15 @@ export const QuizCourseList = () => {
         >
             <div className="max-w-6xl mx-auto">
 
-                {/* BACK BUTTON - 뒤로가기 버튼 */}
-                <div className="mb-4">
-                    <button
-                        onClick={() => navigate('/quiz')}
-                        style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            padding: '0.5rem 1rem',
-                            borderRadius: 'var(--radius-md)',
-                            color: 'var(--color-text-secondary)',
-                            fontWeight: '600',
-                            transition: 'all 0.2s',
-                            background: 'transparent',
-                            border: 'none',
-                            cursor: 'pointer',
-                        }}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.background = 'var(--color-background-secondary)';
-                            e.currentTarget.style.color = 'var(--color-text-primary)';
-                            e.currentTarget.style.transform = 'translateX(-2px)';
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.background = 'transparent';
-                            e.currentTarget.style.color = 'var(--color-text-secondary)';
-                            e.currentTarget.style.transform = 'translateX(0)';
-                        }}
-                    >
-                        <ArrowLeft size={20} />
-                        <span>게임 선택으로 돌아가기</span>
-                    </button>
-                </div>
-
-                {/* PAGE HEADER - 페이지 헤더 */}
-                <div className="text-center mb-8">
-                    <h1
-                        className="text-4xl font-bold mb-4"
-                        style={{ color: 'var(--color-text-primary)' }}
-                    >
-                        연습 모드
-                    </h1>
-                    <p
-                        className="text-lg"
-                        style={{ color: 'var(--color-text-secondary)' }}
-                    >
-                        코스를 선택하고 자신만의 속도로 CS 기초를 학습하세요
-                    </p>
-                </div>
+                {/* 페이지 헤더 */}
+                <PageNavHeader
+                    title="퀴즈 연습"
+                    breadcrumbs={[
+                        { label: '퀴즈', path: '/quiz' },
+                        { label: '퀴즈 연습' },
+                    ]}
+                    onBack={() => navigate('/quiz')}
+                />
 
                 {/* CATEGORY FILTER TABS - 카테고리 필터 탭 */}
                 <div

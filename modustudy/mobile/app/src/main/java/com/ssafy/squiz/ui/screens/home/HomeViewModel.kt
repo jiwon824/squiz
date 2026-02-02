@@ -23,6 +23,18 @@ sealed class NotificationsState {
     data class Error(val message: String) : NotificationsState()
 }
 
+// 오늘의 복습 상태
+sealed class TodayReviewState {
+    object Loading : TodayReviewState()
+    data class Success(
+        val dueCount: Int,
+        val newCount: Int,
+        val totalCount: Int,
+        val cards: List<ReviewCardDTO>
+    ) : TodayReviewState()
+    data class Error(val message: String) : TodayReviewState()
+}
+
 class HomeViewModel : ViewModel() {
 
     // 홈 상태
@@ -37,9 +49,46 @@ class HomeViewModel : ViewModel() {
     private val _notificationsState = MutableStateFlow<NotificationsState>(NotificationsState.Loading)
     val notificationsState: StateFlow<NotificationsState> = _notificationsState.asStateFlow()
 
+    // 오늘의 복습 상태
+    private val _todayReviewState = MutableStateFlow<TodayReviewState>(TodayReviewState.Loading)
+    val todayReviewState: StateFlow<TodayReviewState> = _todayReviewState.asStateFlow()
+
     init {
         loadHomeData()
         loadUnreadCount()
+        loadTodayReview()
+    }
+
+    // 오늘의 복습 로드
+    fun loadTodayReview() {
+        viewModelScope.launch {
+            _todayReviewState.value = TodayReviewState.Loading
+            try {
+                val response = RetrofitClient.reviewApi.getTodayReviews()
+                if (response.isSuccessful) {
+                    val reviewResponse = response.body()?.data
+                    if (reviewResponse != null) {
+                        _todayReviewState.value = TodayReviewState.Success(
+                            dueCount = reviewResponse.dueCount,
+                            newCount = reviewResponse.newCount,
+                            totalCount = reviewResponse.totalCount,
+                            cards = reviewResponse.cards
+                        )
+                    } else {
+                        _todayReviewState.value = TodayReviewState.Success(
+                            dueCount = 0,
+                            newCount = 0,
+                            totalCount = 0,
+                            cards = emptyList()
+                        )
+                    }
+                } else {
+                    _todayReviewState.value = TodayReviewState.Error("복습 데이터를 불러오지 못했습니다.")
+                }
+            } catch (e: Exception) {
+                _todayReviewState.value = TodayReviewState.Error(e.message ?: "네트워크 오류")
+            }
+        }
     }
 
     // 홈 데이터 로드 (실제 API 연동)
