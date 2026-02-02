@@ -9,15 +9,20 @@ import com.ssafy.domain.dm.entity.DmConversation;
 import com.ssafy.domain.dm.mapper.DirectMessageMapper;
 import com.ssafy.domain.dm.mapper.DmConversationMapper;
 import com.ssafy.domain.friend.service.FriendService;
+import com.ssafy.domain.gamification.event.FirstFriendChatEvent;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -26,6 +31,7 @@ public class DirectMessageService {
     private final DirectMessageMapper directMessageMapper;
     private final DmConversationMapper dmConversationMapper;
     private final FriendService friendService;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * DM 전송
@@ -49,8 +55,10 @@ public class DirectMessageService {
             throw new BusinessException(HttpStatus.FORBIDDEN, "FORBIDDEN", "친구만 DM을 보낼 수 있습니다.");
         }
 
-        // 대화방 조회 또는 생성
-        DmConversation conversation = getOrCreateConversation(senderId, receiverId);
+        // 대화방 조회 또는 생성 (첫 대화 여부 확인을 위해 결과 객체 사용)
+        ConversationResult conversationResult = getOrCreateConversationWithFlag(senderId, receiverId);
+        DmConversation conversation = conversationResult.conversation();
+        boolean isFirstChat = conversationResult.isNewlyCreated();
 
         // 상대방이 대화를 삭제했다면 복원
         if (conversation.isDeleted(receiverId)) {
@@ -67,6 +75,17 @@ public class DirectMessageService {
 
         // 대화방 마지막 메시지 시간 업데이트
         dmConversationMapper.updateLastMessageAt(conversation.getId(), LocalDateTime.now());
+
+        // 첫 친구 채팅이면 게이미피케이션 이벤트 발행
+        if (isFirstChat) {
+            log.info("친구와 첫 채팅 이벤트 발행 - senderId: {}, receiverId: {}", senderId, receiverId);
+            eventPublisher.publishEvent(new FirstFriendChatEvent(
+                    senderId,
+                    receiverId,
+                    conversation.getId(),
+                    LocalDate.now()
+            ));
+        }
 
         // 저장된 메시지 조회
         DirectMessage saved = directMessageMapper.findById(message.getId());
@@ -187,16 +206,16 @@ public class DirectMessageService {
     }
 
     /**
-     * 대화방 조회 또는 생성
+     * 대화방 조회 또는 생성 (첫 대화 여부 플래그 포함)
      */
-    private DmConversation getOrCreateConversation(Long userId1, Long userId2) {
+    private ConversationResult getOrCreateConversationWithFlag(Long userId1, Long userId2) {
         // user1_id는 항상 작은 ID
         Long user1Id = Math.min(userId1, userId2);
         Long user2Id = Math.max(userId1, userId2);
 
         DmConversation existing = dmConversationMapper.findByUsers(user1Id, user2Id);
         if (existing != null) {
-            return existing;
+            return new ConversationResult(existing, false);
         }
 
         // 새 대화방 생성
@@ -206,8 +225,14 @@ public class DirectMessageService {
                 .build();
         dmConversationMapper.insert(newConversation);
 
-        return dmConversationMapper.findById(newConversation.getId());
+        DmConversation created = dmConversationMapper.findById(newConversation.getId());
+        return new ConversationResult(created, true);
     }
+
+    /**
+     * 대화방 조회/생성 결과 (첫 대화 여부 포함)
+     */
+    private record ConversationResult(DmConversation conversation, boolean isNewlyCreated) {}
 
     /**
      * 대화방 복원

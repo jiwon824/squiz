@@ -235,11 +235,16 @@ public class StudyService {
                 savedStudy.getId(), topic.getId(), format != null ? format.getId() : null);
 
         // 게이미피케이션 이벤트 발행 - 스터디 생성
+        // 첫 스터디 생성 여부 확인 (방금 생성한 스터디만 있으면 첫 스터디)
+        long studiesLedCount = studyRepository.countByLeaderId(leaderId);
+        boolean isFirstStudy = studiesLedCount <= 1;
+
         eventPublisher.publishEvent(new StudyCreateEvent(
                 leaderId,
                 savedStudy.getId(),
                 savedStudy.getName(),
-                LocalDate.now()
+                LocalDate.now(),
+                isFirstStudy
         ));
 
         return StudyResponse.from(savedStudy, leader);

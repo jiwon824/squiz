@@ -96,7 +96,7 @@ public class GamificationEventListener {
     }
 
     /**
-     * 스터디 가입 이벤트 처리
+     * 스터디 가입 이벤트 처리 (첫 가입만 경험치 지급)
      */
     @EventListener
     @Transactional
@@ -107,64 +107,74 @@ public class GamificationEventListener {
         User user = findUser(event.getUserId());
         UserStats stats = getOrCreateUserStats(user);
 
-        // 1. 잔디 기록
-        recordDailyContribution(user, event.getJoinDate());
-
-        // 2. 활동 상세 기록
-        recordContributionDetail(user, event.getJoinDate(),
-                ContributionDetail.ActivityType.STUDY_JOIN,
-                event.getStudyId(), event.getStudyName());
-
-        // 3. 스터디 참여 카운트 증가
+        // 스터디 참여 카운트 증가 (통계용, 항상 증가)
         stats.incrementStudiesJoined();
 
-        // 4. 활동일 기록
-        int streakBonus = stats.recordActivity(event.getJoinDate());
+        // 첫 스터디 가입인 경우에만 경험치 지급
+        if (event.isFirstStudy()) {
+            // 1. 잔디 기록
+            recordDailyContribution(user, event.getJoinDate());
 
-        // 5. 경험치 부여 (첫 스터디면 보너스 추가)
-        int baseExp = ExperienceConfig.STUDY_JOIN;
-        int firstBonus = event.isFirstStudy() ? ExperienceConfig.FIRST_STUDY_BONUS : 0;
-        int totalExp = baseExp + firstBonus + streakBonus;
-        boolean leveledUp = stats.addExperience(totalExp);
+            // 2. 활동 상세 기록
+            recordContributionDetail(user, event.getJoinDate(),
+                    ContributionDetail.ActivityType.STUDY_JOIN,
+                    event.getStudyId(), event.getStudyName());
+
+            // 3. 활동일 기록
+            int streakBonus = stats.recordActivity(event.getJoinDate());
+
+            // 4. 경험치 부여
+            int totalExp = ExperienceConfig.FIRST_STUDY_JOIN_BONUS + streakBonus;
+            boolean leveledUp = stats.addExperience(totalExp);
+
+            log.info("[Gamification] 첫 스터디 가입 완료: +{}XP (첫가입 {}XP + 연속 {}XP), 레벨업={}",
+                    totalExp, ExperienceConfig.FIRST_STUDY_JOIN_BONUS, streakBonus, leveledUp);
+        } else {
+            log.info("[Gamification] 스터디 가입 (경험치 없음 - 첫 가입 아님)");
+        }
 
         userStatsRepository.save(stats);
-
-        log.info("[Gamification] 스터디 가입 완료: +{}XP (기본 {}XP + 첫가입 {}XP + 연속 {}XP), 레벨업={}",
-                totalExp, baseExp, firstBonus, streakBonus, leveledUp);
     }
 
     /**
-     * 스터디 생성 이벤트 처리
+     * 스터디 생성 이벤트 처리 (첫 생성만 경험치 지급)
      */
     @EventListener
     @Transactional
     public void handleStudyCreate(StudyCreateEvent event) {
-        log.info("[Gamification] 스터디 생성: userId={}, studyId={}", event.getUserId(), event.getStudyId());
+        log.info("[Gamification] 스터디 생성: userId={}, studyId={}, isFirst={}",
+                event.getUserId(), event.getStudyId(), event.isFirstStudy());
 
         User user = findUser(event.getUserId());
         UserStats stats = getOrCreateUserStats(user);
 
-        // 1. 잔디 기록
-        recordDailyContribution(user, event.getCreateDate());
-
-        // 2. 활동 상세 기록
-        recordContributionDetail(user, event.getCreateDate(),
-                ContributionDetail.ActivityType.STUDY_CREATE,
-                event.getStudyId(), event.getStudyName());
-
-        // 3. 스터디 리더 카운트 증가
+        // 스터디 리더 카운트 증가 (통계용, 항상 증가)
         stats.incrementStudiesLed();
 
-        // 4. 활동일 기록
-        int streakBonus = stats.recordActivity(event.getCreateDate());
+        // 첫 스터디 생성인 경우에만 경험치 지급
+        if (event.isFirstStudy()) {
+            // 1. 잔디 기록
+            recordDailyContribution(user, event.getCreateDate());
 
-        // 5. 경험치 부여
-        int totalExp = ExperienceConfig.STUDY_CREATE + streakBonus;
-        boolean leveledUp = stats.addExperience(totalExp);
+            // 2. 활동 상세 기록
+            recordContributionDetail(user, event.getCreateDate(),
+                    ContributionDetail.ActivityType.STUDY_CREATE,
+                    event.getStudyId(), event.getStudyName());
+
+            // 3. 활동일 기록
+            int streakBonus = stats.recordActivity(event.getCreateDate());
+
+            // 4. 경험치 부여
+            int totalExp = ExperienceConfig.FIRST_STUDY_CREATE_BONUS + streakBonus;
+            boolean leveledUp = stats.addExperience(totalExp);
+
+            log.info("[Gamification] 첫 스터디 생성 완료: +{}XP (첫생성 {}XP + 연속 {}XP), 레벨업={}",
+                    totalExp, ExperienceConfig.FIRST_STUDY_CREATE_BONUS, streakBonus, leveledUp);
+        } else {
+            log.info("[Gamification] 스터디 생성 (경험치 없음 - 첫 생성 아님)");
+        }
 
         userStatsRepository.save(stats);
-
-        log.info("[Gamification] 스터디 생성 완료: +{}XP, 레벨업={}", totalExp, leveledUp);
     }
 
     /**
@@ -235,34 +245,52 @@ public class GamificationEventListener {
         log.info("[Gamification] 회고록 작성 완료: +{}XP, 레벨업={}", totalExp, leveledUp);
     }
 
+    // 스터디 채팅 경험치 비활성화 - 친구 DM 첫 채팅만 경험치 지급
+    // /**
+    //  * 채팅 메시지 이벤트 처리 (일일 제한 적용)
+    //  */
+    // @EventListener
+    // @Transactional
+    // public void handleChatMessage(ChatMessageEvent event) {
+    //     ...
+    // }
+
     /**
-     * 채팅 메시지 이벤트 처리 (일일 제한 적용)
+     * 친구와 첫 채팅 이벤트 처리
      */
     @EventListener
     @Transactional
-    public void handleChatMessage(ChatMessageEvent event) {
-        log.debug("[Gamification] 채팅 메시지: userId={}, studyId={}", event.getUserId(), event.getStudyId());
+    public void handleFirstFriendChat(FirstFriendChatEvent event) {
+        log.info("[Gamification] 친구와 첫 채팅: userId={}, friendId={}",
+                event.getUserId(), event.getFriendId());
 
         User user = findUser(event.getUserId());
         UserStats stats = getOrCreateUserStats(user);
 
-        // 채팅 경험치 추가 (일일 제한 적용)
-        int expGain = stats.addChatExperience(event.getChatDate());
+        // 친구 이름 조회
+        String friendName = userRepository.findById(event.getFriendId())
+                .map(friend -> friend.getNickname() != null ? friend.getNickname() : friend.getName())
+                .orElse("친구");
 
-        if (expGain > 0) {
-            // 경험치 획득 시에만 잔디 기록
-            recordDailyContribution(user, event.getChatDate());
+        // 1. 잔디 기록
+        recordDailyContribution(user, event.getChatDate());
 
-            // 활동일 기록
-            stats.recordActivity(event.getChatDate());
+        // 2. 활동 상세 기록
+        recordContributionDetail(user, event.getChatDate(),
+                ContributionDetail.ActivityType.FIRST_FRIEND_CHAT,
+                event.getFriendId(), friendName + "님과 첫 대화");
 
-            // 경험치 부여
-            stats.addExperience(expGain);
+        // 3. 활동일 기록
+        int streakBonus = stats.recordActivity(event.getChatDate());
 
-            userStatsRepository.save(stats);
+        // 4. 경험치 부여
+        int totalExp = ExperienceConfig.FIRST_FRIEND_CHAT_BONUS + streakBonus;
+        boolean leveledUp = stats.addExperience(totalExp);
 
-            log.debug("[Gamification] 채팅 경험치: +{}XP", expGain);
-        }
+        userStatsRepository.save(stats);
+
+        log.info("[Gamification] 친구와 첫 채팅 완료: +{}XP (첫채팅 {}XP + 연속 {}XP), 레벨업={}",
+                totalExp, ExperienceConfig.FIRST_FRIEND_CHAT_BONUS, streakBonus, leveledUp);
     }
 
     // ========== Helper Methods ==========

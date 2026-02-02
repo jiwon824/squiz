@@ -15,4 +15,5 @@ public class StudyCreateEvent {
     private final Long studyId;
     private final String studyName;
     private final LocalDate createDate;
+    private final boolean isFirstStudy; // 첫 스터디 생성 여부 (보너스용)
 }

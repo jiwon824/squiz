@@ -21,25 +21,29 @@ public final class ExperienceConfig {
     /** 퀴즈 오답 */
     public static final int QUIZ_WRONG = 2;
 
-    /** 스터디 가입 */
-    public static final int STUDY_JOIN = 30;
-
-    /** 첫 스터디 가입 보너스 */
-    public static final int FIRST_STUDY_BONUS = 50;
-
-    /** 스터디 생성 */
-    public static final int STUDY_CREATE = 50;
-
     /** 자료 업로드 */
     public static final int MATERIAL_UPLOAD = 15;
 
     /** 회고록 작성 */
     public static final int RETROSPECTIVE_WRITE = 20;
 
-    /** 채팅 참여 (1회당) */
+    // ========== 첫 활동 보너스 (1회만 지급) ==========
+
+    /** 첫 스터디 생성 */
+    public static final int FIRST_STUDY_CREATE_BONUS = 50;
+
+    /** 첫 스터디 가입 */
+    public static final int FIRST_STUDY_JOIN_BONUS = 50;
+
+    /** 첫 친구 채팅 (친구별 1회) */
+    public static final int FIRST_FRIEND_CHAT_BONUS = 10;
+
+    // ========== 채팅 (현재 비활성화됨) ==========
+
+    /** 채팅 참여 (1회당) - 현재 비활성화 */
     public static final int CHAT_MESSAGE = 1;
 
-    /** 채팅 일일 최대 경험치 */
+    /** 채팅 일일 최대 경험치 - 현재 비활성화 */
     public static final int CHAT_DAILY_MAX = 10;
 
     // ========== 연속 활동 보너스 ==========

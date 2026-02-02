@@ -62,6 +62,7 @@ public class ContributionDetail {
         STUDY_CREATE,        // 스터디 생성
         MATERIAL_UPLOAD,     // 자료 업로드
         RETROSPECTIVE,       // 회고록 작성
-        CHAT_MESSAGE         // 채팅 메시지
+        CHAT_MESSAGE,        // 채팅 메시지
+        FIRST_FRIEND_CHAT    // 친구와 첫 채팅
     }
 }
