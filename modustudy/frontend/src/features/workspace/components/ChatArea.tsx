@@ -115,18 +115,13 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
       return;
     }
 
-    // 이전 메시지 로딩 중이 아니고, 메시지가 뒤에 추가된 경우에만 스크롤
+    // 이전 메시지 로딩 중이 아니고, 메시지가 뒤에 추가된 경우 스크롤
     const messagesAdded = messages.length > prevMessagesLengthRef.current;
     const isNewMessageAdded = messagesAdded && !wasLoadingOlderRef.current;
 
-    if (isNewMessageAdded && scrollRef.current) {
-      // 사용자가 이미 하단 근처에 있을 때만 자동 스크롤
-      const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
-      const isNearBottom = scrollHeight - scrollTop - clientHeight < 150;
-
-      if (isNearBottom) {
-        bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }
+    if (isNewMessageAdded) {
+      // 새 메시지 추가 시 항상 맨 아래로 스크롤
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
 
     prevMessagesLengthRef.current = messages.length;
