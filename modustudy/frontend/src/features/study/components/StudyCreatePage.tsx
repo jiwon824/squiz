@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ChevronLeft, Info, Calendar, Plus, Trash2, BookOpen, MapPin, AlertCircle, Clock, Users, Target, Shield, Sparkles, Loader2 } from 'lucide-react';
+import { Info, Calendar, Plus, Trash2, BookOpen, MapPin, AlertCircle, Clock, Users, Target, Shield, Sparkles, Loader2 } from 'lucide-react';
+import { PageNavHeader } from '@/shared/components/layouts/PageNavHeader';
 import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { useUIStore } from '@/store/uiStore';
 import { useAuthStore } from '@/store/authStore';
@@ -1137,20 +1138,13 @@ const StudyCreatePage: React.FC = () => {
             <div className={styles.container}>
                 {/* 헤더 */}
                 <header className={styles.header}>
-                    <Button
-                        variant="ghost"
-                        onClick={() => navigate(-1)}
-                        leftIcon={<ChevronLeft size={20} />}
-                        className="text-gray-500 hover:text-gray-800 mb-4 -ml-2"
-                    >
-                        뒤로가기
-                    </Button>
-                    <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-                        {isEditMode ? '스터디 수정하기' : '새로운 스터디 시작하기'}
-                    </h1>
-                    <p className="text-gray-500">
-                        {isEditMode ? '스터디 정보를 수정합니다.' : '함께 성장할 팀원을 모집해보세요.'}
-                    </p>
+                    <PageNavHeader
+                        title={isEditMode ? '스터디 수정하기' : '스터디 만들기'}
+                        breadcrumbs={[
+                            { label: '스터디', path: '/study' },
+                            { label: isEditMode ? '스터디 수정하기' : '스터디 만들기' },
+                        ]}
+                    />
                 </header>
 
                 <form onSubmit={handleSubmit}>

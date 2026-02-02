@@ -1,33 +1,36 @@
 import React, { useEffect, useState } from 'react';
 import { fetchWeakConcepts, WeakConcept } from '../../../api/endpoints/quizCourseApi';
-import { BookOpen, AlertTriangle } from 'lucide-react';
+import { BookOpen, AlertTriangle, AlertCircle, RefreshCw, Loader2 } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 
 export const WeakConceptWidget: React.FC = () => {
   const [concepts, setConcepts] = useState<WeakConcept[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(false);
+
+  const loadConcepts = async () => {
+    setLoading(true);
+    setError(false);
+    try {
+      const data = await fetchWeakConcepts(5);
+      setConcepts(data);
+    } catch (err) {
+      setError(true);
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const loadConcepts = async () => {
-      try {
-        const data = await fetchWeakConcepts(5);
-        setConcepts(data);
-      } catch (err) {
-        setError('취약 개념을 불러오는데 실패했습니다.');
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadConcepts();
   }, []);
 
   if (loading) {
     return (
       <div className="bg-white rounded-2xl p-6 shadow-md border border-gray-100 h-full flex flex-col items-center justify-center">
-        <p className="text-text-secondary text-base animate-pulse">취약 개념 분석 중...</p>
+        <Loader2 size={24} className="text-red-400 animate-spin mb-2" />
+        <p className="text-xs text-gray-400">불러오는 중...</p>
       </div>
     );
   }
@@ -35,8 +38,18 @@ export const WeakConceptWidget: React.FC = () => {
   if (error) {
     return (
       <div className="bg-white rounded-2xl p-6 shadow-md border border-gray-100 h-full flex flex-col items-center justify-center">
-        <AlertTriangle className="text-error mb-2" size={24} />
-        <p className="text-text-secondary text-sm">{error}</p>
+        <div className="text-center py-12">
+          <AlertCircle className="mx-auto text-gray-300 mb-4" size={48} />
+          <p className="text-text-secondary">불러오지 못했어요</p>
+          <p className="text-sm text-text-tertiary mt-1">네트워크 상태를 확인해주세요</p>
+          <button
+            onClick={loadConcepts}
+            className="inline-flex items-center gap-1.5 mt-4 px-4 py-2 text-sm font-medium text-text-tertiary hover:text-text-secondary transition-colors"
+          >
+            <RefreshCw size={14} />
+            다시 시도
+          </button>
+        </div>
       </div>
     );
   }

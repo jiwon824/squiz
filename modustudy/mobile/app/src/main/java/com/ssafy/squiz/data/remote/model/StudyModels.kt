@@ -185,3 +185,19 @@ enum class StudyTypeEnum(val label: String) {
     PLANNED("일반 스터디"),
     LIGHTNING("번개 스터디")
 }
+
+// 스터디 세션 DTO
+data class StudySessionDTO(
+    @SerializedName("id") val id: Long,
+    @SerializedName("studyId") val studyId: Long,
+    @SerializedName("sessionNumber") val sessionNumber: Int? = null,
+    @SerializedName("title") val title: String? = null,
+    @SerializedName("description") val description: String? = null,
+    @SerializedName("scheduledAt") val scheduledAt: String? = null,
+    @SerializedName("durationMinutes") val durationMinutes: Int? = null,
+    @SerializedName("location") val location: String? = null,
+    @SerializedName("isOnline") val isOnline: Boolean? = true,
+    @SerializedName("status") val status: String? = null, // SCHEDULED, IN_PROGRESS, COMPLETED, CANCELLED
+    @SerializedName("completedAt") val completedAt: String? = null,
+    @SerializedName("createdAt") val createdAt: String? = null
+)

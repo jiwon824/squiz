@@ -1,4 +1,6 @@
-﻿import React from 'react';
+import React from 'react';
+import { cn, classBuilder, conditionalClasses } from '@/shared/utils/cn';
+import { ArrowLeft, Presentation, Users } from 'lucide-react';
 import MeetingControls from './MeetingControls';
 
 interface MeetingRoomHeaderProps {
@@ -21,6 +23,8 @@ interface MeetingRoomHeaderProps {
     canExtendMeeting: boolean;
     extendDisabled: boolean;
     onExtendMeeting: () => void;
+    elapsedSeconds?: number;
+    plannedDurationSeconds?: number | null;
 }
 
 const MeetingRoomHeader: React.FC<MeetingRoomHeaderProps> = ({
@@ -43,38 +47,83 @@ const MeetingRoomHeader: React.FC<MeetingRoomHeaderProps> = ({
     canExtendMeeting,
     extendDisabled,
     onExtendMeeting,
+    elapsedSeconds = 0,
+    plannedDurationSeconds,
 }) => {
+    // 프로그레스 바 비율 계산
+    const progressPercent = plannedDurationSeconds
+        ? Math.min((elapsedSeconds / plannedDurationSeconds) * 100, 100)
+        : 0;
+
     return (
-        <div className="meeting-room__meta">
-            <div className="meeting-room__meta-row">
-                <div className="meeting-room__meta-left">
-                    <div className="meeting-room__meta-title">
-                        <h1>{meetingTitle || '미팅 룸'}</h1>
-                        <div className="meeting-room__meta-times">
-                            <div className="meeting-room__meta-time-row">
-                                <div className="meeting-room__timer">진행 시간: {elapsedLabel}</div>
-                                {plannedLabel ? (
-                                    <div className="meeting-room__timer">예정 시간: {plannedLabel}</div>
-                                ) : null}
-                            </div>
-                            {timeWarning && (
-                                <div className="meeting-room__timer meeting-room__timer--warning">
-                                    {timeWarning}
-                                </div>
-                            )}
-                        </div>
+        <div className={cn(classBuilder.card('default'), 'flex flex-col gap-3 rounded-2xl p-4 shadow-sm shrink-0')}>
+            {/* 상단: 제목 + 타이머 + 상태 */}
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+                <div className="flex items-center gap-4 min-w-0">
+                    <h1 className="text-lg font-bold text-gray-900 truncate">
+                        {meetingTitle || '미팅 룸'}
+                    </h1>
+
+                    {/* 타이머 */}
+                    <div className="flex items-center gap-3">
+                        <span className="font-mono text-base font-semibold text-gray-700 tabular-nums">
+                            {elapsedLabel}
+                        </span>
+                        {plannedLabel && (
+                            <span className="text-xs text-gray-400">
+                                / {plannedLabel}
+                            </span>
+                        )}
                     </div>
+
+                    {/* 시간 경고 */}
+                    {timeWarning && (
+                        <span className="text-xs font-semibold text-red-500 animate-pulse">
+                            {timeWarning}
+                        </span>
+                    )}
                 </div>
-                <div className="meeting-room__meta-right">
-                    <div className="meeting-room__status">
-                        <span>{isPresenter ? '발표자 모드' : '참가자 모드'}</span>
+
+                <div className="flex items-center gap-3">
+                    {/* 모드 배지 */}
+                    <div className={cn(
+                        'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium',
+                        conditionalClasses.state(
+                            isPresenter,
+                            'bg-amber-50 text-amber-700 border border-amber-200',
+                            'bg-blue-50 text-blue-700 border border-blue-200'
+                        )
+                    )}>
+                        {isPresenter ? <Presentation size={14} /> : <Users size={14} />}
+                        {isPresenter ? '발표자 모드' : '참가자 모드'}
                     </div>
-                    <button className="meeting-btn ghost" onClick={onGoList}>
+
+                    <button
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm text-gray-500 hover:bg-gray-100 transition-colors cursor-pointer"
+                        onClick={onGoList}
+                    >
+                        <ArrowLeft size={16} />
                         목록으로
                     </button>
                 </div>
             </div>
 
+            {/* 프로그레스 바 (예정 시간이 있을 때만) */}
+            {plannedDurationSeconds && plannedDurationSeconds > 0 && (
+                <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div
+                        className={cn(
+                            'h-full rounded-full transition-all duration-1000 ease-linear',
+                            progressPercent >= 90 ? 'bg-red-500' :
+                            progressPercent >= 75 ? 'bg-amber-500' :
+                            'bg-blue-500'
+                        )}
+                        style={{ width: `${progressPercent}%` }}
+                    />
+                </div>
+            )}
+
+            {/* 컨트롤 바 */}
             <MeetingControls
                 isPresenter={isPresenter}
                 micEnabled={micEnabled}

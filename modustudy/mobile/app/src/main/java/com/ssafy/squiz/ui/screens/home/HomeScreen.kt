@@ -35,14 +35,17 @@ fun HomeScreen(
     onStudyClick: (Long) -> Unit,
     onSearchClick: () -> Unit,
     onNotificationClick: () -> Unit,
+    onDmClick: () -> Unit,
     onScheduleClick: () -> Unit,
     onBookmarkedClick: () -> Unit,
     onMyApplicationsClick: () -> Unit,
     onTemplatesClick: () -> Unit,
+    onStartReview: () -> Unit = {},
     viewModel: HomeViewModel = viewModel()
 ) {
     val homeState by viewModel.homeState.collectAsState()
     val unreadCount by viewModel.unreadCount.collectAsState()
+    val todayReviewState by viewModel.todayReviewState.collectAsState()
 
     LazyColumn(
         modifier = Modifier
@@ -50,11 +53,10 @@ fun HomeScreen(
             .background(MaterialTheme.colorScheme.background),
         contentPadding = PaddingValues(bottom = 24.dp)
     ) {
-        // Top Bar
+        // Top Bar (간소화: 알림만 표시)
         item {
             HomeTopBar(
                 hasNotification = unreadCount > 0,
-                onSearchClick = onSearchClick,
                 onNotificationClick = onNotificationClick
             )
         }
@@ -89,7 +91,7 @@ fun HomeScreen(
             is HomeState.Success -> {
                 val data = state.data
 
-                // Welcome Banner
+                // Welcome Banner (핵심 기능: 일정/출석 관련)
                 item {
                     WelcomeBanner(
                         userName = data.user.nickname,
@@ -98,6 +100,16 @@ fun HomeScreen(
                     )
                 }
 
+                // 오늘의 복습 섹션
+                item {
+                    TodayReviewSection(
+                        state = todayReviewState,
+                        onStartReview = onStartReview,
+                        onRetry = { viewModel.loadTodayReview() }
+                    )
+                }
+
+                /* 간소화를 위해 주석처리 - 추천/인기/최근 스터디 섹션
                 // Quick Actions
                 item {
                     QuickActionsSection(
@@ -160,6 +172,7 @@ fun HomeScreen(
                         )
                     }
                 }
+                */
             }
         }
     }
@@ -168,7 +181,6 @@ fun HomeScreen(
 @Composable
 private fun HomeTopBar(
     hasNotification: Boolean,
-    onSearchClick: () -> Unit,
     onNotificationClick: () -> Unit
 ) {
     Row(
@@ -208,34 +220,235 @@ private fun HomeTopBar(
             )
         }
 
-        // Actions
-        Row {
-            IconButton(onClick = onSearchClick) {
+        // Actions (간소화: 알림만)
+        Box {
+            IconButton(onClick = onNotificationClick) {
                 Icon(
-                    imageVector = Icons.Outlined.Search,
-                    contentDescription = "검색",
+                    imageVector = Icons.Outlined.Notifications,
+                    contentDescription = "알림",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Box {
-                IconButton(onClick = onNotificationClick) {
+            if (hasNotification) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .offset(x = (-8).dp, y = 8.dp)
+                        .size(8.dp)
+                        .background(Error, CircleShape)
+                )
+            }
+        }
+    }
+}
+
+// 오늘의 복습 섹션
+@Composable
+private fun TodayReviewSection(
+    state: TodayReviewState,
+    onStartReview: () -> Unit,
+    onRetry: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp)
+        ) {
+            // 헤더
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        imageVector = Icons.Outlined.Notifications,
-                        contentDescription = "알림",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        imageVector = Icons.Filled.Psychology,
+                        contentDescription = null,
+                        tint = Primary,
+                        modifier = Modifier.size(28.dp)
                     )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Column {
+                        Text(
+                            text = "오늘의 복습",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        when (state) {
+                            is TodayReviewState.Success -> {
+                                Text(
+                                    text = "${state.dueCount}개의 복습 대기 중",
+                                    fontSize = 13.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            else -> {
+                                Text(
+                                    text = "복습 현황 로딩 중...",
+                                    fontSize = 13.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
                 }
-                if (hasNotification) {
+                // 확장 아이콘
+                Icon(
+                    imageVector = Icons.Outlined.OpenInNew,
+                    contentDescription = "전체화면",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // 상태별 컨텐츠
+            when (state) {
+                is TodayReviewState.Loading -> {
                     Box(
                         modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .offset(x = (-8).dp, y = 8.dp)
-                            .size(8.dp)
-                            .background(Error, CircleShape)
-                    )
+                            .fillMaxWidth()
+                            .height(100.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(32.dp),
+                            color = Primary
+                        )
+                    }
+                }
+
+                is TodayReviewState.Error -> {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = state.message,
+                            color = Error,
+                            fontSize = 14.sp
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        TextButton(onClick = onRetry) {
+                            Text("다시 시도")
+                        }
+                    }
+                }
+
+                is TodayReviewState.Success -> {
+                    if (state.dueCount == 0) {
+                        // 복습 완료 상태
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(64.dp)
+                                    .background(Success.copy(alpha = 0.1f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Check,
+                                    contentDescription = null,
+                                    tint = Success,
+                                    modifier = Modifier.size(36.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "오늘의 복습 완료!",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "지금은 복습할 내용이 없습니다. 나중에 다시 확인해주세요.",
+                                fontSize = 13.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    } else {
+                        // 복습할 카드가 있는 상태
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            // 통계 표시
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceEvenly
+                            ) {
+                                ReviewStatItem(
+                                    label = "복습 예정",
+                                    value = state.dueCount.toString(),
+                                    color = Warning
+                                )
+                                ReviewStatItem(
+                                    label = "새 카드",
+                                    value = state.newCount.toString(),
+                                    color = Info
+                                )
+                                ReviewStatItem(
+                                    label = "전체",
+                                    value = state.totalCount.toString(),
+                                    color = Primary
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(20.dp))
+
+                            // 복습 시작 버튼
+                            Button(
+                                onClick = onStartReview,
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Primary
+                                )
+                            ) {
+                                Text(
+                                    text = "${state.dueCount}개 복습 시작",
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ReviewStatItem(
+    label: String,
+    value: String,
+    color: Color
+) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = value,
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold,
+            color = color
+        )
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 

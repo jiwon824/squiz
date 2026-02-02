@@ -22,7 +22,8 @@ import com.ssafy.squiz.ui.theme.*
 @Composable
 fun UserProfileScreen(
     userId: Long,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    onSendMessage: ((Long, String) -> Unit)? = null
 ) {
     // Mock 데이터
     val nickname = "스터디원"
@@ -57,7 +58,27 @@ fun UserProfileScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // 메시지 보내기 버튼
+            if (onSendMessage != null) {
+                Button(
+                    onClick = { onSendMessage(userId, nickname) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Primary)
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Mail,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("메시지 보내기")
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
 
             // 활동 통계
             Card(

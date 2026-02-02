@@ -5,6 +5,7 @@ export { InsightHeader } from './InsightHeader';
 export { SummaryView } from './SummaryView';
 export { EditableTranscript } from './EditableTranscript';
 export { TranscriptView } from './TranscriptView';
+export { QuizView } from './QuizView';
 export { ActionItemsView } from './ActionItemsView';
 export { StatsView } from './StatsView';
 

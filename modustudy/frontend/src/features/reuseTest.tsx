@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Button, Input, Modal, Card, BackButton, ArrowButton, DatePicker, TimePicker } from '@/shared/components';
-import { X, Heart, Users, Star, Clock, Award, Check, Calendar, ChevronRight } from 'lucide-react';
+import { Button, Input, Modal, Card, BackButton, ArrowButton, DatePicker, TimePicker, FloatingInput, IconInput } from '@/shared/components';
+import { X, Heart, Users, Star, Clock, Award, Check, Calendar, ChevronRight, Mail, Lock, Search, User } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 
 const ReuseTest = () => {
@@ -415,7 +415,81 @@ const ReuseTest = () => {
                 </div>
             </section>
 
-            {/* 5. Pickers & Inputs */}
+            {/* 5. Floating Input */}
+            <section className="space-y-6">
+                <h2 className="text-xl font-bold border-b pb-2 flex items-center gap-2">
+                    <div className="w-1.5 h-6 bg-violet-500 rounded-full" />
+                    Floating Label Input
+                </h2>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {/* 사이즈 비교 */}
+                    <Card variant="outline" className="p-8 space-y-6">
+                        <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest">Size Variants</h3>
+                        <div className="space-y-4">
+                            <FloatingInput label="Extra Small" size="xs" />
+                            <FloatingInput label="Small" size="sm" />
+                            <FloatingInput label="Medium (Default)" size="md" />
+                            <FloatingInput label="Large" size="lg" />
+                            <FloatingInput label="Extra Large" size="xl" />
+                        </div>
+                    </Card>
+
+                    {/* 상태별 */}
+                    <Card variant="outline" className="p-8 space-y-6">
+                        <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest">Status Variants</h3>
+                        <div className="space-y-4">
+                            <FloatingInput label="기본 상태" helperText="도움말 텍스트입니다" />
+                            <FloatingInput label="에러 상태" error="올바른 이메일 형식을 입력하세요" />
+                            <FloatingInput label="성공 상태" success="사용 가능한 닉네임입니다" defaultValue="모두스터디" />
+                            <FloatingInput label="필수 입력" required />
+                            <FloatingInput label="비활성화" disabled defaultValue="수정 불가" />
+                        </div>
+                    </Card>
+                </div>
+            </section>
+
+            {/* 6. Icon Input */}
+            <section className="space-y-6">
+                <h2 className="text-xl font-bold border-b pb-2 flex items-center gap-2">
+                    <div className="w-1.5 h-6 bg-indigo-500 rounded-full" />
+                    Icon Input
+                </h2>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {/* 로그인 폼 예시 */}
+                    <Card variant="outline" className="p-8 space-y-6">
+                        <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest">Login Form Example</h3>
+                        <div className="space-y-3">
+                            <IconInput
+                                type="email"
+                                placeholder="이메일을 입력하세요"
+                                leftIcon={<Mail />}
+                            />
+                            <IconInput
+                                type="password"
+                                placeholder="비밀번호를 입력하세요"
+                                leftIcon={<Lock />}
+                            />
+                        </div>
+                    </Card>
+
+                    {/* 사이즈 + 상태 */}
+                    <Card variant="outline" className="p-8 space-y-6">
+                        <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest">Sizes & States</h3>
+                        <div className="space-y-3">
+                            <IconInput placeholder="Small" leftIcon={<Search />} size="sm" />
+                            <IconInput placeholder="Medium (Default)" leftIcon={<User />} size="md" />
+                            <IconInput placeholder="Large" leftIcon={<Mail />} size="lg" />
+                            <IconInput placeholder="에러 상태" leftIcon={<Mail />} error="올바른 이메일을 입력하세요" />
+                            <IconInput placeholder="성공 상태" leftIcon={<User />} success="확인 완료" defaultValue="김공부" />
+                            <IconInput placeholder="비활성화" leftIcon={<Lock />} disabled />
+                        </div>
+                    </Card>
+                </div>
+            </section>
+
+            {/* 7. Pickers & Inputs */}
             <section className="space-y-6">
                 <h2 className="text-xl font-bold border-b pb-2 flex items-center gap-2">
                     <div className="w-1.5 h-6 bg-study-blue rounded-full" />

@@ -23,7 +23,7 @@ export interface TranscriptItem {
 }
 
 /** 탭 타입 */
-export type TabType = 'summary' | 'transcript' | 'action' | 'stats';
+export type TabType = 'summary' | 'quiz' | 'transcript' | 'action' | 'stats';
 
 /** 화자별 통계 */
 export interface SpeakerStats {
