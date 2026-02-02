@@ -300,13 +300,8 @@ const LightningStudyCreatePage: React.FC = () => {
                 status,
             };
 
-            console.log('번개 스터디 생성 payload:', payload);
-            console.log('선택된 주제:', formData.topic, '/', formData.subTopic);
-            console.log('선택된 형식:', formData.format);
-            console.log('매핑된 topicId:', topicId, '/ formatId:', formatId);
 
             const createdStudy = await createStudy(payload);
-            console.log('번개 스터디 생성 성공:', createdStudy);
 
             showToast('번개 스터디가 개설되었습니다!', 'success');
             navigate('/study');

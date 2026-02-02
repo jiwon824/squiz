@@ -24,6 +24,8 @@ sealed class NavRoutes(val route: String) {
     object BookmarkedStudies : NavRoutes("bookmarked_studies")
     object MyApplications : NavRoutes("my_applications")
     object StudyTemplates : NavRoutes("study_templates")
+    object StudyCreate : NavRoutes("study_create")
+    object StudyCreateLightning : NavRoutes("study_create_lightning")
 
     // My Studies
     object MyStudies : NavRoutes("my_studies")
@@ -83,6 +85,14 @@ sealed class NavRoutes(val route: String) {
     }
     object SessionMemo : NavRoutes("session_memo/{sessionId}") {
         fun createRoute(sessionId: Long) = "session_memo/$sessionId"
+    }
+
+    // 회의록 (모바일 전용 - 녹음 기반)
+    object MeetingList : NavRoutes("meeting_list/{studyId}") {
+        fun createRoute(studyId: Long) = "meeting_list/$studyId"
+    }
+    object MeetingDetail : NavRoutes("meeting_detail/{meetingId}") {
+        fun createRoute(meetingId: Long) = "meeting_detail/$meetingId"
     }
 
     // Schedule

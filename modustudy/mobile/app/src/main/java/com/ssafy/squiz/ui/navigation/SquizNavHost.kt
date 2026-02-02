@@ -17,6 +17,7 @@ import com.ssafy.squiz.ui.screens.attendance.*
 import com.ssafy.squiz.ui.screens.schedule.*
 import com.ssafy.squiz.ui.screens.quiz.*
 import com.ssafy.squiz.ui.screens.mypage.*
+import com.ssafy.squiz.ui.screens.meeting.*
 import com.ssafy.squiz.ui.screens.main.MainScreen
 
 @Composable
@@ -114,6 +115,9 @@ fun SquizNavHost(
                 onNavigateToScheduleList = {
                     navController.navigate(NavRoutes.ScheduleList.route)
                 },
+                onNavigateToStudyCreate = {
+                    navController.navigate(NavRoutes.StudyCreate.route)
+                },
                 onNavigateToLogin = {
                     navController.navigate(NavRoutes.Login.route) {
                         popUpTo(NavRoutes.Main.route) { inclusive = true }
@@ -186,6 +190,29 @@ fun SquizNavHost(
             )
         }
 
+        // 스터디 생성
+        composable(NavRoutes.StudyCreate.route) {
+            StudyCreateScreen(
+                onBackClick = { navController.popBackStack() },
+                onCreateSuccess = { studyId ->
+                    navController.navigate(NavRoutes.StudyDetail.createRoute(studyId)) {
+                        popUpTo(NavRoutes.StudyCreate.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        composable(NavRoutes.StudyCreateLightning.route) {
+            StudyCreateScreen(
+                onBackClick = { navController.popBackStack() },
+                onCreateSuccess = { studyId ->
+                    navController.navigate(NavRoutes.StudyDetail.createRoute(studyId)) {
+                        popUpTo(NavRoutes.StudyCreateLightning.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+
         // My Studies - Study Home
         composable(
             route = NavRoutes.StudyHome.route,
@@ -224,6 +251,9 @@ fun SquizNavHost(
                 },
                 onNavigateToConvertToOfficial = {
                     navController.navigate(NavRoutes.ConvertToOfficial.createRoute(studyId))
+                },
+                onNavigateToMeetingList = {
+                    navController.navigate(NavRoutes.MeetingList.createRoute(studyId))
                 }
             )
         }
@@ -457,6 +487,32 @@ fun SquizNavHost(
             val sessionId = backStackEntry.arguments?.getLong("sessionId") ?: 0L
             SessionMemoScreen(
                 sessionId = sessionId,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        // 회의록 (모바일 전용 - 녹음 기반)
+        composable(
+            route = NavRoutes.MeetingList.route,
+            arguments = listOf(navArgument("studyId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val studyId = backStackEntry.arguments?.getLong("studyId") ?: 0L
+            MeetingListScreen(
+                studyId = studyId,
+                onBackClick = { navController.popBackStack() },
+                onMeetingClick = { meetingId ->
+                    navController.navigate(NavRoutes.MeetingDetail.createRoute(meetingId))
+                }
+            )
+        }
+
+        composable(
+            route = NavRoutes.MeetingDetail.route,
+            arguments = listOf(navArgument("meetingId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val meetingId = backStackEntry.arguments?.getLong("meetingId") ?: 0L
+            MeetingDetailScreen(
+                meetingId = meetingId,
                 onBackClick = { navController.popBackStack() }
             )
         }

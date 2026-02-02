@@ -239,7 +239,6 @@ const StudyPageV2: React.FC = () => {
                 return convertToStudyWithLeader(item, leaderInfo, currentRegionMap, isBookmarked);
             });
 
-            console.log('[변환된 스터디]', convertedStudies);
             setStudies(convertedStudies);
             setTotalPages(response?.totalPages || 0);
             setTotalElements(response?.totalElements || 0);

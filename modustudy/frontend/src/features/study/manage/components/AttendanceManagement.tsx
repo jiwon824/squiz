@@ -50,9 +50,7 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ studyId }) 
         setLoading(true);
         try {
             const response = await studyApi.getStudySessions(studyId);
-            console.log('[AttendanceManagement] 세션 API 응답:', response);
             const sessionList = response || [];
-            console.log('[AttendanceManagement] 세션 수:', sessionList.length);
             setSessions(sessionList);
             if (sessionList.length > 0) {
                 setSelectedSession(sessionList[0]);
@@ -68,9 +66,7 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ studyId }) 
     const fetchAttendance = async (sessionId: number) => {
         try {
             const response = await studyApi.getSessionAttendance(studyId, sessionId);
-            console.log('[AttendanceManagement] 출석 API 응답:', response);
             const records = response?.data || response || [];
-            console.log('[AttendanceManagement] 출석 레코드 수:', records.length);
             setAttendanceRecords(records);
         } catch (error) {
             console.error('출석 정보 조회 실패:', error);
