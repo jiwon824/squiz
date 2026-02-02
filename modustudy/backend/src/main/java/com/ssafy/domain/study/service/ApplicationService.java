@@ -267,6 +267,15 @@ public class ApplicationService {
 
         studyMemberRepository.save(member);
 
+        // 정원 도달 시 자동 모집 마감
+        int currentMembers = studyMemberRepository.countByStudyIdAndStatus(studyId, MemberStatus.APPROVED);
+        if (study.getMaxMembers() != null && currentMembers >= study.getMaxMembers()
+                && study.getStatus() == Status.RECRUITING) {
+            study.updateStatus(Status.RECRUIT_CLOSED);
+            log.info("정원 도달 - 모집 자동 마감: studyId={}, members={}/{}",
+                    studyId, currentMembers, study.getMaxMembers());
+        }
+
         log.info("신청 승인 완료 - applicationId: {}, userId: {} 스터디 멤버로 추가됨",
                 applicationId, application.getUserId());
 
