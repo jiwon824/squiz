@@ -12,6 +12,7 @@ import {
 } from '@/shared/components';
 import { studyApi } from '@/api/endpoints/studyApi';
 import { studyQuizApi, StudyQuizListItem, StudyQuizDetail } from '@/api/endpoints/studyQuizApi';
+import { useTimer } from '@/features/quiz/hooks/useTimer';
 
 // 퀴즈 세트 타입 (UI용)
 interface QuizSet {
@@ -119,7 +120,7 @@ export const MyQuizWidget: React.FC = () => {
                             }
                         }
                     } catch (err) {
-                        console.warn(`[AIQuizWidget] 스터디 ${study.id} 퀴즈 조회 실패:`, err);
+                        console.warn(`[MyQuizWidget] 스터디 ${study.id} 퀴즈 조회 실패:`, err);
                     }
                 }
 
@@ -130,7 +131,7 @@ export const MyQuizWidget: React.FC = () => {
 
                 setQuizSets(allQuizSets);
             } catch (err) {
-                console.error('[AIQuizWidget] 데이터 로딩 실패:', err);
+                console.error('[MyQuizWidget] 데이터 로딩 실패:', err);
             } finally {
                 setIsLoading(false);
             }
@@ -193,10 +194,10 @@ export const MyQuizWidget: React.FC = () => {
             }
 
             if (!studyId) {
-                console.error('[AIQuizWidget] 퀴즈를 찾을 수 없음:', quizSet.id);
+                console.error('[MyQuizWidget] 퀴즈를 찾을 수 없음:', quizSet.id);
             }
         } catch (err) {
-            console.error('[AIQuizWidget] 퀴즈 상세 로딩 실패:', err);
+            console.error('[MyQuizWidget] 퀴즈 상세 로딩 실패:', err);
         } finally {
             setIsLoading(false);
         }
@@ -210,27 +211,78 @@ export const MyQuizWidget: React.FC = () => {
     const currentQuiz = selectedQuizSet?.questions[currentIndex];
     const isLastQuestion = selectedQuizSet ? currentIndex >= selectedQuizSet.questions.length - 1 : false;
 
-    const handleSubmitMultiple = () => {
-        if (selectedAnswer === null || !currentQuiz) return;
 
-        const isCorrect = selectedAnswer === currentQuiz.correctAnswer;
-        setScore((prev) => ({
-            correct: prev.correct + (isCorrect ? 1 : 0),
-            total: prev.total + 1,
-        }));
-        setShowResult(true);
+    // 타이머 훅 사용
+    const { start: startTimer, stop: stopTimer } = useTimer();
+
+    // 퀴즈/문제 변경 시 타이머 시작
+    useEffect(() => {
+        if (viewMode === 'quiz' && currentQuiz) {
+            startTimer();
+        }
+    }, [currentIndex, viewMode, currentQuiz, startTimer]);
+
+    const handleSubmitMultiple = async () => {
+        if (selectedAnswer === null || !currentQuiz || !selectedQuizSet || !currentStudyId) return;
+
+        try {
+            // 타이머 정지 및 경과 시간 획득
+            const responseTimeMs = stopTimer();
+
+            // API 호출
+            const result = await studyQuizApi.submitAnswer(
+                currentStudyId,
+                Number(selectedQuizSet.id),
+                currentQuiz.id,
+                {
+                    userAnswer: String(selectedAnswer),
+                    responseTimeMs
+                }
+            );
+
+            // 점수 업데이트 (백엔드 결과 사용)
+            setScore((prev) => ({
+                correct: prev.correct + (result.isCorrect ? 1 : 0),
+                total: prev.total + 1,
+            }));
+
+            setShowResult(true);
+        } catch (err) {
+            console.error('[MyQuizWidget] 답안 제출 실패:', err);
+            // 에러 시에도 일단 로컬 판정 결과는 보여주되, 에러 알림 필요할 수 있음
+            setShowResult(true);
+        }
     };
 
-    const handleSubmitShort = () => {
-        if (!shortAnswer.trim() || !currentQuiz) return;
+    const handleSubmitShort = async () => {
+        if (!shortAnswer.trim() || !currentQuiz || !selectedQuizSet || !currentStudyId) return;
 
-        const correctAnswer = String(currentQuiz.correctAnswer).toLowerCase();
-        const isCorrect = shortAnswer.trim().toLowerCase() === correctAnswer;
-        setScore((prev) => ({
-            correct: prev.correct + (isCorrect ? 1 : 0),
-            total: prev.total + 1,
-        }));
-        setShowResult(true);
+        try {
+            // 타이머 정지 및 경과 시간 획득
+            const responseTimeMs = stopTimer();
+
+            // API 호출
+            const result = await studyQuizApi.submitAnswer(
+                currentStudyId,
+                Number(selectedQuizSet.id),
+                currentQuiz.id,
+                {
+                    userAnswer: shortAnswer.trim(),
+                    responseTimeMs
+                }
+            );
+
+            // 점수 업데이트 (백엔드 결과 사용)
+            setScore((prev) => ({
+                correct: prev.correct + (result.isCorrect ? 1 : 0),
+                total: prev.total + 1,
+            }));
+
+            setShowResult(true);
+        } catch (err) {
+            console.error('[MyQuizWidget] 답안 제출 실패:', err);
+            setShowResult(true);
+        }
     };
 
     const handleNext = () => {
