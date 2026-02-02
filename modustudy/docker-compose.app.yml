@@ -25,6 +25,7 @@ services:
       - "8080"
     volumes:
       - uploads-data:/app/uploads
+      - /home/ubuntu/config/firebase-service-account.json:/app/config/firebase-service-account.json:ro
     environment:
       - TZ=Asia/Seoul
       - SPRING_PROFILES_ACTIVE=prod
@@ -46,6 +47,7 @@ services:
       - APP_SFU_BASE_URL=wss://i14d106.p.ssafy.io
       # TURN 불필요 - SFU가 AI 서버에서 직접 UDP 연결
       - APP_AI_SERVER_BASE_URL=http://3.38.92.48:8000
+      - FIREBASE_CREDENTIALS_PATH=/app/config/firebase-service-account.json
     restart: unless-stopped
     networks:
       - squiz-network

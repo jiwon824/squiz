@@ -662,6 +662,55 @@ export const studyApi = {
       return false;
     }
   },
+
+  // ========== 스터디 모집 관리 (Recruitment Management) ==========
+
+  /**
+   * 스터디 시작 (모집완료/확정대기 → 진행중)
+   * POST /api/v1/study/{studyId}/start
+   */
+  startStudy: async (studyId: number): Promise<StudyDetailResponse> => {
+    const response = await api.post<any>(`/api/v1/study/${studyId}/start`);
+    const data = response.data;
+    if (data.data) {
+      return data.data;
+    }
+    return data;
+  },
+
+  /**
+   * 모집 기간 연장 (RECRUITING/PENDING 상태에서 7일 연장)
+   * PATCH /api/v1/study/{studyId}/extend-recruitment
+   * @param studyId 스터디 ID
+   * @param newEndDate 새로운 모집 종료일 (YYYY-MM-DD 형식)
+   */
+  extendRecruitment: async (studyId: number, newEndDate: string): Promise<StudyDetailResponse> => {
+    const response = await api.patch<any>(`/api/v1/study/${studyId}/extend-recruitment`, {
+      newEndDate,
+    });
+    const data = response.data;
+    if (data.data) {
+      return data.data;
+    }
+    return data;
+  },
+
+  /**
+   * 스터디 멤버 수 조회 (getStudyMemberCount 별칭)
+   * GET /api/v1/study/{studyId}/members/count
+   */
+  getStudyMemberCount: async (studyId: number) => {
+    const response = await api.get<any>(`/api/v1/study/${studyId}/members/count`);
+    return response.data as number;
+  },
+
+  /**
+   * 스터디 탈퇴 (본인만 가능)
+   * DELETE /api/v1/study/{studyId}/members/leave
+   */
+  leaveStudy: async (studyId: number): Promise<void> => {
+    await api.delete(`/api/v1/study/${studyId}/members/leave`);
+  },
 };
 
 // ========== 개별 함수 export (스터디 생성 페이지 등에서 사용) ==========

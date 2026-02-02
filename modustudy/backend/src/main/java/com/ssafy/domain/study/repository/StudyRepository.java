@@ -9,6 +9,9 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
+import java.util.List;
+
 /**
  * Study 기본 Repository
  */
@@ -47,4 +50,10 @@ public interface StudyRepository extends JpaRepository<Study, Long>, StudyReposi
      * 특정 스터디장의 특정 상태 스터디 목록
      */
     Page<Study> findByLeaderIdAndStatus(Long leaderId, Status status, Pageable pageable);
+
+    /**
+     * 특정 상태이고 모집 종료일이 특정 날짜 이전인 스터디 목록 조회
+     * - 모집 기간 종료 스케줄러에서 사용
+     */
+    List<Study> findByStatusAndRecruitEndDateBefore(Status status, LocalDate date);
 }

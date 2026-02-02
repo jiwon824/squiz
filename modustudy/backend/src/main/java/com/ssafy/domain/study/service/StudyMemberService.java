@@ -97,4 +97,38 @@ public class StudyMemberService {
 
         return studyMemberRepository.existsByStudyIdAndUserIdAndStatus(studyId, userId, MemberStatus.APPROVED);
     }
+
+    /**
+     * 스터디 탈퇴 (본인만 가능)
+     * - 스터디장은 탈퇴 불가
+     */
+    @Transactional
+    public void leaveStudy(Long studyId, Long userId) {
+        log.info("스터디 탈퇴 시작 - studyId: {}, userId: {}", studyId, userId);
+
+        // 1. 스터디 존재 확인
+        var study = studyRepository.findById(studyId)
+                .orElseThrow(() -> new StudyException.StudyNotFoundException(studyId));
+
+        // 2. 스터디장은 탈퇴 불가
+        if (study.getLeaderId().equals(userId)) {
+            throw new StudyException.InvalidStudyRequestException("스터디장은 탈퇴할 수 없습니다.");
+        }
+
+        // 3. 멤버 조회
+        StudyMember member = studyMemberRepository.findByStudyIdAndUserId(studyId, userId)
+                .orElseThrow(() -> new StudyException.InvalidStudyRequestException("스터디 멤버가 아닙니다."));
+
+        // 4. 승인된 멤버인지 확인
+        if (member.getStatus() != MemberStatus.APPROVED) {
+            throw new StudyException.InvalidStudyRequestException("승인된 멤버만 탈퇴할 수 있습니다.");
+        }
+
+        // 5. 멤버 상태를 LEFT로 변경
+        member.setStatus(MemberStatus.LEFT);
+        member.setLeftAt(java.time.LocalDateTime.now());
+        studyMemberRepository.save(member);
+
+        log.info("스터디 탈퇴 완료 - studyId: {}, userId: {}", studyId, userId);
+    }
 }
