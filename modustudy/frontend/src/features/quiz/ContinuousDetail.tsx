@@ -23,6 +23,8 @@ import { Loader2, AlertCircle, RefreshCw, LogIn } from 'lucide-react';
 
 import { CourseDetailHeader } from './components/CourseDetailHeader';
 import { CourseDetailSectionList } from './components/CourseDetailSectionList';
+import { Modal } from '@/shared/components/Modal';
+import { Button } from '@/shared/components/Button';
 import { useAuthStore } from '@/store/authStore';
 import {
     fetchCourseDetail,
@@ -210,6 +212,15 @@ export const CourseDetail = () => {
     }, [courseId, isLoggedIn]);
 
     // =========================================================================
+    // STATE - 모달 상태
+    // =========================================================================
+    const [isLimitModalOpen, setIsLimitModalOpen] = useState(false);
+    const [selectedSectionNumber, setSelectedSectionNumber] = useState<number | null>(null);
+    const [questionLimit, setQuestionLimit] = useState<number>(10); // 기본값 10문제
+
+    const limitOptions = [5, 10, 20, 30, 50];
+
+    // =========================================================================
     // EVENT HANDLERS
     // =========================================================================
 
@@ -218,7 +229,7 @@ export const CourseDetail = () => {
         window.location.reload();
     };
 
-    // 섹션 클릭 핸들러 - 연속 학습 모드로 이동
+    // 섹션 클릭 핸들러 - 모달 열기
     const handleSectionClick = (sectionNumber: number) => {
         if (!courseData?.isAuthenticated) {
             // 비로그인 사용자: 로그인 페이지로 리다이렉트
@@ -232,9 +243,19 @@ export const CourseDetail = () => {
             return;
         }
 
-        // 연속 학습 모드로 직접 이동 (attemptId 불필요)
-        console.log(`[CourseDetail] 연속 학습 시작: 코스 ${courseId}, 섹션 ${sectionNumber}`);
-        navigate(`/continuous-quiz/${courseId}/section/${sectionNumber}`);
+        setSelectedSectionNumber(sectionNumber);
+        setIsLimitModalOpen(true);
+    };
+
+    // 퀴즈 시작 핸들러 (모달에서 호출)
+    const handleStartQuiz = () => {
+        if (selectedSectionNumber === null) return;
+
+        console.log(`[CourseDetail] 연속 학습 시작: 코스 ${courseId}, 섹션 ${selectedSectionNumber}, 문제 수 ${questionLimit}`);
+        navigate(`/continuous-quiz/${courseId}/section/${selectedSectionNumber}`, {
+            state: { limit: questionLimit }
+        });
+        setIsLimitModalOpen(false);
     };
 
     // =========================================================================
@@ -440,6 +461,51 @@ export const CourseDetail = () => {
                     </p>
                 </div>
             </div>
+
+            {/* 문제 수 선택 모달 */}
+            <Modal
+                isOpen={isLimitModalOpen}
+                onClose={() => setIsLimitModalOpen(false)}
+                title="학습량 설정"
+                maxWidth="sm"
+            >
+                <div className="flex flex-col gap-6">
+                    <p className="text-text-secondary text-center">
+                        이번 세션에서 풀 문제 수를 선택해주세요.
+                    </p>
+
+                    <div className="grid grid-cols-5 gap-2">
+                        {limitOptions.map(option => (
+                            <Button
+                                key={option}
+                                variant={questionLimit === option ? 'primary' : 'outline'}
+                                size="sm"
+                                onClick={() => setQuestionLimit(option)}
+                                className={questionLimit === option ? 'bg-primary text-white border-primary' : ''}
+                            >
+                                {option}
+                            </Button>
+                        ))}
+                    </div>
+
+                    <div className="flex gap-3 mt-2">
+                        <Button
+                            variant="secondary"
+                            onClick={() => setIsLimitModalOpen(false)}
+                            className="flex-1"
+                        >
+                            취소
+                        </Button>
+                        <Button
+                            variant="primary"
+                            onClick={handleStartQuiz}
+                            className="flex-1"
+                        >
+                            학습 시작
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 };
