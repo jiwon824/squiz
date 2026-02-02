@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useLayoutEffect } from 'react';
 import { MessageItem } from './MessageItem';
 import type { MessageResponse } from '../types';
 
@@ -17,6 +17,10 @@ interface ChatAreaProps {
   scrollToMessageId?: number | null;
   /** 스크롤 완료 후 콜백 */
   onScrollComplete?: () => void;
+  /** 이전 메시지 로딩 중인지 여부 (스크롤 위치 보존용) */
+  isLoadingOlder?: boolean;
+  /** 메시지를 찾을 수 없을 때 콜백 (추가 로드 필요) */
+  onMessageNotFound?: (messageId: number) => void;
 }
 
 // 날짜 포맷 (구분선용)
@@ -69,15 +73,63 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
   onPinToggle,
   scrollToMessageId,
   onScrollComplete,
+  isLoadingOlder = false,
+  onMessageNotFound,
 }) => {
   // 고정 메시지 ID Set (빠른 조회용)
   const pinnedSet = new Set(pinnedMessageIds);
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  // 스크롤 위치 보존을 위한 ref
+  const prevScrollHeightRef = useRef<number>(0);
+  const prevMessagesLengthRef = useRef<number>(0);
+  const isInitialLoadRef = useRef<boolean>(true);
+  // 이전 메시지 로딩 상태 추적
+  const wasLoadingOlderRef = useRef<boolean>(false);
 
-  // 새 메시지 시 스크롤 하단으로
+  // 이전 메시지 로드 전 scrollHeight 저장
+  useLayoutEffect(() => {
+    if (isLoadingOlder && scrollRef.current) {
+      prevScrollHeightRef.current = scrollRef.current.scrollHeight;
+      wasLoadingOlderRef.current = true;
+    }
+  }, [isLoadingOlder]);
+
+  // 이전 메시지 로드 후 스크롤 위치 복원
+  useLayoutEffect(() => {
+    if (wasLoadingOlderRef.current && !isLoadingOlder && scrollRef.current) {
+      const newScrollHeight = scrollRef.current.scrollHeight;
+      const scrollDiff = newScrollHeight - prevScrollHeightRef.current;
+      scrollRef.current.scrollTop = scrollDiff;
+      wasLoadingOlderRef.current = false;
+    }
+  }, [isLoadingOlder, messages]);
+
+  // 새 메시지 시 스크롤 하단으로 (이전 메시지 로드 제외)
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // 초기 로드 시 맨 아래로 스크롤
+    if (isInitialLoadRef.current && messages.length > 0) {
+      isInitialLoadRef.current = false;
+      bottomRef.current?.scrollIntoView({ behavior: 'auto' });
+      prevMessagesLengthRef.current = messages.length;
+      return;
+    }
+
+    // 이전 메시지 로딩 중이 아니고, 메시지가 뒤에 추가된 경우에만 스크롤
+    const messagesAdded = messages.length > prevMessagesLengthRef.current;
+    const isNewMessageAdded = messagesAdded && !wasLoadingOlderRef.current;
+
+    if (isNewMessageAdded && scrollRef.current) {
+      // 사용자가 이미 하단 근처에 있을 때만 자동 스크롤
+      const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 150;
+
+      if (isNearBottom) {
+        bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+
+    prevMessagesLengthRef.current = messages.length;
   }, [messages.length]);
 
   // 특정 메시지로 스크롤
@@ -98,13 +150,16 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
         setTimeout(() => {
           messageElement.classList.remove('message-highlight');
         }, 2000);
-      }
 
-      onScrollComplete?.();
+        onScrollComplete?.();
+      } else {
+        // 메시지를 찾지 못함 - 추가 로드 필요
+        onMessageNotFound?.(scrollToMessageId);
+      }
     }, 100);
 
     return () => clearTimeout(timer);
-  }, [scrollToMessageId, onScrollComplete]);
+  }, [scrollToMessageId, onScrollComplete, onMessageNotFound]);
 
   // 스크롤 상단 도달 시 이전 메시지 로드
   const handleScroll = () => {
@@ -156,9 +211,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
 
       // 메시지 렌더링 (타입이 다를 수 있으므로 문자열로 비교)
       const isOwn = currentUserId !== undefined && String(message.author.id) === String(currentUserId);
-      const nextMessage = index < messages.length - 1 ? messages[index + 1] : null;
-      // 다음 메시지가 없거나 다음 메시지가 다른 사용자면 그룹의 마지막
-      const isLastInGroup = !nextMessage || String(nextMessage.author.id) !== String(message.author.id);
 
       elements.push(
         <div key={message.id} data-message-id={message.id}>
@@ -166,7 +218,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
             message={message}
             isGrouped={isGroupedMessage(message, previousMessage)}
             isOwnMessage={isOwn}
-            isLastInGroup={isLastInGroup}
             isPinned={pinnedSet.has(message.id)}
             onPinToggle={onPinToggle}
           />
