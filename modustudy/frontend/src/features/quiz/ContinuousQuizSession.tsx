@@ -357,6 +357,9 @@ export const ContinuousQuizSession = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    // 건너뛰기 확인 모달 상태
+    const [showSkipConfirm, setShowSkipConfirm] = useState(false);
+
     // 피드백 모달 상태
     const [showFeedback, setShowFeedback] = useState(false);
     const [feedbackData, setFeedbackData] = useState<{
@@ -375,7 +378,7 @@ export const ContinuousQuizSession = () => {
     } | null>(null);
 
     // FSRS 응답 시간 측정 (useTimer - 탭 전환 감지 포함)
-    const { start: startTimer, stop: stopTimer } = useTimer();
+    const { start: startTimer, stop: stopTimer, pause: pauseTimer, resume: resumeTimer } = useTimer();
 
     // 다음 문제 데이터 (제출 응답에서 받아 "다음 문제" 클릭 시 적용)
     const [nextQuestionData, setNextQuestionData] = useState<ContinuousQuizQuestion | null>(null);
@@ -396,10 +399,10 @@ export const ContinuousQuizSession = () => {
 
     // 새 문제 렌더 시 타이머 시작
     useEffect(() => {
-        if (currentQuestion && !showFeedback) {
+        if (currentQuestion && !showFeedback && !showSkipConfirm) {
             startTimer();
         }
-    }, [currentQuestion, showFeedback, startTimer]);
+    }, [currentQuestion, showFeedback, showSkipConfirm, startTimer]);
 
     // 초기 문제 로드
     useEffect(() => {
@@ -480,7 +483,10 @@ export const ContinuousQuizSession = () => {
 
     // 답안 제출 핸들러 - useTimer로 시간 측정, 백엔드 isCorrect 기반 피드백
     const handleSubmit = useCallback(async () => {
-        if (!currentApiQuestion || !isValidAnswer(currentAnswer)) {
+        if (!currentApiQuestion) return;
+
+        // 일반 제출인 경우 답안 확인
+        if (!isValidAnswer(currentAnswer)) {
             showToast('답변을 선택해주세요.', 'info');
             return;
         }
@@ -491,7 +497,7 @@ export const ContinuousQuizSession = () => {
         try {
             const response = await submitAnswer(
                 currentApiQuestion.questionId,
-                currentAnswer,
+                currentAnswer, // isValidAnswer 체크 통과했으므로 string | string[]
                 responseTimeMs
             );
 
@@ -524,6 +530,62 @@ export const ContinuousQuizSession = () => {
             setIsSubmitting(false);
         }
     }, [currentApiQuestion, currentAnswer, showToast, stopTimer]);
+
+    // 건너뛰기 버튼 클릭
+    const handleSkipClick = useCallback(() => {
+        pauseTimer();
+        setShowSkipConfirm(true);
+    }, [pauseTimer]);
+
+    // 건너뛰기 취소 (타이머 재개)
+    const handleSkipCancel = useCallback(() => {
+        setShowSkipConfirm(false);
+        resumeTimer();
+    }, [resumeTimer]);
+
+    // 건너뛰기 확인 (오답 처리 제출)
+    const handleSkipConfirm = useCallback(async () => {
+        setShowSkipConfirm(false);
+
+        if (!currentApiQuestion) return;
+
+        // stopTimer()는 일시정지 상태에서도 누적 시간을 반환하도록 수정된 useTimer 사용
+        const responseTimeMs = stopTimer();
+        setIsSubmitting(true);
+
+        try {
+            // 빈 문자열 제출 -> 오답 처리
+            const response = await submitAnswer(
+                currentApiQuestion.questionId,
+                "",
+                responseTimeMs
+            );
+
+            setFeedbackData({
+                isCorrect: false, // 건너뛰기는 항상 오답
+                correctAnswer: response.correctAnswer,
+                explanation: response.explanation,
+            });
+            setShowFeedback(true);
+
+            setSolvedCount(prev => prev + 1);
+            // 오답이므로 correctCount는 증가시키지 않음
+            setTotalResponseTimeMs(prev => prev + responseTimeMs);
+
+            if (response.nextQuestion) {
+                setNextQuestionData(response.nextQuestion);
+            } else {
+                showToast('다음 문제를 불러오는데 실패했습니다.', 'error');
+            }
+
+        } catch (err) {
+            console.error('[ContinuousQuizSession] 건너뛰기 제출 실패:', err);
+            showToast('제출에 실패했습니다.', 'error');
+        } finally {
+            setIsSubmitting(false);
+        }
+
+    }, [currentApiQuestion, stopTimer, showToast]);
 
     // 코스로 돌아가기
     const handleReturnToCourse = useCallback(() => {
@@ -711,12 +773,14 @@ export const ContinuousQuizSession = () => {
                             questionNumber={solvedCount + 1}
                             currentAnswer={currentAnswer}
                             onAnswerChange={handleAnswerChange}
+                            onSubmit={handleSubmit}
                             className="mb-8"
                         />
 
                         {/* 제출 버튼 */}
                         <ContinuousQuizNavigation
                             onSubmit={handleSubmit}
+                            onSkip={handleSkipClick}
                             isLoading={isSubmitting}
                             isSubmitDisabled={!isValidAnswer(currentAnswer)}
                         />
@@ -733,6 +797,57 @@ export const ContinuousQuizSession = () => {
                     explanation={feedbackData.explanation}
                     onContinue={handleNextQuestion}
                 />
+            )}
+
+            {/* 건너뛰기 확인 모달 */}
+            {showSkipConfirm && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200"
+                    style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+                >
+                    <div
+                        className="w-full max-w-sm rounded-2xl p-6"
+                        style={{
+                            backgroundColor: 'var(--color-surface)',
+                            boxShadow: 'var(--shadow-xl)',
+                        }}
+                    >
+                        <div className="text-center mb-6">
+                            <div
+                                className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4"
+                                style={{ backgroundColor: 'var(--color-warning-light)' }}
+                            >
+                                <AlertCircle size={24} style={{ color: 'var(--color-warning-dark)' }} />
+                            </div>
+                            <h3 className="text-lg font-bold mb-2 text-text-primary">
+                                문제를 건너뛰시겠습니까?
+                            </h3>
+                            <p className="text-sm text-text-secondary leading-relaxed">
+                                건너뛰기를 할 시 <strong className="text-error">오답 처리</strong>됩니다.<br />
+                                <span className="text-xs text-text-tertiary">(타이머가 일시 정지되었습니다)</span>
+                            </p>
+                        </div>
+
+                        <div className="flex gap-3">
+                            <Button
+                                variant="google-ghost"
+                                size="md"
+                                onClick={handleSkipCancel}
+                                className="flex-1"
+                            >
+                                취소
+                            </Button>
+                            <Button
+                                variant="google-primary"
+                                size="md"
+                                onClick={handleSkipConfirm}
+                                className="flex-1 bg-error hover:bg-error-dark border-transparent text-white"
+                            >
+                                확인
+                            </Button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

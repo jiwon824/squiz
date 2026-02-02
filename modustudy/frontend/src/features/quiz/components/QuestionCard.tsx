@@ -272,6 +272,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
     questionNumber,
     currentAnswer,
     onAnswerChange,
+    onSubmit,
     className,
 }) => {
     // 단답형 입력 상태
@@ -311,6 +312,14 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
     const handleTextInput = (value: string) => {
         setTextInput(value);
         onAnswerChange(value);
+    };
+
+    // 엔터 키 핸들러
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter' && onSubmit) {
+            e.preventDefault();
+            onSubmit();
+        }
     };
 
     // 선택지가 선택되었는지 확인
@@ -454,6 +463,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
                             type="text"
                             value={textInput}
                             onChange={(e) => handleTextInput(e.target.value)}
+                            onKeyDown={handleKeyDown}
                             placeholder="답을 입력하세요..."
                             className="w-full px-4 py-3 rounded-xl text-base font-medium transition-all duration-200 focus:outline-none focus:ring-2"
                             style={{
