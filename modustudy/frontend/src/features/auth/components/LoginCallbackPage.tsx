@@ -81,9 +81,11 @@ export const LoginCallbackPage = () => {
                     console.log('[INFO] 기존 소셜 유저 로그인 성공!');
 
                     // 로그인 전 페이지로 리다이렉트 (저장된 URL이 있으면)
-                    const redirectUrl = sessionStorage.getItem('redirectAfterLogin');
+                    const redirectUrl = sessionStorage.getItem('redirectAfterLogin')
+                        || sessionStorage.getItem('oauth_redirect_path');
                     if (redirectUrl) {
                         sessionStorage.removeItem('redirectAfterLogin');
+                        sessionStorage.removeItem('oauth_redirect_path');
                         navigate(redirectUrl, { replace: true });
                     } else {
                         navigate('/dashboard', { replace: true });

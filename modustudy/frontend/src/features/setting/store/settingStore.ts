@@ -263,12 +263,14 @@ export const useSettingStore = create<SettingState>((set, get) => ({
     },
 
     /**
-     * Google 캘린더 연동 (OAuth 팝업)
+     * Google 캘린더 연동 (리다이렉트 방식)
      */
     connectGoogleCalendar: async () => {
         try {
             const authUrl = await getGoogleCalendarAuthUrl();
-            window.open(authUrl, 'google-calendar-auth', 'width=500,height=600');
+            // OAuth 시작 전 현재 경로 저장 (콜백 후 복귀용)
+            sessionStorage.setItem('oauth_redirect_path', '/setting');
+            window.location.href = authUrl;
         } catch {
             set({ error: 'Google 캘린더 연동 URL을 가져오는데 실패했습니다.' });
         }

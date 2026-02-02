@@ -13,7 +13,9 @@ import { formatDate } from '../utils';
 interface GoogleCalendarStatus {
     connected: boolean;
     email?: string;
-    lastSyncAt?: string;
+    hasValidToken?: boolean;
+    calendarId?: string;
+    tokenExpiresAt?: string;
 }
 
 /**
@@ -132,15 +134,18 @@ class CalendarService {
             schedules.push(...studySessions.value.map(dto => this.mapStudySessionToUnified(dto)));
         }
 
-        // Google Calendar는 선택적
+        // Google Calendar 이벤트 조회 (연동된 경우에만)
         try {
             const googleStatus = await calendarApi.getGoogleCalendarStatus();
             if (googleStatus.connected) {
-                const googleData = await calendarApi.syncGoogleCalendar(startDate, endDate);
-                schedules.push(...googleData.events.map(dto => this.mapGoogleEventToUnified(dto)));
+                // 날짜를 ISO DateTime 형식으로 변환
+                const startTime = new Date(startDate + 'T00:00:00').toISOString();
+                const endTime = new Date(endDate + 'T23:59:59').toISOString();
+                const googleEvents = await calendarApi.getGoogleCalendarEvents(startTime, endTime);
+                schedules.push(...googleEvents.map(dto => this.mapGoogleEventToUnified(dto)));
             }
         } catch (error) {
-            console.warn('Google Calendar 동기화 실패:', error);
+            console.warn('Google Calendar 이벤트 조회 실패:', error);
         }
 
         return schedules;
@@ -212,14 +217,6 @@ class CalendarService {
     }
 
     /**
-     * Google Calendar OAuth 콜백 처리
-     */
-    async handleGoogleCallback(code: string): Promise<boolean> {
-        const result = await calendarApi.handleGoogleCallback(code);
-        return result.success;
-    }
-
-    /**
      * Google Calendar 연동 해제
      */
     async disconnectGoogleCalendar(): Promise<void> {
@@ -227,11 +224,20 @@ class CalendarService {
     }
 
     /**
-     * Google Calendar 동기화
+     * Google Calendar 동기화 트리거 (Watch 등록)
      */
-    async syncGoogleCalendar(startDate: string, endDate: string): Promise<UnifiedSchedule[]> {
-        const data = await calendarApi.syncGoogleCalendar(startDate, endDate);
-        return data.events.map(dto => this.mapGoogleEventToUnified(dto));
+    async triggerGoogleSync(): Promise<void> {
+        await calendarApi.syncGoogleCalendar();
+    }
+
+    /**
+     * Google Calendar 이벤트 조회
+     */
+    async getGoogleCalendarEvents(startDate: string, endDate: string): Promise<UnifiedSchedule[]> {
+        const startTime = new Date(startDate + 'T00:00:00').toISOString();
+        const endTime = new Date(endDate + 'T23:59:59').toISOString();
+        const events = await calendarApi.getGoogleCalendarEvents(startTime, endTime);
+        return events.map(dto => this.mapGoogleEventToUnified(dto));
     }
 
     /**
