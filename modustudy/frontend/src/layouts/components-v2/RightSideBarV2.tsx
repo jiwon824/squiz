@@ -427,15 +427,15 @@ export const RightSideBarV2: React.FC = () => {
                     onClick={() => toggleRightTab('meeting')}
                     className={cn(
                         'icon-bar-btn p-2.5 rounded-full transition-all hover:bg-study-green/10 group relative',
-                        activeRightTab === 'meeting' ? 'bg-study-green/15 text-study-green' : 'text-gray-400'
+                        hasActiveMeeting
+                            ? 'bg-red-50 text-red-500 animate-pulse'
+                            : activeRightTab === 'meeting'
+                                ? 'bg-study-green/15 text-study-green'
+                                : 'text-gray-400'
                     )}
                     title="미팅"
                 >
                     <Video size={20} className="group-hover:scale-110 transition-transform" />
-                    {/* 알림 배지 */}
-                    {hasActiveMeeting && (
-                        <div className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-study-green rounded-full border-2 border-white animate-pulse" />
-                    )}
                 </button>
 
                 <div className="w-8 h-px bg-gray-100 my-1" />
