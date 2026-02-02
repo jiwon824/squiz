@@ -20,7 +20,7 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = ({
 }) => {
     return (
         <div className={cn(
-            'bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden',
+            'bg-white rounded-2xl shadow-[0_4px_15px_rgba(0,0,0,0.05)] overflow-hidden',
             !noPadding && 'p-6',
             className
         )}>

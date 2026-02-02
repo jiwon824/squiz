@@ -100,8 +100,8 @@ export const MyCreatedStudiesPage: React.FC = () => {
   };
 
   return (
-    <div className="py-8">
-      <div className="max-w-[1400px] mx-auto px-8">
+    <div className="min-h-[calc(100vh-64px)] py-6 sm:py-8">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
         {/* 브레드크럼 + 헤더 */}
         <PageNavHeader
           title="개설한 스터디"
@@ -113,7 +113,7 @@ export const MyCreatedStudiesPage: React.FC = () => {
         />
 
         {/* 필터 탭 */}
-        <div className="flex items-center gap-2 mb-6">
+        <div className="flex flex-wrap items-center gap-2 mb-6">
           {([
             { key: 'ALL' as FilterStatus, label: '전체' },
             { key: 'RECRUITING' as FilterStatus, label: '모집중' },
@@ -124,7 +124,7 @@ export const MyCreatedStudiesPage: React.FC = () => {
               key={tab.key}
               onClick={() => setFilter(tab.key)}
               className={cn(
-                'px-4 py-2 rounded-xl text-sm font-medium transition-all',
+                'px-3 sm:px-4 py-2 rounded-xl text-sm font-medium transition-all',
                 filter === tab.key
                   ? 'bg-blue-600 text-white shadow-sm'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -147,7 +147,8 @@ export const MyCreatedStudiesPage: React.FC = () => {
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 transition-colors shadow-sm"
           >
             <Plus size={16} />
-            새 스터디 개설
+            <span className="hidden sm:inline">새 스터디 개설</span>
+            <span className="sm:hidden">개설</span>
           </button>
         </div>
 
@@ -203,7 +204,7 @@ export const MyCreatedStudiesPage: React.FC = () => {
 
         {/* 스터디 목록 */}
         {!loading && !error && filteredStudies.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <AnimatePresence>
               {filteredStudies.map((study, idx) => {
                 const badge = getStatusBadge(study.status);
