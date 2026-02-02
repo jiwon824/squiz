@@ -1,7 +1,7 @@
 // STT 미팅 리포트 페이지
 // 서브컴포넌트로 분리된 대시보드형 레이아웃
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -384,126 +384,126 @@ export const STTReportPage: React.FC = () => {
                                     {isLoading ? '로딩 중...' : '미팅을 선택해주세요'}
                                 </div>
                             ) : (
-                            <>
-                            {/* 선택된 미팅 헤더 */}
-                            <div className="mb-6 pb-6 border-b border-border">
-                                <div className="flex items-center justify-between mb-2">
-                                    <h2 className="text-xl font-bold text-text-primary">
-                                        {selectedReport.meetingTitle}
-                                    </h2>
+                                <>
+                                    {/* 선택된 미팅 헤더 */}
+                                    <div className="mb-6 pb-6 border-b border-border">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <h2 className="text-xl font-bold text-text-primary">
+                                                {selectedReport.meetingTitle}
+                                            </h2>
 
-                                    {/* 텍스트 크기 조절 */}
-                                    <div className={cn(
-                                        'flex items-center gap-0.5 p-0.5 rounded-google',
-                                        'bg-background border border-border'
-                                    )}>
-                                        <button
-                                            onClick={() => setTextSize('sm')}
-                                            className={cn(
-                                                'p-1.5 rounded transition-colors',
-                                                textSize === 'sm'
-                                                    ? 'bg-surface text-primary shadow-sm'
-                                                    : 'text-text-tertiary hover:text-text-secondary'
-                                            )}
-                                            aria-label="작은 글씨"
-                                            title="작게"
-                                        >
-                                            <AArrowDown size={14} />
-                                        </button>
-                                        <button
-                                            onClick={() => setTextSize('base')}
-                                            className={cn(
-                                                'p-1.5 rounded transition-colors',
-                                                textSize === 'base'
-                                                    ? 'bg-surface text-primary shadow-sm'
-                                                    : 'text-text-tertiary hover:text-text-secondary'
-                                            )}
-                                            aria-label="보통 글씨"
-                                            title="보통"
-                                        >
-                                            <Type size={14} />
-                                        </button>
-                                        <button
-                                            onClick={() => setTextSize('lg')}
-                                            className={cn(
-                                                'p-1.5 rounded transition-colors',
-                                                textSize === 'lg'
-                                                    ? 'bg-surface text-primary shadow-sm'
-                                                    : 'text-text-tertiary hover:text-text-secondary'
-                                            )}
-                                            aria-label="큰 글씨"
-                                            title="크게"
-                                        >
-                                            <AArrowUp size={14} />
-                                        </button>
+                                            {/* 텍스트 크기 조절 */}
+                                            <div className={cn(
+                                                'flex items-center gap-0.5 p-0.5 rounded-google',
+                                                'bg-background border border-border'
+                                            )}>
+                                                <button
+                                                    onClick={() => setTextSize('sm')}
+                                                    className={cn(
+                                                        'p-1.5 rounded transition-colors',
+                                                        textSize === 'sm'
+                                                            ? 'bg-surface text-primary shadow-sm'
+                                                            : 'text-text-tertiary hover:text-text-secondary'
+                                                    )}
+                                                    aria-label="작은 글씨"
+                                                    title="작게"
+                                                >
+                                                    <AArrowDown size={14} />
+                                                </button>
+                                                <button
+                                                    onClick={() => setTextSize('base')}
+                                                    className={cn(
+                                                        'p-1.5 rounded transition-colors',
+                                                        textSize === 'base'
+                                                            ? 'bg-surface text-primary shadow-sm'
+                                                            : 'text-text-tertiary hover:text-text-secondary'
+                                                    )}
+                                                    aria-label="보통 글씨"
+                                                    title="보통"
+                                                >
+                                                    <Type size={14} />
+                                                </button>
+                                                <button
+                                                    onClick={() => setTextSize('lg')}
+                                                    className={cn(
+                                                        'p-1.5 rounded transition-colors',
+                                                        textSize === 'lg'
+                                                            ? 'bg-surface text-primary shadow-sm'
+                                                            : 'text-text-tertiary hover:text-text-secondary'
+                                                    )}
+                                                    aria-label="큰 글씨"
+                                                    title="크게"
+                                                >
+                                                    <AArrowUp size={14} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-5 text-sm text-text-secondary">
+                                            <div className="flex items-center gap-1.5">
+                                                <Calendar size={14} />
+                                                <span>{selectedReport.date}</span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5">
+                                                <Clock size={14} />
+                                                <span>{selectedReport.duration}</span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5">
+                                                <Users size={14} />
+                                                <span>{selectedReport.participants.length}명 참여</span>
+                                            </div>
+                                        </div>
+                                        {/* 참여자 목록 */}
+                                        <div className="flex flex-wrap gap-2 mt-3">
+                                            {selectedReport.participants.map((name, idx) => (
+                                                <span
+                                                    key={idx}
+                                                    className={cn(
+                                                        'px-2.5 py-1 text-xs rounded-full',
+                                                        'bg-background text-text-secondary'
+                                                    )}
+                                                >
+                                                    {name}
+                                                </span>
+                                            ))}
+                                        </div>
                                     </div>
-                                </div>
-                                <div className="flex items-center gap-5 text-sm text-text-secondary">
-                                    <div className="flex items-center gap-1.5">
-                                        <Calendar size={14} />
-                                        <span>{selectedReport.date}</span>
-                                    </div>
-                                    <div className="flex items-center gap-1.5">
-                                        <Clock size={14} />
-                                        <span>{selectedReport.duration}</span>
-                                    </div>
-                                    <div className="flex items-center gap-1.5">
-                                        <Users size={14} />
-                                        <span>{selectedReport.participants.length}명 참여</span>
-                                    </div>
-                                </div>
-                                {/* 참여자 목록 */}
-                                <div className="flex flex-wrap gap-2 mt-3">
-                                    {selectedReport.participants.map((name, idx) => (
-                                        <span
-                                            key={idx}
-                                            className={cn(
-                                                'px-2.5 py-1 text-xs rounded-full',
-                                                'bg-background text-text-secondary'
+
+                                    {/* 탭 콘텐츠 (zoom으로 텍스트 크기 조절) */}
+                                    <div style={{ zoom: textSize === 'sm' ? 0.9 : textSize === 'base' ? 1 : 1.12 }}>
+                                        <AnimatePresence mode="wait">
+                                            {activeTab === 'summary' && (
+                                                <motion.div key="summary" {...TAB_ANIMATION}>
+                                                    <SummaryView
+                                                        report={selectedReport}
+                                                        onSummaryChange={handleSummaryChange}
+                                                        onTabChange={setActiveTab}
+                                                    />
+                                                </motion.div>
                                             )}
-                                        >
-                                            {name}
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
 
-                            {/* 탭 콘텐츠 (zoom으로 텍스트 크기 조절) */}
-                            <div style={{ zoom: textSize === 'sm' ? 0.9 : textSize === 'base' ? 1 : 1.12 }}>
-                            <AnimatePresence mode="wait">
-                                {activeTab === 'summary' && (
-                                    <motion.div key="summary" {...TAB_ANIMATION}>
-                                        <SummaryView
-                                            report={selectedReport}
-                                            onSummaryChange={handleSummaryChange}
-                                            onTabChange={setActiveTab}
-                                        />
-                                    </motion.div>
-                                )}
+                                            {activeTab === 'transcript' && (
+                                                <motion.div key="transcript" {...TAB_ANIMATION}>
+                                                    <TranscriptView
+                                                        report={selectedReport}
+                                                        onTranscriptChange={handleTranscriptChange}
+                                                    />
+                                                </motion.div>
+                                            )}
 
-                                {activeTab === 'transcript' && (
-                                    <motion.div key="transcript" {...TAB_ANIMATION}>
-                                        <TranscriptView
-                                            report={selectedReport}
-                                            onTranscriptChange={handleTranscriptChange}
-                                        />
-                                    </motion.div>
-                                )}
+                                            {activeTab === 'action' && (
+                                                <motion.div key="action" {...TAB_ANIMATION}>
+                                                    <ActionItemsView report={selectedReport} />
+                                                </motion.div>
+                                            )}
 
-                                {activeTab === 'action' && (
-                                    <motion.div key="action" {...TAB_ANIMATION}>
-                                        <ActionItemsView report={selectedReport} />
-                                    </motion.div>
-                                )}
-
-                                {activeTab === 'stats' && (
-                                    <motion.div key="stats" {...TAB_ANIMATION}>
-                                        <StatsView reports={reports} />
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                            </div>
-                            </>
+                                            {activeTab === 'stats' && (
+                                                <motion.div key="stats" {...TAB_ANIMATION}>
+                                                    <StatsView reports={reports} />
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                    </div>
+                                </>
                             )}
                         </div>
                     </div>
