@@ -778,6 +778,7 @@ export const WorkspacePage: React.FC = () => {
             onToggleDarkMode={handleToggleDarkMode}
             activeSession={activeSession && activeMeetingEnded !== true ? activeSession : null}
             onNavigateToMeeting={handleNavigateToMeeting}
+            isLeader={isLeader}
           />
 
           {/* 메인 콘텐츠 영역 */}
