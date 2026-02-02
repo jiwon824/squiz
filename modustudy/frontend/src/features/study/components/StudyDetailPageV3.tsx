@@ -1054,12 +1054,12 @@ const StudyDetailPageV3: React.FC = () => {
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
                     <div className="bg-white rounded-2xl p-6 w-full max-w-md mx-4 shadow-xl">
                         <div className="flex items-center gap-3 mb-4">
-                            <div className="w-12 h-12 rounded-full bg-[var(--color-error-light)] flex items-center justify-center">
+                            <div className="w-12 h-12 flex-shrink-0 rounded-full bg-[var(--color-error-light)] flex items-center justify-center">
                                 <Trash2 size={24} className="text-[var(--color-error)]" />
                             </div>
-                            <div>
-                                <h3 className="text-lg font-bold text-[var(--color-text-primary)]">스터디 삭제</h3>
-                                <p className="text-sm text-[var(--color-text-tertiary)]">이 작업은 되돌릴 수 없습니다</p>
+                            <div className="flex flex-col justify-center">
+                                <h3 className="text-lg font-bold text-[var(--color-text-primary)] leading-tight">스터디 삭제</h3>
+                                <p className="text-sm text-[var(--color-text-tertiary)] leading-tight mt-0.5">이 작업은 되돌릴 수 없습니다</p>
                             </div>
                         </div>
                         <p className="text-[var(--color-text-secondary)] mb-6">
