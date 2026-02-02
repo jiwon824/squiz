@@ -14,13 +14,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ssafy.squiz.data.remote.model.NotificationDTO
 import com.ssafy.squiz.ui.components.EmptyState
 import com.ssafy.squiz.ui.components.SquizTopBar
 import com.ssafy.squiz.ui.theme.*
@@ -28,59 +29,13 @@ import com.ssafy.squiz.ui.theme.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotificationsScreen(
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    viewModel: HomeViewModel = viewModel()
 ) {
-    val notifications = remember {
-        listOf(
-            NotificationItem(
-                id = 1,
-                type = NotificationType.STUDY_APPLICATION,
-                title = "스터디 지원 승인",
-                message = "알고리즘 스터디 지원이 승인되었습니다.",
-                time = "방금 전",
-                isRead = false
-            ),
-            NotificationItem(
-                id = 2,
-                type = NotificationType.SCHEDULE,
-                title = "일정 알림",
-                message = "30분 후 'Spring Boot 마스터' 스터디가 시작됩니다.",
-                time = "10분 전",
-                isRead = false
-            ),
-            NotificationItem(
-                id = 3,
-                type = NotificationType.CHAT,
-                title = "새 메시지",
-                message = "React 프로젝트 채팅방에 새 메시지가 있습니다.",
-                time = "1시간 전",
-                isRead = true
-            ),
-            NotificationItem(
-                id = 4,
-                type = NotificationType.QUIZ,
-                title = "퀴즈 대회 시작",
-                message = "참여 신청한 퀴즈 대회가 10분 후 시작됩니다.",
-                time = "2시간 전",
-                isRead = true
-            ),
-            NotificationItem(
-                id = 5,
-                type = NotificationType.FRIEND,
-                title = "친구 요청",
-                message = "홍길동님이 친구 요청을 보냈습니다.",
-                time = "어제",
-                isRead = true
-            ),
-            NotificationItem(
-                id = 6,
-                type = NotificationType.STUDY_APPLICATION,
-                title = "새 지원서",
-                message = "SQLD 스터디에 새로운 지원서가 도착했습니다.",
-                time = "어제",
-                isRead = true
-            )
-        )
+    val notificationsState by viewModel.notificationsState.collectAsState()
+
+    LaunchedEffect(Unit) {
+        viewModel.loadNotifications()
     }
 
     Scaffold(
@@ -89,7 +44,7 @@ fun NotificationsScreen(
                 title = "알림",
                 onBackClick = onBackClick,
                 actions = {
-                    TextButton(onClick = { /* Mark all as read */ }) {
+                    TextButton(onClick = { viewModel.markAllAsRead() }) {
                         Text(
                             text = "모두 읽음",
                             color = Primary,
@@ -100,46 +55,66 @@ fun NotificationsScreen(
             )
         }
     ) { paddingValues ->
-        if (notifications.isEmpty()) {
-            EmptyState(
-                icon = Icons.Outlined.Notifications,
-                title = "알림이 없습니다",
-                description = "새로운 알림이 오면 여기에 표시됩니다.",
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-            )
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentPadding = PaddingValues(vertical = 8.dp)
-            ) {
-                val unreadNotifications = notifications.filter { !it.isRead }
-                val readNotifications = notifications.filter { it.isRead }
-
-                if (unreadNotifications.isNotEmpty()) {
-                    item {
-                        SectionLabel("읽지 않음")
-                    }
-                    items(unreadNotifications) { notification ->
-                        NotificationCard(
-                            notification = notification,
-                            onClick = { /* Handle click */ }
-                        )
+        when (val state = notificationsState) {
+            is NotificationsState.Loading -> {
+                Box(
+                    modifier = Modifier.fillMaxSize().padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
+            is NotificationsState.Error -> {
+                Box(
+                    modifier = Modifier.fillMaxSize().padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(state.message, color = MaterialTheme.colorScheme.error)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        TextButton(onClick = { viewModel.loadNotifications() }) {
+                            Text("다시 시도")
+                        }
                     }
                 }
+            }
+            is NotificationsState.Success -> {
+                val notifications = state.notifications
 
-                if (readNotifications.isNotEmpty()) {
-                    item {
-                        SectionLabel("읽음")
-                    }
-                    items(readNotifications) { notification ->
-                        NotificationCard(
-                            notification = notification,
-                            onClick = { /* Handle click */ }
-                        )
+                if (notifications.isEmpty()) {
+                    EmptyState(
+                        icon = Icons.Outlined.Notifications,
+                        title = "알림이 없습니다",
+                        description = "새로운 알림이 오면 여기에 표시됩니다.",
+                        modifier = Modifier.fillMaxSize().padding(paddingValues)
+                    )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize().padding(paddingValues),
+                        contentPadding = PaddingValues(vertical = 8.dp)
+                    ) {
+                        val unreadNotifications = notifications.filter { !it.isRead }
+                        val readNotifications = notifications.filter { it.isRead }
+
+                        if (unreadNotifications.isNotEmpty()) {
+                            item { SectionLabel("읽지 않음") }
+                            items(unreadNotifications) { notification ->
+                                NotificationCard(
+                                    notification = notification,
+                                    onClick = { viewModel.markAsRead(notification.id) }
+                                )
+                            }
+                        }
+
+                        if (readNotifications.isNotEmpty()) {
+                            item { SectionLabel("읽음") }
+                            items(readNotifications) { notification ->
+                                NotificationCard(
+                                    notification = notification,
+                                    onClick = { }
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -162,7 +137,7 @@ private fun SectionLabel(text: String) {
 
 @Composable
 private fun NotificationCard(
-    notification: NotificationItem,
+    notification: NotificationDTO,
     onClick: () -> Unit
 ) {
     val backgroundColor = if (notification.isRead) {
@@ -170,6 +145,8 @@ private fun NotificationCard(
     } else {
         Primary.copy(alpha = 0.05f)
     }
+
+    val notificationType = getNotificationType(notification.type)
 
     Row(
         modifier = Modifier
@@ -184,15 +161,15 @@ private fun NotificationCard(
             modifier = Modifier
                 .size(44.dp)
                 .background(
-                    notification.type.backgroundColor,
+                    notificationType.backgroundColor,
                     RoundedCornerShape(12.dp)
                 ),
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = notification.type.icon,
+                imageVector = notificationType.icon,
                 contentDescription = null,
-                tint = notification.type.iconColor,
+                tint = notificationType.iconColor,
                 modifier = Modifier.size(22.dp)
             )
         }
@@ -212,7 +189,7 @@ private fun NotificationCard(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = notification.time,
+                    text = formatTime(notification.createdAt),
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -221,7 +198,7 @@ private fun NotificationCard(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = notification.message,
+                text = notification.content,
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 2,
@@ -240,43 +217,58 @@ private fun NotificationCard(
     }
 }
 
-private data class NotificationItem(
-    val id: Long,
-    val type: NotificationType,
-    val title: String,
-    val message: String,
-    val time: String,
-    val isRead: Boolean
-)
-
-private enum class NotificationType(
+private data class NotificationTypeInfo(
     val icon: ImageVector,
     val iconColor: Color,
     val backgroundColor: Color
-) {
-    STUDY_APPLICATION(
-        icon = Icons.Default.Assignment,
-        iconColor = Primary,
-        backgroundColor = Primary.copy(alpha = 0.1f)
-    ),
-    SCHEDULE(
-        icon = Icons.Default.Event,
-        iconColor = Secondary,
-        backgroundColor = Secondary.copy(alpha = 0.1f)
-    ),
-    CHAT(
-        icon = Icons.Default.Chat,
-        iconColor = Info,
-        backgroundColor = Info.copy(alpha = 0.1f)
-    ),
-    QUIZ(
-        icon = Icons.Default.Quiz,
-        iconColor = Warning,
-        backgroundColor = Warning.copy(alpha = 0.1f)
-    ),
-    FRIEND(
-        icon = Icons.Default.Person,
-        iconColor = Tertiary,
-        backgroundColor = Tertiary.copy(alpha = 0.1f)
-    )
+)
+
+private fun getNotificationType(type: String): NotificationTypeInfo {
+    return when (type) {
+        "STUDY_APPLICATION", "APPLICATION" -> NotificationTypeInfo(
+            icon = Icons.Default.Assignment,
+            iconColor = Primary,
+            backgroundColor = Primary.copy(alpha = 0.1f)
+        )
+        "SCHEDULE", "MEETING" -> NotificationTypeInfo(
+            icon = Icons.Default.Event,
+            iconColor = Secondary,
+            backgroundColor = Secondary.copy(alpha = 0.1f)
+        )
+        "CHAT", "MESSAGE" -> NotificationTypeInfo(
+            icon = Icons.Default.Chat,
+            iconColor = Info,
+            backgroundColor = Info.copy(alpha = 0.1f)
+        )
+        "QUIZ", "CONTEST" -> NotificationTypeInfo(
+            icon = Icons.Default.Quiz,
+            iconColor = Warning,
+            backgroundColor = Warning.copy(alpha = 0.1f)
+        )
+        "FRIEND" -> NotificationTypeInfo(
+            icon = Icons.Default.Person,
+            iconColor = Tertiary,
+            backgroundColor = Tertiary.copy(alpha = 0.1f)
+        )
+        else -> NotificationTypeInfo(
+            icon = Icons.Default.Notifications,
+            iconColor = Primary,
+            backgroundColor = Primary.copy(alpha = 0.1f)
+        )
+    }
+}
+
+private fun formatTime(timestamp: String): String {
+    // 간단한 시간 포맷팅 (실제로는 날짜 라이브러리 사용 권장)
+    return try {
+        // 예: "2024-01-15T14:30:00" -> "1월 15일"
+        val parts = timestamp.split("T")[0].split("-")
+        if (parts.size >= 3) {
+            "${parts[1].toInt()}월 ${parts[2].toInt()}일"
+        } else {
+            timestamp
+        }
+    } catch (e: Exception) {
+        timestamp
+    }
 }

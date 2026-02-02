@@ -110,6 +110,9 @@ dependencies {
     // Quartz 스케줄러
     implementation 'org.springframework.boot:spring-boot-starter-quartz'
 
+    // Firebase Admin SDK (FCM 푸시 알림)
+    implementation 'com.google.firebase:firebase-admin:9.2.0'
+
     // Google Calendar API
     implementation 'com.google.apis:google-api-services-calendar:v3-rev20231123-2.0.0'
     implementation 'com.google.auth:google-auth-library-oauth2-http:1.20.0'

@@ -40,12 +40,8 @@ fun MainScreen(
     onNavigateToNotifications: () -> Unit,
     onNavigateToStudyHome: (Long) -> Unit,
     onNavigateToQuizSolve: (Long) -> Unit,
-    onNavigateToContestList: () -> Unit,
-    onNavigateToCourseList: () -> Unit,
     onNavigateToWrongNotes: () -> Unit,
     onNavigateToEditProfile: () -> Unit,
-    onNavigateToFriendList: () -> Unit,
-    onNavigateToDMList: () -> Unit,
     onNavigateToMyActivity: () -> Unit,
     onNavigateToBookmarkedStudies: () -> Unit,
     onNavigateToMyApplications: () -> Unit,
@@ -102,8 +98,6 @@ fun MainScreen(
             composable(NavRoutes.QuizHome.route) {
                 QuizHomeScreen(
                     onQuizClick = onNavigateToQuizSolve,
-                    onContestClick = onNavigateToContestList,
-                    onCourseClick = onNavigateToCourseList,
                     onWrongNotesClick = onNavigateToWrongNotes
                 )
             }
@@ -111,9 +105,9 @@ fun MainScreen(
             composable(NavRoutes.MyPage.route) {
                 MyPageScreen(
                     onEditProfileClick = onNavigateToEditProfile,
-                    onFriendListClick = onNavigateToFriendList,
-                    onDMListClick = onNavigateToDMList,
                     onMyActivityClick = onNavigateToMyActivity,
+                    onNotificationSettingsClick = { /* TODO: Navigate to notification settings */ },
+                    onPrivacySettingsClick = { /* TODO: Navigate to privacy settings */ },
                     onLogoutClick = {
                         // 로그아웃 처리: 토큰 삭제 후 로그인 화면으로 이동
                         authManager.logout()

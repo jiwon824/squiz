@@ -304,12 +304,14 @@ public class ContinuousQuizService {
                                                 HttpStatus.NOT_FOUND, "QUESTION_NOT_FOUND",
                                                 "문제를 찾을 수 없습니다. id=" + questionId));
 
-                // 2. 정답 여부 판정
-                boolean isCorrect = QuizGradingUtils.grade(
-                                request.getUserAnswer(),
-                                question.getCorrectAnswer(),
-                                question.getQuestionType(),
-                                question.getOptions());
+
+        // 2. 정답 여부 판정 (서술형의 경우 키워드 기반 채점)
+        boolean isCorrect = QuizGradingUtils.grade(
+                request.getUserAnswer(),
+                question.getCorrectAnswer(),
+                question.getQuestionType(),
+                question.getOptions(),
+                question.getKeywords());
 
                 // 3. FSRS 상태 즉시 갱신 (Attempt 없이 직접 업데이트)
                 UserReviewItem reviewItem = fsrsService.processReviewResult(
@@ -381,12 +383,14 @@ public class ContinuousQuizService {
                                                 HttpStatus.NOT_FOUND, "QUESTION_NOT_FOUND",
                                                 "문제를 찾을 수 없습니다. id=" + questionId));
 
-                // 2. 정답 여부 판정
-                boolean isCorrect = QuizGradingUtils.grade(
-                                request.getUserAnswer(),
-                                currentQuestion.getCorrectAnswer(),
-                                currentQuestion.getQuestionType(),
-                                currentQuestion.getOptions());
+        // 2. 정답 여부 판정 (서술형의 경우 키워드 기반 채점)
+        boolean isCorrect = QuizGradingUtils.grade(
+                request.getUserAnswer(),
+                currentQuestion.getCorrectAnswer(),
+                currentQuestion.getQuestionType(),
+                currentQuestion.getOptions(),
+                currentQuestion.getKeywords()
+        );
 
                 // 3. FSRS 상태 즉시 갱신
                 UserReviewItem reviewItem = fsrsService.processReviewResult(

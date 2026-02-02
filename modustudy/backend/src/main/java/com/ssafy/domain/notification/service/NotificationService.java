@@ -25,6 +25,7 @@ import java.util.Map;
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
+    private final FcmPushService fcmPushService;
 
     /**
      * 알림 목록 조회 (페이징)
@@ -97,6 +98,7 @@ public class NotificationService {
 
     /**
      * 알림 생성 (내부용 - 다른 서비스에서 호출)
+     * DB 저장 + FCM 푸시 전송
      */
     @Transactional
     public Notification createNotification(Long userId, NotificationType type, String title, String content,
@@ -115,6 +117,9 @@ public class NotificationService {
         Notification saved = notificationRepository.save(notification);
 
         log.info("알림 생성 완료 - notificationId: {}", saved.getId());
+
+        // FCM 푸시 알림 전송 (비동기)
+        fcmPushService.sendToUser(userId, title, content, type, saved.getId());
 
         return saved;
     }

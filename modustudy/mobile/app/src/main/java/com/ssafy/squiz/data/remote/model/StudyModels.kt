@@ -1,0 +1,132 @@
+package com.ssafy.squiz.data.remote.model
+
+import com.google.gson.annotations.SerializedName
+
+// 스터디 목록 응답
+data class StudyDTO(
+    @SerializedName("id") val id: Long,
+    @SerializedName("name") val name: String,
+    @SerializedName("description") val description: String? = null,
+    @SerializedName("intro") val intro: String? = null,
+    @SerializedName("status") val status: String? = null,
+    @SerializedName("topic") val topic: TopicInfo? = null,
+    @SerializedName("format") val format: FormatInfo? = null,
+    @SerializedName("leader") val leader: LeaderInfo? = null,
+    @SerializedName("currentMembers") val currentMembers: Int? = null,
+    @SerializedName("maxMembers") val maxMembers: Int? = null,
+    @SerializedName("startDate") val startDate: String? = null,
+    @SerializedName("endDate") val endDate: String? = null,
+    @SerializedName("recruitEndDate") val recruitEndDate: String? = null,
+    @SerializedName("tags") val tags: List<String>? = null,
+    @SerializedName("createdAt") val createdAt: String? = null,
+    @SerializedName("isBookmarked") val isBookmarked: Boolean? = null,
+    @SerializedName("isLeader") val isLeader: Boolean? = null,
+    @SerializedName("progress") val progress: Int? = null,
+    @SerializedName("nextMeeting") val nextMeeting: String? = null
+) {
+    // 편의 프로퍼티
+    val topicName: String? get() = topic?.name
+    val meetingType: String? get() = format?.name
+    val leaderId: Long? get() = leader?.id
+    val leaderNickname: String? get() = leader?.nickname
+}
+
+// 스터디 상세 응답
+data class StudyDetailDTO(
+    @SerializedName("id") val id: Long,
+    @SerializedName("name") val name: String,
+    @SerializedName("description") val description: String? = null,
+    @SerializedName("intro") val intro: String? = null,
+    @SerializedName("status") val status: String? = null,
+    @SerializedName("topic") val topic: TopicInfo? = null,
+    @SerializedName("format") val format: FormatInfo? = null,
+    @SerializedName("leader") val leader: LeaderInfo? = null,
+    @SerializedName("currentMembers") val currentMembers: Int? = null,
+    @SerializedName("maxMembers") val maxMembers: Int? = null,
+    @SerializedName("startDate") val startDate: String? = null,
+    @SerializedName("endDate") val endDate: String? = null,
+    @SerializedName("recruitEndDate") val recruitEndDate: String? = null,
+    @SerializedName("tags") val tags: List<String>? = null,
+    @SerializedName("rules") val rules: String? = null,
+    @SerializedName("schedule") val schedule: String? = null,
+    @SerializedName("scheduleSummary") val scheduleSummary: String? = null,
+    @SerializedName("processDetail") val processDetail: String? = null,
+    @SerializedName("createdAt") val createdAt: String? = null,
+    @SerializedName("members") val members: List<StudyMemberDTO>? = null,
+    @SerializedName("isBookmarked") val isBookmarked: Boolean? = null,
+    @SerializedName("isMember") val isMember: Boolean? = null,
+    @SerializedName("isLeader") val isLeader: Boolean? = null
+) {
+    val topicName: String? get() = topic?.name
+    val meetingType: String? get() = format?.name
+}
+
+// 토픽 정보
+data class TopicInfo(
+    @SerializedName("id") val id: Long,
+    @SerializedName("name") val name: String,
+    @SerializedName("parent") val parent: ParentTopicInfo? = null
+)
+
+data class ParentTopicInfo(
+    @SerializedName("id") val id: Long,
+    @SerializedName("name") val name: String
+)
+
+// 포맷 정보 (온라인/오프라인/혼합)
+data class FormatInfo(
+    @SerializedName("id") val id: Long? = null,
+    @SerializedName("name") val name: String
+)
+
+// 스터디장 정보
+data class LeaderInfo(
+    @SerializedName("id") val id: Long,
+    @SerializedName("nickname") val nickname: String? = null,
+    @SerializedName("profileImage") val profileImage: String? = null,
+    @SerializedName("role") val role: String? = null
+)
+
+// 스터디 멤버
+data class StudyMemberDTO(
+    @SerializedName("id") val id: Long,
+    @SerializedName("userId") val userId: Long? = null,
+    @SerializedName("nickname") val nickname: String? = null,
+    @SerializedName("profileImage") val profileImage: String? = null,
+    @SerializedName("role") val role: String? = null,
+    @SerializedName("joinedAt") val joinedAt: String? = null
+)
+
+// 스터디 지원
+data class StudyApplicationRequest(
+    @SerializedName("message") val message: String
+)
+
+data class StudyApplicationDTO(
+    @SerializedName("id") val id: Long,
+    @SerializedName("studyId") val studyId: Long,
+    @SerializedName("userId") val userId: Long,
+    @SerializedName("nickname") val nickname: String? = null,
+    @SerializedName("profileImage") val profileImage: String? = null,
+    @SerializedName("message") val message: String? = null,
+    @SerializedName("status") val status: String? = null,
+    @SerializedName("createdAt") val createdAt: String? = null
+)
+
+// 페이징 응답 (Spring Page 형식)
+data class PageResponse<T>(
+    @SerializedName("content") val content: List<T>,
+    @SerializedName("totalElements") val totalElements: Long,
+    @SerializedName("totalPages") val totalPages: Int,
+    @SerializedName("number") val number: Int,
+    @SerializedName("size") val size: Int,
+    @SerializedName("first") val first: Boolean,
+    @SerializedName("last") val last: Boolean
+)
+
+// 토픽 목록
+data class TopicDTO(
+    @SerializedName("id") val id: Long,
+    @SerializedName("name") val name: String,
+    @SerializedName("children") val children: List<TopicDTO>? = null
+)

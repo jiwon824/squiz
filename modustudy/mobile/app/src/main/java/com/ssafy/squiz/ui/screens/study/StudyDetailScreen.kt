@@ -13,13 +13,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ssafy.squiz.data.remote.model.StudyDetailDTO
 import com.ssafy.squiz.ui.components.*
 import com.ssafy.squiz.ui.theme.*
 
@@ -28,10 +28,86 @@ import com.ssafy.squiz.ui.theme.*
 fun StudyDetailScreen(
     studyId: Long,
     onBackClick: () -> Unit,
-    onNavigateToComments: () -> Unit
+    onNavigateToComments: () -> Unit,
+    viewModel: StudyViewModel = viewModel()
 ) {
-    var isBookmarked by remember { mutableStateOf(false) }
+    val detailState by viewModel.studyDetailState.collectAsState()
     var showApplyDialog by remember { mutableStateOf(false) }
+    var applyMessage by remember { mutableStateOf("") }
+
+    // 스터디 상세 로드
+    LaunchedEffect(studyId) {
+        viewModel.loadStudyDetail(studyId)
+    }
+
+    when (val state = detailState) {
+        is StudyDetailUiState.Loading -> {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = Primary)
+            }
+        }
+
+        is StudyDetailUiState.Error -> {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(text = state.message, color = Error)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(onClick = { viewModel.loadStudyDetail(studyId) }) {
+                        Text("다시 시도")
+                    }
+                }
+            }
+        }
+
+        is StudyDetailUiState.Success -> {
+            val study = state.study
+            StudyDetailContent(
+                study = study,
+                onBackClick = onBackClick,
+                onNavigateToComments = onNavigateToComments,
+                onBookmarkClick = { viewModel.toggleBookmark(studyId) {} },
+                onApplyClick = { showApplyDialog = true }
+            )
+        }
+    }
+
+    // 지원 다이얼로그
+    if (showApplyDialog) {
+        ApplyDialog(
+            message = applyMessage,
+            onMessageChange = { applyMessage = it },
+            onDismiss = { showApplyDialog = false },
+            onApply = {
+                viewModel.applyToStudy(studyId, applyMessage) { result ->
+                    result.onSuccess {
+                        showApplyDialog = false
+                        applyMessage = ""
+                    }
+                }
+            }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun StudyDetailContent(
+    study: StudyDetailDTO,
+    onBackClick: () -> Unit,
+    onNavigateToComments: () -> Unit,
+    onBookmarkClick: () -> Unit,
+    onApplyClick: () -> Unit
+) {
+    val isBookmarked = study.isBookmarked == true
+    val isRecruiting = study.status == "RECRUITING"
+    val isMember = study.isMember == true
+    val isLeader = study.isLeader == true
 
     Scaffold(
         topBar = {
@@ -52,7 +128,7 @@ fun StudyDetailScreen(
                             contentDescription = "공유"
                         )
                     }
-                    IconButton(onClick = { isBookmarked = !isBookmarked }) {
+                    IconButton(onClick = onBookmarkClick) {
                         Icon(
                             imageVector = if (isBookmarked) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
                             contentDescription = "찜하기",
@@ -66,40 +142,46 @@ fun StudyDetailScreen(
             )
         },
         bottomBar = {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shadowElevation = 8.dp,
-                color = MaterialTheme.colorScheme.surface
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                        .navigationBarsPadding(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+            if (!isMember && !isLeader) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shadowElevation = 8.dp,
+                    color = MaterialTheme.colorScheme.surface
                 ) {
-                    OutlinedButton(
-                        onClick = onNavigateToComments,
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                            .navigationBarsPadding(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Outlined.ChatBubbleOutline,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("댓글 12")
-                    }
-                    Button(
-                        onClick = { showApplyDialog = true },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Primary
-                        )
-                    ) {
-                        Text("지원하기", fontWeight = FontWeight.Bold)
+                        OutlinedButton(
+                            onClick = onNavigateToComments,
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.ChatBubbleOutline,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("댓글")
+                        }
+                        Button(
+                            onClick = onApplyClick,
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp),
+                            enabled = isRecruiting,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Primary
+                            )
+                        ) {
+                            Text(
+                                text = if (isRecruiting) "지원하기" else "모집 마감",
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
             }
@@ -139,15 +221,23 @@ fun StudyDetailScreen(
                 ) {
                     // Status Badge
                     StatusBadge(
-                        text = "모집중",
-                        color = Success
+                        text = when (study.status) {
+                            "RECRUITING" -> "모집중"
+                            "IN_PROGRESS" -> "진행중"
+                            else -> "마감"
+                        },
+                        color = when (study.status) {
+                            "RECRUITING" -> Success
+                            "IN_PROGRESS" -> Primary
+                            else -> Error
+                        }
                     )
 
                     Spacer(modifier = Modifier.height(12.dp))
 
                     // Title
                     Text(
-                        text = "알고리즘 스터디",
+                        text = study.name,
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onBackground
@@ -156,19 +246,22 @@ fun StudyDetailScreen(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     // Tags
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        listOf("알고리즘", "코딩테스트", "자료구조").forEach { tag ->
-                            Surface(
-                                shape = RoundedCornerShape(6.dp),
-                                color = Primary.copy(alpha = 0.1f)
-                            ) {
-                                Text(
-                                    text = tag,
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                                    fontSize = 13.sp,
-                                    color = Primary,
-                                    fontWeight = FontWeight.Medium
-                                )
+                    val tags = study.tags ?: emptyList()
+                    if (tags.isNotEmpty()) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            tags.forEach { tag ->
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = Primary.copy(alpha = 0.1f)
+                                ) {
+                                    Text(
+                                        text = tag,
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                        fontSize = 13.sp,
+                                        color = Primary,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
                             }
                         }
                     }
@@ -183,19 +276,19 @@ fun StudyDetailScreen(
                         InfoCard(
                             icon = Icons.Outlined.People,
                             label = "인원",
-                            value = "5/8명",
+                            value = "${study.currentMembers ?: 0}/${study.maxMembers}명",
                             modifier = Modifier.weight(1f)
                         )
                         InfoCard(
                             icon = Icons.Outlined.CalendarMonth,
-                            label = "기간",
-                            value = "8주",
+                            label = "시작일",
+                            value = study.startDate?.take(10) ?: "-",
                             modifier = Modifier.weight(1f)
                         )
                         InfoCard(
                             icon = Icons.Outlined.Place,
                             label = "방식",
-                            value = "온라인",
+                            value = study.meetingType ?: "온라인",
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -203,39 +296,41 @@ fun StudyDetailScreen(
                     Spacer(modifier = Modifier.height(24.dp))
 
                     // Leader Info
-                    Text(
-                        text = "스터디장",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        ProfileImage(
-                            imageUrl = null,
-                            size = 48.dp
+                    study.leader?.let { leader ->
+                        Text(
+                            text = "스터디장",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onBackground
                         )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column {
-                            Text(
-                                text = "김철수",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            ProfileImage(
+                                imageUrl = leader.profileImage,
+                                size = 48.dp
                             )
-                            Text(
-                                text = "스터디 3개 운영 중",
-                                fontSize = 13.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = leader.nickname ?: "스터디장",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = leader.role ?: "",
+                                    fontSize = 13.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
-                    }
 
-                    Spacer(modifier = Modifier.height(24.dp))
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    Spacer(modifier = Modifier.height(24.dp))
+                        Spacer(modifier = Modifier.height(24.dp))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        Spacer(modifier = Modifier.height(24.dp))
+                    }
 
                     // Description
                     Text(
@@ -246,77 +341,102 @@ fun StudyDetailScreen(
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = """
-                            안녕하세요! 알고리즘 스터디입니다.
-
-                            매주 백준/프로그래머스 문제를 함께 풀고 코드 리뷰를 진행합니다.
-
-                            ✅ 진행 방식
-                            - 매주 5문제 풀이 (난이도: 실버~골드)
-                            - 주 1회 온라인 모임 (일요일 오후 2시)
-                            - Discord를 통한 코드 리뷰
-
-                            ✅ 이런 분을 찾습니다
-                            - 꾸준히 알고리즘 공부하실 분
-                            - 코딩테스트 준비가 필요하신 분
-                            - 함께 성장하고 싶으신 분
-                        """.trimIndent(),
+                        text = study.description ?: "소개가 없습니다.",
                         fontSize = 14.sp,
                         lineHeight = 22.sp,
                         color = MaterialTheme.colorScheme.onSurface
                     )
 
-                    Spacer(modifier = Modifier.height(24.dp))
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    Spacer(modifier = Modifier.height(24.dp))
+                    // Rules
+                    study.rules?.let { rules ->
+                        Spacer(modifier = Modifier.height(24.dp))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        Spacer(modifier = Modifier.height(24.dp))
 
-                    // Curriculum Preview
-                    Text(
-                        text = "커리큘럼",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    listOf(
-                        "1주차: 스택/큐 기초",
-                        "2주차: DFS/BFS",
-                        "3주차: 동적 프로그래밍",
-                        "4주차: 그리디 알고리즘"
-                    ).forEachIndexed { index, week ->
-                        CurriculumItem(
-                            week = index + 1,
-                            title = week
+                        Text(
+                            text = "스터디 규칙",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = rules,
+                            fontSize = 14.sp,
+                            lineHeight = 22.sp,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
 
-                    // More weeks indicator
-                    TextButton(
-                        onClick = { /* Show full curriculum */ },
-                        modifier = Modifier.align(Alignment.CenterHorizontally)
-                    ) {
-                        Text("전체 커리큘럼 보기", color = Primary)
-                        Icon(
-                            imageVector = Icons.Default.KeyboardArrowDown,
-                            contentDescription = null,
-                            tint = Primary
+                    // Schedule
+                    study.schedule?.let { schedule ->
+                        Spacer(modifier = Modifier.height(24.dp))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        Text(
+                            text = "일정",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = schedule,
+                            fontSize = 14.sp,
+                            lineHeight = 22.sp,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
+
+                    // Members (if is member)
+                    if (isMember || isLeader) {
+                        study.members?.let { members ->
+                            Spacer(modifier = Modifier.height(24.dp))
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                            Spacer(modifier = Modifier.height(24.dp))
+
+                            Text(
+                                text = "멤버 (${members.size}명)",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            members.forEach { member ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    ProfileImage(
+                                        imageUrl = member.profileImage,
+                                        size = 40.dp
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = member.nickname ?: "멤버",
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                        Text(
+                                            text = member.role ?: "",
+                                            fontSize = 12.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(32.dp))
                 }
             }
         }
-    }
-
-    // Apply Dialog
-    if (showApplyDialog) {
-        ApplyDialog(
-            onDismiss = { showApplyDialog = false },
-            onApply = {
-                showApplyDialog = false
-                // TODO: Submit application
-            }
-        )
     }
 }
 
@@ -360,45 +480,12 @@ private fun InfoCard(
 }
 
 @Composable
-private fun CurriculumItem(
-    week: Int,
-    title: String
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(32.dp)
-                .background(Primary.copy(alpha = 0.1f), CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "$week",
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                color = Primary
-            )
-        }
-        Spacer(modifier = Modifier.width(12.dp))
-        Text(
-            text = title,
-            fontSize = 14.sp,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-    }
-}
-
-@Composable
 private fun ApplyDialog(
+    message: String,
+    onMessageChange: (String) -> Unit,
     onDismiss: () -> Unit,
     onApply: () -> Unit
 ) {
-    var message by remember { mutableStateOf("") }
-
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -417,7 +504,7 @@ private fun ApplyDialog(
                 Spacer(modifier = Modifier.height(16.dp))
                 OutlinedTextField(
                     value = message,
-                    onValueChange = { message = it },
+                    onValueChange = onMessageChange,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(120.dp),
