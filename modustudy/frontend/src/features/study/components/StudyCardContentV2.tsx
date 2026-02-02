@@ -69,11 +69,15 @@ const StudyCardContentV2: React.FC<StudyCardContentV2Props> = ({ study, variant 
     const isFullCapacity = study.currentMembers >= study.maxMembers;
     const isLightning = study.studyType === 'LIGHTNING';
 
+    // 마감 조건: 인원이 다 찼거나 모집 마감일이 지남
+    const isRecruitDeadlinePassed = study.recruitEndDate && isDeadlinePassed(study.recruitEndDate);
+    const isClosed = isFullCapacity || isRecruitDeadlinePassed;
+
     // 마감 임박 조건: 모집 인원 1명 남음 OR 마감일이 오늘
     // 모집중 상태에서만 표시 (RECRUITING 또는 완료/취소가 아닌 상태)
     const remainingSlots = study.maxMembers - study.currentMembers;
     const isNotClosed = study.status !== 'COMPLETED' && study.status !== 'CANCELLED';
-    const isClosingSoon = isNotClosed && !isFullCapacity && (
+    const isClosingSoon = isNotClosed && !isClosed && (
         remainingSlots === 1 ||
         (study.recruitEndDate && isDeadlineToday(study.recruitEndDate))
     );
@@ -118,6 +122,11 @@ const StudyCardContentV2: React.FC<StudyCardContentV2Props> = ({ study, variant 
                             <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[var(--color-warning-light)] text-[var(--color-warning)] flex items-center gap-0.5">
                                 <Zap size={8} />
                                 번개
+                            </span>
+                        )}
+                        {isClosed && (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-400 text-white">
+                                마감
                             </span>
                         )}
                         <span className="text-xs text-[var(--color-primary)] font-medium truncate">{study.topic}</span>
@@ -219,6 +228,11 @@ const StudyCardContentV2: React.FC<StudyCardContentV2Props> = ({ study, variant 
                         <span className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-[var(--color-warning-light)] text-[var(--color-warning)] flex items-center gap-1">
                             <Zap size={10} />
                             번개
+                        </span>
+                    )}
+                    {isClosed && (
+                        <span className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-gray-400 text-white">
+                            마감
                         </span>
                     )}
                 </div>
@@ -334,6 +348,14 @@ const isDeadlineToday = (dateStr: string): boolean => {
     return deadline.getFullYear() === today.getFullYear() &&
            deadline.getMonth() === today.getMonth() &&
            deadline.getDate() === today.getDate();
+};
+
+// 마감일이 지났는지 체크
+const isDeadlinePassed = (dateStr: string): boolean => {
+    const deadline = new Date(dateStr);
+    deadline.setHours(23, 59, 59, 999); // 마감일 당일 23:59:59까지 유효
+    const today = new Date();
+    return today > deadline;
 };
 
 export default StudyCardContentV2;
