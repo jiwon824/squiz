@@ -1,5 +1,6 @@
 package com.ssafy.domain.gamification.service;
 
+import com.ssafy.domain.gamification.config.ExperienceConfig;
 import com.ssafy.domain.gamification.entity.BadgeCategory;
 import com.ssafy.domain.gamification.dto.response.*;
 import com.ssafy.domain.gamification.entity.*;
@@ -34,52 +35,32 @@ public class GamificationService {
     private final UserRepository userRepository;
     private final StudyMemberRepository studyMemberRepository;
 
-    // 레벨 설정 (임시로 하드코딩, 나중에 LevelConfig 테이블에서 가져오기)
-    private static final Map<Integer, String> LEVEL_NAMES = Map.of(
-            1, "새싹",
-            2, "학습자",
-            3, "열공러",
-            4, "성실러",
-            5, "마스터",
-            6, "그랜드마스터"
-    );
-
-    private static final Map<Integer, Integer> LEVEL_REQUIREMENTS = Map.of(
-            1, 0,
-            2, 7,
-            3, 15,
-            4, 30,
-            5, 60,
-            6, 100
-    );
-
     /**
      * 내 활동 통계 조회
      */
+    @Transactional
     public UserStatsResponse getMyStats(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
-        UserStats stats = userStatsRepository.findByUserId(userId)
-                .orElseGet(() -> createDefaultUserStats(user));
+        UserStats stats = userStatsRepository.findByUser_Id(userId)
+                .orElseGet(() -> createAndSaveDefaultUserStats(user));
 
         // 다음 레벨 정보
-        Integer nextLevel = stats.getLevel() + 1;
-        String nextLevelName = LEVEL_NAMES.getOrDefault(nextLevel, "최고 레벨");
-        Integer nextLevelRequired = LEVEL_REQUIREMENTS.getOrDefault(nextLevel, 999);
+        Integer nextLevel = Math.min(stats.getLevel() + 1, ExperienceConfig.MAX_LEVEL);
+        String nextLevelName = ExperienceConfig.getLevelName(nextLevel);
 
-        // 현재 레벨 진행도
-        Integer currentRequired = LEVEL_REQUIREMENTS.getOrDefault(stats.getLevel(), 0);
-        Integer current = stats.getTotalActivityDays() - currentRequired;
-        Integer required = nextLevelRequired - currentRequired;
-        Double percentage = required > 0 ? (current * 100.0 / required) : 100.0;
+        // 현재 레벨 경험치 진행도 (경험치 기반)
+        Integer currentExp = stats.getCurrentExperience();
+        Integer requiredExp = stats.getRequiredExpForNextLevel();
+        Double percentage = stats.getLevelProgressPercentage();
 
         return UserStatsResponse.builder()
                 .level(stats.getLevel())
                 .levelName(stats.getLevelName())
                 .levelProgress(UserStatsResponse.LevelProgress.builder()
-                        .current(current)
-                        .required(required)
+                        .current(currentExp)
+                        .required(requiredExp)
                         .percentage(percentage)
                         .build())
                 .nextLevel(UserStatsResponse.NextLevel.builder()
@@ -92,7 +73,7 @@ public class GamificationService {
                 .lastActivityDate(stats.getLastActivityDate())
                 .totalStudiesJoined(stats.getTotalStudiesJoined())
                 .totalStudiesLed(stats.getTotalStudiesLed())
-                .totalAttendance(stats.getTotalActivityDays()) // 임시
+                .totalAttendance(stats.getTotalAttendance())
                 .totalChatCount(stats.getTotalChatCount())
                 .totalQuizCount(stats.getTotalQuizCount())
                 .totalMaterialsUploaded(stats.getTotalMaterialsUploaded())
@@ -101,10 +82,14 @@ public class GamificationService {
                 .build();
     }
 
-    private UserStats createDefaultUserStats(User user) {
-        return UserStats.builder()
+    /**
+     * 기본 UserStats 생성 및 저장
+     */
+    private UserStats createAndSaveDefaultUserStats(User user) {
+        UserStats stats = UserStats.builder()
                 .user(user)
                 .build();
+        return userStatsRepository.save(stats);
     }
     /**
      * 잔디 그래프 조회 (월간 또는 연간)
@@ -146,7 +131,7 @@ public class GamificationService {
         }
 
         // 통계 계산
-        UserStats stats = userStatsRepository.findByUserId(userId).orElse(null);
+        UserStats stats = userStatsRepository.findByUser_Id(userId).orElse(null);
         int activeDays = (int) activityMap.values().stream().filter(v -> v).count();
 
         return ContributionResponse.builder()
@@ -203,7 +188,7 @@ public class GamificationService {
                     .build());
         }
 
-        UserStats stats = userStatsRepository.findByUserId(userId).orElse(null);
+        UserStats stats = userStatsRepository.findByUser_Id(userId).orElse(null);
         int activeDays = (int) activityMap.values().stream().filter(v -> v).count();
 
         return ContributionResponse.builder()
@@ -231,7 +216,7 @@ public class GamificationService {
                 .collect(Collectors.toMap(ub -> ub.getBadge().getId(), ub -> ub));
 
         // 사용자 통계 (진행도 계산용)
-        UserStats stats = userStatsRepository.findByUserId(userId).orElse(null);
+        UserStats stats = userStatsRepository.findByUser_Id(userId).orElse(null);
 
         // 카테고리별 그룹핑
         Map<BadgeCategory, List<Badge>> badgesByCategory = allBadges.stream()
@@ -405,7 +390,7 @@ public class GamificationService {
                     }
 
                     // 통계 정보 조회
-                    UserStats stats = userStatsRepository.findByUserId(member.getUserId())
+                    UserStats stats = userStatsRepository.findByUser_Id(member.getUserId())
                             .orElse(null);
 
                     // 출석률 계산 (임시로 활동일 기반)

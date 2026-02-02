@@ -16,14 +16,17 @@ import com.ssafy.domain.study.repository.StudyRepository;
 import com.ssafy.domain.study.repository.StudySessionRepository;
 import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.repository.UserRepository;
+import com.ssafy.domain.gamification.event.RetrospectiveWriteEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -38,6 +41,7 @@ public class RetrospectiveService {
     private final StudyRepository studyRepository;
     private final StudySessionRepository studySessionRepository;
     private final UserRepository userRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * 스터디별 회고 목록 조회 (최신순)
@@ -151,6 +155,19 @@ public class RetrospectiveService {
         Retrospective saved = retrospectiveRepository.save(retrospective);
 
         log.info("회고 생성 완료 - retroId: {}", saved.getId());
+
+        // 스터디 이름 조회
+        Study study = studyRepository.findById(studyId)
+                .orElseThrow(() -> new StudyException.StudyNotFoundException(studyId));
+
+        // 게이미피케이션 이벤트 발행 - 회고록 작성
+        eventPublisher.publishEvent(new RetrospectiveWriteEvent(
+                userId,
+                studyId,
+                study.getName(),
+                saved.getId(),
+                LocalDate.now()
+        ));
 
         // 상세 조회로 응답 반환
         return getRetrospectiveDetail(studyId, saved.getId());

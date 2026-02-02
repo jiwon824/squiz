@@ -1226,9 +1226,9 @@ def process_meeting_job(job_id: str, file_path: str, generate_quiz_flag: bool):
 
 # ===== Claude API 설정 =====
 # GMS 프록시를 통한 Claude Opus 4.5 사용
-CLAUDE_API_URL = os.getenv("CLAUDE_API_URL", "https://gms.ssafy.io/gmsapi/api.anthropic.com/v1/messages")
-CLAUDE_API_KEY = os.getenv("CLAUDE_API_KEY", "S14P12D106-920db8ac-0258-4cad-9a06-933880419794")
-CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-opus-4-5-20251101")
+CLAUDE_API_URL = os.getenv("CLAUDE_API_URL", "https://api.anthropic.com/v1/messages")
+CLAUDE_API_KEY = os.getenv("CLAUDE_API_KEY", "your-anthropic-api-key")
+CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-sonnet-4-20250514")
 
 
 def call_claude(prompt: str, max_tokens: int = 4096) -> str:

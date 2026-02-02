@@ -24,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -177,13 +178,13 @@ class StudySessionControllerTest {
         mockMvc.perform(post("/api/v1/studies/{studyId}/sessions", testStudy.getId())
                         .header("User-Id", leader.getId())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(List.of(request))))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").exists())
-                .andExpect(jsonPath("$.studyId").value(testStudy.getId()))
-                .andExpect(jsonPath("$.sessionNumber").value(2))
-                .andExpect(jsonPath("$.title").value("2회차: 스택과 큐"))
-                .andExpect(jsonPath("$.status").value("SCHEDULED"));
+                .andExpect(jsonPath("$[0].id").exists())
+                .andExpect(jsonPath("$[0].studyId").value(testStudy.getId()))
+                .andExpect(jsonPath("$[0].sessionNumber").value(2))
+                .andExpect(jsonPath("$[0].title").value("2회차: 스택과 큐"))
+                .andExpect(jsonPath("$[0].status").value("SCHEDULED"));
     }
 
     @Test
@@ -200,7 +201,7 @@ class StudySessionControllerTest {
         mockMvc.perform(post("/api/v1/studies/{studyId}/sessions", testStudy.getId())
                         .header("User-Id", member.getId())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(List.of(request))))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.message").value(containsString("스터디장만")));
     }
@@ -219,7 +220,7 @@ class StudySessionControllerTest {
         mockMvc.perform(post("/api/v1/studies/{studyId}/sessions", 99999L)
                         .header("User-Id", leader.getId())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(List.of(request))))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value(containsString("존재하지 않는 스터디")));
     }
