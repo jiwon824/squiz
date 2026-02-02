@@ -4,42 +4,82 @@ import com.google.gson.annotations.SerializedName
 
 // FSRS 복습 시스템
 
-// 복습 카드
+// 복습 카드 (백엔드 ReviewItemDto에 맞춤)
 data class ReviewCardDTO(
-    @SerializedName("id") val id: Long,
-    @SerializedName("studyId") val studyId: Long? = null,
-    @SerializedName("studyName") val studyName: String? = null,
-    @SerializedName("question") val question: String,
-    @SerializedName("answer") val answer: String,
-    @SerializedName("difficulty") val difficulty: Float? = null,
-    @SerializedName("stability") val stability: Float? = null,
-    @SerializedName("dueDate") val dueDate: String? = null,
-    @SerializedName("lastReviewDate") val lastReviewDate: String? = null,
-    @SerializedName("reviewCount") val reviewCount: Int? = null
+    @SerializedName("reviewItemId") val id: Long,
+    @SerializedName("contentType") val contentType: String? = null,
+    @SerializedName("contentId") val contentId: Long? = null,
+    @SerializedName("stability") val stability: Double? = null,
+    @SerializedName("difficulty") val difficulty: Double? = null,
+    @SerializedName("state") val state: Int? = null,
+    @SerializedName("reps") val reps: Int? = null,
+    @SerializedName("lapses") val lapses: Int? = null,
+    @SerializedName("nextReviewAt") val nextReviewAt: String? = null,
+    @SerializedName("question") val questionDetail: QuestionDetailDTO? = null
+) {
+    // UI 호환성을 위한 편의 프로퍼티
+    val question: String get() = questionDetail?.questionText ?: ""
+    val answer: String get() = questionDetail?.correctAnswer ?: ""
+    val studyName: String? get() = questionDetail?.category
+}
+
+// 문제 상세 정보 (백엔드 QuestionDetail에 맞춤)
+data class QuestionDetailDTO(
+    @SerializedName("questionNumber") val questionNumber: Int? = null,
+    @SerializedName("questionText") val questionText: String? = null,
+    @SerializedName("questionType") val questionType: String? = null,
+    @SerializedName("options") val options: List<OptionItemDTO>? = null,
+    @SerializedName("correctAnswer") val correctAnswer: String? = null,
+    @SerializedName("explanation") val explanation: String? = null,
+    @SerializedName("category") val category: String? = null,
+    @SerializedName("lastReviewAt") val lastReviewAt: String? = null
 )
 
-// 오늘 복습 응답
+// 객관식 보기 아이템
+data class OptionItemDTO(
+    @SerializedName("label") val label: String? = null,
+    @SerializedName("text") val text: String? = null
+)
+
+// 오늘 복습 응답 (백엔드 TodayReviewResponse에 맞춤)
 data class TodayReviewResponse(
-    @SerializedName("cards") val cards: List<ReviewCardDTO>,
-    @SerializedName("dueCount") val dueCount: Int,
-    @SerializedName("newCount") val newCount: Int,
+    @SerializedName("items") val items: List<ReviewCardDTO>,
     @SerializedName("totalCount") val totalCount: Int
-)
+) {
+    // UI 호환성을 위한 편의 프로퍼티
+    val cards: List<ReviewCardDTO> get() = items
+    val dueCount: Int get() = items.count { (it.state ?: 0) >= 1 }
+    val newCount: Int get() = items.count { (it.state ?: 0) == 0 }
+}
 
-// 복습 제출 요청
+// 복습 제출 요청 (백엔드 ReviewSubmitRequest에 맞춤)
 data class ReviewSubmitRequest(
-    @SerializedName("cardId") val cardId: Long,
-    @SerializedName("rating") val rating: Int // 1: Again, 2: Hard, 3: Good, 4: Easy
+    @SerializedName("contentType") val contentType: String, // COURSE_QUESTION, STUDY_QUESTION
+    @SerializedName("contentId") val contentId: Long,
+    @SerializedName("userAnswer") val userAnswer: String? = null,
+    @SerializedName("responseTimeMs") val responseTimeMs: Long = 3000
 )
 
-// 복습 통계
+// 복습 통계 (백엔드 ReviewStatsResponse에 맞춤)
 data class ReviewStatsResponse(
-    @SerializedName("totalCards") val totalCards: Int = 0,
-    @SerializedName("reviewedToday") val reviewedToday: Int = 0,
-    @SerializedName("streak") val streak: Int = 0,
-    @SerializedName("averageRetention") val averageRetention: Float? = null,
-    @SerializedName("masteredCards") val masteredCards: Int = 0
-)
+    @SerializedName("totalItems") val totalItems: Int = 0,
+    @SerializedName("dueItems") val dueItems: Int = 0,
+    @SerializedName("newItems") val newItems: Int = 0,
+    @SerializedName("learningItems") val learningItems: Int = 0,
+    @SerializedName("reviewItems") val reviewItems: Int = 0,
+    @SerializedName("relearningItems") val relearningItems: Int = 0,
+    @SerializedName("averageStability") val averageStability: Double = 0.0,
+    @SerializedName("totalReps") val totalReps: Int = 0,
+    @SerializedName("totalLapses") val totalLapses: Int = 0,
+    @SerializedName("proficiency") val proficiency: Double = 0.0
+) {
+    // UI 호환성을 위한 편의 프로퍼티
+    val totalCards: Int get() = totalItems
+    val reviewedToday: Int get() = totalReps
+    val streak: Int get() = 0 // 백엔드에서 제공하지 않음
+    val averageRetention: Float? get() = proficiency.toFloat()
+    val masteredCards: Int get() = reviewItems
+}
 
 // FSRS 평점
 enum class FsrsRating(val value: Int, val label: String) {
