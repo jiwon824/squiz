@@ -1,15 +1,18 @@
 package com.ssafy.domain.gamification.controller;
 
+import com.ssafy.common.auth.SsafyUserDetails;
 import com.ssafy.domain.gamification.dto.response.*;
 import com.ssafy.domain.gamification.service.GamificationService;
 import com.ssafy.common.response.ApiResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/gamification")
 @RequiredArgsConstructor
@@ -22,10 +25,11 @@ public class GamificationController {
      */
     @GetMapping("/contributions")
     public ApiResponse<ContributionResponse> getContributions(
-            @AuthenticationPrincipal Long userId,
+            @AuthenticationPrincipal SsafyUserDetails userDetails,
             @RequestParam int year,
             @RequestParam(required = false) Integer month
     ) {
+        Long userId = userDetails.getUser().getId();
         ContributionResponse response = gamificationService.getContributions(userId, year, month);
         return ApiResponse.success(response);
     }
@@ -35,9 +39,10 @@ public class GamificationController {
      */
     @GetMapping("/contributions/{date}")
     public ApiResponse<ContributionDetailResponse> getContributionDetail(
-            @AuthenticationPrincipal Long userId,
+            @AuthenticationPrincipal SsafyUserDetails userDetails,
             @PathVariable @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date
     ) {
+        Long userId = userDetails.getUser().getId();
         ContributionDetailResponse response = gamificationService.getContributionDetail(userId, date);
         return ApiResponse.success(response);
     }
@@ -47,10 +52,18 @@ public class GamificationController {
      */
     @GetMapping("/stats")
     public ApiResponse<UserStatsResponse> getMyStats(
-            @AuthenticationPrincipal Long userId
+            @AuthenticationPrincipal SsafyUserDetails userDetails
     ) {
-        UserStatsResponse response = gamificationService.getMyStats(userId);
-        return ApiResponse.success(response);
+        Long userId = userDetails.getUser().getId();
+        log.info("[Gamification] 통계 조회 요청 - userId: {}", userId);
+        try {
+            UserStatsResponse response = gamificationService.getMyStats(userId);
+            log.info("[Gamification] 통계 조회 성공 - userId: {}", userId);
+            return ApiResponse.success(response);
+        } catch (Exception e) {
+            log.error("[Gamification] 통계 조회 실패 - userId: {}, error: {}", userId, e.getMessage(), e);
+            throw e;
+        }
     }
 
     /**
@@ -58,8 +71,9 @@ public class GamificationController {
      */
     @GetMapping("/badges")
     public ApiResponse<BadgeListResponse> getBadges(
-            @AuthenticationPrincipal Long userId
+            @AuthenticationPrincipal SsafyUserDetails userDetails
     ) {
+        Long userId = userDetails.getUser().getId();
         BadgeListResponse response = gamificationService.getBadges(userId);
         return ApiResponse.success(response);
     }
@@ -69,8 +83,9 @@ public class GamificationController {
      */
     @GetMapping("/penalties")
     public ApiResponse<PenaltyListResponse> getPenalties(
-            @AuthenticationPrincipal Long userId
+            @AuthenticationPrincipal SsafyUserDetails userDetails
     ) {
+        Long userId = userDetails.getUser().getId();
         PenaltyListResponse response = gamificationService.getPenalties(userId);
         return ApiResponse.success(response);
     }
@@ -80,9 +95,10 @@ public class GamificationController {
      */
     @GetMapping("/studies/{studyId}/ranking")
     public ApiResponse<StudyRankingResponse> getStudyRanking(
-            @AuthenticationPrincipal Long userId,
+            @AuthenticationPrincipal SsafyUserDetails userDetails,
             @PathVariable Long studyId
     ) {
+        Long userId = userDetails.getUser().getId();
         StudyRankingResponse response = gamificationService.getStudyRanking(userId, studyId);
         return ApiResponse.success(response);
     }

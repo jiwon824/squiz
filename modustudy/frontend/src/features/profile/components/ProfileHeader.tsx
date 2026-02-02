@@ -1,5 +1,6 @@
 import React from 'react';
 import { Mail, Calendar, Edit2, Loader2 } from 'lucide-react';
+import { LevelBadge } from '@/features/gamification/components';
 
 // 기본 프로필 이미지 경로
 const DEFAULT_PROFILE_IMAGE = '/images/default-profile.png';
@@ -12,6 +13,10 @@ interface ProfileHeaderProps {
         avatar?: string;
         bio?: string;
     };
+    levelInfo?: {
+        level: number;
+        levelName: string;
+    } | null;
     isEditable?: boolean;
     onEditClick?: () => void;
     onImageEditClick?: () => void;
@@ -20,6 +25,7 @@ interface ProfileHeaderProps {
 
 export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     userData,
+    levelInfo,
     isEditable = false,
     onEditClick,
     onImageEditClick,
@@ -53,7 +59,18 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             </div>
 
             <div className="profile-info">
-                <h1 className="profile-name">{userData.nickname || userData.name || '사용자'}</h1>
+                <div className="flex items-center gap-3">
+                    <h1 className="profile-name">{userData.nickname || userData.name || '사용자'}</h1>
+                    {levelInfo && (
+                        <LevelBadge
+                            level={levelInfo.level}
+                            levelName={levelInfo.levelName}
+                            size="md"
+                            variant="text"
+                            showName={true}
+                        />
+                    )}
+                </div>
                 <div className="profile-meta">
                     <span className="meta-item">
                         <Mail size={16} />

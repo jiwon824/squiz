@@ -12,8 +12,10 @@ import com.ssafy.domain.study.repository.*;
 import com.ssafy.domain.study.workspace.service.WorkspaceService;
 import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.repository.UserRepository;
+import com.ssafy.domain.gamification.event.StudyCreateEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -37,6 +39,7 @@ public class StudyService {
     private final FormatRepository formatRepository;
     private final WorkspaceService workspaceService;
     private final NotificationService notificationService;
+    private final ApplicationEventPublisher eventPublisher;
 
     // ============================================================
     // 스터디 조회 API
@@ -230,6 +233,14 @@ public class StudyService {
 
         log.info("스터디 생성 완료 - studyId: {}, topicId: {}, formatId: {}",
                 savedStudy.getId(), topic.getId(), format != null ? format.getId() : null);
+
+        // 게이미피케이션 이벤트 발행 - 스터디 생성
+        eventPublisher.publishEvent(new StudyCreateEvent(
+                leaderId,
+                savedStudy.getId(),
+                savedStudy.getName(),
+                LocalDate.now()
+        ));
 
         return StudyResponse.from(savedStudy, leader);
     }

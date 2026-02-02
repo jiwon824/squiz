@@ -56,9 +56,12 @@ public class ContributionDetail {
     }
 
     public enum ActivityType {
-        STUDY_ATTENDANCE,
-        QUIZ_SOLVED,
-        MATERIAL_UPLOAD,
-        RETROSPECT_WRITTEN
+        STUDY_ATTENDANCE,    // 스터디 출석
+        QUIZ_SOLVED,         // 퀴즈 풀이
+        STUDY_JOIN,          // 스터디 가입
+        STUDY_CREATE,        // 스터디 생성
+        MATERIAL_UPLOAD,     // 자료 업로드
+        RETROSPECTIVE,       // 회고록 작성
+        CHAT_MESSAGE         // 채팅 메시지
     }
 }
