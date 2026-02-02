@@ -39,7 +39,8 @@ fun StudyHomeScreen(
     onNavigateToAttendanceCalendar: () -> Unit,
     onNavigateToExtendRecruitment: () -> Unit,
     onNavigateToTempChannel: () -> Unit,
-    onNavigateToConvertToOfficial: () -> Unit
+    onNavigateToConvertToOfficial: () -> Unit,
+    onNavigateToMeetingList: () -> Unit
 ) {
     val isLeader = true // TODO: Get from ViewModel
 
@@ -103,7 +104,7 @@ fun StudyHomeScreen(
             item {
                 ActivityMenus(
                     onAttendanceCalendarClick = onNavigateToAttendanceCalendar,
-                    onRecordingClick = { /* TODO: 녹음/실시간 STT 화면 */ }
+                    onRecordingClick = onNavigateToMeetingList
                 )
             }
 

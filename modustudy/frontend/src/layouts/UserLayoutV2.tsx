@@ -467,6 +467,7 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEntering
                                                 src={user?.avatar || DEFAULT_PROFILE_IMAGE}
                                                 alt="Profile"
                                                 className="w-full h-full object-cover"
+                                                onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_PROFILE_IMAGE; }}
                                             />
                                         </div>
                                     </button>
@@ -484,6 +485,7 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEntering
                                                         src={user?.avatar || DEFAULT_PROFILE_IMAGE}
                                                         alt="Profile"
                                                         className="w-full h-full object-cover"
+                                                        onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_PROFILE_IMAGE; }}
                                                     />
                                                 </div>
                                                 <div className="flex-1 min-w-0">

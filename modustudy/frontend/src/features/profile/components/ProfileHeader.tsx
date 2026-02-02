@@ -38,6 +38,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                     src={userData.avatar || DEFAULT_PROFILE_IMAGE}
                     alt="프로필 이미지"
                     className={`profile-avatar ${isImageUploading ? 'opacity-50' : ''}`}
+                    onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_PROFILE_IMAGE; }}
                 />
 
                 {isImageUploading && (

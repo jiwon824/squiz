@@ -98,4 +98,32 @@ interface StudyApi {
         @Query("page") page: Int = 0,
         @Query("size") size: Int = 20
     ): Response<PageResponse<StudyApplicationDTO>>
+
+    /**
+     * 스터디 생성
+     */
+    @POST("api/v1/study")
+    suspend fun createStudy(
+        @Body request: StudyCreateRequest
+    ): Response<StudyDTO>
+
+    /**
+     * 전체 토픽 목록 조회 (계층 구조)
+     */
+    @GET("api/v1/topics")
+    suspend fun getTopics(): Response<List<TopicDTO>>
+
+    /**
+     * 대분류 토픽 목록
+     */
+    @GET("api/v1/topics/parents")
+    suspend fun getParentTopics(): Response<List<TopicDTO>>
+
+    /**
+     * 소분류 토픽 목록
+     */
+    @GET("api/v1/topics/{parentId}/children")
+    suspend fun getChildTopics(
+        @Path("parentId") parentId: Long
+    ): Response<List<TopicDTO>>
 }

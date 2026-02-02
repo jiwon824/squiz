@@ -1035,16 +1035,18 @@ export interface SessionCreatePayload {
 }
 
 /**
- * 스터디 세션 생성
+ * 스터디 세션 생성 (단건)
  * POST /api/v1/studies/{studyId}/sessions
+ * 배열로 전송, 첫 번째 결과 반환
  */
 export const createStudySession = async (studyId: number, data: SessionCreatePayload): Promise<StudySessionItem> => {
-  const response = await api.post(`/api/v1/studies/${studyId}/sessions`, data);
-  return response.data;
+  const response = await api.post(`/api/v1/studies/${studyId}/sessions`, [data]);
+  return response.data[0];
 };
 
 /**
- * 스터디에 여러 세션 일괄 생성
+ * 스터디에 여러 세션 일괄 생성 (한 번의 API 호출)
+ * POST /api/v1/studies/{studyId}/sessions
  * 커리큘럼 데이터와 시작일 기준으로 세션 생성
  */
 export const createStudySessions = async (
@@ -1053,37 +1055,32 @@ export const createStudySessions = async (
   startDate: string,
   meetingType: string
 ): Promise<StudySessionItem[]> => {
-  const results: StudySessionItem[] = [];
   const baseDate = new Date(startDate);
 
-  for (const item of curriculum) {
-    // 날짜가 지정되어 있으면 사용, 없으면 주차별로 계산
+  // 세션 데이터 배열 구성
+  const sessionRequests = curriculum.map((item) => {
     let scheduledAt: string;
     if (item.date) {
       scheduledAt = new Date(item.date + 'T19:00:00').toISOString();
     } else {
-      // 주차별로 날짜 계산 (1주차 = startDate, 2주차 = startDate + 7일, ...)
       const sessionDate = new Date(baseDate);
       sessionDate.setDate(baseDate.getDate() + (item.session - 1) * 7);
       sessionDate.setHours(19, 0, 0, 0);
       scheduledAt = sessionDate.toISOString();
     }
 
-    try {
-      const session = await createStudySession(studyId, {
-        title: `${item.session}회차`,
-        description: item.description,
-        scheduledAt,
-        durationMinutes: 120,
-        isOnline: meetingType === 'ONLINE',
-      });
-      results.push(session);
-    } catch (err) {
-      console.error(`세션 ${item.session} 생성 실패:`, err);
-    }
-  }
+    return {
+      title: `${item.session}회차`,
+      description: item.description,
+      scheduledAt,
+      durationMinutes: 120,
+      isOnline: meetingType === 'ONLINE',
+    };
+  });
 
-  return results;
+  // 한 번의 API 호출로 모든 세션 생성
+  const response = await api.post(`/api/v1/studies/${studyId}/sessions`, sessionRequests);
+  return response.data;
 };
 
 // ========== AI 스터디 계획 생성 (스트리밍) ==========
@@ -1329,14 +1326,11 @@ export const generateStudyPlanStream = async (
         const trimmedLine = line.trim();
         if (!trimmedLine) continue; // 빈 줄 무시
 
-        console.log('[SSE 라인]', trimmedLine);
 
         if (trimmedLine.startsWith('event:')) {
           currentEvent = trimmedLine.substring(6).trim();
-          console.log('[SSE 이벤트]', currentEvent);
         } else if (trimmedLine.startsWith('data:')) {
           const data = trimmedLine.substring(5).trim();
-          console.log('[SSE 데이터]', data.substring(0, 100) + '...');
 
           try {
             const parsed = JSON.parse(data);
@@ -1344,7 +1338,6 @@ export const generateStudyPlanStream = async (
             if (currentEvent === 'token' && parsed.token !== undefined) {
               callbacks.onToken(parsed.token);
             } else if (currentEvent === 'complete') {
-              console.log('[SSE 완료 이벤트 수신]', parsed);
               // 완료 시 응답 변환
               const result: AiStudyPlanResponse = {
                 name: parsed.name || '',
@@ -1361,7 +1354,6 @@ export const generateStudyPlanStream = async (
                 scheduleSuggestion: parsed.scheduleSuggestion || parsed.schedule_suggestion,
                 curriculum: parsed.curriculum,
               };
-              console.log('[SSE 완료 결과]', result);
               callbacks.onComplete(result);
               return;
             } else if (currentEvent === 'error') {
@@ -1382,13 +1374,11 @@ export const generateStudyPlanStream = async (
     // 스트림이 끝났는데 complete 이벤트가 없었던 경우
     // 버퍼에 남은 데이터가 있으면 처리 시도
     if (buffer.trim()) {
-      console.log('[SSE 스트림 종료] 남은 버퍼 처리 시도:', buffer.substring(0, 200));
       try {
         // complete 이벤트의 data 부분만 남아있을 수 있음
         const dataMatch = buffer.match(/data:\s*(\{[\s\S]*\})/);
         if (dataMatch) {
           const parsed = JSON.parse(dataMatch[1]);
-          console.log('[SSE 버퍼에서 complete 데이터 파싱]', parsed);
           const result: AiStudyPlanResponse = {
             name: parsed.name || '',
             intro: parsed.intro || '',

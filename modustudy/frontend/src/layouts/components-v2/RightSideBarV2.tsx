@@ -266,6 +266,11 @@ const MeetingQuickAccess: React.FC = () => {
     );
 };
 
+// 리사이즈 상수
+const DEFAULT_PANEL_WIDTH = 256;
+const MIN_PANEL_WIDTH = 256;
+const MAX_PANEL_WIDTH = 480;
+
 export const RightSideBarV2: React.FC = () => {
     const { activeRightTab, toggleRightTab } = useUIStore();
     const { isLoggedIn } = useAuthStore();
@@ -389,7 +394,69 @@ export const RightSideBarV2: React.FC = () => {
 
     // 팝오버 닫기 상태 (활성 미팅이 바뀌면 다시 표시)
     const [dismissedMeetingId, setDismissedMeetingId] = useState<number | null>(null);
-    const showMeetingPopover = hasActiveMeeting && activeMeeting && activeMeeting.id !== dismissedMeetingId;
+    // 마운트 직후 팝오버가 바로 뜨지 않도록 지연 (워크스페이스 진입 시 2번 뜨는 문제 방지)
+    const [popoverReady, setPopoverReady] = useState(false);
+    useEffect(() => {
+        const timer = setTimeout(() => setPopoverReady(true), 1500);
+        return () => clearTimeout(timer);
+    }, []);
+    const showMeetingPopover = popoverReady && hasActiveMeeting && activeMeeting && activeMeeting.id !== dismissedMeetingId;
+
+    // 리사이즈 상태
+    const [panelWidth, setPanelWidth] = useState(DEFAULT_PANEL_WIDTH);
+    const [isResizing, setIsResizing] = useState(false);
+    const resizeStartXRef = useRef(0);
+    const resizeStartWidthRef = useRef(DEFAULT_PANEL_WIDTH);
+
+    // 패널 닫힐 때 너비 초기화
+    useEffect(() => {
+        if (!activeRightTab) {
+            setPanelWidth(DEFAULT_PANEL_WIDTH);
+        }
+    }, [activeRightTab]);
+
+    // 리사이즈 드래그 시작
+    const handleResizeStart = useCallback((e: React.MouseEvent) => {
+        e.preventDefault();
+        setIsResizing(true);
+        resizeStartXRef.current = e.clientX;
+        resizeStartWidthRef.current = panelWidth;
+    }, [panelWidth]);
+
+    // 리사이즈 중 마우스 이벤트 (document 레벨)
+    useEffect(() => {
+        if (!isResizing) return;
+
+        const handleMouseMove = (e: MouseEvent) => {
+            // 좌측 드래그 → 너비 증가 (핸들이 왼쪽 가장자리에 있으므로)
+            const delta = resizeStartXRef.current - e.clientX;
+            const newWidth = Math.min(MAX_PANEL_WIDTH, Math.max(MIN_PANEL_WIDTH, resizeStartWidthRef.current + delta));
+            setPanelWidth(newWidth);
+        };
+
+        const handleMouseUp = () => {
+            setIsResizing(false);
+        };
+
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+
+        return () => {
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [isResizing]);
+
+    // 리사이즈 중 텍스트 선택 방지 + 커서 변경
+    useEffect(() => {
+        if (isResizing) {
+            document.body.style.userSelect = 'none';
+            document.body.style.cursor = 'col-resize';
+        } else {
+            document.body.style.userSelect = '';
+            document.body.style.cursor = '';
+        }
+    }, [isResizing]);
 
     // 초기 데이터 로드 (로그인 상태일 때만)
     useEffect(() => {
@@ -420,12 +487,35 @@ export const RightSideBarV2: React.FC = () => {
                 {activeRightTab && (
                     <motion.div
                         initial={{ width: 0, opacity: 0 }}
-                        animate={{ width: 256, opacity: 1 }}
+                        animate={{ width: panelWidth, opacity: 1 }}
                         exit={{ width: 0, opacity: 0 }}
-                        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                        className="overflow-hidden"
+                        transition={
+                            isResizing
+                                ? { duration: 0 }
+                                : { type: 'spring', damping: 25, stiffness: 300 }
+                        }
+                        className="overflow-hidden relative"
                     >
-                        <div className="w-64 h-full">
+                        {/* 리사이즈 드래그 핸들 - friend/dm 탭에서만 표시 */}
+                        {(activeRightTab === 'friend' || activeRightTab === 'dm') && (
+                            <div
+                                onMouseDown={handleResizeStart}
+                                className={cn(
+                                    'absolute left-0 top-0 h-full w-2 z-10 cursor-col-resize group',
+                                    'flex items-center justify-center'
+                                )}
+                            >
+                                {/* 시각적 핸들 바 */}
+                                <div className={cn(
+                                    'w-1 rounded-full transition-all duration-150',
+                                    isResizing
+                                        ? 'bg-study-blue h-20'
+                                        : 'bg-gray-300 group-hover:bg-gray-400 h-12'
+                                )} />
+                            </div>
+                        )}
+
+                        <div className="h-full" style={{ width: panelWidth }}>
                             {activeRightTab === 'friend' && <FriendListMini />}
                             {activeRightTab === 'dm' && <DMListMini />}
                             {activeRightTab === 'meeting' && (
@@ -463,10 +553,10 @@ export const RightSideBarV2: React.FC = () => {
                                 animate={{ opacity: 1, x: 0, scale: 1 }}
                                 exit={{ opacity: 0, x: 10, scale: 0.95 }}
                                 transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-                                className="absolute right-full top-1/2 -translate-y-1/2 mr-3 z-50"
+                                className="absolute right-[calc(100%+12px)] top-1/2 -translate-y-1/2 z-50"
                             >
-                                <div className="bg-white rounded-2xl shadow-lg border border-study-green/20 p-3 min-w-[220px] max-w-[260px]">
-                                    {/* 화살표 */}
+                                <div className="relative bg-white rounded-2xl shadow-lg border border-study-green/20 p-3 min-w-[220px] max-w-[260px]">
+                                    {/* 화살표 - 비디오 아이콘 중심을 정확히 가리킴 */}
                                     <div className="absolute top-1/2 -translate-y-1/2 -right-1.5 w-3 h-3 bg-white border-r border-t border-study-green/20 rotate-45" />
 
                                     <div className="flex items-start gap-2.5">
