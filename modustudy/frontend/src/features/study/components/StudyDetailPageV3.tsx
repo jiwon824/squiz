@@ -95,6 +95,7 @@ const StudyDetailPageV3: React.FC = () => {
     const [isReviewWriteModalOpen, setIsReviewWriteModalOpen] = useState(false);
     const [myReview, setMyReview] = useState<LeaderReviewResponse | null>(null);
     const [isMember, setIsMember] = useState(false);
+    const [isApplied, setIsApplied] = useState(false);
     const { user } = useAuthStore();
 
     // 실제 API에서 스터디 상세 및 세션(커리큘럼) 조회
@@ -150,6 +151,12 @@ const StudyDetailPageV3: React.FC = () => {
                         if (memberCheck && data.status === 'COMPLETED') {
                             const myReviewData = await getMyLeaderReview(Number(id));
                             setMyReview(myReviewData);
+                        }
+
+                        // 멤버가 아니면 신청 여부 확인
+                        if (!memberCheck) {
+                            const applicationCheck = await studyApi.checkMyApplication(Number(id));
+                            setIsApplied(applicationCheck.hasApplied);
                         }
                     } catch (memberError) {
                         console.error('멤버 확인 실패:', memberError);
@@ -443,6 +450,11 @@ const StudyDetailPageV3: React.FC = () => {
     const statusConfig = getStatusConfig(study.status);
     const isOwner = user?.id != null && study.leader?.id != null && Number(user.id) === Number(study.leader.id);
 
+    // 마감 조건: 인원이 다 찼거나 모집 마감일이 지남
+    const isFullCapacity = study.currentMembers >= study.maxMembers;
+    const isRecruitDeadlinePassed = study.recruitEndDate && new Date(study.recruitEndDate + 'T23:59:59') < new Date();
+    const isClosed = isFullCapacity || isRecruitDeadlinePassed;
+
     // 디버그용: 콘솔에서 확인
     console.log('[isOwner 확인]', { userId: user?.id, leaderId: study.leader?.id, isOwner });
 
@@ -482,6 +494,11 @@ const StudyDetailPageV3: React.FC = () => {
                                         )}>
                                             {statusConfig.text}
                                         </span>
+                                        {isClosed && (
+                                            <span className="px-3 py-1 rounded-full text-xs font-bold bg-gray-500 text-white">
+                                                마감
+                                            </span>
+                                        )}
                                         <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[var(--color-primary-alpha-10)] text-[var(--color-primary)]">
                                             # {getMeetingTypeText(study.meetingType)}
                                         </span>
@@ -981,6 +998,7 @@ const StudyDetailPageV3: React.FC = () => {
                             maxMembers={study.maxMembers}
                             recruitEndDate={study.recruitEndDate}
                             isOwner={isOwner}
+                            isApplied={isApplied}
                             onInquiry={handleInquiry}
                             onRatingClick={handleRatingClick}
                             onApply={() => setIsApplyModalOpen(true)}

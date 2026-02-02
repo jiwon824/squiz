@@ -515,6 +515,26 @@ export const studyApi = {
     return response.data;
   },
 
+  /**
+   * 특정 스터디에 대한 내 신청 여부 확인
+   * 내 신청 내역에서 해당 스터디 ID가 있는지 확인
+   */
+  checkMyApplication: async (studyId: number): Promise<{ hasApplied: boolean; status?: string }> => {
+    try {
+      // PENDING 상태의 신청 내역에서 확인
+      const response = await api.get<any>(`/api/v1/my/applications?status=PENDING&size=100`);
+      const applications = response.data?.content || [];
+      const found = applications.find((app: any) => app.studyId === studyId || app.study?.id === studyId);
+      if (found) {
+        return { hasApplied: true, status: found.status || 'PENDING' };
+      }
+      return { hasApplied: false };
+    } catch (error) {
+      console.error('신청 여부 확인 실패:', error);
+      return { hasApplied: false };
+    }
+  },
+
   // ========== 세션 및 출석 관리 ==========
 
   /**
