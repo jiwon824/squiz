@@ -2,11 +2,14 @@ package com.ssafy.domain.study.service;
 
 import com.ssafy.common.exception.NotFoundException;
 import com.ssafy.common.exception.StudyException;
+import com.ssafy.domain.notification.entity.NotificationType;
+import com.ssafy.domain.notification.service.NotificationService;
 import com.ssafy.domain.study.dto.request.StudyCreateRequest;
 import com.ssafy.domain.study.dto.request.StudyUpdateRequest;
 import com.ssafy.domain.study.dto.response.StudyResponse;
 import com.ssafy.domain.study.entity.*;
 import com.ssafy.domain.study.repository.*;
+import com.ssafy.domain.study.workspace.service.WorkspaceService;
 import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +20,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -29,8 +33,10 @@ public class StudyService {
     private final UserRepository userRepository;
     private final StudyRepository studyRepository;
     private final StudyMemberRepository studyMemberRepository;
-    private final TopicRepository topicRepository;      // 추가
-    private final FormatRepository formatRepository;    // 추가
+    private final TopicRepository topicRepository;
+    private final FormatRepository formatRepository;
+    private final WorkspaceService workspaceService;
+    private final NotificationService notificationService;
 
     // ============================================================
     // 스터디 조회 API
@@ -326,9 +332,12 @@ public class StudyService {
 
     /**
      * 모집 기간 연장
+     * - 모집중 또는 확정대기 상태에서만 가능
+     * - 최대 1회 연장 가능
+     * - 확정대기 상태에서 연장 시 모집중으로 상태 변경 + 팀원들에게 알림
      */
     @Transactional
-    public StudyResponse extendRecruitment(Long studyId, java.time.LocalDate newEndDate, Long leaderId) {
+    public StudyResponse extendRecruitment(Long studyId, LocalDate newEndDate, Long leaderId) {
         log.info("모집 기간 연장 - studyId: {}, 새 종료일: {}", studyId, newEndDate);
 
         Study study = studyRepository.findById(studyId)
@@ -339,20 +348,137 @@ public class StudyService {
             throw new StudyException.NotStudyLeaderException("모집 기간을 연장할 권한이 없습니다");
         }
 
-        // 모집 중인 상태에서만 가능
-        if (study.getStatus() != Status.RECRUITING) {
+        // 모집 연장 가능 여부 확인 (모집중 또는 확정대기 상태)
+        if (!study.canExtendRecruitment()) {
             throw new StudyException.NotRecruitingException();
         }
+
+        Status previousStatus = study.getStatus();
 
         // 연장
         study.extendRecruitment(newEndDate);
 
-        log.info("모집 기간 연장 완료 - studyId: {}, 연장 횟수: {}", studyId, study.getExtensionCount());
+        // 확정대기 상태였다면 모집중으로 변경하고 팀원들에게 알림
+        if (previousStatus == Status.PENDING) {
+            study.updateStatus(Status.RECRUITING);
+
+            // 팀원들에게 연장 알림 발송
+            List<StudyMember> members = studyMemberRepository.findByStudyIdAndStatus(studyId, MemberStatus.APPROVED);
+            for (StudyMember member : members) {
+                if (!member.getUserId().equals(leaderId)) {
+                    notificationService.createNotification(
+                            member.getUserId(),
+                            NotificationType.STUDY_EXTENSION,
+                            "스터디 모집 기간 연장",
+                            String.format("'%s' 스터디의 모집 기간이 %s까지 연장되었습니다. 계속 참여하시겠습니까?",
+                                    study.getName(), newEndDate),
+                            "STUDY",
+                            studyId
+                    );
+                }
+            }
+        }
+
+        log.info("모집 기간 연장 완료 - studyId: {}, 연장 횟수: {}, 상태: {} -> {}",
+                studyId, study.getExtensionCount(), previousStatus, study.getStatus());
 
         // 스터디장 정보 조회
         User leader = userRepository.findById(leaderId).orElse(null);
 
         return StudyResponse.from(study, leader);
+    }
+
+    /**
+     * 스터디 시작하기
+     * - 스터디장만 호출 가능
+     * - 모집완료/시작대기 또는 확정대기 상태에서만 가능
+     * - 워크스페이스 생성 + 상태를 진행중으로 변경
+     * - 모든 팀원에게 스터디 시작 알림 발송
+     */
+    @Transactional
+    public StudyResponse startStudy(Long studyId, Long leaderId) {
+        log.info("스터디 시작 - studyId: {}, leaderId: {}", studyId, leaderId);
+
+        Study study = studyRepository.findById(studyId)
+                .orElseThrow(() -> new StudyException.StudyNotFoundException(studyId));
+
+        // 권한 확인 (스터디장만 시작 가능)
+        if (!study.getLeaderId().equals(leaderId)) {
+            throw new StudyException.NotStudyLeaderException("스터디를 시작할 권한이 없습니다");
+        }
+
+        // 시작 가능 상태 확인
+        if (!study.canStart()) {
+            throw new StudyException.CannotStartStudyException();
+        }
+
+        // 워크스페이스 생성 (이미 존재하면 예외 발생)
+        if (workspaceService.existsWorkspace(studyId)) {
+            throw new StudyException.WorkspaceAlreadyExistsException();
+        }
+        workspaceService.createWorkspace(studyId);
+
+        // 상태 변경
+        study.start();
+
+        // 모든 팀원에게 스터디 시작 알림 발송
+        List<StudyMember> members = studyMemberRepository.findByStudyIdAndStatus(studyId, MemberStatus.APPROVED);
+        for (StudyMember member : members) {
+            notificationService.createNotification(
+                    member.getUserId(),
+                    NotificationType.STUDY_START,
+                    "스터디가 시작되었습니다!",
+                    String.format("'%s' 스터디가 시작되었습니다. 워크스페이스에서 팀원들과 소통해보세요!", study.getName()),
+                    "STUDY",
+                    studyId
+            );
+        }
+
+        log.info("스터디 시작 완료 - studyId: {}, 새 상태: {}", studyId, study.getStatus());
+
+        // 스터디장 정보 조회
+        User leader = userRepository.findById(leaderId).orElse(null);
+        int currentMembers = studyMemberRepository.countByStudyIdAndStatus(studyId, MemberStatus.APPROVED);
+
+        return StudyResponse.from(study, leader, currentMembers);
+    }
+
+    /**
+     * 모집 인원 충족 시 상태 변경 및 스터디장 알림
+     * - 신규 멤버 승인 시 호출
+     * - 현재 인원이 maxMembers에 도달하면 RECRUIT_CLOSED로 변경 + 스터디장에게 알림
+     */
+    @Transactional
+    public void checkAndUpdateRecruitmentStatus(Long studyId) {
+        log.info("모집 인원 충족 여부 확인 - studyId: {}", studyId);
+
+        Study study = studyRepository.findById(studyId)
+                .orElseThrow(() -> new StudyException.StudyNotFoundException(studyId));
+
+        // 모집중 상태가 아니면 스킵
+        if (study.getStatus() != Status.RECRUITING) {
+            return;
+        }
+
+        int currentMembers = studyMemberRepository.countByStudyIdAndStatus(studyId, MemberStatus.APPROVED);
+        Integer maxMembers = study.getMaxMembers();
+
+        if (maxMembers != null && currentMembers >= maxMembers) {
+            // 모집 완료로 상태 변경
+            study.updateStatus(Status.RECRUIT_CLOSED);
+
+            // 스터디장에게 모집 완료 알림
+            notificationService.createNotification(
+                    study.getLeaderId(),
+                    NotificationType.STUDY_RECRUITMENT_COMPLETE,
+                    "모집이 완료되었습니다!",
+                    String.format("'%s' 스터디의 모집 인원이 모두 찼습니다. 스터디를 시작해주세요!", study.getName()),
+                    "STUDY",
+                    studyId
+            );
+
+            log.info("모집 완료로 상태 변경 - studyId: {}, 현재 인원: {}/{}", studyId, currentMembers, maxMembers);
+        }
     }
 
     /**

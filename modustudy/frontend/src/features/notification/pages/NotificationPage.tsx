@@ -21,6 +21,10 @@ import {
     CheckCheck,
     Inbox,
     ExternalLink,
+    Play,
+    CalendarPlus,
+    UserCheck,
+    UserMinus,
 } from 'lucide-react';
 
 // 알림 타입별 아이콘 및 색상
@@ -30,8 +34,12 @@ const notificationTypeConfig: Record<NotificationType, { icon: React.ReactNode; 
     ATTENDANCE: { icon: <CheckCircle size={18} />, color: 'text-green-500 bg-green-50', label: '출석' },
     STUDY_UPDATE: { icon: <Users size={18} />, color: 'text-orange-500 bg-orange-50', label: '스터디' },
     STUDY_APPLICATION: { icon: <UserPlus size={18} />, color: 'text-indigo-500 bg-indigo-50', label: '신청' },
+    STUDY_RECRUITMENT_COMPLETE: { icon: <UserCheck size={18} />, color: 'text-emerald-500 bg-emerald-50', label: '모집완료' },
+    STUDY_EXTENSION: { icon: <CalendarPlus size={18} />, color: 'text-amber-500 bg-amber-50', label: '모집연장' },
+    STUDY_START: { icon: <Play size={18} />, color: 'text-green-500 bg-green-50', label: '스터디시작' },
     QUIZ: { icon: <HelpCircle size={18} />, color: 'text-pink-500 bg-pink-50', label: '퀴즈' },
     SYSTEM: { icon: <Settings size={18} />, color: 'text-gray-500 bg-gray-50', label: '시스템' },
+    FRIEND: { icon: <UserPlus size={18} />, color: 'text-cyan-500 bg-cyan-50', label: '친구' },
 };
 
 // 필터 타입
@@ -78,7 +86,7 @@ export const NotificationPage = () => {
 
     // 해당 페이지로 이동
     const handleNavigate = (notification: NotificationItem) => {
-        const { referenceType, referenceId } = notification;
+        const { referenceType, referenceId, type } = notification;
         if (!referenceType || !referenceId) return;
 
         switch (referenceType) {
@@ -88,7 +96,15 @@ export const NotificationPage = () => {
                 navigate(`/study/manage/${referenceId}?tab=applicants`);
                 break;
             case 'STUDY':
-                navigate(`/study/${referenceId}`);
+                // 스터디 시작 알림 -> 워크스페이스로 이동
+                if (type === 'STUDY_START') {
+                    navigate(`/study/${referenceId}/workspace`);
+                } else if (type === 'STUDY_EXTENSION') {
+                    // 모집 연장 알림 -> 스터디 상세 페이지로 이동 (참가/불참 선택)
+                    navigate(`/study/${referenceId}?action=extension`);
+                } else {
+                    navigate(`/study/${referenceId}`);
+                }
                 break;
             case 'STUDY_SESSION':
                 // 세션 시작 알림 -> 해당 스터디 워크스페이스로 이동
@@ -335,7 +351,18 @@ const NotificationDetail = ({
 
     // 버튼 텍스트
     const getButtonText = () => {
-        return '해당 페이지로 이동';
+        switch (notification.type) {
+            case 'STUDY_START':
+                return '워크스페이스로 이동';
+            case 'STUDY_EXTENSION':
+                return '참가 여부 확인하기';
+            case 'STUDY_APPLICATION':
+                return '지원자 관리로 이동';
+            case 'STUDY_RECRUITMENT_COMPLETE':
+                return '스터디 관리로 이동';
+            default:
+                return '해당 페이지로 이동';
+        }
     };
 
     return (

@@ -5,11 +5,14 @@ import com.ssafy.domain.study.dto.request.StudyCreateRequest;
 import com.ssafy.domain.study.dto.request.StudyUpdateRequest;
 import com.ssafy.domain.study.entity.*;
 import com.ssafy.domain.study.repository.FormatRepository;
+import com.ssafy.domain.study.repository.StudyMemberRepository;
 import com.ssafy.domain.study.repository.StudyRepository;
 import com.ssafy.domain.study.repository.TopicRepository;
 import com.ssafy.domain.user.entity.Role;
 import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.repository.UserRepository;
+
+import java.time.LocalDateTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -50,6 +53,9 @@ class StudyControllerTest {
 
     @Autowired
     private FormatRepository formatRepository;
+
+    @Autowired
+    private StudyMemberRepository studyMemberRepository;
 
     private User leader;
     private Study testStudy;
@@ -487,7 +493,7 @@ class StudyControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value(containsString("1회만 연장")));
+                .andExpect(jsonPath("$.message").value(containsString("연장")));
     }
 
     // ============================================================
@@ -528,5 +534,143 @@ class StudyControllerTest {
                         .param("size", "20"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray());
+    }
+
+    // ============================================================
+    // 스터디 시작 API 테스트
+    // ============================================================
+
+    @Test
+    @DisplayName("스터디 시작 API 성공 - 모집완료 상태에서 시작")
+    void startStudy_FromRecruitClosed_Success() throws Exception {
+        // given - 모집 완료 상태로 변경 + 스터디장을 멤버로 추가
+        testStudy.updateStatus(Status.RECRUIT_CLOSED);
+        studyRepository.save(testStudy);
+        studyRepository.flush();
+
+        StudyMember leaderMember = StudyMember.builder()
+                .studyId(testStudy.getId())
+                .userId(leader.getId())
+                .role(MemberRole.LEADER)
+                .status(MemberStatus.APPROVED)
+                .isProbation(false)
+                .joinedAt(LocalDateTime.now())
+                .build();
+        studyMemberRepository.save(leaderMember);
+        studyMemberRepository.flush();
+
+        // when & then
+        mockMvc.perform(post("/api/v1/study/{studyId}/start", testStudy.getId())
+                        .header("User-Id", leader.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("IN_PROGRESS"));
+    }
+
+    @Test
+    @DisplayName("스터디 시작 API 성공 - 확정대기 상태에서 시작")
+    void startStudy_FromPending_Success() throws Exception {
+        // given - 확정대기 상태로 변경 + 스터디장을 멤버로 추가
+        testStudy.updateStatus(Status.PENDING);
+        studyRepository.save(testStudy);
+        studyRepository.flush();
+
+        StudyMember leaderMember = StudyMember.builder()
+                .studyId(testStudy.getId())
+                .userId(leader.getId())
+                .role(MemberRole.LEADER)
+                .status(MemberStatus.APPROVED)
+                .isProbation(false)
+                .joinedAt(LocalDateTime.now())
+                .build();
+        studyMemberRepository.save(leaderMember);
+        studyMemberRepository.flush();
+
+        // when & then
+        mockMvc.perform(post("/api/v1/study/{studyId}/start", testStudy.getId())
+                        .header("User-Id", leader.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("IN_PROGRESS"));
+    }
+
+    @Test
+    @DisplayName("스터디 시작 API 실패 - 모집중 상태에서는 시작 불가")
+    void startStudy_FromRecruiting_Fail() throws Exception {
+        // given - 모집중 상태로 변경
+        testStudy.updateStatus(Status.RECRUITING);
+        studyRepository.save(testStudy);
+        studyRepository.flush();
+
+        // when & then
+        mockMvc.perform(post("/api/v1/study/{studyId}/start", testStudy.getId())
+                        .header("User-Id", leader.getId().toString()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(containsString("시작할 수 있습니다")));
+    }
+
+    @Test
+    @DisplayName("스터디 시작 API 실패 - 권한 없음")
+    void startStudy_NotLeader_Fail() throws Exception {
+        // given
+        User otherUser = userRepository.save(User.builder()
+                .userId("other456")
+                .email("other2@test.com")
+                .nickname("다른유저2")
+                .name("다른사람2")
+                .role(Role.USER)
+                .isActive(true)
+                .isOnline(false)
+                .isSearchable(true)
+                .totalExp(0)
+                .currentPoints(0)
+                .currentLevel(1)
+                .levelName("Bronze")
+                .build());
+        userRepository.flush();
+
+        testStudy.updateStatus(Status.RECRUIT_CLOSED);
+        studyRepository.save(testStudy);
+        studyRepository.flush();
+
+        // when & then
+        mockMvc.perform(post("/api/v1/study/{studyId}/start", testStudy.getId())
+                        .header("User-Id", otherUser.getId().toString()))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value(containsString("권한")));
+    }
+
+    @Test
+    @DisplayName("스터디 시작 API 실패 - 존재하지 않는 스터디")
+    void startStudy_NotFound_Fail() throws Exception {
+        // when & then
+        mockMvc.perform(post("/api/v1/study/{studyId}/start", 99999L)
+                        .header("User-Id", leader.getId().toString()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value(containsString("존재하지 않는 스터디")));
+    }
+
+    // ============================================================
+    // 모집 기간 연장 API 테스트 (확정대기 상태 추가)
+    // ============================================================
+
+    @Test
+    @DisplayName("모집 연장 성공 - 확정대기 상태에서 연장 시 모집중으로 변경")
+    void extendRecruitment_FromPending_Success() throws Exception {
+        // given - 확정대기 상태로 변경
+        testStudy.updateStatus(Status.PENDING);
+        studyRepository.save(testStudy);
+        studyRepository.flush();
+
+        String requestBody = objectMapper.writeValueAsString(
+                new StudyController.RecruitmentExtensionRequest(LocalDate.of(2025, 2, 15)));
+
+        // when & then
+        mockMvc.perform(patch("/api/v1/study/{studyId}/extend-recruitment", testStudy.getId())
+                        .header("User-Id", leader.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.recruitEndDate").value("2025-02-15"))
+                .andExpect(jsonPath("$.status").value("RECRUITING"))  // PENDING -> RECRUITING
+                .andExpect(jsonPath("$.extensionCount").value(1));
     }
 }

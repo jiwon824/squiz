@@ -1212,7 +1212,7 @@ CREATE TABLE `retrospective_item` (
 CREATE TABLE `notification` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
     `user_id` BIGINT NOT NULL,
-    `type` ENUM('CHAT', 'SCHEDULE', 'ATTENDANCE', 'STUDY_UPDATE', 'STUDY_APPLICATION', 'QUIZ', 'SYSTEM') NOT NULL,
+    `type` ENUM('CHAT', 'SCHEDULE', 'ATTENDANCE', 'STUDY_UPDATE', 'STUDY_APPLICATION', 'STUDY_RECRUITMENT_COMPLETE', 'STUDY_EXTENSION', 'STUDY_START', 'QUIZ', 'SYSTEM') NOT NULL,
     `title` VARCHAR(200) NOT NULL,
     `content` TEXT,
     `reference_type` VARCHAR(50),                -- study, meeting, quiz_contest 등
