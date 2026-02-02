@@ -75,7 +75,7 @@ export const GoogleCalendarSync = ({ className = '' }: GoogleCalendarSyncProps) 
                     <div className="flex gap-2">
                         <Button
                             variant="outline"
-                            onClick={() => handleSync(new Date())}
+                            onClick={() => handleSync()}
                             isLoading={syncing}
                             leftIcon={<RefreshCw size={16} />}
                             className="flex-1"

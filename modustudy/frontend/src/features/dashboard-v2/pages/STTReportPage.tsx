@@ -1,7 +1,7 @@
 // STT 미팅 리포트 페이지
 // 서브컴포넌트로 분리된 대시보드형 레이아웃
 
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -21,6 +21,7 @@ import {
     BookOpen,
 } from 'lucide-react';
 import { cn, conditionalClasses } from '@/shared/utils/cn';
+import { Dropdown } from '@/shared/components';
 import { PageNavHeader } from '@/shared/components/layouts';
 import {
     SummaryView,
@@ -80,9 +81,7 @@ export const STTReportPage: React.FC = () => {
 
     const [activeTab, setActiveTab] = useState<TabType>('summary');
     const [searchQuery, setSearchQuery] = useState('');
-    const [showExportMenu, setShowExportMenu] = useState(false);
     const [textSize, setTextSize] = useState<'sm' | 'base' | 'lg'>('base');
-    const exportRef = useRef<HTMLDivElement>(null);
 
     // 스터디 목록 상태
     const [studies, setStudies] = useState<StudyOption[]>([]);
@@ -138,18 +137,6 @@ export const STTReportPage: React.FC = () => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [showStudyDropdown]);
 
-    // 드롭다운 외부 클릭 시 닫기
-    useEffect(() => {
-        const handleClickOutside = (e: MouseEvent) => {
-            if (exportRef.current && !exportRef.current.contains(e.target as Node)) {
-                setShowExportMenu(false);
-            }
-        };
-        if (showExportMenu) {
-            document.addEventListener('mousedown', handleClickOutside);
-        }
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [showExportMenu]);
 
     // 검색 필터링
     const filteredReports = reports.filter(report =>
@@ -176,7 +163,6 @@ export const STTReportPage: React.FC = () => {
     // JSON 다운로드 핸들러
     const handleExport = useCallback((scope: ExportScope) => {
         exportReports(scope, reports, selectedReport ?? undefined);
-        setShowExportMenu(false);
     }, [selectedReport, reports]);
 
     return (
@@ -191,56 +177,33 @@ export const STTReportPage: React.FC = () => {
                     ]}
                     onBack={() => navigate(-1)}
                     rightActions={
-                        <div ref={exportRef} className="relative">
-                            <button
-                                onClick={() => setShowExportMenu(prev => !prev)}
-                                className={cn(
-                                    'inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg',
-                                    'text-text-secondary',
-                                    'hover:bg-surface-hover hover:text-text-primary transition-colors',
-                                    showExportMenu && 'bg-surface-hover text-text-primary'
-                                )}
-                            >
-                                <Download size={15} />
-                                JSON 내보내기
-                                <ChevronDown size={14} className={cn(
-                                    'transition-transform duration-200',
-                                    showExportMenu && 'rotate-180'
-                                )} />
-                            </button>
-
-                            {/* 드롭다운 메뉴 */}
-                            <AnimatePresence>
-                                {showExportMenu && (
-                                    <motion.div
-                                        initial={{ opacity: 0, scale: 0.95 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        exit={{ opacity: 0, scale: 0.95 }}
-                                        transition={{ duration: 0.1 }}
-                                        className="absolute right-0 top-full mt-1.5 w-40 z-50 py-1 overflow-hidden"
-                                        style={{
-                                            backgroundColor: 'var(--color-surface)',
-                                            borderRadius: '12px',
-                                            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04)',
-                                        }}
-                                    >
-                                        {EXPORT_OPTIONS.map(opt => (
-                                            <button
-                                                key={opt.scope}
-                                                onClick={() => handleExport(opt.scope)}
-                                                className={cn(
-                                                    'w-full px-3.5 py-2 text-left text-[13px]',
-                                                    'text-text-secondary hover:text-text-primary',
-                                                    'hover:bg-surface-hover transition-colors'
-                                                )}
-                                            >
-                                                {opt.label}
-                                            </button>
-                                        ))}
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                        </div>
+                        <Dropdown
+                            trigger={({ isOpen, toggle }) => (
+                                <button
+                                    onClick={toggle}
+                                    className={cn(
+                                        'inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg',
+                                        'text-text-secondary',
+                                        'hover:bg-surface-hover hover:text-text-primary transition-colors',
+                                        isOpen && 'bg-surface-hover text-text-primary'
+                                    )}
+                                >
+                                    <Download size={15} />
+                                    JSON 내보내기
+                                    <ChevronDown size={14} className={cn(
+                                        'transition-transform duration-200',
+                                        isOpen && 'rotate-180'
+                                    )} />
+                                </button>
+                            )}
+                            align="right"
+                            menuClassName="w-40"
+                            items={EXPORT_OPTIONS.map(opt => ({
+                                label: opt.label,
+                                value: opt.scope,
+                                onClick: () => handleExport(opt.scope),
+                            }))}
+                        />
                     }
                 />
 
