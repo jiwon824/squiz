@@ -108,11 +108,11 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
                                 value={formData.nickname}
                                 onChange={handleChange}
                                 placeholder="사용하실 닉네임을 입력해주세요"
-                                maxLength={50}
+                                maxLength={10}
                                 required
                                 className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
                             />
-                            <p className="text-[11px] text-gray-400 ml-2">{formData.nickname.length}/50자</p>
+                            <p className="text-[11px] text-gray-400 ml-2">{formData.nickname.length}/10자 (한글, 영문, 숫자 조합)</p>
                         </div>
 
                         <div className="space-y-2">
@@ -123,8 +123,10 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
                                 onChange={handleChange as any}
                                 placeholder="자신을 한 줄로 표현해 보세요"
                                 rows={2}
+                                maxLength={100}
                                 className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none resize-none"
                             />
+                            <p className="text-[11px] text-gray-400 ml-2">{formData.bio.length}/100자</p>
                         </div>
 
                         {error && (
