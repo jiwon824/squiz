@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     Heart, Users, Clock, MapPin,
@@ -16,7 +16,7 @@ import StudyListContainer from './StudyListContainer';
 import StudyLeaderCard from './StudyLeaderCard';
 import StudyCommentSection from './StudyCommentSection';
 import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
-import { Button, ArrowButton } from '@/shared/components';
+import { Button, ArrowButton, Dropdown } from '@/shared/components';
 import { cn } from '@/shared/utils/cn';
 import { useDMStore } from '@/features/dm/store/dmStore';
 import { useUIStore } from '@/store/uiStore';
@@ -75,8 +75,6 @@ const StudyDetailPageV3: React.FC = () => {
     const [sessions, setSessions] = useState<StudySessionItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isBookmarked, setIsBookmarked] = useState(false);
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const menuRef = useRef<HTMLDivElement>(null);
 
     // DM 관련 스토어
     const { startConversationWith, fetchConversations } = useDMStore();
@@ -123,22 +121,6 @@ const StudyDetailPageV3: React.FC = () => {
         fetchStudyData();
     }, [id]);
 
-    // 메뉴 외부 클릭 감지
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-                setIsMenuOpen(false);
-            }
-        };
-
-        if (isMenuOpen) {
-            document.addEventListener('mousedown', handleClickOutside);
-        }
-
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [isMenuOpen]);
 
     // 로딩 상태
     if (isLoading) {
@@ -410,66 +392,44 @@ const StudyDetailPageV3: React.FC = () => {
                                             </Button>
 
                                             {/* 케밥 메뉴 */}
-                                            <div className="relative" ref={menuRef}>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => setIsMenuOpen(!isMenuOpen)}
-                                                    className="text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] rounded-full"
-                                                >
-                                                    <MoreVertical size={20} />
-                                                </Button>
-
-                                                {/* 드롭다운 메뉴 */}
-                                                {isMenuOpen && (
-                                                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl border border-[var(--color-border)] shadow-lg z-50 overflow-hidden">
-                                                        {isOwner ? (
-                                                            <>
-                                                                <button
-                                                                    onClick={() => {
-                                                                        navigate(`/study/create/planned?studyId=${study.id}`);
-                                                                        setIsMenuOpen(false);
-                                                                    }}
-                                                                    className="w-full px-4 py-3 text-left text-sm font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-primary-alpha-10)] hover:text-[var(--color-primary)] transition-colors flex items-center gap-2"
-                                                                >
-                                                                    <Pencil size={16} />
-                                                                    <span>수정하기</span>
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => {
-                                                                        setIsDeleteConfirmOpen(true);
-                                                                        setIsMenuOpen(false);
-                                                                    }}
-                                                                    disabled={study.currentMembers > 1}
-                                                                    className={cn(
-                                                                        "w-full px-4 py-3 text-left text-sm font-medium transition-colors flex items-center gap-2",
-                                                                        study.currentMembers > 1
-                                                                            ? "text-[var(--color-text-muted)] cursor-not-allowed"
-                                                                            : "text-[var(--color-error)] hover:bg-[var(--color-error-light)]"
-                                                                    )}
-                                                                >
-                                                                    <Trash2 size={16} />
-                                                                    <span>삭제하기</span>
-                                                                    {study.currentMembers > 1 && (
-                                                                        <span className="text-[10px] ml-auto">(멤버 있음)</span>
-                                                                    )}
-                                                                </button>
-                                                            </>
-                                                        ) : (
-                                                            <button
-                                                                onClick={() => {
-                                                                    setIsReportModalOpen(true);
-                                                                    setIsMenuOpen(false);
-                                                                }}
-                                                                className="w-full px-4 py-3 text-left text-sm font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-error-light)] hover:text-[var(--color-error)] transition-colors flex items-center gap-2"
-                                                            >
-                                                                <AlertTriangle size={16} />
-                                                                <span>신고하기</span>
-                                                            </button>
-                                                        )}
-                                                    </div>
+                                            <Dropdown
+                                                trigger={({ toggle }) => (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={toggle}
+                                                        className="text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] rounded-full"
+                                                    >
+                                                        <MoreVertical size={20} />
+                                                    </Button>
                                                 )}
-                                            </div>
+                                                align="right"
+                                                menuClassName="w-48"
+                                                items={isOwner ? [
+                                                    {
+                                                        label: '수정하기',
+                                                        value: 'edit',
+                                                        icon: <Pencil size={16} />,
+                                                        onClick: () => navigate(`/study/create/planned?studyId=${study.id}`),
+                                                    },
+                                                    {
+                                                        label: '삭제하기',
+                                                        value: 'delete',
+                                                        icon: <Trash2 size={16} />,
+                                                        danger: true,
+                                                        disabled: study.currentMembers > 1,
+                                                        onClick: () => setIsDeleteConfirmOpen(true),
+                                                    },
+                                                ] : [
+                                                    {
+                                                        label: '신고하기',
+                                                        value: 'report',
+                                                        icon: <AlertTriangle size={16} />,
+                                                        danger: true,
+                                                        onClick: () => setIsReportModalOpen(true),
+                                                    },
+                                                ]}
+                                            />
                                         </div>
                                     </div>
 

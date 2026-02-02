@@ -12,8 +12,10 @@ export interface DropdownItem {
 }
 
 interface DropdownProps {
-  /** 드롭다운 트리거 버튼 텍스트 */
-  label: string;
+  /** 드롭다운 트리거 버튼 텍스트 (trigger 미사용 시 필수) */
+  label?: string;
+  /** 커스텀 트리거 렌더 함수 (label 대신 사용) */
+  trigger?: (props: { isOpen: boolean; toggle: () => void }) => React.ReactNode;
   /** 메뉴 항목 리스트 */
   items: DropdownItem[];
   /** 항목 클릭 시 콜백 */
@@ -30,12 +32,13 @@ interface DropdownProps {
   className?: string;
   /** 트리거 버튼 커스텀 클래스 */
   buttonClassName?: string;
-  /** 메뉴 최대 너비 */
+  /** 메뉴 커스텀 클래스 */
   menuClassName?: string;
 }
 
 export const Dropdown: React.FC<DropdownProps> = ({
   label,
+  trigger,
   items,
   onSelect,
   variant = 'outline',
@@ -101,33 +104,39 @@ export const Dropdown: React.FC<DropdownProps> = ({
     ghost: 'text-gray-700 hover:bg-gray-100',
   };
 
+  const toggle = () => !disabled && setIsOpen(!isOpen);
+
   return (
     <div className={cn('relative inline-flex', className)} ref={containerRef}>
-      {/* 트리거 버튼 */}
-      <button
-        type="button"
-        onClick={() => !disabled && setIsOpen(!isOpen)}
-        disabled={disabled}
-        aria-haspopup="menu"
-        aria-expanded={isOpen}
-        className={cn(
-          'inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200',
-          'focus:outline-none focus:ring-2 focus:ring-primary/20',
-          sizeStyles[size],
-          variantStyles[variant],
-          disabled && 'opacity-50 cursor-not-allowed',
-          buttonClassName
-        )}
-      >
-        <span>{label}</span>
-        <ChevronDown
-          size={size === 'sm' ? 14 : 16}
+      {/* 트리거 영역 */}
+      {trigger ? (
+        trigger({ isOpen, toggle })
+      ) : (
+        <button
+          type="button"
+          onClick={toggle}
+          disabled={disabled}
+          aria-haspopup="menu"
+          aria-expanded={isOpen}
           className={cn(
-            'text-current transition-transform duration-200',
-            isOpen && 'rotate-180'
+            'inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200',
+            'focus:outline-none focus:ring-2 focus:ring-primary/20',
+            sizeStyles[size],
+            variantStyles[variant],
+            disabled && 'opacity-50 cursor-not-allowed',
+            buttonClassName
           )}
-        />
-      </button>
+        >
+          <span>{label}</span>
+          <ChevronDown
+            size={size === 'sm' ? 14 : 16}
+            className={cn(
+              'text-current transition-transform duration-200',
+              isOpen && 'rotate-180'
+            )}
+          />
+        </button>
+      )}
 
       {/* 드롭다운 메뉴 */}
       {isOpen && (
