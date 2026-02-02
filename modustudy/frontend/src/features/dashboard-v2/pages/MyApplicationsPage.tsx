@@ -5,10 +5,11 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Send, Search, ChevronRight, ChevronLeft, RefreshCw,
+  Search, ChevronRight, RefreshCw,
   Loader2, Clock, CheckCircle2, XCircle, Compass, Calendar
 } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
+import { PageNavHeader } from '@/shared/components/layouts';
 import { studyApi } from '@/api/endpoints/studyApi';
 
 // 신청 상태별 스타일
@@ -108,35 +109,15 @@ export const MyApplicationsPage: React.FC = () => {
   return (
     <div className="py-8">
       <div className="max-w-[1400px] mx-auto px-8">
-        {/* 브레드크럼 */}
-        <div className="mb-6">
-          <nav className="flex items-center gap-1.5 text-sm mb-2">
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="text-text-tertiary hover:text-primary transition-colors"
-            >
-              대시보드
-            </button>
-            <ChevronRight size={14} className="text-text-tertiary" />
-            <span className="text-text-primary font-medium">신청한 스터디</span>
-          </nav>
-
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate(-1)}
-              className="text-text-tertiary hover:text-text-primary transition-colors"
-            >
-              <ChevronLeft size={24} strokeWidth={1.5} />
-            </button>
-            <div className="p-2 bg-violet-100 rounded-xl">
-              <Send size={20} className="text-violet-600" />
-            </div>
-            <h1 className="text-2xl font-bold text-text-primary mb-0">신청한 스터디</h1>
-            <span className="px-3 py-1 bg-violet-50 text-violet-600 rounded-full text-sm font-medium">
-              {applications.length}개
-            </span>
-          </div>
-        </div>
+        {/* 브레드크럼 + 헤더 */}
+        <PageNavHeader
+          title="신청한 스터디"
+          breadcrumbs={[
+            { label: '대시보드', path: '/dashboard' },
+            { label: '신청한 스터디' },
+          ]}
+          badge={{ text: `${applications.length}개`, className: 'bg-violet-50 text-violet-600' }}
+        />
 
         {/* 필터 탭 */}
         <div className="flex items-center gap-2 mb-6">

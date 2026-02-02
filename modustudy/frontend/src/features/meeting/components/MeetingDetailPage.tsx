@@ -1,6 +1,7 @@
 ﻿import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
+import { PageNavHeader } from '@/shared/components/layouts/PageNavHeader';
 import { useUIStore } from '@/store/uiStore';
 import { meetingApi } from '../services/meetingApi';
 import {
@@ -170,29 +171,24 @@ const MeetingDetailPage: React.FC = () => {
     return (
         <UserLayoutV2>
             <div className="meeting-detail">
-                <div className="meeting-detail__header">
-                    <div>
-                        <h1>{detail?.title || '미팅 기록'}</h1>
-                        <p>
-                            {detail?.startedAt ? new Date(detail.startedAt).toLocaleString() : '시작 시간 미정'}
-                            {detail?.endedAt && ` ~ ${new Date(detail.endedAt).toLocaleTimeString()}`}
-                        </p>
-                    </div>
-                    <div className="meeting-detail__exports">
-                        <button
-                            className="meeting-btn ghost"
-                            onClick={() => navigate(`/study/${numericStudyId}/meetings`)}
-                        >
-                            목록으로
-                        </button>
-                        <button className="meeting-btn ghost" onClick={() => handleExport('MARKDOWN')}>
-                            Markdown 내보내기
-                        </button>
-                        <button className="meeting-btn ghost" onClick={() => handleExport('PDF')}>
-                            PDF 내보내기
-                        </button>
-                    </div>
-                </div>
+                <PageNavHeader
+                    title={detail?.title || '회의 상세'}
+                    breadcrumbs={[
+                        { label: '스터디', path: `/study/${numericStudyId}` },
+                        { label: '회의 상세' },
+                    ]}
+                    onBack={() => navigate(`/study/${numericStudyId}/meetings`)}
+                    rightActions={
+                        <div className="meeting-detail__exports">
+                            <button className="meeting-btn ghost" onClick={() => handleExport('MARKDOWN')}>
+                                Markdown 내보내기
+                            </button>
+                            <button className="meeting-btn ghost" onClick={() => handleExport('PDF')}>
+                                PDF 내보내기
+                            </button>
+                        </div>
+                    }
+                />
 
                 <MeetingSummaryPanel summary={detail?.summary ?? null} />
 

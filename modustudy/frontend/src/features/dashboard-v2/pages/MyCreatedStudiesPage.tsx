@@ -5,10 +5,11 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Crown, Plus, Users, ChevronRight, ChevronLeft, RefreshCw,
-  Loader2, Calendar, MapPin, Settings, Clock
+  Crown, Plus, Users, RefreshCw,
+  Loader2, MapPin, Settings, Clock
 } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
+import { PageNavHeader } from '@/shared/components/layouts';
 import { studyApi } from '@/api/endpoints/studyApi';
 import { useAuthStore } from '@/store/authStore';
 
@@ -101,35 +102,15 @@ export const MyCreatedStudiesPage: React.FC = () => {
   return (
     <div className="py-8">
       <div className="max-w-[1400px] mx-auto px-8">
-        {/* 브레드크럼 */}
-        <div className="mb-6">
-          <nav className="flex items-center gap-1.5 text-sm mb-2">
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="text-text-tertiary hover:text-primary transition-colors"
-            >
-              대시보드
-            </button>
-            <ChevronRight size={14} className="text-text-tertiary" />
-            <span className="text-text-primary font-medium">개설한 스터디</span>
-          </nav>
-
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate(-1)}
-              className="text-text-tertiary hover:text-text-primary transition-colors"
-            >
-              <ChevronLeft size={24} strokeWidth={1.5} />
-            </button>
-            <div className="p-2 bg-blue-100 rounded-xl">
-              <Crown size={20} className="text-blue-600" />
-            </div>
-            <h1 className="text-2xl font-bold text-text-primary mb-0">개설한 스터디</h1>
-            <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-sm font-medium">
-              {studies.length}개
-            </span>
-          </div>
-        </div>
+        {/* 브레드크럼 + 헤더 */}
+        <PageNavHeader
+          title="개설한 스터디"
+          breadcrumbs={[
+            { label: '대시보드', path: '/dashboard' },
+            { label: '개설한 스터디' },
+          ]}
+          badge={{ text: `${studies.length}개`, className: 'bg-blue-50 text-blue-600' }}
+        />
 
         {/* 필터 탭 */}
         <div className="flex items-center gap-2 mb-6">

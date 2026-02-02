@@ -10,6 +10,7 @@ import { StudyMylist, StudyActivity } from './StudyMylist';
 import { LegoActivityGraph } from './LegoActivityGraph';
 import { MyApplicationList } from './MyApplicationList';
 import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
+import { PageNavHeader } from '@/shared/components/layouts';
 import { gamificationApi, UserStatsResponse } from '@/api/endpoints/gamificationApi';
 import { studyApi, StudyListResponse } from '@/api/endpoints/studyApi';
 import { LevelProgressBar } from '@/features/gamification/components';
@@ -165,6 +166,15 @@ export const ProfilePage = () => {
         <UserLayoutV2>
             <div className="profile-page pt-6">
                 <div className="profile-container">
+                    {/* 브레드크럼 + 헤더 */}
+                    <PageNavHeader
+                        title="프로필"
+                        breadcrumbs={[
+                            { label: '프로필' },
+                        ]}
+                        hideBackButton
+                    />
+
                     {/* 분리된 프로필 헤더 컴포넌트 사용 */}
                     <ProfileHeader
                         userData={{

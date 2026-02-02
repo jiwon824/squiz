@@ -20,6 +20,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Loader2, AlertCircle, RefreshCw, LogIn } from 'lucide-react';
+import { PageNavHeader } from '@/shared/components/layouts/PageNavHeader';
 
 import { CourseDetailHeader } from './components/CourseDetailHeader';
 import { CourseDetailSectionList } from './components/CourseDetailSectionList';
@@ -382,6 +383,17 @@ export const CourseDetail = () => {
             }}
         >
             <div className="max-w-4xl mx-auto">
+                {/* 페이지 헤더 */}
+                <PageNavHeader
+                    title={courseData.courseName}
+                    breadcrumbs={[
+                        { label: '퀴즈', path: '/quiz' },
+                        { label: '퀴즈 연습', path: '/quiz-practice' },
+                        { label: courseData.courseName },
+                    ]}
+                    onBack={() => navigate('/quiz-practice')}
+                />
+
                 {/* 코스 헤더 */}
                 <CourseDetailHeader
                     name={courseData.courseName}

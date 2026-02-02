@@ -9,6 +9,7 @@ import { useNotificationStore } from '../store/notificationStore';
 import { NotificationItem, NotificationType } from '../api/notificationApi';
 import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { cn } from '@/shared/utils/cn';
+import { PageNavHeader } from '@/shared/components/layouts';
 import {
     Bell,
     MessageSquare,
@@ -24,7 +25,6 @@ import {
     Play,
     CalendarPlus,
     UserCheck,
-    UserMinus,
 } from 'lucide-react';
 
 // 알림 타입별 아이콘 및 색상
@@ -145,33 +145,33 @@ export const NotificationPage = () => {
             <div className="h-full flex flex-col bg-gray-50">
                 {/* 헤더 */}
                 <div className="bg-white border-b border-gray-200 px-6 py-4">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <Bell className="w-6 h-6 text-study-blue" />
-                            <h1 className="text-xl font-bold text-gray-900">알림</h1>
-                            {unreadCount > 0 && (
-                                <span className="px-2.5 py-0.5 text-xs font-medium bg-red-100 text-red-600 rounded-full">
-                                    {unreadCount}개 읽지 않음
-                                </span>
-                            )}
-                        </div>
-                        <button
-                            onClick={handleMarkAllAsRead}
-                            disabled={unreadCount === 0}
-                            className={cn(
-                                'flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors',
-                                unreadCount > 0
-                                    ? 'text-study-blue hover:bg-study-blue/10'
-                                    : 'text-gray-400 cursor-not-allowed'
-                            )}
-                        >
-                            <CheckCheck size={16} />
-                            모두 읽음
-                        </button>
-                    </div>
+                    <PageNavHeader
+                        title="알림"
+                        breadcrumbs={[
+                            { label: '알림' },
+                        ]}
+                        hideBackButton
+                        badge={unreadCount > 0 ? { text: `${unreadCount}개 읽지 않음`, className: 'bg-red-100 text-red-600' } : undefined}
+                        rightActions={
+                            <button
+                                onClick={handleMarkAllAsRead}
+                                disabled={unreadCount === 0}
+                                className={cn(
+                                    'flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors',
+                                    unreadCount > 0
+                                        ? 'text-study-blue hover:bg-study-blue/10'
+                                        : 'text-gray-400 cursor-not-allowed'
+                                )}
+                            >
+                                <CheckCheck size={16} />
+                                모두 읽음
+                            </button>
+                        }
+                        className="mb-4"
+                    />
 
                     {/* 필터 탭 (전체 / 읽지 않음만) */}
-                    <div className="flex items-center gap-2 mt-4">
+                    <div className="flex items-center gap-2">
                         <FilterButton
                             active={filter === 'all'}
                             onClick={() => setFilter('all')}
