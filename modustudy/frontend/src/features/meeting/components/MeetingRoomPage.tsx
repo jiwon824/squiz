@@ -1854,6 +1854,41 @@ const MeetingRoomPage: React.FC = () => {
             canvas.toBlob(resolve, 'image/png');
         });
 
+    const writeImageToClipboard = async (blob: Blob) => {
+        if (!navigator.clipboard?.write || typeof ClipboardItem === 'undefined') {
+            throw new Error('Clipboard API not available');
+        }
+        const item = new ClipboardItem({ [blob.type]: blob });
+        await navigator.clipboard.write([item]);
+    };
+
+    const downloadCapturedImage = (blob: Blob, filename: string) => {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+    };
+
+    const buildCaptureFilename = (baseName: string, date = new Date()) => {
+        const pad = (value: number) => String(value).padStart(2, '0');
+        const stamp = [
+            date.getFullYear(),
+            pad(date.getMonth() + 1),
+            pad(date.getDate()),
+        ].join('');
+        const time = [
+            pad(date.getHours()),
+            pad(date.getMinutes()),
+            pad(date.getSeconds()),
+        ].join('');
+        return `${baseName}-${stamp}_${time}.png`;
+    };
+
     const handleCapture = useCallback(async () => {
         if (!numericStudyId || !numericMeetingId || isCapturing) return;
         const video = videoStageRef.current?.querySelector('video');
@@ -1868,14 +1903,19 @@ const MeetingRoomPage: React.FC = () => {
                 showToast('캡처할 화면이 없습니다.', 'warning');
                 return;
             }
-            const file = new File([blob], 'meeting-capture.png', { type: 'image/png' });
+            const filename = buildCaptureFilename('meeting-capture');
+            const file = new File([blob], filename, { type: 'image/png' });
             await meetingApi.addPhoto(numericStudyId, numericMeetingId, file);
+            downloadCapturedImage(blob, filename);
+            await writeImageToClipboard(blob);
+            showToast('발표화면 저장, 클립보드 복사가 되었습니다.', 'success');
         } catch (error) {
             console.error('Failed to capture meeting screen', error);
+            showToast('캡쳐에 실패했습니다. 잠시 후 다시 시도해주세요.', 'warning');
         } finally {
             setIsCapturing(false);
         }
-    }, [isCapturing, numericMeetingId, numericStudyId]);
+    }, [isCapturing, numericMeetingId, numericStudyId, showToast]);
 
     const handleExtendMeeting = useCallback(() => {
         if (!numericStudyId || !numericMeetingId || !canEndMeeting) return;

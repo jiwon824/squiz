@@ -75,14 +75,19 @@ const MeetingControls: React.FC<MeetingControlsProps> = ({
             </div>
 
             <div className="meeting-controls__group">
-                <button
-                    className="meeting-control"
-                    onClick={onCapture}
-                    disabled={captureDisabled}
-                    title={captureDisabled ? '캡쳐 중입니다.' : '화면 캡쳐'}
-                >
-                    화면 캡쳐
-                </button>
+                <div className="meeting-control__tooltip-wrapper">
+                    <button
+                        className="meeting-control"
+                        onClick={onCapture}
+                        disabled={captureDisabled}
+                        aria-label={captureDisabled ? '캡쳐 중입니다.' : '화면 캡쳐'}
+                    >
+                        화면 캡쳐
+                    </button>
+                    <span className="meeting-control__tooltip" role="tooltip">
+                        {captureDisabled ? '캡쳐 중입니다.' : '발표화면 캡쳐 후 저장, 복사합니다.'}
+                    </span>
+                </div>
                 <button
                     className="meeting-control"
                     onClick={onExtendMeeting}
