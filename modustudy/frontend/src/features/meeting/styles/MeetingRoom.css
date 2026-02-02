@@ -448,6 +448,46 @@
     cursor: not-allowed;
 }
 
+.meeting-control__tooltip-wrapper {
+    position: relative;
+    display: inline-flex;
+}
+
+.meeting-control__tooltip {
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 0.55rem);
+    transform: translate(-50%, 6px);
+    opacity: 0;
+    pointer-events: none;
+    background: #111827;
+    color: #fff;
+    padding: 0.35rem 0.55rem;
+    border-radius: 0.45rem;
+    font-size: var(--font-size-xs);
+    white-space: nowrap;
+    box-shadow: var(--shadow-sm);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    z-index: 20;
+}
+
+.meeting-control__tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 6px 6px 0 6px;
+    border-style: solid;
+    border-color: #111827 transparent transparent transparent;
+}
+
+.meeting-control__tooltip-wrapper:hover .meeting-control__tooltip,
+.meeting-control__tooltip-wrapper:focus-within .meeting-control__tooltip {
+    opacity: 1;
+    transform: translate(-50%, 0);
+}
+
 .meeting-controls__pip {
     display: flex;
     flex-direction: column;
