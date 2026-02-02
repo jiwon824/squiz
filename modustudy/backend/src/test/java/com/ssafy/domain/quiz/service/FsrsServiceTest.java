@@ -295,8 +295,8 @@ class FsrsServiceTest {
                 }
 
                 @Test
-                @DisplayName("scheduledMinutes는 최소 5분 이상이다")
-                void shouldHaveMinimumScheduledMinutesOfFive() {
+                @DisplayName("scheduledMinutes는 최소 1분 이상이다 (데모용 축소 간격)")
+                void shouldHaveMinimumScheduledMinutesOfOne() {
                         // given: 신규 카드 (낮은 안정성)
                         UserReviewItem newItem = UserReviewItem.builder()
                                         .userId(TEST_USER_ID)
@@ -311,8 +311,8 @@ class FsrsServiceTest {
                         // when
                         fsrsService.updateFsrsState(newItem, FsrsConstants.RATING_AGAIN);
 
-                        // then
-                        assertThat(newItem.getScheduledMinutes()).isGreaterThanOrEqualTo(5);
+                        // then: 데모용으로 최소 간격이 1분으로 축소됨
+                        assertThat(newItem.getScheduledMinutes()).isGreaterThanOrEqualTo(1);
                 }
         }
 
