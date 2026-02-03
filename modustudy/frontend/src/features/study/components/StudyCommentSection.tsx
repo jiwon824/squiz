@@ -4,6 +4,7 @@ import { MessageCircle, Send, CornerDownRight, MoreVertical, Pencil, Trash2, X, 
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import { cn } from '@/shared/utils/cn';
+import { getProfileImageUrl } from '@/shared/utils/profileImage';
 import {
     StudyCommentResponse,
     getStudyComments,
@@ -12,9 +13,6 @@ import {
     deleteStudyComment,
     getStudyCommentCount,
 } from '@/api/endpoints/studyApi';
-
-// 기본 프로필 이미지
-const DEFAULT_PROFILE_IMAGE = '/images/default-profile.png';
 
 interface StudyCommentSectionProps {
     studyId: number;
@@ -235,7 +233,7 @@ const StudyCommentSection: React.FC<StudyCommentSectionProps> = ({
             <div className="flex gap-3">
                 {/* 프로필 이미지 */}
                 <img
-                    src={comment.userProfileImage || DEFAULT_PROFILE_IMAGE}
+                    src={getProfileImageUrl(comment.userProfileImage)}
                     alt={comment.userNickname}
                     className="w-10 h-10 rounded-full object-cover flex-shrink-0"
                 />
@@ -373,7 +371,7 @@ const StudyCommentSection: React.FC<StudyCommentSectionProps> = ({
                     {replyingTo === comment.id && (
                         <div className="mt-3 flex gap-2">
                             <img
-                                src={user?.avatar || DEFAULT_PROFILE_IMAGE}
+                                src={getProfileImageUrl(user?.avatar)}
                                 alt="내 프로필"
                                 className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                             />
@@ -435,7 +433,7 @@ const StudyCommentSection: React.FC<StudyCommentSectionProps> = ({
             <form onSubmit={handleSubmitComment} className="mb-6">
                 <div className="flex gap-3">
                     <img
-                        src={user?.avatar || DEFAULT_PROFILE_IMAGE}
+                        src={getProfileImageUrl(user?.avatar)}
                         alt="내 프로필"
                         className="w-10 h-10 rounded-full object-cover flex-shrink-0"
                     />

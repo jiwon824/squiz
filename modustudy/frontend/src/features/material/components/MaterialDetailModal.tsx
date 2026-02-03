@@ -25,9 +25,7 @@ import {
 import { materialApi } from '@/api/endpoints/materialApi';
 import { useAuthStore } from '@/store/authStore';
 import type { MaterialDetailResponse, MaterialListResponse, MaterialCommentResponse } from '../types';
-
-// 기본 프로필 이미지 경로
-const DEFAULT_PROFILE_IMAGE = '/images/default-profile.png';
+import { getProfileImageUrl } from '@/shared/utils/profileImage';
 
 interface MaterialDetailModalProps {
   studyId: number;
@@ -328,7 +326,7 @@ export const MaterialDetailModal: React.FC<MaterialDetailModalProps> = ({
                         <div className="comment-header">
                           <div className="comment-author">
                             <img
-                              src={comment.user?.profileImage || DEFAULT_PROFILE_IMAGE}
+                              src={getProfileImageUrl(comment.user?.profileImage)}
                               alt={comment.user?.nickname || '알 수 없음'}
                               className="comment-avatar"
                             />

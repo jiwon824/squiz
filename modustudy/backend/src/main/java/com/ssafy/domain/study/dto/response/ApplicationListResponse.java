@@ -45,6 +45,11 @@ public class ApplicationListResponse {
     private String userNickname;
 
     /**
+     * 신청자 프로필 이미지
+     */
+    private String profileImage;
+
+    /**
      * AI 매칭 점수
      */
     private BigDecimal matchingScore;
@@ -85,5 +90,12 @@ public class ApplicationListResponse {
      */
     public void setUserNickname(String userNickname) {
         this.userNickname = userNickname;
+    }
+
+    /**
+     * 신청자 프로필 이미지 설정
+     */
+    public void setProfileImage(String profileImage) {
+        this.profileImage = profileImage;
     }
 }
