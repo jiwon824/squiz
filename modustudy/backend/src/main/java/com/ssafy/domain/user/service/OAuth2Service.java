@@ -382,77 +382,80 @@ public class OAuth2Service {
     /**
      * 이메일로 User 찾기 또는 생성 + 소셜 계정 연동
      *
-     * 핵심 로직:
-     * 1. 이메일로 기존 User 찾기
-     * 2. User 있으면 → 해당 provider로 소셜 계정 추가
-     * 3. User 없으면 → 신규 User + 소셜 계정 생성
+     * 검색 순서:
+     * 1. 소셜 계정(provider + providerUserId)으로 먼저 검색
+     * 2. 소셜 계정이 없으면 이메일로 User 검색
+     * 3. 둘 다 없으면 신규 생성
      */
     private User findOrCreateUserWithSocial(OAuth2UserInfo userInfo, SocialProvider provider) {
-
-        // 1. 이메일로 기존 User 찾기
-        Optional<User> existingUser = userRepository.findByEmail(userInfo.getEmail());
-
         User user;
 
-        if (existingUser.isPresent()) {
-            // ===== 기존 User 있음 =====
-            user = existingUser.get();
+        // 1. 먼저 소셜 계정(provider + providerUserId)으로 기존 연동 여부 확인
+        Optional<UserSocialAccount> existingSocial = socialAccountRepository
+                .findByProviderAndProviderUserId(provider, userInfo.getProviderId());
 
-            log.info("기존 회원 발견: userId={}, email={}", user.getId(), user.getEmail());
+        if (existingSocial.isPresent()) {
+            // ===== 이미 연동된 소셜 계정이 있음 → 해당 User로 로그인 =====
+            user = existingSocial.get().getUser();
+            log.info("기존 소셜 계정으로 로그인: userId={}, provider={}", user.getId(), provider);
 
-            // 해당 provider로 이미 연동되었는지 확인
-            Optional<UserSocialAccount> existingSocial = socialAccountRepository
-                    .findByProviderAndProviderUserId(provider, userInfo.getProviderId());
+        } else {
+            // 2. 소셜 계정이 없으면 이메일로 User 검색
+            Optional<User> existingUser = userRepository.findByEmail(userInfo.getEmail());
 
-            if (existingSocial.isEmpty()) {
-                // 새로운 소셜 계정 추가!
+            if (existingUser.isPresent()) {
+                // ===== 이메일로 기존 User 발견 → 소셜 계정 추가 연동 =====
+                user = existingUser.get();
+
+                log.info("기존 회원에 소셜 계정 추가: userId={}, email={}, provider={}",
+                        user.getId(), user.getEmail(), provider);
+
+                // 새로운 소셜 계정 추가
                 UserSocialAccount newSocial = UserSocialAccount.builder()
                         .user(user)
                         .provider(provider)
                         .providerUserId(userInfo.getProviderId())
                         .email(userInfo.getEmail())
-                        .isPrimary(false)  // 추가 연동이므로 primary 아님
+                        .isPrimary(false)
                         .linkedAt(LocalDateTime.now())
                         .build();
 
                 socialAccountRepository.save(newSocial);
-                log.info("소셜 계정 추가 연동: userId={}, provider={}", user.getId(), provider);
+                log.info("소셜 계정 추가 연동 완료: userId={}, provider={}", user.getId(), provider);
+
             } else {
-                log.info("이미 연동된 소셜 계정: userId={}, provider={}", user.getId(), provider);
+                // ===== 신규 User 생성 =====
+                user = User.builder()
+                        .email(userInfo.getEmail())
+                        .name(userInfo.getName())
+                        .nickname(null)
+                        .profileImage(userInfo.getProfileImageUrl())
+                        .role(Role.USER)
+                        .isActive(true)
+                        .lastLoginAt(LocalDateTime.now())
+                        .isOnline(true)
+                        .isSearchable(true)
+                        .totalExp(0)
+                        .currentPoints(0)
+                        .currentLevel(1)
+                        .levelName("새싹")
+                        .build();
+
+                user = userRepository.save(user);
+
+                // 소셜 계정 생성
+                UserSocialAccount socialAccount = UserSocialAccount.builder()
+                        .user(user)
+                        .provider(provider)
+                        .providerUserId(userInfo.getProviderId())
+                        .email(userInfo.getEmail())
+                        .isPrimary(true)
+                        .linkedAt(LocalDateTime.now())
+                        .build();
+
+                socialAccountRepository.save(socialAccount);
+                log.info("신규 회원 가입: userId={}, provider={}", user.getId(), provider);
             }
-
-        } else {
-            // ===== 신규 User 생성 =====
-            user = User.builder()
-                    .email(userInfo.getEmail())
-                    .name(userInfo.getName())
-                    .nickname(null)  // 추가 정보 입력 필요
-                    .profileImage(userInfo.getProfileImageUrl())
-                    .role(Role.USER)
-                    .isActive(true)
-                    .lastLoginAt(LocalDateTime.now())
-                    .isOnline(true)
-                    .isSearchable(true)
-                    .totalExp(0)
-                    .currentPoints(0)
-                    .currentLevel(1)
-                    .levelName("새싹")
-                    .build();
-
-            user = userRepository.save(user);
-
-            // 소셜 계정 생성
-            UserSocialAccount socialAccount = UserSocialAccount.builder()
-                    .user(user)
-                    .provider(provider)
-                    .providerUserId(userInfo.getProviderId())
-                    .email(userInfo.getEmail())
-                    .isPrimary(true)  // 첫 연동이므로 primary
-                    .linkedAt(LocalDateTime.now())
-                    .build();
-
-            socialAccountRepository.save(socialAccount);
-            log.info("신규 회원 가입: userId={}, provider={}", user.getId(), provider);
         }
 
         // 로그인 상태 업데이트
@@ -466,6 +469,11 @@ public class OAuth2Service {
     /**
      * 이메일로 User 찾기 또는 생성 + 소셜 계정 연동 + OAuth 토큰 저장
      * (Google Calendar 연동을 위해 provider의 access_token, refresh_token 저장)
+     *
+     * 검색 순서:
+     * 1. 소셜 계정(provider + providerUserId)으로 먼저 검색
+     * 2. 소셜 계정이 없으면 이메일로 User 검색
+     * 3. 둘 다 없으면 신규 생성
      */
     private User findOrCreateUserWithSocialAndTokens(
             OAuth2UserInfo userInfo,
@@ -474,24 +482,43 @@ public class OAuth2Service {
             String providerRefreshToken,
             Integer expiresInSeconds
     ) {
-        // 1. 이메일로 기존 User 찾기
-        Optional<User> existingUser = userRepository.findByEmail(userInfo.getEmail());
-
         User user;
         UserSocialAccount socialAccount;
 
-        if (existingUser.isPresent()) {
-            // ===== 기존 User 있음 =====
-            user = existingUser.get();
+        // 1. 먼저 소셜 계정(provider + providerUserId)으로 기존 연동 여부 확인
+        Optional<UserSocialAccount> existingSocial = socialAccountRepository
+                .findByProviderAndProviderUserId(provider, userInfo.getProviderId());
 
-            log.info("기존 회원 발견: userId={}, email={}", user.getId(), user.getEmail());
+        if (existingSocial.isPresent()) {
+            // ===== 이미 연동된 소셜 계정이 있음 → 해당 User로 로그인 =====
+            socialAccount = existingSocial.get();
+            user = socialAccount.getUser();
 
-            // 해당 provider로 이미 연동되었는지 확인
-            Optional<UserSocialAccount> existingSocial = socialAccountRepository
-                    .findByProviderAndProviderUserId(provider, userInfo.getProviderId());
+            log.info("기존 소셜 계정으로 로그인: userId={}, provider={}", user.getId(), provider);
 
-            if (existingSocial.isEmpty()) {
-                // 새로운 소셜 계정 추가!
+            // 토큰 업데이트
+            socialAccount.updateTokens(
+                    providerAccessToken,
+                    providerRefreshToken,
+                    expiresInSeconds != null
+                            ? LocalDateTime.now().plusSeconds(expiresInSeconds)
+                            : null
+            );
+            socialAccountRepository.save(socialAccount);
+            log.info("소셜 계정 토큰 갱신: userId={}, provider={}", user.getId(), provider);
+
+        } else {
+            // 2. 소셜 계정이 없으면 이메일로 User 검색
+            Optional<User> existingUser = userRepository.findByEmail(userInfo.getEmail());
+
+            if (existingUser.isPresent()) {
+                // ===== 이메일로 기존 User 발견 → 소셜 계정 추가 연동 =====
+                user = existingUser.get();
+
+                log.info("기존 회원에 소셜 계정 추가: userId={}, email={}, provider={}",
+                        user.getId(), user.getEmail(), provider);
+
+                // 새로운 소셜 계정 추가
                 socialAccount = UserSocialAccount.builder()
                         .user(user)
                         .provider(provider)
@@ -508,59 +535,47 @@ public class OAuth2Service {
                         .build();
 
                 socialAccountRepository.save(socialAccount);
-                log.info("소셜 계정 추가 연동 (토큰 포함): userId={}, provider={}", user.getId(), provider);
+                log.info("소셜 계정 추가 연동 완료 (토큰 포함): userId={}, provider={}", user.getId(), provider);
+
             } else {
-                // 기존 소셜 계정 토큰 업데이트
-                socialAccount = existingSocial.get();
-                socialAccount.updateTokens(
-                        providerAccessToken,
-                        providerRefreshToken,
-                        expiresInSeconds != null
+                // ===== 신규 User 생성 =====
+                user = User.builder()
+                        .email(userInfo.getEmail())
+                        .name(userInfo.getName())
+                        .nickname(null)
+                        .profileImage(userInfo.getProfileImageUrl())
+                        .role(Role.USER)
+                        .isActive(true)
+                        .lastLoginAt(LocalDateTime.now())
+                        .isOnline(true)
+                        .isSearchable(true)
+                        .totalExp(0)
+                        .currentPoints(0)
+                        .currentLevel(1)
+                        .levelName("새싹")
+                        .build();
+
+                user = userRepository.save(user);
+
+                // 소셜 계정 생성 (토큰 포함)
+                socialAccount = UserSocialAccount.builder()
+                        .user(user)
+                        .provider(provider)
+                        .providerUserId(userInfo.getProviderId())
+                        .email(userInfo.getEmail())
+                        .isPrimary(true)
+                        .linkedAt(LocalDateTime.now())
+                        .accessToken(providerAccessToken)
+                        .refreshToken(providerRefreshToken)
+                        .tokenExpiresAt(expiresInSeconds != null
                                 ? LocalDateTime.now().plusSeconds(expiresInSeconds)
-                                : null
-                );
+                                : null)
+                        .calendarId("primary")
+                        .build();
+
                 socialAccountRepository.save(socialAccount);
-                log.info("소셜 계정 토큰 갱신: userId={}, provider={}", user.getId(), provider);
+                log.info("신규 회원 가입 (토큰 포함): userId={}, provider={}", user.getId(), provider);
             }
-
-        } else {
-            // ===== 신규 User 생성 =====
-            user = User.builder()
-                    .email(userInfo.getEmail())
-                    .name(userInfo.getName())
-                    .nickname(null)
-                    .profileImage(userInfo.getProfileImageUrl())
-                    .role(Role.USER)
-                    .isActive(true)
-                    .lastLoginAt(LocalDateTime.now())
-                    .isOnline(true)
-                    .isSearchable(true)
-                    .totalExp(0)
-                    .currentPoints(0)
-                    .currentLevel(1)
-                    .levelName("새싹")
-                    .build();
-
-            user = userRepository.save(user);
-
-            // 소셜 계정 생성 (토큰 포함)
-            socialAccount = UserSocialAccount.builder()
-                    .user(user)
-                    .provider(provider)
-                    .providerUserId(userInfo.getProviderId())
-                    .email(userInfo.getEmail())
-                    .isPrimary(true)
-                    .linkedAt(LocalDateTime.now())
-                    .accessToken(providerAccessToken)
-                    .refreshToken(providerRefreshToken)
-                    .tokenExpiresAt(expiresInSeconds != null
-                            ? LocalDateTime.now().plusSeconds(expiresInSeconds)
-                            : null)
-                    .calendarId("primary")
-                    .build();
-
-            socialAccountRepository.save(socialAccount);
-            log.info("신규 회원 가입 (토큰 포함): userId={}, provider={}", user.getId(), provider);
         }
 
         // 로그인 상태 업데이트

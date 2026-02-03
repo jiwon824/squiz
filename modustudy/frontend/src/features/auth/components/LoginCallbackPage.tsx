@@ -1,8 +1,10 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { authApi } from '@/api/endpoints/authApi';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
+import { useSettingStore } from '@/features/setting/store/settingStore';
+import type { SocialProvider } from '@/features/setting/types';
 import AuthLayout from './AuthLayout';
 import { Loader2 } from 'lucide-react';
 
@@ -11,6 +13,10 @@ export const LoginCallbackPage = () => {
     const navigate = useNavigate();
     const login = useAuthStore((state) => state.login);
     const showToast = useUIStore((state) => state.showToast);
+    const { completeSocialLink, refetchSocialAccounts } = useSettingStore();
+
+    // 연동 모드인지 확인하는 상태
+    const [isLinkMode, setIsLinkMode] = useState(false);
 
     // 중복 요청 방지를 위한 ref (React StrictMode에서 useEffect 두 번 실행 대응)
     const isProcessingRef = useRef(false);
@@ -28,13 +34,59 @@ export const LoginCallbackPage = () => {
 
             // 이미 처리 중이면 중복 요청 방지
             if (isProcessingRef.current) {
-                console.log('[INFO] 이미 로그인 처리 중입니다.');
+                console.log('[INFO] 이미 처리 중입니다.');
                 return;
             }
             isProcessingRef.current = true;
 
+            const oauthMode = sessionStorage.getItem('oauth_mode');
+            const provider = sessionStorage.getItem('oauth_provider') || 'kakao';
+            const redirectPath = sessionStorage.getItem('oauth_redirect_path');
+
+            // 연동 모드인 경우 (기존 로그인 상태에서 추가 계정 연동)
+            if (oauthMode === 'link') {
+                setIsLinkMode(true);
+                console.log(`[INFO] ${provider} 계정 연동 처리 시작`);
+
+                try {
+                    await completeSocialLink(
+                        provider.toUpperCase() as SocialProvider,
+                        code
+                    );
+
+                    // 연동 성공 후 소셜 계정 목록 새로고침
+                    await refetchSocialAccounts();
+
+                    showToast(`${provider === 'kakao' ? '카카오' : provider === 'naver' ? '네이버' : '구글'} 계정이 연동되었습니다.`, 'success');
+
+                    // 세션 스토리지 정리
+                    sessionStorage.removeItem('oauth_mode');
+                    sessionStorage.removeItem('oauth_provider');
+                    sessionStorage.removeItem('oauth_redirect_path');
+
+                    navigate(redirectPath || '/setting', { replace: true });
+                } catch (error: any) {
+                    console.error('Social link error:', error);
+                    isProcessingRef.current = false;
+
+                    // 에러 메시지 처리
+                    const errorMessage = error.response?.data?.error?.message
+                        || error.message
+                        || '계정 연동에 실패했습니다.';
+                    showToast(errorMessage, 'error');
+
+                    // 세션 스토리지 정리
+                    sessionStorage.removeItem('oauth_mode');
+                    sessionStorage.removeItem('oauth_provider');
+                    sessionStorage.removeItem('oauth_redirect_path');
+
+                    navigate(redirectPath || '/setting', { replace: true });
+                }
+                return;
+            }
+
+            // 일반 로그인 모드
             try {
-                const provider = sessionStorage.getItem('oauth_provider') || 'kakao'; // 기본값은 kakao (하위 호환)
                 console.log(`[INFO] ${provider} 로그인 처리 시작`);
 
                 let data;
@@ -49,7 +101,6 @@ export const LoginCallbackPage = () => {
 
                 console.log('[DEBUG] Server Response Data:', data);
 
-                // authStore 업데이트 (이 과정은 로그인이 완료된 경우에만 의미가 있음)
                 // 신규 유저인 경우 아직 닉네임 등이 없어 추가 정보 입력이 필요함
                 if (data.isNewUser) {
                     console.log('[INFO] 신규 소셜 유저 - 추가 정보 입력 페이지로 이동');
@@ -81,12 +132,12 @@ export const LoginCallbackPage = () => {
                     console.log('[INFO] 기존 소셜 유저 로그인 성공!');
 
                     // 로그인 전 페이지로 리다이렉트 (저장된 URL이 있으면)
-                    const redirectUrl = sessionStorage.getItem('redirectAfterLogin')
+                    const loginRedirectUrl = sessionStorage.getItem('redirectAfterLogin')
                         || sessionStorage.getItem('oauth_redirect_path');
-                    if (redirectUrl) {
+                    if (loginRedirectUrl) {
                         sessionStorage.removeItem('redirectAfterLogin');
                         sessionStorage.removeItem('oauth_redirect_path');
-                        navigate(redirectUrl, { replace: true });
+                        navigate(loginRedirectUrl, { replace: true });
                     } else {
                         navigate('/dashboard', { replace: true });
                     }
@@ -106,7 +157,7 @@ export const LoginCallbackPage = () => {
         };
 
         handleCallback();
-    }, [searchParams, navigate, login]);
+    }, [searchParams, navigate, login, completeSocialLink, refetchSocialAccounts, showToast]);
 
     return (
         <AuthLayout hideBranding>
@@ -119,7 +170,9 @@ export const LoginCallbackPage = () => {
                 textAlign: 'center'
             }}>
                 <Loader2 className="animate-spin" size={48} color="var(--color-primary)" />
-                <h3 style={{ marginTop: '1.5rem', fontWeight: 700 }}>로그인 중입니다</h3>
+                <h3 style={{ marginTop: '1.5rem', fontWeight: 700 }}>
+                    {isLinkMode ? '계정 연동 중입니다' : '로그인 중입니다'}
+                </h3>
                 <p style={{ color: '#64748b', marginTop: '0.5rem' }}>잠시만 기다려 주세요...</p>
             </div>
         </AuthLayout>

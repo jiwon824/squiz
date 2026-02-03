@@ -23,6 +23,7 @@ export const AccountSecuritySection = () => {
         setNewPassword,
         changeExistingPassword,
         unlinkSocialAccount,
+        startSocialLink,
         fetchSocialAccounts,
         googleCalendarStatus,
         fetchGoogleCalendarStatus,
@@ -32,8 +33,11 @@ export const AccountSecuritySection = () => {
         isSaving,
         error,
     } = useSettingStore();
-    const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
+    const { isLoggedIn, user } = useAuthStore();
     const showToast = useUIStore((state) => state.showToast);
+
+    // 현재 로그인 방식 (KAKAO, GOOGLE, NAVER)
+    const currentLoginProvider = user?.loginProvider;
 
     // 최초 한 번만 fetch 실행하기 위한 ref
     const hasFetchedRef = useRef(false);
@@ -114,10 +118,9 @@ export const AccountSecuritySection = () => {
         }
     };
 
-    // 소셜 연동 핸들러 (TODO: OAuth 플로우 구현 필요)
-    const handleLink = (provider: SocialProvider) => {
-        // TODO: OAuth 인증 플로우로 리다이렉트
-        showToast(`${provider} 연동 기능은 준비 중입니다.`, 'info');
+    // 소셜 연동 핸들러
+    const handleLink = async (provider: SocialProvider) => {
+        await startSocialLink(provider);
     };
 
     // Google 캘린더 연동 핸들러
@@ -280,6 +283,7 @@ export const AccountSecuritySection = () => {
                                 onUnlink={handleUnlink}
                                 disabled={socialAccounts.length <= 1 && !hasPassword}
                                 isSaving={isSaving}
+                                isCurrentLoginMethod={currentLoginProvider === account.provider}
                             />
                         ))}
 

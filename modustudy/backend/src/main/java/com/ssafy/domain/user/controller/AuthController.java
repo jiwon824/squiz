@@ -21,6 +21,8 @@ import com.ssafy.domain.user.dto.request.SocialLinkRequest;
 import com.ssafy.domain.user.dto.response.LinkedAccountsResponse;
 import com.ssafy.domain.user.dto.response.SocialAccountResponse;
 import com.ssafy.domain.user.entity.SocialProvider;
+import com.ssafy.common.auth.SsafyUserDetails;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -190,14 +192,15 @@ public class AuthController {
      */
     @GetMapping("/social/my")
     public ResponseEntity<ApiResponse<LinkedAccountsResponse>> getLinkedAccounts(
-            @org.springframework.security.core.annotation.AuthenticationPrincipal Long userId) {
+            @AuthenticationPrincipal SsafyUserDetails userDetails) {
 
-        if (userId == null) {
+        if (userDetails == null) {
             return ResponseEntity
                     .status(401)
                     .body(ApiResponse.error("UNAUTHORIZED", "인증이 필요합니다."));
         }
 
+        Long userId = userDetails.getUser().getId();
         LinkedAccountsResponse response = oAuth2Service.getLinkedSocialAccounts(userId);
 
         return ResponseEntity.ok(ApiResponse.success(response));
@@ -209,9 +212,16 @@ public class AuthController {
      */
     @PostMapping("/social/{provider}/link")
     public ResponseEntity<ApiResponse<SocialAccountResponse>> linkSocialAccount(
-            @org.springframework.security.core.annotation.AuthenticationPrincipal Long userId,
+            @AuthenticationPrincipal SsafyUserDetails userDetails,
             @PathVariable String provider,
             @RequestBody SocialLinkRequest request) {
+
+        // 인증 확인
+        if (userDetails == null) {
+            return ResponseEntity
+                    .status(401)
+                    .body(ApiResponse.error("UNAUTHORIZED", "인증이 필요합니다."));
+        }
 
         // provider 문자열을 enum으로 변환
         SocialProvider socialProvider;
@@ -223,6 +233,7 @@ public class AuthController {
                     .body(ApiResponse.error("INVALID_PROVIDER", "지원하지 않는 OAuth 제공자입니다."));
         }
 
+        Long userId = userDetails.getUser().getId();
         SocialAccountResponse response = oAuth2Service.linkSocialAccount(
                 userId,
                 socialProvider,
@@ -240,8 +251,15 @@ public class AuthController {
      */
     @DeleteMapping("/social/{provider}")
     public ResponseEntity<ApiResponse<MessageResponse>> unlinkSocialAccount(
-            @org.springframework.security.core.annotation.AuthenticationPrincipal Long userId,
+            @AuthenticationPrincipal SsafyUserDetails userDetails,
             @PathVariable String provider) {
+
+        // 인증 확인
+        if (userDetails == null) {
+            return ResponseEntity
+                    .status(401)
+                    .body(ApiResponse.error("UNAUTHORIZED", "인증이 필요합니다."));
+        }
 
         // provider 문자열을 enum으로 변환
         SocialProvider socialProvider;
@@ -253,6 +271,7 @@ public class AuthController {
                     .body(ApiResponse.error("INVALID_PROVIDER", "지원하지 않는 OAuth 제공자입니다."));
         }
 
+        Long userId = userDetails.getUser().getId();
         oAuth2Service.unlinkSocialAccount(userId, socialProvider);
 
         String providerName;
