@@ -676,4 +676,153 @@ class StudySessionServiceTest {
             assertThat(sessions.get(0).getTitle()).isEqualTo("1회차");
         }
     }
+
+    @Nested
+    @DisplayName("세션 번호 재정렬")
+    class SessionReordering {
+
+        @Test
+        @DisplayName("성공 - 새 세션 생성 시 날짜 순으로 sessionNumber 재정렬")
+        void createSession_ReordersSessionsByDate() {
+            // given - 4월 10일, 4월 20일 세션 존재
+            LocalDateTime april10 = LocalDateTime.of(2025, 4, 10, 10, 0);
+            LocalDateTime april20 = LocalDateTime.of(2025, 4, 20, 10, 0);
+            LocalDateTime april5 = LocalDateTime.of(2025, 4, 5, 10, 0);
+
+            StudySessionCreateRequest request1 = StudySessionCreateRequest.builder()
+                    .title("4월 10일 세션")
+                    .scheduledAt(april10)
+                    .build();
+            StudySessionCreateRequest request2 = StudySessionCreateRequest.builder()
+                    .title("4월 20일 세션")
+                    .scheduledAt(april20)
+                    .build();
+
+            studySessionService.createSession(study.getId(), leader.getId(), request1);
+            studySessionService.createSession(study.getId(), leader.getId(), request2);
+            studySessionRepository.flush();
+
+            // when - 4월 5일 (가장 이른 날짜) 세션 추가
+            StudySessionCreateRequest request3 = StudySessionCreateRequest.builder()
+                    .title("4월 5일 세션")
+                    .scheduledAt(april5)
+                    .build();
+            studySessionService.createSession(study.getId(), leader.getId(), request3);
+            entityManager.flush();
+            entityManager.clear();
+
+            // then - 날짜 순으로 sessionNumber 재정렬됨
+            List<StudySessionResponse> sessions = studySessionService.getSessionsByStudyId(study.getId());
+
+            assertThat(sessions).hasSize(3);
+            // 4월 5일 → 1회차
+            assertThat(sessions.get(0).getSessionNumber()).isEqualTo(1);
+            assertThat(sessions.get(0).getTitle()).isEqualTo("4월 5일 세션");
+            // 4월 10일 → 2회차
+            assertThat(sessions.get(1).getSessionNumber()).isEqualTo(2);
+            assertThat(sessions.get(1).getTitle()).isEqualTo("4월 10일 세션");
+            // 4월 20일 → 3회차
+            assertThat(sessions.get(2).getSessionNumber()).isEqualTo(3);
+            assertThat(sessions.get(2).getTitle()).isEqualTo("4월 20일 세션");
+        }
+
+        @Test
+        @DisplayName("성공 - 세션 날짜 수정 시 sessionNumber 재정렬")
+        void updateSession_ReordersWhenDateChanges() {
+            // given - 1회차(4/5), 2회차(4/10), 3회차(4/20)
+            LocalDateTime april5 = LocalDateTime.of(2025, 4, 5, 10, 0);
+            LocalDateTime april10 = LocalDateTime.of(2025, 4, 10, 10, 0);
+            LocalDateTime april20 = LocalDateTime.of(2025, 4, 20, 10, 0);
+
+            StudySession session1 = createTestSessionWithScheduledAt(study.getId(), 1, "1회차", april5);
+            StudySession session2 = createTestSessionWithScheduledAt(study.getId(), 2, "2회차", april10);
+            StudySession session3 = createTestSessionWithScheduledAt(study.getId(), 3, "3회차", april20);
+            studySessionRepository.flush();
+
+            // when - 1회차 날짜를 4월 15일로 변경 (2회차와 3회차 사이)
+            LocalDateTime april15 = LocalDateTime.of(2025, 4, 15, 10, 0);
+            StudySessionUpdateRequest updateRequest = StudySessionUpdateRequest.builder()
+                    .scheduledAt(april15)
+                    .build();
+            studySessionService.updateSession(study.getId(), session1.getId(), leader.getId(), updateRequest);
+            entityManager.flush();
+            entityManager.clear();
+
+            // then - 날짜 순으로 sessionNumber 재정렬됨
+            List<StudySessionResponse> sessions = studySessionService.getSessionsByStudyId(study.getId());
+
+            assertThat(sessions).hasSize(3);
+            // 4월 10일 → 1회차
+            assertThat(sessions.get(0).getSessionNumber()).isEqualTo(1);
+            assertThat(sessions.get(0).getTitle()).isEqualTo("2회차");
+            // 4월 15일 → 2회차 (원래 1회차였던 것)
+            assertThat(sessions.get(1).getSessionNumber()).isEqualTo(2);
+            assertThat(sessions.get(1).getTitle()).isEqualTo("1회차");
+            // 4월 20일 → 3회차
+            assertThat(sessions.get(2).getSessionNumber()).isEqualTo(3);
+            assertThat(sessions.get(2).getTitle()).isEqualTo("3회차");
+        }
+
+        @Test
+        @DisplayName("성공 - 세션 삭제 시 sessionNumber 재정렬")
+        void deleteSession_ReordersAfterDelete() {
+            // given - 1회차(4/5), 2회차(4/10), 3회차(4/20)
+            LocalDateTime april5 = LocalDateTime.of(2025, 4, 5, 10, 0);
+            LocalDateTime april10 = LocalDateTime.of(2025, 4, 10, 10, 0);
+            LocalDateTime april20 = LocalDateTime.of(2025, 4, 20, 10, 0);
+
+            StudySession session1 = createTestSessionWithScheduledAt(study.getId(), 1, "1회차", april5);
+            StudySession session2 = createTestSessionWithScheduledAt(study.getId(), 2, "2회차", april10);
+            StudySession session3 = createTestSessionWithScheduledAt(study.getId(), 3, "3회차", april20);
+            studySessionRepository.flush();
+
+            // when - 2회차 삭제
+            studySessionService.deleteSession(study.getId(), session2.getId(), leader.getId());
+            entityManager.flush();
+            entityManager.clear();
+
+            // then - sessionNumber가 연속으로 재정렬됨
+            List<StudySessionResponse> sessions = studySessionService.getSessionsByStudyId(study.getId());
+
+            assertThat(sessions).hasSize(2);
+            // 4월 5일 → 1회차
+            assertThat(sessions.get(0).getSessionNumber()).isEqualTo(1);
+            assertThat(sessions.get(0).getTitle()).isEqualTo("1회차");
+            // 4월 20일 → 2회차 (원래 3회차였던 것)
+            assertThat(sessions.get(1).getSessionNumber()).isEqualTo(2);
+            assertThat(sessions.get(1).getTitle()).isEqualTo("3회차");
+        }
+
+        @Test
+        @DisplayName("성공 - 일괄 생성 시 날짜 순으로 sessionNumber 정렬")
+        void createSessionsBulk_SortsSessionsByDate() {
+            // given - 순서 섞인 날짜로 일괄 생성 요청
+            LocalDateTime april20 = LocalDateTime.of(2025, 4, 20, 10, 0);
+            LocalDateTime april5 = LocalDateTime.of(2025, 4, 5, 10, 0);
+            LocalDateTime april15 = LocalDateTime.of(2025, 4, 15, 10, 0);
+
+            List<StudySessionCreateRequest> requests = List.of(
+                    StudySessionCreateRequest.builder().title("4월 20일").scheduledAt(april20).build(),
+                    StudySessionCreateRequest.builder().title("4월 5일").scheduledAt(april5).build(),
+                    StudySessionCreateRequest.builder().title("4월 15일").scheduledAt(april15).build()
+            );
+
+            // when
+            List<StudySessionResponse> responses = studySessionService.createSessionsBulk(
+                    study.getId(), leader.getId(), requests);
+            entityManager.flush();
+            entityManager.clear();
+
+            // then - 날짜 순으로 정렬
+            List<StudySessionResponse> sessions = studySessionService.getSessionsByStudyId(study.getId());
+
+            assertThat(sessions).hasSize(3);
+            assertThat(sessions.get(0).getSessionNumber()).isEqualTo(1);
+            assertThat(sessions.get(0).getTitle()).isEqualTo("4월 5일");
+            assertThat(sessions.get(1).getSessionNumber()).isEqualTo(2);
+            assertThat(sessions.get(1).getTitle()).isEqualTo("4월 15일");
+            assertThat(sessions.get(2).getSessionNumber()).isEqualTo(3);
+            assertThat(sessions.get(2).getTitle()).isEqualTo("4월 20일");
+        }
+    }
 }
