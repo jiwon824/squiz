@@ -3,9 +3,7 @@ import { Users, Search, UserPlus, Check, X, Loader2 } from 'lucide-react';
 import { useFriendStore } from '../store/friendStore';
 import { useDMStore } from '@/features/dm/store/dmStore';
 import { useUIStore } from '@/store/uiStore';
-
-// 기본 프로필 이미지 경로
-const DEFAULT_PROFILE_IMAGE = '/images/default-profile.png';
+import { getProfileImageUrl } from '@/shared/utils/profileImage';
 
 const FriendListMini: React.FC = () => {
     const {
@@ -111,7 +109,7 @@ const FriendListMini: React.FC = () => {
                                 <div key={user.id} className="flex items-center justify-between p-2 hover:bg-gray-50">
                                     <div className="flex items-center gap-2">
                                         <div className="w-7 h-7 rounded-full bg-study-blue/10 flex items-center justify-center text-xs font-bold text-study-blue overflow-hidden">
-                                            <img src={DEFAULT_PROFILE_IMAGE} alt={user.nickname} className="w-full h-full object-cover" />
+                                            <img src={getProfileImageUrl(user.profileImage)} alt={user.nickname} className="w-full h-full object-cover" />
                                         </div>
                                         <span className="text-sm">{user.nickname}</span>
                                     </div>
@@ -143,7 +141,7 @@ const FriendListMini: React.FC = () => {
                             <div key={request.id} className="flex items-center justify-between p-2 bg-yellow-50 rounded-lg">
                                 <div className="flex items-center gap-2">
                                     <div className="w-7 h-7 rounded-full bg-yellow-200 flex items-center justify-center text-xs font-bold text-yellow-700 overflow-hidden">
-                                        <img src={DEFAULT_PROFILE_IMAGE} alt={request.senderNickname} className="w-full h-full object-cover" />
+                                        <img src={getProfileImageUrl(request.senderProfileImage)} alt={request.senderNickname} className="w-full h-full object-cover" />
                                     </div>
                                     <span className="text-sm font-medium">{request.senderNickname}</span>
                                 </div>
@@ -183,7 +181,7 @@ const FriendListMini: React.FC = () => {
                             >
                                 <div className="relative flex-shrink-0">
                                     <div className="w-9 h-9 rounded-full bg-study-blue/10 flex items-center justify-center font-bold text-xs text-study-blue overflow-hidden">
-                                        <img src={friend.profileImage || DEFAULT_PROFILE_IMAGE} alt={friend.nickname} className="w-full h-full object-cover" />
+                                        <img src={getProfileImageUrl(friend.profileImage)} alt={friend.nickname} className="w-full h-full object-cover" />
                                     </div>
                                     <div className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white ${getStatusColor(friend.status)}`} />
                                 </div>

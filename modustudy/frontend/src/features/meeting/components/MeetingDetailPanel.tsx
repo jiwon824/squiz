@@ -64,11 +64,6 @@ const MeetingDetailPanel: React.FC<MeetingDetailPanelProps> = ({ studyId, meetin
 
   const handleExport = async (format: 'MARKDOWN' | 'PDF') => {
     if (!studyId || !meetingId) return;
-    const savedSelection = photos.filter((photo) => photo.isSelected);
-    if (photos.length > 0 && savedSelection.length === 0) {
-      window.alert('보고서용 이미지로 선택한 사진이 없습니다.');
-      return;
-    }
     const blob = await meetingApi.exportMeeting(studyId, meetingId, format);
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -102,7 +97,18 @@ const MeetingDetailPanel: React.FC<MeetingDetailPanelProps> = ({ studyId, meetin
   const handleSaveSelection = async () => {
     if (!studyId || !meetingId || !canSelectPhotos || isSavingSelection) return;
     if (selectedPhotoIds.size === 0) {
-      showToast('이미지 선택 후 클릭해주세요.', 'warning');
+      setIsSavingSelection(true);
+      try {
+        const updated = await meetingApi.selectPhotos(studyId, meetingId, []);
+        setPhotos(updated);
+        setSelectedPhotoIds(new Set());
+        showToast('선택된 이미지가 초기화되었습니다.', 'info');
+      } catch (error) {
+        console.error('Failed to clear report photo selection', error);
+        showToast('이미지 선택 초기화에 실패했습니다.', 'error');
+      } finally {
+        setIsSavingSelection(false);
+      }
       return;
     }
     setIsSavingSelection(true);

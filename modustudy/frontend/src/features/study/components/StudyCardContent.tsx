@@ -1,9 +1,7 @@
 import React from 'react';
 import { Heart, Users, MapPin, Calendar, Clock, Star } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
-
-// 기본 프로필 이미지 경로
-const DEFAULT_PROFILE_IMAGE = '/images/default-profile.png';
+import { getProfileImageUrl } from '@/shared/utils/profileImage';
 
 interface StudyCardContentProps {
     study: {
@@ -210,7 +208,7 @@ const StudyCardContent: React.FC<StudyCardContentProps> = ({ study, onBookmarkTo
                     <div className="relative group/avatar">
                         <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-md group-hover/avatar:blur-lg transition-all opacity-0 group-hover/avatar:opacity-100" />
                         <img
-                            src={study.leader.profileImage || DEFAULT_PROFILE_IMAGE}
+                            src={getProfileImageUrl(study.leader.profileImage)}
                             alt={study.leader.nickname}
                             className="w-10 h-10 rounded-2xl border-2 border-white shadow-sm object-cover relative z-10"
                         />
