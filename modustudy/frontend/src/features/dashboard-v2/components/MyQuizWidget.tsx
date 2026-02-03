@@ -3,8 +3,8 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Brain, ChevronLeft, ChevronRight, Clock, CheckCircle2, Circle, Play, Loader2 } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 import {
-    MultipleChoiceQuiz,
-    ShortAnswerQuiz,
+    QuizSingleChoice,
+    QuizShortAnswer,
     QuizProgress,
     QuizQuestion,
     WidgetHeader,
@@ -212,7 +212,7 @@ export const MyQuizWidget: React.FC = () => {
                         >
                             {/* 문제 풀이 화면 */}
                             {currentQuiz.type === 'multiple' ? (
-                                <MultipleChoiceQuiz
+                                <QuizSingleChoice
                                     quiz={currentQuiz}
                                     questionNumber={1} // 단건 진행이므로 1
                                     selectedAnswer={selectedAnswer}
@@ -223,12 +223,12 @@ export const MyQuizWidget: React.FC = () => {
                                     isLastQuestion={true} // 항상 마지막 문제 처리(단건)
                                 />
                             ) : (
-                                <ShortAnswerQuiz
+                                <QuizShortAnswer
                                     quiz={currentQuiz}
                                     questionNumber={1}
                                     userAnswer={shortAnswer}
                                     showResult={showResult}
-                                    onChangeAnswer={setShortAnswer}
+                                    onChangeAnswer={(val) => setShortAnswer(val || '')}
                                     onSubmit={handleSubmitShort}
                                     onNext={handleBackToList}
                                     isLastQuestion={true}

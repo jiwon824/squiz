@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Check, X, ChevronRight } from 'lucide-react';
+import { Check, X, ChevronRight, CheckSquare, Square } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 
 // 퀴즈 타입 정의
@@ -9,7 +9,7 @@ export interface QuizQuestion {
     question: string;
     type: 'multiple' | 'short';
     options?: string[];
-    correctAnswer: number | string; // 객관식: index, 주관식: 정답 문자열
+    correctAnswer: number | number[] | string; // 객관식(단일): index, 객관식(복수): index[], 주관식: 정답 문자열
     explanation?: string;
     difficulty?: 'easy' | 'medium' | 'hard';
     category?: string;
@@ -32,7 +32,7 @@ const difficultyColors = {
 // ============================================
 // 객관식 퀴즈 컴포넌트
 // ============================================
-export interface MultipleChoiceQuizProps {
+export interface QuizSingleChoiceProps {
     quiz: QuizQuestion;
     questionNumber?: number;
     selectedAnswer: number | null;
@@ -44,7 +44,7 @@ export interface MultipleChoiceQuizProps {
     className?: string;
 }
 
-export const MultipleChoiceQuiz: React.FC<MultipleChoiceQuizProps> = ({
+export const QuizSingleChoice: React.FC<QuizSingleChoiceProps> = ({
     quiz,
     questionNumber,
     selectedAnswer,
@@ -170,9 +170,171 @@ export const MultipleChoiceQuiz: React.FC<MultipleChoiceQuizProps> = ({
 };
 
 // ============================================
+// 객관식 퀴즈 컴포넌트 (다중 선택)
+// ============================================
+export interface QuizMultipleChoiceProps {
+    quiz: QuizQuestion;
+    questionNumber?: number;
+    selectedAnswers: number[];
+    showResult: boolean;
+    onToggleAnswer: (index: number) => void;
+    onSubmit: () => void;
+    onNext?: () => void;
+    isLastQuestion?: boolean;
+    className?: string;
+}
+
+export const QuizMultipleChoice: React.FC<QuizMultipleChoiceProps> = ({
+    quiz,
+    questionNumber,
+    selectedAnswers,
+    showResult,
+    onToggleAnswer,
+    onSubmit,
+    onNext,
+    isLastQuestion = false,
+    className,
+}) => {
+    // 정답 배열 파싱
+    const correctAnswers = Array.isArray(quiz.correctAnswer)
+        ? quiz.correctAnswer
+        : typeof quiz.correctAnswer === 'number'
+            ? [quiz.correctAnswer]
+            : [];
+
+    return (
+        <div className={cn('space-y-4', className)}>
+            {/* 퀴즈 메타정보 */}
+            {(quiz.difficulty || quiz.category) && (
+                <div className="flex items-center gap-2">
+                    {quiz.difficulty && (
+                        <span
+                            className={cn(
+                                'px-3 py-1 rounded-full text-xs font-medium',
+                                difficultyColors[quiz.difficulty]
+                            )}
+                        >
+                            {difficultyLabels[quiz.difficulty]}
+                        </span>
+                    )}
+                    {quiz.category && (
+                        <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-700">
+                            {quiz.category}
+                        </span>
+                    )}
+                    <span className="px-3 py-1 bg-primary/10 text-primary-dark rounded-full text-xs font-medium">
+                        복수 선택 가능
+                    </span>
+                </div>
+            )}
+
+            {/* 질문 */}
+            <h4 className="text-lg font-bold text-text-primary">
+                {questionNumber !== undefined && `Q${questionNumber}. `}
+                {quiz.question}
+            </h4>
+
+            {/* 선택지 */}
+            <div className="space-y-3">
+                {quiz.options?.map((option, index) => {
+                    const isSelected = selectedAnswers.includes(index);
+                    const isCorrect = correctAnswers.includes(index);
+
+                    return (
+                        <button
+                            key={index}
+                            onClick={() => !showResult && onToggleAnswer(index)}
+                            disabled={showResult}
+                            className={cn(
+                                'w-full p-4 text-left rounded-xl transition-all border-2 group',
+                                'hover:shadow-md',
+                                // 결과 보기 전: 선택된 항목 강조
+                                !showResult && isSelected && 'border-primary bg-primary/5',
+                                !showResult && !isSelected && 'border-gray-200 hover:border-gray-300',
+                                // 결과 보기: 정답인 항목 (선택 여부 상관없이 정답 표시)
+                                showResult && isCorrect && 'border-accent bg-accent/10',
+                                // 결과 보기: 내가 잘못 선택한 오답
+                                showResult && isSelected && !isCorrect && 'border-error bg-error/10',
+                                // 결과 보기: 선택 안 했고 정답도 아닌 나머지
+                                showResult && !isSelected && !isCorrect && 'border-gray-200 opacity-50'
+                            )}
+                        >
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className={cn(
+                                        "transition-colors",
+                                        !showResult && isSelected ? "text-primary" : "text-gray-400",
+                                        showResult && isCorrect ? "text-accent" : "",
+                                        showResult && isSelected && !isCorrect ? "text-error" : ""
+                                    )}>
+                                        {isSelected ? <CheckSquare size={20} /> : <Square size={20} />}
+                                    </div>
+                                    <span className="text-text-primary">{option}</span>
+                                </div>
+
+                                {showResult && isCorrect && (
+                                    <Check className="text-accent" size={20} />
+                                )}
+                                {showResult && isSelected && !isCorrect && (
+                                    <X className="text-error" size={20} />
+                                )}
+                            </div>
+                        </button>
+                    );
+                })}
+            </div>
+
+            {/* 해설 */}
+            {showResult && quiz.explanation && (
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-accent/10 rounded-xl p-4"
+                >
+                    <h5 className="font-bold text-text-primary mb-2 flex items-center gap-2">
+                        <ChevronRight size={16} className="text-accent" />
+                        해설
+                    </h5>
+                    <p className="text-sm text-text-secondary leading-relaxed">{quiz.explanation}</p>
+                </motion.div>
+            )}
+
+            {/* 버튼 */}
+            <div className="flex gap-3">
+                {!showResult ? (
+                    <button
+                        onClick={onSubmit}
+                        disabled={selectedAnswers.length === 0}
+                        className={cn(
+                            'flex-1 py-3 rounded-xl font-bold transition-all',
+                            'bg-primary hover:bg-primary-dark text-white',
+                            'disabled:opacity-50 disabled:cursor-not-allowed'
+                        )}
+                    >
+                        제출하기
+                    </button>
+                ) : onNext ? (
+                    <button
+                        onClick={onNext}
+                        disabled={isLastQuestion}
+                        className={cn(
+                            'flex-1 py-3 rounded-xl font-bold transition-all',
+                            'bg-secondary hover:bg-secondary-dark text-white',
+                            'disabled:opacity-50 disabled:cursor-not-allowed'
+                        )}
+                    >
+                        {isLastQuestion ? '완료' : '다음 문제'}
+                    </button>
+                ) : null}
+            </div>
+        </div>
+    );
+};
+
+// ============================================
 // 주관식 퀴즈 컴포넌트
 // ============================================
-export interface ShortAnswerQuizProps {
+export interface QuizShortAnswerProps {
     quiz: QuizQuestion;
     questionNumber?: number;
     userAnswer: string | null;
@@ -184,7 +346,7 @@ export interface ShortAnswerQuizProps {
     className?: string;
 }
 
-export const ShortAnswerQuiz: React.FC<ShortAnswerQuizProps> = ({
+export const QuizShortAnswer: React.FC<QuizShortAnswerProps> = ({
     quiz,
     questionNumber,
     userAnswer,

@@ -18,8 +18,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 import {
-    MultipleChoiceQuiz,
-    ShortAnswerQuiz
+    QuizSingleChoice,
+    QuizShortAnswer
 } from '@/shared/components';
 import '../styles/DashboardV2.css';
 import { getTodayReviews, getWrongAnswers, submitReview, ReviewItemDto } from '../api/reviewApi';
@@ -261,7 +261,7 @@ export const MyQuizPage: React.FC = () => {
                                     </div>
 
                                     {['MULTIPLE_CHOICE', 'MULTIPLE_CHOICE_MULTIPLE'].includes(selectedReviewItem.question.questionType) ? (
-                                        <MultipleChoiceQuiz
+                                        <QuizSingleChoice
                                             quiz={{
                                                 id: Number(selectedReviewItem.contentId),
                                                 type: 'multiple',
@@ -278,7 +278,7 @@ export const MyQuizPage: React.FC = () => {
                                             onSubmit={handleSubmitMultiple}
                                         />
                                     ) : (
-                                        <ShortAnswerQuiz
+                                        <QuizShortAnswer
                                             quiz={{
                                                 id: Number(selectedReviewItem.contentId),
                                                 type: 'short',
