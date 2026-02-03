@@ -4,9 +4,10 @@ import {
     Users, Clock, MapPin,
     Target, Award, AlertTriangle, Share2,
     BookOpen, Monitor, Handshake, Layers, MoreVertical,
-    Calendar, CalendarDays, Bookmark, FileText, GraduationCap, Info, Loader2, Pencil, Quote, Trash2, Star,
+    Calendar, CalendarDays, Bookmark, FileText, GraduationCap, Info, Pencil, Quote, Trash2, Star,
     CalendarPlus, UserMinus, CheckCircle
 } from 'lucide-react';
+import { PageSpinner, ButtonSpinner } from '@/shared/components/Spinner';
 import { CurriculumRoadmap, CurriculumStop } from './CurriculumRoadmap';
 import { useAuthStore } from '@/store/authStore';
 import { studyService, Study } from '../services/studyService';
@@ -238,9 +239,7 @@ const StudyDetailPageV3: React.FC = () => {
     if (isLoading) {
         return (
             <UserLayoutV2>
-                <div className="flex items-center justify-center min-h-[60vh]">
-                    <Loader2 size={40} className="animate-spin text-[var(--color-primary)]" />
-                </div>
+                <PageSpinner label="스터디 정보를 불러오는 중..." />
             </UserLayoutV2>
         );
     }
@@ -1001,7 +1000,7 @@ const StudyDetailPageV3: React.FC = () => {
                             >
                                 {isDeleting ? (
                                     <span className="flex items-center gap-2">
-                                        <Loader2 size={16} className="animate-spin" />
+                                        <ButtonSpinner />
                                         삭제 중...
                                     </span>
                                 ) : '삭제'}
@@ -1042,7 +1041,7 @@ const StudyDetailPageV3: React.FC = () => {
                             >
                                 {isLeavingStudy ? (
                                     <span className="flex items-center gap-2">
-                                        <Loader2 size={16} className="animate-spin" />
+                                        <ButtonSpinner />
                                         처리 중...
                                     </span>
                                 ) : '불참 (탈퇴)'}

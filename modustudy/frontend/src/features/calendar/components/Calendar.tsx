@@ -3,6 +3,7 @@ import { CalendarProps } from '../types';
 import { getDaysInMonth, getWeeklyDays, getTodayString } from '../utils';
 import { CalendarHeader } from './CalendarHeader';
 import { CalendarDay } from './CalendarDay';
+import { CalendarSkeleton } from '@/shared/components/skeleton/composed/CalendarSkeleton';
 
 /**
  * 재사용 가능한 캘린더 메인 컴포넌트 (SQUIZ 고유 디자인 복구)
@@ -41,8 +42,8 @@ export const Calendar = ({
 
     if (loading) {
         return (
-            <div className={`flex items-center justify-center min-h-[500px] ${className}`}>
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            <div className={className}>
+                <CalendarSkeleton isWeeklyView={shouldShowWeekly} />
             </div>
         );
     }

@@ -13,8 +13,9 @@ import audioDetection from '../services/audioDetection';
 import aiDetection from '../services/aiDetection';
 import canvasComposer from '../services/canvasComposer';
 import { studyApi } from '@/api/endpoints/studyApi';
-import { Button, Modal } from '@/shared/components';
+import { Button, Modal, MeetingRoomSkeleton } from '@/shared/components';
 import { cn, conditionalClasses } from '@/shared/utils/cn';
+import { usePageLoading } from '@/shared/hooks/usePageLoading';
 import { ChevronUp, ChevronDown, Mic, MicOff, PhoneOff, Presentation, Users } from 'lucide-react';
 import {
     MeetingJoinResponse,
@@ -44,6 +45,9 @@ const MeetingRoomPage: React.FC = () => {
         Number.isFinite(numericStudyId) && numericStudyId > 0 ? `/study/${numericStudyId}/workspace` : '/study';
     const { user, isLoggedIn } = useAuthStore();
     const { showToast, setActiveRightTab } = useUIStore();
+
+    // 미팅룸 진입 로딩 상태 관리 (수동 진행률)
+    const { startLoading, setProgress, finishLoading } = usePageLoading({ autoProgress: false });
 
     // 미팅 화면 진입 시 오른쪽 사이드바 비활성화
     useEffect(() => {
@@ -141,6 +145,21 @@ const MeetingRoomPage: React.FC = () => {
     const [roomGuardStatus, setRoomGuardStatus] = useState<'checking' | 'ok' | 'blocked'>('checking');
     const [roomGuardMessage, setRoomGuardMessage] = useState('회의 정보를 확인 중입니다.');
     const [sfuReady, setSfuReady] = useState(false);
+
+    // 미팅룸 진입 단계별 로딩 진행률 업데이트
+    useEffect(() => {
+        if (roomGuardStatus === 'checking') {
+            startLoading();
+            setProgress(30); // 미팅 정보 확인 중
+        } else if (roomGuardStatus === 'ok' && !sfuReady) {
+            setProgress(60); // 입장 완료, SFU 연결 중
+        } else if (roomGuardStatus === 'ok' && sfuReady) {
+            setProgress(90); // SFU 연결 완료
+            finishLoading();
+        } else if (roomGuardStatus === 'blocked') {
+            finishLoading(); // 차단된 경우에도 로딩 종료
+        }
+    }, [roomGuardStatus, sfuReady, startLoading, setProgress, finishLoading]);
     const [isEnding, setIsEnding] = useState(false);
     const [isExtendConfirmOpen, setIsExtendConfirmOpen] = useState(false);
     const [isEndConfirmOpen, setIsEndConfirmOpen] = useState(false);
@@ -2417,11 +2436,7 @@ const MeetingRoomPage: React.FC = () => {
     if (roomGuardStatus === 'checking') {
         return (
             <UserLayoutV2>
-                <div className="flex items-center justify-center h-full p-8">
-                    <div className="max-w-[520px] w-full bg-white rounded-2xl p-8 shadow-sm text-center">
-                        <p className="text-gray-500">{roomGuardMessage}</p>
-                    </div>
-                </div>
+                <MeetingRoomSkeleton participantCount={4} />
             </UserLayoutV2>
         );
     }

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { FileText, Calendar, Users, ChevronRight, Loader2 } from 'lucide-react';
+import { FileText, Calendar, Users, ChevronRight } from 'lucide-react';
+import { Spinner } from '@/shared/components/Spinner';
 import { cn } from '@/shared/utils/cn';
 import { WidgetHeader, WidgetContainer } from '@/shared/components/layouts';
 import { useSttStore } from '@/store/sttStore';
@@ -57,9 +58,8 @@ export const STTReportWidget: React.FC = () => {
                     subtitle="최근 스터디 요약"
                     maximizePath="/meeting-report"
                 />
-                <div className="flex items-center justify-center h-64 text-text-tertiary">
-                    <Loader2 className="animate-spin mr-2" size={20} />
-                    로딩 중...
+                <div className="flex items-center justify-center h-64">
+                    <Spinner variant="center" size="md" label="로딩 중..." />
                 </div>
             </WidgetContainer>
         );

@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useUIStore } from '@/store/uiStore';
 import { useAuthStore } from '@/store/authStore';
-import { Users, MessageSquare, Video, Calendar, Clock, Play, Loader2, X } from 'lucide-react';
+import { Users, MessageSquare, Video, Calendar, Clock, Play, X } from 'lucide-react';
+import { Spinner } from '@/shared/components/Spinner';
 import FriendListMini from '@/features/friend/components/FriendListMini';
 import DMListMini from '@/features/dm/components/DMListMini';
 import { useDMStore } from '@/features/dm/store/dmStore';
@@ -196,7 +197,7 @@ const MeetingQuickAccess: React.FC = () => {
             <div className="flex-1 overflow-y-auto p-3 space-y-3">
                 {isLoading ? (
                     <div className="text-center py-8 text-gray-400 text-sm">
-                        <Loader2 size={32} className="mx-auto mb-2 animate-spin opacity-50" />
+                        <Spinner size="lg" className="mx-auto mb-2 opacity-50" />
                         <p>로딩 중...</p>
                     </div>
                 ) : meetings.length === 0 ? (

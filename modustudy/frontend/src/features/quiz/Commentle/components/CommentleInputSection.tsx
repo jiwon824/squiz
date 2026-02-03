@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Loader2 } from 'lucide-react';
+import { Send } from 'lucide-react';
+import { ButtonSpinner } from '@/shared/components/Spinner';
 
 interface CommentleInputSectionProps {
     onGuess: (word: string) => void;
@@ -54,7 +55,7 @@ export const CommentleInputSection: React.FC<CommentleInputSectionProps> = ({ on
                 >
                     {loading ? (
                         <>
-                            <Loader2 size={24} className="animate-spin" />
+                            <ButtonSpinner className="text-white" />
                             <span>분석 중...</span>
                         </>
                     ) : (

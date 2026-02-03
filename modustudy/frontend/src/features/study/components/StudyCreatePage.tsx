@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Info, Calendar, Plus, Trash2, BookOpen, MapPin, AlertCircle, Clock, Users, Target, Shield, Sparkles, Loader2, ChevronUp, ChevronDown, GripVertical } from 'lucide-react';
+import { Info, Calendar, Plus, Trash2, BookOpen, MapPin, AlertCircle, Clock, Users, Target, Shield, Sparkles, ChevronUp, ChevronDown, GripVertical } from 'lucide-react';
+import { Spinner, ButtonSpinner } from '@/shared/components/Spinner';
 import { PageNavHeader } from '@/shared/components/layouts/PageNavHeader';
 import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { useUIStore } from '@/store/uiStore';
@@ -1744,10 +1745,7 @@ const StudyCreatePage: React.FC = () => {
         return (
             <UserLayoutV2>
                 <div className="flex items-center justify-center min-h-[60vh]">
-                    <div className="flex flex-col items-center gap-4">
-                        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                        <p className="text-gray-500">스터디 정보를 불러오는 중...</p>
-                    </div>
+                    <Spinner variant="center" size="lg" label="스터디 정보를 불러오는 중..." />
                 </div>
             </UserLayoutV2>
         );
@@ -1820,7 +1818,7 @@ const StudyCreatePage: React.FC = () => {
                                             variant="primary"
                                             onClick={handleAiGenerate}
                                             disabled={isAiGenerating}
-                                            leftIcon={isAiGenerating ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
+                                            leftIcon={isAiGenerating ? <ButtonSpinner /> : <Sparkles size={18} />}
                                             className="shrink-0"
                                         >
                                             {isAiGenerating ? '생성 중...' : 'AI 생성'}

@@ -4,7 +4,7 @@ import { authApi } from '@/api/endpoints/authApi';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import AuthLayout from './AuthLayout';
-import { Loader2 } from 'lucide-react';
+import { Spinner } from '@/shared/components/Spinner';
 
 export const LoginCallbackPage = () => {
     const [searchParams] = useSearchParams();
@@ -118,7 +118,7 @@ export const LoginCallbackPage = () => {
                 minHeight: '300px',
                 textAlign: 'center'
             }}>
-                <Loader2 className="animate-spin" size={48} color="var(--color-primary)" />
+                <Spinner size="xl" />
                 <h3 style={{ marginTop: '1.5rem', fontWeight: 700 }}>로그인 중입니다</h3>
                 <p style={{ color: '#64748b', marginTop: '0.5rem' }}>잠시만 기다려 주세요...</p>
             </div>

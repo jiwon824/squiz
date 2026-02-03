@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Users, Search, UserPlus, Check, X, Loader2 } from 'lucide-react';
+import { Users, Search, UserPlus, Check, X } from 'lucide-react';
+import { Spinner } from '@/shared/components/Spinner';
 import { useFriendStore } from '../store/friendStore';
 import { useDMStore } from '@/features/dm/store/dmStore';
 import { useUIStore } from '@/store/uiStore';
@@ -169,7 +170,7 @@ const FriendListMini: React.FC = () => {
             <div className="flex-1 overflow-y-auto">
                 {isLoading ? (
                     <div className="flex items-center justify-center py-8">
-                        <Loader2 size={24} className="animate-spin text-gray-400" />
+                        <Spinner size="md" color="#9ca3af" />
                     </div>
                 ) : Array.isArray(friends) && friends.length > 0 ? (
                     <div className="space-y-1">

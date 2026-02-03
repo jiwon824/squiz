@@ -1,6 +1,7 @@
 import { useEffect, useRef, useLayoutEffect } from 'react';
 import { MessageItem } from './MessageItem';
 import type { MessageResponse } from '../types';
+import { Spinner } from '@/shared/components/Spinner';
 
 interface ChatAreaProps {
   messages: MessageResponse[];
@@ -257,9 +258,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
     <div className="chat-area" ref={scrollRef} onScroll={handleScroll}>
       {isLoading && (
         <div className="flex justify-center py-4">
-          <span className="material-icons animate-spin text-gray-500">
-            refresh
-          </span>
+          <Spinner size="sm" />
         </div>
       )}
       <div className="chat-area__messages">

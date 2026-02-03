@@ -10,6 +10,7 @@ import { NotificationItem, NotificationType } from '../api/notificationApi';
 import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { cn } from '@/shared/utils/cn';
 import { PageNavHeader } from '@/shared/components/layouts';
+import { Spinner } from '@/shared/components/Spinner';
 import {
     Bell,
     MessageSquare,
@@ -194,10 +195,7 @@ export const NotificationPage = () => {
                     {/* 알림 목록 (왼쪽) */}
                     <div className="w-full md:w-96 lg:w-[420px] border-r border-gray-200 bg-white overflow-y-auto">
                         {isLoading ? (
-                            <div className="p-8 text-center text-gray-500">
-                                <div className="animate-spin w-8 h-8 border-2 border-study-blue border-t-transparent rounded-full mx-auto mb-3" />
-                                알림을 불러오는 중...
-                            </div>
+                            <Spinner variant="center" label="알림을 불러오는 중..." />
                         ) : filteredNotifications.length === 0 ? (
                             <div className="p-8 text-center text-gray-500">
                                 <Inbox className="w-12 h-12 mx-auto mb-3 text-gray-300" />

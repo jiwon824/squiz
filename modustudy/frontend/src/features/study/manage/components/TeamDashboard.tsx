@@ -3,8 +3,9 @@ import { Study } from '../../services/studyService';
 import {
     Users, TrendingUp, Calendar, Clock,
     CheckCircle2, AlertCircle, Target, Award,
-    Play, CalendarPlus, Loader2
+    Play, CalendarPlus
 } from 'lucide-react';
+import { ButtonSpinner } from '@/shared/components/Spinner';
 import { studyApi } from '@/api/endpoints/studyApi';
 import { useUIStore } from '@/store/uiStore';
 
@@ -388,7 +389,7 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ study, onStudyUpdate, onT
                                 className="flex items-center gap-2 px-5 py-3 bg-success hover:bg-success/90 text-white font-medium rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {actionLoading === 'start' ? (
-                                    <Loader2 size={18} className="animate-spin" />
+                                    <ButtonSpinner />
                                 ) : (
                                     <Play size={18} />
                                 )}
@@ -404,7 +405,7 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ study, onStudyUpdate, onT
                                 className="flex items-center gap-2 px-5 py-3 bg-info hover:bg-info/90 text-white font-medium rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {actionLoading === 'extend' ? (
-                                    <Loader2 size={18} className="animate-spin" />
+                                    <ButtonSpinner />
                                 ) : (
                                     <CalendarPlus size={18} />
                                 )}
