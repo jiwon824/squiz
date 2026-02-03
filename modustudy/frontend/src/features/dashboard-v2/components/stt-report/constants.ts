@@ -47,6 +47,7 @@ export const MOCK_REPORTS: MeetingReport[] = [
         date: '2026-01-25',
         duration: '1시간 30분',
         participants: ['김철수', '이영희', '박민수', '정지원', '최현우'],
+        participantCount: 5,
         summary: 'useState와 useEffect의 실행 순서, 클린업 함수의 동작 원리에 대해 논의했습니다. 특히 의존성 배열의 올바른 사용법과 일반적인 실수에 대해 깊이 있게 다루었습니다.',
         keywords: ['React Hooks', 'useEffect', '클린업 함수', '의존성 배열', 'useState'],
         highlights: [
@@ -75,6 +76,7 @@ export const MOCK_REPORTS: MeetingReport[] = [
         date: '2026-01-24',
         duration: '2시간',
         participants: ['김철수', '이영희', '박민수', '정지원'],
+        participantCount: 4,
         summary: 'TypeScript의 제네릭 문법과 Partial, Pick 같은 유틸리티 타입 활용법을 학습했습니다. 실제 프로젝트에서 타입 안전성을 높이는 방법을 논의했습니다.',
         keywords: ['제네릭', 'Partial', 'Pick', '타입 추론', 'Omit', 'Record'],
         highlights: [
@@ -100,6 +102,7 @@ export const MOCK_REPORTS: MeetingReport[] = [
         date: '2026-01-22',
         duration: '1시간 45분',
         participants: ['김철수', '최현우', '박민수'],
+        participantCount: 3,
         summary: 'JavaScript의 비동기 처리 방식인 Promise, async/await에 대해 심도 있게 학습했습니다. 에러 핸들링과 동시성 제어에 대해서도 다루었습니다.',
         keywords: ['Promise', 'async/await', '비동기', 'try-catch', 'Promise.all'],
         highlights: [

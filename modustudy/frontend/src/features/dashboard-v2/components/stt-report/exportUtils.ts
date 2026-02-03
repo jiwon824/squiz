@@ -14,7 +14,7 @@ const formatReportForLLM = (report: MeetingReport) => ({
         meeting_title: report.meetingTitle,
         date: report.date,
         duration: report.duration,
-        participant_count: report.participants.length,
+        participant_count: report.participantCount > 0 ? report.participantCount : report.participants.length,
         participants: report.participants,
     },
     analysis: {
