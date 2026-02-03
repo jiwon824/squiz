@@ -23,6 +23,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
@@ -276,9 +277,16 @@ public class GoogleCalendarService {
 
     /**
      * 세션-이벤트 매핑 저장
+     * REQUIRES_NEW: 캘린더 매핑 실패가 메인 트랜잭션에 영향 주지 않도록 분리
      */
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void saveEventMapping(Long sessionId, Long userId, String googleEventId) {
+        // 이미 매핑이 존재하면 스킵
+        if (mappingRepository.findBySessionIdAndUserId(sessionId, userId).isPresent()) {
+            log.debug("캘린더 매핑 이미 존재 - sessionId: {}, userId: {}", sessionId, userId);
+            return;
+        }
+
         StudySessionCalendarMapping mapping = StudySessionCalendarMapping.builder()
                 .sessionId(sessionId)
                 .userId(userId)
