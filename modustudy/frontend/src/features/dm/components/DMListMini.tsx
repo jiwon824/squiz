@@ -4,9 +4,7 @@ import { useDMStore } from '../store/dmStore';
 import { useAuthStore } from '@/store/authStore';
 import { BackButton } from '@/shared/components';
 import { cn } from '@/shared/utils/cn';
-
-// 기본 프로필 이미지 경로
-const DEFAULT_PROFILE_IMAGE = '/images/default-profile.png';
+import { getProfileImageUrl } from '@/shared/utils/profileImage';
 
 // URL을 클릭 가능한 링크로 변환하는 함수
 const renderMessageContent = (content: string) => {
@@ -139,7 +137,7 @@ const DMListMini: React.FC = () => {
                         'w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs overflow-hidden',
                         'bg-study-blue/10 text-study-blue'
                     )}>
-                        <img src={pendingDMUser.profileImage || DEFAULT_PROFILE_IMAGE} alt={pendingDMUser.nickname} className="w-full h-full object-cover" />
+                        <img src={getProfileImageUrl(pendingDMUser.profileImage)} alt={pendingDMUser.nickname} className="w-full h-full object-cover" />
                     </div>
                     <span className="font-bold text-sm">{pendingDMUser.nickname}</span>
                     <span className="text-xs text-green-500 ml-1">새 대화</span>
@@ -199,7 +197,7 @@ const DMListMini: React.FC = () => {
                         'w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs overflow-hidden',
                         'bg-study-blue/10 text-study-blue'
                     )}>
-                        <img src={currentConversation?.participantProfileImage || DEFAULT_PROFILE_IMAGE} alt={currentConversation?.participantNickname} className="w-full h-full object-cover" />
+                        <img src={getProfileImageUrl(currentConversation?.participantProfileImage)} alt={currentConversation?.participantNickname} className="w-full h-full object-cover" />
                     </div>
                     <span className="font-bold text-sm">{currentConversation?.participantNickname}</span>
                 </div>
@@ -225,7 +223,7 @@ const DMListMini: React.FC = () => {
                                             'bg-primary/10 text-primary'
                                         )}>
                                             <img
-                                                src={isReceiver ? (currentConversation?.participantProfileImage || DEFAULT_PROFILE_IMAGE) : DEFAULT_PROFILE_IMAGE}
+                                                src={getProfileImageUrl(isReceiver ? currentConversation?.participantProfileImage : null)}
                                                 alt={isReceiver ? currentConversation?.participantNickname : '나'}
                                                 className="w-full h-full object-cover"
                                             />
@@ -346,7 +344,7 @@ const DMListMini: React.FC = () => {
                                             'w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs overflow-hidden',
                                             'bg-study-blue/10 text-study-blue'
                                         )}>
-                                            <img src={dm.participantProfileImage || DEFAULT_PROFILE_IMAGE} alt={dm.participantNickname} className="w-full h-full object-cover" />
+                                            <img src={getProfileImageUrl(dm.participantProfileImage)} alt={dm.participantNickname} className="w-full h-full object-cover" />
                                         </div>
                                         <span className="text-sm font-bold text-gray-800">{dm.participantNickname}</span>
                                     </div>
