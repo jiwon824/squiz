@@ -41,6 +41,8 @@ public class SecurityConfig {
                         // SFU config for WebRTC clients
                         .requestMatchers("/api/v1/sfu/**").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
+                        // 소셜 계정 연동/해제는 인증 필요 (먼저 체크해야 함)
+                        .requestMatchers("/api/v1/auth/social/**").authenticated()
                         // 인증 없이 접근 가능
                         .requestMatchers("/api/v1/auth/**", "/oauth2/**", "/login/**").permitAll()
                         .requestMatchers("/api/v1/users").permitAll()
@@ -54,6 +56,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/study/**").permitAll()
                         .requestMatchers("/api/v1/workspaces/**").permitAll()
                         .requestMatchers("/api/v1/studies/**").permitAll()
+                        .requestMatchers("/api/v1/boards/**").permitAll()
                         .requestMatchers("/files/**").permitAll()
                         .requestMatchers("/api/v1/notifications/**").permitAll()
                         // 퀴즈 코스 (공개 조회)

@@ -1,78 +1,142 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { RecruitmentList } from './components/RecruitmentList';
 import { RecruitmentForm } from './components/RecruitmentForm';
 import { RecruitmentReportModal } from './components/RecruitmentReportModal';
-import { useRecruitmentStore } from './useRecruitmentStore';
 import {
     MessageSquare, Share2, MoreVertical, CheckCircle2,
     Users, Eye, Calendar, Tag, AlertTriangle
 } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
-import { Button, ArrowButton, Dropdown } from '@/shared/components';
+import { Button, ArrowButton, Dropdown, Modal } from '@/shared/components';
 import { getProfileImageUrl } from '@/shared/utils/profileImage';
+import { useAuthStore } from '@/store/authStore';
+import { useUIStore } from '@/store/uiStore';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import {
+    RecruitmentPostDetail,
+    RecruitmentPostSummary,
+    RecruitmentStudy,
+    addRecruitmentComment,
+    deleteRecruitmentPost,
+    getRecruitingStudiesForBoard,
+    getRecruitmentPostDetail,
+    getRecruitmentPosts,
+} from '@/api/endpoints/boardApi';
 
 type ViewMode = 'list' | 'create' | 'edit' | 'detail';
 
-// 카테고리 한글 매핑
-const categoryLabel: Record<string, string> = {
-    study: '스터디',
-    project: '프로젝트',
-    mentoring: '멘토링',
-};
-
-// 카테고리 색상 매핑
-const categoryColor: Record<string, string> = {
-    study: 'bg-[var(--color-primary-alpha-10)] text-[var(--color-primary)]',
-    project: 'bg-[rgba(34,197,94,0.1)] text-[#22c55e]',
-    mentoring: 'bg-[rgba(168,85,247,0.1)] text-[#a855f7]',
-};
 
 export const RecruitmentPage = () => {
+    const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const currentUser = useAuthStore((state) => state.user);
+    const { showToast } = useUIStore();
     const [viewMode, setViewMode] = useState<ViewMode>('list');
-    const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+    const [posts, setPosts] = useState<RecruitmentPostSummary[]>([]);
+    const [selectedPostId, setSelectedPostId] = useState<number | null>(null);
+    const [selectedPost, setSelectedPost] = useState<RecruitmentPostDetail | null>(null);
+    const [availableStudies, setAvailableStudies] = useState<RecruitmentStudy[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [commentInput, setCommentInput] = useState('');
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
-    const [reportTargetId, setReportTargetId] = useState<string | null>(null);
-    const { posts, deletePost, toggleComplete, report } = useRecruitmentStore();
+    const [reportTargetId, setReportTargetId] = useState<number | null>(null);
+    const [showNoStudyModal, setShowNoStudyModal] = useState(false);
 
-    const selectedPost = posts.find(p => p.id === selectedPostId);
-
-    // Handlers
-    const handleDetail = (id: string) => {
-        setSelectedPostId(id);
-        setViewMode('detail');
-    };
-
-    const handleEdit = (id: string) => {
-        setSelectedPostId(id);
-        setViewMode('edit');
-    };
-
-    const handleDelete = (id: string) => {
-        if (confirm('정말로 이 게시글을 삭제하시겠습니까?')) {
-            deletePost(id);
-            setViewMode('list');
+    const loadPosts = async () => {
+        setIsLoading(true);
+        try {
+            const page = await getRecruitmentPosts({ page: 0, size: 50 });
+            setPosts(page.content || []);
+        } finally {
+            setIsLoading(false);
         }
     };
 
-    const handleReport = (id: string) => {
+    const loadPostDetail = async (id: number) => {
+        const detail = await getRecruitmentPostDetail(id);
+        setSelectedPost(detail);
+    };
+
+    useEffect(() => {
+        loadPosts();
+    }, []);
+
+    useEffect(() => {
+        const postIdParam = searchParams.get('postId');
+        if (!postIdParam) return;
+        const parsedId = Number(postIdParam);
+        if (Number.isNaN(parsedId)) return;
+        void handleDetail(parsedId);
+    }, [searchParams]);
+
+    // Handlers
+    const handleDetail = async (id: number) => {
+        setSelectedPostId(id);
+        await loadPostDetail(id);
+        setViewMode('detail');
+    };
+
+    const handleEdit = (id: number) => {
+        setSelectedPostId(id);
+        if (selectedPost) {
+            setAvailableStudies([
+                {
+                    id: selectedPost.studyId,
+                    name: selectedPost.studyName,
+                    topicName: selectedPost.topicName,
+                    studyType: selectedPost.studyType,
+                    meetingType: selectedPost.meetingType,
+                    maxMembers: selectedPost.maxMembers,
+                    currentMembers: selectedPost.currentMembers,
+                    status: selectedPost.studyStatus,
+                },
+            ]);
+        }
+        setViewMode('edit');
+    };
+
+    const handleDelete = async (id: number) => {
+        if (confirm('정말로 이 게시글을 삭제하시겠습니까?')) {
+            await deleteRecruitmentPost(id);
+            setViewMode('list');
+            loadPosts();
+        }
+    };
+
+    const handleReport = (id: number) => {
         setReportTargetId(id);
         setIsReportModalOpen(true);
     };
 
-    const handleShareLink = () => {
-        navigator.clipboard.writeText(window.location.href);
+    const handleShareLink = async () => {
+        if (!selectedPost) return;
+        const shareUrl = `${window.location.origin}/recruitment?postId=${selectedPost.id}`;
+        await navigator.clipboard.writeText(shareUrl);
+        showToast('링크가 복사되었습니다.', 'success');
     };
 
     const submitReport = (reason: string) => {
         if (reportTargetId) {
-            report({
-                targetId: reportTargetId,
-                targetType: 'post',
-                reason,
-                reporterId: 'me'
-            });
+            console.log('Report submitted:', { targetId: reportTargetId, reason });
         }
+    };
+
+    const handleAdd = async () => {
+        const studies = await getRecruitingStudiesForBoard();
+        if (!studies.length) {
+            setShowNoStudyModal(true);
+            return;
+        }
+        setAvailableStudies(studies);
+        setViewMode('create');
+    };
+
+    const handleCommentSubmit = async () => {
+        if (!selectedPost || !commentInput.trim()) return;
+        await addRecruitmentComment(selectedPost.id, { content: commentInput.trim() });
+        setCommentInput('');
+        await loadPostDetail(selectedPost.id);
     };
 
     return (
@@ -82,8 +146,9 @@ export const RecruitmentPage = () => {
                 {/* 1. List Mode */}
                 {viewMode === 'list' && (
                     <RecruitmentList
+                        posts={posts}
                         onDetail={handleDetail}
-                        onAdd={() => setViewMode('create')}
+                        onAdd={handleAdd}
                         onReport={handleReport}
                     />
                 )}
@@ -92,8 +157,12 @@ export const RecruitmentPage = () => {
                 {(viewMode === 'create' || viewMode === 'edit') && (
                     <RecruitmentForm
                         initialData={viewMode === 'edit' ? selectedPost : null}
+                        studies={availableStudies}
                         onCancel={() => setViewMode('list')}
-                        onSuccess={() => setViewMode('list')}
+                        onSuccess={() => {
+                            setViewMode('list');
+                            loadPosts();
+                        }}
                     />
                 )}
 
@@ -124,17 +193,17 @@ export const RecruitmentPage = () => {
                                     <div className="flex flex-wrap items-center gap-2">
                                         <span className={cn(
                                             "px-3 py-1 rounded-full text-xs font-bold",
-                                            selectedPost.isCompleted
+                                            !['SCHEDULED', 'RECRUITING', 'PENDING'].includes(selectedPost.studyStatus)
                                                 ? "bg-[var(--color-text-tertiary)] text-white"
                                                 : "bg-[var(--color-success)] text-white"
                                         )}>
-                                            {selectedPost.isCompleted ? '모집 완료' : '모집중'}
+                                            {!['SCHEDULED', 'RECRUITING', 'PENDING'].includes(selectedPost.studyStatus) ? '모집 완료' : '모집중'}
                                         </span>
                                         <span className={cn(
                                             "px-3 py-1 rounded-full text-xs font-semibold",
-                                            categoryColor[selectedPost.category]
+                                            "bg-[var(--color-primary-alpha-10)] text-[var(--color-primary)]"
                                         )}>
-                                            # {categoryLabel[selectedPost.category]}
+                                            # {selectedPost.topicName || '기타'}
                                         </span>
                                     </div>
 
@@ -176,31 +245,40 @@ export const RecruitmentPage = () => {
                                     </div>
                                 </div>
 
-                                {/* 타이틀 */}
-                                <h1 className="text-2xl md:text-3xl font-bold text-[var(--color-text-primary)] mb-4 leading-tight">
-                                    {selectedPost.title}
-                                </h1>
-
-                                {/* 작성자 정보 */}
-                                <div className="flex items-center gap-3">
-                                    <img
-                                        src={getProfileImageUrl(selectedPost.authorAvatar)}
-                                        alt=""
-                                        className="w-10 h-10 rounded-xl border border-[var(--color-border)] object-cover"
-                                    />
-                                    <div>
-                                        <p className="text-sm font-bold text-[var(--color-text-primary)]">
-                                            {selectedPost.authorName}
-                                        </p>
-                                        <p className="text-xs text-[var(--color-text-tertiary)]">
+                                <div className="flex flex-col gap-4">
+                                    <div className="flex flex-wrap items-start justify-between gap-3">
+                                        {/* 타이틀 */}
+                                        <h1 className="text-2xl md:text-3xl font-extrabold text-[var(--color-text-primary)] leading-tight">
+                                            {selectedPost.title}
+                                        </h1>
+                                        <span className="inline-flex items-center px-3 py-1 rounded-full bg-[var(--color-background-secondary)] text-xs font-semibold text-[var(--color-text-secondary)]">
                                             {new Date(selectedPost.createdAt).toLocaleDateString('ko-KR', {
                                                 year: 'numeric',
                                                 month: 'long',
                                                 day: 'numeric'
                                             })}
-                                        </p>
+                                        </span>
+                                    </div>
+
+                                    {/* 작성자 정보 */}
+                                    <div className="flex items-center gap-3 text-sm text-[var(--color-text-tertiary)]">
+                                        <img
+                                            src={getProfileImageUrl(selectedPost.authorProfileImage)}
+                                            alt=""
+                                            className="w-12 h-12 rounded-full border border-white shadow-md object-cover"
+                                        />
+                                        <span className="text-base font-bold text-[var(--color-text-primary)]">
+                                            {selectedPost.authorName}
+                                        </span>
                                     </div>
                                 </div>
+                                {!['SCHEDULED', 'RECRUITING', 'PENDING'].includes(selectedPost.studyStatus) && (
+                                    <div className="mt-4 mb-2">
+                                        <span className="inline-flex items-center px-4 py-2 rounded-2xl text-sm md:text-base font-extrabold bg-[var(--color-error)] text-white shadow-lg shadow-[var(--color-error)]/30">
+                                            모집 완료
+                                        </span>
+                                    </div>
+                                )}
                             </div>
 
                             {/* 구분선 */}
@@ -226,8 +304,8 @@ export const RecruitmentPage = () => {
                                                 모집 인원
                                             </p>
                                             <p className="text-sm font-bold text-[var(--color-text-primary)] flex items-center gap-2">
-                                                <span>{selectedPost.memberCount} / {selectedPost.maxMembers}명</span>
-                                                {selectedPost.memberCount >= selectedPost.maxMembers && (
+                                                <span>{selectedPost.currentMembers} / {selectedPost.maxMembers ?? '-'}명</span>
+                                                {!!selectedPost.maxMembers && selectedPost.currentMembers >= selectedPost.maxMembers && (
                                                     <span className="px-2 py-0.5 bg-[var(--color-error-light)] text-[var(--color-error)] text-xs font-bold rounded">
                                                         마감
                                                     </span>
@@ -246,7 +324,7 @@ export const RecruitmentPage = () => {
                                                 조회수
                                             </p>
                                             <p className="text-sm font-bold text-[var(--color-text-primary)]">
-                                                {selectedPost.views}회
+                                                {selectedPost.viewCount}회
                                             </p>
                                         </div>
                                     </div>
@@ -261,7 +339,7 @@ export const RecruitmentPage = () => {
                                                 카테고리
                                             </p>
                                             <p className="text-sm font-bold text-[var(--color-text-primary)]">
-                                                {categoryLabel[selectedPost.category]}
+                                                {selectedPost.topicName || '기타'}
                                             </p>
                                         </div>
                                     </div>
@@ -283,18 +361,14 @@ export const RecruitmentPage = () => {
                                 </div>
 
                                 {/* 태그 */}
-                                {selectedPost.tags.length > 0 && (
-                                    <div className="flex flex-wrap gap-2 mt-8">
-                                        {selectedPost.tags.map(tag => (
-                                            <span
-                                                key={tag}
-                                                className="px-3 py-1 rounded-full text-xs font-semibold bg-[var(--color-background-secondary)] text-[var(--color-text-secondary)]"
-                                            >
-                                                # {tag}
-                                            </span>
-                                        ))}
-                                    </div>
-                                )}
+                                <div className="flex flex-wrap gap-2 mt-8">
+                                    <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[var(--color-background-secondary)] text-[var(--color-text-secondary)]">
+                                        {selectedPost.studyName}
+                                    </span>
+                                    <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[var(--color-background-secondary)] text-[var(--color-text-secondary)]">
+                                        {selectedPost.meetingType}
+                                    </span>
+                                </div>
                             </div>
 
                             {/* 구분선 */}
@@ -312,49 +386,58 @@ export const RecruitmentPage = () => {
                                 <div className="text-[var(--color-text-secondary)] leading-relaxed whitespace-pre-wrap">
                                     {selectedPost.content}
                                 </div>
+
+                                {['SCHEDULED', 'RECRUITING', 'PENDING'].includes(selectedPost.studyStatus) && (
+                                    <div className="mt-8 flex justify-end">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => navigate(`/study/${selectedPost.studyId}`)}
+                                            className="rounded-xl px-5 py-2.5 text-sm font-bold bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 hover:-translate-y-0.5 hover:bg-emerald-600 hover:shadow-emerald-500/40 transition-all"
+                                        >
+                                            지원하러 가기
+                                        </Button>
+                                    </div>
+                                )}
                             </div>
 
                             {/* 구분선 */}
                             <div className="mx-6 md:mx-8 border-t-2 border-gray-200" />
 
                             {/* 게시글 관리 (작성자용) */}
-                            <div className="p-6 md:p-8">
-                                <div className="p-5 bg-[var(--color-background)] rounded-xl border border-[var(--color-border-lighter)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                                    <div className="flex items-center gap-3">
-                                        <CheckCircle2 className="text-[var(--color-primary)]" size={22} />
-                                        <span className="font-bold text-[var(--color-text-primary)] text-sm">작성한 게시글 관리</span>
+                            {currentUser?.id === selectedPost.authorId && (
+                                <>
+                                    <div className="p-6 md:p-8">
+                                        <div className="p-5 bg-[var(--color-background)] rounded-xl border border-[var(--color-border-lighter)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                            <div className="flex items-center gap-3">
+                                                <CheckCircle2 className="text-[var(--color-primary)]" size={22} />
+                                                <span className="font-bold text-[var(--color-text-primary)] text-sm">작성한 게시글 관리</span>
+                                            </div>
+                                            <div className="flex gap-2 flex-wrap">
+                                                <Button
+                                                    variant="google-outline"
+                                                    size="sm"
+                                                    onClick={() => handleEdit(selectedPost.id)}
+                                                    className="text-sm text-[var(--color-primary)] hover:bg-[var(--color-primary-alpha-5)]"
+                                                >
+                                                    수정
+                                                </Button>
+                                                <Button
+                                                    variant="google-outline"
+                                                    size="sm"
+                                                    onClick={() => handleDelete(selectedPost.id)}
+                                                    className="text-sm text-[var(--color-error)] hover:bg-[var(--color-error-light)]"
+                                                >
+                                                    삭제
+                                                </Button>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="flex gap-2 flex-wrap">
-                                        <Button
-                                            variant="google-outline"
-                                            size="sm"
-                                            onClick={() => toggleComplete(selectedPost.id)}
-                                            className="text-sm"
-                                        >
-                                            {selectedPost.isCompleted ? '모집 재개' : '모집 완료'}
-                                        </Button>
-                                        <Button
-                                            variant="google-outline"
-                                            size="sm"
-                                            onClick={() => handleEdit(selectedPost.id)}
-                                            className="text-sm text-[var(--color-primary)] hover:bg-[var(--color-primary-alpha-5)]"
-                                        >
-                                            수정
-                                        </Button>
-                                        <Button
-                                            variant="google-outline"
-                                            size="sm"
-                                            onClick={() => handleDelete(selectedPost.id)}
-                                            className="text-sm text-[var(--color-error)] hover:bg-[var(--color-error-light)]"
-                                        >
-                                            삭제
-                                        </Button>
-                                    </div>
-                                </div>
-                            </div>
 
-                            {/* 구분선 */}
-                            <div className="mx-6 md:mx-8 border-t-2 border-gray-200" />
+                                    {/* 구분선 */}
+                                    <div className="mx-6 md:mx-8 border-t-2 border-gray-200" />
+                                </>
+                            )}
 
                             {/* 댓글 섹션 */}
                             <div className="p-6 md:p-8">
@@ -365,24 +448,89 @@ export const RecruitmentPage = () => {
                                     문의 및 댓글
                                 </h2>
 
-                                <div className="bg-[var(--color-background)] border border-[var(--color-border-lighter)] rounded-xl p-4">
-                                    <textarea
-                                        placeholder="관심 있으시다면 간단한 소개와 함께 댓글을 남겨주세요."
-                                        className="w-full outline-none resize-none text-sm leading-relaxed bg-transparent"
-                                        rows={3}
-                                    />
-                                    <div className="flex justify-end pt-3 border-t border-[var(--color-border-lighter)]">
-                                        <Button variant="primary" size="sm" className="rounded-lg">
-                                            댓글 등록
-                                        </Button>
+                                {['SCHEDULED', 'RECRUITING', 'PENDING'].includes(selectedPost.studyStatus) ? (
+                                    <div className="bg-[var(--color-background)] border border-[var(--color-border-lighter)] rounded-xl p-4">
+                                        <textarea
+                                            placeholder="관심 있으시다면 간단한 소개와 함께 댓글을 남겨주세요."
+                                            value={commentInput}
+                                            onChange={(e) => setCommentInput(e.target.value)}
+                                            className="w-full outline-none resize-none text-sm leading-relaxed bg-transparent"
+                                            rows={3}
+                                        />
+                                        <div className="flex justify-end pt-3 border-t border-[var(--color-border-lighter)]">
+                                            <Button variant="primary" size="sm" className="rounded-lg" onClick={handleCommentSubmit}>
+                                                댓글 등록
+                                            </Button>
+                                        </div>
                                     </div>
-                                </div>
+                                ) : (
+                                    <div className="bg-[var(--color-background-secondary)] border border-[var(--color-border-lighter)] rounded-xl p-4 text-sm text-[var(--color-text-secondary)]">
+                                        모집이 완료되어 댓글 작성이 비활성화되었습니다.
+                                    </div>
+                                )}
+                                {selectedPost.comments.length > 0 && (
+                                    <div className="mt-6 space-y-4">
+                                        {[...selectedPost.comments]
+                                            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                                            .map((comment) => (
+                                            <div key={comment.id} className="flex gap-3">
+                                                <img
+                                                    src={getProfileImageUrl(comment.authorProfileImage)}
+                                                    alt=""
+                                                    className="w-8 h-8 rounded-lg border border-[var(--color-border)] object-cover"
+                                                />
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-sm font-semibold text-[var(--color-text-primary)]">
+                                                            {comment.authorName}
+                                                        </span>
+                                                        <span className="text-xs text-[var(--color-text-tertiary)]">
+                                                            {new Date(comment.createdAt).toLocaleDateString('ko-KR')}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-sm text-[var(--color-text-secondary)] mt-1 whitespace-pre-wrap">
+                                                        {comment.content}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
                 )}
 
                 {/* Report Modal */}
+                <Modal
+                    isOpen={showNoStudyModal}
+                    onClose={() => setShowNoStudyModal(false)}
+                    title="모집글 작성 불가"
+                    maxWidth="sm"
+                >
+                    <p className="text-sm text-[var(--color-text-secondary)]">
+                        현재 모집중인 스터디가 없어 글 작성이 불가능합니다.
+                    </p>
+                    <div className="flex gap-2 mt-6">
+                        <Button
+                            variant="google-outline"
+                            size="sm"
+                            onClick={() => setShowNoStudyModal(false)}
+                            className="flex-1"
+                        >
+                            취소
+                        </Button>
+                        <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={() => navigate('/study/create')}
+                            className="flex-1"
+                        >
+                            스터디 만들기
+                        </Button>
+                    </div>
+                </Modal>
+
                 <RecruitmentReportModal
                     isOpen={isReportModalOpen}
                     onClose={() => setIsReportModalOpen(false)}

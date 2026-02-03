@@ -1,12 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
     Users, Clock, MapPin,
     Target, Award, AlertTriangle, Share2,
     BookOpen, Monitor, Handshake, Layers, MoreVertical,
-    Calendar, CalendarDays, Bookmark, FileText, GraduationCap, Info, Loader2, Pencil, Quote, Trash2, Star,
+    Calendar, CalendarDays, Bookmark, FileText, GraduationCap, Info, Pencil, Quote, Trash2, Star,
     CalendarPlus, UserMinus, CheckCircle
 } from 'lucide-react';
+import { PageSpinner, ButtonSpinner } from '@/shared/components/Spinner';
+import { CurriculumRoadmap, CurriculumStop } from './CurriculumRoadmap';
 import { useAuthStore } from '@/store/authStore';
 import { studyService, Study } from '../services/studyService';
 import { studyApi, getStudySessions, StudySessionItem, deleteStudy, getLeaderReviews, getLeaderInfo, LeaderReviewResponse, LeaderInfoResponse, getProvinces, getDistricts, getMyLeaderReview } from '@/api/endpoints/studyApi';
@@ -237,9 +239,7 @@ const StudyDetailPageV3: React.FC = () => {
     if (isLoading) {
         return (
             <UserLayoutV2>
-                <div className="flex items-center justify-center min-h-[60vh]">
-                    <Loader2 size={40} className="animate-spin text-[var(--color-primary)]" />
-                </div>
+                <PageSpinner label="스터디 정보를 불러오는 중..." />
             </UserLayoutV2>
         );
     }
@@ -820,78 +820,7 @@ const StudyDetailPageV3: React.FC = () => {
                                     </h2>
 
                                     {sessions.length > 0 ? (
-                                        <div className="relative pl-8">
-                                            {/* 타임라인 세로선 */}
-                                            <div className="absolute left-[11px] top-2 bottom-2 w-0.5 bg-[var(--color-border)]" />
-
-                                            <div className="space-y-6">
-                                                {sessions
-                                                    .sort((a, b) => a.sessionNumber - b.sessionNumber)
-                                                    .map((session, index) => (
-                                                    <div
-                                                        key={session.id}
-                                                        className="relative flex items-start gap-4"
-                                                    >
-                                                        {/* 타임라인 dot */}
-                                                        <div className={cn(
-                                                            "absolute -left-8 top-1 w-6 h-6 rounded-full flex items-center justify-center border-2 z-10",
-                                                            session.status === 'COMPLETED'
-                                                                ? "bg-[var(--color-success)] border-[var(--color-success)]"
-                                                                : session.status === 'IN_PROGRESS'
-                                                                ? "bg-[var(--color-primary)] border-[var(--color-primary)] animate-pulse"
-                                                                : "bg-white border-[var(--color-border)]"
-                                                        )}>
-                                                            {session.status === 'COMPLETED' ? (
-                                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
-                                                                    <polyline points="20 6 9 17 4 12" />
-                                                                </svg>
-                                                            ) : (
-                                                                <span className={cn(
-                                                                    "text-[10px] font-bold",
-                                                                    session.status === 'IN_PROGRESS'
-                                                                        ? "text-white"
-                                                                        : "text-[#4285F4]"
-                                                                )}>
-                                                                    {session.sessionNumber}
-                                                                </span>
-                                                            )}
-                                                        </div>
-
-                                                        {/* 내용 */}
-                                                        <div className={cn(
-                                                            "flex-1 pb-2",
-                                                            index !== sessions.length - 1 && "border-b border-[var(--color-border-lighter)]"
-                                                        )}>
-                                                            <div className="flex items-center justify-between gap-2 mb-1">
-                                                                <div className="flex items-center gap-2">
-                                                                    {session.scheduledAt && (
-                                                                        <span className="text-xs text-[var(--color-text-tertiary)]">
-                                                                            {new Date(session.scheduledAt).toLocaleDateString('ko-KR', {
-                                                                                month: 'short', day: 'numeric'
-                                                                            })}
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-                                                                {session.status === 'COMPLETED' && (
-                                                                    <span className="text-xs font-bold text-[var(--color-success)]">완료</span>
-                                                                )}
-                                                                {session.status === 'IN_PROGRESS' && (
-                                                                    <span className="text-xs font-bold text-[var(--color-primary)]">진행중</span>
-                                                                )}
-                                                            </div>
-                                                            {session.title && (
-                                                                <p className="text-[var(--color-text-primary)] font-semibold mb-1">
-                                                                    {session.title}
-                                                                </p>
-                                                            )}
-                                                            <p className="text-[var(--color-text-secondary)] text-sm leading-relaxed">
-                                                                {session.description || '내용 없음'}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
+                                        <CurriculumRoadmapSection sessions={sessions} />
                                     ) : (
                                         <div className="text-center py-8 text-[var(--color-text-secondary)]">
                                             <Award size={40} className="mx-auto mb-3 text-[var(--color-text-muted)]" />
@@ -1071,7 +1000,7 @@ const StudyDetailPageV3: React.FC = () => {
                             >
                                 {isDeleting ? (
                                     <span className="flex items-center gap-2">
-                                        <Loader2 size={16} className="animate-spin" />
+                                        <ButtonSpinner />
                                         삭제 중...
                                     </span>
                                 ) : '삭제'}
@@ -1112,7 +1041,7 @@ const StudyDetailPageV3: React.FC = () => {
                             >
                                 {isLeavingStudy ? (
                                     <span className="flex items-center gap-2">
-                                        <Loader2 size={16} className="animate-spin" />
+                                        <ButtonSpinner />
                                         처리 중...
                                     </span>
                                 ) : '불참 (탈퇴)'}
@@ -1130,6 +1059,54 @@ const StudyDetailPageV3: React.FC = () => {
                 </div>
             )}
         </UserLayoutV2>
+    );
+};
+
+// 커리큘럼 로드맵 섹션 컴포넌트 (sessions → CurriculumStop 변환)
+const CurriculumRoadmapSection: React.FC<{ sessions: StudySessionItem[] }> = ({ sessions }) => {
+    // sessions 데이터를 CurriculumStop 형식으로 변환
+    const curriculum: CurriculumStop[] = useMemo(() => {
+        return sessions
+            .sort((a, b) => a.sessionNumber - b.sessionNumber)
+            .map(session => ({
+                session: session.sessionNumber,
+                title: session.title || `${session.sessionNumber}회차`,
+                date: session.scheduledAt
+                    ? new Date(session.scheduledAt).toLocaleDateString('ko-KR', {
+                        month: 'short',
+                        day: 'numeric'
+                    })
+                    : '미정',
+                description: session.description,
+                isCompleted: session.status === 'COMPLETED',
+                scheduledAt: session.scheduledAt, // 시간 기반 상태 판단용 원본 날짜
+                durationMinutes: session.durationMinutes, // 세션 종료 시간 계산용
+                status: session.status // 백엔드 상태 (워크스페이스 연동)
+            }));
+    }, [sessions]);
+
+    // 현재 진행 중인 세션 번호 계산
+    const currentSession = useMemo(() => {
+        // IN_PROGRESS 상태의 세션 찾기
+        const inProgress = sessions.find(s => s.status === 'IN_PROGRESS');
+        if (inProgress) return inProgress.sessionNumber;
+
+        // 없으면 첫 번째 미완료 세션
+        const sortedSessions = [...sessions].sort((a, b) => a.sessionNumber - b.sessionNumber);
+        const firstIncomplete = sortedSessions.find(s => s.status !== 'COMPLETED');
+        if (firstIncomplete) return firstIncomplete.sessionNumber;
+
+        // 모두 완료면 마지막 세션
+        return sortedSessions[sortedSessions.length - 1]?.sessionNumber || 1;
+    }, [sessions]);
+
+    return (
+        <div className="rounded-2xl p-4 overflow-x-auto">
+            <CurriculumRoadmap
+                curriculum={curriculum}
+                currentSession={currentSession}
+            />
+        </div>
     );
 };
 

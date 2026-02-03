@@ -113,12 +113,13 @@ data class DiscussedTopicDTO(
 // ========== 녹음 관련 ==========
 
 /**
- * 녹음 시작 요청
+ * 녹음 시작 요청 (미팅 생성)
+ * studyId는 URL path로 전달되므로 body에서 제외
  */
 data class RecordingStartRequest(
-    @SerializedName("studyId") val studyId: Long,
+    @SerializedName("title") val title: String? = null,
     @SerializedName("sessionId") val sessionId: Long? = null,
-    @SerializedName("title") val title: String? = null
+    @SerializedName("type") val type: String = "OFFLINE" // OFFLINE, ONLINE
 )
 
 /**
@@ -168,4 +169,58 @@ data class LocalRecordingState(
     val startTime: Long = 0,
     val elapsedSeconds: Long = 0,
     val audioFilePath: String? = null
+)
+
+/**
+ * 회의 종료 응답 DTO
+ */
+data class MeetingEndDTO(
+    @SerializedName("id") val id: Long,
+    @SerializedName("studyId") val studyId: Long,
+    @SerializedName("status") val status: String,
+    @SerializedName("endedAt") val endedAt: String? = null,
+    @SerializedName("durationSeconds") val durationSeconds: Long? = null
+)
+
+/**
+ * 녹취록 항목 DTO
+ */
+data class TranscriptItemDTO(
+    @SerializedName("id") val id: Long? = null,
+    @SerializedName("userId") val userId: Long? = null,
+    @SerializedName("nickname") val nickname: String? = null,
+    @SerializedName("content") val content: String,
+    @SerializedName("timestampSeconds") val timestampSeconds: Int = 0,
+    @SerializedName("createdAt") val createdAt: String? = null
+) {
+    // 타임스탬프 포맷 (MM:SS)
+    val formattedTimestamp: String
+        get() {
+            val mins = timestampSeconds / 60
+            val secs = timestampSeconds % 60
+            return String.format("%02d:%02d", mins, secs)
+        }
+}
+
+/**
+ * 미팅용 퀴즈 DTO (문제 목록 포함)
+ */
+data class MeetingQuizDTO(
+    @SerializedName("id") val id: Long,
+    @SerializedName("title") val title: String? = null,
+    @SerializedName("description") val description: String? = null,
+    @SerializedName("questionCount") val questionCount: Int = 0,
+    @SerializedName("createdAt") val createdAt: String? = null,
+    @SerializedName("questions") val questions: List<QuizQuestionDTO>? = null
+)
+
+/**
+ * 퀴즈 문제 DTO
+ */
+data class QuizQuestionDTO(
+    @SerializedName("id") val id: Long,
+    @SerializedName("question") val question: String,
+    @SerializedName("options") val options: List<String>,
+    @SerializedName("correctIndex") val correctIndex: Int,
+    @SerializedName("explanation") val explanation: String? = null
 )

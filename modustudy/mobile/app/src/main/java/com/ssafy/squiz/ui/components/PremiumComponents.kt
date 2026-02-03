@@ -96,7 +96,7 @@ fun GlassCard(
     ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxSize()  // fillMaxWidth → fillMaxSize로 변경하여 높이도 확장
                 .border(
                     width = 1.dp,
                     color = Color.White.copy(alpha = 0.3f),

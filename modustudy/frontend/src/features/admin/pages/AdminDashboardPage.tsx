@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
-import { Loader2, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
+import { Spinner } from '@/shared/components/Spinner';
 import { useAdminStore } from '../store/adminStore';
 import SummaryCards from '../components/SummaryCards';
 import UserSignupChart from '../components/UserSignupChart';
@@ -31,8 +32,7 @@ const AdminDashboardPage: React.FC = () => {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
                 <div className="flex items-center gap-3 text-gray-600">
-                    <Loader2 className="w-6 h-6 animate-spin" />
-                    <span>대시보드 로딩중...</span>
+                    <Spinner size="md" label="대시보드 로딩중..." />
                 </div>
             </div>
         );

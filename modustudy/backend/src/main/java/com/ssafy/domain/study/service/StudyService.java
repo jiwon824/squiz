@@ -539,12 +539,17 @@ public class StudyService {
         Map<Long, User> leaderMap = userRepository.findAllById(leaderIds).stream()
                 .collect(java.util.stream.Collectors.toMap(User::getId, u -> u));
 
-        // 7. 정렬 및 페이징 후 DTO 변환 (스터디장 정보 포함)
+        // 7. 정렬 및 페이징 후 DTO 변환 (스터디장 정보 + isLeader 포함)
         List<StudyResponse> sortedResponses = allStudies.stream()
                 .sorted(Comparator.comparing(Study::getCreatedAt).reversed())
                 .skip(pageable.getOffset())
                 .limit(pageable.getPageSize())
-                .map(study -> StudyResponse.from(study, leaderMap.get(study.getLeaderId())))
+                .map(study -> {
+                    StudyResponse response = StudyResponse.from(study, leaderMap.get(study.getLeaderId()));
+                    // 현재 사용자가 스터디장인지 여부 설정
+                    response.setIsLeader(userId.equals(study.getLeaderId()));
+                    return response;
+                })
                 .toList();
 
         log.info("내 스터디 목록 조회 완료 - userId: {}, status: {}, count: {}", userId, status, allStudies.size());

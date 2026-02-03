@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { getDaysInMonth, getWeeklyDays, getTodayString } from '@/features/calendar/utils';
 import { WorkspaceCalendarDay } from './WorkspaceCalendarDay';
 import type { UnifiedSchedule } from '@/features/calendar';
+import { Spinner } from '@/shared/components/Spinner';
 
 interface WorkspaceCalendarProps {
   currentDate: Date;
@@ -88,8 +89,8 @@ export const WorkspaceCalendar: React.FC<WorkspaceCalendarProps> = ({
 
   if (loading) {
     return (
-      <div className={`flex items-center justify-center min-h-[400px] ${className}`}>
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500" />
+      <div className={className}>
+        <Spinner variant="center" size="lg" />
       </div>
     );
   }

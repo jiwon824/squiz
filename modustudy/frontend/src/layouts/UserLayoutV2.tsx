@@ -11,10 +11,12 @@ import { useNotificationStore } from '@/features/notification/store/notification
 import { useGamificationStore } from '@/features/gamification/store/gamificationStore';
 import { LevelUpModal, LevelBadge } from '@/features/gamification/components';
 import { SquizLogoNew } from '@/shared/components/SquizLogoNew';
-import { Bell, User, Settings, LogOut, Check, X, Loader2 } from 'lucide-react';
+import { Bell, User, Settings, LogOut, Check, X } from 'lucide-react';
+import { ButtonSpinner } from '@/shared/components/Spinner';
 import { studyApi } from '@/api/endpoints/studyApi';
 import { cn } from '@/shared/utils/cn';
 import { getProfileImageUrl, DEFAULT_PROFILE_IMAGE } from '@/shared/utils/profileImage';
+import { TopProgressBar } from '@/shared/components/loading';
 
 // 반응형 브레이크포인트 기준값 (CSS 논리 픽셀 기준, 브라우저 확대/축소 자동 반영)
 const BREAKPOINTS = {
@@ -228,6 +230,9 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEntering
             isEnteringFromDashboard && "layout-entering-from-dashboard",
             isEnteringFromQuiz && "layout-entering-from-quiz"
         )}>
+            {/* 상단 로딩 게이지바 */}
+            <TopProgressBar />
+
             {/* 헤더 - 회의 룸에서는 숨김 */}
             {!shouldHideHeader && (
                 <header className={cn(
@@ -344,16 +349,19 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEntering
                                                                     case 'STUDY':
                                                                         navigate(`/study/${referenceId}`);
                                                                         break;
-                                                                    case 'STUDY_SESSION':
-                                                                    case 'MEETING':
-                                                                    navigate(`/study/${referenceId}/workspace`);
-                                                                    break;
-                                                                case 'SCHEDULE':
-                                                                    navigate('/calendar');
-                                                                    break;
-                                                            }
+                                                            case 'STUDY_SESSION':
+                                                            case 'MEETING':
+                                                            navigate(`/study/${referenceId}/workspace`);
+                                                            break;
+                                                            case 'SCHEDULE':
+                                                                navigate('/calendar');
+                                                                break;
+                                                            case 'RECRUITMENT_POST':
+                                                                navigate(`/recruitment?postId=${referenceId}`);
+                                                                break;
                                                         }
-                                                    }}
+                                                    }
+                                                }}
                                                     className={cn(
                                                         'px-4 py-3 border-b border-gray-50 cursor-pointer transition-colors',
                                                         'hover:bg-gray-50',
@@ -414,7 +422,7 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEntering
                                                                         className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors disabled:opacity-50"
                                                                     >
                                                                         {leavingStudyId === notification.referenceId ? (
-                                                                            <Loader2 size={14} className="animate-spin" />
+                                                                            <ButtonSpinner />
                                                                         ) : (
                                                                             <X size={14} />
                                                                         )}

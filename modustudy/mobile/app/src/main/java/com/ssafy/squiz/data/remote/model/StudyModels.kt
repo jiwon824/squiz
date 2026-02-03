@@ -229,4 +229,39 @@ data class StudySessionDTO(
             meetingUrl = null
         )
     }
+
+    // SessionDTO로 변환 (세션 상세 화면용)
+    fun toSessionDTO(studyName: String? = null, isLeader: Boolean = false): SessionDTO {
+        val dateTime = scheduledAt?.let {
+            try {
+                java.time.LocalDateTime.parse(it)
+            } catch (e: Exception) {
+                // 다른 형식 시도 (예: "2025-02-14T09:00:00.000")
+                try {
+                    java.time.LocalDateTime.parse(it.take(19))
+                } catch (e2: Exception) {
+                    null
+                }
+            }
+        }
+        val startTimeStr = dateTime?.toLocalTime()?.toString()?.take(5) ?: ""
+        val endTimeStr = durationMinutes?.let { minutes ->
+            dateTime?.plusMinutes(minutes.toLong())?.toLocalTime()?.toString()?.take(5)
+        } ?: ""
+
+        return SessionDTO(
+            id = id,
+            studyId = studyId,
+            studyName = studyName ?: this.studyName ?: "스터디 #$studyId",
+            title = title,
+            description = description,
+            startTime = startTimeStr,
+            endTime = endTimeStr,
+            location = location,
+            isOnline = isOnline ?: true,
+            meetingUrl = null,
+            attendanceStatus = null,
+            isLeader = isLeader
+        )
+    }
 }

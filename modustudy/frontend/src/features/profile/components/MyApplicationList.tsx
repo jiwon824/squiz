@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { studyApi } from '@/api/endpoints/studyApi';
 import { useUIStore } from '@/store/uiStore';
-import { Clock, CheckCircle, XCircle, Loader2, FileText, Calendar, Filter } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, FileText, Calendar, Filter } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 type ApplicationStatus = 'all' | 'PENDING' | 'REJECTED';

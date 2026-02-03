@@ -3,6 +3,7 @@ import { Camera, Trash2, X } from 'lucide-react';
 import '../styles/ProfilePage.css';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
+import { Spinner } from '@/shared/components/Spinner';
 import { EditProfileModal } from './EditProfileModal';
 import { PasswordResetModal } from '@/features/auth/components/PasswordResetModal';
 import { userApi } from '@/api/endpoints/userApi';
@@ -233,10 +234,7 @@ export const ProfilePage = () => {
 
                     {/* 내 스터디 활동 (API 연동) */}
                     {isLoading ? (
-                        <div className="text-center py-12">
-                            <div className="inline-block w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                            <p className="text-text-secondary mt-4">스터디 목록을 불러오는 중...</p>
-                        </div>
+                        <Spinner variant="center" size="lg" label="스터디 목록을 불러오는 중..." />
                     ) : (
                         <StudyMylist studies={myStudies} />
                     )}

@@ -1,12 +1,11 @@
 package com.ssafy.squiz.ui.screens.mystudy
 
 import android.widget.Toast
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -17,8 +16,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -28,6 +29,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ssafy.squiz.data.remote.model.StudySessionDTO
 import com.ssafy.squiz.ui.components.*
 import com.ssafy.squiz.ui.theme.*
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,83 +81,106 @@ fun StudyHomeScreen(
             )
         }
     ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Next Session Card (핵심: 출석체크 버튼 포함)
-            item {
-                NextSessionCard(
-                    session = nextSession,
-                    studyName = studyDetail?.name ?: "스터디",
-                    onAttendanceClick = {
-                        val session = nextSession
-                        if (session != null) {
-                            // 세션 정보가 있으면 출석 화면으로 이동
-                            onNavigateToAttendance(studyId, session.id, isLeader)
-                        } else {
-                            // 세션 정보가 없으면 토스트 메시지
-                            Toast.makeText(context, "예정된 세션이 없습니다", Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                )
+        // 로딩 상태 처리
+        if (isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = Primary)
             }
-
-            // Activity Section (핵심 기능: 출석 캘린더, 미팅 녹음)
-            item {
-                SectionHeader(title = "활동")
-            }
-
-            item {
-                ActivityMenus(
-                    onAttendanceCalendarClick = onNavigateToAttendanceCalendar,
-                    onRecordingClick = onNavigateToMeetingList
-                )
-            }
-
-            /* 간소화를 위해 주석처리
-            // Quick Actions (채팅, 자료실, 커리큘럼, 진행현황)
-            item {
-                QuickActionsSection(
-                    onChatClick = onNavigateToChannelList,
-                    onMaterialsClick = onNavigateToMaterials,
-                    onCurriculumClick = onNavigateToCurriculum,
-                    onProgressClick = onNavigateToProgressStatus
-                )
-            }
-
-            // Team Section
-            item {
-                SectionHeader(title = "팀 현황")
-            }
-
-            item {
-                TeamQuickView(
-                    onViewAllClick = onNavigateToTeamDashboard
-                )
-            }
-
-            // Leader Only Section
-            if (isLeader) {
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Next Session Card (핵심: 출석체크 버튼 포함)
                 item {
-                    SectionHeader(title = "스터디장 관리")
+                    NextSessionCard(
+                        session = nextSession,
+                        studyName = studyDetail?.name ?: "스터디",
+                        onAttendanceClick = {
+                            val session = nextSession
+                            if (session != null) {
+                                onNavigateToAttendance(studyId, session.id, isLeader)
+                            } else {
+                                Toast.makeText(context, "예정된 세션이 없습니다", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    )
+                }
+
+                // Activity Section (핵심 기능: 출석 캘린더, 미팅 녹음)
+                item {
+                    SectionHeader(title = "활동")
                 }
 
                 item {
-                    LeaderMenus(
-                        onApplicationManagementClick = onNavigateToApplicationManagement,
-                        onExtendRecruitmentClick = onNavigateToExtendRecruitment,
-                        onTempChannelClick = onNavigateToTempChannel,
-                        onConvertToOfficialClick = onNavigateToConvertToOfficial
+                    ActivityMenus(
+                        onAttendanceCalendarClick = onNavigateToAttendanceCalendar,
+                        onRecordingClick = onNavigateToMeetingList
                     )
                 }
             }
-            */
         }
     }
+}
+
+// 세션 정보 파싱 헬퍼 함수
+private data class SessionDisplayInfo(
+    val dateTimeText: String,
+    val locationText: String,
+    val dDayText: String?,
+    val hasSession: Boolean
+)
+
+private fun parseSessionInfo(session: StudySessionDTO?): SessionDisplayInfo {
+    if (session == null) {
+        return SessionDisplayInfo(
+            dateTimeText = "예정된 세션 없음",
+            locationText = "",
+            dDayText = null,
+            hasSession = false
+        )
+    }
+
+    // 날짜/시간 포맷팅
+    val dateTimeText = try {
+        val dateTime = LocalDateTime.parse(session.scheduledAt?.take(19))
+        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+        dateTime.format(formatter)
+    } catch (e: Exception) {
+        session.scheduledAt?.replace("T", " ")?.take(16) ?: "시간 미정"
+    }
+
+    // 위치 정보
+    val locationText = if (session.isOnline == true) "온라인" else session.location ?: "오프라인"
+
+    // D-Day 계산
+    val dDayText = try {
+        val sessionDate = LocalDateTime.parse(session.scheduledAt?.take(19)).toLocalDate()
+        val today = LocalDate.now()
+        val daysUntil = ChronoUnit.DAYS.between(today, sessionDate)
+        when {
+            daysUntil == 0L -> "D-Day"
+            daysUntil > 0 -> "D-$daysUntil"
+            else -> null
+        }
+    } catch (e: Exception) {
+        null
+    }
+
+    return SessionDisplayInfo(
+        dateTimeText = dateTimeText,
+        locationText = locationText,
+        dDayText = dDayText,
+        hasSession = true
+    )
 }
 
 @Composable
@@ -161,21 +189,33 @@ private fun NextSessionCard(
     studyName: String,
     onAttendanceClick: () -> Unit
 ) {
-    // 세션 정보 파싱
-    val sessionInfo = if (session != null) {
-        // 날짜/시간 포맷팅 (scheduledAt: "2024-01-15T14:00:00")
-        val dateTime = session.scheduledAt?.replace("T", " ")?.take(16) ?: "시간 미정"
-        val location = if (session.isOnline == true) "온라인" else session.location ?: "오프라인"
-        Triple(dateTime, location, true)
-    } else {
-        Triple("예정된 세션 없음", "", false)
-    }
+    val sessionInfo = remember(session) { parseSessionInfo(session) }
+
+    // 출석 버튼 펄스 애니메이션 (D-Day일 때)
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+    val pulseScale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.05f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = EaseInOutSine),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "scale"
+    )
+    val isDDay = sessionInfo.dDayText == "D-Day"
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation = 8.dp,
+                shape = RoundedCornerShape(20.dp),
+                ambientColor = Primary.copy(alpha = 0.3f),
+                spotColor = Primary.copy(alpha = 0.3f)
+            ),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier
@@ -192,52 +232,84 @@ private fun NextSessionCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Top
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
+                    // D-Day 뱃지
+                    if (sessionInfo.dDayText != null) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color.White.copy(alpha = 0.2f),
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        ) {
+                            Text(
+                                text = sessionInfo.dDayText,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
+                    }
+
                     Text(
                         text = "다음 모임",
-                        fontSize = 14.sp,
+                        fontSize = 13.sp,
                         color = Color.White.copy(alpha = 0.8f)
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = sessionInfo.first,
-                        fontSize = if (sessionInfo.third) 22.sp else 18.sp,
+                        text = sessionInfo.dateTimeText,
+                        fontSize = if (sessionInfo.hasSession) 20.sp else 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
-                    if (sessionInfo.second.isNotEmpty()) {
+                    if (sessionInfo.locationText.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = sessionInfo.second,
-                            fontSize = 13.sp,
-                            color = Color.White.copy(alpha = 0.8f)
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = if (sessionInfo.locationText == "온라인") Icons.Outlined.Videocam else Icons.Outlined.LocationOn,
+                                contentDescription = null,
+                                tint = Color.White.copy(alpha = 0.8f),
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = sessionInfo.locationText,
+                                fontSize = 13.sp,
+                                color = Color.White.copy(alpha = 0.8f)
+                            )
+                        }
                     }
                 }
 
                 // 세션이 있을 때만 출석 버튼 활성화
-                if (sessionInfo.third) {
+                if (sessionInfo.hasSession) {
                     Surface(
-                        modifier = Modifier.clickable { onAttendanceClick() },
+                        modifier = Modifier
+                            .graphicsLayer(
+                                scaleX = if (isDDay) pulseScale else 1f,
+                                scaleY = if (isDDay) pulseScale else 1f
+                            )
+                            .clickable { onAttendanceClick() },
                         shape = RoundedCornerShape(12.dp),
-                        color = Color.White.copy(alpha = 0.2f)
+                        color = if (isDDay) Color.White else Color.White.copy(alpha = 0.2f)
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
                                 imageVector = Icons.Filled.QrCode2,
                                 contentDescription = null,
-                                tint = Color.White,
+                                tint = if (isDDay) Primary else Color.White,
                                 modifier = Modifier.size(20.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "출석체크",
+                                text = "출석",
                                 fontSize = 14.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = Color.White
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (isDDay) Primary else Color.White,
+                                maxLines = 1
                             )
                         }
                     }
@@ -395,7 +467,7 @@ private fun ActivityMenus(
         MenuCard(
             icon = Icons.Outlined.Mic,
             title = "미팅 녹음",
-            subtitle = "실시간 STT로 회의 내용을 기록하세요",
+            subtitle = "회의내용을 녹음하고 제출해서 리포트를 받아보세요",
             onClick = onRecordingClick
         )
     }

@@ -4,7 +4,7 @@ import { authApi } from '@/api/endpoints/authApi';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import AuthLayout from './AuthLayout';
-import { Loader2 } from 'lucide-react';
+import { Spinner } from '@/shared/components/Spinner';
 
 export const LoginCallbackPage = () => {
     const [searchParams] = useSearchParams();
@@ -35,7 +35,38 @@ export const LoginCallbackPage = () => {
 
             try {
                 const provider = sessionStorage.getItem('oauth_provider') || 'kakao'; // 기본값은 kakao (하위 호환)
-                console.log(`[INFO] ${provider} 로그인 처리 시작`);
+                const oauthAction = sessionStorage.getItem('oauth_action'); // 'link' = 계정 연동, null = 로그인
+                console.log(`[INFO] ${provider} ${oauthAction === 'link' ? '계정 연동' : '로그인'} 처리 시작`);
+
+                // 이미 로그인된 상태에서 Google 계정 연동하는 경우 (캘린더 연동)
+                if (oauthAction === 'link' && provider === 'google') {
+                    console.log('[INFO] Google 계정 연동 (기존 사용자에게 추가)');
+                    try {
+                        await authApi.linkGoogleAccount(code);
+                        console.log('[INFO] Google 계정 연동 성공!');
+
+                        // 연동 후 원래 페이지로 복귀
+                        const redirectUrl = sessionStorage.getItem('oauth_redirect_path') || '/calendar';
+                        sessionStorage.removeItem('oauth_action');
+                        sessionStorage.removeItem('oauth_provider');
+                        sessionStorage.removeItem('oauth_redirect_path');
+
+                        showToast('Google Calendar가 연동되었습니다.', 'success');
+                        navigate(redirectUrl, { replace: true });
+                        return;
+                    } catch (linkError: any) {
+                        console.error('Google 계정 연동 실패:', linkError);
+                        showToast(linkError?.response?.data?.error?.message || 'Google 계정 연동에 실패했습니다.', 'error');
+
+                        const redirectUrl = sessionStorage.getItem('oauth_redirect_path') || '/calendar';
+                        sessionStorage.removeItem('oauth_action');
+                        sessionStorage.removeItem('oauth_provider');
+                        sessionStorage.removeItem('oauth_redirect_path');
+
+                        navigate(redirectUrl, { replace: true });
+                        return;
+                    }
+                }
 
                 let data;
                 if (provider === 'naver') {
@@ -81,13 +112,19 @@ export const LoginCallbackPage = () => {
                     console.log('[INFO] 기존 소셜 유저 로그인 성공!');
 
                     // 로그인 전 페이지로 리다이렉트 (저장된 URL이 있으면)
-                    const redirectUrl = sessionStorage.getItem('redirectAfterLogin')
-                        || sessionStorage.getItem('oauth_redirect_path');
+                    const redirectAfterLogin = sessionStorage.getItem('redirectAfterLogin');
+                    const oauthRedirectPath = sessionStorage.getItem('oauth_redirect_path');
+                    console.log('[DEBUG] redirectAfterLogin:', redirectAfterLogin);
+                    console.log('[DEBUG] oauth_redirect_path:', oauthRedirectPath);
+
+                    const redirectUrl = redirectAfterLogin || oauthRedirectPath;
                     if (redirectUrl) {
                         sessionStorage.removeItem('redirectAfterLogin');
                         sessionStorage.removeItem('oauth_redirect_path');
+                        console.log('[INFO] 리다이렉트 경로:', redirectUrl);
                         navigate(redirectUrl, { replace: true });
                     } else {
+                        console.log('[INFO] 저장된 리다이렉트 경로 없음 - 대시보드로 이동');
                         navigate('/dashboard', { replace: true });
                     }
                 }
@@ -118,7 +155,7 @@ export const LoginCallbackPage = () => {
                 minHeight: '300px',
                 textAlign: 'center'
             }}>
-                <Loader2 className="animate-spin" size={48} color="var(--color-primary)" />
+                <Spinner size="xl" />
                 <h3 style={{ marginTop: '1.5rem', fontWeight: 700 }}>로그인 중입니다</h3>
                 <p style={{ color: '#64748b', marginTop: '0.5rem' }}>잠시만 기다려 주세요...</p>
             </div>

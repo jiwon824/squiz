@@ -34,6 +34,10 @@ export const useGoogleCalendar = () => {
 
             // OAuth 시작 전 현재 경로 저장 (콜백 후 복귀용)
             sessionStorage.setItem('oauth_redirect_path', '/calendar');
+            // Google OAuth provider 설정 (LoginCallbackPage에서 구글 콜백 처리하도록)
+            sessionStorage.setItem('oauth_provider', 'google');
+            // 이미 로그인된 상태에서 연동하는 것임을 표시 (계정 연결용)
+            sessionStorage.setItem('oauth_action', 'link');
 
             // Google OAuth 페이지로 리다이렉트
             window.location.href = authUrl;
