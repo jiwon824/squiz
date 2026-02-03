@@ -576,6 +576,11 @@ RECRUITING                모집중
 CLOSED                    마감
 COMPLETED                 완료
 
+--- team_application.status (지원상태) ---
+PENDING                   대기중
+ACCEPTED                  수락
+REJECTED                  거절
+
 --- comendle_word.difficulty (꼬멘틀난이도) ---
 EASY                      쉬움
 MEDIUM                    보통

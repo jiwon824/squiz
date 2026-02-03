@@ -1306,44 +1306,60 @@ CREATE TABLE `daily_item` (
 -- 14. 자유게시판
 -- =============================================
 
+-- Board domain ERD (board_post, board_comment, board_like)
+-- BaseEntity: id, created_at, updated_at
+
 CREATE TABLE `board_post` (
-    `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
-    `user_id` BIGINT NOT NULL,
-    `category` ENUM('PROJECT', 'COMPETITION', 'JOB', 'FREE') NOT NULL,  -- 프로젝트/공모전/채용/자유
-    `title` VARCHAR(200) NOT NULL,
-    `content` TEXT NOT NULL,
-    `view_count` INT DEFAULT 0,
-    `like_count` INT DEFAULT 0,
-    `comment_count` INT DEFAULT 0,
-    `is_deleted` BOOLEAN DEFAULT FALSE,
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (`user_id`) REFERENCES `user`(`id`)
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `created_at` DATETIME NOT NULL,
+  `updated_at` DATETIME NOT NULL,
+  `user_id` BIGINT NOT NULL,
+  `study_id` BIGINT NOT NULL,
+  `category` VARCHAR(20) NOT NULL,
+  `title` VARCHAR(200) NOT NULL,
+  `content` TEXT NOT NULL,
+  `view_count` INT NOT NULL DEFAULT 0,
+  `like_count` INT NOT NULL DEFAULT 0,
+  `comment_count` INT NOT NULL DEFAULT 0,
+  `is_deleted` TINYINT(1) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  KEY `idx_board_post_user_id` (`user_id`),
+  KEY `idx_board_post_study_id` (`study_id`),
+  CONSTRAINT `fk_board_post_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`),
+  CONSTRAINT `fk_board_post_study` FOREIGN KEY (`study_id`) REFERENCES `study` (`id`)
 );
 
 CREATE TABLE `board_comment` (
-    `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
-    `post_id` BIGINT NOT NULL,
-    `user_id` BIGINT NOT NULL,
-    `parent_id` BIGINT,                          -- 대댓글인 경우 부모 댓글 ID
-    `content` TEXT NOT NULL,
-    `is_deleted` BOOLEAN DEFAULT FALSE,
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (`post_id`) REFERENCES `board_post`(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`user_id`) REFERENCES `user`(`id`),
-    FOREIGN KEY (`parent_id`) REFERENCES `board_comment`(`id`) ON DELETE CASCADE
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `created_at` DATETIME NOT NULL,
+  `updated_at` DATETIME NOT NULL,
+  `post_id` BIGINT NOT NULL,
+  `user_id` BIGINT NOT NULL,
+  `parent_id` BIGINT NULL,
+  `content` TEXT NOT NULL,
+  `is_deleted` TINYINT(1) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  KEY `idx_board_comment_post_id` (`post_id`),
+  KEY `idx_board_comment_user_id` (`user_id`),
+  KEY `idx_board_comment_parent_id` (`parent_id`),
+  CONSTRAINT `fk_board_comment_post` FOREIGN KEY (`post_id`) REFERENCES `board_post` (`id`),
+  CONSTRAINT `fk_board_comment_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`),
+  CONSTRAINT `fk_board_comment_parent` FOREIGN KEY (`parent_id`) REFERENCES `board_comment` (`id`)
 );
 
 CREATE TABLE `board_like` (
-    `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
-    `post_id` BIGINT NOT NULL,
-    `user_id` BIGINT NOT NULL,
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (`post_id`) REFERENCES `board_post`(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON DELETE CASCADE,
-    UNIQUE KEY `uk_post_user` (`post_id`, `user_id`)
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `created_at` DATETIME NOT NULL,
+  `updated_at` DATETIME NOT NULL,
+  `post_id` BIGINT NOT NULL,
+  `user_id` BIGINT NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_board_like_post_id` (`post_id`),
+  KEY `idx_board_like_user_id` (`user_id`),
+  CONSTRAINT `fk_board_like_post` FOREIGN KEY (`post_id`) REFERENCES `board_post` (`id`),
+  CONSTRAINT `fk_board_like_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`)
 );
+
 
 -- =============================================
 -- 15. 팀원모집
