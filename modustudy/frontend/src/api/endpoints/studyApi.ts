@@ -1053,20 +1053,40 @@ export const createStudySessions = async (
   studyId: number,
   curriculum: Array<{ session: number; description: string; date?: string }>,
   startDate: string,
-  meetingType: string
+  meetingType: string,
+  scheduleTime: string = '19:00'  // 기본값 19:00, 선호 시간 전달 가능
 ): Promise<StudySessionItem[]> => {
   const baseDate = new Date(startDate);
+
+  // 시간 파싱 (HH:MM 형식)
+  const [hours, minutes] = scheduleTime.split(':').map(Number);
+  const timeHours = isNaN(hours) ? 19 : hours;
+  const timeMinutes = isNaN(minutes) ? 0 : minutes;
+
+  // 로컬 시간을 ISO 형식 문자열로 변환 (UTC 변환 없이)
+  const toLocalISOString = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hour = String(date.getHours()).padStart(2, '0');
+    const minute = String(date.getMinutes()).padStart(2, '0');
+    const second = String(date.getSeconds()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hour}:${minute}:${second}`;
+  };
 
   // 세션 데이터 배열 구성
   const sessionRequests = curriculum.map((item) => {
     let scheduledAt: string;
     if (item.date) {
-      scheduledAt = new Date(item.date + 'T19:00:00').toISOString();
+      // 커리큘럼에 날짜가 있으면 해당 날짜 + scheduleTime 사용
+      const sessionDate = new Date(item.date);
+      sessionDate.setHours(timeHours, timeMinutes, 0, 0);
+      scheduledAt = toLocalISOString(sessionDate);
     } else {
       const sessionDate = new Date(baseDate);
       sessionDate.setDate(baseDate.getDate() + (item.session - 1) * 7);
-      sessionDate.setHours(19, 0, 0, 0);
-      scheduledAt = sessionDate.toISOString();
+      sessionDate.setHours(timeHours, timeMinutes, 0, 0);
+      scheduledAt = toLocalISOString(sessionDate);
     }
 
     return {
