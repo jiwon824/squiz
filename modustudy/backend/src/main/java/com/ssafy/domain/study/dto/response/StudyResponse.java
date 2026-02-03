@@ -57,6 +57,9 @@ public class StudyResponse {
     // 스터디장 정보
     private LeaderInfo leader;
 
+    // 현재 사용자가 스터디장인지 여부
+    private Boolean isLeader;
+
     // ========== 내부 DTO 클래스 ==========
 
     @Getter

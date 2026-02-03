@@ -16,6 +16,15 @@ interface ReviewApi {
     suspend fun getTodayReviews(): Response<ApiResponse<TodayReviewResponse>>
 
     /**
+     * 틀린 문제 조회
+     * @param sortType MOST_WRONG (많이 틀린 순) 또는 FSRS_RECOMMENDED (복습 우선순위)
+     */
+    @GET("api/v1/reviews/wrong-answers")
+    suspend fun getWrongAnswers(
+        @Query("sortType") sortType: String? = null
+    ): Response<ApiResponse<TodayReviewResponse>>
+
+    /**
      * 복습 결과 제출
      */
     @POST("api/v1/reviews")
