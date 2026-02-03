@@ -10,27 +10,32 @@ import retrofit2.http.*
 interface ScheduleApi {
 
     /**
-     * 일정 목록 조회
+     * 일정 목록 조회 (내 스터디 세션)
+     * 백엔드 엔드포인트: GET /api/v1/users/me/study-sessions
      */
-    @GET("api/v1/schedules")
+    @GET("api/v1/users/me/study-sessions")
     suspend fun getSchedules(
-        @Query("date") date: String? = null
-    ): Response<ApiResponse<ScheduleListResponse>>
+        @Query("startDate") startDate: String,
+        @Query("endDate") endDate: String
+    ): Response<List<StudySessionDTO>>
 
     /**
-     * 오늘 일정 조회
+     * 오늘 일정 조회 (내 스터디 세션)
      */
-    @GET("api/v1/schedules/today")
-    suspend fun getTodaySchedules(): Response<ApiResponse<List<ScheduleDTO>>>
+    @GET("api/v1/users/me/study-sessions")
+    suspend fun getTodaySchedules(
+        @Query("startDate") startDate: String,
+        @Query("endDate") endDate: String
+    ): Response<List<StudySessionDTO>>
 
     /**
-     * 월별 일정 조회
+     * 월별 일정 조회 (내 스터디 세션 - 해당 월의 시작일~종료일)
      */
-    @GET("api/v1/schedules/month")
+    @GET("api/v1/users/me/study-sessions")
     suspend fun getMonthSchedules(
-        @Query("year") year: Int,
-        @Query("month") month: Int
-    ): Response<ApiResponse<CalendarData>>
+        @Query("startDate") startDate: String,
+        @Query("endDate") endDate: String
+    ): Response<List<StudySessionDTO>>
 
     /**
      * 세션 상세 조회

@@ -53,4 +53,14 @@ public interface UserService {
      */
     StudyPreferenceResponse updateStudyPreference(Long userId, StudyPreferenceRequest request);
 
+    /**
+     * 프로필 이미지 업로드
+     */
+    User updateProfileImage(Long userId, org.springframework.web.multipart.MultipartFile file);
+
+    /**
+     * 프로필 이미지 삭제 (기본 이미지로 변경)
+     */
+    User deleteProfileImage(Long userId);
+
 }

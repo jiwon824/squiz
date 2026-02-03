@@ -1,9 +1,7 @@
 import React from 'react';
 import { Mail, Calendar, Edit2, Loader2 } from 'lucide-react';
 import { LevelBadge } from '@/features/gamification/components';
-
-// 기본 프로필 이미지 경로
-const DEFAULT_PROFILE_IMAGE = '/images/default-profile.png';
+import { getProfileImageUrl, DEFAULT_PROFILE_IMAGE } from '@/shared/utils/profileImage';
 
 interface ProfileHeaderProps {
     userData: {
@@ -35,7 +33,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         <div className="profile-header">
             <div className="profile-avatar-wrapper">
                 <img
-                    src={userData.avatar || DEFAULT_PROFILE_IMAGE}
+                    src={getProfileImageUrl(userData.avatar)}
                     alt="프로필 이미지"
                     className={`profile-avatar ${isImageUploading ? 'opacity-50' : ''}`}
                     onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_PROFILE_IMAGE; }}

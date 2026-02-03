@@ -3,9 +3,7 @@ import { studyApi } from '@/api/endpoints/studyApi';
 import { UserMinus, Users, CheckCircle2, Search, Crown, Shield, TrendingUp } from 'lucide-react';
 import RoleBadge from '@/shared/components/RoleBadge';
 import { useUIStore } from '@/store/uiStore';
-
-// 기본 프로필 이미지 경로
-const DEFAULT_PROFILE_IMAGE = '/images/default-profile.png';
+import { getProfileImageUrl } from '@/shared/utils/profileImage';
 
 interface MemberManagementProps {
     studyId: number;
@@ -39,7 +37,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ studyId, maxMembers
 
             const mappedMembers: Member[] = content.map((member: any) => ({
                 userId: member.userId || member.id,
-                nickname: member.nickname || member.userName || '익명',
+                nickname: member.userNickname || member.nickname || member.userName || '익명',
                 profileImage: member.profileImage,
                 role: member.role || 'MEMBER',
                 joinedAt: member.joinedAt || member.createdAt || new Date().toISOString(),
@@ -136,7 +134,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ studyId, maxMembers
                             {/* 아바타 */}
                             <div className="relative">
                                 <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-xl overflow-hidden">
-                                    <img src={member.profileImage || DEFAULT_PROFILE_IMAGE} alt={member.nickname} className="w-full h-full object-cover" />
+                                    <img src={getProfileImageUrl(member.profileImage)} alt={member.nickname} className="w-full h-full object-cover" />
                                 </div>
                                 {getRoleIcon(member.role) && (
                                     <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-surface border-2 border-background-secondary flex items-center justify-center">

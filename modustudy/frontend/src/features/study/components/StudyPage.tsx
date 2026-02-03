@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, SlidersHorizontal, Grid, List, X, Sparkles, Loader2 } from 'lucide-react';
 import StudyListContainer from './StudyListContainer';
@@ -11,7 +11,7 @@ import { Button } from '@/shared/components';
 import { Select } from '@/shared/components/Select';
 import { cn } from '@/shared/utils/cn';
 
-// 반짝이는 shimmer 효과 CSS
+// 배경에 은은한 shimmer 효과 CSS
 const shimmerStyles = `
 @keyframes shimmer {
   0% {
@@ -47,20 +47,30 @@ const shimmerStyles = `
  * StudyPageV2 - Google Material Design 스타일 스터디 목록 페이지
  *
  * 특징:
- * - 깔끔한 헤더 디자인
- * - 통합 검색 바
+ * - 프리미엄 헤더 디자인
+ * - 통합 검색바
  * - 필터/정렬 컨트롤
  * - 그리드/리스트 뷰 전환
- * - CSS 변수 활용
+ * - CSS 변수 사용
  */
 const StudyPageV2: React.FC = () => {
     const navigate = useNavigate();
     const [studies, setStudies] = useState<Study[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [searchKeyword, setSearchKeyword] = useState('');
-    // 지역 데이터 맵 (regionId -> region name)
+    const [searchInput, setSearchInput] = useState('');
+    const [appliedSearchKeyword, setAppliedSearchKeyword] = useState('');
+    // 지역명 매핑 (regionId -> region name)
     const [regionMap, setRegionMap] = useState<Map<number, string>>(new Map());
-    const [filters, setFilters] = useState<FilterState>({
+    const [pendingFilters, setPendingFilters] = useState<FilterState>({
+        status: [],
+        topic: [],
+        subTopic: [],
+        meetingType: [],
+        difficulty: [],
+        studyType: [],
+        regionId: [],
+    });
+    const [appliedFilters, setAppliedFilters] = useState<FilterState>({
         status: [],
         topic: [],
         subTopic: [],
@@ -80,7 +90,7 @@ const StudyPageV2: React.FC = () => {
     const [showFilters, setShowFilters] = useState(false);
     const pageSize = 12;
 
-    // API에서 데이터 변환 (StudyResponse DTO 구조 지원)
+    // API 응답을 화면 모델로 변환 (StudyResponse DTO 구조)
     const convertToStudy = (item: StudyListItem): Study => ({
         id: item.id,
         leaderId: item.leader?.id || item.leaderId || 0,
@@ -93,7 +103,7 @@ const StudyPageV2: React.FC = () => {
         status: item.status,
         isPublic: true,
         maxMembers: item.maxMembers,
-        currentMembers: item.currentMembers || 1, // API에서 받아온 값 사용
+        currentMembers: item.currentMembers || 1, // API 값 사용
         difficulty: item.difficulty || 'BEGINNER',
         scheduleDays: item.scheduleDays || '',
         scheduleTime: item.scheduleTime,
@@ -133,7 +143,7 @@ const StudyPageV2: React.FC = () => {
             status: item.status,
             isPublic: true,
             maxMembers: item.maxMembers,
-            currentMembers: item.currentMembers || 1, // API에서 받아온 값 사용
+            currentMembers: item.currentMembers || 1, // API 값 사용
             difficulty: item.difficulty || 'BEGINNER',
             scheduleDays: item.scheduleDays || '',
             scheduleTime: item.scheduleTime,
@@ -162,16 +172,16 @@ const StudyPageV2: React.FC = () => {
         const newRegionMap = new Map<number, string>();
         try {
             const provinces = await getProvinces();
-            // 각 시/도에 대해 구/군 목록 병렬 로드
+            // 각 시/도에 대한 구/군 목록 병렬 로드
             await Promise.all(provinces.map(async (province) => {
                 try {
                     const districts = await getDistricts(province.id);
                     districts.forEach((district) => {
-                        // "시/도 구/군" 형식으로 저장
+                        // "시도 구군" 형식으로 저장
                         newRegionMap.set(district.id, `${province.name} ${district.name}`);
                     });
                 } catch (err) {
-                    console.warn(`${province.name} 구/군 목록 로드 실패:`, err);
+                    console.warn(`${province.name} 구군 목록 로드 실패:`, err);
                 }
             }));
             setRegionMap(newRegionMap);
@@ -194,25 +204,55 @@ const StudyPageV2: React.FC = () => {
                 ? `recruitEndDate,${sortOption.order}`
                 : `createdAt,desc`;
 
-            const meetingTypeParam = filters.meetingType.length === 1 ? filters.meetingType[0] : undefined;
+            const meetingTypeParam = appliedFilters.meetingType.length === 1 ? appliedFilters.meetingType[0] : undefined;
+            const statusParam = appliedFilters.status.length === 1 ? appliedFilters.status[0] : undefined;
 
             const response = await getStudyList({
                 page: currentPage - 1, // API는 0-based
                 size: pageSize,
                 sort: sortParam,
-                keyword: searchKeyword || undefined,
+                keyword: appliedSearchKeyword || undefined,
                 meetingType: meetingTypeParam,
-                difficulty: filters.difficulty.length === 1 ? filters.difficulty[0] : undefined,
+                difficulty: appliedFilters.difficulty.length === 1 ? appliedFilters.difficulty[0] : undefined,
+                status: statusParam,
             });
 
-            // 안전한 배열 처리 (백엔드 순환 참조 에러 대비)
+            // 안전한 배열 처리 (백엔드 반환 참조 대비)
             const content = response?.content || [];
+            const filteredContent = content.filter((item) => {
+                const topicName = item.topic?.name ?? '';
+                const parentTopicName = item.topic?.parent?.name ?? '';
+                const matchesTopic =
+                    appliedFilters.topic.length === 0 ||
+                    appliedFilters.topic.includes(topicName) ||
+                    appliedFilters.topic.includes(parentTopicName);
+                const matchesSubTopic =
+                    appliedFilters.subTopic.length === 0 || appliedFilters.subTopic.includes(topicName);
+                const matchesMeetingType =
+                    appliedFilters.meetingType.length === 0 || appliedFilters.meetingType.includes(item.meetingType);
+                const matchesDifficulty =
+                    appliedFilters.difficulty.length === 0 ||
+                    appliedFilters.difficulty.includes(item.difficulty ?? '');
+                const matchesStatus =
+                    appliedFilters.status.length === 0 || appliedFilters.status.includes(item.status);
+                const matchesStudyType =
+                    appliedFilters.studyType.length === 0 || appliedFilters.studyType.includes(item.studyType);
 
-            // 각 스터디에 대해 리더 정보 및 북마크 상태 병렬 조회
+                return (
+                    matchesTopic &&
+                    matchesSubTopic &&
+                    matchesMeetingType &&
+                    matchesDifficulty &&
+                    matchesStatus &&
+                    matchesStudyType
+                );
+            });
+
+            // 각 스터디의 리더 정보 및 북마크 상태 병렬 조회
             const leaderInfoMap = new Map<number, LeaderInfoResponse>();
             const bookmarkMap = new Map<number, boolean>();
 
-            const fetchPromises = content.map(async (item) => {
+            const fetchPromises = filteredContent.map(async (item) => {
                 // 리더 정보 조회
                 try {
                     const leaderInfo = await getLeaderInfo(item.id);
@@ -225,15 +265,15 @@ const StudyPageV2: React.FC = () => {
                     const isBookmarked = await studyApi.checkBookmark(item.id);
                     bookmarkMap.set(item.id, isBookmarked);
                 } catch (err) {
-                    // 로그인 안 된 경우 등 실패 시 false로 처리
+                    // 에러 발생 시 false로 처리
                     bookmarkMap.set(item.id, false);
                 }
             });
 
             await Promise.all(fetchPromises);
 
-            // 리더 정보, 지역 정보, 북마크 상태를 포함하여 스터디 변환
-            const convertedStudies = content.map((item) => {
+            // 리더/지역/북마크 정보를 포함해 스터디 변환
+            const convertedStudies = filteredContent.map((item) => {
                 const leaderInfo = leaderInfoMap.get(item.id);
                 const isBookmarked = bookmarkMap.get(item.id);
                 return convertToStudyWithLeader(item, leaderInfo, currentRegionMap, isBookmarked);
@@ -250,12 +290,12 @@ const StudyPageV2: React.FC = () => {
         }
     };
 
-    // 초기 로드 및 필터/정렬/페이지 변경 시 재로드
+    // 초기 로드 및 필터/정렬/페이지 변경 시 로드
     useEffect(() => {
         loadStudies();
-    }, [currentPage, sortOption, filters.meetingType, filters.difficulty]);
+    }, [currentPage, sortOption, appliedFilters, appliedSearchKeyword]);
 
-    // 페이지 포커스 복귀 시 북마크 상태 동기화를 위해 리로드
+    // 페이지 복귀 시 최신 상태 반영을 위해 다시 로드
     useEffect(() => {
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'visible') {
@@ -266,25 +306,29 @@ const StudyPageV2: React.FC = () => {
         return () => {
             document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
-    }, [currentPage, sortOption, filters.meetingType, filters.difficulty]);
+    }, [currentPage, sortOption, appliedFilters, appliedSearchKeyword]);
 
-    // 검색 시 페이지 리셋 후 로드
-    useEffect(() => {
-        if (currentPage === 1) {
-            loadStudies();
-        } else {
-            setCurrentPage(1);
-        }
-    }, [searchKeyword]);
+    // 검색/필터 시 페이지 리셋
+    // 검색어 변경은 "검색" 버튼 클릭 시 적용
 
     // 필터 변경 핸들러
     const handleFilterChange = (newFilters: FilterState) => {
-        setFilters(newFilters);
+        setPendingFilters(newFilters);
+    };
+
+    const applyFilters = (closePanel: boolean) => {
+        setAppliedFilters(pendingFilters);
+        setAppliedSearchKeyword(searchInput);
+        setCurrentPage(1);
+        if (closePanel) {
+            setShowFilters(false);
+        }
     };
 
     // 검색 핸들러
     const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        applyFilters(false);
     };
 
     // 정렬 변경 핸들러
@@ -307,7 +351,7 @@ const StudyPageV2: React.FC = () => {
         }
     };
 
-    // 찜하기 토글 핸들러
+    // 북마크 토글 핸들러
     const handleBookmarkToggle = async (studyId: number) => {
         try {
             await studyApi.toggleBookmark(studyId);
@@ -321,19 +365,19 @@ const StudyPageV2: React.FC = () => {
         }
     };
 
-    // 스터디 클릭 핸들러 (V3 페이지로 이동)
+    // 스터디 클릭 핸들러
     const handleStudyClick = (studyId: number) => {
-        navigate(`/study/v3/${studyId}`);
+        navigate(`/study/${studyId}`);
     };
 
     // 미팅 타입 빠른 필터
     const handleMeetingTypeFilter = (type: string | null) => {
         if (type === null) {
-            setFilters(prev => ({ ...prev, meetingType: [] }));
+            setPendingFilters(prev => ({ ...prev, meetingType: [] }));
         } else {
-            setFilters(prev => ({ ...prev, meetingType: [type] }));
+            setPendingFilters(prev => ({ ...prev, meetingType: [type] }));
         }
-        setCurrentPage(1); // 필터 변경 시 첫 페이지로
+        
     };
 
     // 현재 정렬 옵션 값
@@ -353,7 +397,7 @@ const StudyPageV2: React.FC = () => {
                         <div className="flex items-center pt-2">
                             <div>
                                 <h1 className="shimmer-text text-2xl md:text-3xl font-bold text-[var(--color-text-primary)]">
-                                    성장의 시작, 스터디 둘러보기
+                                    성장을 시작하고, 스터디를 둘러보기
                                 </h1>
                                 <p className="text-sm text-[var(--color-text-secondary)] mt-1">
                                     총 <span className="font-bold text-[var(--color-primary)]">{totalElements}</span>개의 스터디
@@ -374,24 +418,24 @@ const StudyPageV2: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* 검색 및 컨트롤 바 */}
+                    {/* 검색바 및 컨트롤 */}
                     <div className="mb-6">
                         <div className="flex flex-col lg:flex-row gap-4">
-                            {/* 검색 바 */}
+                            {/* 검색바 */}
                             <form onSubmit={handleSearch} className="flex-1">
                                 <div className="relative">
                                     <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-text-tertiary)]" />
                                     <input
                                         type="text"
                                         placeholder="스터디 이름, 주제로 검색..."
-                                        value={searchKeyword}
-                                        onChange={(e) => setSearchKeyword(e.target.value)}
+                                        value={searchInput}
+                                        onChange={(e) => setSearchInput(e.target.value)}
                                         className="w-full h-11 pl-11 pr-4 bg-[var(--color-background)] rounded-xl text-sm focus:outline-none ring-0 focus:ring-2 ring-[var(--color-primary-alpha-10)] transition-all duration-300 ease-in-out"
                                     />
-                                    {searchKeyword && (
+                                    {searchInput && (
                                         <button
                                             type="button"
-                                            onClick={() => setSearchKeyword('')}
+                                            onClick={() => setSearchInput('')}
                                             className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-[var(--color-background-secondary)] text-[var(--color-text-tertiary)]"
                                         >
                                             <X size={16} />
@@ -400,7 +444,7 @@ const StudyPageV2: React.FC = () => {
                                 </div>
                             </form>
 
-                            {/* 컨트롤 버튼들 */}
+                            {/* 컨트롤 버튼 */}
                             <div className="flex items-center gap-3">
                                 {/* 미팅 타입 필터 */}
                                 <div className="flex items-center h-11 bg-[var(--color-background)] rounded-xl px-1">
@@ -414,8 +458,8 @@ const StudyPageV2: React.FC = () => {
                                             onClick={() => handleMeetingTypeFilter(option.value)}
                                             className={cn(
                                                 "px-3 py-2 text-xs font-semibold rounded-lg transition-all",
-                                                (option.value === null && filters.meetingType.length === 0) ||
-                                                (option.value && filters.meetingType.includes(option.value))
+                                                (option.value === null && pendingFilters.meetingType.length === 0) ||
+                                                (option.value && pendingFilters.meetingType.includes(option.value))
                                                     ? "bg-white text-[var(--color-primary)] shadow-sm"
                                                     : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
                                             )}
@@ -468,7 +512,9 @@ const StudyPageV2: React.FC = () => {
                                 <Button
                                     variant="google-outline"
                                     size="sm"
-                                    onClick={() => setShowFilters(!showFilters)}
+                                    onClick={() => {
+                                        setShowFilters(!showFilters);
+                                    }}
                                     leftIcon={<SlidersHorizontal size={16} />}
                                     className={cn(
                                         "h-11 rounded-xl",
@@ -483,14 +529,20 @@ const StudyPageV2: React.FC = () => {
                         {/* 확장 필터 */}
                         {showFilters && (
                             <div className="mt-4 pt-4 border-t border-[var(--color-border-lighter)]">
-                                <StudyFilter onFilterChange={handleFilterChange} onSearch={() => {}} />
+                                <StudyFilter
+                                    onFilterChange={handleFilterChange}
+                                    onSearch={() => applyFilters(true)}
+                                    defaultOpen
+                                    showHeader={false}
+                                    filters={pendingFilters}
+                                />
                             </div>
                         )}
                     </div>
 
                     {/* 난이도 범례 */}
                     <div className="flex items-center gap-4 mb-4 text-xs">
-                        <span className="text-[var(--color-text-tertiary)] font-medium">난이도:</span>
+                        <span className="text-[var(--color-text-tertiary)] font-medium">난이도</span>
                         <div className="flex items-center gap-1">
                             <span className="w-2 h-2 rounded-sm bg-[var(--color-success)]" />
                             <span className="text-[var(--color-text-secondary)]">입문</span>
@@ -591,3 +643,14 @@ const StudyPageV2: React.FC = () => {
 };
 
 export default StudyPageV2;
+
+
+
+
+
+
+
+
+
+
+

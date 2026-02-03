@@ -89,6 +89,15 @@ class ReviewViewModel : ViewModel() {
                     val reviewResponse = response.body()?.data
                     Log.d(TAG, "복습 데이터: items=${reviewResponse?.items?.size}, totalCount=${reviewResponse?.totalCount}")
 
+                    // 디버그: 각 카드의 options 확인
+                    reviewResponse?.items?.forEachIndexed { index, card ->
+                        val options = card.questionDetail?.options
+                        Log.d(TAG, "카드[$index] question=${card.question.take(30)}..., options=${options?.size ?: 0}")
+                        options?.forEach { option ->
+                            Log.d(TAG, "  - option: id=${option.id}, label=${option.label}, text=${option.text}")
+                        }
+                    }
+
                     if (reviewResponse != null) {
                         _todayReviewState.value = TodayReviewUiState.Success(
                             cards = reviewResponse.cards,

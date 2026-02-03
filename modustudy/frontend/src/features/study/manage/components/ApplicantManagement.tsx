@@ -2,9 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { studyApi } from '@/api/endpoints/studyApi';
 import { Check, X, MessageSquare, User, Filter, ChevronDown, Calendar } from 'lucide-react';
 import { useUIStore } from '@/store/uiStore';
-
-// 기본 프로필 이미지 경로
-const DEFAULT_PROFILE_IMAGE = '/images/default-profile.png';
+import { getProfileImageUrl } from '@/shared/utils/profileImage';
 
 interface ApplicantManagementProps {
     studyId: number;
@@ -50,7 +48,7 @@ const ApplicantManagement: React.FC<ApplicantManagementProps> = ({ studyId }) =>
             const mappedApplicants: Applicant[] = content.map((app: any) => ({
                 applicationId: app.applicationId,
                 userId: app.userId,
-                nickname: app.nickname || app.userName || '익명',
+                nickname: app.userNickname || app.nickname || app.userName || '익명',
                 profileImage: app.profileImage || app.userProfileImage,
                 message: app.message || app.applicationMessage,
                 status: app.status,
@@ -192,7 +190,7 @@ const ApplicantManagement: React.FC<ApplicantManagementProps> = ({ studyId }) =>
                                 {/* 아바타 */}
                                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-lg overflow-hidden">
                                     <img
-                                        src={app.profileImage || DEFAULT_PROFILE_IMAGE}
+                                        src={getProfileImageUrl(app.profileImage)}
                                         alt={app.nickname}
                                         className="w-full h-full object-cover"
                                     />

@@ -55,6 +55,11 @@ public class ApplicationResponse {
     private String userEmail;
 
     /**
+     * 신청자 프로필 이미지
+     */
+    private String profileImage;
+
+    /**
      * 신청 메시지
      */
     private String message;
@@ -112,9 +117,10 @@ public class ApplicationResponse {
     /**
      * 신청자 정보 설정
      */
-    public void setUserInfo(String name, String nickname, String email) {
+    public void setUserInfo(String name, String nickname, String email, String profileImage) {
         this.userName = name;
         this.userNickname = nickname;
         this.userEmail = email;
+        this.profileImage = profileImage;
     }
 }

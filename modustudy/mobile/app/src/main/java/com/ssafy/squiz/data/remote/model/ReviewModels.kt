@@ -37,9 +37,13 @@ data class QuestionDetailDTO(
 
 // 객관식 보기 아이템
 data class OptionItemDTO(
-    @SerializedName("label") val label: String? = null,
+    @SerializedName("id") val id: String? = null,         // 백엔드에서 "A", "B", "C", "D" 등으로 전송
+    @SerializedName("label") val label: String? = null,   // 호환성
     @SerializedName("text") val text: String? = null
-)
+) {
+    // id 또는 label 중 존재하는 값을 반환
+    val optionLabel: String get() = id ?: label ?: ""
+}
 
 // 오늘 복습 응답 (백엔드 TodayReviewResponse에 맞춤)
 data class TodayReviewResponse(
