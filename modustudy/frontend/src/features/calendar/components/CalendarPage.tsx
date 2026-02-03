@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Calendar, ScheduleModal, ScheduleDetailModal, GoogleCalendarSync, DateScheduleListModal } from '@/features/calendar/components';
 import { useCalendarData } from '@/features/calendar/hooks';
 import { UnifiedSchedule } from '@/features/calendar/types';
 import { Button } from '@/shared/components';
 import { Plus, Settings, ChevronLeft, ChevronRight } from 'lucide-react';
 import { TodayGoalsCard } from '@/features/dashboard-v2/components/TodayGoalsCard';
+import { usePageLoading } from '@/shared/hooks/usePageLoading';
 
 /**
  * 캘린더 메인 페이지
@@ -16,6 +17,17 @@ export const CalendarPage = () => {
 
     // 데이터 페칭
     const { schedules, loading, error } = useCalendarData(currentDate);
+
+    // 상단 로딩 게이지바 연동
+    const { startLoading, finishLoading } = usePageLoading();
+
+    useEffect(() => {
+        if (loading) {
+            startLoading();
+        } else {
+            finishLoading();
+        }
+    }, [loading, startLoading, finishLoading]);
 
     // 모달 상태
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);

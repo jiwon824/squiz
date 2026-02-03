@@ -10,7 +10,6 @@ import {
     Search,
     BookOpen,
     ChevronDown,
-    Loader2,
     Circle,
     CheckCircle2,
     XCircle,
@@ -20,6 +19,7 @@ import {
     Trophy,
     Sparkles,
 } from 'lucide-react';
+import { Spinner } from '@/shared/components/Spinner';
 import { cn, conditionalClasses } from '@/shared/utils/cn';
 import { PageNavHeader } from '@/shared/components/layouts';
 import { studyApi } from '@/api/endpoints/studyApi';
@@ -341,9 +341,8 @@ export const MeetingTestPage: React.FC = () => {
                             {/* 퀴즈 리스트 */}
                             <div className="flex-1 overflow-y-auto max-h-[600px]">
                                 {quizLoading ? (
-                                    <div className="flex items-center justify-center h-32 text-text-tertiary text-sm">
-                                        <Loader2 className="animate-spin mr-2" size={16} />
-                                        퀴즈 로딩 중...
+                                    <div className="flex items-center justify-center h-32">
+                                        <Spinner variant="center" size="md" label="퀴즈 로딩 중..." />
                                     </div>
                                 ) : filteredItems.length === 0 ? (
                                     <div className="flex flex-col items-center justify-center h-32 text-text-tertiary text-sm">
@@ -392,9 +391,8 @@ export const MeetingTestPage: React.FC = () => {
                                     퀴즈를 선택해주세요
                                 </div>
                             ) : detailLoading ? (
-                                <div className="flex items-center justify-center h-64 text-text-tertiary">
-                                    <Loader2 className="animate-spin mr-2" size={20} />
-                                    로딩 중...
+                                <div className="flex items-center justify-center h-64">
+                                    <Spinner variant="center" size="md" label="로딩 중..." />
                                 </div>
                             ) : quizDetail ? (
                                 <>
@@ -583,7 +581,7 @@ export const MeetingTestPage: React.FC = () => {
                                                                             'disabled:opacity-50 disabled:cursor-not-allowed'
                                                                         )}
                                                                     >
-                                                                        {submitting ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
+                                                                        {submitting ? <Spinner size="sm" /> : <Send size={15} />}
                                                                         제출하기
                                                                     </button>
                                                                 ) : (

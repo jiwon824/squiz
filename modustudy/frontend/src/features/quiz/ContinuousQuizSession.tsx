@@ -19,8 +19,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Loader2, AlertCircle, RefreshCw, CheckCircle, XCircle, Trophy } from 'lucide-react';
+import { ArrowLeft, AlertCircle, RefreshCw, CheckCircle, XCircle, Trophy } from 'lucide-react';
 import { Breadcrumb } from '@/shared/components/layouts/Breadcrumb';
+import { Spinner } from '@/shared/components/Spinner';
 
 import { QuestionCard } from './components/QuestionCard';
 import { ContinuousQuizNavigation } from './components/ContinuousQuizNavigation';
@@ -663,16 +664,7 @@ export const ContinuousQuizSession = () => {
                 className="min-h-screen flex items-center justify-center"
                 style={{ backgroundColor: 'var(--color-background)' }}
             >
-                <div className="text-center">
-                    <Loader2
-                        size={48}
-                        className="animate-spin mx-auto mb-4"
-                        style={{ color: 'var(--color-primary)' }}
-                    />
-                    <p style={{ color: 'var(--color-text-secondary)' }}>
-                        학습을 준비하는 중...
-                    </p>
-                </div>
+                <Spinner variant="center" size="xl" label="학습을 준비하는 중..." />
             </div>
         );
     }

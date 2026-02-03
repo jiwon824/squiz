@@ -14,6 +14,9 @@ import com.ssafy.domain.user.service.OAuth2Service;
 import com.ssafy.domain.user.dto.response.StatsResponse;
 import com.ssafy.domain.study.dto.response.StudySessionResponse;
 import com.ssafy.domain.study.service.StudySessionService;
+import com.ssafy.domain.calendar.dto.PersonalScheduleRequest;
+import com.ssafy.domain.calendar.dto.PersonalScheduleResponse;
+import com.ssafy.domain.calendar.service.PersonalScheduleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.MediaType;
@@ -37,6 +40,7 @@ public class UserController {
     private final UserService userService;
     private final OAuth2Service oAuth2Service;
     private final StudySessionService studySessionService;
+    private final PersonalScheduleService personalScheduleService;
 
     /**
      * 내 정보 조회
@@ -212,5 +216,94 @@ public class UserController {
         return ResponseEntity.ok(
                 ApiResponse.success(UserDTO.from(updatedUser))
         );
+    }
+
+    // ==================== 개인 일정 API ====================
+
+    /**
+     * 개인 일정 목록 조회
+     * GET /api/v1/users/me/schedules?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
+     */
+    @GetMapping("/me/schedules")
+    public ResponseEntity<ApiResponse<List<PersonalScheduleResponse>>> getMySchedules(
+            Authentication authentication,
+            @RequestParam String startDate,
+            @RequestParam String endDate) {
+
+        SsafyUserDetails userDetails = (SsafyUserDetails) authentication.getPrincipal();
+        Long userId = userDetails.getUser().getId();
+
+        List<PersonalScheduleResponse> schedules = personalScheduleService.getSchedules(userId, startDate, endDate);
+
+        return ResponseEntity.ok(ApiResponse.success(schedules));
+    }
+
+    /**
+     * 개인 일정 단건 조회
+     * GET /api/v1/users/me/schedules/{scheduleId}
+     */
+    @GetMapping("/me/schedules/{scheduleId}")
+    public ResponseEntity<ApiResponse<PersonalScheduleResponse>> getMySchedule(
+            Authentication authentication,
+            @PathVariable Long scheduleId) {
+
+        SsafyUserDetails userDetails = (SsafyUserDetails) authentication.getPrincipal();
+        Long userId = userDetails.getUser().getId();
+
+        PersonalScheduleResponse schedule = personalScheduleService.getSchedule(userId, scheduleId);
+
+        return ResponseEntity.ok(ApiResponse.success(schedule));
+    }
+
+    /**
+     * 개인 일정 생성
+     * POST /api/v1/users/me/schedules
+     */
+    @PostMapping("/me/schedules")
+    public ResponseEntity<ApiResponse<PersonalScheduleResponse>> createMySchedule(
+            Authentication authentication,
+            @RequestBody PersonalScheduleRequest request) {
+
+        SsafyUserDetails userDetails = (SsafyUserDetails) authentication.getPrincipal();
+        Long userId = userDetails.getUser().getId();
+
+        PersonalScheduleResponse schedule = personalScheduleService.createSchedule(userId, request);
+
+        return ResponseEntity.ok(ApiResponse.success(schedule));
+    }
+
+    /**
+     * 개인 일정 수정
+     * PUT /api/v1/users/me/schedules/{scheduleId}
+     */
+    @PutMapping("/me/schedules/{scheduleId}")
+    public ResponseEntity<ApiResponse<PersonalScheduleResponse>> updateMySchedule(
+            Authentication authentication,
+            @PathVariable Long scheduleId,
+            @RequestBody PersonalScheduleRequest request) {
+
+        SsafyUserDetails userDetails = (SsafyUserDetails) authentication.getPrincipal();
+        Long userId = userDetails.getUser().getId();
+
+        PersonalScheduleResponse schedule = personalScheduleService.updateSchedule(userId, scheduleId, request);
+
+        return ResponseEntity.ok(ApiResponse.success(schedule));
+    }
+
+    /**
+     * 개인 일정 삭제
+     * DELETE /api/v1/users/me/schedules/{scheduleId}
+     */
+    @DeleteMapping("/me/schedules/{scheduleId}")
+    public ResponseEntity<ApiResponse<Void>> deleteMySchedule(
+            Authentication authentication,
+            @PathVariable Long scheduleId) {
+
+        SsafyUserDetails userDetails = (SsafyUserDetails) authentication.getPrincipal();
+        Long userId = userDetails.getUser().getId();
+
+        personalScheduleService.deleteSchedule(userId, scheduleId);
+
+        return ResponseEntity.ok(ApiResponse.success(null, "일정이 삭제되었습니다."));
     }
 }

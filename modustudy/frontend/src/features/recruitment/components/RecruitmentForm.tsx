@@ -1,106 +1,106 @@
-import React, { useState } from 'react';
-import { RecruitmentPost } from '../types';
-import { useRecruitmentStore } from '../useRecruitmentStore';
-import { Save, Hash } from 'lucide-react';
-import { cn } from '@/shared/utils/cn';
+import React, { useMemo, useState } from 'react';
+import { Save, Users, Tag } from 'lucide-react';
 import { Button, ArrowButton } from '@/shared/components';
+import { cn } from '@/shared/utils/cn';
+import {
+    RecruitmentPostDetail,
+    RecruitmentStudy,
+    createRecruitmentPost,
+    updateRecruitmentPost,
+} from '@/api/endpoints/boardApi';
 
 interface RecruitmentFormProps {
-    initialData?: RecruitmentPost | null;
+    initialData?: RecruitmentPostDetail | null;
+    studies: RecruitmentStudy[];
     onCancel: () => void;
     onSuccess: () => void;
 }
 
-export const RecruitmentForm: React.FC<RecruitmentFormProps> = ({ initialData, onCancel, onSuccess }) => {
-    const { addPost, updatePost } = useRecruitmentStore();
-    const [formData, setFormData] = useState({
-        title: initialData?.title || '',
-        content: initialData?.content || '',
-        category: initialData?.category || 'study',
-        maxMembers: initialData?.maxMembers || 4,
-        tagsInput: initialData?.tags.join(', ') || '',
-    });
+export const RecruitmentForm: React.FC<RecruitmentFormProps> = ({ initialData, studies, onCancel, onSuccess }) => {
+    const initialStudyId = useMemo(() => {
+        if (initialData?.studyId) return initialData.studyId;
+        return studies[0]?.id ?? null;
+    }, [initialData?.studyId, studies]);
 
+    const [selectedStudyId, setSelectedStudyId] = useState<number | null>(initialStudyId);
+    const [title, setTitle] = useState(initialData?.title || '');
+    const [content, setContent] = useState(initialData?.content || '');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const selectedStudy = studies.find((study) => study.id === selectedStudyId) || null;
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!selectedStudyId) return;
         setIsSubmitting(true);
-
-        const tags = formData.tagsInput.split(',').map(tag => tag.trim()).filter(Boolean);
-
-        if (initialData) {
-            updatePost(initialData.id, {
-                title: formData.title,
-                content: formData.content,
-                category: formData.category as any,
-                maxMembers: formData.maxMembers,
-                tags,
-            });
-        } else {
-            addPost({
-                title: formData.title,
-                content: formData.content,
-                authorId: 'me', // Mock user
-                authorName: '내 계정',
-                authorAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=me',
-                category: formData.category as any,
-                tags,
-                isCompleted: false,
-                memberCount: 1,
-                maxMembers: formData.maxMembers,
-            });
+        try {
+            if (initialData) {
+                await updateRecruitmentPost(initialData.id, { title, content });
+            } else {
+                await createRecruitmentPost({ studyId: selectedStudyId, title, content });
+            }
+            onSuccess();
+        } finally {
+            setIsSubmitting(false);
         }
-
-        setIsSubmitting(false);
-        onSuccess();
     };
 
     return (
         <div className="max-w-4xl mx-auto animate-slideInUp">
             <header className="flex items-center gap-6 mb-10">
-                <ArrowButton
-                    direction="left"
-                    onClick={onCancel}
-                    size="md"
-                />
+                <ArrowButton direction="left" onClick={onCancel} size="md" />
                 <div>
                     <h2 className="text-3xl font-black text-text-primary tracking-tight">
                         {initialData ? '모집글 수정' : '새로운 팀원 모집'}
                     </h2>
-                    <p className="text-text-secondary font-medium">모든 필드를 정확하게 입력해주세요.</p>
+                    <p className="text-text-secondary font-medium">모집 중인 스터디를 선택하고 내용을 작성해주세요.</p>
                 </div>
             </header>
 
             <form onSubmit={handleSubmit} className="bg-white border border-border-light rounded-[32px] p-10 shadow-sm space-y-8">
-                {/* 카테고리 선택 */}
+                {/* 스터디 선택 */}
                 <div className="space-y-3">
-                    <label className="text-sm font-black text-text-tertiary uppercase tracking-widest">카테고리</label>
-                    <div className="flex gap-4">
-                        {[
-                            { value: 'study', label: '스터디' },
-                            { value: 'project', label: '프로젝트' },
-                            { value: 'mentoring', label: '멘토링' },
-                        ].map((cat) => {
-                            const isSelected = formData.category === cat.value;
+                    <label className="text-sm font-black text-text-tertiary uppercase tracking-widest">모집 중인 스터디 선택</label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {studies.map((study) => {
+                            const isSelected = selectedStudyId === study.id;
                             return (
                                 <button
-                                    key={cat.value}
+                                    key={study.id}
                                     type="button"
-                                    onClick={() => setFormData(prev => ({ ...prev, category: cat.value as any }))}
+                                    onClick={() => setSelectedStudyId(study.id)}
                                     className={cn(
-                                        "flex-1 px-4 py-3 rounded-2xl text-sm font-bold border-2 transition-all cursor-pointer",
+                                        "text-left border-2 rounded-2xl p-5 transition-all",
                                         isSelected
-                                            ? "bg-primary text-white border-primary shadow-lg scale-105"
-                                            : "bg-gray-100 border-gray-200 text-gray-600 hover:bg-gray-200 hover:border-gray-300"
+                                            ? "border-primary bg-primary/5 shadow-md"
+                                            : "border-transparent bg-background-secondary/60 hover:bg-background-secondary"
                                     )}
                                 >
-                                    {cat.label}
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div>
+                                            <p className="text-sm font-bold text-text-primary">{study.name}</p>
+                                            <p className="text-xs text-text-secondary mt-1">#{study.topicName || '기타'}</p>
+                                        </div>
+                                        <span className="text-xs font-semibold text-text-tertiary">{study.meetingType}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-4 text-xs text-text-tertiary">
+                                        <Users size={14} />
+                                        <span>{study.currentMembers}/{study.maxMembers ?? '-'}</span>
+                                    </div>
                                 </button>
                             );
                         })}
                     </div>
                 </div>
+
+                {/* 선택한 스터디 요약 */}
+                {selectedStudy && (
+                    <div className="flex items-center gap-3 bg-background-secondary/60 border border-border-light rounded-2xl px-5 py-4 text-sm">
+                        <Tag size={16} className="text-primary" />
+                        <span className="font-semibold text-text-primary">{selectedStudy.name}</span>
+                        <span className="text-text-tertiary">#{selectedStudy.topicName || '기타'}</span>
+                    </div>
+                )}
 
                 {/* 제목 */}
                 <div className="space-y-3">
@@ -108,44 +108,11 @@ export const RecruitmentForm: React.FC<RecruitmentFormProps> = ({ initialData, o
                     <input
                         required
                         type="text"
-                        value={formData.title}
-                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
                         placeholder="매력적인 제목으로 팀원을 끌어보세요"
                         className="w-full bg-background-secondary/50 border border-transparent focus:border-primary/30 focus:bg-white rounded-2xl px-6 py-4 text-lg font-bold outline-none transition-all"
                     />
-                </div>
-
-                {/* 모집 인원 */}
-                <div className="space-y-3">
-                    <label className="text-sm font-black text-text-tertiary uppercase tracking-widest">모집 인원 (최대)</label>
-                    <div className="flex items-center gap-4">
-                        <input
-                            type="range"
-                            min="2"
-                            max="20"
-                            value={formData.maxMembers}
-                            onChange={(e) => setFormData({ ...formData, maxMembers: parseInt(e.target.value) })}
-                            className="flex-1 accent-primary h-2 bg-background-secondary rounded-lg appearance-none cursor-pointer"
-                        />
-                        <span className="w-12 h-12 flex items-center justify-center bg-primary/10 text-primary font-black rounded-xl">
-                            {formData.maxMembers}
-                        </span>
-                    </div>
-                </div>
-
-                {/* 태그 */}
-                <div className="space-y-3">
-                    <label className="text-sm font-black text-text-tertiary uppercase tracking-widest">기술 스택 / 태그</label>
-                    <div className="relative">
-                        <input
-                            type="text"
-                            value={formData.tagsInput}
-                            onChange={(e) => setFormData({ ...formData, tagsInput: e.target.value })}
-                            placeholder="React, NestJS, 신입환영 (콤마로 구분)"
-                            className="w-full bg-background-secondary/50 border border-transparent focus:border-primary/30 focus:bg-white rounded-2xl px-6 py-4 outline-none transition-all pr-12"
-                        />
-                        <Hash className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
-                    </div>
                 </div>
 
                 {/* 내용 */}
@@ -154,8 +121,8 @@ export const RecruitmentForm: React.FC<RecruitmentFormProps> = ({ initialData, o
                     <textarea
                         required
                         rows={8}
-                        value={formData.content}
-                        onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                        value={content}
+                        onChange={(e) => setContent(e.target.value)}
                         placeholder="스터디 진행 방식, 준비물, 예상 일정 등을 상세히 적어주세요."
                         className="w-full bg-background-secondary/50 border border-transparent focus:border-primary/30 focus:bg-white rounded-2xl px-6 py-4 outline-none transition-all resize-none leading-relaxed"
                     />
@@ -175,7 +142,7 @@ export const RecruitmentForm: React.FC<RecruitmentFormProps> = ({ initialData, o
                     </Button>
                     <Button
                         type="submit"
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || !selectedStudyId}
                         variant="primary"
                         size="xl"
                         fullWidth

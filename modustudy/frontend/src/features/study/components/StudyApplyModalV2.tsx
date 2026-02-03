@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Send, CheckCircle, AlertCircle, Loader2, Users, Calendar, MapPin } from 'lucide-react';
+import { Send, CheckCircle, AlertCircle, Users, Calendar, MapPin } from 'lucide-react';
+import { Spinner } from '@/shared/components/Spinner';
 import { Study } from '../services/studyService';
 import { studyApi } from '@/api/endpoints/studyApi';
 import { Modal, Button, FormField } from '@/shared/components';
@@ -200,7 +201,7 @@ const StudyApplyModalV2: React.FC<StudyApplyModalV2Props> = ({ study, isOpen, on
                     <div className="py-16 flex flex-col items-center justify-center gap-4">
                         <div className="relative">
                             <div className="w-16 h-16 bg-[var(--color-primary-alpha-10)] rounded-full flex items-center justify-center">
-                                <Loader2 className="w-8 h-8 text-[var(--color-primary)] animate-spin" />
+                                <Spinner size="lg" />
                             </div>
                         </div>
                         <div className="text-center">

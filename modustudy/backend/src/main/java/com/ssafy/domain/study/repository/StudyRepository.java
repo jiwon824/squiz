@@ -57,6 +57,16 @@ public interface StudyRepository extends JpaRepository<Study, Long>, StudyReposi
     Page<Study> findByLeaderIdAndStatus(Long leaderId, Status status, Pageable pageable);
 
     /**
+     * 특정 스터디장의 특정 상태 스터디 목록 (전체)
+     */
+    List<Study> findByLeaderIdAndStatus(Long leaderId, Status status);
+
+    /**
+     * 특정 스터디장의 여러 상태 스터디 목록 (전체)
+     */
+    List<Study> findByLeaderIdAndStatusIn(Long leaderId, List<Status> statuses);
+
+    /**
      * 특정 상태이고 모집 종료일이 특정 날짜 이전인 스터디 목록 조회
      * - 모집 기간 종료 스케줄러에서 사용
      */
