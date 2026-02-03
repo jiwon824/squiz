@@ -41,4 +41,9 @@ public interface LeaderReviewRepository extends JpaRepository<LeaderReview, Long
      * 특정 스터디 + 평가자로 리뷰 조회 (내 리뷰 조회)
      */
     java.util.Optional<LeaderReview> findByStudyIdAndReviewerId(Long studyId, Long reviewerId);
+
+    /**
+     * 특정 평가자가 작성한 리뷰 개수 (첫 리뷰 체크용)
+     */
+    Long countByReviewerId(Long reviewerId);
 }

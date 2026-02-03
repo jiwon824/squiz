@@ -113,26 +113,28 @@ public class GamificationService {
         List<DailyContribution> contributions = dailyContributionRepository
                 .findByUserIdAndContributionDateBetweenOrderByContributionDateAsc(userId, startDate, endDate);
 
-        // 날짜별 활동 맵 생성
-        Map<LocalDate, Boolean> activityMap = contributions.stream()
+        // 날짜별 활동 맵 생성 (활동 여부 + 활동 횟수)
+        Map<LocalDate, DailyContribution> activityMap = contributions.stream()
                 .collect(Collectors.toMap(
                         DailyContribution::getContributionDate,
-                        DailyContribution::getHasActivity
+                        dc -> dc
                 ));
 
         // 전체 날짜 생성
         List<ContributionResponse.ContributionDay> days = new ArrayList<>();
         for (int day = 1; day <= yearMonth.lengthOfMonth(); day++) {
             LocalDate date = yearMonth.atDay(day);
+            DailyContribution dc = activityMap.get(date);
             days.add(ContributionResponse.ContributionDay.builder()
                     .date(date)
-                    .hasActivity(activityMap.getOrDefault(date, false))
+                    .hasActivity(dc != null && dc.getHasActivity())
+                    .activityCount(dc != null ? dc.getActivityCount() : 0)
                     .build());
         }
 
         // 통계 계산
         UserStats stats = userStatsRepository.findByUser_Id(userId).orElse(null);
-        int activeDays = (int) activityMap.values().stream().filter(v -> v).count();
+        int activeDays = (int) activityMap.values().stream().filter(DailyContribution::getHasActivity).count();
 
         return ContributionResponse.builder()
                 .year(year)
@@ -154,10 +156,11 @@ public class GamificationService {
         List<DailyContribution> contributions = dailyContributionRepository
                 .findByUserIdAndYear(userId, year);
 
-        Map<LocalDate, Boolean> activityMap = contributions.stream()
+        // 날짜별 활동 맵 생성 (활동 여부 + 활동 횟수)
+        Map<LocalDate, DailyContribution> activityMap = contributions.stream()
                 .collect(Collectors.toMap(
                         DailyContribution::getContributionDate,
-                        DailyContribution::getHasActivity
+                        dc -> dc
                 ));
 
         // 전체 날짜 생성 (1년치)
@@ -166,9 +169,11 @@ public class GamificationService {
         List<ContributionResponse.ContributionDay> days = new ArrayList<>();
 
         for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
+            DailyContribution dc = activityMap.get(date);
             days.add(ContributionResponse.ContributionDay.builder()
                     .date(date)
-                    .hasActivity(activityMap.getOrDefault(date, false))
+                    .hasActivity(dc != null && dc.getHasActivity())
+                    .activityCount(dc != null ? dc.getActivityCount() : 0)
                     .build());
         }
 
@@ -189,7 +194,7 @@ public class GamificationService {
         }
 
         UserStats stats = userStatsRepository.findByUser_Id(userId).orElse(null);
-        int activeDays = (int) activityMap.values().stream().filter(v -> v).count();
+        int activeDays = (int) activityMap.values().stream().filter(DailyContribution::getHasActivity).count();
 
         return ContributionResponse.builder()
                 .year(year)
