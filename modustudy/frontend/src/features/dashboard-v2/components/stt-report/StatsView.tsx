@@ -41,8 +41,10 @@ export const StatsView: React.FC<StatsViewProps> = ({
 }) => {
     // 통계 계산
     const totalMeetings = reports.length;
-    const totalParticipants = reports.reduce((sum, r) => sum + r.participants.length, 0);
-    const avgParticipants = (totalParticipants / totalMeetings).toFixed(1);
+    // participantCount 우선 사용 (목록 조회 시에도 정확한 수 제공)
+    const totalParticipants = reports.reduce((sum, r) =>
+        sum + (r.participantCount > 0 ? r.participantCount : r.participants.length), 0);
+    const avgParticipants = totalMeetings > 0 ? (totalParticipants / totalMeetings).toFixed(1) : '0';
     const totalKeywords = reports.reduce((sum, r) => sum + r.keywords.length, 0);
 
     // 스터디별 미팅 횟수

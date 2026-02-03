@@ -8,6 +8,8 @@ export interface MeetingReport {
     date: string;
     duration: string;
     participants: string[];
+    /** 참여자 수 (목록 조회 시 사용, 상세 조회 전에도 정확한 수 제공) */
+    participantCount: number;
     summary: string;
     keywords: string[];
     highlights: string[];
