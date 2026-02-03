@@ -14,6 +14,8 @@ import aiDetection from '../services/aiDetection';
 import canvasComposer from '../services/canvasComposer';
 import { studyApi } from '@/api/endpoints/studyApi';
 import { Button, Modal } from '@/shared/components';
+import { cn, conditionalClasses } from '@/shared/utils/cn';
+import { ChevronUp, ChevronDown, Mic, MicOff, PhoneOff, Presentation, Users } from 'lucide-react';
 import {
     MeetingJoinResponse,
     MeetingRoomChatMessage,
@@ -138,6 +140,8 @@ const MeetingRoomPage: React.FC = () => {
     const [isExtendConfirmOpen, setIsExtendConfirmOpen] = useState(false);
     const [isEndConfirmOpen, setIsEndConfirmOpen] = useState(false);
     const [isPresenterConfirmOpen, setIsPresenterConfirmOpen] = useState(false);
+    const [isVideoExpanded, setIsVideoExpanded] = useState(false);
+    const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
     const [leaderId, setLeaderId] = useState<number | null>(null);
 
     const aiVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -2427,33 +2431,123 @@ const MeetingRoomPage: React.FC = () => {
                         </div>
                     </div>
                 )}
-                <MeetingRoomHeader
-                    meetingTitle={meetingTitle}
-                    elapsedLabel={formatDuration(elapsedSeconds)}
-                    plannedLabel={plannedDurationSeconds ? formatPlannedDuration(plannedDurationSeconds) : null}
-                    timeWarning={timeWarning}
-                    isPresenter={isPresenter}
-                    onGoList={() => navigate(meetingListPath)}
-                    micEnabled={micEnabled}
-                    micDisabled={false}
-                    shareMode={shareMode}
-                    onToggleMic={handleToggleMic}
-                    onShareModeChange={handleShareModeChange}
-                    onTogglePresenter={handleTogglePresenter}
-                    onEndMeeting={handleEndMeeting}
-                    canEndMeeting={canEndMeeting}
-                    captureDisabled={isCapturing}
-                    onCapture={handleCapture}
-                    canExtendMeeting={canEndMeeting}
-                    extendDisabled={
-                        plannedDurationSeconds !== null
-                            ? plannedDurationSeconds >= MAX_PLANNED_DURATION_SECONDS
-                            : true
-                    }
-                    onExtendMeeting={handleExtendMeeting}
-                    elapsedSeconds={elapsedSeconds}
-                    plannedDurationSeconds={plannedDurationSeconds}
-                />
+                {/* 헤더: 접힌 상태일 때 미니 바, 펼쳐진 상태일 때 전체 헤더 */}
+                {isVideoExpanded && isHeaderCollapsed ? (
+                    /* 미니 헤더 바 */
+                    <div className="flex items-center gap-3 px-4 py-2 bg-white rounded-2xl shadow-sm shrink-0">
+                        {/* 펼치기 버튼 */}
+                        <button
+                            className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors cursor-pointer"
+                            onClick={() => setIsHeaderCollapsed(false)}
+                            title="헤더 펼치기"
+                        >
+                            <ChevronDown size={16} className="text-gray-600" />
+                        </button>
+
+                        {/* 타이머 */}
+                        <span className="font-mono text-sm font-semibold text-gray-700 tabular-nums">
+                            {formatDuration(elapsedSeconds)}
+                        </span>
+                        {plannedDurationSeconds && (
+                            <span className="text-xs text-gray-400">
+                                / {formatPlannedDuration(plannedDurationSeconds)}
+                            </span>
+                        )}
+
+                        {/* 시간 경고 */}
+                        {timeWarning && (
+                            <span className="text-xs font-semibold text-red-500 animate-pulse">
+                                {timeWarning}
+                            </span>
+                        )}
+
+                        {/* 구분선 */}
+                        <div className="w-px h-5 bg-gray-200" />
+
+                        {/* 모드 배지 */}
+                        <div className={cn(
+                            'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium',
+                            conditionalClasses.state(
+                                isPresenter,
+                                'bg-amber-50 text-amber-700',
+                                'bg-blue-50 text-blue-700'
+                            )
+                        )}>
+                            {isPresenter ? <Presentation size={12} /> : <Users size={12} />}
+                            {isPresenter ? '발표자' : '참가자'}
+                        </div>
+
+                        {/* 구분선 */}
+                        <div className="w-px h-5 bg-gray-200" />
+
+                        {/* 핵심 컨트롤 */}
+                        <button
+                            className={cn(
+                                'w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer',
+                                conditionalClasses.state(
+                                    micEnabled,
+                                    'bg-blue-100 text-blue-600 hover:bg-blue-200',
+                                    'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                                )
+                            )}
+                            onClick={handleToggleMic}
+                            title={micEnabled ? '마이크 끄기' : '마이크 켜기'}
+                        >
+                            {micEnabled ? <Mic size={16} /> : <MicOff size={16} />}
+                        </button>
+
+                        {canEndMeeting && (
+                            <button
+                                className="w-8 h-8 rounded-lg bg-red-100 text-red-600 hover:bg-red-200 flex items-center justify-center transition-colors cursor-pointer"
+                                onClick={handleEndMeeting}
+                                title="미팅 종료"
+                            >
+                                <PhoneOff size={16} />
+                            </button>
+                        )}
+                    </div>
+                ) : (
+                    /* 전체 헤더 */
+                    <div className="relative shrink-0">
+                        <MeetingRoomHeader
+                            meetingTitle={meetingTitle}
+                            elapsedLabel={formatDuration(elapsedSeconds)}
+                            plannedLabel={plannedDurationSeconds ? formatPlannedDuration(plannedDurationSeconds) : null}
+                            timeWarning={timeWarning}
+                            isPresenter={isPresenter}
+                            onGoList={() => navigate(meetingListPath)}
+                            micEnabled={micEnabled}
+                            micDisabled={false}
+                            shareMode={shareMode}
+                            onToggleMic={handleToggleMic}
+                            onShareModeChange={handleShareModeChange}
+                            onTogglePresenter={handleTogglePresenter}
+                            onEndMeeting={handleEndMeeting}
+                            canEndMeeting={canEndMeeting}
+                            captureDisabled={isCapturing}
+                            onCapture={handleCapture}
+                            canExtendMeeting={canEndMeeting}
+                            extendDisabled={
+                                plannedDurationSeconds !== null
+                                    ? plannedDurationSeconds >= MAX_PLANNED_DURATION_SECONDS
+                                    : true
+                            }
+                            onExtendMeeting={handleExtendMeeting}
+                            elapsedSeconds={elapsedSeconds}
+                            plannedDurationSeconds={plannedDurationSeconds}
+                        />
+                        {/* 비디오 최대화 시 헤더 접기 버튼 */}
+                        {isVideoExpanded && (
+                            <button
+                                className="absolute top-3 right-3 w-7 h-7 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors cursor-pointer"
+                                onClick={() => setIsHeaderCollapsed(true)}
+                                title="헤더 접기"
+                            >
+                                <ChevronUp size={16} className="text-gray-600" />
+                            </button>
+                        )}
+                    </div>
+                )}
 
                 <MeetingRoomContent
                     localStream={localStream}
@@ -2475,6 +2569,10 @@ const MeetingRoomPage: React.FC = () => {
                     onDeleteChat={handleDeleteChat}
                     currentUserId={user?.id ?? null}
                     currentSender={displayNameRef.current}
+                    onExpandChange={(expanded) => {
+                        setIsVideoExpanded(expanded);
+                        if (!expanded) setIsHeaderCollapsed(false);
+                    }}
                 />
             </div>
             <Modal
