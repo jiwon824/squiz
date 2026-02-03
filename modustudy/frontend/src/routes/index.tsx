@@ -181,7 +181,6 @@ export const AppRouter = () => {
                 <Route path="/study/create/lightning" element={<LightningStudyCreatePage />} />
                 <Route path="/study/edit/lightning/:studyId" element={<LightningStudyEditPage />} />
                 <Route path="/study/:id" element={<StudyDetailPageV3 />} />
-                <Route path="/study/v3/:id" element={<StudyDetailPageV3 />} />
                 <Route path="/study/manage/:id" element={<StudyManagementPage />} />
                 {/* origin/dev 추가 */}
                 <Route path="/study/:studyId/workspace" element={<WorkspacePage />} />

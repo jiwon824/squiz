@@ -1627,7 +1627,7 @@ const StudyCreatePage: React.FC = () => {
                 if (from === 'manage') {
                     navigate(`/study/manage/${editStudyId}`);
                 } else {
-                    navigate(`/study/v3/${editStudyId}`);
+                    navigate(`/study/${editStudyId}`);
                 }
             } else {
                 // 생성 모드
