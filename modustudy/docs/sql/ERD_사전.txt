@@ -1,37 +1,114 @@
-ERD 사전 - Board 도메인
+﻿================================================================================
+ModuStudy ERD 용어 사전
+================================================================================
 
-[board_post]
-- id (BIGINT, PK) : 모집글 ID
-- created_at (DATETIME) : 생성일시
-- updated_at (DATETIME) : 수정일시
-- user_id (BIGINT, FK -> user.id) : 작성자 ID
-- study_id (BIGINT, FK -> study.id) : 스터디 ID
-- category (VARCHAR(20)) : 게시글 카테고리 (예: FREE)
-- title (VARCHAR(200)) : 모집글 제목
-- content (TEXT) : 모집글 내용
-- view_count (INT) : 조회수
-- like_count (INT) : 좋아요 수
-- comment_count (INT) : 댓글 수
-- is_deleted (TINYINT) : 삭제 여부 (0: 미삭제, 1: 삭제)
+【 테이블명 】
+--------------------------------------------------------------------------------
+user                      사용자
+user_social_account       소셜계정연동
+login_history             로그인이력
+user_schedule             사용자일정
+user_organization         사용자소속인증
+friendship                친구관계
+user_block                사용자차단
+dm_conversation           DM대화방
+direct_message            DM메시지
+region                    지역
+study                     스터디
+study_template            스터디모집글템플릿
+study_comment             스터디댓글
+study_member              스터디멤버
+study_session             스터디세션
+study_bookmark            스터디찜
+study_application         스터디가입신청
+study_leader_review       스터디장평가
+channel                   채널
+message                   메시지
+sender_name               발신자명
+sent_at                   전송시각
+meeting                   미팅
+meeting_participant       미팅참여자
+meeting_chat_message      미팅채팅메시지
+meeting_audio_recording   미팅오디오녹음
+meeting_stt_file          미팅STT파일
+meeting_stt_summary       미팅STT요약
+meeting_photo             미팅사진
+attendance                출석
+session_memo              세션메모
+quiz_category             퀴즈카테고리
+quiz_question_pool        퀴즈문제풀
+quiz_question_pool_option 퀴즈문제보기
+quiz_contest_state        퀴즈대회상태
+quiz_contest_chat         퀴즈대회채팅
+quiz_contest              퀴즈대회
+quiz_question             퀴즈문제
+quiz_participant          퀴즈참가자
+quiz_answer               퀴즈답변
+quiz_practice_stats       퀴즈코스통계
+quiz_practice_record      퀴즈코스기록
+quiz_practice_answer      퀴즈코스답안
+study_quiz                스터디퀴즈
+study_quiz_question       스터디퀴즈문제
+study_quiz_attempt        스터디퀴즈시도
+study_quiz_answer         스터디퀴즈답변
+wrong_answer_note         오답노트
+quiz_course               퀴즈코스
+quiz_course_section       퀴즈코스섹션
+quiz_course_question      퀴즈코스문제
+user_course_progress      코스진행현황
+user_section_attempt      섹션시도기록
+daily_contribution        일일활동(잔디)
+contribution_detail       활동상세
+user_stats                사용자통계
+badge                     뱃지(영구/긍정적)
+user_badge                사용자뱃지
+penalty                   패널티(일시/부정적)
+user_penalty              사용자패널티
+material                  학습자료
+material_comment          자료댓글
+curriculum                커리큘럼
+progress                  진도
+retrospective             회고
+retrospective_item        회고항목
+notification              알림
+notification_setting      알림설정
+fcm_token                 FCM토큰
+report                    SSAFY보고서
+ai_feedback               AI피드백
+daily_report              데일리리포트
+daily_item                데일리항목
+board_post                자유게시판게시글
+board_comment             자유게시판댓글
+board_like                자유게시판좋아요
+team_recruit              팀원모집글
+team_application          팀원지원
+comendle_word             꼬멘틀단어
+comendle_daily            꼬멘틀오늘의단어
+comendle_attempt          꼬멘틀시도
+comendle_guess            꼬멘틀추측
+comendle_streak           꼬멘틀연속기록
+it_news                   IT뉴스
+news_bookmark             뉴스북마크
 
-[board_comment]
-- id (BIGINT, PK) : 댓글 ID
-- created_at (DATETIME) : 생성일시
-- updated_at (DATETIME) : 수정일시
-- post_id (BIGINT, FK -> board_post.id) : 모집글 ID
-- user_id (BIGINT, FK -> user.id) : 작성자 ID
-- parent_id (BIGINT, FK -> board_comment.id, NULL 가능) : 부모 댓글 ID
-- content (TEXT) : 댓글 내용
-- is_deleted (TINYINT) : 삭제 여부 (0: 미삭제, 1: 삭제)
+【 속성명 (공통) 】
+--------------------------------------------------------------------------------
+id                        고유ID (PK)
+created_at                생성일시
+updated_at                수정일시
+user_id                   사용자ID (FK)
+study_id                  스터디ID (FK)
+session_id                세션ID (FK)
+status                    상태
+is_active                 활성여부
+is_deleted                삭제여부
+is_completed              완료여부
+title                     제목
+description               설명
+content                   내용
+name                      이름
+email                     이메일
+nickname                  닉네임
 
-<<<<<<< HEAD
-[board_like]
-- id (BIGINT, PK) : 좋아요 ID
-- created_at (DATETIME) : 생성일시
-- updated_at (DATETIME) : 수정일시
-- post_id (BIGINT, FK -> board_post.id) : 모집글 ID
-- user_id (BIGINT, FK -> user.id) : 사용자 ID
-=======
 【 속성명 (개별) 】
 --------------------------------------------------------------------------------
 password                  비밀번호
@@ -543,4 +620,3 @@ source_url                원본URL
 source_name               출처명
 thumbnail_url             썸네일URL
 published_at              발행일시
->>>>>>> dev
