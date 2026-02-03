@@ -56,6 +56,9 @@ REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 llm = None
 whisper_model = None
 
+# 중복 업로드 방지 (meetingId -> 처리 중 여부)
+uploading_meetings = set()
+
 
 # ===== 8B 출력 파싱 =====
 
@@ -1824,12 +1827,25 @@ async def upload_recording(request: RecordingUploadRequest, background_tasks: Ba
     meeting_id = request.meeting_id
     file_path = request.file_path
 
+    # 중복 업로드 방지: 이미 처리 중인 meetingId면 스킵
+    if meeting_id in uploading_meetings:
+        print(f"[UPLOAD] 중복 요청 스킵: meetingId={meeting_id} (이미 처리 중)")
+        return RecordingUploadResponse(
+            status="skipped",
+            message="이미 처리 중인 미팅입니다",
+            recording_url=None
+        )
+
+    uploading_meetings.add(meeting_id)
+
     # 경로 보안 검증 (SFU uploads 디렉토리 내부만 허용)
     abs_path = os.path.abspath(file_path)
     if not abs_path.startswith(os.path.abspath(SFU_UPLOADS_PATH)):
+        uploading_meetings.discard(meeting_id)
         raise HTTPException(status_code=400, detail=f"Invalid file path: must be within {SFU_UPLOADS_PATH}")
 
     if not os.path.exists(abs_path):
+        uploading_meetings.discard(meeting_id)
         raise HTTPException(status_code=404, detail=f"File not found: {file_path}")
 
     print(f"[UPLOAD] 녹음 파일 처리 시작: meetingId={meeting_id}, path={file_path}")
@@ -1882,6 +1898,8 @@ async def upload_recording(request: RecordingUploadRequest, background_tasks: Ba
         # 전처리 파일 정리
         if preprocessed_path:
             cleanup_preprocessed(abs_path, preprocessed_path)
+        # 중복 업로드 방지 세트에서 제거
+        uploading_meetings.discard(meeting_id)
         raise HTTPException(status_code=502, detail=f"Backend connection failed: {str(e)}")
 
 
@@ -1965,6 +1983,8 @@ def process_recording_and_send_results(meeting_id: int, audio_path: str, origina
         # 전처리 임시 파일 정리
         if preprocessed_path:
             cleanup_preprocessed(original_path, preprocessed_path)
+        # 중복 업로드 방지 세트에서 제거
+        uploading_meetings.discard(meeting_id)
 
 
 # ===== 실시간 STT transcript 기반 요약 (STT 스킵) =====
