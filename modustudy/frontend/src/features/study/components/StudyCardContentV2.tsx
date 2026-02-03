@@ -340,22 +340,19 @@ const InfoChip: React.FC<InfoChipProps> = ({ icon, text, highlight }) => (
     </div>
 );
 
-// 마감일이 오늘인지 체크 (날짜만 비교)
+// 마감일이 오늘인지 체크 (날짜만 비교, 시간대 문제 방지)
 const isDeadlineToday = (dateStr: string): boolean => {
-    const deadline = new Date(dateStr);
     const today = new Date();
-    // 날짜만 비교 (시간 제외)
-    return deadline.getFullYear() === today.getFullYear() &&
-           deadline.getMonth() === today.getMonth() &&
-           deadline.getDate() === today.getDate();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    return dateStr === todayStr;
 };
 
-// 마감일이 지났는지 체크
+// 마감일이 지났는지 체크 (시간대 문제 방지)
 const isDeadlinePassed = (dateStr: string): boolean => {
-    const deadline = new Date(dateStr);
-    deadline.setHours(23, 59, 59, 999); // 마감일 당일 23:59:59까지 유효
     const today = new Date();
-    return today > deadline;
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    // 마감일 당일까지는 유효 (마감일 < 오늘이면 마감)
+    return dateStr < todayStr;
 };
 
 export default StudyCardContentV2;
