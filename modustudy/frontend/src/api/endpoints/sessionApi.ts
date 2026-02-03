@@ -93,11 +93,24 @@ export const sessionApi = {
   },
 
   /**
-   * 세션 생성
+   * 세션 생성 (단건)
    * POST /api/v1/studies/{studyId}/sessions
+   * 백엔드는 배열을 기대하므로 배열로 감싸서 전송
    */
   createSession: async (studyId: number, data: SessionCreateRequest) => {
-    const response = await api.post<StudySessionResponse>(
+    const response = await api.post<StudySessionResponse[]>(
+      `/api/v1/studies/${studyId}/sessions`,
+      [data] // 배열로 감싸서 전송
+    );
+    return response.data[0]; // 첫 번째 결과 반환
+  },
+
+  /**
+   * 세션 일괄 생성 (다건)
+   * POST /api/v1/studies/{studyId}/sessions
+   */
+  createSessions: async (studyId: number, data: SessionCreateRequest[]) => {
+    const response = await api.post<StudySessionResponse[]>(
       `/api/v1/studies/${studyId}/sessions`,
       data
     );
