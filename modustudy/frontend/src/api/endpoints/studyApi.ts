@@ -666,6 +666,17 @@ export const studyApi = {
     }
   },
 
+  /**
+   * 내 북마크 목록 조회
+   * GET /api/v1/my/bookmarks
+   */
+  getMyBookmarks: async (page = 0, size = 20): Promise<PageResponse<StudyBookmarkResponse>> => {
+    const response = await api.get<any>('/api/v1/my/bookmarks', {
+      params: { page, size },
+    });
+    return response.data;
+  },
+
   // ========== 스터디 모집 관리 (Recruitment Management) ==========
 
   /**
@@ -797,6 +808,31 @@ export interface LeaderReviewPageResponse {
   size: number;
   first: boolean;
   last: boolean;
+}
+
+// 북마크 응답 타입
+export interface StudyBookmarkResponse {
+  id: number;
+  userId: number;
+  studyId: number;
+  createdAt: string;
+  studyName: string;
+  studyDescription: string;
+  studyStatus: string;
+  meetingType: string;
+  maxMembers: number;
+  difficulty: string | null;
+  topic: {
+    id: number;
+    name: string;
+    parentName: string | null;
+  } | null;
+  format: {
+    id: number;
+    name: string;
+  } | null;
+  bookmarkCount: number | null;
+  isBookmarked: boolean;
 }
 
 /**
