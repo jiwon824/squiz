@@ -23,7 +23,7 @@ import {
     QuizShortAnswer
 } from '@/shared/components';
 import '../styles/DashboardV2.css';
-import { getTodayReviews, getWrongAnswers, submitReview, ReviewItemDto } from '../api/reviewApi';
+import { getTodayReviews, getWrongAnswers, submitReview, ReviewItemDto, WrongAnswerSortType } from '../api/reviewApi';
 import { useTimer } from '@/features/quiz/hooks/useTimer';
 
 // 흔들리는 개념 타입
@@ -57,6 +57,7 @@ export const MyQuizPage: React.FC = () => {
     // Data State
     const [todayReviews, setTodayReviews] = useState<ReviewItemDto[]>([]);
     const [wrongReviews, setWrongReviews] = useState<ReviewItemDto[]>([]);
+    const [wrongSortType, setWrongSortType] = useState<WrongAnswerSortType>('MOST_WRONG');
     // const [loading, setLoading] = useState(false); // Lint fix: unused
 
     // UI Action State
@@ -78,7 +79,7 @@ export const MyQuizPage: React.FC = () => {
             try {
                 const [todayData, wrongData] = await Promise.all([
                     getTodayReviews(),
-                    getWrongAnswers()
+                    getWrongAnswers(wrongSortType)
                 ]);
                 setTodayReviews(todayData?.items || []);
                 setWrongReviews(wrongData?.items || []);
@@ -91,7 +92,7 @@ export const MyQuizPage: React.FC = () => {
             }
         };
         fetchData();
-    }, []);
+    }, [wrongSortType]);
 
 
     const handleBack = () => {
@@ -447,6 +448,31 @@ export const MyQuizPage: React.FC = () => {
                                             animate={{ opacity: 1, x: 0 }}
                                             exit={{ opacity: 0, x: -10 }}
                                         >
+                                            {/* Sorting Toggle */}
+                                            <div className="mb-4 flex gap-2">
+                                                <button
+                                                    onClick={() => setWrongSortType('MOST_WRONG')}
+                                                    className={cn(
+                                                        'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                                                        wrongSortType === 'MOST_WRONG'
+                                                            ? 'bg-primary text-white'
+                                                            : 'bg-gray-100 text-text-secondary hover:bg-gray-200'
+                                                    )}
+                                                >
+                                                    많이 틀린 순
+                                                </button>
+                                                <button
+                                                    onClick={() => setWrongSortType('FSRS_RECOMMENDED')}
+                                                    className={cn(
+                                                        'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                                                        wrongSortType === 'FSRS_RECOMMENDED'
+                                                            ? 'bg-primary text-white'
+                                                            : 'bg-gray-100 text-text-secondary hover:bg-gray-200'
+                                                    )}
+                                                >
+                                                    복습 우선순위
+                                                </button>
+                                            </div>
                                             <ReviewItemList
                                                 items={wrongReviews}
                                                 onRetry={handleRetry}
@@ -511,10 +537,9 @@ const ReviewItemList: React.FC<ReviewItemListProps> = ({ items, onRetry, type })
         currentPage * itemsPerPage
     );
 
-    // If 'wrong' tab, sort by lapses desc. If 'review', maybe by nextReviewAt asc (already done by backend).
-    const displayItems = type === 'wrong'
-        ? [...currentItems].sort((a, b) => b.lapses - a.lapses)
-        : currentItems;
+    // Backend already handles sorting based on selected sortType
+    // No need to re-sort on frontend
+    const displayItems = currentItems;
 
     const getDifficultyColor = (diff: number) => {
         if (diff < 3) return 'bg-accent/20 text-accent-dark';

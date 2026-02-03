@@ -25,11 +25,35 @@ export const userApi = {
         const formData = new FormData();
         formData.append('file', file);
 
-        const response = await api.post<any>('/api/v1/users/me/profile-image', formData, {
-            headers: {
-                'Content-Type': 'multipart/form-data',
-            },
-        });
+        // fetch API 사용 - FormData를 자동으로 multipart/form-data로 처리
+        const token = localStorage.getItem('accessToken');
+        const response = await fetch(
+            `${import.meta.env.VITE_API_URL || ''}/api/v1/users/me/profile-image`,
+            {
+                method: 'POST',
+                headers: {
+                    Authorization: token ? `Bearer ${token}` : '',
+                },
+                body: formData,
+                credentials: 'include',
+            }
+        );
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || '이미지 업로드에 실패했습니다.');
+        }
+
+        const data = await response.json();
+        return data.data as UserDTO;
+    },
+
+    /**
+     * 프로필 이미지 삭제 (기본 이미지로 변경)
+     * DELETE /api/v1/users/me/profile-image
+     */
+    deleteProfileImage: async () => {
+        const response = await api.delete<any>('/api/v1/users/me/profile-image');
         return response.data.data as UserDTO;
     },
 };

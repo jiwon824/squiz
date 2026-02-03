@@ -405,7 +405,7 @@ const LightningStudyEditPage: React.FC = () => {
             // from 파라미터에 따라 이전 페이지로 이동
             const from = searchParams.get('from');
             if (from === 'detail') {
-                navigate(`/study/v3/${studyId}`);
+                navigate(`/study/${studyId}`);
             } else {
                 navigate(`/study/manage/${studyId}`);
             }

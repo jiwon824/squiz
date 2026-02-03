@@ -373,13 +373,28 @@ fun ReviewSessionScreen(
     val todayReviewState by viewModel.todayReviewState.collectAsState()
     val currentCardIndex by viewModel.currentCardIndex.collectAsState()
     val sessionState by viewModel.sessionState.collectAsState()
-    var showAnswer by remember { mutableStateOf(false) }
+
+    // 선택한 답안과 정답 표시 상태
+    var selectedAnswer by remember { mutableStateOf<String?>(null) }
+    var showResult by remember { mutableStateOf(false) }
+
+    // 화면 진입 시 데이터 로드 및 세션 시작
+    LaunchedEffect(Unit) {
+        viewModel.loadTodayReviews()
+        viewModel.startSession()
+    }
 
     // 세션 완료 시 이동
     LaunchedEffect(sessionState) {
         if (sessionState is ReviewSessionState.Completed) {
             onComplete()
         }
+    }
+
+    // 문제가 바뀔 때 선택 초기화
+    LaunchedEffect(currentCardIndex) {
+        selectedAnswer = null
+        showResult = false
     }
 
     val currentCard = viewModel.getCurrentCard()
@@ -417,6 +432,10 @@ fun ReviewSessionScreen(
                 CircularProgressIndicator(color = Primary)
             }
         } else {
+            val options = currentCard.questionDetail?.options
+            val correctAnswer = currentCard.questionDetail?.correctAnswer
+            val hasOptions = !options.isNullOrEmpty()
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -436,7 +455,7 @@ fun ReviewSessionScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // 스터디 이름
+                // 카테고리
                 currentCard.studyName?.let { studyName ->
                     Text(
                         text = studyName,
@@ -447,7 +466,7 @@ fun ReviewSessionScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Question
+                // Question Card
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
@@ -461,44 +480,112 @@ fun ReviewSessionScreen(
                             .fillMaxWidth()
                             .padding(20.dp)
                     ) {
-                        Text(
-                            text = "Q.",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Primary
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = Primary
+                            ) {
+                                Text(
+                                    text = "Q${currentCardIndex + 1}",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = if (hasOptions) "객관식" else "단답형",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
                         Text(
                             text = currentCard.question,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Medium,
-                            lineHeight = 26.sp
+                            lineHeight = 28.sp,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // Answer (접힘/펼침)
-                if (!showAnswer) {
-                    Button(
-                        onClick = { showAnswer = true },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Primary.copy(alpha = 0.1f),
-                            contentColor = Primary
-                        )
-                    ) {
-                        Text(
-                            text = "정답 확인",
-                            fontWeight = FontWeight.SemiBold
-                        )
+                // 보기 (객관식)
+                if (hasOptions) {
+                    options?.forEachIndexed { index, option ->
+                        val optionLabel = option.optionLabel.ifEmpty { "${index + 1}" }
+                        val optionText = option.text ?: ""
+                        val isSelected = selectedAnswer == optionLabel
+                        val isCorrect = optionLabel == correctAnswer
+
+                        // 결과 표시 시 색상 결정
+                        val backgroundColor = when {
+                            !showResult && isSelected -> Primary.copy(alpha = 0.1f)
+                            showResult && isCorrect -> Success.copy(alpha = 0.1f)
+                            showResult && isSelected && !isCorrect -> Error.copy(alpha = 0.1f)
+                            else -> MaterialTheme.colorScheme.surface
+                        }
+                        val borderColor = when {
+                            !showResult && isSelected -> Primary
+                            showResult && isCorrect -> Success
+                            showResult && isSelected && !isCorrect -> Error
+                            else -> MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                        }
+                        val iconTint = when {
+                            !showResult && isSelected -> Primary
+                            showResult && isCorrect -> Success
+                            showResult && isSelected && !isCorrect -> Error
+                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 6.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .border(2.dp, borderColor, RoundedCornerShape(12.dp))
+                                .clickable(enabled = !showResult) {
+                                    selectedAnswer = optionLabel
+                                },
+                            color = backgroundColor
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // 선택 아이콘
+                                Icon(
+                                    imageVector = when {
+                                        showResult && isCorrect -> Icons.Filled.CheckCircle
+                                        showResult && isSelected && !isCorrect -> Icons.Filled.Cancel
+                                        isSelected -> Icons.Filled.RadioButtonChecked
+                                        else -> Icons.Outlined.RadioButtonUnchecked
+                                    },
+                                    contentDescription = null,
+                                    tint = iconTint,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(modifier = Modifier.width(14.dp))
+                                Text(
+                                    text = "$optionLabel. $optionText",
+                                    fontSize = 16.sp,
+                                    fontWeight = if (isSelected || (showResult && isCorrect)) FontWeight.SemiBold else FontWeight.Normal,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    lineHeight = 24.sp
+                                )
+                            }
+                        }
                     }
                 } else {
+                    // 단답형 - 정답 보기
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(12.dp),
                         colors = CardDefaults.cardColors(
                             containerColor = Success.copy(alpha = 0.1f)
                         )
@@ -506,7 +593,7 @@ fun ReviewSessionScreen(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(20.dp)
+                                .padding(16.dp)
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
@@ -535,8 +622,80 @@ fun ReviewSessionScreen(
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                // FSRS 평점 버튼
-                if (showAnswer) {
+                // 하단 버튼
+                if (hasOptions) {
+                    if (!showResult) {
+                        // 정답 확인 버튼
+                        Button(
+                            onClick = { showResult = true },
+                            enabled = selectedAnswer != null,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Primary,
+                                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
+                            )
+                        ) {
+                            Text(
+                                text = "정답 확인",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    } else {
+                        // 정답/오답 결과 및 다음 버튼
+                        val isCorrectAnswer = selectedAnswer == correctAnswer
+
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 12.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (isCorrectAnswer) Success.copy(alpha = 0.1f) else Error.copy(alpha = 0.1f)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = if (isCorrectAnswer) Icons.Filled.CheckCircle else Icons.Filled.Cancel,
+                                    contentDescription = null,
+                                    tint = if (isCorrectAnswer) Success else Error,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                    text = if (isCorrectAnswer) "정답입니다!" else "오답입니다",
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isCorrectAnswer) Success else Error
+                                )
+                            }
+                        }
+
+                        Button(
+                            onClick = {
+                                // FSRS 평점 자동 계산
+                                val rating = if (isCorrectAnswer) FsrsRating.GOOD else FsrsRating.AGAIN
+                                viewModel.submitReview(rating)
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Primary)
+                        ) {
+                            Text(
+                                text = "다음 문제",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                } else {
+                    // 단답형은 FSRS 평점 버튼 표시
                     Text(
                         text = "얼마나 기억나셨나요?",
                         fontSize = 14.sp,
@@ -552,37 +711,25 @@ fun ReviewSessionScreen(
                         FsrsRatingButton(
                             rating = FsrsRating.AGAIN,
                             color = Error,
-                            onClick = {
-                                viewModel.submitReview(FsrsRating.AGAIN)
-                                showAnswer = false
-                            },
+                            onClick = { viewModel.submitReview(FsrsRating.AGAIN) },
                             modifier = Modifier.weight(1f)
                         )
                         FsrsRatingButton(
                             rating = FsrsRating.HARD,
                             color = Warning,
-                            onClick = {
-                                viewModel.submitReview(FsrsRating.HARD)
-                                showAnswer = false
-                            },
+                            onClick = { viewModel.submitReview(FsrsRating.HARD) },
                             modifier = Modifier.weight(1f)
                         )
                         FsrsRatingButton(
                             rating = FsrsRating.GOOD,
                             color = Success,
-                            onClick = {
-                                viewModel.submitReview(FsrsRating.GOOD)
-                                showAnswer = false
-                            },
+                            onClick = { viewModel.submitReview(FsrsRating.GOOD) },
                             modifier = Modifier.weight(1f)
                         )
                         FsrsRatingButton(
                             rating = FsrsRating.EASY,
                             color = Primary,
-                            onClick = {
-                                viewModel.submitReview(FsrsRating.EASY)
-                                showAnswer = false
-                            },
+                            onClick = { viewModel.submitReview(FsrsRating.EASY) },
                             modifier = Modifier.weight(1f)
                         )
                     }

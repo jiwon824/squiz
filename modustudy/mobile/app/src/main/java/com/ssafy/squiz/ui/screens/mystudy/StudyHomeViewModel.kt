@@ -3,6 +3,7 @@ package com.ssafy.squiz.ui.screens.mystudy
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ssafy.squiz.base.SquizApplication
 import com.ssafy.squiz.data.remote.RetrofitClient
 import com.ssafy.squiz.data.remote.model.StudyDetailDTO
 import com.ssafy.squiz.data.remote.model.StudySessionDTO
@@ -74,8 +75,14 @@ class StudyHomeViewModel : ViewModel() {
             if (response.isSuccessful) {
                 val detail = response.body()
                 _studyDetail.value = detail
-                _isLeader.value = detail?.isLeader ?: false
-                Log.d(TAG, "스터디 상세 로드 성공: ${detail?.name}, isLeader=${detail?.isLeader}")
+
+                // 현재 사용자 ID와 리더 ID 비교하여 isLeader 결정
+                val currentUserId = SquizApplication.getInstance().authManager.getCurrentUserId()
+                val leaderId = detail?.leader?.id
+                val isLeaderResult = currentUserId > 0 && leaderId != null && currentUserId == leaderId
+
+                _isLeader.value = isLeaderResult
+                Log.d(TAG, "스터디 상세 로드 성공: ${detail?.name}, leaderId=$leaderId, currentUserId=$currentUserId, isLeader=$isLeaderResult")
             } else {
                 Log.e(TAG, "스터디 상세 로드 실패: ${response.code()}")
             }

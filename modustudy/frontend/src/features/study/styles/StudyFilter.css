@@ -193,6 +193,28 @@
     gap: var(--spacing-lg);
 }
 
+.filter-footer {
+    margin-top: var(--spacing-lg);
+    display: flex;
+    justify-content: flex-end;
+}
+
+.filter-apply-btn {
+    background-color: var(--color-primary);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-md);
+    padding: var(--spacing-sm) var(--spacing-lg);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.filter-apply-btn:hover {
+    filter: brightness(0.95);
+}
+
 .filter-section {
     display: flex;
     flex-direction: column;

@@ -16,7 +16,7 @@
 import { BookOpen } from 'lucide-react';
 
 import type { Course } from '../types/QuizCourse.types';
-import { CATEGORY_CONFIG } from '../types/QuizCourse.types';
+import { CATEGORY_CONFIG, DEFAULT_CATEGORY_CONFIG } from '../types/QuizCourse.types';
 
 // =============================================================================
 // PROPS INTERFACE - 컴포넌트가 받는 속성 정의
@@ -36,7 +36,13 @@ export const CourseCard = ({ course, onCardClick }: CourseCardProps) => {
     // DERIVED DATA - 데이터 가공
     // =========================================================================
 
-    const categoryConfig = CATEGORY_CONFIG[course.category];
+    // 1. DB code 우선 (예: "ALGORITHM")
+    // 2. 기존 category Fallback (예: "DataStructure")
+    // 3. 매핑되지 않은 경우 Default 설정 사용
+    const categoryConfig =
+        (course.code && CATEGORY_CONFIG[course.code]) ||
+        CATEGORY_CONFIG[course.category] ||
+        DEFAULT_CATEGORY_CONFIG;
 
     // =========================================================================
     // RENDER - JSX 반환 (화면에 표시될 내용)

@@ -199,5 +199,34 @@ data class StudySessionDTO(
     @SerializedName("isOnline") val isOnline: Boolean? = true,
     @SerializedName("status") val status: String? = null, // SCHEDULED, IN_PROGRESS, COMPLETED, CANCELLED
     @SerializedName("completedAt") val completedAt: String? = null,
-    @SerializedName("createdAt") val createdAt: String? = null
-)
+    @SerializedName("createdAt") val createdAt: String? = null,
+    @SerializedName("studyName") val studyName: String? = null
+) {
+    // ScheduleDTO로 변환 (UI 호환성)
+    fun toScheduleDTO(): ScheduleDTO {
+        val dateTime = scheduledAt?.let {
+            try {
+                java.time.LocalDateTime.parse(it)
+            } catch (e: Exception) {
+                null
+            }
+        }
+        val date = dateTime?.toLocalDate()?.toString() ?: ""
+        val startTime = dateTime?.toLocalTime()?.toString()?.take(5) ?: ""
+        val endTime = durationMinutes?.let { minutes ->
+            dateTime?.plusMinutes(minutes.toLong())?.toLocalTime()?.toString()?.take(5)
+        } ?: ""
+
+        return ScheduleDTO(
+            studyId = studyId,
+            sessionId = id,
+            studyName = studyName ?: "스터디 #$studyId",
+            date = date,
+            startTime = startTime,
+            endTime = endTime,
+            location = location,
+            isOnline = isOnline ?: true,
+            meetingUrl = null
+        )
+    }
+}

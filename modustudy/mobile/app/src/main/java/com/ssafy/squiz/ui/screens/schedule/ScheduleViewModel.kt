@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ssafy.squiz.data.remote.RetrofitClient
 import com.ssafy.squiz.data.remote.model.*
+import com.ssafy.squiz.base.SquizApplication
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -64,11 +66,17 @@ class ScheduleViewModel : ViewModel() {
         viewModelScope.launch {
             _schedulesState.value = SchedulesState.Loading
             try {
-                val response = RetrofitClient.scheduleApi.getSchedules()
+                // 오늘부터 30일 이후까지의 일정 조회
+                val today = java.time.LocalDate.now()
+                val endDate = today.plusDays(30)
+                val startDateStr = today.toString() // YYYY-MM-DD
+                val endDateStr = endDate.toString()
+
+                val response = RetrofitClient.scheduleApi.getSchedules(startDateStr, endDateStr)
 
                 if (response.isSuccessful) {
-                    val scheduleListResponse = response.body()?.data
-                    val schedules = scheduleListResponse?.sessions ?: emptyList()
+                    val sessionList = response.body() ?: emptyList()
+                    val schedules = sessionList.map { it.toScheduleDTO() }
                     _schedulesState.value = SchedulesState.Success(schedules)
                 } else {
                     _schedulesState.value = SchedulesState.Error("일정을 불러오는데 실패했습니다. (${response.code()})")
@@ -87,18 +95,31 @@ class ScheduleViewModel : ViewModel() {
                 val year = _currentYear.value
                 val month = _currentMonth.value
 
-                val response = RetrofitClient.scheduleApi.getMonthSchedules(year, month)
+                // 해당 월의 시작일과 종료일 계산
+                val startDate = java.time.LocalDate.of(year, month, 1)
+                val endDate = startDate.plusMonths(1).minusDays(1)
+
+                val response = RetrofitClient.scheduleApi.getMonthSchedules(
+                    startDate.toString(),
+                    endDate.toString()
+                )
 
                 if (response.isSuccessful) {
-                    val calendarData = response.body()?.data
-                    if (calendarData != null) {
-                        _calendarState.value = CalendarState.Success(calendarData)
-                    } else {
-                        // 데이터가 없으면 빈 캘린더
-                        _calendarState.value = CalendarState.Success(
-                            CalendarData(scheduledDays = emptyList(), schedules = emptyList())
-                        )
-                    }
+                    val sessionList = response.body() ?: emptyList()
+                    val schedules = sessionList.map { it.toScheduleDTO() }
+
+                    // scheduledDays 추출 (일정이 있는 날짜들)
+                    val scheduledDays = schedules.mapNotNull { schedule ->
+                        try {
+                            java.time.LocalDate.parse(schedule.date).dayOfMonth
+                        } catch (e: Exception) { null }
+                    }.distinct()
+
+                    val calendarData = CalendarData(
+                        scheduledDays = scheduledDays,
+                        schedules = schedules
+                    )
+                    _calendarState.value = CalendarState.Success(calendarData)
                 } else {
                     _calendarState.value = CalendarState.Error("캘린더 데이터를 불러오는데 실패했습니다. (${response.code()})")
                 }
@@ -130,22 +151,45 @@ class ScheduleViewModel : ViewModel() {
         loadCalendarData()
     }
 
-    // 세션 상세 로드 (실제 API 연동)
+    // 세션 상세 로드 (실제 API 연동 + 스터디 정보로 isLeader 확인)
     fun loadSessionDetail(studyId: Long, sessionId: Long) {
         viewModelScope.launch {
             _sessionDetailState.value = SessionDetailState.Loading
             try {
-                val response = RetrofitClient.scheduleApi.getSessionDetail(studyId, sessionId)
+                // 세션 정보와 스터디 정보를 병렬로 조회
+                val sessionDeferred = async {
+                    RetrofitClient.scheduleApi.getSessionDetail(studyId, sessionId)
+                }
+                val studyDeferred = async {
+                    try {
+                        RetrofitClient.studyApi.getStudyDetail(studyId)
+                    } catch (e: Exception) { null }
+                }
 
-                if (response.isSuccessful) {
-                    val session = response.body()?.data
+                val sessionResponse = sessionDeferred.await()
+                val studyResponse = studyDeferred.await()
+
+                if (sessionResponse.isSuccessful) {
+                    val session = sessionResponse.body()?.data
                     if (session != null) {
-                        _sessionDetailState.value = SessionDetailState.Success(session)
+                        // 현재 사용자 ID와 스터디 리더 ID 비교하여 isLeader 결정
+                        val currentUserId = SquizApplication.getInstance().authManager.getCurrentUserId()
+                        val leaderId = if (studyResponse?.isSuccessful == true) {
+                            studyResponse.body()?.leader?.id
+                        } else {
+                            null
+                        }
+                        val isLeader = currentUserId > 0 && leaderId != null && currentUserId == leaderId
+
+                        // isLeader 값을 포함한 새 SessionDTO 생성
+                        val sessionWithLeader = session.copy(isLeader = isLeader)
+
+                        _sessionDetailState.value = SessionDetailState.Success(sessionWithLeader)
                     } else {
                         _sessionDetailState.value = SessionDetailState.Error("세션 정보를 찾을 수 없습니다.")
                     }
                 } else {
-                    _sessionDetailState.value = SessionDetailState.Error("세션 정보를 불러오는데 실패했습니다. (${response.code()})")
+                    _sessionDetailState.value = SessionDetailState.Error("세션 정보를 불러오는데 실패했습니다. (${sessionResponse.code()})")
                 }
             } catch (e: Exception) {
                 _sessionDetailState.value = SessionDetailState.Error(e.message ?: "네트워크 오류가 발생했습니다.")

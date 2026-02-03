@@ -419,7 +419,8 @@ export const QuizView: React.FC<QuizViewProps> = ({
                                                     !submitted && !isSelected && 'text-text-secondary',
                                                     submitted && !showCorrect && !showWrong && 'text-text-tertiary'
                                                 )}>
-                                                    {opt.id}. {opt.text}
+                                                    {/* AI가 이미 "A. " prefix를 포함한 경우 중복 방지 */}
+                                                    {opt.text.match(/^[A-D]\.\s/) ? opt.text : `${opt.id}. ${opt.text}`}
                                                 </span>
                                             </button>
                                         );

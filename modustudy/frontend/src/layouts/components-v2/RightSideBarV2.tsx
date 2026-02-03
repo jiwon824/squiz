@@ -24,6 +24,7 @@ interface UpcomingMeeting {
     durationMinutes: number | null;
     status: string;
     meetingId: number | null;
+    isOnline: boolean;
 }
 const resolveNextSession = (sessions: StudySessionDTO[], currentTime: Date) => {
     const candidates = sessions.filter((session) => {
@@ -162,6 +163,7 @@ const MeetingQuickAccess: React.FC = () => {
                             durationMinutes: nextSession.durationMinutes || null,
                             status: nextSession.status,
                             meetingId: matchingMeeting?.id ?? null,
+                            isOnline: nextSession.isOnline,
                         };
                     })
                     .filter((item): item is UpcomingMeeting => Boolean(item))
@@ -232,7 +234,8 @@ const MeetingQuickAccess: React.FC = () => {
                                     </span>
                                 </div>
 
-                                {hasStarted && (
+                                {/* 온라인 세션인 경우에만 미팅 참여 버튼 표시 */}
+                                {hasStarted && meeting.isOnline && (
                                     <button
                                         onClick={() => {
                                             if (!meeting.meetingId) {
@@ -246,6 +249,12 @@ const MeetingQuickAccess: React.FC = () => {
                                         <Play size={14} />
                                         미팅 참여하기
                                     </button>
+                                )}
+                                {/* 오프라인 세션인 경우 장소 표시 */}
+                                {hasStarted && !meeting.isOnline && (
+                                    <div className="w-full py-2 text-center text-xs text-gray-500 bg-gray-50 rounded-lg">
+                                        오프라인 세션
+                                    </div>
                                 )}
                             </motion.div>
                         );
