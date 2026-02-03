@@ -82,6 +82,7 @@ interface UpdatePersonalScheduleRequest extends Partial<CreatePersonalScheduleRe
 
 /**
  * 캘린더 API
+ * 참고: User-Id 헤더는 axios interceptor (axios.ts)에서 자동으로 설정됨
  */
 export const calendarApi = {
     // ==================== 개인 일정 ====================
@@ -93,12 +94,7 @@ export const calendarApi = {
     getPersonalSchedules: async (startDate: string, endDate: string) => {
         const response = await api.get<{ success: boolean; data: PersonalScheduleDTO[] }>(
             '/api/v1/users/me/schedules',
-            {
-                params: { startDate, endDate },
-                headers: {
-                    'User-Id': localStorage.getItem('userId') || ''
-                }
-            }
+            { params: { startDate, endDate } }
         );
         return response.data.data;
     },
@@ -109,12 +105,7 @@ export const calendarApi = {
      */
     getPersonalSchedule: async (scheduleId: number) => {
         const response = await api.get<{ success: boolean; data: PersonalScheduleDTO }>(
-            `/api/v1/users/me/schedules/${scheduleId}`,
-            {
-                headers: {
-                    'User-Id': localStorage.getItem('userId') || ''
-                }
-            }
+            `/api/v1/users/me/schedules/${scheduleId}`
         );
         return response.data.data;
     },
@@ -126,12 +117,7 @@ export const calendarApi = {
     createPersonalSchedule: async (request: CreatePersonalScheduleRequest) => {
         const response = await api.post<{ success: boolean; data: PersonalScheduleDTO }>(
             '/api/v1/users/me/schedules',
-            request,
-            {
-                headers: {
-                    'User-Id': localStorage.getItem('userId') || ''
-                }
-            }
+            request
         );
         return response.data.data;
     },
@@ -143,12 +129,7 @@ export const calendarApi = {
     updatePersonalSchedule: async (scheduleId: number, request: UpdatePersonalScheduleRequest) => {
         const response = await api.put<{ success: boolean; data: PersonalScheduleDTO }>(
             `/api/v1/users/me/schedules/${scheduleId}`,
-            request,
-            {
-                headers: {
-                    'User-Id': localStorage.getItem('userId') || ''
-                }
-            }
+            request
         );
         return response.data.data;
     },
@@ -158,11 +139,7 @@ export const calendarApi = {
      * DELETE /api/v1/users/me/schedules/{scheduleId}
      */
     deletePersonalSchedule: async (scheduleId: number) => {
-        await api.delete(`/api/v1/users/me/schedules/${scheduleId}`, {
-            headers: {
-                'User-Id': localStorage.getItem('userId') || ''
-            }
-        });
+        await api.delete(`/api/v1/users/me/schedules/${scheduleId}`);
     },
 
     // ==================== 스터디 세션 ====================
@@ -174,12 +151,7 @@ export const calendarApi = {
     getMyStudySessions: async (startDate: string, endDate: string) => {
         const response = await api.get<{ success?: boolean; data?: StudySessionDTO[] } | StudySessionDTO[]>(
             '/api/v1/users/me/study-sessions',
-            {
-                params: { startDate, endDate },
-                headers: {
-                    'User-Id': localStorage.getItem('userId') || ''
-                }
-            }
+            { params: { startDate, endDate } }
         );
         const data = response.data as any;
         return Array.isArray(data) ? data : (data?.data ?? []);
@@ -192,9 +164,7 @@ export const calendarApi = {
     getStudySessions: async (studyId: number, startDate?: string, endDate?: string) => {
         const response = await api.get<{ success?: boolean; data?: StudySessionDTO[] } | StudySessionDTO[]>(
             `/api/v1/studies/${studyId}/sessions`,
-            {
-                params: { startDate, endDate }
-            }
+            { params: { startDate, endDate } }
         );
         const data = response.data as any;
         return Array.isArray(data) ? data : (data?.data ?? []);
@@ -216,14 +186,7 @@ export const calendarApi = {
                 calendarId?: string;
                 tokenExpiresAt?: string;
             }
-        }>(
-            '/api/v1/calendar/status',
-            {
-                headers: {
-                    'User-Id': localStorage.getItem('userId') || ''
-                }
-            }
-        );
+        }>('/api/v1/calendar/status');
         return response.data.data;
     },
 
@@ -233,12 +196,7 @@ export const calendarApi = {
      */
     getGoogleAuthUrl: async () => {
         const response = await api.get<{ success: boolean; data: { authUrl: string } }>(
-            '/api/v1/calendar/google/auth-url',
-            {
-                headers: {
-                    'User-Id': localStorage.getItem('userId') || ''
-                }
-            }
+            '/api/v1/calendar/google/auth-url'
         );
         return response.data.data.authUrl;
     },
@@ -253,12 +211,7 @@ export const calendarApi = {
             data: GoogleCalendarEventDTO[];
         }>(
             '/api/v1/calendar/events',
-            {
-                params: { startTime, endTime },
-                headers: {
-                    'User-Id': localStorage.getItem('userId') || ''
-                }
-            }
+            { params: { startTime, endTime } }
         );
         return response.data.data;
     },
@@ -272,15 +225,7 @@ export const calendarApi = {
             success: boolean;
             data: null;
             message?: string;
-        }>(
-            '/api/v1/calendar/sync',
-            null,
-            {
-                headers: {
-                    'User-Id': localStorage.getItem('userId') || ''
-                }
-            }
-        );
+        }>('/api/v1/calendar/sync', null);
         return response.data;
     },
 
@@ -289,11 +234,7 @@ export const calendarApi = {
      * POST /api/v1/calendar/disconnect
      */
     disconnectGoogleCalendar: async () => {
-        await api.post('/api/v1/calendar/disconnect', null, {
-            headers: {
-                'User-Id': localStorage.getItem('userId') || ''
-            }
-        });
+        await api.post('/api/v1/calendar/disconnect', null);
     },
 
     // ==================== 통합 조회 ====================
@@ -312,12 +253,7 @@ export const calendarApi = {
             }
         }>(
             '/api/v1/calendar/all',
-            {
-                params: { startDate, endDate },
-                headers: {
-                    'User-Id': localStorage.getItem('userId') || ''
-                }
-            }
+            { params: { startDate, endDate } }
         );
         return response.data.data;
     }
