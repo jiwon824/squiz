@@ -293,6 +293,39 @@ public class GamificationEventListener {
                 totalExp, ExperienceConfig.FIRST_FRIEND_CHAT_BONUS, streakBonus, leveledUp);
     }
 
+    /**
+     * 첫 스터디장 리뷰 작성 이벤트 처리
+     */
+    @EventListener
+    @Transactional
+    public void handleFirstLeaderReview(FirstLeaderReviewEvent event) {
+        log.info("[Gamification] 첫 스터디장 리뷰 작성: userId={}, studyId={}, leaderId={}",
+                event.getUserId(), event.getStudyId(), event.getLeaderId());
+
+        User user = findUser(event.getUserId());
+        UserStats stats = getOrCreateUserStats(user);
+
+        // 1. 잔디 기록
+        recordDailyContribution(user, event.getReviewDate());
+
+        // 2. 활동 상세 기록
+        recordContributionDetail(user, event.getReviewDate(),
+                ContributionDetail.ActivityType.LEADER_REVIEW,
+                event.getStudyId(), event.getStudyName() + " 스터디장 리뷰");
+
+        // 3. 활동일 기록
+        int streakBonus = stats.recordActivity(event.getReviewDate());
+
+        // 4. 경험치 부여
+        int totalExp = ExperienceConfig.FIRST_LEADER_REVIEW_BONUS + streakBonus;
+        boolean leveledUp = stats.addExperience(totalExp);
+
+        userStatsRepository.save(stats);
+
+        log.info("[Gamification] 첫 스터디장 리뷰 작성 완료: +{}XP (첫리뷰 {}XP + 연속 {}XP), 레벨업={}",
+                totalExp, ExperienceConfig.FIRST_LEADER_REVIEW_BONUS, streakBonus, leveledUp);
+    }
+
     // ========== Helper Methods ==========
 
     private User findUser(Long userId) {

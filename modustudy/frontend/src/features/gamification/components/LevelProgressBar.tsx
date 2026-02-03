@@ -219,7 +219,7 @@ const LevelDetailCard: React.FC<LevelDetailCardProps> = ({
                 </div>
                 {!isMaxLevel && (
                     <p className="text-xs text-gray-400 text-center">
-                        다음 레벨까지 <span className="font-bold text-gray-600">{levelProgress.required - levelProgress.current}</span> 활동일 남음
+                        다음 레벨까지 <span className="font-bold text-gray-600">{levelProgress.required - levelProgress.current}</span> 경험치 남음
                     </p>
                 )}
             </div>

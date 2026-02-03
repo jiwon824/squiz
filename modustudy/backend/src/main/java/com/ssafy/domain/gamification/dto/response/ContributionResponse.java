@@ -20,6 +20,7 @@ public class ContributionResponse {
     public static class ContributionDay {
         private LocalDate date;
         private Boolean hasActivity;
+        private Integer activityCount;  // 활동 횟수 (레벨 계산용)
     }
 
     @Getter
