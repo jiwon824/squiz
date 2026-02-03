@@ -120,6 +120,9 @@ export const NotificationPage = () => {
             case 'SCHEDULE':
                 navigate('/calendar');
                 break;
+            case 'RECRUITMENT_POST':
+                navigate(`/recruitment?postId=${referenceId}`);
+                break;
             default:
                 break;
         }
