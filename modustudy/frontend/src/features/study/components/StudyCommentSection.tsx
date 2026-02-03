@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { MessageCircle, Send, CornerDownRight, MoreVertical, Pencil, Trash2, X, Loader2 } from 'lucide-react';
+import { MessageCircle, Send, CornerDownRight, MoreVertical, Pencil, Trash2, X } from 'lucide-react';
+import { Spinner, ButtonSpinner } from '@/shared/components/Spinner';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import { cn } from '@/shared/utils/cn';
@@ -464,7 +465,7 @@ const StudyCommentSection: React.FC<StudyCommentSectionProps> = ({
                             >
                                 {isSubmitting ? (
                                     <>
-                                        <Loader2 size={14} className="animate-spin" />
+                                        <ButtonSpinner />
                                         등록 중...
                                     </>
                                 ) : (
@@ -481,9 +482,7 @@ const StudyCommentSection: React.FC<StudyCommentSectionProps> = ({
 
             {/* 댓글 목록 */}
             {isLoading && comments.length === 0 ? (
-                <div className="flex items-center justify-center py-12">
-                    <Loader2 size={24} className="animate-spin text-[var(--color-primary)]" />
-                </div>
+                <Spinner variant="center" label="댓글을 불러오는 중..." />
             ) : comments.length === 0 ? (
                 <div className="text-center py-12 text-[var(--color-text-tertiary)]">
                     <MessageCircle size={40} className="mx-auto mb-3 opacity-50" />

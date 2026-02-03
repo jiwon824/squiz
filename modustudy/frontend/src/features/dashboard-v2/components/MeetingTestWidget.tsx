@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     ClipboardCheck,
     Calendar,
-    Loader2,
     Play,
     CheckCircle2,
     Circle,
@@ -16,6 +15,7 @@ import {
     RotateCcw,
     Trophy,
 } from 'lucide-react';
+import { Spinner } from '@/shared/components/Spinner';
 import { cn, conditionalClasses } from '@/shared/utils/cn';
 import { WidgetHeader, WidgetContainer } from '@/shared/components/layouts';
 import { studyApi } from '@/api/endpoints/studyApi';
@@ -221,9 +221,8 @@ export const MeetingTestWidget: React.FC = () => {
                     subtitle="미팅 후 자동 생성 퀴즈"
                     maximizePath="/meeting-test"
                 />
-                <div className="flex items-center justify-center h-64 text-text-tertiary">
-                    <Loader2 className="animate-spin mr-2" size={20} />
-                    로딩 중...
+                <div className="flex items-center justify-center h-64">
+                    <Spinner variant="center" size="md" label="로딩 중..." />
                 </div>
             </WidgetContainer>
         );
@@ -261,8 +260,8 @@ export const MeetingTestWidget: React.FC = () => {
                                 <div className="text-center py-12">
                                     {hasEndedMeetings ? (
                                         <>
-                                            <Loader2 className="mx-auto text-gray-300 mb-4 animate-spin" size={48} />
-                                            <p className="text-text-secondary">퀴즈를 생성하고 있습니다</p>
+                                            <Spinner variant="center" size="lg" />
+                                            <p className="text-text-secondary mt-4">퀴즈를 생성하고 있습니다</p>
                                             <p className="text-sm text-text-tertiary mt-1">
                                                 AI가 미팅 내용을 분석 중입니다
                                             </p>
@@ -479,7 +478,7 @@ export const MeetingTestWidget: React.FC = () => {
                                                         'disabled:opacity-50 disabled:cursor-not-allowed'
                                                     )}
                                                 >
-                                                    {submitting ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                                                    {submitting ? <Spinner size="sm" /> : <Send size={14} />}
                                                     제출
                                                 </button>
                                             ) : (

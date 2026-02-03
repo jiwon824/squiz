@@ -1,15 +1,16 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, SlidersHorizontal, Grid, List, X, Sparkles, Loader2 } from 'lucide-react';
+import { Plus, Search, SlidersHorizontal, Grid, List, X, Sparkles } from 'lucide-react';
 import StudyListContainer from './StudyListContainer';
 import StudyCardContentV2 from './StudyCardContentV2';
 import StudyFilter, { FilterState } from './StudyFilter';
 import { Study, SortOption } from '../services/studyService';
 import { getStudyList, getLeaderInfo, getProvinces, getDistricts, StudyListItem, LeaderInfoResponse, type RegionItem, studyApi } from '@/api/endpoints/studyApi';
 import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
-import { Button } from '@/shared/components';
+import { Button, StudyCardSkeletonGrid } from '@/shared/components';
 import { Select } from '@/shared/components/Select';
 import { cn } from '@/shared/utils/cn';
+import { usePageLoading } from '@/shared/hooks/usePageLoading';
 
 // 배경에 은은한 shimmer 효과 CSS
 const shimmerStyles = `
@@ -58,6 +59,17 @@ const StudyPageV2: React.FC = () => {
     const [studies, setStudies] = useState<Study[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchInput, setSearchInput] = useState('');
+
+    // 상단 로딩 게이지바 연동
+    const { startLoading, finishLoading } = usePageLoading();
+
+    useEffect(() => {
+        if (isLoading) {
+            startLoading();
+        } else {
+            finishLoading();
+        }
+    }, [isLoading, startLoading, finishLoading]);
     const [appliedSearchKeyword, setAppliedSearchKeyword] = useState('');
     // 지역명 매핑 (regionId -> region name)
     const [regionMap, setRegionMap] = useState<Map<number, string>>(new Map());
@@ -559,9 +571,7 @@ const StudyPageV2: React.FC = () => {
 
                     {/* 스터디 목록 */}
                     {isLoading ? (
-                        <div className="flex justify-center items-center py-16">
-                            <Loader2 size={32} className="animate-spin text-[var(--color-primary)]" />
-                        </div>
+                        <StudyCardSkeletonGrid count={8} />
                     ) : studies.length > 0 ? (
                         <>
                             <div className={cn(

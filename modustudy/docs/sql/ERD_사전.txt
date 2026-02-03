@@ -24,9 +24,523 @@ ERD 사전 - Board 도메인
 - content (TEXT) : 댓글 내용
 - is_deleted (TINYINT) : 삭제 여부 (0: 미삭제, 1: 삭제)
 
+<<<<<<< HEAD
 [board_like]
 - id (BIGINT, PK) : 좋아요 ID
 - created_at (DATETIME) : 생성일시
 - updated_at (DATETIME) : 수정일시
 - post_id (BIGINT, FK -> board_post.id) : 모집글 ID
 - user_id (BIGINT, FK -> user.id) : 사용자 ID
+=======
+【 속성명 (개별) 】
+--------------------------------------------------------------------------------
+password                  비밀번호
+profile_image             프로필이미지
+role                      역할
+last_login_at             마지막로그인일시
+is_online                 접속상태
+last_seen_at              마지막접속시간
+is_searchable             검색허용여부
+leader_rating             스터디장평점
+leader_review_count       스터디장평가수
+provider                  소셜제공자
+provider_user_id          소셜사용자ID
+login_at                  로그인일시
+ip_address                IP주소
+device_info               기기정보
+day_of_week               요일
+start_time                시작시간
+end_time                  종료시간
+is_available              가능여부
+org_type                  소속타입
+org_data                  소속상세정보
+verified_at               인증일시
+last_checked_at           마지막확인일시
+requester_id              요청자ID
+addressee_id              수신자ID
+blocker_id                차단한사용자ID
+blocked_id                차단당한사용자ID
+sender_id                 발신자ID
+conversation_id           대화방ID (FK)
+user1_id                  참여자1ID (ID가작은쪽)
+user2_id                  참여자2ID (ID가큰쪽)
+user1_last_read_message_id user1마지막읽은메시지ID
+user2_last_read_message_id user2마지막읽은메시지ID
+user1_deleted             user1대화삭제여부
+user2_deleted             user2대화삭제여부
+last_message_at           마지막메시지시간
+code                      코드
+sort_order                정렬순서
+depth                     깊이(계층)
+leader_id                 스터디장ID
+topic                     주제
+format                    형식
+study_type                스터디유형
+meeting_type              진행방식
+region_id                 지역ID (FK)
+location_detail           상세장소
+schedule_summary          일정요약
+schedule_days             스케줄요일
+schedule_time             스케줄시간
+max_members               최대인원
+is_public                 공개여부
+penalty_policy            패널티정책
+start_date                시작일
+end_date                  종료일
+total_sessions            총회차
+recruit_start_date        모집시작일
+recruit_end_date          모집종료일
+target_org_type           대상소속타입
+target_org_criteria       대상조건
+parent_id                 부모댓글ID
+joined_at                 가입일시
+left_at                   탈퇴일시
+is_probation              수습기간여부
+session_number            회차번호
+scheduled_at              예정일시
+duration_minutes          진행시간(분)
+location                  장소
+is_online                 온라인여부
+completed_at              완료일시
+message                   메시지
+matching_score            AI매칭점수
+rejected_reason           거절사유
+processed_at              처리일시
+reviewer_id               평가자ID
+rating                    평점
+comment                   코멘트
+type                      타입
+voice_room_type           음성방타입
+is_default                기본채널여부
+channel_id                채널ID
+message_type              메시지타입
+file_url                  파일URL
+track_type                트랙유형
+meeting_id                미팅ID
+started_at                시작일시
+ended_at                  종료일시
+duration_seconds          진행시간(초)
+planned_duration_seconds          예정시간(초)
+participant_count         참여자수
+is_muted                  음소거여부
+is_camera_on              카메라켜짐여부
+timestamp_seconds         미팅시작기준시간(초)
+summary                   AI요약
+action_items              액션아이템
+keywords                  키워드
+image_url                 이미지URL
+captured_at               캡처일시
+is_selected               보고서선택여부
+check_type                출석방식
+checked_at                출석체크일시
+checked_by                체크한스터디장ID
+excuse_reason             소명사유
+excuse_status             소명상태
+created_by                생성자ID
+time_limit_seconds        문제당제한시간(초)
+contest_type              대회유형
+contest_id                대회ID
+question_number           문제번호
+question_text             문제내용
+question_type             문제유형
+options                   객관식보기
+correct_answer            정답
+explanation               해설
+points                    배점
+category_id               카테고리ID
+question_pool_id          문제풀ID
+option_label              보기라벨
+option_text               보기내용
+tags                      태그
+usage_count               사용횟수
+correct_rate              정답률(%)
+current_question_pool_id  현재문제풀ID
+current_question_started_at 현재문제시작일시
+is_showing_results        결과표시여부
+phase                     진행단계
+total_attempted           총시도수
+total_correct             총정답수
+best_score                최고점수
+last_attempted_at         마지막시도일시
+time_spent_seconds        소요시간(초)
+practice_record_id        연습기록ID
+time_taken_seconds        답변소요시간(초)
+last_answer_time          마지막답변시간
+last_answered_at          마지막답변일시
+participant_id            참가자ID
+total_score               총점
+correct_count             정답수
+rank                      순위
+question_id               문제ID
+answer                    제출답안
+is_correct                정답여부
+score                     점수
+answered_at               답변일시
+quiz_id                   퀴즈ID
+source_type               생성소스
+source_id                 소스ID
+total_questions           총문제수
+user_answer               사용자답안
+review_count              복습횟수
+last_reviewed_at          마지막복습일시
+is_mastered               완전숙지여부
+icon                      아이콘
+badge_code                뱃지코드
+total_sections            총섹션수
+course_id                 코스ID
+section_number            섹션번호
+section_id                섹션ID
+pass_score                통과점수(%)
+current_section           현재섹션
+completed_sections        완료섹션수
+is_passed                 통과여부
+attempted_at              시도일시
+contribution_date         활동일자
+has_activity              활동여부
+activity_type             활동유형
+reference_id              참조ID
+reference_name            참조명
+level                     레벨
+level_name                레벨명
+total_activity_days       총활동일수
+current_streak            현재연속일수
+max_streak                최대연속일수
+last_activity_date        마지막활동일
+total_studies_joined      참여스터디수
+total_studies_led         운영스터디수
+total_chat_count          총채팅수
+total_quiz_count          총퀴즈수
+total_materials_uploaded  업로드자료수
+total_retrospectives      회고작성수
+category                  분류
+condition_type            조건타입
+condition_value           조건값
+penalty_id                패널티ID
+earned_at                 획득일시
+badge_id                  뱃지ID
+grant_condition           부여조건
+removal_condition         해제조건
+removal_required          해제필요횟수
+removal_progress          해제진행률
+granted_at                부여일시
+removed_at                해제일시
+uploader_id               업로더ID
+material_id               자료ID
+material_type             자료유형
+url                       URL
+file_path                 파일경로
+file_size                 파일크기
+week_number               주차
+view_count                조회수
+curriculum_id             커리큘럼ID
+retrospective_id          회고ID
+retrospective_type        회고유형
+notification_type         알림유형
+reference_type            참조타입
+is_enabled                활성화여부
+token                     FCM토큰
+device_type               기기타입
+report_type               보고서유형
+report_month              보고서월
+feature_type              기능유형
+feedback                  피드백
+report_date               리포트일자
+daily_report_id           데일리리포트ID
+extension_count           모집연장횟수
+textbook                  사용교재/자료
+goal                      스터디목표
+difficulty                난이도
+prerequisites             사전지식
+process_detail            진행방식상세
+is_temporary              임시채널여부
+template_type             템플릿유형
+is_system                 시스템템플릿여부
+
+【 값 (ENUM) 】
+--------------------------------------------------------------------------------
+
+--- role (역할) ---
+USER                      일반사용자
+ADMIN                     관리자
+LEADER                    스터디장
+MEMBER                    스터디원
+
+--- provider (소셜제공자) ---
+GOOGLE                    구글
+KAKAO                     카카오
+NAVER                     네이버
+EMAIL                     이메일(일반로그인)
+
+--- day_of_week (요일) ---
+MON                       월요일
+TUE                       화요일
+WED                       수요일
+THU                       목요일
+FRI                       금요일
+SAT                       토요일
+SUN                       일요일
+
+--- org_type (소속타입) ---
+SSAFY                     삼성청년SW아카데미
+NBC                       내일배움캠프
+WTC                       우아한테크코스
+UNIVERSITY                대학교
+
+--- friendship.status (친구상태) ---
+PENDING                   대기중
+ACCEPTED                  수락됨
+
+--- study_type (스터디유형) ---
+PLANNED                   계획형스터디
+LIGHTNING                 번개스터디
+
+--- meeting_type (진행방식) ---
+ONLINE                    온라인
+OFFLINE                   오프라인
+HYBRID                    혼합
+
+--- meeting.meeting_type (미팅 유형) ---
+DAILY                     일일
+WEEKLY                    주간
+FREE                      자유
+OTHER                     기타
+
+
+--- study.status (스터디상태) ---
+DRAFT                     임시저장
+SCHEDULED                 모집예정
+RECRUITING                모집중
+RECRUIT_CLOSED            모집완료(시작대기)
+PENDING                   확정대기(인원부족)
+IN_PROGRESS               진행중
+COMPLETED                 완료
+CANCELLED                 취소
+
+--- difficulty (난이도) ---
+BEGINNER                  입문
+ELEMENTARY                초급
+INTERMEDIATE              중급
+ADVANCED                  고급
+
+--- penalty_policy (패널티정책) ---
+STRICT                    엄격
+NORMAL                    보통
+LENIENT                   관대
+RATIO                     비율제
+NONE                      없음
+
+--- study_member.status (멤버상태) ---
+PENDING                   대기중
+APPROVED                  승인됨
+REJECTED                  거절됨
+LEFT                      자진탈퇴
+KICKED                    강제퇴장
+
+--- study_session.status (세션상태) ---
+SCHEDULED                 예정
+IN_PROGRESS               진행중
+COMPLETED                 완료
+CANCELLED                 취소
+
+--- channel.type (채널타입) ---
+TEXT                      텍스트채널
+VOICE                     음성채널
+
+--- voice_room_type (음성방타입) ---
+DISCUSSION                상시토론방
+MEETING                   미팅전용방
+
+--- message_type (메시지타입) ---
+TEXT                      텍스트
+IMAGE                     이미지
+FILE                      파일
+SYSTEM                    시스템메시지
+
+--- meeting.status (미팅상태) ---
+WAITING                   대기중
+IN_PROGRESS               진행중
+ENDED                     종료
+
+--- track_type (트랙유형) ---
+MIXED                     전체믹스
+INDIVIDUAL                개인별
+
+--- check_type (출석방식) ---
+BLE                       BLE태깅출석
+SELF                      셀프출석
+AUTO                      자동출석
+
+--- attendance.status (출석상태) ---
+PRESENT                   출석
+LATE                      지각
+ABSENT                    결석
+EXCUSED                   사유결석
+
+--- excuse_status (소명상태) ---
+PENDING                   대기중
+APPROVED                  승인됨
+REJECTED                  거절됨
+
+--- quiz_contest.status (대회상태) ---
+DRAFT                     초안
+SCHEDULED                 예정
+IN_PROGRESS               진행중
+ENDED                     종료
+
+--- question_type (문제유형) ---
+MULTIPLE_CHOICE           객관식
+MULTIPLE_CHOICE_MULTIPLE  객관식(다중선택)
+SHORT_ANSWER              단답형
+
+--- source_type (생성소스) ---
+MEETING                   미팅에서생성
+MATERIAL                  자료에서생성
+MANUAL                    수동생성
+
+--- quiz_contest_state.phase (대회진행단계) ---
+WAITING                   대기
+QUESTION                  문제출제
+RESULT                    결과
+ENDED                     종료
+
+--- quiz_contest.contest_type (대회유형) ---
+PUBLIC                    공개대회
+STUDY                     스터디대회
+
+--- study_quiz.status (퀴즈상태) ---
+ACTIVE                    활성
+DISABLED                  비활성
+
+--- study_quiz_attempt.status (퀴즈시도상태) ---
+IN_PROGRESS               진행중
+COMPLETED                 완료
+ABANDONED                 중단
+
+--- activity_type (활동유형) ---
+STUDY_ATTENDANCE          스터디출석
+QUIZ_CONTEST              퀴즈대회참여
+
+--- badge.category (뱃지분류) ---
+ACTIVITY                  활동
+STREAK                    연속
+STUDY                     스터디
+ATTENDANCE                출석
+PARTICIPATION             참여
+QUIZ                      퀴즈
+MASTER                    마스터
+SPECIAL                   특별
+
+--- material_type (자료유형) ---
+LINK                      링크
+FILE                      파일
+IMAGE                     이미지
+VIDEO                     동영상
+
+--- retrospective_type (회고유형) ---
+KPT                       KPT회고
+FREE                      자유형식
+
+--- retrospective.category (회고분류) ---
+KEEP                      유지할것
+PROBLEM                   문제점
+TRY                       시도할것
+
+--- notification.type (알림유형) ---
+CHAT                      채팅알림
+SCHEDULE                  일정알림
+ATTENDANCE                출석알림
+STUDY_UPDATE              스터디업데이트
+QUIZ                      퀴즈알림
+SYSTEM                    시스템알림
+
+--- device_type (기기타입) ---
+ANDROID                   안드로이드
+IOS                       아이폰
+WEB                       웹
+
+--- report_type (보고서유형) ---
+APPLICATION               스터디신청서
+MONTHLY_RESULT            월별결과보고서
+
+--- report.status (보고서상태) ---
+DRAFT                     초안
+SUBMITTED                 제출됨
+
+--- feedback (피드백) ---
+POSITIVE                  긍정
+NEGATIVE                  부정
+
+--- template_type (템플릿유형) ---
+ALGORITHM                 알고리즘
+CS                        CS기초
+INTERVIEW                 면접준비
+PROJECT                   프로젝트
+CERTIFICATE               자격증
+READING                   독서
+
+--- daily_item.category (데일리분류) ---
+YESTERDAY                 어제한일
+TODAY                     오늘할일
+BLOCKER                   블로커
+
+--- board_post.category (게시판분류) ---
+PROJECT                   프로젝트
+COMPETITION               공모전
+JOB                       채용
+FREE                      자유
+
+--- team_recruit.category (팀원모집분류) ---
+HACKATHON                 해커톤
+PROJECT                   프로젝트
+COMPETITION               공모전
+
+--- team_recruit.status (모집상태) ---
+RECRUITING                모집중
+CLOSED                    마감
+COMPLETED                 완료
+
+--- team_application.status (지원상태) ---
+PENDING                   대기중
+ACCEPTED                  수락
+REJECTED                  거절
+
+--- comendle_word.difficulty (꼬멘틀난이도) ---
+EASY                      쉬움
+MEDIUM                    보통
+HARD                      어려움
+
+【 속성명 (추가) 】
+--------------------------------------------------------------------------------
+post_id                   게시글ID (FK)
+like_count                좋아요수
+comment_count             댓글수
+recruit_id                모집글ID (FK)
+required_roles            필요역할
+tech_stack                기술스택
+current_members           현재인원
+deadline                  마감일
+duration                  예상기간
+applied_role              지원역할
+portfolio_url             포트폴리오URL
+word                      단어
+hint                      힌트
+game_date                 게임날짜
+daily_id                  오늘의단어ID (FK)
+is_solved                 해결여부
+guess_count               추측횟수
+solved_at                 해결일시
+attempt_id                시도ID (FK)
+question_index            문제순서
+current_question_index    현재문제순서
+guess_number              추측순번
+guessed_word              추측단어
+similarity                유사도
+total_solved              총해결수
+total_played              총플레이수
+last_played_date          마지막플레이일
+news_id                   뉴스ID (FK)
+source_url                원본URL
+source_name               출처명
+thumbnail_url             썸네일URL
+published_at              발행일시
+>>>>>>> dev

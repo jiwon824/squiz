@@ -34,6 +34,16 @@ sealed class ReviewStatsUiState {
     data class Error(val message: String) : ReviewStatsUiState()
 }
 
+// 틀린 문제 상태
+sealed class WrongAnswersUiState {
+    object Loading : WrongAnswersUiState()
+    data class Success(
+        val cards: List<ReviewCardDTO>,
+        val totalCount: Int
+    ) : WrongAnswersUiState()
+    data class Error(val message: String) : WrongAnswersUiState()
+}
+
 sealed class QuizDetailUiState {
     object Loading : QuizDetailUiState()
     data class Success(val quiz: QuizDetailDTO) : QuizDetailUiState()
@@ -55,6 +65,14 @@ class ReviewViewModel : ViewModel() {
     // 통계 상태
     private val _statsState = MutableStateFlow<ReviewStatsUiState>(ReviewStatsUiState.Loading)
     val statsState: StateFlow<ReviewStatsUiState> = _statsState.asStateFlow()
+
+    // 틀린 문제 상태
+    private val _wrongAnswersState = MutableStateFlow<WrongAnswersUiState>(WrongAnswersUiState.Loading)
+    val wrongAnswersState: StateFlow<WrongAnswersUiState> = _wrongAnswersState.asStateFlow()
+
+    // 틀린 문제 정렬 타입
+    private val _wrongSortType = MutableStateFlow(WrongAnswerSortType.MOST_WRONG)
+    val wrongSortType: StateFlow<WrongAnswerSortType> = _wrongSortType.asStateFlow()
 
     // 세션 상태
     private val _sessionState = MutableStateFlow<ReviewSessionState>(ReviewSessionState.Idle)
@@ -170,6 +188,54 @@ class ReviewViewModel : ViewModel() {
                 _statsState.value = ReviewStatsUiState.Error(e.message ?: "네트워크 오류가 발생했습니다.")
             }
         }
+    }
+
+    // 틀린 문제 로드
+    fun loadWrongAnswers(sortType: WrongAnswerSortType? = null) {
+        val actualSortType = sortType ?: _wrongSortType.value
+        viewModelScope.launch {
+            _wrongAnswersState.value = WrongAnswersUiState.Loading
+            try {
+                Log.d(TAG, "틀린 문제 로드 시작: sortType=${actualSortType.value}")
+                val response = RetrofitClient.reviewApi.getWrongAnswers(actualSortType.value)
+                Log.d(TAG, "틀린 문제 API 응답: ${response.code()}")
+
+                if (response.isSuccessful) {
+                    val reviewResponse = response.body()?.data
+                    Log.d(TAG, "틀린 문제 데이터: items=${reviewResponse?.items?.size}, totalCount=${reviewResponse?.totalCount}")
+
+                    if (reviewResponse != null) {
+                        _wrongAnswersState.value = WrongAnswersUiState.Success(
+                            cards = reviewResponse.cards,
+                            totalCount = reviewResponse.totalCount
+                        )
+                    } else {
+                        _wrongAnswersState.value = WrongAnswersUiState.Success(
+                            cards = emptyList(),
+                            totalCount = 0
+                        )
+                    }
+                } else if (response.code() == 404) {
+                    Log.w(TAG, "틀린 문제 API 404 - 빈 목록으로 처리")
+                    _wrongAnswersState.value = WrongAnswersUiState.Success(
+                        cards = emptyList(),
+                        totalCount = 0
+                    )
+                } else {
+                    Log.e(TAG, "틀린 문제 API 실패: ${response.code()}")
+                    _wrongAnswersState.value = WrongAnswersUiState.Error("틀린 문제를 불러오는데 실패했습니다. (${response.code()})")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "틀린 문제 로드 실패", e)
+                _wrongAnswersState.value = WrongAnswersUiState.Error(e.message ?: "네트워크 오류가 발생했습니다.")
+            }
+        }
+    }
+
+    // 틀린 문제 정렬 타입 변경
+    fun setWrongSortType(sortType: WrongAnswerSortType) {
+        _wrongSortType.value = sortType
+        loadWrongAnswers(sortType)
     }
 
     // 세션 시작

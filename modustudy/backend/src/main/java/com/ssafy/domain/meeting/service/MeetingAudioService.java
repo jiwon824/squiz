@@ -35,9 +35,13 @@ public class MeetingAudioService {
     private final MeetingAudioRecordingRepository meetingAudioRecordingRepository;
     private final LocalFileStorageService localFileStorageService;
     private final MeetingServiceHelper helper;
+    private final StudyDailyUsageService dailyUsageService;
 
     @Value("${app.ffmpeg.path:ffmpeg}")
     private String ffmpegPath;
+
+    @Value("${app.ffprobe.path:ffprobe}")
+    private String ffprobePath;
 
     @Transactional(readOnly = true)
     public List<MeetingAudioRecordingResponse> getAudioRecordings(Long studyId, Long meetingId,
@@ -76,6 +80,9 @@ public class MeetingAudioService {
                 .toList();
     }
 
+    /**
+     * 오프라인 오디오 업로드 (일일 한도 2시간 제한)
+     */
     @Transactional
     public MeetingAudioRecordingResponse uploadRecordingAudio(Long studyId, Long meetingId,
                                                               MeetingAudioTrackType trackType,
@@ -91,6 +98,12 @@ public class MeetingAudioService {
         if (trackType == MeetingAudioTrackType.MIXED) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "MIXED_AUDIO_NOT_SUPPORTED");
         }
+        // 일일 오프라인 STT 한도 체크 (남은 시간이 0이면 업로드 차단)
+        int remainingSeconds = dailyUsageService.getOfflineSttRemainingSeconds(studyId);
+        if (remainingSeconds <= 0) {
+            log.warn("[일일 한도 초과] 오프라인 STT 업로드 차단 - studyId: {}, 남은시간: {}초", studyId, remainingSeconds);
+            throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "OFFLINE_STT_DAILY_LIMIT_EXCEEDED");
+        }
         String filename = helper.buildIndividualVoiceFilename(userId);
         String recordingUrl = localFileStorageService.saveMeetingVoiceFinal(meetingId, filename, audio);
         String format = helper.extractFileExtension(audio.getOriginalFilename());
@@ -102,6 +115,12 @@ public class MeetingAudioService {
                 format == null ? "webm" : format,
                 audio.getSize()
         );
+        // 업로드 후 오디오 길이 추출하여 사용량 기록
+        Path audioFile = localFileStorageService.resolveMeetingVoiceFile(meetingId, filename);
+        int durationSeconds = getAudioDurationSeconds(audioFile);
+        if (durationSeconds > 0) {
+            dailyUsageService.addOfflineSttUsage(studyId, durationSeconds);
+        }
         return toAudioRecordingResponse(saved);
     }
 
@@ -117,11 +136,20 @@ public class MeetingAudioService {
         localFileStorageService.saveMeetingVoiceSegment(meetingId, userId, audio);
     }
 
+    /**
+     * 오프라인 오디오 세그먼트 병합 (일일 한도 2시간 제한)
+     */
     @Transactional
     public MeetingAudioRecordingResponse concatRecordingAudioSegments(Long studyId, Long meetingId, Long userId) {
         helper.getMeetingOrThrow(studyId, meetingId);
         if (userId == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "USER_ID_REQUIRED");
+        }
+        // 일일 오프라인 STT 한도 체크 (남은 시간이 0이면 병합 차단)
+        int remainingSeconds = dailyUsageService.getOfflineSttRemainingSeconds(studyId);
+        if (remainingSeconds <= 0) {
+            log.warn("[일일 한도 초과] 오프라인 STT 세그먼트 병합 차단 - studyId: {}, 남은시간: {}초", studyId, remainingSeconds);
+            throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "OFFLINE_STT_DAILY_LIMIT_EXCEEDED");
         }
         Path segmentsDir = localFileStorageService.resolveMeetingVoiceSegmentsDir(meetingId, userId);
         if (!Files.exists(segmentsDir)) {
@@ -171,6 +199,11 @@ public class MeetingAudioService {
                 "webm",
                 fileSize
         );
+        // 병합 후 오디오 길이 추출하여 사용량 기록
+        int durationSeconds = getAudioDurationSeconds(outputPath);
+        if (durationSeconds > 0) {
+            dailyUsageService.addOfflineSttUsage(studyId, durationSeconds);
+        }
         cleanupVoiceSegments(segmentsDir, concatFile);
         return toAudioRecordingResponse(saved);
     }
@@ -369,6 +402,39 @@ public class MeetingAudioService {
                 });
             }
         } catch (IOException ignored) {
+        }
+    }
+
+    /**
+     * ffprobe를 사용해 오디오 파일의 길이(초)를 추출
+     * @return 길이(초), 실패 시 0 반환
+     */
+    private int getAudioDurationSeconds(Path audioFile) {
+        if (!Files.exists(audioFile)) {
+            return 0;
+        }
+        try {
+            List<String> args = List.of(
+                    ffprobePath,
+                    "-v", "error",
+                    "-show_entries", "format=duration",
+                    "-of", "default=noprint_wrappers=1:nokey=1",
+                    audioFile.toAbsolutePath().toString()
+            );
+            ProcessBuilder builder = new ProcessBuilder(args);
+            builder.redirectErrorStream(true);
+            Process process = builder.start();
+            String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8).trim();
+            int exit = process.waitFor();
+            if (exit != 0) {
+                log.warn("ffprobe 오디오 길이 추출 실패. file={} exit={}", audioFile, exit);
+                return 0;
+            }
+            double duration = Double.parseDouble(output);
+            return (int) Math.ceil(duration);
+        } catch (IOException | InterruptedException | NumberFormatException e) {
+            log.warn("ffprobe 오디오 길이 추출 에러. file={} error={}", audioFile, e.toString());
+            return 0;
         }
     }
 }

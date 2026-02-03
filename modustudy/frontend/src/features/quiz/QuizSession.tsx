@@ -18,7 +18,8 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { ArrowLeft, AlertCircle, RefreshCw } from 'lucide-react';
+import { Spinner, ButtonSpinner } from '@/shared/components/Spinner';
 
 import { QuestionCard } from './components/QuestionCard';
 import { QuizProgressBar } from './components/QuizProgressBar';
@@ -411,16 +412,7 @@ export const QuizSession = () => {
                 className="min-h-screen flex items-center justify-center"
                 style={{ backgroundColor: 'var(--color-background)' }}
             >
-                <div className="text-center">
-                    <Loader2
-                        size={48}
-                        className="animate-spin mx-auto mb-4"
-                        style={{ color: 'var(--color-primary)' }}
-                    />
-                    <p style={{ color: 'var(--color-text-secondary)' }}>
-                        퀴즈를 불러오는 중...
-                    </p>
-                </div>
+                <Spinner variant="center" size="xl" label="퀴즈를 불러오는 중..." />
             </div>
         );
     }
@@ -508,7 +500,7 @@ export const QuizSession = () => {
                                     className="text-xs flex items-center gap-1"
                                     style={{ color: 'var(--color-text-tertiary)' }}
                                 >
-                                    <Loader2 size={12} className="animate-spin" />
+                                    <ButtonSpinner className="text-[var(--color-text-tertiary)]" />
                                     저장 중...
                                 </span>
                             )}

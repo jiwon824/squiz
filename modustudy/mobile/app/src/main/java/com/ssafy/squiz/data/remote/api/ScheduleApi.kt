@@ -39,12 +39,13 @@ interface ScheduleApi {
 
     /**
      * 세션 상세 조회
+     * 백엔드는 StudySessionResponse를 직접 반환 (ApiResponse 래핑 없음)
      */
     @GET("api/v1/studies/{studyId}/sessions/{sessionId}")
     suspend fun getSessionDetail(
         @Path("studyId") studyId: Long,
         @Path("sessionId") sessionId: Long
-    ): Response<ApiResponse<SessionDTO>>
+    ): Response<StudySessionDTO>
 
     /**
      * Google 캘린더 동기화 상태 조회

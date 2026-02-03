@@ -33,8 +33,9 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Filter, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { Filter, AlertCircle, RefreshCw } from 'lucide-react';
 import { PageNavHeader } from '@/shared/components/layouts/PageNavHeader';
+import { Spinner } from '@/shared/components/Spinner';
 
 import { CourseCard } from './components/CourseCard';
 import { fetchCourses, CourseListItem } from '@/api/endpoints/quizCourseApi';
@@ -251,17 +252,7 @@ export const QuizCourseList = () => {
 
                 {/* LOADING STATE - 로딩 상태 */}
                 {isLoading && (
-                    <div
-                        className="flex flex-col items-center justify-center py-16"
-                        style={{ color: 'var(--color-text-secondary)' }}
-                    >
-                        <Loader2
-                            size={48}
-                            className="animate-spin mb-4"
-                            style={{ color: 'var(--color-primary)' }}
-                        />
-                        <p className="text-lg">코스를 불러오는 중...</p>
-                    </div>
+                    <Spinner variant="center" size="xl" label="코스를 불러오는 중..." />
                 )}
 
                 {/* ERROR STATE - 에러 상태 */}

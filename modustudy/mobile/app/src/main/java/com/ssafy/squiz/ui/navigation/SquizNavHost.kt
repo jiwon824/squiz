@@ -516,17 +516,22 @@ fun SquizNavHost(
                 studyId = studyId,
                 onBackClick = { navController.popBackStack() },
                 onMeetingClick = { meetingId ->
-                    navController.navigate(NavRoutes.MeetingDetail.createRoute(meetingId))
+                    navController.navigate(NavRoutes.MeetingDetail.createRoute(studyId, meetingId))
                 }
             )
         }
 
         composable(
             route = NavRoutes.MeetingDetail.route,
-            arguments = listOf(navArgument("meetingId") { type = NavType.LongType })
+            arguments = listOf(
+                navArgument("studyId") { type = NavType.LongType },
+                navArgument("meetingId") { type = NavType.LongType }
+            )
         ) { backStackEntry ->
+            val studyId = backStackEntry.arguments?.getLong("studyId") ?: 0L
             val meetingId = backStackEntry.arguments?.getLong("meetingId") ?: 0L
             MeetingDetailScreen(
+                studyId = studyId,
                 meetingId = meetingId,
                 onBackClick = { navController.popBackStack() }
             )

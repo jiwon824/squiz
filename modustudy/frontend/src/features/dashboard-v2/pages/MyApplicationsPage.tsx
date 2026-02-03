@@ -6,8 +6,9 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, ChevronRight, RefreshCw,
-  Loader2, Clock, CheckCircle2, XCircle, Compass, Calendar
+  Clock, CheckCircle2, XCircle, Compass, Calendar
 } from 'lucide-react';
+import { Spinner } from '@/shared/components/Spinner';
 import { cn } from '@/shared/utils/cn';
 import { PageNavHeader } from '@/shared/components/layouts';
 import { studyApi } from '@/api/endpoints/studyApi';
@@ -162,8 +163,7 @@ export const MyApplicationsPage: React.FC = () => {
         {/* 로딩 */}
         {loading && (
           <div className="flex flex-col items-center justify-center py-20">
-            <Loader2 size={32} className="text-violet-400 animate-spin mb-3" />
-            <p className="text-gray-400">불러오는 중...</p>
+            <Spinner variant="center" label="불러오는 중..." />
           </div>
         )}
 

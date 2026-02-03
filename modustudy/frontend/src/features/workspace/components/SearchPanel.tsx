@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Search, X, Loader2 } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
+import { Spinner } from '@/shared/components/Spinner';
 import { workspaceApi } from '@/api/endpoints/workspaceApi';
 import type { MessageResponse } from '../types';
 
@@ -151,8 +152,7 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
       <div className="search-panel__results">
         {isLoading ? (
           <div className="search-panel__loading">
-            <Loader2 size={20} className="animate-spin" />
-            <span>검색 중...</span>
+            <Spinner size="sm" label="검색 중..." />
           </div>
         ) : hasSearched && results.length === 0 ? (
           <div className="search-panel__empty">

@@ -170,21 +170,20 @@ class ScheduleViewModel : ViewModel() {
                 val studyResponse = studyDeferred.await()
 
                 if (sessionResponse.isSuccessful) {
-                    val session = sessionResponse.body()?.data
-                    if (session != null) {
+                    // 백엔드는 StudySessionDTO를 직접 반환 (ApiResponse 래핑 없음)
+                    val studySession = sessionResponse.body()
+                    if (studySession != null) {
                         // 현재 사용자 ID와 스터디 리더 ID 비교하여 isLeader 결정
                         val currentUserId = SquizApplication.getInstance().authManager.getCurrentUserId()
-                        val leaderId = if (studyResponse?.isSuccessful == true) {
-                            studyResponse.body()?.leader?.id
-                        } else {
-                            null
-                        }
+                        val studyDetail = studyResponse?.body()
+                        val leaderId = studyDetail?.leader?.id
+                        val studyName = studyDetail?.name
                         val isLeader = currentUserId > 0 && leaderId != null && currentUserId == leaderId
 
-                        // isLeader 값을 포함한 새 SessionDTO 생성
-                        val sessionWithLeader = session.copy(isLeader = isLeader)
+                        // StudySessionDTO를 SessionDTO로 변환 (isLeader 포함)
+                        val sessionDTO = studySession.toSessionDTO(studyName = studyName, isLeader = isLeader)
 
-                        _sessionDetailState.value = SessionDetailState.Success(sessionWithLeader)
+                        _sessionDetailState.value = SessionDetailState.Success(sessionDTO)
                     } else {
                         _sessionDetailState.value = SessionDetailState.Error("세션 정보를 찾을 수 없습니다.")
                     }
