@@ -54,8 +54,8 @@ fun ScheduleListScreen(
                     IconButton(onClick = onCalendarClick) {
                         Icon(Icons.Outlined.CalendarMonth, contentDescription = "캘린더")
                     }
-                    IconButton(onClick = onGoogleSyncClick) {
-                        Icon(Icons.Outlined.Sync, contentDescription = "동기화")
+                    IconButton(onClick = { viewModel.loadSchedules() }) {
+                        Icon(Icons.Outlined.Refresh, contentDescription = "새로고침")
                     }
                 }
             )
@@ -324,7 +324,7 @@ fun ScheduleDetailScreen(
                     Spacer(modifier = Modifier.weight(1f))
 
                     if (detail.attendanceStatus == null || detail.attendanceStatus == "PENDING") {
-                        GradientButton(text = "출석체크", onClick = { onAttendanceClick(detail.isOnline) })
+                        GradientButton(text = "출석체크", onClick = { onAttendanceClick(detail.isLeader == true) })
                     }
                 }
             }

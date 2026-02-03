@@ -5,6 +5,26 @@ import { LevelBadge } from '@/features/gamification/components';
 // 기본 프로필 이미지 경로
 const DEFAULT_PROFILE_IMAGE = '/images/default-profile.png';
 
+// 프로필 이미지 URL 변환 함수
+// - /uploads/로 시작하는 로컬 경로는 API 서버 URL을 붙임
+// - http/https로 시작하는 외부 URL은 그대로 사용
+const getProfileImageUrl = (avatar?: string): string => {
+    if (!avatar) return DEFAULT_PROFILE_IMAGE;
+
+    // 외부 URL인 경우 그대로 반환
+    if (avatar.startsWith('http://') || avatar.startsWith('https://')) {
+        return avatar;
+    }
+
+    // /uploads/로 시작하는 로컬 경로인 경우 API URL 붙이기
+    if (avatar.startsWith('/uploads/')) {
+        const apiUrl = import.meta.env.VITE_API_URL || '';
+        return `${apiUrl}${avatar}`;
+    }
+
+    return avatar;
+};
+
 interface ProfileHeaderProps {
     userData: {
         name: string;
@@ -35,7 +55,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         <div className="profile-header">
             <div className="profile-avatar-wrapper">
                 <img
-                    src={userData.avatar || DEFAULT_PROFILE_IMAGE}
+                    src={getProfileImageUrl(userData.avatar)}
                     alt="프로필 이미지"
                     className={`profile-avatar ${isImageUploading ? 'opacity-50' : ''}`}
                     onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_PROFILE_IMAGE; }}

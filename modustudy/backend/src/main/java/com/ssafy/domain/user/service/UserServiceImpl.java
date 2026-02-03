@@ -8,13 +8,17 @@ import com.ssafy.domain.user.dto.request.UserUpdateRequest;
 import com.ssafy.domain.user.dto.response.StudyPreferenceResponse;
 import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.repository.UserRepository;
+import com.ssafy.domain.material.service.FileStorageService;
+import com.ssafy.domain.material.service.FileStorageService.FileUploadResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import com.ssafy.domain.user.dto.response.StatsResponse;
 import java.time.LocalDateTime;
 
@@ -26,6 +30,10 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final FileStorageService fileStorageService;
+
+    // 프로필 이미지용 허용 확장자
+    private static final Set<String> ALLOWED_IMAGE_EXTENSIONS = Set.of("jpg", "jpeg", "png", "gif", "webp");
 
     @Override
     public Optional<User> getUserByUserId(String userId) {
@@ -255,5 +263,88 @@ public class UserServiceImpl implements UserService {
                 .totalStudies(totalStudies)
                 .activeStudies(activeStudies)
                 .build();
+    }
+
+    // ========== 프로필 이미지 ==========
+
+    /**
+     * 프로필 이미지 업로드
+     */
+    @Override
+    @Transactional
+    public User updateProfileImage(Long userId, MultipartFile file) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        // 파일 유효성 검사
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("파일이 비어있습니다.");
+        }
+
+        String fileName = file.getOriginalFilename();
+        if (fileName == null || fileName.isBlank()) {
+            throw new IllegalArgumentException("파일명이 없습니다.");
+        }
+
+        // 이미지 확장자 검사
+        String extension = getFileExtension(fileName).toLowerCase();
+        if (!ALLOWED_IMAGE_EXTENSIONS.contains(extension)) {
+            throw new IllegalArgumentException("지원하지 않는 이미지 형식입니다. (jpg, jpeg, png, gif, webp만 가능)");
+        }
+
+        // 기존 프로필 이미지 삭제 (로컬 업로드 파일인 경우에만)
+        if (user.getProfileImage() != null && !user.getProfileImage().isBlank()) {
+            String oldPath = user.getProfileImage();
+            // /uploads/ 로 시작하는 로컬 파일만 삭제 (외부 URL은 건너뛰기)
+            if (oldPath.startsWith("/uploads/")) {
+                oldPath = oldPath.substring("/uploads/".length());
+                fileStorageService.delete(oldPath);
+            }
+        }
+
+        // 새 이미지 업로드
+        FileUploadResult result = fileStorageService.upload(file, "profiles");
+
+        // URL 형식으로 저장 (프론트엔드에서 바로 사용 가능)
+        String imageUrl = "/uploads/" + result.filePath();
+        user.setProfileImage(imageUrl);
+
+        return userRepository.save(user);
+    }
+
+    /**
+     * 프로필 이미지 삭제 (기본 이미지로 변경)
+     */
+    @Override
+    @Transactional
+    public User deleteProfileImage(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        // 기존 프로필 이미지 삭제 (로컬 업로드 파일인 경우에만)
+        if (user.getProfileImage() != null && !user.getProfileImage().isBlank()) {
+            String oldPath = user.getProfileImage();
+            // /uploads/ 로 시작하는 로컬 파일만 삭제 (외부 URL은 건너뛰기)
+            if (oldPath.startsWith("/uploads/")) {
+                oldPath = oldPath.substring("/uploads/".length());
+                fileStorageService.delete(oldPath);
+            }
+        }
+
+        // 프로필 이미지를 null로 설정 (프론트에서 기본 이미지 표시)
+        user.setProfileImage(null);
+
+        return userRepository.save(user);
+    }
+
+    /**
+     * 파일 확장자 추출
+     */
+    private String getFileExtension(String fileName) {
+        int dotIndex = fileName.lastIndexOf('.');
+        if (dotIndex == -1 || dotIndex == fileName.length() - 1) {
+            return "";
+        }
+        return fileName.substring(dotIndex + 1);
     }
 }

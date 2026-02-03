@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
+import { Camera, Trash2, X } from 'lucide-react';
 import '../styles/ProfilePage.css';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
@@ -21,6 +22,7 @@ export const ProfilePage = () => {
     const showToast = useUIStore((state) => state.showToast);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+    const [isImageActionModalOpen, setIsImageActionModalOpen] = useState(false);
     const [isImageUploading, setIsImageUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -108,8 +110,31 @@ export const ProfilePage = () => {
         fetchProfileData();
     }, []);
 
+    // 이미지 편집 버튼 클릭 시 액션 선택 모달 열기
     const handleImageClick = () => {
+        setIsImageActionModalOpen(true);
+    };
+
+    // 이미지 변경 선택 시 파일 입력창 열기
+    const handleImageChangeSelect = () => {
+        setIsImageActionModalOpen(false);
         fileInputRef.current?.click();
+    };
+
+    // 이미지 삭제 (기본 이미지로 변경)
+    const handleImageDelete = async () => {
+        setIsImageActionModalOpen(false);
+        setIsImageUploading(true);
+        try {
+            const updatedUser = await userApi.deleteProfileImage();
+            updateUser({ avatar: updatedUser.profileImage || undefined });
+            showToast('프로필 이미지가 삭제되었습니다.', 'success');
+        } catch (error) {
+            console.error('Image delete error:', error);
+            showToast('이미지 삭제 중 오류가 발생했습니다.', 'error');
+        } finally {
+            setIsImageUploading(false);
+        }
     };
 
     const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -132,6 +157,10 @@ export const ProfilePage = () => {
             showToast('이미지 업로드 중 오류가 발생했습니다.', 'error');
         } finally {
             setIsImageUploading(false);
+            // 파일 입력 초기화 (같은 파일 재선택 가능하도록)
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
         }
     };
 
@@ -285,6 +314,55 @@ export const ProfilePage = () => {
                         isOpen={isPasswordModalOpen}
                         onClose={() => setIsPasswordModalOpen(false)}
                     />
+
+                    {/* 프로필 이미지 액션 선택 모달 */}
+                    {isImageActionModalOpen && (
+                        <div
+                            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+                            onClick={() => setIsImageActionModalOpen(false)}
+                        >
+                            <div
+                                className="bg-white rounded-2xl p-6 w-[320px] shadow-xl"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="text-lg font-bold text-gray-900">프로필 사진</h3>
+                                    <button
+                                        onClick={() => setIsImageActionModalOpen(false)}
+                                        className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+                                    >
+                                        <X size={20} className="text-gray-500" />
+                                    </button>
+                                </div>
+                                <div className="space-y-3">
+                                    <button
+                                        onClick={handleImageChangeSelect}
+                                        className="w-full flex items-center gap-3 p-4 rounded-xl bg-primary/10 hover:bg-primary/20 transition-colors text-left"
+                                    >
+                                        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                                            <Camera size={20} className="text-primary" />
+                                        </div>
+                                        <div>
+                                            <p className="font-semibold text-gray-900">사진 변경</p>
+                                            <p className="text-sm text-gray-500">새로운 프로필 사진 업로드</p>
+                                        </div>
+                                    </button>
+                                    <button
+                                        onClick={handleImageDelete}
+                                        className="w-full flex items-center gap-3 p-4 rounded-xl bg-red-50 hover:bg-red-100 transition-colors text-left"
+                                    >
+                                        <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                                            <Trash2 size={20} className="text-red-500" />
+                                        </div>
+                                        <div>
+                                            <p className="font-semibold text-gray-900">사진 삭제</p>
+                                            <p className="text-sm text-gray-500">기본 이미지로 변경</p>
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </UserLayoutV2>

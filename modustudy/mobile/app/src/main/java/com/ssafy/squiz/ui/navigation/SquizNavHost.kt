@@ -102,6 +102,9 @@ fun SquizNavHost(
                 onNavigateToWrongNotes = {
                     navController.navigate(NavRoutes.WrongNotes.route)
                 },
+                onNavigateToReviewSession = {
+                    navController.navigate(NavRoutes.ReviewSession.route)
+                },
                 onNavigateToEditProfile = {
                     navController.navigate(NavRoutes.EditProfile.route)
                 },
@@ -622,6 +625,14 @@ fun SquizNavHost(
                 onNoteClick = { noteId ->
                     navController.navigate(NavRoutes.WrongNoteReview.createRoute(noteId))
                 }
+            )
+        }
+
+        // FSRS 복습 세션
+        composable(NavRoutes.ReviewSession.route) {
+            ReviewSessionScreen(
+                onBackClick = { navController.popBackStack() },
+                onComplete = { navController.popBackStack() }
             )
         }
 

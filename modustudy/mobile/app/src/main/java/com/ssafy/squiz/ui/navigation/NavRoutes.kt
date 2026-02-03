@@ -115,6 +115,7 @@ sealed class NavRoutes(val route: String) {
     object WrongNoteReview : NavRoutes("wrong_note_review/{noteId}") {
         fun createRoute(noteId: Long) = "wrong_note_review/$noteId"
     }
+    object ReviewSession : NavRoutes("review_session")
 
     // My Page
     object MyPage : NavRoutes("my_page")
