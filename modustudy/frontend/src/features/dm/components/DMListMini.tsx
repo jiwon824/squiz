@@ -223,7 +223,7 @@ const DMListMini: React.FC = () => {
                                             'bg-primary/10 text-primary'
                                         )}>
                                             <img
-                                                src={getProfileImageUrl(isReceiver ? currentConversation?.participantProfileImage : null)}
+                                                src={getProfileImageUrl(isReceiver ? currentConversation?.participantProfileImage : useAuthStore.getState().user?.avatar)}
                                                 alt={isReceiver ? currentConversation?.participantNickname : '나'}
                                                 className="w-full h-full object-cover"
                                             />

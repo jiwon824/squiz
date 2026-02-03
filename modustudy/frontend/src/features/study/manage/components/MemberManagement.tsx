@@ -37,7 +37,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ studyId, maxMembers
 
             const mappedMembers: Member[] = content.map((member: any) => ({
                 userId: member.userId || member.id,
-                nickname: member.nickname || member.userName || '익명',
+                nickname: member.userNickname || member.nickname || member.userName || '익명',
                 profileImage: member.profileImage,
                 role: member.role || 'MEMBER',
                 joinedAt: member.joinedAt || member.createdAt || new Date().toISOString(),

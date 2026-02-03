@@ -109,7 +109,7 @@ const FriendListMini: React.FC = () => {
                                 <div key={user.id} className="flex items-center justify-between p-2 hover:bg-gray-50">
                                     <div className="flex items-center gap-2">
                                         <div className="w-7 h-7 rounded-full bg-study-blue/10 flex items-center justify-center text-xs font-bold text-study-blue overflow-hidden">
-                                            <img src={getProfileImageUrl(null)} alt={user.nickname} className="w-full h-full object-cover" />
+                                            <img src={getProfileImageUrl(user.profileImage)} alt={user.nickname} className="w-full h-full object-cover" />
                                         </div>
                                         <span className="text-sm">{user.nickname}</span>
                                     </div>
@@ -141,7 +141,7 @@ const FriendListMini: React.FC = () => {
                             <div key={request.id} className="flex items-center justify-between p-2 bg-yellow-50 rounded-lg">
                                 <div className="flex items-center gap-2">
                                     <div className="w-7 h-7 rounded-full bg-yellow-200 flex items-center justify-center text-xs font-bold text-yellow-700 overflow-hidden">
-                                        <img src={getProfileImageUrl(null)} alt={request.senderNickname} className="w-full h-full object-cover" />
+                                        <img src={getProfileImageUrl(request.senderProfileImage)} alt={request.senderNickname} className="w-full h-full object-cover" />
                                     </div>
                                     <span className="text-sm font-medium">{request.senderNickname}</span>
                                 </div>

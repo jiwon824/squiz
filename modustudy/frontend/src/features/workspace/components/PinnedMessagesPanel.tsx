@@ -1,9 +1,7 @@
 import { useCallback } from 'react';
 import { Pin, X } from 'lucide-react';
+import { getProfileImageUrl } from '@/shared/utils/profileImage';
 import type { MessageResponse } from '../types';
-
-// 기본 프로필 이미지 경로
-const DEFAULT_PROFILE_IMAGE = '/images/default-profile.png';
 
 interface PinnedMessagesPanelProps {
   isVisible: boolean;
@@ -69,7 +67,7 @@ export const PinnedMessagesPanel: React.FC<PinnedMessagesPanelProps> = ({
               >
                 <div className="pinned-sidebar__item-header">
                   <img
-                    src={message.author.profileImageUrl || DEFAULT_PROFILE_IMAGE}
+                    src={getProfileImageUrl(message.author.profileImageUrl)}
                     alt={message.author.nickname}
                     className="pinned-sidebar__item-avatar"
                   />

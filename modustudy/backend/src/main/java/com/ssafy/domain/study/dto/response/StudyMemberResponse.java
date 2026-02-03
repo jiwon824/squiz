@@ -21,6 +21,7 @@ public class StudyMemberResponse {
     private String userName;        // User.name
     private String userNickname;    // User.nickname
     private String userEmail;       // User.email
+    private String profileImage;    // User.profileImage
     private MemberRole role;        // LEADER, MEMBER
     private MemberStatus status;    // APPROVED, WITHDRAWN, KICKED
     private Boolean isProbation;    // 수습 여부
@@ -37,6 +38,7 @@ public class StudyMemberResponse {
                 .userName(user.getName())
                 .userNickname(user.getNickname())
                 .userEmail(user.getEmail())
+                .profileImage(user.getProfileImage())
                 .role(member.getRole())
                 .status(member.getStatus())
                 .isProbation(member.getIsProbation())

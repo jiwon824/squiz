@@ -19,9 +19,7 @@ import { cn } from '@/shared/utils/cn';
 import { useDMStore } from '@/features/dm/store/dmStore';
 import { useUIStore } from '@/store/uiStore';
 import { getReviewsByLeaderId, getLeaderAverageRating, LeaderReview } from '../mockData';
-
-// 기본 프로필 이미지 경로
-const DEFAULT_PROFILE_IMAGE = '/images/default-profile.png';
+import { getProfileImageUrl } from '@/shared/utils/profileImage';
 
 /**
  * StudyDetailPageV2 - Google Material Design 스타일 스터디 상세 페이지
@@ -302,7 +300,7 @@ const StudyDetailPageV2: React.FC = () => {
                                 <div className="text-center mb-6">
                                     <div className="relative inline-block mb-4">
                                         <img
-                                            src={study.leader.profileImage || DEFAULT_PROFILE_IMAGE}
+                                            src={getProfileImageUrl(study.leader.profileImage)}
                                             alt={study.leader.nickname}
                                             className="w-20 h-20 rounded-2xl object-cover border-2 border-white shadow-lg"
                                         />
