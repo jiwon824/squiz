@@ -94,4 +94,11 @@ public interface StudySessionRepository extends JpaRepository<StudySession, Long
             @Param("studyIds") List<Long> studyIds,
             @Param("startDateTime") LocalDateTime startDateTime,
             @Param("endDateTime") LocalDateTime endDateTime);
+
+    /**
+     * 특정 스터디의 모든 세션을 scheduledAt 기준 오름차순 조회
+     * (세션 번호 재정렬용)
+     */
+    @Query("SELECT s FROM StudySession s WHERE s.studyId = :studyId ORDER BY s.scheduledAt ASC")
+    List<StudySession> findByStudyIdOrderByScheduledAtAsc(@Param("studyId") Long studyId);
 }

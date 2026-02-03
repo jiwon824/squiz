@@ -1,9 +1,7 @@
 import { Pin } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
+import { getProfileImageUrl } from '@/shared/utils/profileImage';
 import type { MessageResponse } from '../types';
-
-// 기본 프로필 이미지 경로
-const DEFAULT_PROFILE_IMAGE = '/images/default-profile.png';
 
 interface MessageItemProps {
   message: MessageResponse;
@@ -141,7 +139,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
           )}
         >
           <img
-            src={message.author.profileImageUrl || DEFAULT_PROFILE_IMAGE}
+            src={getProfileImageUrl(message.author.profileImageUrl)}
             alt={message.author.nickname}
             className="w-full h-full rounded-full object-cover"
           />

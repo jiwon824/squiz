@@ -43,7 +43,12 @@ const MeetingRoomPage: React.FC = () => {
     const meetingListPath =
         Number.isFinite(numericStudyId) && numericStudyId > 0 ? `/study/${numericStudyId}/workspace` : '/study';
     const { user, isLoggedIn } = useAuthStore();
-    const { showToast } = useUIStore();
+    const { showToast, setActiveRightTab } = useUIStore();
+
+    // 미팅 화면 진입 시 오른쪽 사이드바 비활성화
+    useEffect(() => {
+        setActiveRightTab(null);
+    }, [setActiveRightTab]);
 
     const getGuestName = useCallback(() => {
         const key = 'meeting-guest-name';
@@ -1834,8 +1839,10 @@ const MeetingRoomPage: React.FC = () => {
             sentAt: new Date().toISOString(),
             userId: selfParticipantIdRef.current ?? null,
         };
+        // 낙관적 업데이트: 전송 즉시 로컬 상태에 추가
+        appendChatMessage(payload);
         wsClientRef.current.sendChat(roomIdRef.current, payload);
-    }, []);
+    }, [appendChatMessage]);
 
     const captureFrame = (video: HTMLVideoElement) =>
         new Promise<Blob | null>((resolve) => {
@@ -2432,18 +2439,24 @@ const MeetingRoomPage: React.FC = () => {
                     </div>
                 )}
                 {/* 헤더: 접힌 상태일 때 미니 바, 펼쳐진 상태일 때 전체 헤더 */}
-                {isVideoExpanded && isHeaderCollapsed ? (
+                {isHeaderCollapsed ? (
                     /* 미니 헤더 바 */
-                    <div className="flex items-center gap-3 px-4 py-2 bg-white rounded-2xl shadow-sm shrink-0">
-                        {/* 펼치기 버튼 */}
-                        <button
-                            className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors cursor-pointer"
-                            onClick={() => setIsHeaderCollapsed(false)}
-                            title="헤더 펼치기"
-                        >
-                            <ChevronDown size={16} className="text-gray-600" />
-                        </button>
-
+                    <div className="relative shrink-0">
+                        {/* 상단 프로그레스바 */}
+                        {plannedDurationSeconds && plannedDurationSeconds > 0 && (
+                            <div className="absolute -top-1 left-0 right-0 h-1 bg-gray-200 rounded-full overflow-hidden">
+                                <div
+                                    className={cn(
+                                        'h-full rounded-full transition-all duration-1000 ease-linear',
+                                        (elapsedSeconds / plannedDurationSeconds) * 100 >= 90 ? 'bg-red-500' :
+                                        (elapsedSeconds / plannedDurationSeconds) * 100 >= 75 ? 'bg-amber-500' :
+                                        'bg-blue-500'
+                                    )}
+                                    style={{ width: `${Math.min((elapsedSeconds / plannedDurationSeconds) * 100, 100)}%` }}
+                                />
+                            </div>
+                        )}
+                        <div className="flex items-center gap-3 px-4 py-2 bg-white rounded-2xl shadow-sm">
                         {/* 타이머 */}
                         <span className="font-mono text-sm font-semibold text-gray-700 tabular-nums">
                             {formatDuration(elapsedSeconds)}
@@ -2505,6 +2518,15 @@ const MeetingRoomPage: React.FC = () => {
                                 <PhoneOff size={16} />
                             </button>
                         )}
+                        </div>
+                        {/* 펼치기 버튼 - 헤더 바닥 중앙 */}
+                        <button
+                            className="absolute -bottom-4 left-1/2 -translate-x-1/2 p-1 hover:text-blue-500 transition-colors cursor-pointer"
+                            onClick={() => setIsHeaderCollapsed(false)}
+                            title="헤더 펼치기"
+                        >
+                            <ChevronDown size={28} className="text-gray-400 hover:text-blue-500" />
+                        </button>
                     </div>
                 ) : (
                     /* 전체 헤더 */
@@ -2536,16 +2558,14 @@ const MeetingRoomPage: React.FC = () => {
                             elapsedSeconds={elapsedSeconds}
                             plannedDurationSeconds={plannedDurationSeconds}
                         />
-                        {/* 비디오 최대화 시 헤더 접기 버튼 */}
-                        {isVideoExpanded && (
-                            <button
-                                className="absolute top-3 right-3 w-7 h-7 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors cursor-pointer"
-                                onClick={() => setIsHeaderCollapsed(true)}
-                                title="헤더 접기"
-                            >
-                                <ChevronUp size={16} className="text-gray-600" />
-                            </button>
-                        )}
+                        {/* 헤더 접기 버튼 - 헤더 바닥 중앙 */}
+                        <button
+                            className="absolute -bottom-4 left-1/2 -translate-x-1/2 p-1 hover:text-blue-500 transition-colors cursor-pointer"
+                            onClick={() => setIsHeaderCollapsed(true)}
+                            title="헤더 접기"
+                        >
+                            <ChevronUp size={28} className="text-gray-400 hover:text-blue-500" />
+                        </button>
                     </div>
                 )}
 

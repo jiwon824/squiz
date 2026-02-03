@@ -10,9 +10,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 import { Button, ArrowButton, Dropdown } from '@/shared/components';
-
-// 기본 프로필 이미지 경로
-const DEFAULT_PROFILE_IMAGE = '/images/default-profile.png';
+import { getProfileImageUrl } from '@/shared/utils/profileImage';
 
 type ViewMode = 'list' | 'create' | 'edit' | 'detail';
 
@@ -186,7 +184,7 @@ export const RecruitmentPage = () => {
                                 {/* 작성자 정보 */}
                                 <div className="flex items-center gap-3">
                                     <img
-                                        src={selectedPost.authorAvatar || DEFAULT_PROFILE_IMAGE}
+                                        src={getProfileImageUrl(selectedPost.authorAvatar)}
                                         alt=""
                                         className="w-10 h-10 rounded-xl border border-[var(--color-border)] object-cover"
                                     />
