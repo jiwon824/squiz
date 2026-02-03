@@ -2,6 +2,7 @@ package com.ssafy.domain.quiz.service;
 
 import com.ssafy.common.exception.BusinessException;
 import com.ssafy.domain.quiz.dto.response.ReviewHistoryResponse;
+import com.ssafy.domain.quiz.dto.response.ReviewResult;
 import com.ssafy.domain.quiz.dto.response.ReviewStatsResponse;
 import com.ssafy.domain.quiz.entity.ReviewContentType;
 import com.ssafy.domain.quiz.entity.UserReviewItem;
@@ -111,13 +112,14 @@ public class FsrsService {
      * @param contentId      콘텐츠 ID
      * @param userAnswer     사용자 답안
      * @param responseTimeMs 응답 시간 (밀리초)
-     * @return 업데이트된 UserReviewItem
+     * @return 채점 결과와 업데이트된 UserReviewItem을 담은 ReviewResult
      */
     @Transactional
-    public UserReviewItem processReview(Long userId, ReviewContentType contentType,
+    public ReviewResult processReview(Long userId, ReviewContentType contentType,
             Long contentId, String userAnswer, long responseTimeMs) {
 
         boolean isCorrect = false;
+        String correctAnswer = "";
 
         // 1. 정답 조회 및 채점
         if (contentType == ReviewContentType.COURSE_QUESTION) {
@@ -125,21 +127,23 @@ public class FsrsService {
             QuizCourseQuestion question = continuousQuizRepository.findById(contentId)
                     .orElseThrow(() -> new IllegalArgumentException("Question not found: " + contentId));
 
-            String correctAnswer = question.getCorrectAnswer();
-            isCorrect = QuizGradingUtils.grade(userAnswer, correctAnswer, question.getQuestionType(),
+            correctAnswer = QuizGradingUtils.normalizeCorrectAnswer(question.getCorrectAnswer());
+            isCorrect = QuizGradingUtils.grade(userAnswer, question.getCorrectAnswer(), question.getQuestionType(),
                     question.getOptions(), question.getKeywords());
 
         } else if (contentType == ReviewContentType.STUDY_QUESTION) {
             StudyQuizQuestion question = studyQuizQuestionRepository.findById(contentId)
                     .orElseThrow(() -> new IllegalArgumentException("Study question not found: " + contentId));
 
-            String correctAnswer = question.getCorrectAnswer();
-            isCorrect = QuizGradingUtils.grade(userAnswer, correctAnswer, question.getQuestionType(),
+            correctAnswer = QuizGradingUtils.normalizeCorrectAnswer(question.getCorrectAnswer());
+            isCorrect = QuizGradingUtils.grade(userAnswer, question.getCorrectAnswer(), question.getQuestionType(),
                     question.getOptions(), question.getAnswerKeywords());
         }
 
         // 2. FSRS 로직 위임
-        return processReviewResult(userId, contentType, contentId, isCorrect, responseTimeMs);
+        UserReviewItem item = processReviewResult(userId, contentType, contentId, isCorrect, responseTimeMs);
+
+        return new ReviewResult(item, isCorrect, correctAnswer);
     }
 
     /**

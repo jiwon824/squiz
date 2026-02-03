@@ -4,10 +4,10 @@ import com.ssafy.common.auth.SsafyUserDetails;
 import com.ssafy.common.response.ApiResponse;
 import com.ssafy.domain.quiz.dto.request.ReviewSubmitRequest;
 import com.ssafy.domain.quiz.dto.response.ReviewHistoryResponse;
+import com.ssafy.domain.quiz.dto.response.ReviewResult;
 import com.ssafy.domain.quiz.dto.response.ReviewStatsResponse;
 import com.ssafy.domain.quiz.dto.response.ReviewSubmitResponse;
 import com.ssafy.domain.quiz.dto.response.TodayReviewResponse;
-import com.ssafy.domain.quiz.entity.UserReviewItem;
 import com.ssafy.domain.quiz.service.FsrsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -55,17 +55,18 @@ public class ReviewController {
 
         Long userId = userDetails.getUser().getId();
 
-        UserReviewItem item = fsrsService.processReview(
+        ReviewResult result = fsrsService.processReview(
                 userId,
                 request.contentType(),
                 request.contentId(),
                 request.userAnswer(),
                 request.responseTimeMs());
 
-        log.info("[ReviewController] 복습 제출 - userId: {}, contentType: {}, contentId: {}",
-                userId, request.contentType(), request.contentId());
+        log.info("[ReviewController] 복습 제출 - userId: {}, contentType: {}, contentId: {}, isCorrect: {}",
+                userId, request.contentType(), request.contentId(), result.isCorrect());
 
-        return ApiResponse.success(ReviewSubmitResponse.from(item));
+        return ApiResponse
+                .success(ReviewSubmitResponse.from(result.getItem(), result.isCorrect(), result.getCorrectAnswer()));
     }
 
     // ========== 오늘 복습 예정 항목 조회 ==========

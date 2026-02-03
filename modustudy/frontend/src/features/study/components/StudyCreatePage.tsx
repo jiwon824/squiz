@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Info, Calendar, Plus, Trash2, BookOpen, MapPin, AlertCircle, Clock, Users, Target, Shield, Sparkles, Loader2 } from 'lucide-react';
+import { Info, Calendar, Plus, Trash2, BookOpen, MapPin, AlertCircle, Clock, Users, Target, Shield, Sparkles, Loader2, ChevronUp, ChevronDown, GripVertical } from 'lucide-react';
 import { PageNavHeader } from '@/shared/components/layouts/PageNavHeader';
 import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { useUIStore } from '@/store/uiStore';
@@ -292,8 +292,17 @@ const StudyCreatePage: React.FC = () => {
     const [userSchedule, setUserSchedule] = useState<{
         availableDays: string[];
         preferredDurationWeeks: number;
-    }>({ availableDays: [], preferredDurationWeeks: 4 });
+        preferredTimeSlot: string | null;
+    }>({ availableDays: [], preferredDurationWeeks: 4, preferredTimeSlot: null });
     const [preferenceLoaded, setPreferenceLoaded] = useState(false);
+
+    // 시간대 → 중간 시간 변환 맵
+    const timeSlotToMiddleTime: Record<string, string> = {
+        morning: '10:00',      // 07:00-12:00 → 중간 09:30 → 10:00
+        afternoon: '15:00',    // 12:00-18:00 → 중간 15:00
+        evening: '20:00',      // 18:00-22:00 → 중간 20:00
+        night: '23:00',        // 22:00-02:00 → 23:00
+    };
 
     useEffect(() => {
         const loadPreference = async () => {
@@ -304,10 +313,12 @@ const StudyCreatePage: React.FC = () => {
                 if (techStacks.length > 0) {
                     setUserTechStack(techStacks);
                 }
-                // 일정 정보 로드
+                // 일정 정보 로드 (선호 시간대 포함)
+                const timeSlots = pref.preferredTimeSlots || [];
                 setUserSchedule({
                     availableDays: pref.availableDays || [],
                     preferredDurationWeeks: pref.preferredDurationWeeks || 4,
+                    preferredTimeSlot: timeSlots[0] || pref.preferredTimeSlot || null,
                 });
             } catch (err) {
                 // localStorage fallback
@@ -317,9 +328,11 @@ const StudyCreatePage: React.FC = () => {
                         const pref = JSON.parse(saved);
                         const stack = pref.techStacks || pref.techStack || [];
                         if (stack.length > 0) setUserTechStack(stack);
+                        const timeSlots = pref.preferredTimeSlots || [];
                         setUserSchedule({
                             availableDays: pref.availableDays || [],
                             preferredDurationWeeks: pref.preferredDurationWeeks || 4,
+                            preferredTimeSlot: timeSlots[0] || pref.preferredTimeSlot || null,
                         });
                     }
                 } catch { /* 무시 */ }
@@ -407,12 +420,85 @@ const StudyCreatePage: React.FC = () => {
 
     // 요일 토글 핸들러
     const handleDayToggle = (day: string) => {
-        setFormData(prev => ({
-            ...prev,
-            scheduleDays: prev.scheduleDays.includes(day)
+        setFormData(prev => {
+            const newScheduleDays = prev.scheduleDays.includes(day)
                 ? prev.scheduleDays.filter(d => d !== day)
-                : [...prev.scheduleDays, day]
-        }));
+                : [...prev.scheduleDays, day];
+
+            // 커리큘럼이 있으면 날짜 재계산
+            if (prev.hasCurriculum && prev.curriculum.length > 0 && prev.startDate && newScheduleDays.length > 0) {
+                const formatDate = (d: Date) =>
+                    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+                const dayToNum: Record<string, number> = {
+                    '일': 0, '월': 1, '화': 2, '수': 3, '목': 4, '금': 5, '토': 6,
+                    'SUN': 0, 'MON': 1, 'TUE': 2, 'WED': 3, 'THU': 4, 'FRI': 5, 'SAT': 6,
+                };
+
+                const startDate = new Date(prev.startDate);
+                const selectedDayNums = newScheduleDays.map(d => dayToNum[d] ?? 0).sort((a, b) => a - b);
+                const daysPerWeek = newScheduleDays.length;
+
+                // 시작일 이후 첫 번째 선호 요일 찾기
+                const findFirstPreferredDay = (from: Date, preferredDays: number[]): Date => {
+                    const result = new Date(from);
+                    const currentDay = result.getDay();
+                    // 가장 가까운 선호 요일까지의 거리 계산
+                    let minDays = 7;
+                    for (const dayNum of preferredDays) {
+                        let daysUntil = dayNum - currentDay;
+                        if (daysUntil < 0) daysUntil += 7;
+                        if (daysUntil < minDays) minDays = daysUntil;
+                    }
+                    result.setDate(result.getDate() + minDays);
+                    return result;
+                };
+
+                const firstSessionDate = findFirstPreferredDay(startDate, selectedDayNums);
+                const firstDayNum = firstSessionDate.getDay();
+
+                // 첫 세션 요일 기준으로 재정렬 (첫 세션 요일이 먼저 오도록)
+                const orderedDayNums = [
+                    ...selectedDayNums.filter(d => d >= firstDayNum),
+                    ...selectedDayNums.filter(d => d < firstDayNum)
+                ];
+
+                let lastSessionDate: Date | null = null;
+                const updatedCurriculum = prev.curriculum.map((item, index) => {
+                    const sessionDate = new Date(firstSessionDate);
+                    if (daysPerWeek === 1) {
+                        sessionDate.setDate(sessionDate.getDate() + index * 7);
+                    } else {
+                        const weekIndex = Math.floor(index / daysPerWeek);
+                        const dayIndex = index % daysPerWeek;
+                        const targetDayNum = orderedDayNums[dayIndex];
+                        let daysFromFirst = targetDayNum - firstDayNum;
+                        if (daysFromFirst < 0) daysFromFirst += 7;
+                        sessionDate.setDate(firstSessionDate.getDate() + weekIndex * 7 + daysFromFirst);
+                    }
+                    lastSessionDate = sessionDate;
+                    return { ...item, date: formatDate(sessionDate) };
+                });
+
+                // 종료일 업데이트
+                let newEndDate = prev.endDate;
+                if (lastSessionDate && prev.endDate) {
+                    const currentEndDate = new Date(prev.endDate);
+                    if (lastSessionDate > currentEndDate) {
+                        newEndDate = formatDate(lastSessionDate);
+                    }
+                }
+
+                return {
+                    ...prev,
+                    scheduleDays: newScheduleDays,
+                    curriculum: updatedCurriculum,
+                    endDate: newEndDate,
+                };
+            }
+
+            return { ...prev, scheduleDays: newScheduleDays };
+        });
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -421,6 +507,106 @@ const StudyCreatePage: React.FC = () => {
     };
 
     const handleOptionToggle = (name: string, value: string | boolean) => {
+        // 커리큘럼 설정 시 사용자 선호 요일 자동 적용
+        if (name === 'hasCurriculum' && value === true) {
+            setFormData(prev => {
+                // scheduleDays가 비어있으면 사용자 선호 요일 적용
+                const newScheduleDays = prev.scheduleDays.length > 0
+                    ? prev.scheduleDays
+                    : userSchedule.availableDays;
+
+                // 커리큘럼 초기화 (비어있으면 totalSessions 만큼 생성)
+                let newCurriculum = prev.curriculum;
+                let newEndDate = prev.endDate;
+
+                if (prev.curriculum.length === 0 && prev.totalSessions > 0 && prev.startDate) {
+                    const formatDate = (d: Date) =>
+                        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+                    const dayToNum: Record<string, number> = {
+                        '일': 0, '월': 1, '화': 2, '수': 3, '목': 4, '금': 5, '토': 6,
+                        'SUN': 0, 'MON': 1, 'TUE': 2, 'WED': 3, 'THU': 4, 'FRI': 5, 'SAT': 6,
+                    };
+
+                    const startDate = new Date(prev.startDate);
+                    const selectedDayNums = newScheduleDays.length > 0
+                        ? newScheduleDays.map(d => dayToNum[d] ?? 0).sort((a, b) => a - b)
+                        : [startDate.getDay()];
+                    const daysPerWeek = newScheduleDays.length || 1;
+
+                    // 시작일 이후 첫 번째 선호 요일 찾기
+                    const findFirstPreferredDay = (from: Date, preferredDays: number[]): Date => {
+                        const result = new Date(from);
+                        const currentDay = result.getDay();
+                        let minDays = 7;
+                        for (const dayNum of preferredDays) {
+                            let daysUntil = dayNum - currentDay;
+                            if (daysUntil < 0) daysUntil += 7;
+                            if (daysUntil < minDays) minDays = daysUntil;
+                        }
+                        result.setDate(result.getDate() + minDays);
+                        return result;
+                    };
+
+                    const firstSessionDate = findFirstPreferredDay(startDate, selectedDayNums);
+                    const firstDayNum = firstSessionDate.getDay();
+
+                    // 첫 세션 요일 기준으로 재정렬 (첫 세션 요일이 먼저 오도록)
+                    const orderedDayNums = [
+                        ...selectedDayNums.filter(d => d >= firstDayNum),
+                        ...selectedDayNums.filter(d => d < firstDayNum)
+                    ];
+
+                    newCurriculum = [];
+                    let lastSessionDate: Date | null = null;
+
+                    for (let i = 0; i < prev.totalSessions; i++) {
+                        const sessionDate = new Date(firstSessionDate);
+                        if (daysPerWeek === 1) {
+                            sessionDate.setDate(sessionDate.getDate() + i * 7);
+                        } else {
+                            const weekIndex = Math.floor(i / daysPerWeek);
+                            const dayIndex = i % daysPerWeek;
+                            const targetDayNum = orderedDayNums[dayIndex];
+                            let daysFromFirst = targetDayNum - firstDayNum;
+                            if (daysFromFirst < 0) daysFromFirst += 7;
+                            sessionDate.setDate(firstSessionDate.getDate() + weekIndex * 7 + daysFromFirst);
+                        }
+                        lastSessionDate = sessionDate;
+                        newCurriculum.push({
+                            session: i + 1,
+                            description: '',
+                            type: 'ONLINE',
+                            date: formatDate(sessionDate),
+                        });
+                    }
+
+                    // 마지막 세션 날짜로 종료일 업데이트
+                    if (lastSessionDate) {
+                        const currentEndDate = prev.endDate ? new Date(prev.endDate) : null;
+                        if (!currentEndDate || lastSessionDate > currentEndDate) {
+                            newEndDate = formatDate(lastSessionDate);
+                        }
+                    }
+                }
+
+                // 선호 시간대에 맞춰 scheduleTime 업데이트
+                const newScheduleTime = userSchedule.preferredTimeSlot
+                    ? timeSlotToMiddleTime[userSchedule.preferredTimeSlot] || prev.scheduleTime
+                    : prev.scheduleTime;
+
+                return {
+                    ...prev,
+                    hasCurriculum: true,
+                    scheduleDays: newScheduleDays,
+                    curriculum: newCurriculum,
+                    endDate: newEndDate,
+                    scheduleTime: newScheduleTime,
+                };
+            });
+            return;
+        }
+
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
@@ -433,11 +619,207 @@ const StudyCreatePage: React.FC = () => {
     };
 
     const handleDateRangeChange = (start: string | null, end: string | null) => {
-        setFormData(prev => ({ ...prev, startDate: start, endDate: end }));
+        setFormData(prev => {
+            const formatDate = (d: Date) => {
+                return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            };
+
+            // 커리큘럼이 있고 시작일이 변경된 경우 커리큘럼 날짜 재계산
+            if (start && prev.curriculum.length > 0 && prev.hasCurriculum && start !== prev.startDate) {
+                const startDate = new Date(start);
+                const scheduleDays = prev.scheduleDays;
+
+                // 요일 매핑
+                const dayToNum: Record<string, number> = {
+                    '일': 0, '월': 1, '화': 2, '수': 3, '목': 4, '금': 5, '토': 6,
+                    'SUN': 0, 'MON': 1, 'TUE': 2, 'WED': 3, 'THU': 4, 'FRI': 5, 'SAT': 6,
+                };
+
+                const selectedDayNums = scheduleDays.length > 0
+                    ? scheduleDays.map(d => dayToNum[d] ?? 0).sort((a, b) => a - b)
+                    : [startDate.getDay()];
+                const daysPerWeek = scheduleDays.length || 1;
+
+                // 시작일 이후 첫 번째 선호 요일 찾기
+                const findFirstPreferredDay = (from: Date, preferredDays: number[]): Date => {
+                    const result = new Date(from);
+                    const currentDay = result.getDay();
+                    let minDays = 7;
+                    for (const dayNum of preferredDays) {
+                        let daysUntil = dayNum - currentDay;
+                        if (daysUntil < 0) daysUntil += 7;
+                        if (daysUntil < minDays) minDays = daysUntil;
+                    }
+                    result.setDate(result.getDate() + minDays);
+                    return result;
+                };
+
+                const firstSessionDate = findFirstPreferredDay(startDate, selectedDayNums);
+                const firstDayNum = firstSessionDate.getDay();
+
+                // 첫 세션 요일 기준으로 재정렬 (첫 세션 요일이 먼저 오도록)
+                const orderedDayNums = [
+                    ...selectedDayNums.filter(d => d >= firstDayNum),
+                    ...selectedDayNums.filter(d => d < firstDayNum)
+                ];
+
+                // 각 세션의 날짜 재계산
+                let lastSessionDate: Date | null = null;
+                const updatedCurriculum = prev.curriculum.map((item, index) => {
+                    const sessionDate = new Date(firstSessionDate);
+
+                    if (daysPerWeek === 1 || selectedDayNums.length === 0) {
+                        // 주 1회: 매주 같은 요일
+                        sessionDate.setDate(sessionDate.getDate() + index * 7);
+                    } else {
+                        // 주 n회: 선택된 요일에 맞춰 계산
+                        const weekIndex = Math.floor(index / daysPerWeek);
+                        const dayIndex = index % daysPerWeek;
+                        const targetDayNum = orderedDayNums[dayIndex];
+                        let daysFromFirst = targetDayNum - firstDayNum;
+                        if (daysFromFirst < 0) daysFromFirst += 7;
+                        sessionDate.setDate(firstSessionDate.getDate() + weekIndex * 7 + daysFromFirst);
+                    }
+
+                    lastSessionDate = sessionDate;
+                    return {
+                        ...item,
+                        date: formatDate(sessionDate)
+                    };
+                });
+
+                // 마지막 세션 날짜가 종료일보다 이후면 종료일 자동 확장
+                let finalEndDate = end;
+                if (lastSessionDate) {
+                    const endDateObj = end ? new Date(end) : null;
+                    if (!endDateObj || lastSessionDate > endDateObj) {
+                        finalEndDate = formatDate(lastSessionDate);
+                    }
+                }
+
+                return {
+                    ...prev,
+                    startDate: start,
+                    endDate: finalEndDate,
+                    curriculum: updatedCurriculum
+                };
+            }
+
+            // 커리큘럼이 있지만 시작일은 같고 종료일만 변경된 경우, 마지막 세션 날짜 확인
+            if (prev.hasCurriculum && prev.curriculum.length > 0) {
+                const lastSession = prev.curriculum[prev.curriculum.length - 1];
+                if (lastSession?.date && end) {
+                    const lastSessionDate = new Date(lastSession.date);
+                    const newEndDate = new Date(end);
+                    // 마지막 세션이 종료일보다 이후면 종료일을 마지막 세션으로 확장
+                    if (lastSessionDate > newEndDate) {
+                        return { ...prev, startDate: start, endDate: formatDate(lastSessionDate) };
+                    }
+                }
+            }
+
+            // 일반적인 날짜 변경
+            return { ...prev, startDate: start, endDate: end };
+        });
     };
 
     const handleRecruitDateRangeChange = (start: string | null, end: string | null) => {
-        setFormData(prev => ({ ...prev, recruitStartDate: start, recruitEndDate: end }));
+        setFormData(prev => {
+            const updates: Partial<typeof prev> = {
+                recruitStartDate: start,
+                recruitEndDate: end
+            };
+
+            // 모집 종료일이 설정되고 스터디 시작일이 모집 종료일보다 이전이면 스터디 기간 조정
+            if (end) {
+                const recruitEnd = new Date(end);
+
+                // 스터디 시작일이 모집 종료일보다 이전이면 스터디 시작일을 모집 종료일 다음 날로 설정
+                if (prev.startDate) {
+                    const studyStart = new Date(prev.startDate);
+                    if (studyStart <= recruitEnd) {
+                        // 모집 종료일 다음 날로 시작일 조정
+                        const newStartDate = new Date(recruitEnd);
+                        newStartDate.setDate(newStartDate.getDate() + 1);
+                        const formatDate = (d: Date) =>
+                            `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                        updates.startDate = formatDate(newStartDate);
+
+                        // 종료일도 시작일 기준으로 재계산 (기존 기간 유지)
+                        if (prev.endDate) {
+                            const originalDuration = new Date(prev.endDate).getTime() - studyStart.getTime();
+                            const newEndDate = new Date(newStartDate.getTime() + originalDuration);
+                            updates.endDate = formatDate(newEndDate);
+                        }
+
+                        // 커리큘럼이 있으면 날짜도 재계산
+                        if (prev.hasCurriculum && prev.curriculum.length > 0) {
+                            const dayToNum: Record<string, number> = {
+                                '일': 0, '월': 1, '화': 2, '수': 3, '목': 4, '금': 5, '토': 6,
+                                'SUN': 0, 'MON': 1, 'TUE': 2, 'WED': 3, 'THU': 4, 'FRI': 5, 'SAT': 6,
+                            };
+                            const scheduleDays = prev.scheduleDays;
+                            const selectedDayNums = scheduleDays.length > 0
+                                ? scheduleDays.map(d => dayToNum[d] ?? 0).sort((a, b) => a - b)
+                                : [newStartDate.getDay()];
+                            const daysPerWeek = scheduleDays.length || 1;
+
+                            // 시작일 이후 첫 번째 선호 요일 찾기
+                            const findFirstPreferredDay = (from: Date, preferredDays: number[]): Date => {
+                                const result = new Date(from);
+                                const currentDay = result.getDay();
+                                let minDays = 7;
+                                for (const dayNum of preferredDays) {
+                                    let daysUntil = dayNum - currentDay;
+                                    if (daysUntil < 0) daysUntil += 7;
+                                    if (daysUntil < minDays) minDays = daysUntil;
+                                }
+                                result.setDate(result.getDate() + minDays);
+                                return result;
+                            };
+
+                            const firstSessionDate = findFirstPreferredDay(newStartDate, selectedDayNums);
+                            const firstDayNum = firstSessionDate.getDay();
+
+                            // 첫 세션 요일 기준으로 재정렬 (첫 세션 요일이 먼저 오도록)
+                            const orderedDayNums = [
+                                ...selectedDayNums.filter(d => d >= firstDayNum),
+                                ...selectedDayNums.filter(d => d < firstDayNum)
+                            ];
+
+                            let lastSessionDate: Date | null = null;
+                            updates.curriculum = prev.curriculum.map((item, index) => {
+                                const sessionDate = new Date(firstSessionDate);
+                                if (daysPerWeek === 1) {
+                                    // 주 1회: 매주 같은 요일
+                                    sessionDate.setDate(sessionDate.getDate() + index * 7);
+                                } else {
+                                    // 주 n회: 선택된 요일에 맞춰 계산
+                                    const weekIndex = Math.floor(index / daysPerWeek);
+                                    const dayIndex = index % daysPerWeek;
+                                    const targetDayNum = orderedDayNums[dayIndex];
+                                    let daysFromFirst = targetDayNum - firstDayNum;
+                                    if (daysFromFirst < 0) daysFromFirst += 7;
+                                    sessionDate.setDate(firstSessionDate.getDate() + weekIndex * 7 + daysFromFirst);
+                                }
+                                lastSessionDate = sessionDate;
+                                return { ...item, date: formatDate(sessionDate) };
+                            });
+
+                            // 마지막 세션 날짜가 종료일보다 이후면 종료일 자동 확장
+                            if (lastSessionDate && updates.endDate) {
+                                const currentEndDate = new Date(updates.endDate);
+                                if (lastSessionDate > currentEndDate) {
+                                    updates.endDate = formatDate(lastSessionDate);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            return { ...prev, ...updates };
+        });
     };
 
     const handleCurriculumChange = (index: number, field: keyof CurriculumItem, value: string) => {
@@ -447,26 +829,256 @@ const StudyCreatePage: React.FC = () => {
     };
 
     const addSession = () => {
-        // 총 회차 수를 초과하면 추가하지 않음
-        if (formData.curriculum.length >= formData.totalSessions) {
-            return;
-        }
-        setFormData(prev => ({
-            ...prev,
-            curriculum: [...prev.curriculum, {
-                session: prev.curriculum.length + 1,
-                description: '',
-                type: 'ONLINE',
-                date: ''
-            }]
-        }));
+        // 총 회차 수를 초과하면 totalSessions도 함께 증가
+        setFormData(prev => {
+            const newSessionCount = prev.curriculum.length + 1;
+
+            // 새 회차 날짜 계산
+            let newDate = '';
+            let newEndDate = prev.endDate;
+            if (prev.startDate) {
+                const dayToNum: Record<string, number> = {
+                    '일': 0, '월': 1, '화': 2, '수': 3, '목': 4, '금': 5, '토': 6,
+                    'SUN': 0, 'MON': 1, 'TUE': 2, 'WED': 3, 'THU': 4, 'FRI': 5, 'SAT': 6,
+                };
+                const formatDate = (d: Date) => {
+                    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                };
+
+                const startDate = new Date(prev.startDate);
+                const scheduleDays = prev.scheduleDays;
+                const selectedDayNums = scheduleDays.length > 0
+                    ? scheduleDays.map(d => dayToNum[d] ?? 0).sort((a, b) => a - b)
+                    : [startDate.getDay()];
+                const daysPerWeek = scheduleDays.length || 1;
+                const index = prev.curriculum.length; // 새 항목의 인덱스
+
+                // 시작일 이후 첫 번째 선호 요일 찾기
+                const findFirstPreferredDay = (from: Date, preferredDays: number[]): Date => {
+                    const result = new Date(from);
+                    const currentDay = result.getDay();
+                    let minDays = 7;
+                    for (const dayNum of preferredDays) {
+                        let daysUntil = dayNum - currentDay;
+                        if (daysUntil < 0) daysUntil += 7;
+                        if (daysUntil < minDays) minDays = daysUntil;
+                    }
+                    result.setDate(result.getDate() + minDays);
+                    return result;
+                };
+
+                const firstSessionDate = findFirstPreferredDay(startDate, selectedDayNums);
+                const firstDayNum = firstSessionDate.getDay();
+
+                // 첫 세션 요일 기준으로 재정렬 (첫 세션 요일이 먼저 오도록)
+                const orderedDayNums = [
+                    ...selectedDayNums.filter(d => d >= firstDayNum),
+                    ...selectedDayNums.filter(d => d < firstDayNum)
+                ];
+
+                const sessionDate = new Date(firstSessionDate);
+                if (daysPerWeek === 1 || selectedDayNums.length === 0) {
+                    sessionDate.setDate(sessionDate.getDate() + index * 7);
+                } else {
+                    const weekIndex = Math.floor(index / daysPerWeek);
+                    const dayIndex = index % daysPerWeek;
+                    const targetDayNum = orderedDayNums[dayIndex];
+                    let daysFromFirst = targetDayNum - firstDayNum;
+                    if (daysFromFirst < 0) daysFromFirst += 7;
+                    sessionDate.setDate(firstSessionDate.getDate() + weekIndex * 7 + daysFromFirst);
+                }
+                newDate = formatDate(sessionDate);
+
+                // 새 세션 날짜가 종료일보다 이후면 종료일 자동 확장
+                if (prev.endDate) {
+                    const currentEndDate = new Date(prev.endDate);
+                    if (sessionDate > currentEndDate) {
+                        newEndDate = formatDate(sessionDate);
+                    }
+                }
+            }
+
+            return {
+                ...prev,
+                curriculum: [...prev.curriculum, {
+                    session: newSessionCount,
+                    description: '',
+                    type: 'ONLINE',
+                    date: newDate
+                }],
+                // 현재 커리큘럼 수가 totalSessions를 넘으면 자동으로 증가
+                totalSessions: Math.max(prev.totalSessions, newSessionCount),
+                // 종료일 업데이트
+                endDate: newEndDate
+            };
+        });
     };
 
     const removeSession = (index: number) => {
-        const newCurriculum = formData.curriculum
-            .filter((_, i) => i !== index)
-            .map((item, i) => ({ ...item, session: i + 1 }));
-        setFormData(prev => ({ ...prev, curriculum: newCurriculum }));
+        setFormData(prev => {
+            const newCurriculum = prev.curriculum
+                .filter((_, i) => i !== index)
+                .map((item, i) => ({ ...item, session: i + 1 }));
+            return {
+                ...prev,
+                curriculum: newCurriculum,
+                // 커리큘럼 수에 맞춰 totalSessions도 감소
+                totalSessions: newCurriculum.length
+            };
+        });
+    };
+
+    // 커리큘럼 날짜 재계산 헬퍼 함수
+    const recalculateCurriculumDates = (curriculum: CurriculumItem[], startDate: string | null, scheduleDays: string[]) => {
+        if (!startDate) return curriculum;
+
+        const start = new Date(startDate);
+        const dayToNum: Record<string, number> = {
+            '일': 0, '월': 1, '화': 2, '수': 3, '목': 4, '금': 5, '토': 6,
+            'SUN': 0, 'MON': 1, 'TUE': 2, 'WED': 3, 'THU': 4, 'FRI': 5, 'SAT': 6,
+        };
+        const formatDate = (d: Date) => {
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        };
+
+        const selectedDayNums = scheduleDays.length > 0
+            ? scheduleDays.map(d => dayToNum[d] ?? 0).sort((a, b) => a - b)
+            : [start.getDay()];
+        const daysPerWeek = scheduleDays.length || 1;
+
+        // 시작일 이후 첫 번째 선호 요일 찾기
+        const findFirstPreferredDay = (from: Date, preferredDays: number[]): Date => {
+            const result = new Date(from);
+            const currentDay = result.getDay();
+            let minDays = 7;
+            for (const dayNum of preferredDays) {
+                let daysUntil = dayNum - currentDay;
+                if (daysUntil < 0) daysUntil += 7;
+                if (daysUntil < minDays) minDays = daysUntil;
+            }
+            result.setDate(result.getDate() + minDays);
+            return result;
+        };
+
+        const firstSessionDate = findFirstPreferredDay(start, selectedDayNums);
+        const firstDayNum = firstSessionDate.getDay();
+
+        // 첫 세션 요일 기준으로 재정렬 (첫 세션 요일이 먼저 오도록)
+        const orderedDayNums = [
+            ...selectedDayNums.filter(d => d >= firstDayNum),
+            ...selectedDayNums.filter(d => d < firstDayNum)
+        ];
+
+        return curriculum.map((item, index) => {
+            const sessionDate = new Date(firstSessionDate);
+
+            if (daysPerWeek === 1 || selectedDayNums.length === 0) {
+                sessionDate.setDate(sessionDate.getDate() + index * 7);
+            } else {
+                const weekIndex = Math.floor(index / daysPerWeek);
+                const dayIndex = index % daysPerWeek;
+                const targetDayNum = orderedDayNums[dayIndex];
+                let daysFromFirst = targetDayNum - firstDayNum;
+                if (daysFromFirst < 0) daysFromFirst += 7;
+                sessionDate.setDate(firstSessionDate.getDate() + weekIndex * 7 + daysFromFirst);
+            }
+
+            return {
+                ...item,
+                session: index + 1,
+                date: formatDate(sessionDate)
+            };
+        });
+    };
+
+    // 회차 위치 변경 (위로/아래로 이동) - 날짜도 재계산
+    const moveSession = (index: number, direction: 'up' | 'down') => {
+        setFormData(prev => {
+            const newCurriculum = [...prev.curriculum];
+            const targetIndex = direction === 'up' ? index - 1 : index + 1;
+
+            // 범위 체크
+            if (targetIndex < 0 || targetIndex >= newCurriculum.length) return prev;
+
+            // 내용만 교환 (날짜는 위치에 따라 재계산)
+            const tempDescription = newCurriculum[index].description;
+            const tempType = newCurriculum[index].type;
+            newCurriculum[index].description = newCurriculum[targetIndex].description;
+            newCurriculum[index].type = newCurriculum[targetIndex].type;
+            newCurriculum[targetIndex].description = tempDescription;
+            newCurriculum[targetIndex].type = tempType;
+
+            // 날짜 재계산
+            const reorderedCurriculum = recalculateCurriculumDates(newCurriculum, prev.startDate, prev.scheduleDays);
+
+            // 마지막 세션 날짜 기준으로 종료일 확인
+            let newEndDate = prev.endDate;
+            const lastSession = reorderedCurriculum[reorderedCurriculum.length - 1];
+            if (lastSession?.date && prev.endDate) {
+                const lastDate = new Date(lastSession.date);
+                const currentEndDate = new Date(prev.endDate);
+                if (lastDate > currentEndDate) {
+                    const formatDate = (d: Date) =>
+                        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                    newEndDate = formatDate(lastDate);
+                }
+            }
+
+            return { ...prev, curriculum: reorderedCurriculum, endDate: newEndDate };
+        });
+    };
+
+    // 드래그앤드롭 상태
+    const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+
+    // 드래그앤드롭 핸들러
+    const handleDragStart = (index: number) => {
+        setDraggedIndex(index);
+    };
+
+    const handleDragOver = (e: React.DragEvent, index: number) => {
+        e.preventDefault();
+    };
+
+    const handleDrop = (targetIndex: number) => {
+        if (draggedIndex === null || draggedIndex === targetIndex) {
+            setDraggedIndex(null);
+            return;
+        }
+
+        setFormData(prev => {
+            const newCurriculum = [...prev.curriculum];
+            // 드래그된 항목의 내용 저장
+            const draggedItem = { ...newCurriculum[draggedIndex] };
+
+            // 항목 이동
+            newCurriculum.splice(draggedIndex, 1);
+            newCurriculum.splice(targetIndex, 0, draggedItem);
+
+            // 날짜 재계산 (session 번호도 재정렬됨)
+            const reorderedCurriculum = recalculateCurriculumDates(newCurriculum, prev.startDate, prev.scheduleDays);
+
+            // 마지막 세션 날짜 기준으로 종료일 확인
+            let newEndDate = prev.endDate;
+            const lastSession = reorderedCurriculum[reorderedCurriculum.length - 1];
+            if (lastSession?.date && prev.endDate) {
+                const lastDate = new Date(lastSession.date);
+                const currentEndDate = new Date(prev.endDate);
+                if (lastDate > currentEndDate) {
+                    const formatDate = (d: Date) =>
+                        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                    newEndDate = formatDate(lastDate);
+                }
+            }
+
+            return { ...prev, curriculum: reorderedCurriculum, endDate: newEndDate };
+        });
+
+        setDraggedIndex(null);
+    };
+
+    const handleDragEnd = () => {
+        setDraggedIndex(null);
     };
 
     // AI 스터디 계획 생성
@@ -575,12 +1187,16 @@ const StudyCreatePage: React.FC = () => {
             studyEndDate.setDate(studyEndDate.getDate() + (preferredDurationWeeks - 1) * 7);
             const studyEnd = formatDate(studyEndDate);
 
-            // 시간대 → 시간 변환
+            // 시간대 → 시간 변환 (각 시간대의 중간값 사용)
+            // morning: 07:00-12:00 → 10:00 (중간)
+            // afternoon: 12:00-18:00 → 15:00 (중간)
+            // evening: 18:00-22:00 → 20:00 (중간)
+            // night: 22:00-02:00 → 23:00
             const timeSlotToTime: Record<string, string> = {
                 morning: '10:00',
-                afternoon: '14:00',
-                evening: '19:00',
-                night: '22:00',
+                afternoon: '15:00',
+                evening: '20:00',
+                night: '23:00',
             };
             const scheduleTime = preferredTimeSlot ? timeSlotToTime[preferredTimeSlot] : '19:00';
 
@@ -639,7 +1255,10 @@ const StudyCreatePage: React.FC = () => {
                     if (availableDays.length > 0) {
                         updated.scheduleDays = availableDays;
                     }
-                    updated.scheduleTime = scheduleTime;
+                    // 사용자가 직접 시간을 변경했으면 유지, 기본값(19:00)이면 AI 설정 적용
+                    if (prev.scheduleTime === '19:00') {
+                        updated.scheduleTime = scheduleTime;
+                    }
 
                     // 난이도 매핑
                     if (['BEGINNER', 'INTERMEDIATE', 'ADVANCED'].includes(result.difficulty)) {
@@ -1022,7 +1641,8 @@ const StudyCreatePage: React.FC = () => {
                             createdStudy.id,
                             validCurriculum,
                             formData.startDate,
-                            formData.meetingType
+                            formData.meetingType,
+                            formData.scheduleTime  // 선호 시간 전달
                         );
                     }
                 }
@@ -1419,9 +2039,9 @@ const StudyCreatePage: React.FC = () => {
                                                     +
                                                 </button>
                                             </div>
-                                            {formData.curriculum.length > 1 && (
+                                            {formData.curriculum.length > 0 && (
                                                 <p className="text-xs text-gray-500 mt-1">
-                                                    이미 {formData.curriculum.length}회차까지 커리큘럼이 등록되어 최소 {formData.curriculum.length}회입니다.
+                                                    현재 {formData.curriculum.length}회차 커리큘럼이 등록되어 있습니다.
                                                 </p>
                                             )}
                                         </div>
@@ -1628,31 +2248,31 @@ const StudyCreatePage: React.FC = () => {
                                 </div>
                             </div>
 
+                            {/* 스터디 기간 카드 - 항상 표시 */}
+                            <div className={styles.card}>
+                                <div className={styles.section}>
+                                    <h2 className={styles.sectionTitle}>
+                                        <Calendar size={20} className={styles.sectionIcon} />
+                                        스터디 기간
+                                    </h2>
+                                    <p className="text-sm text-gray-500 mt-1">
+                                        스터디 시작일과 종료일을 선택해주세요. 날짜를 두 번 클릭하여 범위를 지정합니다.
+                                    </p>
+
+                                    <div className="mt-4">
+                                        <DateRangePicker
+                                            startDate={formData.startDate}
+                                            endDate={formData.endDate}
+                                            minDate={formData.recruitEndDate}
+                                            onRangeChange={handleDateRangeChange}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
                             {/* 커리큘럼 등록 선택 시에만 표시 */}
                             {formData.hasCurriculum && (
                                 <>
-                                    {/* 스터디 기간 카드 */}
-                                    <div className={styles.card}>
-                                        <div className={styles.section}>
-                                            <h2 className={styles.sectionTitle}>
-                                                <Calendar size={20} className={styles.sectionIcon} />
-                                                스터디 기간
-                                            </h2>
-                                            <p className="text-sm text-gray-500 mt-1">
-                                                스터디 시작일과 종료일을 선택해주세요. 날짜를 두 번 클릭하여 범위를 지정합니다.
-                                            </p>
-
-                                            <div className="mt-4">
-                                                <DateRangePicker
-                                                    startDate={formData.startDate}
-                                                    endDate={formData.endDate}
-                                                    minDate={formData.recruitEndDate}
-                                                    onRangeChange={handleDateRangeChange}
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-
                                     {/* 커리큘럼 카드 */}
                                     <div className={styles.card}>
                                         <div className={styles.section}>
@@ -1663,13 +2283,37 @@ const StudyCreatePage: React.FC = () => {
                                             <p className="text-sm text-gray-500 mt-1">
                                                 회차별 학습 목표를 설정하면 참여자들이 스터디 방향을 파악하는 데 도움이 됩니다.
                                                 <span className="text-primary font-medium ml-1">
-                                                    (총 {formData.totalSessions}회차 중 {formData.curriculum.length}회차 등록됨)
+                                                    ({formData.curriculum.filter(c => c.date || c.description?.trim()).length}회차 작성됨 / 총 {formData.curriculum.length}회차)
                                                 </span>
+                                            </p>
+
+                                            <p className="text-xs text-gray-400 mt-2">
+                                                💡 왼쪽 ⋮⋮ 아이콘을 드래그하여 회차 순서를 변경할 수 있습니다. 순서 변경 시 날짜가 자동으로 재배치됩니다.
                                             </p>
 
                                             <div className="space-y-3 mt-4">
                                                 {formData.curriculum.map((item, index) => (
-                                                    <div key={index} className={styles.curriculumItem}>
+                                                    <div
+                                                        key={index}
+                                                        className={cn(
+                                                            styles.curriculumItem,
+                                                            "cursor-grab active:cursor-grabbing",
+                                                            draggedIndex === index && "opacity-50 border-primary border-2",
+                                                            draggedIndex !== null && draggedIndex !== index && "border-dashed"
+                                                        )}
+                                                        draggable
+                                                        onDragStart={() => handleDragStart(index)}
+                                                        onDragOver={(e) => handleDragOver(e, index)}
+                                                        onDrop={() => handleDrop(index)}
+                                                        onDragEnd={handleDragEnd}
+                                                    >
+                                                        {/* 드래그 핸들 */}
+                                                        <div
+                                                            className="shrink-0 flex items-center justify-center w-8 h-11 text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing"
+                                                            title="드래그하여 순서 변경"
+                                                        >
+                                                            <GripVertical size={20} />
+                                                        </div>
                                                         <div className={styles.curriculumBadge}>
                                                             {item.session}회차
                                                         </div>
@@ -1705,15 +2349,13 @@ const StudyCreatePage: React.FC = () => {
                                                                 />
                                                             </div>
                                                         )}
-                                                        {formData.curriculum.length > 1 && (
-                                                            <button
-                                                                type="button"
-                                                                className={styles.deleteBtn}
-                                                                onClick={() => removeSession(index)}
-                                                            >
-                                                                <Trash2 size={18} />
-                                                            </button>
-                                                        )}
+                                                        <button
+                                                            type="button"
+                                                            className={styles.deleteBtn}
+                                                            onClick={() => removeSession(index)}
+                                                        >
+                                                            <Trash2 size={18} />
+                                                        </button>
                                                     </div>
                                                 ))}
 
@@ -1724,12 +2366,8 @@ const StudyCreatePage: React.FC = () => {
                                                     fullWidth
                                                     leftIcon={<Plus size={18} />}
                                                     className="border-dashed mt-2"
-                                                    disabled={formData.curriculum.length >= formData.totalSessions}
                                                 >
-                                                    {formData.curriculum.length >= formData.totalSessions
-                                                        ? `모든 회차 등록 완료 (${formData.curriculum.length}/${formData.totalSessions}회차)`
-                                                        : `회차 추가하기 (${formData.curriculum.length}/${formData.totalSessions}회차)`
-                                                    }
+                                                    {formData.curriculum.length + 1}회차 추가하기
                                                 </Button>
                                             </div>
                                         </div>
@@ -1792,9 +2430,9 @@ const StudyCreatePage: React.FC = () => {
                                             </div>
                                             <div className="grid grid-cols-3 gap-2">
                                                 {[
-                                                    { key: 'STRICT', label: '엄격', desc: '1회 결석 시 강퇴', activeClass: 'border-red-600 bg-red-100 text-red-800' },
+                                                    { key: 'STRICT', label: '엄격', desc: '1회 결석 시 강퇴', activeClass: 'border-red-300 bg-red-50 text-red-600' },
                                                     { key: 'NORMAL', label: '보통', desc: '경고 후 조치', activeClass: 'border-red-300 bg-red-50 text-red-600' },
-                                                    { key: 'NONE', label: '없음', desc: '자율 참여', activeClass: 'border-gray-300 bg-gray-50 text-gray-500' }
+                                                    { key: 'NONE', label: '없음', desc: '자율 참여', activeClass: 'border-red-300 bg-red-50 text-red-600' }
                                                 ].map(({ key, label, desc, activeClass }) => (
                                                     <button
                                                         key={key}

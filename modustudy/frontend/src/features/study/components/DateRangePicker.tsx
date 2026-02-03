@@ -184,12 +184,15 @@ export const DateRangePicker = ({ startDate, endDate, minDate, onRangeChange }: 
                             className={cn(
                                 "relative h-9 text-sm font-medium transition-all",
                                 isDisabled && "text-gray-200 cursor-not-allowed",
-                                !isDisabled && !isCurrentMonth && "text-gray-300",
+                                // 기본 텍스트 색상 (범위 밖)
+                                !isDisabled && !isCurrentMonth && !inRange && "text-gray-300",
                                 !isDisabled && isCurrentMonth && !inRange && "text-gray-700 hover:bg-gray-100 rounded-lg",
                                 !isDisabled && isCurrentMonth && dayOfWeek === 0 && !inRange && "text-red-400",
                                 !isDisabled && isCurrentMonth && dayOfWeek === 6 && !inRange && "text-blue-400",
-                                // 범위 중간 날짜들 - 연한 배경색 (primary-100 사용)
-                                !isDisabled && isCurrentMonth && isMiddleRange && "bg-primary-100 text-primary",
+                                // 범위 중간 날짜들 - 연한 배경색 (현재 달/다른 달 모두 적용)
+                                !isDisabled && isMiddleRange && "bg-primary-100",
+                                !isDisabled && isMiddleRange && isCurrentMonth && "text-primary",
+                                !isDisabled && isMiddleRange && !isCurrentMonth && "text-primary/60",
                                 // 시작일/종료일 - 진한 배경색
                                 !isDisabled && isStartDate && "bg-primary text-white font-bold rounded-l-lg",
                                 !isDisabled && isEndDate && "bg-primary text-white font-bold rounded-r-lg",

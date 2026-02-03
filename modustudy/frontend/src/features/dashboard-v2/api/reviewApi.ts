@@ -1,7 +1,7 @@
 import api from '@/api/axios';
 
 export interface OptionItem {
-    optionId: number;
+    id: string;
     text: string;
 }
 
@@ -59,6 +59,8 @@ export interface ReviewSubmitRequest {
 
 export interface ReviewSubmitResponse {
     reviewItemId: number;
+    isCorrect: boolean;
+    correctAnswer: string;
     state: number;
     stability: number;
     difficulty: number;
