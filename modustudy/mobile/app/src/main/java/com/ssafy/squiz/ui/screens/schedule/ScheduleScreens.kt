@@ -209,18 +209,39 @@ fun ScheduleCalendarScreen(
                     val startOffset = firstDayOfMonth.dayOfWeek.value % 7
                     val daysInMonth = firstDayOfMonth.lengthOfMonth()
 
+                    // 선택된 날짜의 일정 목록
+                    var selectedDaySchedules by remember { mutableStateOf<List<ScheduleDTO>>(emptyList()) }
+                    var selectedDay by remember { mutableStateOf<Int?>(null) }
+
                     LazyVerticalGrid(columns = GridCells.Fixed(7), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         // 빈 칸
                         items(startOffset) { Box(modifier = Modifier.aspectRatio(1f)) }
                         // 날짜
                         items(daysInMonth) { index ->
                             val day = index + 1
-                            val hasSchedule = scheduledDays.contains(day)
-                            val daySchedule = schedules.find { it.date.endsWith("-${day.toString().padStart(2, '0')}") || it.date.endsWith("-$day") }
+                            // LocalDate 객체로 비교 (문자열 비교 대신)
+                            val targetDate = java.time.LocalDate.of(currentYear, currentMonth, day)
+                            val dayScheduleList = schedules.filter { schedule ->
+                                try {
+                                    val scheduleDate = java.time.LocalDate.parse(schedule.date.take(10)) // "YYYY-MM-DD" 부분만 파싱
+                                    scheduleDate == targetDate
+                                } catch (e: Exception) {
+                                    // 파싱 실패 시 문자열 비교 시도
+                                    schedule.date.startsWith(targetDate.toString())
+                                }
+                            }
+                            val hasSchedule = dayScheduleList.isNotEmpty()
 
                             Box(modifier = Modifier.aspectRatio(1f).clip(RoundedCornerShape(8.dp)).background(if (hasSchedule) Primary.copy(alpha = 0.15f) else Color.Transparent).clickable {
-                                if (hasSchedule && daySchedule != null) {
-                                    onSessionClick(daySchedule.studyId, daySchedule.sessionId)
+                                if (dayScheduleList.isNotEmpty()) {
+                                    if (dayScheduleList.size == 1) {
+                                        // 일정이 1개면 바로 이동
+                                        onSessionClick(dayScheduleList.first().studyId, dayScheduleList.first().sessionId)
+                                    } else {
+                                        // 일정이 여러개면 선택 목록 표시
+                                        selectedDay = day
+                                        selectedDaySchedules = dayScheduleList
+                                    }
                                 }
                             }, contentAlignment = Alignment.Center) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -228,6 +249,57 @@ fun ScheduleCalendarScreen(
                                     if (hasSchedule) {
                                         Box(modifier = Modifier.size(4.dp).background(Primary, CircleShape))
                                     }
+                                }
+                            }
+                        }
+                    }
+
+                    // 선택된 날짜의 일정 목록 표시
+                    if (selectedDaySchedules.isNotEmpty() && selectedDay != null) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            "${currentMonth}월 ${selectedDay}일 일정",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        selectedDaySchedules.forEach { schedule ->
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp)
+                                    .clickable { onSessionClick(schedule.studyId, schedule.sessionId) },
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .background(Primary, CircleShape)
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            schedule.studyName,
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                        Text(
+                                            "${schedule.startTime} - ${schedule.endTime}",
+                                            fontSize = 12.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    Icon(
+                                        Icons.Default.ChevronRight,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                 }
                             }
                         }
