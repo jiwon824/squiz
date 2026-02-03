@@ -4,6 +4,7 @@ import { Brain, ChevronLeft, ChevronRight, Clock, CheckCircle2, Circle, Play, Lo
 import { cn } from '@/shared/utils/cn';
 import {
     QuizSingleChoice,
+    QuizMultipleChoice,
     QuizShortAnswer,
     QuizProgress,
     QuizQuestion,
@@ -16,29 +17,49 @@ import { useTimer } from '@/features/quiz/hooks/useTimer';
 // 퀴즈 문제 변환 로직 (ReviewItemDto -> QuizQuestion)
 const transformToQuizQuestion = (item: ReviewItemDto): QuizQuestion => {
     const q = item.question;
-    const isMultiple = q.questionType === 'MULTIPLE_CHOICE' || q.questionType === 'MULTIPLE_CHOICE_MULTIPLE';
+    const isMultiple = q.questionType === 'MULTIPLE_CHOICE';
+    const isMultipleAnswer = q.questionType === 'MULTIPLE_CHOICE_MULTIPLE';
 
-    // options 파싱
+    // options 파싱: [{ id: "A", text: "..." }, { id: "B", text: "..." }, ...]
     let options: string[] = [];
     if (q.options) {
         options = q.options.map(o => o.text);
     }
 
-    // 정답 처리
-    let correctAnswer: number | string = q.correctAnswer;
-    if (isMultiple) {
-        // 객관식 정답이 인덱스(문자열)로 오는 경우 숫자로 변환
-        const parsed = parseInt(q.correctAnswer, 10);
-        if (!isNaN(parsed)) {
-            correctAnswer = parsed;
+    // 정답 처리: correctAnswer는 옵션 ID 형태 (예: "A", "B" 또는 "A,B")
+    let correctAnswer: number | number[] | string = q.correctAnswer;
+
+    if (isMultiple && q.options) {
+        // 단일 정답: 옵션 ID를 인덱스로 변환 (예: "A" -> 0, "B" -> 1)
+        const index = q.options.findIndex(o => o.id === q.correctAnswer);
+        if (index !== -1) {
+            correctAnswer = index;
+        } else {
+            // 숫자 형태인 경우도 처리 (fallback)
+            const parsed = parseInt(q.correctAnswer, 10);
+            if (!isNaN(parsed)) correctAnswer = parsed;
+        }
+    } else if (isMultipleAnswer && q.options) {
+        // 복수 정답: "A,B" -> [0, 1] (옵션 ID를 인덱스로 변환)
+        const correctIds = q.correctAnswer.split(',').map(s => s.trim());
+        const indexes = correctIds
+            .map(id => q.options.findIndex(o => o.id === id))
+            .filter(idx => idx !== -1);
+
+        if (indexes.length > 0) {
+            correctAnswer = indexes;
+        } else {
+            // 숫자 형태인 경우도 처리 (fallback)
+            const parts = q.correctAnswer.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
+            correctAnswer = parts;
         }
     }
 
     return {
         id: item.reviewItemId, // 위젯 내부에서는 reviewItemId를 id로 사용
-        type: isMultiple ? 'multiple' : 'short',
+        type: 'multiple',
         question: q.questionText,
-        options: isMultiple ? options : undefined,
+        options: (isMultiple || isMultipleAnswer) ? options : undefined,
         correctAnswer,
         explanation: q.explanation || '',
         difficulty: item.difficulty < 3 ? 'easy' : item.difficulty < 7 ? 'medium' : 'hard',
@@ -53,6 +74,7 @@ export const MyQuizWidget: React.FC = () => {
     const [selectedReviewItem, setSelectedReviewItem] = useState<ReviewItemDto | null>(null);
     const [currentIndex, setCurrentIndex] = useState(0); // 단일 문제 풀이이므로 0 고정일 수 있음
     const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+    const [selectedAnswers, setSelectedAnswers] = useState<number[]>([]);
     const [shortAnswer, setShortAnswer] = useState('');
     const [showResult, setShowResult] = useState(false);
     const [score, setScore] = useState({ correct: 0, total: 0 });
@@ -85,6 +107,7 @@ export const MyQuizWidget: React.FC = () => {
         setViewMode('quiz');
         setCurrentIndex(0);
         setSelectedAnswer(null);
+        setSelectedAnswers([]);
         setShortAnswer('');
         setShowResult(false);
         // Note: score for this session? Maybe just track current item correctness locally
@@ -123,10 +146,8 @@ export const MyQuizWidget: React.FC = () => {
                 responseTimeMs
             });
 
-            // 결과 표시
-            const isCorrect = currentQuiz.type === 'multiple'
-                ? String(selectedAnswer) === String(currentQuiz.correctAnswer)
-                : shortAnswer.trim().toLowerCase() === String(currentQuiz.correctAnswer).trim().toLowerCase();
+            // 백엔드 채점 결과 사용 (프론트엔드에서는 채점하지 않음)
+            const isCorrect = result.isCorrect;
 
             setScore((prev) => ({
                 correct: prev.correct + (isCorrect ? 1 : 0),
@@ -146,9 +167,34 @@ export const MyQuizWidget: React.FC = () => {
         }
     };
 
+    // 복수 선택 토글
+    const handleToggleAnswer = (index: number) => {
+        setSelectedAnswers(prev =>
+            prev.includes(index)
+                ? prev.filter(i => i !== index)
+                : [...prev, index].sort((a, b) => a - b)
+        );
+    };
+
     const handleSubmitMultiple = () => {
-        if (selectedAnswer === null) return;
-        handleSubmission(String(selectedAnswer));
+        if (!selectedReviewItem) return;
+
+        const isSingle = selectedReviewItem.question.questionType === 'MULTIPLE_CHOICE';
+        const hasAnswer = isSingle ? selectedAnswer !== null : selectedAnswers.length > 0;
+
+        if (!hasAnswer) return;
+
+        // 정답 문자열 생성 (Index -> Option ID 변환)
+        const getOptionId = (idx: number) => {
+            const option = selectedReviewItem.question.options[idx];
+            return option?.id || String.fromCharCode(65 + idx);
+        };
+
+        const answerString = isSingle
+            ? getOptionId(selectedAnswer as number)
+            : selectedAnswers.sort((a, b) => a - b).map(getOptionId).join(',');
+
+        handleSubmission(answerString);
     };
 
     const handleSubmitShort = () => {
@@ -202,7 +248,7 @@ export const MyQuizWidget: React.FC = () => {
                                 onSelect={handleSelectReviewItem}
                             />
                         </motion.div>
-                    ) : currentQuiz ? (
+                    ) : currentQuiz && selectedReviewItem ? (
                         <motion.div
                             key="quiz"
                             initial={{ opacity: 0, x: 20 }}
@@ -211,16 +257,27 @@ export const MyQuizWidget: React.FC = () => {
                             transition={{ duration: 0.3 }}
                         >
                             {/* 문제 풀이 화면 */}
-                            {currentQuiz.type === 'multiple' ? (
+                            {selectedReviewItem.question.questionType === 'MULTIPLE_CHOICE' ? (
                                 <QuizSingleChoice
                                     quiz={currentQuiz}
-                                    questionNumber={1} // 단건 진행이므로 1
+                                    questionNumber={1}
                                     selectedAnswer={selectedAnswer}
                                     showResult={showResult}
                                     onSelectAnswer={setSelectedAnswer}
                                     onSubmit={handleSubmitMultiple}
-                                    onNext={handleBackToList} // 결과 확인 후 다음(목록으로)
-                                    isLastQuestion={true} // 항상 마지막 문제 처리(단건)
+                                    onNext={handleBackToList}
+                                    isLastQuestion={true}
+                                />
+                            ) : selectedReviewItem.question.questionType === 'MULTIPLE_CHOICE_MULTIPLE' ? (
+                                <QuizMultipleChoice
+                                    quiz={currentQuiz}
+                                    questionNumber={1}
+                                    selectedAnswers={selectedAnswers}
+                                    showResult={showResult}
+                                    onToggleAnswer={handleToggleAnswer}
+                                    onSubmit={handleSubmitMultiple}
+                                    onNext={handleBackToList}
+                                    isLastQuestion={true}
                                 />
                             ) : (
                                 <QuizShortAnswer

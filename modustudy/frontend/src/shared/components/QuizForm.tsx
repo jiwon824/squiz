@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Check, X, ChevronRight, CheckSquare, Square } from 'lucide-react';
+import { Check, X, ChevronRight, CheckSquare, Square, Circle, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 
 // 퀴즈 타입 정의
@@ -94,7 +94,7 @@ export const QuizSingleChoice: React.FC<QuizSingleChoiceProps> = ({
                         onClick={() => !showResult && onSelectAnswer(index)}
                         disabled={showResult}
                         className={cn(
-                            'w-full p-4 text-left rounded-xl transition-all border-2',
+                            'w-full p-4 text-left rounded-xl transition-all border-2 group',
                             'hover:shadow-md',
                             !showResult && selectedAnswer === index && 'border-primary bg-primary/5',
                             !showResult && selectedAnswer !== index && 'border-gray-200 hover:border-gray-300',
@@ -110,7 +110,22 @@ export const QuizSingleChoice: React.FC<QuizSingleChoiceProps> = ({
                         )}
                     >
                         <div className="flex items-center justify-between">
-                            <span className="text-text-primary">{option}</span>
+                            <div className="flex items-center gap-3">
+                                {/* Radio Icon */}
+                                <div className={cn(
+                                    "transition-colors",
+                                    !showResult && selectedAnswer === index ? "text-primary" : "text-gray-400",
+                                    showResult && index === correctAnswerIndex ? "text-accent" : "",
+                                    showResult && selectedAnswer === index && index !== correctAnswerIndex ? "text-error" : ""
+                                )}>
+                                    {selectedAnswer === index || (showResult && index === correctAnswerIndex) ? (
+                                        <CheckCircle2 size={20} />
+                                    ) : (
+                                        <Circle size={20} />
+                                    )}
+                                </div>
+                                <span className="text-text-primary">{option}</span>
+                            </div>
                             {showResult && index === correctAnswerIndex && (
                                 <Check className="text-accent" size={20} />
                             )}
