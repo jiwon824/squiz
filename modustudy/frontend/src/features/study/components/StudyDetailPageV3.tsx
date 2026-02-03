@@ -249,17 +249,13 @@ const StudyDetailPageV3: React.FC = () => {
     // studyDetail을 기존 Study 타입에 맞게 변환 (하위 호환성)
     // 날짜 기반 상태 보정 (백엔드에서 자동 업데이트 안 될 경우 대비)
     const computeStatus = (originalStatus: string, recruitStart?: string, recruitEnd?: string): string => {
+        // 시간대 문제 방지를 위해 문자열 비교 사용
         const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
         if (originalStatus === 'PENDING' && recruitStart) {
-            const startDate = new Date(recruitStart);
-            startDate.setHours(0, 0, 0, 0);
-            const endDate = recruitEnd ? new Date(recruitEnd) : null;
-            if (endDate) endDate.setHours(0, 0, 0, 0);
-
             // 모집 시작일이 오늘이거나 지났고, 종료일이 안 지났으면 → 모집중
-            if (startDate <= today && (!endDate || endDate >= today)) {
+            if (recruitStart <= todayStr && (!recruitEnd || recruitEnd >= todayStr)) {
                 return 'RECRUITING';
             }
         }
@@ -447,12 +443,13 @@ const StudyDetailPageV3: React.FC = () => {
         return sortedDays.map(d => dayMap[d] || d).join(', ');
     };
 
-    // 날짜 범위 포맷팅
+    // 날짜 범위 포맷팅 (시간대 문제 방지를 위해 문자열 직접 파싱)
     const formatDateRange = (start?: string, end?: string) => {
         if (!start && !end) return '미정';
         const formatDate = (d: string) => {
-            const date = new Date(d);
-            return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
+            // YYYY-MM-DD 형식을 직접 파싱하여 시간대 문제 방지
+            const [year, month, day] = d.split('-').map(Number);
+            return `${year}.${String(month).padStart(2, '0')}.${String(day).padStart(2, '0')}`;
         };
         if (start && end) return `${formatDate(start)} ~ ${formatDate(end)}`;
         if (start) return `${formatDate(start)} ~`;
