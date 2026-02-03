@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { fetchWeakConcepts, WeakConcept } from '../../../api/endpoints/quizCourseApi';
-import { BookOpen, AlertTriangle, AlertCircle, RefreshCw, Loader2 } from 'lucide-react';
+import { BookOpen, AlertTriangle, AlertCircle, RefreshCw } from 'lucide-react';
+import { Spinner } from '@/shared/components/Spinner';
 import { cn } from '@/shared/utils/cn';
 
 export const WeakConceptWidget: React.FC = () => {
@@ -29,7 +30,7 @@ export const WeakConceptWidget: React.FC = () => {
   if (loading) {
     return (
       <div className="bg-white rounded-2xl p-6 shadow-md border border-gray-100 h-full flex flex-col items-center justify-center">
-        <Loader2 size={24} className="text-red-400 animate-spin mb-2" />
+        <Spinner size="md" color="#f87171" className="mb-2" />
         <p className="text-xs text-gray-400">불러오는 중...</p>
       </div>
     );

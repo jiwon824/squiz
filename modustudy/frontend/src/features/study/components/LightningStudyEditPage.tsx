@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { Zap, MapPin, Users, Calendar, Loader2 } from 'lucide-react';
+import { Zap, MapPin, Users, Calendar } from 'lucide-react';
+import { Spinner } from '@/shared/components/Spinner';
 import { PageNavHeader } from '@/shared/components/layouts/PageNavHeader';
 import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { Button } from '@/shared/components/Button';
@@ -423,10 +424,7 @@ const LightningStudyEditPage: React.FC = () => {
         return (
             <UserLayoutV2>
                 <div className="flex items-center justify-center min-h-[60vh]">
-                    <div className="text-center">
-                        <Loader2 size={48} className="animate-spin text-amber-500 mx-auto mb-4" />
-                        <p className="text-gray-500">스터디 정보를 불러오는 중...</p>
-                    </div>
+                    <Spinner variant="center" size="xl" label="스터디 정보를 불러오는 중..." />
                 </div>
             </UserLayoutV2>
         );

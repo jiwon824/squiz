@@ -1,5 +1,6 @@
 import React, { Suspense, lazy, useEffect } from 'react';
-import { Box, Loader2 } from 'lucide-react';
+import { Box } from 'lucide-react';
+import { Spinner } from '@/shared/components/Spinner';
 import { Guess } from '../hooks/useCommentleGame';
 
 // lazy 로드 + preload 함수
@@ -32,7 +33,7 @@ export const Commentle3DView: React.FC<Commentle3DViewProps> = ({ guesses }) => 
                 <Suspense fallback={
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/80 backdrop-blur-sm z-10">
                         <div className="relative">
-                            <Loader2 className="w-12 h-12 text-primary animate-spin" />
+                            <Spinner size="xl" className="text-primary" />
                             <div className="absolute inset-0 blur-xl bg-primary/20 animate-pulse" />
                         </div>
                         <p className="mt-4 text-slate-400 font-bold text-sm tracking-widest uppercase">Rendering Space...</p>

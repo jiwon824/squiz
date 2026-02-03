@@ -1,5 +1,6 @@
 import React from 'react';
-import { Mail, Calendar, Edit2, Loader2 } from 'lucide-react';
+import { Mail, Calendar, Edit2 } from 'lucide-react';
+import { Spinner } from '@/shared/components/Spinner';
 import { LevelBadge } from '@/features/gamification/components';
 import { getProfileImageUrl, DEFAULT_PROFILE_IMAGE } from '@/shared/utils/profileImage';
 
@@ -41,7 +42,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
                 {isImageUploading && (
                     <div className="absolute inset-0 flex items-center justify-center">
-                        <Loader2 className="animate-spin text-white" size={32} />
+                        <Spinner size="lg" color="white" />
                     </div>
                 )}
 

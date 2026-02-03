@@ -12,10 +12,10 @@ import {
     Tag,
     Clock,
     BarChart3,
-    FileText,
-    Loader2
+    FileText
 } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
+import { Spinner } from '@/shared/components/Spinner';
 import { PageNavHeader } from '@/shared/components/layouts';
 import '../styles/DashboardV2.css';
 import { studyApi } from '@/api/endpoints/studyApi';
@@ -168,10 +168,7 @@ export const LearningArchivePage: React.FC = () => {
         return (
             <div className="py-8">
                 <div className="max-w-[1400px] mx-auto px-8">
-                    <div className="flex items-center justify-center h-64 text-text-tertiary">
-                        <Loader2 className="animate-spin mr-2" size={24} />
-                        로딩 중...
-                    </div>
+                    <Spinner variant="center" size="lg" label="로딩 중..." />
                 </div>
             </div>
         );

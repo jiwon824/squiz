@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { MessageSquare, Send, Loader2 } from 'lucide-react';
+import { MessageSquare, Send } from 'lucide-react';
+import { Spinner } from '@/shared/components/Spinner';
 import { useDMStore } from '../store/dmStore';
 import { useAuthStore } from '@/store/authStore';
 import { BackButton } from '@/shared/components';
@@ -206,7 +207,7 @@ const DMListMini: React.FC = () => {
                 <div className="overflow-y-auto space-y-4 mb-4 max-h-[calc(100vh-250px)]" ref={messagesRef}>
                     {isLoading ? (
                         <div className="flex items-center justify-center py-8">
-                            <Loader2 size={24} className="animate-spin text-gray-400" />
+                            <Spinner size="md" color="#9ca3af" />
                         </div>
                     ) : Array.isArray(messages) && messages.length > 0 ? (
                         messages.map(msg => {
@@ -325,7 +326,7 @@ const DMListMini: React.FC = () => {
             <div className="flex-1 overflow-y-auto">
                 {isLoadingConversations && conversations.length === 0 ? (
                     <div className="flex items-center justify-center py-8">
-                        <Loader2 size={24} className="animate-spin text-gray-400" />
+                        <Spinner size="md" color="#9ca3af" />
                     </div>
                 ) : Array.isArray(conversations) && conversations.length > 0 ? (
                     <div className="space-y-1">

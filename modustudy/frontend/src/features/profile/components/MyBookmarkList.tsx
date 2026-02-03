@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { studyApi, StudyBookmarkResponse } from '@/api/endpoints/studyApi';
 import { useUIStore } from '@/store/uiStore';
-import { Bookmark, Users, Calendar, Loader2, BookmarkX } from 'lucide-react';
+import { Bookmark, Users, Calendar, BookmarkX } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export const MyBookmarkList: React.FC = () => {
