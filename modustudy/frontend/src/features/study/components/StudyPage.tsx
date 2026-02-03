@@ -321,9 +321,9 @@ const StudyPageV2: React.FC = () => {
         }
     };
 
-    // 스터디 클릭 핸들러 (V3 페이지로 이동)
+    // 스터디 클릭 핸들러
     const handleStudyClick = (studyId: number) => {
-        navigate(`/study/v3/${studyId}`);
+        navigate(`/study/${studyId}`);
     };
 
     // 미팅 타입 빠른 필터
