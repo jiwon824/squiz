@@ -16,9 +16,7 @@ import { cn } from '@/shared/utils/cn';
 import { useDMStore } from '@/features/dm/store/dmStore';
 import { useUIStore } from '@/store/uiStore';
 import { getReviewsByLeaderId, getLeaderAverageRating, LeaderReview } from '../mockData';
-
-// 기본 프로필 이미지 경로
-const DEFAULT_PROFILE_IMAGE = '/images/default-profile.png';
+import { getProfileImageUrl } from '@/shared/utils/profileImage';
 
 // ============================================
 // 📦 시맨틱 스타일 상수 (Semantic Style Constants)
@@ -360,7 +358,7 @@ const StudyDetailPage: React.FC = () => {
                                 <div className={styles.avatarWrapper}>
                                     <div className={styles.avatar}>
                                         <img
-                                            src={study.leader.profileImage || DEFAULT_PROFILE_IMAGE}
+                                            src={getProfileImageUrl(study.leader.profileImage)}
                                             alt={study.leader.nickname}
                                             className={styles.avatarImage}
                                         />

@@ -1,10 +1,8 @@
 import { motion } from 'framer-motion';
 import { Pin, X } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
+import { getProfileImageUrl } from '@/shared/utils/profileImage';
 import type { MessageResponse } from '../types';
-
-// 기본 프로필 이미지 경로
-const DEFAULT_PROFILE_IMAGE = '/images/default-profile.png';
 
 // 사이드바 콘텐츠 타입
 export type SidebarContent = 'none' | 'members' | 'pinned';
@@ -75,7 +73,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
       onClick={() => onMemberClick?.(member)}
     >
       <div className="member-list__avatar">
-        <img src={member.profileImageUrl || DEFAULT_PROFILE_IMAGE} alt={member.nickname} />
+        <img src={getProfileImageUrl(member.profileImageUrl)} alt={member.nickname} />
         <div
           className={cn(
             'member-list__status',
@@ -151,7 +149,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
             >
               <div className="pinned-sidebar__item-header">
                 <img
-                  src={message.author.profileImageUrl || DEFAULT_PROFILE_IMAGE}
+                  src={getProfileImageUrl(message.author.profileImageUrl)}
                   alt={message.author.nickname}
                   className="pinned-sidebar__item-avatar"
                 />

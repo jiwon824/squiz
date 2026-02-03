@@ -118,7 +118,7 @@ public class ApplicationService {
         // 9. DTO 변환 및 추가 정보 설정
         ApplicationResponse response = ApplicationResponse.from(saved);
         response.setStudyName(study.getName());
-        response.setUserInfo(user.getName(), user.getNickname(), user.getEmail());
+        response.setUserInfo(user.getName(), user.getNickname(), user.getEmail(), user.getProfileImage());
 
         return response;
     }
@@ -155,7 +155,7 @@ public class ApplicationService {
 
             // 신청자 정보 설정
             userRepository.findById(app.getUserId()).ifPresent(user ->
-                    response.setUserInfo(user.getName(), user.getNickname(), user.getEmail())
+                    response.setUserInfo(user.getName(), user.getNickname(), user.getEmail(), user.getProfileImage())
             );
 
             return response;
@@ -186,7 +186,7 @@ public class ApplicationService {
         // 3. DTO 변환 및 추가 정보 설정
         return applications.map(app -> {
             ApplicationResponse response =  ApplicationResponse.from(app);
-            response.setUserInfo(user.getName(), user.getNickname(), user.getEmail());
+            response.setUserInfo(user.getName(), user.getNickname(), user.getEmail(), user.getProfileImage());
 
             // 스터디 정보 설정
             studyRepository.findById(app.getStudyId()).ifPresent(study ->
@@ -217,7 +217,7 @@ public class ApplicationService {
         );
 
         userRepository.findById(application.getUserId()).ifPresent(user ->
-                response.setUserInfo(user.getName(), user.getNickname(), user.getEmail())
+                response.setUserInfo(user.getName(), user.getNickname(), user.getEmail(), user.getProfileImage())
         );
 
         log.info("신청 상세 조회 완료 - applicationId: {}", applicationId);
@@ -312,7 +312,7 @@ public class ApplicationService {
         response.setStudyName(study.getName());
 
         userRepository.findById(application.getUserId()).ifPresent(user ->
-                response.setUserInfo(user.getName(), user.getNickname(), user.getEmail())
+                response.setUserInfo(user.getName(), user.getNickname(), user.getEmail(), user.getProfileImage())
         );
 
         return response;
@@ -364,7 +364,7 @@ public class ApplicationService {
         response.setStudyName(study.getName());
 
         userRepository.findById(application.getUserId()).ifPresent(user ->
-                response.setUserInfo(user.getName(), user.getNickname(), user.getEmail())
+                response.setUserInfo(user.getName(), user.getNickname(), user.getEmail(), user.getProfileImage())
         );
 
         return response;
