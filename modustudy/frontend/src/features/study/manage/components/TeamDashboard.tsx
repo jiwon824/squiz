@@ -11,6 +11,7 @@ import { useUIStore } from '@/store/uiStore';
 interface TeamDashboardProps {
     study: Study;
     onStudyUpdate?: () => void;
+    onTabChange?: (tab: string) => void; // 탭 변경 핸들러
 }
 
 interface DashboardStats {
@@ -24,7 +25,24 @@ interface DashboardStats {
     studyDays: number;
 }
 
-const TeamDashboard: React.FC<TeamDashboardProps> = ({ study, onStudyUpdate }) => {
+// 세션 데이터 타입
+interface SessionData {
+    id: number;
+    title?: string;
+    description?: string;
+    scheduledAt?: string;
+    sessionNumber?: number;
+    status?: string;
+}
+
+// 출석률 Top3 멤버 타입
+interface AttendanceTopMember {
+    name: string;
+    rate: number;
+    rank: number;
+}
+
+const TeamDashboard: React.FC<TeamDashboardProps> = ({ study, onStudyUpdate, onTabChange }) => {
     const { showToast } = useUIStore();
     const [stats, setStats] = useState<DashboardStats>({
         totalMembers: 0,
@@ -38,6 +56,10 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ study, onStudyUpdate }) =
     });
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState<'start' | 'extend' | null>(null);
+    // 다가오는 일정 데이터
+    const [upcomingEvents, setUpcomingEvents] = useState<SessionData[]>([]);
+    // 출석률 Top3 데이터
+    const [attendanceTop3, setAttendanceTop3] = useState<AttendanceTopMember[]>([]);
 
     useEffect(() => {
         fetchDashboardData();
@@ -46,13 +68,14 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ study, onStudyUpdate }) =
     const fetchDashboardData = async () => {
         setLoading(true);
         try {
-            // 멤버 수 조회
-            const memberCountResponse = await studyApi.getStudyMemberCount(study.id);
-            const memberCount = memberCountResponse || 0;
+            // 멤버 목록 조회 (출석률 계산용)
+            const membersResponse = await studyApi.getStudyMembers(study.id);
+            const members = membersResponse?.content || [];
+            const memberCount = members.length;
 
             // 세션 목록 조회
             const sessionsResponse = await studyApi.getStudySessions(study.id);
-            const sessions = sessionsResponse || [];
+            const sessions: SessionData[] = sessionsResponse || [];
 
             // 대기중 신청자 수
             const pendingApplicants = await studyApi.getPendingApplicationCount(study.id);
@@ -60,22 +83,94 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ study, onStudyUpdate }) =
             // 대기중 소명 수
             const pendingExcuses = await studyApi.getPendingExcuseCount(study.id);
 
-            // 스터디 진행일 계산
+            // 스터디 진행일 계산 (시작일 이후부터, 진행중 상태일 때만)
             const startDate = new Date(study.startDate || Date.now());
             const today = new Date();
-            const studyDays = Math.max(0, Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
+            let studyDays = 0;
+            if (study.status === 'IN_PROGRESS') {
+                studyDays = Math.max(0, Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
+            }
 
-            // 예정된 세션 수 계산
-            const upcomingSessions = sessions.filter((s: any) =>
-                new Date(s.scheduledAt) > today
-            ).length;
+            // 예정된 세션 수 및 다가오는 일정 추출
+            const upcoming = sessions
+                .filter((s: SessionData) => s.scheduledAt && new Date(s.scheduledAt) > today)
+                .sort((a, b) => new Date(a.scheduledAt!).getTime() - new Date(b.scheduledAt!).getTime())
+                .slice(0, 3); // 최대 3개
+
+            setUpcomingEvents(upcoming);
+
+            // 출석률 계산 (세션별 출석 정보 조회)
+            let avgAttendance = 0;
+            const memberAttendanceMap: Record<number, { attended: number; total: number; name: string }> = {};
+
+            // 멤버별 출석 데이터 초기화
+            members.forEach((member: any) => {
+                memberAttendanceMap[member.userId] = {
+                    attended: 0,
+                    total: 0,
+                    name: member.userNickname || member.userName || '알 수 없음',
+                };
+            });
+
+            // 완료된 세션들의 출석 정보 조회
+            const completedSessions = sessions.filter(
+                (s: SessionData) => s.status === 'COMPLETED' || (s.scheduledAt && new Date(s.scheduledAt) < today)
+            );
+
+            if (completedSessions.length > 0 && members.length > 0) {
+                let totalAttendance = 0;
+                let totalRecords = 0;
+
+                for (const session of completedSessions) {
+                    try {
+                        const attendanceData = await studyApi.getSessionAttendance(study.id, session.id);
+                        const attendances = attendanceData?.data || attendanceData || [];
+
+                        attendances.forEach((att: any) => {
+                            if (memberAttendanceMap[att.userId]) {
+                                memberAttendanceMap[att.userId].total += 1;
+                                if (att.status === 'PRESENT' || att.status === 'LATE') {
+                                    memberAttendanceMap[att.userId].attended += 1;
+                                    totalAttendance += 1;
+                                }
+                                totalRecords += 1;
+                            }
+                        });
+                    } catch (error) {
+                        console.warn(`세션 ${session.id} 출석 정보 조회 실패:`, error);
+                    }
+                }
+
+                // 평균 출석률 계산
+                if (totalRecords > 0) {
+                    avgAttendance = Math.round((totalAttendance / totalRecords) * 100);
+                }
+            }
+
+            // 출석률 Top 3 계산
+            const memberRates = Object.entries(memberAttendanceMap)
+                .filter(([, data]) => data.total > 0)
+                .map(([userId, data]) => ({
+                    userId: Number(userId),
+                    name: data.name,
+                    rate: Math.round((data.attended / data.total) * 100),
+                }))
+                .sort((a, b) => b.rate - a.rate)
+                .slice(0, 3)
+                .map((member, idx) => ({
+                    name: member.name,
+                    rate: member.rate,
+                    rank: idx + 1,
+                }));
+
+            setAttendanceTop3(memberRates);
 
             setStats({
                 totalMembers: memberCount,
                 maxMembers: study.maxMembers || 0,
-                avgAttendance: 85, // TODO: 실제 평균 출석률 계산
+                avgAttendance,
                 totalSessions: sessions.length,
-                upcomingSessions,
+                upcomingSessions: upcoming.length,
                 pendingApplicants,
                 pendingExcuses,
                 studyDays,
@@ -140,17 +235,25 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ study, onStudyUpdate }) =
     today.setHours(23, 59, 59, 999);  // 마감일 당일까지는 모집 중으로 취급
     const isRecruitmentEnded = recruitEndDate ? today > new Date(recruitEndDate) : false;
 
+    // 이미 시작된 스터디인지 확인 (진행중, 완료, 취소 상태)
+    const isStudyStarted = ['IN_PROGRESS', 'COMPLETED', 'CANCELLED'].includes(study.status);
+
     // 스터디 시작 가능 여부
-    // 1. RECRUIT_CLOSED: 최대 인원 충족 (마감일 전이라도 시작 가능)
-    // 2. 마감일 지남 + 최소 인원 충족
-    const canStartStudy =
-        study.status === 'RECRUIT_CLOSED' ||  // 최대 인원 충족
-        (isRecruitmentEnded && hasMinimumMembers);  // 마감일 지남 + 최소 인원 충족
+    // - 이미 시작된 스터디가 아니어야 함
+    // - 1. RECRUIT_CLOSED: 최대 인원 충족 (백엔드 상태)
+    // - 2. 최대 인원 충족 (프론트에서 직접 체크)
+    // - 3. 마감일 지남 + 최소 인원 충족
+    const canStartStudy = !isStudyStarted && (
+        study.status === 'RECRUIT_CLOSED' ||
+        hasMaximumMembers ||
+        (isRecruitmentEnded && hasMinimumMembers)
+    );
 
     // 모집 연장 가능 여부
+    // - 이미 시작된 스터디가 아니어야 함
     // - 마감일 지남 + 최대 인원 미충족 + 연장 횟수 1회 미만
     const extensionCount = (study as any).extensionCount || 0;
-    const canExtendRecruitment = isRecruitmentEnded && !hasMaximumMembers && extensionCount < 1;
+    const canExtendRecruitment = !isStudyStarted && isRecruitmentEnded && !hasMaximumMembers && extensionCount < 1;
 
     // 상태 텍스트 변환 함수
     const getStatusText = (status: string): string => {
@@ -212,20 +315,51 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ study, onStudyUpdate }) =
         },
     ];
 
+    // 지원자 확인 클릭 핸들러
+    const handleApplicantsClick = () => {
+        // 스터디 관리 페이지의 지원자 관리 탭으로 이동
+        if (onTabChange) {
+            onTabChange('applicants');
+        }
+    };
+
+    // 소명 처리 클릭 핸들러
+    const handleExcusesClick = () => {
+        // 스터디 관리 페이지의 소명 관리 탭으로 이동
+        if (onTabChange) {
+            onTabChange('excuse');
+        }
+    };
+
     const alertItems = [
         {
             type: 'warning',
             icon: <AlertCircle size={16} />,
             text: `대기 중인 지원자 ${stats.pendingApplicants}명`,
             action: '확인하기',
+            onClick: handleApplicantsClick,
         },
         {
             type: 'info',
             icon: <CheckCircle2 size={16} />,
             text: `처리 대기 소명 ${stats.pendingExcuses}건`,
             action: '처리하기',
+            onClick: handleExcusesClick,
         },
     ];
+
+    // 날짜 포맷 함수
+    const formatSessionDate = (dateString?: string) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        const month = date.getMonth() + 1;
+        const day = date.getDate();
+        const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+        const dayName = dayNames[date.getDay()];
+        const hours = date.getHours().toString().padStart(2, '0');
+        const minutes = date.getMinutes().toString().padStart(2, '0');
+        return `${month}/${day} (${dayName}) ${hours}:${minutes}`;
+    };
 
     return (
         <div className="space-y-6">
@@ -309,7 +443,7 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ study, onStudyUpdate }) =
                 </h3>
                 <div className="space-y-2">
                     {alertItems.map((item, idx) => (
-                        <div 
+                        <div
                             key={idx}
                             className="flex items-center justify-between bg-surface rounded-xl px-4 py-3"
                         >
@@ -317,7 +451,10 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ study, onStudyUpdate }) =
                                 <span className={`text-${item.type}`}>{item.icon}</span>
                                 <span className="text-sm text-text-primary">{item.text}</span>
                             </div>
-                            <button className="text-xs font-medium text-primary hover:underline">
+                            <button
+                                onClick={item.onClick}
+                                className="text-xs font-medium text-primary hover:underline"
+                            >
                                 {item.action}
                             </button>
                         </div>
@@ -334,30 +471,32 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ study, onStudyUpdate }) =
                         출석률 TOP 3
                     </h3>
                     <div className="space-y-3">
-                        {[
-                            { name: '김철수', rate: 100, rank: 1 },
-                            { name: '이영희', rate: 95, rank: 2 },
-                            { name: '박민수', rate: 90, rank: 3 },
-                        ].map((member) => (
-                            <div key={member.rank} className="flex items-center gap-3">
-                                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold
-                                    ${member.rank === 1 ? 'bg-warning/20 text-warning' : 'bg-background-tertiary text-text-tertiary'}`}>
-                                    {member.rank}
-                                </span>
-                                <div className="flex-1">
-                                    <div className="flex items-center justify-between mb-1">
-                                        <span className="text-sm font-medium text-text-primary">{member.name}</span>
-                                        <span className="text-sm font-bold text-success">{member.rate}%</span>
-                                    </div>
-                                    <div className="h-1.5 bg-border-light rounded-full overflow-hidden">
-                                        <div 
-                                            className="h-full bg-success rounded-full transition-all"
-                                            style={{ width: `${member.rate}%` }}
-                                        />
+                        {attendanceTop3.length > 0 ? (
+                            attendanceTop3.map((member) => (
+                                <div key={member.rank} className="flex items-center gap-3">
+                                    <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold
+                                        ${member.rank === 1 ? 'bg-warning/20 text-warning' : 'bg-background-tertiary text-text-tertiary'}`}>
+                                        {member.rank}
+                                    </span>
+                                    <div className="flex-1">
+                                        <div className="flex items-center justify-between mb-1">
+                                            <span className="text-sm font-medium text-text-primary">{member.name}</span>
+                                            <span className="text-sm font-bold text-success">{member.rate}%</span>
+                                        </div>
+                                        <div className="h-1.5 bg-border-light rounded-full overflow-hidden">
+                                            <div
+                                                className="h-full bg-success rounded-full transition-all"
+                                                style={{ width: `${member.rate}%` }}
+                                            />
+                                        </div>
                                     </div>
                                 </div>
+                            ))
+                        ) : (
+                            <div className="text-sm text-text-tertiary text-center py-4">
+                                아직 출석 데이터가 없습니다
                             </div>
-                        ))}
+                        )}
                     </div>
                 </div>
 
@@ -368,24 +507,30 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ study, onStudyUpdate }) =
                         다가오는 일정
                     </h3>
                     <div className="space-y-3">
-                        {[
-                            { title: '12주차 정기 미팅', date: '1/27 (월) 20:00', type: '정기' },
-                            { title: '프로젝트 발표 준비', date: '1/30 (목) 19:00', type: '특별' },
-                        ].map((event, idx) => (
-                            <div key={idx} className="flex items-center gap-3 p-3 bg-surface rounded-xl">
-                                <div className="w-10 h-10 rounded-xl bg-info/10 flex items-center justify-center">
-                                    <Calendar size={18} className="text-info" />
+                        {upcomingEvents.length > 0 ? (
+                            upcomingEvents.map((event, idx) => (
+                                <div key={event.id || idx} className="flex items-center gap-3 p-3 bg-surface rounded-xl">
+                                    <div className="w-10 h-10 rounded-xl bg-info/10 flex items-center justify-center">
+                                        <Calendar size={18} className="text-info" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <div className="text-sm font-medium text-text-primary">
+                                            {event.title || `${event.sessionNumber || idx + 1}회차`}
+                                        </div>
+                                        <div className="text-xs text-text-tertiary">
+                                            {formatSessionDate(event.scheduledAt)}
+                                        </div>
+                                    </div>
+                                    <span className="text-xs px-2 py-1 rounded-full font-medium bg-primary/10 text-primary">
+                                        정기
+                                    </span>
                                 </div>
-                                <div className="flex-1">
-                                    <div className="text-sm font-medium text-text-primary">{event.title}</div>
-                                    <div className="text-xs text-text-tertiary">{event.date}</div>
-                                </div>
-                                <span className={`text-xs px-2 py-1 rounded-full font-medium
-                                    ${event.type === '정기' ? 'bg-primary/10 text-primary' : 'bg-secondary/10 text-secondary'}`}>
-                                    {event.type}
-                                </span>
+                            ))
+                        ) : (
+                            <div className="text-sm text-text-tertiary text-center py-4">
+                                예정된 일정이 없습니다
                             </div>
-                        ))}
+                        )}
                     </div>
                 </div>
             </div>
