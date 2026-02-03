@@ -221,6 +221,104 @@ export const CurriculumRoadmap: React.FC<CurriculumRoadmapProps> = ({
                 viewBox={`0 0 ${svgWidth} ${svgHeight}`}
                 className="mx-auto"
             >
+                {/* 배경 나무들 - 도로 양쪽에 배치 */}
+                {Array.from({ length: Math.ceil(svgHeight / 120) }).map((_, i) => (
+                    <React.Fragment key={`trees-${i}`}>
+                        {/* 왼쪽 나무들 */}
+                        <g transform={`translate(${80 + (i % 3) * 30}, ${60 + i * 120})`}>
+                            {/* 나무 그림자 */}
+                            <ellipse cx={18} cy={52} rx={12} ry={4} fill="#000" opacity={0.1} />
+                            {/* 나무 줄기 */}
+                            <rect x={14} y={30} width={8} height={22} rx={2} fill="#92400e" />
+                            {/* 나무 잎 (둥근 형태) */}
+                            <circle cx={18} cy={18} r={18} fill="#22c55e" opacity={0.7} />
+                            <circle cx={10} cy={24} r={12} fill="#16a34a" opacity={0.6} />
+                            <circle cx={26} cy={24} r={12} fill="#16a34a" opacity={0.6} />
+                        </g>
+                        <g transform={`translate(${140 + (i % 2) * 40}, ${100 + i * 120})`}>
+                            <ellipse cx={15} cy={42} rx={10} ry={3} fill="#000" opacity={0.1} />
+                            <rect x={12} y={25} width={6} height={17} rx={1} fill="#a16207" />
+                            <circle cx={15} cy={14} r={14} fill="#4ade80" opacity={0.6} />
+                            <circle cx={8} cy={18} r={9} fill="#22c55e" opacity={0.5} />
+                            <circle cx={22} cy={18} r={9} fill="#22c55e" opacity={0.5} />
+                        </g>
+
+                        {/* 오른쪽 나무들 */}
+                        <g transform={`translate(${svgWidth - 100 - (i % 3) * 30}, ${80 + i * 120})`}>
+                            <ellipse cx={18} cy={52} rx={12} ry={4} fill="#000" opacity={0.1} />
+                            <rect x={14} y={30} width={8} height={22} rx={2} fill="#92400e" />
+                            <circle cx={18} cy={18} r={18} fill="#22c55e" opacity={0.7} />
+                            <circle cx={10} cy={24} r={12} fill="#16a34a" opacity={0.6} />
+                            <circle cx={26} cy={24} r={12} fill="#16a34a" opacity={0.6} />
+                        </g>
+                        <g transform={`translate(${svgWidth - 160 - (i % 2) * 40}, ${40 + i * 120})`}>
+                            <ellipse cx={15} cy={42} rx={10} ry={3} fill="#000" opacity={0.1} />
+                            <rect x={12} y={25} width={6} height={17} rx={1} fill="#a16207" />
+                            <circle cx={15} cy={14} r={14} fill="#4ade80" opacity={0.6} />
+                            <circle cx={8} cy={18} r={9} fill="#22c55e" opacity={0.5} />
+                            <circle cx={22} cy={18} r={9} fill="#22c55e" opacity={0.5} />
+                        </g>
+                    </React.Fragment>
+                ))}
+
+                {/* 도로 중간 장식 - 커브 안쪽 빈 공간 */}
+                {Array.from({ length: totalStops }).map((_, i) => {
+                    const segmentY = 70 + i * 140;
+                    const isEvenCurve = i % 2 === 0;
+
+                    // 마지막 세션이면 커브가 없으므로 스킵
+                    if (i >= totalStops - 1) return null;
+
+                    return (
+                        <React.Fragment key={`road-middle-${i}`}>
+                            {/* 커브 안쪽 나무 */}
+                            {isEvenCurve ? (
+                                // 짝수(우측 커브) - 우측 안쪽 공간
+                                <>
+                                    <g transform={`translate(${svgWidth - 220}, ${segmentY + 70})`}>
+                                        <ellipse cx={15} cy={42} rx={10} ry={3} fill="#000" opacity={0.1} />
+                                        <rect x={12} y={25} width={6} height={17} rx={1} fill="#a16207" />
+                                        <circle cx={15} cy={14} r={14} fill="#4ade80" opacity={0.65} />
+                                        <circle cx={8} cy={18} r={9} fill="#22c55e" opacity={0.5} />
+                                        <circle cx={22} cy={18} r={9} fill="#22c55e" opacity={0.5} />
+                                    </g>
+                                    {/* 돌 */}
+                                    <g transform={`translate(${svgWidth - 250}, ${segmentY + 110})`}>
+                                        <ellipse cx={12} cy={18} rx={14} ry={6} fill="#6b7280" />
+                                        <ellipse cx={12} cy={16} rx={12} ry={5} fill="#9ca3af" />
+                                        <ellipse cx={8} cy={14} rx={4} ry={2} fill="#d1d5db" opacity={0.5} />
+                                    </g>
+                                    <g transform={`translate(${svgWidth - 195}, ${segmentY + 95})`}>
+                                        <ellipse cx={8} cy={12} rx={10} ry={4} fill="#6b7280" />
+                                        <ellipse cx={8} cy={10} rx={8} ry={3} fill="#9ca3af" />
+                                    </g>
+                                </>
+                            ) : (
+                                // 홀수(좌측 커브) - 좌측 안쪽 공간
+                                <>
+                                    <g transform={`translate(${220}, ${segmentY + 70})`}>
+                                        <ellipse cx={15} cy={42} rx={10} ry={3} fill="#000" opacity={0.1} />
+                                        <rect x={12} y={25} width={6} height={17} rx={1} fill="#a16207" />
+                                        <circle cx={15} cy={14} r={14} fill="#4ade80" opacity={0.65} />
+                                        <circle cx={8} cy={18} r={9} fill="#22c55e" opacity={0.5} />
+                                        <circle cx={22} cy={18} r={9} fill="#22c55e" opacity={0.5} />
+                                    </g>
+                                    {/* 돌 */}
+                                    <g transform={`translate(${250}, ${segmentY + 110})`}>
+                                        <ellipse cx={12} cy={18} rx={14} ry={6} fill="#6b7280" />
+                                        <ellipse cx={12} cy={16} rx={12} ry={5} fill="#9ca3af" />
+                                        <ellipse cx={8} cy={14} rx={4} ry={2} fill="#d1d5db" opacity={0.5} />
+                                    </g>
+                                    <g transform={`translate(${195}, ${segmentY + 95})`}>
+                                        <ellipse cx={8} cy={12} rx={10} ry={4} fill="#6b7280" />
+                                        <ellipse cx={8} cy={10} rx={8} ry={3} fill="#9ca3af" />
+                                    </g>
+                                </>
+                            )}
+                        </React.Fragment>
+                    );
+                })}
+
                 {/* 도로 그림자 */}
                 <path
                     d={roadPath}
@@ -279,13 +377,13 @@ export const CurriculumRoadmap: React.FC<CurriculumRoadmapProps> = ({
                             onClick={() => handleStopClick(stop)}
                             style={{ transformOrigin: `${pos.x}px ${pos.y}px` }}
                         >
-                            {/* 정류장 연결선 - 워크스페이스 색상: 완료=녹색, 진행중=노란색, 예정=파란색 */}
+                            {/* 정류장 연결선 - 완료=녹색, 진행중=파란색, 예정=회색 */}
                             <line
                                 x1={pos.x}
                                 y1={pos.y}
                                 x2={isLeftSide ? pos.x + 100 : pos.x - 100}
                                 y2={pos.y - 35}
-                                stroke={isCompleted ? '#22c55e' : isCurrent ? '#eab308' : '#3b82f6'}
+                                stroke={isCompleted ? '#22c55e' : isCurrent ? '#3b82f6' : '#9ca3af'}
                                 strokeWidth={3}
                                 strokeDasharray={isCompleted ? 'none' : '5, 5'}
                             />
@@ -295,10 +393,10 @@ export const CurriculumRoadmap: React.FC<CurriculumRoadmapProps> = ({
                                 {/* 핀 그림자 */}
                                 <ellipse cx={0} cy={22} rx={10} ry={5} fill="#000" opacity={0.2} />
 
-                                {/* 핀 본체 - 워크스페이스 색상 */}
+                                {/* 핀 본체 - 완료=녹색, 진행중=파란색, 예정=회색 */}
                                 <path
                                     d="M0,-25 C-15,-25 -18,-10 -18,0 C-18,15 0,32 0,32 C0,32 18,15 18,0 C18,-10 15,-25 0,-25"
-                                    fill={isCompleted ? '#22c55e' : isCurrent ? '#eab308' : '#3b82f6'}
+                                    fill={isCompleted ? '#22c55e' : isCurrent ? '#3b82f6' : '#9ca3af'}
                                     className="drop-shadow-lg"
                                 />
 
@@ -310,14 +408,14 @@ export const CurriculumRoadmap: React.FC<CurriculumRoadmapProps> = ({
                                     fill="white"
                                 />
 
-                                {/* 회차 번호 - 워크스페이스 색상 */}
+                                {/* 회차 번호 - 완료=녹색, 진행중=파란색, 예정=회색 */}
                                 <text
                                     x={0}
                                     y={-2}
                                     textAnchor="middle"
                                     fontSize={13}
                                     fontWeight="bold"
-                                    fill={isCompleted ? '#22c55e' : isCurrent ? '#ca8a04' : '#2563eb'}
+                                    fill={isCompleted ? '#22c55e' : isCurrent ? '#2563eb' : '#6b7280'}
                                 >
                                     {stop.session}
                                 </text>
@@ -325,7 +423,7 @@ export const CurriculumRoadmap: React.FC<CurriculumRoadmapProps> = ({
 
                             {/* 정류장 정보 카드 (확대) */}
                             <g transform={`translate(${isLeftSide ? pos.x + 110 : pos.x - 280}, ${pos.y - 65})`}>
-                                {/* 카드 배경 - 워크스페이스 색상 */}
+                                {/* 카드 배경 - 완료=녹색, 진행중=파란색, 예정=회색 */}
                                 <rect
                                     x={0}
                                     y={0}
@@ -333,7 +431,7 @@ export const CurriculumRoadmap: React.FC<CurriculumRoadmapProps> = ({
                                     height={65}
                                     rx={10}
                                     fill="white"
-                                    stroke={isCompleted ? '#22c55e' : isCurrent ? '#eab308' : '#3b82f6'}
+                                    stroke={isCompleted ? '#22c55e' : isCurrent ? '#3b82f6' : '#9ca3af'}
                                     strokeWidth={2}
                                     className="drop-shadow-md"
                                 />
@@ -359,7 +457,7 @@ export const CurriculumRoadmap: React.FC<CurriculumRoadmapProps> = ({
                                     {stop.date}
                                 </text>
 
-                                {/* 완료 체크 / 클릭 힌트 - 워크스페이스 색상 */}
+                                {/* 완료 체크 / 클릭 힌트 - 완료=녹색, 진행중=파란색, 예정=회색 */}
                                 {isCompleted ? (
                                     <g transform="translate(145, 14)">
                                         <circle cx={0} cy={0} r={12} fill="#22c55e" />
@@ -377,7 +475,7 @@ export const CurriculumRoadmap: React.FC<CurriculumRoadmapProps> = ({
                                         x={156}
                                         y={54}
                                         fontSize={11}
-                                        fill={isCurrent ? '#ca8a04' : '#2563eb'}
+                                        fill={isCurrent ? '#2563eb' : '#6b7280'}
                                         textAnchor="end"
                                     >
                                         클릭
@@ -433,8 +531,8 @@ export const CurriculumRoadmap: React.FC<CurriculumRoadmapProps> = ({
                 const isCompleted = currentStatus?.isCompleted ?? false;
                 const isInProgress = currentStatus?.isInProgress ?? false;
 
-                // 상태에 따른 배경색 클래스
-                const headerBgClass = isCompleted ? 'bg-green-500' : isInProgress ? 'bg-yellow-500' : 'bg-blue-500';
+                // 상태에 따른 배경색 클래스 - 완료=녹색, 진행중=파란색, 예정=회색
+                const headerBgClass = isCompleted ? 'bg-green-500' : isInProgress ? 'bg-blue-500' : 'bg-gray-500';
 
                 return (
                 <div
@@ -469,7 +567,7 @@ export const CurriculumRoadmap: React.FC<CurriculumRoadmapProps> = ({
                             </button>
                         </div>
 
-                        {/* 상태 배지 - stopsWithStatus에서 계산된 상태 사용 */}
+                        {/* 상태 배지 - 완료=녹색, 진행중=파란색, 예정=회색 */}
                         <div className="mb-4">
                             {isCompleted ? (
                                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 rounded-full text-sm font-medium">
@@ -477,12 +575,12 @@ export const CurriculumRoadmap: React.FC<CurriculumRoadmapProps> = ({
                                     완료됨
                                 </span>
                             ) : isInProgress ? (
-                                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-yellow-100 text-yellow-700 rounded-full text-sm font-medium">
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
                                     <Clock size={16} />
                                     진행중
                                 </span>
                             ) : (
-                                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-full text-sm font-medium">
                                     <Calendar size={16} />
                                     예정됨
                                 </span>
