@@ -145,7 +145,9 @@ class ContinuousQuizServiceTest {
                 @DisplayName("오답 제출 시 isCorrect가 false이다")
                 void shouldReturnIncorrectOnWrongAnswer() {
                         // given
-                        ContinuousAnswerRequest request = createAnswerRequest("integer", 3000L);
+                        // "integer"는 "int"를 포함하므로 정답 처리됨 (서술형 포함 채점)
+                        // 오답 테스트를 위해 "int"를 포함하지 않는 답 사용
+                        ContinuousAnswerRequest request = createAnswerRequest("float", 3000L);
                         UserReviewItem wrongReviewItem = createUserReviewItem(TEST_USER_ID, 1L);
                         wrongReviewItem.setLapses(1);
 
@@ -164,7 +166,7 @@ class ContinuousQuizServiceTest {
 
                         // then
                         assertThat(response.isCorrect()).isFalse();
-                        assertThat(response.getUserAnswer()).isEqualTo("integer");
+                        assertThat(response.getUserAnswer()).isEqualTo("float");
                         assertThat(response.getCorrectAnswer()).isEqualTo("int");
                         assertThat(response.getLapses()).isEqualTo(1);
                 }

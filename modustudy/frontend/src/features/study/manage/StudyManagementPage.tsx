@@ -84,7 +84,7 @@ const StudyManagementPage: React.FC = () => {
     const renderContent = () => {
         switch (activeTab) {
             case 'dashboard':
-                return <TeamDashboard study={study} onStudyUpdate={refreshStudyData} />;
+                return <TeamDashboard study={study} onStudyUpdate={refreshStudyData} onTabChange={(tab) => setActiveTab(tab as ManageTab)} />;
             case 'applicants':
                 return <ApplicantManagement studyId={study.id} />;
             case 'members':

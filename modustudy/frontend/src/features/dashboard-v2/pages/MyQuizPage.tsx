@@ -18,8 +18,9 @@ import {
 } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 import {
-    MultipleChoiceQuiz,
-    ShortAnswerQuiz
+    QuizSingleChoice,
+    QuizMultipleChoice,
+    QuizShortAnswer
 } from '@/shared/components';
 import '../styles/DashboardV2.css';
 import { getTodayReviews, getWrongAnswers, submitReview, ReviewItemDto } from '../api/reviewApi';
@@ -64,6 +65,7 @@ export const MyQuizPage: React.FC = () => {
 
     // 퀴즈 재도전 상태
     const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+    const [selectedAnswers, setSelectedAnswers] = useState<number[]>([]);
     const [shortAnswer, setShortAnswer] = useState<string | null>('');
     const [showResult, setShowResult] = useState(false);
 
@@ -97,6 +99,7 @@ export const MyQuizPage: React.FC = () => {
             setIsRetrying(false);
             setSelectedReviewItem(null);
             setSelectedAnswer(null);
+            setSelectedAnswers([]);
             setShortAnswer('');
             setShowResult(false);
         } else {
@@ -108,43 +111,50 @@ export const MyQuizPage: React.FC = () => {
         setSelectedReviewItem(item);
         setIsRetrying(true);
         setSelectedAnswer(null);
+        setSelectedAnswers([]);
         setShortAnswer('');
         setShowResult(false);
         timer.start();
     };
 
+    const handleToggleAnswer = (index: number) => {
+        setSelectedAnswers(prev =>
+            prev.includes(index)
+                ? prev.filter(i => i !== index)
+                : [...prev, index].sort((a, b) => a - b)
+        );
+    };
+
     const handleSubmitMultiple = async () => {
-        if (selectedAnswer === null || !selectedReviewItem) return;
+        if (!selectedReviewItem) return;
+
+        // 정답 제출 여부 체크
+        const isSingleType = selectedReviewItem.question.questionType === 'MULTIPLE_CHOICE';
+        const hasAnswer = isSingleType ? selectedAnswer !== null : selectedAnswers.length > 0;
+
+        if (!hasAnswer) return;
 
         setShowResult(true);
 
         // API 호출
         const responseTimeMs = timer.stop();
-        // 여기서 주의: 프론트엔드 UI 로직상 '정답/오답' 여부를 판단하는 로직이 필요함.
-        // 현재 코드 246라인 부근에 정답 판단 로직이 있음.
 
-        // 정답 여부 판단 (UI 로직 가져오기) (Note: 단순화하여 구현)
-        // 객관식이니 selectedReviewItem.question.correctAnswer 와 비교 필요.
-        // 하지만 기존 UI 코드에서는 (246라인)
-        // const isCorrect = ['MULTIPLE_CHOICE', ...].includes(...) ? true : ...
-        // 라고 되어있음. 즉, 객관식은 무조건 정답처리? 아님.
-        // 248라인 로직이 이상함. UI상으로는 그냥 넘어가는 듯 하나, 
-        // 실제로는 정답 비교가 필요함.
-        // MOCK 데이터나 기존 로직이 불완전해 보임.
-        // 일단 사용자가 '제출'하면 API를 호출하도록 함.
+        // 정답 문자열 생성
+        // 정답 문자열 생성 (Index -> Option ID 변환)
+        const getOptionId = (idx: number) => {
+            const option = selectedReviewItem.question.options[idx];
+            return option?.id || String.fromCharCode(65 + idx); // fallback to A, B, C...
+        };
 
-        // 올바른 정답 비교 로직 추가 필요.
-        // 임시로 true로 두기보다는 비교를 시도.
-        // selectedReviewItem.question.correctAnswer는 string.
-        // selectedAnswer는 number.
-        // 보통 0, 1, 2... 인덱스.
+        const answerString = isSingleType
+            ? getOptionId(selectedAnswer as number)
+            : selectedAnswers.sort((a, b) => a - b).map(getOptionId).join(',');
 
-        // 일단 API 호출 시도
         try {
             await submitReview({
                 contentType: selectedReviewItem.contentType,
                 contentId: selectedReviewItem.contentId,
-                userAnswer: String(selectedAnswer),
+                userAnswer: answerString,
                 responseTimeMs
             });
         } catch (e) {
@@ -260,16 +270,16 @@ export const MyQuizPage: React.FC = () => {
                                         </span>
                                     </div>
 
-                                    {['MULTIPLE_CHOICE', 'MULTIPLE_CHOICE_MULTIPLE'].includes(selectedReviewItem.question.questionType) ? (
-                                        <MultipleChoiceQuiz
+                                    {selectedReviewItem.question.questionType === 'MULTIPLE_CHOICE' ? (
+                                        <QuizSingleChoice
                                             quiz={{
                                                 id: Number(selectedReviewItem.contentId),
                                                 type: 'multiple',
                                                 question: selectedReviewItem.question.questionText,
                                                 options: selectedReviewItem.question.options.map(o => o.text),
-                                                correctAnswer: Number(selectedReviewItem.question.correctAnswer) || 0, // A,B,C -> 0,1,2 mapping needed properly, let's assume index for now or string match
+                                                correctAnswer: Number(selectedReviewItem.question.correctAnswer) || 0,
                                                 explanation: selectedReviewItem.question.explanation,
-                                                difficulty: selectedReviewItem.difficulty > 3 ? 'hard' : 'easy', // simple mapping
+                                                difficulty: selectedReviewItem.difficulty > 3 ? 'hard' : 'easy',
                                                 category: selectedReviewItem.question.category
                                             }}
                                             selectedAnswer={selectedAnswer}
@@ -277,8 +287,25 @@ export const MyQuizPage: React.FC = () => {
                                             onSelectAnswer={setSelectedAnswer}
                                             onSubmit={handleSubmitMultiple}
                                         />
+                                    ) : selectedReviewItem.question.questionType === 'MULTIPLE_CHOICE_MULTIPLE' ? (
+                                        <QuizMultipleChoice
+                                            quiz={{
+                                                id: Number(selectedReviewItem.contentId),
+                                                type: 'multiple',
+                                                question: selectedReviewItem.question.questionText,
+                                                options: selectedReviewItem.question.options.map(o => o.text),
+                                                correctAnswer: selectedReviewItem.question.correctAnswer.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n)),
+                                                explanation: selectedReviewItem.question.explanation,
+                                                difficulty: selectedReviewItem.difficulty > 3 ? 'hard' : 'easy',
+                                                category: selectedReviewItem.question.category
+                                            }}
+                                            selectedAnswers={selectedAnswers}
+                                            showResult={showResult}
+                                            onToggleAnswer={handleToggleAnswer}
+                                            onSubmit={handleSubmitMultiple}
+                                        />
                                     ) : (
-                                        <ShortAnswerQuiz
+                                        <QuizShortAnswer
                                             quiz={{
                                                 id: Number(selectedReviewItem.contentId),
                                                 type: 'short',
