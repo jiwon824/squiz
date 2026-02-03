@@ -353,8 +353,9 @@ const ReviewItemList: React.FC<ReviewItemListProps> = ({ items, onSelect }) => {
                             key={item.reviewItemId}
                             onClick={() => onSelect(item)}
                             className={cn(
-                                'w-full p-4 rounded-xl border border-gray-100 text-left transition-colors',
-                                'hover:border-primary/30 hover:bg-gray-50/50'
+                                'w-full p-4 rounded-xl bg-white text-left transition-all',
+                                'shadow-[0_4px_15px_rgba(0,0,0,0.05)]',
+                                'hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)] hover:bg-gray-50'
                             )}
                         >
                             <div className="flex items-start justify-between gap-3">
