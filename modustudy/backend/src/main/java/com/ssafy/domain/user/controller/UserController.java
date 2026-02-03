@@ -16,9 +16,11 @@ import com.ssafy.domain.study.dto.response.StudySessionResponse;
 import com.ssafy.domain.study.service.StudySessionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -173,5 +175,42 @@ public class UserController {
         List<StudySessionResponse> sessions = studySessionService.getMyStudySessions(userId, startDateTime, endDateTime);
 
         return ResponseEntity.ok(sessions);
+    }
+
+    /**
+     * 프로필 이미지 업로드
+     * POST /api/v1/users/me/profile-image
+     */
+    @PostMapping(value = "/me/profile-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<UserDTO>> updateProfileImage(
+            Authentication authentication,
+            @RequestParam("file") MultipartFile file) {
+
+        SsafyUserDetails userDetails = (SsafyUserDetails) authentication.getPrincipal();
+        Long userId = userDetails.getUser().getId();
+
+        User updatedUser = userService.updateProfileImage(userId, file);
+
+        return ResponseEntity.ok(
+                ApiResponse.success(UserDTO.from(updatedUser))
+        );
+    }
+
+    /**
+     * 프로필 이미지 삭제 (기본 이미지로 변경)
+     * DELETE /api/v1/users/me/profile-image
+     */
+    @DeleteMapping("/me/profile-image")
+    public ResponseEntity<ApiResponse<UserDTO>> deleteProfileImage(
+            Authentication authentication) {
+
+        SsafyUserDetails userDetails = (SsafyUserDetails) authentication.getPrincipal();
+        Long userId = userDetails.getUser().getId();
+
+        User updatedUser = userService.deleteProfileImage(userId);
+
+        return ResponseEntity.ok(
+                ApiResponse.success(UserDTO.from(updatedUser))
+        );
     }
 }
