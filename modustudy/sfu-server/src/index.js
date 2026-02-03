@@ -575,34 +575,7 @@ app.post('/recordings/stop', async (req, res) => {
     // eslint-disable-next-line no-console
     console.log('[recording] stop response', { roomId, result });
 
-    // AI 서버로 녹음 파일 업로드 요청 (비동기, 실패해도 응답은 반환)
-    if (result.status === 'stopped' && result.outputPath && result.meetingId) {
-      const aiServerUrl = config.aiServerUrl;
-      // eslint-disable-next-line no-console
-      console.log('[recording] uploading to AI server', {
-        aiServerUrl,
-        meetingId: result.meetingId,
-        outputPath: result.outputPath
-      });
-      // 비동기로 AI 서버에 업로드 요청 (응답 대기하지 않음)
-      fetch(`${aiServerUrl}/api/upload-recording`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          meeting_id: result.meetingId,
-          file_path: result.outputPath
-        })
-      })
-        .then((uploadRes) => uploadRes.json())
-        .then((uploadResult) => {
-          // eslint-disable-next-line no-console
-          console.log('[recording] AI upload result', { meetingId: result.meetingId, uploadResult });
-        })
-        .catch((uploadErr) => {
-          // eslint-disable-next-line no-console
-          console.error('[recording] AI upload failed', { meetingId: result.meetingId, error: uploadErr.message });
-        });
-    }
+    // AI 서버 업로드는 recordingManager.stopRecording 내부에서 처리됨 (중복 호출 방지)
 
     res.json(result);
   } catch (err) {
