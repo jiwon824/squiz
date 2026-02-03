@@ -45,8 +45,11 @@ export const getTodayReviews = async (): Promise<TodayReviewResponse> => {
     return response.data.data;
 };
 
-export const getWrongAnswers = async (): Promise<TodayReviewResponse> => {
-    const response = await api.get<ApiResponse<TodayReviewResponse>>('/api/v1/reviews/wrong-answers');
+export type WrongAnswerSortType = 'MOST_WRONG' | 'FSRS_RECOMMENDED';
+
+export const getWrongAnswers = async (sortType?: WrongAnswerSortType): Promise<TodayReviewResponse> => {
+    const params = sortType ? { sortType } : {};
+    const response = await api.get<ApiResponse<TodayReviewResponse>>('/api/v1/reviews/wrong-answers', { params });
     return response.data.data;
 };
 

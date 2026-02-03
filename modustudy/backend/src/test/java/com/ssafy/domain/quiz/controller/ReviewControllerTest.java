@@ -129,14 +129,63 @@ class ReviewControllerTest {
         }
 
         @Test
-        @DisplayName("오답 노트 조회 API 성공 테스트")
-        void getWrongAnswers_ShouldReturnList() throws Exception {
+        @DisplayName("오답 노트 조회 API 성공 테스트 - 많이 틀린 순")
+        void getWrongAnswers_ShouldReturnListSortedByMostWrong() throws Exception {
                 // given
                 TodayReviewResponse.ReviewItemDto dto = new TodayReviewResponse.ReviewItemDto(
                                 2L, ReviewContentType.COURSE_QUESTION, 101L, 0.5, 8.0, 3, 5, 2, LocalDateTime.now(),
                                 null);
 
-                given(fsrsService.getWrongAnswersWithQuestions(TEST_USER_ID))
+                given(fsrsService.getWrongAnswersWithQuestions(TEST_USER_ID,
+                                com.ssafy.domain.quiz.entity.WrongAnswerSortType.MOST_WRONG))
+                                .willReturn(List.of(dto));
+
+                // when & then
+                mockMvc.perform(get("/api/v1/reviews/wrong-answers")
+                                .param("sortType", "MOST_WRONG")
+                                .with(user(userDetails))
+                                .contentType(MediaType.APPLICATION_JSON))
+                                .andDo(print())
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.success").value(true))
+                                .andExpect(jsonPath("$.data.items").isArray())
+                                .andExpect(jsonPath("$.data.items[0].reviewItemId").value(2L));
+        }
+
+        @Test
+        @DisplayName("오답 노트 조회 API 성공 테스트 - FSRS 복습 우선순위")
+        void getWrongAnswers_ShouldReturnListSortedByFsrsRecommended() throws Exception {
+                // given
+                TodayReviewResponse.ReviewItemDto dto = new TodayReviewResponse.ReviewItemDto(
+                                3L, ReviewContentType.COURSE_QUESTION, 102L, 0.3, 7.0, 2, 4, 1, LocalDateTime.now(),
+                                null);
+
+                given(fsrsService.getWrongAnswersWithQuestions(TEST_USER_ID,
+                                com.ssafy.domain.quiz.entity.WrongAnswerSortType.FSRS_RECOMMENDED))
+                                .willReturn(List.of(dto));
+
+                // when & then
+                mockMvc.perform(get("/api/v1/reviews/wrong-answers")
+                                .param("sortType", "FSRS_RECOMMENDED")
+                                .with(user(userDetails))
+                                .contentType(MediaType.APPLICATION_JSON))
+                                .andDo(print())
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.success").value(true))
+                                .andExpect(jsonPath("$.data.items").isArray())
+                                .andExpect(jsonPath("$.data.items[0].reviewItemId").value(3L));
+        }
+
+        @Test
+        @DisplayName("오답 노트 조회 API - sortType 없으면 기본값(MOST_WRONG) 사용")
+        void getWrongAnswers_ShouldUseDefaultSortType() throws Exception {
+                // given
+                TodayReviewResponse.ReviewItemDto dto = new TodayReviewResponse.ReviewItemDto(
+                                2L, ReviewContentType.COURSE_QUESTION, 101L, 0.5, 8.0, 3, 5, 2, LocalDateTime.now(),
+                                null);
+
+                given(fsrsService.getWrongAnswersWithQuestions(TEST_USER_ID,
+                                com.ssafy.domain.quiz.entity.WrongAnswerSortType.MOST_WRONG))
                                 .willReturn(List.of(dto));
 
                 // when & then

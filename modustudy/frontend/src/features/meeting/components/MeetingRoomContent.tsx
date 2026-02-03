@@ -4,7 +4,7 @@ import MeetingParticipants from './MeetingParticipants';
 import MeetingChatPanel from './MeetingChatPanel';
 import MeetingVideoStage from './MeetingVideoStage';
 import { MeetingRoomChatMessage, MeetingRoomParticipant } from '../types';
-import { Maximize2, Minimize2, Users, MessageCircle } from 'lucide-react';
+import { Maximize2, Minimize2, Users, MessageCircle, X } from 'lucide-react';
 
 interface RemoteVideoStream {
     id: string;
@@ -28,6 +28,8 @@ interface MeetingRoomContentProps {
     onDeleteChat: (message: MeetingRoomChatMessage) => void;
     currentUserId: number | null;
     currentSender: string;
+    /** 비디오 확장 상태 변경 시 부모에게 알림 */
+    onExpandChange?: (expanded: boolean) => void;
 }
 
 const MeetingRoomContent: React.FC<MeetingRoomContentProps> = ({
@@ -45,6 +47,7 @@ const MeetingRoomContent: React.FC<MeetingRoomContentProps> = ({
     onDeleteChat,
     currentUserId,
     currentSender,
+    onExpandChange,
 }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [miniTab, setMiniTab] = useState<'participants' | 'chat' | null>(null);
@@ -76,8 +79,10 @@ const MeetingRoomContent: React.FC<MeetingRoomContentProps> = ({
                     <button
                         className="absolute top-3 right-3 z-10 w-9 h-9 rounded-xl bg-black/40 hover:bg-black/60 backdrop-blur-sm text-white flex items-center justify-center transition-all cursor-pointer"
                         onClick={() => {
-                            setIsExpanded(!isExpanded);
-                            if (!isExpanded) setMiniTab(null);
+                            const next = !isExpanded;
+                            setIsExpanded(next);
+                            onExpandChange?.(next);
+                            if (next) setMiniTab(null);
                         }}
                         title={isExpanded ? '사이드패널 열기' : '비디오 최대화'}
                     >
@@ -143,7 +148,16 @@ const MeetingRoomContent: React.FC<MeetingRoomContentProps> = ({
             {/* 최대화 시 플로팅 사이드패널 (오버레이) */}
             {isExpanded && miniTab !== null && (
                 <div className="absolute top-0 right-0 bottom-0 w-[340px] z-20 p-2">
-                    <div className="h-full bg-white/95 backdrop-blur-md rounded-2xl shadow-xl overflow-hidden">
+                    <div className="relative h-full bg-white/95 backdrop-blur-md rounded-2xl shadow-xl overflow-hidden flex flex-col">
+                        {/* 플로팅 패널 닫기 버튼 */}
+                        <button
+                            className="absolute top-2 right-2 z-10 w-7 h-7 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors cursor-pointer"
+                            onClick={() => setMiniTab(null)}
+                            title="패널 닫기"
+                        >
+                            <X size={14} className="text-gray-500" />
+                        </button>
+
                         {miniTab === 'participants' ? (
                             <MeetingParticipants
                                 participants={participants}
@@ -157,6 +171,7 @@ const MeetingRoomContent: React.FC<MeetingRoomContentProps> = ({
                                 onDelete={onDeleteChat}
                                 currentUserId={currentUserId}
                                 currentSender={currentSender}
+                                compact
                             />
                         )}
                     </div>

@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-public interface UserReviewItemRepository extends JpaRepository<UserReviewItem, Long> {
+public interface UserReviewItemRepository extends JpaRepository<UserReviewItem, Long>, UserReviewItemRepositoryCustom {
 
         /**
          * 유니크 키 (userId, contentType, contentId) 기반 조회
@@ -40,7 +40,12 @@ public interface UserReviewItemRepository extends JpaRepository<UserReviewItem, 
 
         /**
          * 오답 노트 조회 (lapses > 0)
+         * 
+         * @deprecated Use
+         *             {@link UserReviewItemRepositoryCustom#findWrongAnswers(Long, WrongAnswerSortType)}
+         *             instead
          */
+        @Deprecated
         @Query("SELECT r FROM UserReviewItem r " +
                         "WHERE r.userId = :userId AND r.lapses > 0 " +
                         "ORDER BY r.lapses DESC, r.nextReviewAt ASC")

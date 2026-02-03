@@ -176,9 +176,18 @@ public class Study {
     /**
      * 스터디 시작 가능 여부 확인
      * - 모집완료/시작대기 또는 확정대기 상태에서만 시작 가능
+     * - 번개스터디: 모집중 상태에서도 시작 가능 (최소 인원 충족 시)
      */
     public boolean canStart() {
-        return this.status == Status.RECRUIT_CLOSED || this.status == Status.PENDING;
+        // 기존 조건: 모집완료/확정대기 상태
+        if (this.status == Status.RECRUIT_CLOSED || this.status == Status.PENDING) {
+            return true;
+        }
+        // 번개스터디: 모집중 상태에서도 시작 가능
+        if (this.studyType == StudyType.LIGHTNING && this.status == Status.RECRUITING) {
+            return true;
+        }
+        return false;
     }
 
     /**

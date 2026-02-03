@@ -45,7 +45,7 @@ interface StudyOption {
 // 탭 정의
 const TABS = [
     { id: 'summary' as TabType, label: '요약', icon: FileText },
-    { id: 'quiz' as TabType, label: '테스트', icon: ClipboardCheck },
+    { id: 'quiz' as TabType, label: '퀴즈', icon: ClipboardCheck },
     { id: 'transcript' as TabType, label: '전체 기록', icon: MessageSquare },
     { id: 'action' as TabType, label: '액션 아이템', icon: ListChecks },
     { id: 'stats' as TabType, label: '통계', icon: BarChart3 },

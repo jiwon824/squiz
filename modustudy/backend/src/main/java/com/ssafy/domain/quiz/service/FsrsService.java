@@ -7,6 +7,7 @@ import com.ssafy.domain.quiz.dto.response.ReviewStatsResponse;
 import com.ssafy.domain.quiz.entity.ReviewContentType;
 import com.ssafy.domain.quiz.entity.UserReviewItem;
 import com.ssafy.domain.quiz.entity.UserReviewLog;
+import com.ssafy.domain.quiz.entity.WrongAnswerSortType;
 import com.ssafy.domain.quiz.repository.UserReviewItemRepository;
 import com.ssafy.domain.quiz.repository.UserReviewLogRepository;
 import com.ssafy.domain.quiz.util.QuizGradingUtils;
@@ -210,10 +211,13 @@ public class FsrsService {
 
     /**
      * 특정 사용자의 오답 노트(많이 틀린 문제)를 조회하고, 문제 정보와 함께 반환한다.
+     * 
+     * @param userId   사용자 ID
+     * @param sortType 정렬 방식 (null이면 MOST_WRONG 기본값 적용)
      */
-    public List<ReviewItemDto> getWrongAnswersWithQuestions(Long userId) {
-        // 1. 오답 노트 조회
-        List<UserReviewItem> wrongItems = reviewItemRepository.findWrongAnswers(userId);
+    public List<ReviewItemDto> getWrongAnswersWithQuestions(Long userId, WrongAnswerSortType sortType) {
+        // 1. 오답 노트 조회 (동적 정렬)
+        List<UserReviewItem> wrongItems = reviewItemRepository.findWrongAnswers(userId, sortType);
         return enrichReviewItems(wrongItems);
     }
 

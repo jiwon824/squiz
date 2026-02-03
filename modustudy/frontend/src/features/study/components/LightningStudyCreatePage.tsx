@@ -262,21 +262,25 @@ const LightningStudyCreatePage: React.FC = () => {
             const startDate = formData.meetingDate;
             const endDate = formData.meetingDate;
 
-            // 모집 기간 설정 (즉시 모집 시작, 모임 전날까지 모집)
+            // 모집 기간 설정 (즉시 모집 시작)
             const today = new Date();
             const recruitStartDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
-            // 모집 종료일은 모임 전날로 설정
-            const meetingDateObj = new Date(formData.meetingDate);
+            // 모집 종료일 설정 (시간대 문제 방지를 위해 문자열 직접 파싱)
+            const meetingDateParts = formData.meetingDate.split('-').map(Number);
+            const meetingDateObj = new Date(meetingDateParts[0], meetingDateParts[1] - 1, meetingDateParts[2]);
             meetingDateObj.setDate(meetingDateObj.getDate() - 1);
-            const recruitEndDate = `${meetingDateObj.getFullYear()}-${String(meetingDateObj.getMonth() + 1).padStart(2, '0')}-${String(meetingDateObj.getDate()).padStart(2, '0')}`;
+            let recruitEndDate = `${meetingDateObj.getFullYear()}-${String(meetingDateObj.getMonth() + 1).padStart(2, '0')}-${String(meetingDateObj.getDate()).padStart(2, '0')}`;
 
-            // 모집 상태 결정
-            const todayObj = new Date();
-            todayObj.setHours(0, 0, 0, 0);
-            const recruitStartObj = new Date(recruitStartDate);
+            // 당일 모임인 경우 모집 종료일이 모집 시작일보다 앞서면 모임 당일로 설정
+            if (recruitEndDate < recruitStartDate) {
+                recruitEndDate = formData.meetingDate;
+            }
+
+            // 모집 상태 결정 (문자열 비교로 시간대 문제 방지)
+            const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
             let status = 'RECRUITING'; // 기본값: 모집중
-            if (recruitStartObj > todayObj) {
+            if (recruitStartDate > todayStr) {
                 status = 'PENDING'; // 모집시작일이 미래면 대기중
             }
 

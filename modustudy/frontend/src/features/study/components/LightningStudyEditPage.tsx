@@ -366,7 +366,17 @@ const LightningStudyEditPage: React.FC = () => {
 
             // 모집 기간 유지 (기존 값 사용 또는 새로 설정)
             const recruitStartDate = originalStudy?.recruitStartDate || formattedToday;
-            const recruitEndDate = formData.meetingDate;
+
+            // 모집 종료일은 모임 전날로 설정 (생성 페이지와 동일한 로직)
+            const meetingDateParts = formData.meetingDate.split('-').map(Number);
+            const meetingDateObj = new Date(meetingDateParts[0], meetingDateParts[1] - 1, meetingDateParts[2]);
+            meetingDateObj.setDate(meetingDateObj.getDate() - 1);
+            let recruitEndDate = `${meetingDateObj.getFullYear()}-${String(meetingDateObj.getMonth() + 1).padStart(2, '0')}-${String(meetingDateObj.getDate()).padStart(2, '0')}`;
+
+            // 당일 모임인 경우 모집 종료일이 모집 시작일보다 앞서면 모임 당일로 설정
+            if (recruitEndDate < recruitStartDate) {
+                recruitEndDate = formData.meetingDate;
+            }
 
             const payload: StudyCreatePayload = {
                 name: formData.name,
@@ -395,7 +405,7 @@ const LightningStudyEditPage: React.FC = () => {
             // from 파라미터에 따라 이전 페이지로 이동
             const from = searchParams.get('from');
             if (from === 'detail') {
-                navigate(`/study/v3/${studyId}`);
+                navigate(`/study/${studyId}`);
             } else {
                 navigate(`/study/manage/${studyId}`);
             }

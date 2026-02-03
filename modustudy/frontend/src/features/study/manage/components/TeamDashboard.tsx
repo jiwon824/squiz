@@ -229,23 +229,26 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ study, onStudyUpdate, onT
     // 최대 인원 충족 여부
     const hasMaximumMembers = stats.totalMembers >= stats.maxMembers;
 
-    // 모집 마감일 확인 (프론트엔드에서 직접 체크)
-    const recruitEndDate = (study as any).recruitEndDate ? new Date((study as any).recruitEndDate) : null;
-    const today = new Date();
-    today.setHours(23, 59, 59, 999);  // 마감일 당일까지는 모집 중으로 취급
-    const isRecruitmentEnded = recruitEndDate ? today > new Date(recruitEndDate) : false;
+    // 모집 마감일 확인 (프론트엔드에서 직접 체크, 시간대 문제 방지)
+    const recruitEndDateStr = (study as any).recruitEndDate;
+    const todayDate = new Date();
+    const todayStr = `${todayDate.getFullYear()}-${String(todayDate.getMonth() + 1).padStart(2, '0')}-${String(todayDate.getDate()).padStart(2, '0')}`;
+    const isRecruitmentEnded = recruitEndDateStr ? todayStr > recruitEndDateStr : false;
 
     // 이미 시작된 스터디인지 확인 (진행중, 완료, 취소 상태)
     const isStudyStarted = ['IN_PROGRESS', 'COMPLETED', 'CANCELLED'].includes(study.status);
 
+    // 번개스터디 여부
+    const isLightningStudy = study.studyType === 'LIGHTNING';
+
     // 스터디 시작 가능 여부
     // - 이미 시작된 스터디가 아니어야 함
-    // - 1. RECRUIT_CLOSED: 최대 인원 충족 (백엔드 상태)
-    // - 2. 최대 인원 충족 (프론트에서 직접 체크)
-    // - 3. 마감일 지남 + 최소 인원 충족
+    // - 번개스터디: 최소 인원(2명) 충족하면 마감일 관계없이 바로 시작 가능
+    // - 계획형: 1. RECRUIT_CLOSED OR 2. 최대 인원 충족 OR 3. 마감일 지남 + 최소 인원 충족
     const canStartStudy = !isStudyStarted && (
         study.status === 'RECRUIT_CLOSED' ||
         hasMaximumMembers ||
+        (isLightningStudy && hasMinimumMembers) ||  // 번개스터디: 최소 인원만 충족하면 바로 시작 가능
         (isRecruitmentEnded && hasMinimumMembers)
     );
 

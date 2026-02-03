@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Button, Input, Modal, Card, BackButton, ArrowButton, DatePicker, TimePicker, FloatingInput, IconInput } from '@/shared/components';
 import { X, Heart, Bookmark, Users, Star, Clock, Award, Check, Calendar, ChevronRight, Mail, Lock, Search, User } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
@@ -528,6 +528,15 @@ const ReuseTest = () => {
                 </div>
             </section>
 
+            {/* 8. 커리큘럼 로드맵 (S자 도로 스타일) */}
+            <section className="space-y-6">
+                <h2 className="text-xl font-bold border-b pb-2 flex items-center gap-2">
+                    <div className="w-1.5 h-6 bg-emerald-500 rounded-full" />
+                    Curriculum Roadmap (S-Road Style)
+                </h2>
+                <CurriculumRoadmapDemo />
+            </section>
+
             {/* 6. 모달 테스트 */}
             <section className="space-y-6 pb-20">
                 <h2 className="text-xl font-bold border-b pb-2 flex items-center gap-2">
@@ -565,3 +574,417 @@ const ReuseTest = () => {
 };
 
 export default ReuseTest;
+
+// ============================================
+// 커리큘럼 로드맵 컴포넌트 (S자 도로 스타일)
+// ============================================
+
+interface CurriculumStop {
+    session: number;
+    title: string;
+    date: string;
+    description?: string;
+    isCompleted?: boolean;
+}
+
+interface CurriculumRoadmapProps {
+    curriculum: CurriculumStop[];
+    currentSession?: number; // 현재 진행 중인 회차
+    onStopClick?: (session: number) => void;
+}
+
+export const CurriculumRoadmap: React.FC<CurriculumRoadmapProps> = ({
+    curriculum,
+    currentSession = 1,
+    onStopClick
+}) => {
+    const totalStops = curriculum.length;
+
+    // SVG 크기 설정
+    const svgWidth = 800;
+    const svgHeight = Math.max(400, totalStops * 120);
+    const roadWidth = 50;
+
+    // S자 도로 경로 생성
+    const generateRoadPath = () => {
+        const segments: string[] = [];
+        const startX = 150;
+        const endX = svgWidth - 150;
+        const segmentHeight = 120;
+
+        segments.push(`M ${startX} 60`);
+
+        for (let i = 0; i < totalStops; i++) {
+            const y = 60 + i * segmentHeight;
+            const nextY = y + segmentHeight;
+            const isLeftToRight = i % 2 === 0;
+
+            if (i < totalStops - 1) {
+                if (isLeftToRight) {
+                    // 왼쪽에서 오른쪽으로, 그 다음 아래로 커브
+                    segments.push(`L ${endX - 60} ${y}`);
+                    segments.push(`Q ${endX} ${y} ${endX} ${y + 60}`);
+                    segments.push(`L ${endX} ${nextY - 60}`);
+                    segments.push(`Q ${endX} ${nextY} ${endX - 60} ${nextY}`);
+                } else {
+                    // 오른쪽에서 왼쪽으로, 그 다음 아래로 커브
+                    segments.push(`L ${startX + 60} ${y}`);
+                    segments.push(`Q ${startX} ${y} ${startX} ${y + 60}`);
+                    segments.push(`L ${startX} ${nextY - 60}`);
+                    segments.push(`Q ${startX} ${nextY} ${startX + 60} ${nextY}`);
+                }
+            } else {
+                // 마지막 세그먼트
+                if (isLeftToRight) {
+                    segments.push(`L ${endX} ${y}`);
+                } else {
+                    segments.push(`L ${startX} ${y}`);
+                }
+            }
+        }
+
+        return segments.join(' ');
+    };
+
+    // 각 정류장의 위치 계산
+    const getStopPosition = (index: number) => {
+        const segmentHeight = 120;
+        const startX = 150;
+        const endX = svgWidth - 150;
+        const y = 60 + index * segmentHeight;
+        const isLeftToRight = index % 2 === 0;
+
+        // 각 세그먼트의 시작 위치
+        const x = isLeftToRight ? startX + 50 : endX - 50;
+
+        return { x, y };
+    };
+
+    const roadPath = generateRoadPath();
+
+    // 나무 배경 위치 고정 (useMemo로 렌더링마다 변경되지 않도록)
+    const treePositions = useMemo(() => {
+        return [...Array(8)].map((_, i) => ({
+            x: 50 + (i * 97) % 700,
+            y: 30 + (i * 73) % (Math.max(400, totalStops * 120) - 60),
+            isGreen: i % 2 === 0
+        }));
+    }, [totalStops]);
+
+    // 자동차 진행률 계산 (정류장 위치에 맞게 조정)
+    const carProgress = useMemo(() => {
+        const sessionIndex = currentSession - 1;
+        if (totalStops <= 1) return 3;
+
+        // 각 정류장별로 도로 경로상의 진행률 계산
+        // 경로: 시작 → 가로이동 → 커브 → 세로이동 → 커브 → 가로이동 반복
+        // 정류장은 각 가로 구간의 시작 부분에 위치
+
+        // 한 세그먼트(가로+커브+세로+커브)가 차지하는 비율
+        const segmentPercent = 100 / totalStops;
+
+        // 각 정류장은 해당 세그먼트의 시작 ~ 초반부에 위치 (약 15% 지점)
+        const stopOffsetInSegment = 0.15;
+        const progress = sessionIndex * segmentPercent + segmentPercent * stopOffsetInSegment;
+
+        return Math.max(2, Math.min(98, progress));
+    }, [currentSession, totalStops]);
+
+    // 현재 세션이 역방향(오른쪽→왼쪽)인지 확인
+    const isReversed = (currentSession - 1) % 2 !== 0;
+
+    return (
+        <div className="relative w-full overflow-x-auto">
+            <svg
+                width={svgWidth}
+                height={svgHeight}
+                viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+                className="mx-auto"
+            >
+                {/* 배경 장식 - 나무들 (위치 고정) */}
+                <g className="trees">
+                    {treePositions.map((tree, i) => (
+                        <g key={`tree-${i}`} transform={`translate(${tree.x}, ${tree.y})`}>
+                            <polygon
+                                points="0,-15 12,10 -12,10"
+                                fill={tree.isGreen ? '#22c55e' : '#84cc16'}
+                                opacity={0.6}
+                            />
+                            <rect x="-2" y="10" width="4" height="8" fill="#92400e" opacity={0.6} />
+                        </g>
+                    ))}
+                </g>
+
+                {/* 도로 그림자 */}
+                <path
+                    d={roadPath}
+                    fill="none"
+                    stroke="#1f2937"
+                    strokeWidth={roadWidth + 10}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    opacity={0.1}
+                    transform="translate(4, 4)"
+                />
+
+                {/* 도로 본체 */}
+                <path
+                    d={roadPath}
+                    fill="none"
+                    stroke="#374151"
+                    strokeWidth={roadWidth}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                />
+
+                {/* 도로 중앙선 (점선) */}
+                <path
+                    d={roadPath}
+                    fill="none"
+                    stroke="#fbbf24"
+                    strokeWidth={3}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeDasharray="20, 15"
+                />
+
+                {/* 도로 가장자리 선 */}
+                <path
+                    d={roadPath}
+                    fill="none"
+                    stroke="#f3f4f6"
+                    strokeWidth={roadWidth}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    opacity={0.3}
+                    strokeDasharray="5, 5"
+                />
+
+                {/* 정류장들 */}
+                {curriculum.map((stop, index) => {
+                    const pos = getStopPosition(index);
+                    const isCompleted = stop.isCompleted || index < currentSession - 1;
+                    const isCurrent = index === currentSession - 1;
+                    const isLeftSide = index % 2 !== 0;
+
+                    return (
+                        <g
+                            key={stop.session}
+                            className="cursor-pointer"
+                            onClick={() => onStopClick?.(stop.session)}
+                        >
+                            {/* 정류장 연결선 */}
+                            <line
+                                x1={pos.x}
+                                y1={pos.y}
+                                x2={isLeftSide ? pos.x + 80 : pos.x - 80}
+                                y2={pos.y - 30}
+                                stroke={isCompleted ? '#22c55e' : isCurrent ? '#3b82f6' : '#d1d5db'}
+                                strokeWidth={2}
+                                strokeDasharray={isCompleted ? 'none' : '4, 4'}
+                            />
+
+                            {/* 정류장 핀 */}
+                            <g transform={`translate(${pos.x}, ${pos.y - 15})`}>
+                                {/* 핀 그림자 */}
+                                <ellipse cx={0} cy={18} rx={8} ry={4} fill="#000" opacity={0.2} />
+
+                                {/* 핀 본체 */}
+                                <path
+                                    d="M0,-20 C-12,-20 -15,-8 -15,0 C-15,12 0,25 0,25 C0,25 15,12 15,0 C15,-8 12,-20 0,-20"
+                                    fill={isCompleted ? '#22c55e' : isCurrent ? '#3b82f6' : '#9ca3af'}
+                                    className="drop-shadow-lg"
+                                />
+
+                                {/* 핀 내부 원 */}
+                                <circle
+                                    cx={0}
+                                    cy={-5}
+                                    r={8}
+                                    fill="white"
+                                />
+
+                                {/* 회차 번호 */}
+                                <text
+                                    x={0}
+                                    y={-1}
+                                    textAnchor="middle"
+                                    fontSize={10}
+                                    fontWeight="bold"
+                                    fill={isCompleted ? '#22c55e' : isCurrent ? '#3b82f6' : '#6b7280'}
+                                >
+                                    {stop.session}
+                                </text>
+                            </g>
+
+                            {/* 정류장 정보 카드 */}
+                            <g transform={`translate(${isLeftSide ? pos.x + 90 : pos.x - 200}, ${pos.y - 55})`}>
+                                {/* 카드 배경 */}
+                                <rect
+                                    x={0}
+                                    y={0}
+                                    width={110}
+                                    height={50}
+                                    rx={8}
+                                    fill="white"
+                                    stroke={isCompleted ? '#22c55e' : isCurrent ? '#3b82f6' : '#e5e7eb'}
+                                    strokeWidth={2}
+                                    className="drop-shadow-sm"
+                                />
+
+                                {/* 제목 */}
+                                <text
+                                    x={10}
+                                    y={20}
+                                    fontSize={11}
+                                    fontWeight="bold"
+                                    fill="#1f2937"
+                                >
+                                    {stop.title.length > 10 ? stop.title.slice(0, 10) + '...' : stop.title}
+                                </text>
+
+                                {/* 날짜 */}
+                                <text
+                                    x={10}
+                                    y={38}
+                                    fontSize={9}
+                                    fill="#6b7280"
+                                >
+                                    {stop.date}
+                                </text>
+
+                                {/* 완료 체크 */}
+                                {isCompleted && (
+                                    <g transform="translate(90, 10)">
+                                        <circle cx={0} cy={0} r={8} fill="#22c55e" />
+                                        <path
+                                            d="M-4,0 L-1,3 L4,-3"
+                                            stroke="white"
+                                            strokeWidth={2}
+                                            fill="none"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                        />
+                                    </g>
+                                )}
+                            </g>
+                        </g>
+                    );
+                })}
+
+                {/* 자동차 - 도로를 따라 이동 */}
+                <g
+                    className="car-on-road"
+                    style={{
+                        offsetPath: `path("${roadPath}")`,
+                        offsetDistance: `${carProgress}%`,
+                        offsetRotate: '0deg',
+                        transition: 'offset-distance 0.6s ease-in-out',
+                    } as React.CSSProperties}
+                >
+                    {/* 자동차 본체 - 역방향일 때 좌우 반전 */}
+                    <g transform={`scale(${isReversed ? -0.8 : 0.8}, 0.8) translate(${isReversed ? 20 : -20}, -12)`}>
+                        {/* 차체 그림자 */}
+                        <ellipse cx={25} cy={28} rx={22} ry={6} fill="#000" opacity={0.2} />
+
+                        {/* 차체 */}
+                        <rect x={5} y={8} width={40} height={18} rx={4} fill="#ef4444" />
+                        <rect x={12} y={2} width={26} height={12} rx={3} fill="#ef4444" />
+
+                        {/* 창문 */}
+                        <rect x={14} y={4} width={10} height={8} rx={2} fill="#bfdbfe" />
+                        <rect x={26} y={4} width={10} height={8} rx={2} fill="#bfdbfe" />
+
+                        {/* 헤드라이트 */}
+                        <rect x={42} y={12} width={4} height={4} rx={1} fill="#fef08a" />
+                        <rect x={42} y={18} width={4} height={4} rx={1} fill="#fef08a" />
+
+                        {/* 테일라이트 */}
+                        <rect x={4} y={12} width={3} height={10} rx={1} fill="#fca5a5" />
+
+                        {/* 바퀴 */}
+                        <circle cx={15} cy={26} r={5} fill="#1f2937" />
+                        <circle cx={15} cy={26} r={2} fill="#6b7280" />
+                        <circle cx={35} cy={26} r={5} fill="#1f2937" />
+                        <circle cx={35} cy={26} r={2} fill="#6b7280" />
+                    </g>
+                </g>
+            </svg>
+
+            {/* CSS for offset-path */}
+            <style>{`
+                .car-on-road {
+                    position: absolute;
+                }
+            `}</style>
+        </div>
+    );
+};
+
+// 데모용 래퍼 컴포넌트
+export const CurriculumRoadmapDemo: React.FC = () => {
+    const [currentSession, setCurrentSession] = useState(1);
+
+    // 샘플 커리큘럼 데이터
+    const sampleCurriculum: CurriculumStop[] = [
+        { session: 1, title: 'OT & 환경설정', date: '2026-02-15', description: '개발 환경 구축', isCompleted: true },
+        { session: 2, title: 'React 기초', date: '2026-02-22', description: 'JSX와 컴포넌트' },
+        { session: 3, title: 'State & Props', date: '2026-03-01', description: '상태 관리 기초' },
+        { session: 4, title: 'Hooks 심화', date: '2026-03-08', description: 'useEffect, useRef' },
+        { session: 5, title: '프로젝트 발표', date: '2026-03-15', description: '최종 결과물 공유' },
+    ];
+
+    return (
+        <div className="p-8 bg-gradient-to-b from-sky-50 to-green-50 rounded-3xl">
+            <div className="mb-6 flex items-center justify-between">
+                <div>
+                    <h3 className="text-xl font-bold text-gray-800">📍 커리큘럼 로드맵</h3>
+                    <p className="text-sm text-gray-500 mt-1">현재 진행 회차: {currentSession} / {sampleCurriculum.length}</p>
+                </div>
+                <div className="flex gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentSession(prev => Math.max(1, prev - 1))}
+                        disabled={currentSession <= 1}
+                    >
+                        ← 이전
+                    </Button>
+                    <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => setCurrentSession(prev => Math.min(sampleCurriculum.length, prev + 1))}
+                        disabled={currentSession >= sampleCurriculum.length}
+                    >
+                        다음 →
+                    </Button>
+                </div>
+            </div>
+
+            <CurriculumRoadmap
+                curriculum={sampleCurriculum}
+                currentSession={currentSession}
+                onStopClick={(session) => {
+                    console.log(`회차 ${session} 클릭됨`);
+                    setCurrentSession(session);
+                }}
+            />
+
+            {/* 범례 */}
+            <div className="mt-6 flex items-center justify-center gap-6 text-sm">
+                <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded-full bg-green-500" />
+                    <span className="text-gray-600">완료</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded-full bg-blue-500" />
+                    <span className="text-gray-600">진행 중</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded-full bg-gray-400" />
+                    <span className="text-gray-600">예정</span>
+                </div>
+            </div>
+        </div>
+    );
+};

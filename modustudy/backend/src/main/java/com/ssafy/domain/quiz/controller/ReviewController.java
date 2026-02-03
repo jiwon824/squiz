@@ -8,6 +8,7 @@ import com.ssafy.domain.quiz.dto.response.ReviewResult;
 import com.ssafy.domain.quiz.dto.response.ReviewStatsResponse;
 import com.ssafy.domain.quiz.dto.response.ReviewSubmitResponse;
 import com.ssafy.domain.quiz.dto.response.TodayReviewResponse;
+import com.ssafy.domain.quiz.entity.WrongAnswerSortType;
 import com.ssafy.domain.quiz.service.FsrsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -93,15 +94,18 @@ public class ReviewController {
     /**
      * 오답 노트 (많이 틀린 문제) 조회.
      *
-     * lapses > 0 인 항목을 lapses 내림차순으로 반환한다.
+     * lapses > 0 인 항목을 정렬 방식에 따라 반환한다.
+     *
+     * @param sortType 정렬 방식 (기본값: MOST_WRONG)
      */
-    @Operation(summary = "오답 노트 조회", description = "오답 횟수가 많은 순으로 문제 목록을 조회합니다. 인증 필요.")
+    @Operation(summary = "오답 노트 조회", description = "오답 횟수가 많은 순 또는 FSRS 복습 우선순위로 문제 목록을 조회합니다. 인증 필요.")
     @GetMapping("/wrong-answers")
     public ApiResponse<TodayReviewResponse> getWrongAnswers(
+            @Parameter(description = "정렬 방식 (MOST_WRONG: 많이 틀린 순, FSRS_RECOMMENDED: 복습 우선순위)") @RequestParam(required = false, defaultValue = "MOST_WRONG") WrongAnswerSortType sortType,
             @AuthenticationPrincipal SsafyUserDetails userDetails) {
 
         Long userId = userDetails.getUser().getId();
-        List<TodayReviewResponse.ReviewItemDto> items = fsrsService.getWrongAnswersWithQuestions(userId);
+        List<TodayReviewResponse.ReviewItemDto> items = fsrsService.getWrongAnswersWithQuestions(userId, sortType);
 
         return ApiResponse.success(new TodayReviewResponse(items, items.size()));
     }
