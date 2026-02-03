@@ -1,5 +1,5 @@
 import React from 'react';
-import { Heart, Users, MapPin, Clock, Star, Zap, Monitor, Handshake, Layers } from 'lucide-react';
+import { Bookmark, Users, MapPin, Clock, Star, Zap, Monitor, Handshake, Layers } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 import { DifficultyBadge } from './DifficultyBadge';
 
@@ -182,15 +182,15 @@ const StudyCardContentV2: React.FC<StudyCardContentV2Props> = ({ study, variant 
                     <button
                         className={cn(
                             "p-2 rounded-full transition-all",
-                            "hover:bg-[var(--color-error-light)]",
-                            study.isBookmarked ? "text-[var(--color-error)]" : "text-[var(--color-text-muted)] hover:text-[var(--color-error)]"
+                            "hover:bg-amber-50",
+                            study.isBookmarked ? "text-amber-500" : "text-[var(--color-text-muted)] hover:text-amber-500"
                         )}
                         onClick={(e) => {
                             e.stopPropagation();
                             onBookmarkToggle?.(study.id);
                         }}
                     >
-                        <Heart
+                        <Bookmark
                             size={18}
                             fill={study.isBookmarked ? 'currentColor' : 'none'}
                         />
@@ -241,15 +241,15 @@ const StudyCardContentV2: React.FC<StudyCardContentV2Props> = ({ study, variant 
                 <button
                     className={cn(
                         "p-2 rounded-full transition-all -mr-2",
-                        "hover:bg-[var(--color-error-light)]",
-                        study.isBookmarked ? "text-[var(--color-error)]" : "text-[var(--color-text-muted)] hover:text-[var(--color-error)]"
+                        "hover:bg-amber-50",
+                        study.isBookmarked ? "text-amber-500" : "text-[var(--color-text-muted)] hover:text-amber-500"
                     )}
                     onClick={(e) => {
                         e.stopPropagation();
                         onBookmarkToggle?.(study.id);
                     }}
                 >
-                    <Heart
+                    <Bookmark
                         size={18}
                         fill={study.isBookmarked ? 'currentColor' : 'none'}
                     />
@@ -340,22 +340,19 @@ const InfoChip: React.FC<InfoChipProps> = ({ icon, text, highlight }) => (
     </div>
 );
 
-// 마감일이 오늘인지 체크 (날짜만 비교)
+// 마감일이 오늘인지 체크 (날짜만 비교, 시간대 문제 방지)
 const isDeadlineToday = (dateStr: string): boolean => {
-    const deadline = new Date(dateStr);
     const today = new Date();
-    // 날짜만 비교 (시간 제외)
-    return deadline.getFullYear() === today.getFullYear() &&
-           deadline.getMonth() === today.getMonth() &&
-           deadline.getDate() === today.getDate();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    return dateStr === todayStr;
 };
 
-// 마감일이 지났는지 체크
+// 마감일이 지났는지 체크 (시간대 문제 방지)
 const isDeadlinePassed = (dateStr: string): boolean => {
-    const deadline = new Date(dateStr);
-    deadline.setHours(23, 59, 59, 999); // 마감일 당일 23:59:59까지 유효
     const today = new Date();
-    return today > deadline;
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    // 마감일 당일까지는 유효 (마감일 < 오늘이면 마감)
+    return dateStr < todayStr;
 };
 
 export default StudyCardContentV2;

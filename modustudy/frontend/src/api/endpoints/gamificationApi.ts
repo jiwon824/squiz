@@ -44,6 +44,7 @@ export interface UserStatsResponse {
 export interface ContributionDay {
     date: string;       // "2025-02-01"
     hasActivity: boolean;
+    activityCount: number;  // 활동 횟수 (레벨 계산용)
 }
 
 // 활동 요약

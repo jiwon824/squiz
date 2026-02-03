@@ -74,9 +74,19 @@ public class QuizGradingUtils {
             return true;
         }
 
-        // 2. 서술형 문제이고 키워드가 있는 경우, 키워드 기반 채점
-        if (questionType == QuestionType.SHORT_ANSWER && keywordsJson != null && !keywordsJson.isBlank()) {
-            return checkShortAnswerWithKeywords(trimmedUserAnswer, keywordsJson);
+        // 2. 서술형 문제 채점
+        if (questionType == QuestionType.SHORT_ANSWER) {
+            // 2-1. 키워드가 있는 경우, 키워드 기반 채점
+            if (keywordsJson != null && !keywordsJson.isBlank()) {
+                return checkShortAnswerWithKeywords(trimmedUserAnswer, keywordsJson);
+            }
+            // 2-2. 키워드가 없는 경우, 정답이 사용자 답변에 포함되어 있으면 정답
+            String normalizedUserAnswer = trimmedUserAnswer.toLowerCase().replaceAll("\\s+", " ");
+            String normalizedCorrect = normalizedCorrectAnswer.toLowerCase().replaceAll("\\s+", " ");
+            if (normalizedUserAnswer.contains(normalizedCorrect)) {
+                log.debug("서술형 포함 채점: '{}' 포함 '{}' → 정답", normalizedCorrect, normalizedUserAnswer);
+                return true;
+            }
         }
 
         // 3. 객관식 문제이고 options가 있는 경우, ID로 텍스트 찾아 비교

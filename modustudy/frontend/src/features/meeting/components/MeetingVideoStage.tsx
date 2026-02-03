@@ -10,7 +10,7 @@ interface VideoTileProps {
 }
 
 // 비디오 타일 컴포넌트
-const VideoTile: React.FC<VideoTileProps> = ({ stream, label, isPresenter }) => {
+const VideoTile: React.FC<VideoTileProps> = ({ stream, label, isPresenter, isLocal }) => {
     const videoRef = useRef<HTMLVideoElement | null>(null);
 
     useEffect(() => {
@@ -33,7 +33,10 @@ const VideoTile: React.FC<VideoTileProps> = ({ stream, label, isPresenter }) => 
                     autoPlay
                     playsInline
                     muted
-                    className="w-full h-full object-contain block"
+                    className={cn(
+                        'w-full h-full object-contain block',
+                        isLocal && '-scale-x-100'
+                    )}
                 />
             ) : (
                 <div className="w-full h-full flex items-center justify-center">

@@ -584,7 +584,7 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEntering
                     className={cn(
                         'flex-1 flex flex-col overflow-hidden',
                         'pb-6 pr-0 bg-slate-200 transition-all duration-300 ease-out',
-                        shouldHideHeader ? 'pt-0' : 'pt-2',
+                        shouldHideHeader ? 'pt-4' : 'pt-2',
                         sidebarMode === 'closed' ? 'pl-4' : 'pl-0',
                         isEnteringFromWorkspace && 'layout-main-enter'
                     )}
