@@ -553,11 +553,11 @@ export const RightSideBarV2: React.FC = () => {
                                 animate={{ opacity: 1, x: 0, scale: 1 }}
                                 exit={{ opacity: 0, x: 10, scale: 0.95 }}
                                 transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-                                className="absolute right-[calc(100%+12px)] top-1/2 -translate-y-1/2 z-50"
+                                className="absolute right-[calc(100%+12px)] top-0 z-50"
                             >
                                 <div className="relative bg-white rounded-2xl shadow-lg border border-study-green/20 p-3 min-w-[220px] max-w-[260px]">
                                     {/* 화살표 - 비디오 아이콘 중심을 정확히 가리킴 */}
-                                    <div className="absolute top-1/2 -translate-y-1/2 -right-1.5 w-3 h-3 bg-white border-r border-t border-study-green/20 rotate-45" />
+                                    <div className="absolute top-4 -right-1.5 w-3 h-3 bg-white border-r border-t border-study-green/20 rotate-45" />
 
                                     <div className="flex items-start gap-2.5">
                                         {/* 카메라 아이콘 */}

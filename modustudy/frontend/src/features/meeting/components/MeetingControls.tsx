@@ -48,13 +48,13 @@ const MeetingControls: React.FC<MeetingControlsProps> = ({
     onExtendMeeting,
 }) => {
     return (
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2.5 flex-wrap">
             {/* 미디어 그룹 */}
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2">
                 <Button
                     variant={micEnabled ? 'primary' : 'secondary'}
-                    size="xs"
-                    leftIcon={micEnabled ? <Mic size={16} /> : <MicOff size={16} />}
+                    size="sm"
+                    leftIcon={micEnabled ? <Mic size={18} /> : <MicOff size={18} />}
                     onClick={onToggleMic}
                     disabled={micDisabled}
                     tooltip={micEnabled ? '마이크 끄기' : '마이크 켜기'}
@@ -66,8 +66,8 @@ const MeetingControls: React.FC<MeetingControlsProps> = ({
                     <>
                         <Button
                             variant={shareMode === 'camera' ? 'primary' : 'secondary'}
-                            size="xs"
-                            leftIcon={<Camera size={16} />}
+                            size="sm"
+                            leftIcon={<Camera size={18} />}
                             onClick={() => onShareModeChange('camera')}
                             tooltip="카메라 공유"
                         >
@@ -75,17 +75,17 @@ const MeetingControls: React.FC<MeetingControlsProps> = ({
                         </Button>
                         <Button
                             variant={shareMode === 'screen' ? 'primary' : 'secondary'}
-                            size="xs"
-                            leftIcon={<Monitor size={16} />}
+                            size="sm"
+                            leftIcon={<Monitor size={18} />}
                             onClick={() => onShareModeChange('screen')}
                             tooltip="화면 공유"
                         >
-                            <span className="hidden sm:inline">화면</span>
+                            <span className="hidden sm:inline">화면공유</span>
                         </Button>
                         <Button
                             variant={shareMode === 'mixed' ? 'primary' : 'secondary'}
-                            size="xs"
-                            leftIcon={<MonitorPlay size={16} />}
+                            size="sm"
+                            leftIcon={<MonitorPlay size={18} />}
                             onClick={() => onShareModeChange('mixed')}
                             tooltip="화면+카메라 공유"
                         >
@@ -96,17 +96,18 @@ const MeetingControls: React.FC<MeetingControlsProps> = ({
             </div>
 
             {/* 구분선 */}
-            <div className="w-px h-8 bg-gray-200 mx-1 hidden sm:block" />
+            <div className="w-px h-9 bg-gray-200 mx-1.5 hidden sm:block" />
 
             {/* 발표자 그룹 */}
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2">
                 <Button
                     variant={isPresenter ? 'primary' : 'secondary'}
-                    size="xs"
-                    leftIcon={<Hand size={16} />}
+                    size="sm"
+                    leftIcon={<Hand size={18} />}
                     onClick={onTogglePresenter}
                     tooltip={isPresenter ? '발표 권한 내리기' : '발표자 되기'}
                     className={cn(
+                        '!border-none !shadow-none',
                         conditionalClasses.state(
                             isPresenter,
                             'bg-amber-500 hover:bg-amber-600',
@@ -119,14 +120,14 @@ const MeetingControls: React.FC<MeetingControlsProps> = ({
             </div>
 
             {/* 구분선 */}
-            <div className="w-px h-8 bg-gray-200 mx-1 hidden sm:block" />
+            <div className="w-px h-9 bg-gray-200 mx-1.5 hidden sm:block" />
 
             {/* 유틸리티 그룹 */}
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2">
                 <Button
                     variant="secondary"
-                    size="xs"
-                    leftIcon={<Aperture size={16} />}
+                    size="sm"
+                    leftIcon={<Aperture size={18} />}
                     onClick={onCapture}
                     disabled={captureDisabled}
                     tooltip={captureDisabled ? '캡쳐 중입니다.' : '발표화면 캡쳐 후 저장, 복사합니다.'}
@@ -136,8 +137,8 @@ const MeetingControls: React.FC<MeetingControlsProps> = ({
 
                 <Button
                     variant="secondary"
-                    size="xs"
-                    leftIcon={<Clock size={16} />}
+                    size="sm"
+                    leftIcon={<Clock size={18} />}
                     onClick={onExtendMeeting}
                     disabled={!canExtendMeeting || extendDisabled}
                     tooltip={
@@ -153,8 +154,8 @@ const MeetingControls: React.FC<MeetingControlsProps> = ({
 
                 <Button
                     variant="danger"
-                    size="xs"
-                    leftIcon={<PhoneOff size={16} />}
+                    size="sm"
+                    leftIcon={<PhoneOff size={18} />}
                     onClick={onEndMeeting}
                     disabled={!canEndMeeting}
                     tooltip={canEndMeeting ? '미팅 종료' : '스터디장만 종료할 수 있습니다.'}
