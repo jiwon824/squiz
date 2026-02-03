@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button, Input, Modal, Card, BackButton, ArrowButton, DatePicker, TimePicker, FloatingInput, IconInput } from '@/shared/components';
-import { X, Heart, Users, Star, Clock, Award, Check, Calendar, ChevronRight, Mail, Lock, Search, User } from 'lucide-react';
+import { X, Heart, Bookmark, Users, Star, Clock, Award, Check, Calendar, ChevronRight, Mail, Lock, Search, User } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 
 const ReuseTest = () => {
@@ -129,7 +129,7 @@ const ReuseTest = () => {
                                         <span className="bg-yellow-400 text-yellow-900 text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm">번개</span>
                                     </div>
                                     <Button variant="google-ghost" isCircle size="sm" className="text-white hover:bg-white/20">
-                                        <Heart size={20} />
+                                        <Bookmark size={20} />
                                     </Button>
                                 </div>
                                 <div className="text-white">

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
-    Heart, Users, Clock, MapPin,
+    Users, Clock, MapPin,
     Target, Award, AlertTriangle, Share2,
     BookOpen, Monitor, Handshake, Layers, MoreVertical,
     Calendar, CalendarDays, Bookmark, FileText, GraduationCap, Info, Loader2, Pencil, Quote, Trash2, Star,
@@ -536,11 +536,11 @@ const StudyDetailPageV3: React.FC = () => {
                                                 className={cn(
                                                     "rounded-full",
                                                     isBookmarked
-                                                        ? "text-[var(--color-error)]"
-                                                        : "text-[var(--color-text-tertiary)] hover:text-[var(--color-error)]"
+                                                        ? "text-amber-500"
+                                                        : "text-[var(--color-text-tertiary)] hover:text-amber-500"
                                                 )}
                                             >
-                                                <Heart size={20} fill={isBookmarked ? 'currentColor' : 'none'} />
+                                                <Bookmark size={20} fill={isBookmarked ? 'currentColor' : 'none'} />
                                             </Button>
                                             <Button
                                                 variant="ghost"

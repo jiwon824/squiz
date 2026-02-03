@@ -93,7 +93,7 @@ export const MyBookmarkList: React.FC = () => {
                 <div>
                     <h2 className="text-xl font-bold text-text-primary flex items-center gap-2">
                         <Bookmark size={20} className="text-amber-500" />
-                        내 스터디 북마크
+                        스터디 북마크
                     </h2>
                     <p className="text-sm text-text-secondary mt-1">관심있는 스터디를 저장해두세요.</p>
                 </div>
