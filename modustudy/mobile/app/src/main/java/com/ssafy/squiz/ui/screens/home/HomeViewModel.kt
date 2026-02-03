@@ -127,8 +127,9 @@ class HomeViewModel : ViewModel() {
 
                 val scheduleCountDeferred = async {
                     try {
-                        val response = RetrofitClient.scheduleApi.getTodaySchedules()
-                        if (response.isSuccessful) response.body()?.data?.size ?: 0 else 0
+                        val today = java.time.LocalDate.now().toString()
+                        val response = RetrofitClient.scheduleApi.getTodaySchedules(today, today)
+                        if (response.isSuccessful) response.body()?.size ?: 0 else 0
                     } catch (e: Exception) { 0 }
                 }
 

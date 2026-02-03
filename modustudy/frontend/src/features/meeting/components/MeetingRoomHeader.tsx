@@ -56,21 +56,21 @@ const MeetingRoomHeader: React.FC<MeetingRoomHeaderProps> = ({
         : 0;
 
     return (
-        <div className={cn(classBuilder.card('default'), 'flex flex-col gap-3 rounded-2xl p-4 shadow-sm shrink-0')}>
+        <div className="bg-white flex flex-col gap-3 rounded-2xl p-4 shadow-[0_4px_15px_rgba(0,0,0,0.05)] shrink-0">
             {/* 상단: 제목 + 타이머 + 상태 */}
             <div className="flex items-center justify-between gap-4 flex-wrap">
-                <div className="flex items-center gap-4 min-w-0">
-                    <h1 className="text-lg font-bold text-gray-900 truncate">
+                <div className="flex items-center gap-4 min-w-0 flex-1">
+                    <h1 className="text-xl font-bold text-gray-900 truncate max-w-[180px] sm:max-w-[280px] lg:max-w-[400px]">
                         {meetingTitle || '미팅 룸'}
                     </h1>
 
                     {/* 타이머 */}
-                    <div className="flex items-center gap-3">
-                        <span className="font-mono text-base font-semibold text-gray-700 tabular-nums">
+                    <div className="flex items-center gap-3 shrink-0">
+                        <span className="font-mono text-lg font-semibold text-gray-700 tabular-nums">
                             {elapsedLabel}
                         </span>
                         {plannedLabel && (
-                            <span className="text-xs text-gray-400">
+                            <span className="text-sm text-gray-400">
                                 / {plannedLabel}
                             </span>
                         )}
@@ -78,31 +78,31 @@ const MeetingRoomHeader: React.FC<MeetingRoomHeaderProps> = ({
 
                     {/* 시간 경고 */}
                     {timeWarning && (
-                        <span className="text-xs font-semibold text-red-500 animate-pulse">
+                        <span className="text-sm font-semibold text-red-500 animate-pulse shrink-0">
                             {timeWarning}
                         </span>
                     )}
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 shrink-0">
                     {/* 모드 배지 */}
                     <div className={cn(
-                        'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium',
+                        'inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-sm font-medium',
                         conditionalClasses.state(
                             isPresenter,
-                            'bg-amber-50 text-amber-700 border border-amber-200',
-                            'bg-blue-50 text-blue-700 border border-blue-200'
+                            'bg-amber-50 text-amber-700',
+                            'bg-blue-50 text-blue-700'
                         )
                     )}>
-                        {isPresenter ? <Presentation size={14} /> : <Users size={14} />}
+                        {isPresenter ? <Presentation size={16} /> : <Users size={16} />}
                         {isPresenter ? '발표자 모드' : '참가자 모드'}
                     </div>
 
                     <button
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm text-gray-500 hover:bg-gray-100 transition-colors cursor-pointer"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-base text-gray-500 hover:bg-gray-100 transition-colors cursor-pointer active:scale-95"
                         onClick={onGoList}
                     >
-                        <ArrowLeft size={16} />
+                        <ArrowLeft size={18} />
                         목록으로
                     </button>
                 </div>

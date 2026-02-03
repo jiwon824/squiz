@@ -46,7 +46,7 @@ const SessionDatePicker: React.FC<{
 };
 
 /**
- * 휠 컬럼 컴포넌트 - 스크롤로 숫자 선택
+ * 휠 컬럼 컴포넌트 - 스크롤/클릭/입력으로 숫자 선택
  */
 const WheelColumn: React.FC<{
   label: string;
@@ -55,6 +55,9 @@ const WheelColumn: React.FC<{
   onChange: (value: number) => void;
 }> = ({ label, values, selected, onChange }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [inputValue, setInputValue] = useState('');
 
   // 휠 이벤트 리스너 - passive: false로 등록해야 preventDefault 가능
   useEffect(() => {
@@ -79,6 +82,52 @@ const WheelColumn: React.FC<{
     return () => container.removeEventListener('wheel', handleWheel);
   }, [values, selected, onChange]);
 
+  // 이전/다음 값 클릭 핸들러
+  const handlePrevClick = () => {
+    const currentIndex = values.indexOf(selected);
+    if (currentIndex > 0) {
+      onChange(values[currentIndex - 1]);
+    }
+  };
+
+  const handleNextClick = () => {
+    const currentIndex = values.indexOf(selected);
+    if (currentIndex < values.length - 1) {
+      onChange(values[currentIndex + 1]);
+    }
+  };
+
+  // 현재 값 클릭 시 입력 모드 전환
+  const handleCurrentClick = () => {
+    setInputValue(String(selected));
+    setIsEditing(true);
+    setTimeout(() => inputRef.current?.select(), 0);
+  };
+
+  // 입력 완료 처리
+  const handleInputBlur = () => {
+    const num = parseInt(inputValue, 10);
+    if (!isNaN(num)) {
+      // 입력값과 가장 가까운 유효한 값 찾기
+      const closest = values.reduce((prev, curr) =>
+        Math.abs(curr - num) < Math.abs(prev - num) ? curr : prev
+      );
+      onChange(closest);
+    }
+    setIsEditing(false);
+  };
+
+  const handleInputKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleInputBlur();
+    } else if (e.key === 'Escape') {
+      setIsEditing(false);
+    }
+  };
+
+  const prevValue = values[values.indexOf(selected) - 1];
+  const nextValue = values[values.indexOf(selected) + 1];
+
   return (
     <div className="flex-1 flex flex-col items-center">
       <div className="text-[10px] font-bold text-gray-400 mb-1">{label}</div>
@@ -86,23 +135,50 @@ const WheelColumn: React.FC<{
         ref={containerRef}
         className="relative h-[100px] w-full flex flex-col items-center justify-center cursor-ns-resize select-none"
       >
-        {/* 이전 값 (흐리게) */}
-        <div className="text-gray-300 text-sm h-7 flex items-center">
-          {values[values.indexOf(selected) - 1] !== undefined
-            ? String(values[values.indexOf(selected) - 1]).padStart(2, '0')
-            : ''}
+        {/* 이전 값 (클릭 가능) */}
+        <div
+          onClick={prevValue !== undefined ? handlePrevClick : undefined}
+          className={cn(
+            'text-gray-300 text-sm h-7 flex items-center transition-colors',
+            prevValue !== undefined && 'hover:text-blue-400 cursor-pointer'
+          )}
+        >
+          {prevValue !== undefined ? String(prevValue).padStart(2, '0') : ''}
         </div>
 
-        {/* 현재 선택된 값 */}
-        <div className="bg-blue-500 text-white font-bold text-lg rounded-lg px-4 py-1 min-w-[50px] text-center">
-          {String(selected).padStart(2, '0')}
-        </div>
+        {/* 현재 선택된 값 (클릭하면 입력 모드) */}
+        {isEditing ? (
+          <input
+            ref={inputRef}
+            type="text"
+            inputMode="numeric"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value.replace(/\D/g, ''))}
+            onBlur={handleInputBlur}
+            onKeyDown={handleInputKeyDown}
+            className="bg-blue-500 text-white font-bold text-lg rounded-lg px-2 py-1 w-[50px] text-center outline-none ring-2 ring-blue-300"
+            maxLength={2}
+            autoFocus
+          />
+        ) : (
+          <div
+            onClick={handleCurrentClick}
+            className="bg-blue-500 text-white font-bold text-lg rounded-lg px-4 py-1 min-w-[50px] text-center cursor-text hover:bg-blue-600 transition-colors"
+            title="클릭하여 직접 입력"
+          >
+            {String(selected).padStart(2, '0')}
+          </div>
+        )}
 
-        {/* 다음 값 (흐리게) */}
-        <div className="text-gray-300 text-sm h-7 flex items-center">
-          {values[values.indexOf(selected) + 1] !== undefined
-            ? String(values[values.indexOf(selected) + 1]).padStart(2, '0')
-            : ''}
+        {/* 다음 값 (클릭 가능) */}
+        <div
+          onClick={nextValue !== undefined ? handleNextClick : undefined}
+          className={cn(
+            'text-gray-300 text-sm h-7 flex items-center transition-colors',
+            nextValue !== undefined && 'hover:text-blue-400 cursor-pointer'
+          )}
+        >
+          {nextValue !== undefined ? String(nextValue).padStart(2, '0') : ''}
         </div>
       </div>
     </div>

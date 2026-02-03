@@ -54,6 +54,20 @@ class BleAdvertiser(private val context: Context) {
      * @param sessionId 세션 ID (Minor 값으로 사용)
      */
     fun startAdvertising(studyId: Long, sessionId: Long): Boolean {
+        // Bluetooth 어댑터 재확인 (Bluetooth가 나중에 켜졌을 수 있음)
+        if (bluetoothAdapter == null) {
+            val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
+            bluetoothAdapter = bluetoothManager?.adapter
+        }
+
+        // Bluetooth가 꺼져있는지 확인
+        if (bluetoothAdapter?.isEnabled != true) {
+            Log.e(TAG, "Bluetooth가 꺼져있습니다.")
+            return false
+        }
+
+        // Advertiser 재획득 (Bluetooth가 켜진 후에 획득해야 함)
+        advertiser = bluetoothAdapter?.bluetoothLeAdvertiser
         if (advertiser == null) {
             Log.e(TAG, "BLE Advertiser를 사용할 수 없습니다. 기기가 BLE 광고를 지원하지 않습니다.")
             return false

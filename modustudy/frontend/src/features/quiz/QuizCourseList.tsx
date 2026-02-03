@@ -82,6 +82,8 @@ const mapApiCourseToUiCourse = (apiCourse: CourseListItem): Course => {
         title: apiCourse.name ?? '',
         description: apiCourse.description ?? '',
         category: category,
+        // API에서 넘어온 code를 그대로 저장
+        code: apiCourse.code,
         // 섹션 정보는 상세 페이지에서 로드하므로 빈 배열로 초기화
         sections: [],
     };
