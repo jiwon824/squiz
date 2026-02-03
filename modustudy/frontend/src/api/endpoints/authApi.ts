@@ -83,6 +83,16 @@ export const authApi = {
     },
 
     /**
+     * 구글 계정 연동 (이미 로그인된 사용자에게 Google 계정 추가)
+     * POST /api/v1/auth/social/google/link
+     */
+    linkGoogleAccount: async (code: string) => {
+        const response = await api.post<any>('/api/v1/auth/social/google/link', { code });
+        // 백엔드에서 ApiResponse<SocialAccountResponse> 반환함
+        return response.data.data;
+    },
+
+    /**
      * OAuth 회원가입 완료 (추가 정보 입력)
      * POST /api/v1/users/me/profile
      */

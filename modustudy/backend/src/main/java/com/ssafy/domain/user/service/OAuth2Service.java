@@ -816,8 +816,22 @@ public class OAuth2Service {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
-        // 2. OAuth code로 소셜 사용자 정보 가져오기
-        OAuth2UserInfo userInfo = getOAuth2UserInfo(provider, code);
+        // Google의 경우 토큰도 함께 저장해야 함 (Calendar 연동용)
+        String accessToken = null;
+        String refreshToken = null;
+        Integer expiresIn = null;
+        OAuth2UserInfo userInfo;
+
+        if (provider == SocialProvider.GOOGLE) {
+            Map<String, Object> googleTokens = getGoogleTokens(code);
+            accessToken = (String) googleTokens.get("access_token");
+            refreshToken = (String) googleTokens.get("refresh_token");
+            expiresIn = (Integer) googleTokens.get("expires_in");
+            userInfo = getGoogleUserInfo(accessToken);
+            log.info("Google 연동 토큰 획득: accessToken 있음={}, refreshToken 있음={}", accessToken != null, refreshToken != null);
+        } else {
+            userInfo = getOAuth2UserInfo(provider, code);
+        }
 
         // 3. 이미 연동되어 있는지 확인 (같은 provider + provider_user_id)
         Optional<UserSocialAccount> existingSocial = socialAccountRepository
@@ -826,8 +840,18 @@ public class OAuth2Service {
         if (existingSocial.isPresent()) {
             UserSocialAccount social = existingSocial.get();
 
-            // 3-1. 본인의 계정인 경우
+            // 3-1. 본인의 계정인 경우 - 토큰만 업데이트
             if (social.getUser().getId().equals(userId)) {
+                if (provider == SocialProvider.GOOGLE && refreshToken != null) {
+                    social.updateTokens(
+                            accessToken,
+                            refreshToken,
+                            expiresIn != null ? LocalDateTime.now().plusSeconds(expiresIn) : null
+                    );
+                    socialAccountRepository.save(social);
+                    log.info("기존 Google 계정 토큰 업데이트 완료: userId={}", userId);
+                    return SocialAccountResponse.from(social);
+                }
                 throw new IllegalStateException("이미 연동된 소셜 계정입니다.");
             }
 
@@ -835,18 +859,25 @@ public class OAuth2Service {
             throw new IllegalStateException("해당 소셜 계정은 다른 사용자에게 연동되어 있습니다.");
         }
 
-        // 4. 새로운 소셜 계정 연동
-        UserSocialAccount newSocialAccount = UserSocialAccount.builder()
+        // 4. 새로운 소셜 계정 연동 (Google인 경우 토큰 포함)
+        UserSocialAccount.UserSocialAccountBuilder builder = UserSocialAccount.builder()
                 .user(user)
                 .provider(provider)
                 .providerUserId(userInfo.getProviderId())
                 .email(userInfo.getEmail())
-                .isPrimary(false)  // 추가 연동이므로 primary 아님
-                .linkedAt(LocalDateTime.now())
-                .build();
+                .isPrimary(false)
+                .linkedAt(LocalDateTime.now());
 
+        if (provider == SocialProvider.GOOGLE) {
+            builder.accessToken(accessToken)
+                   .refreshToken(refreshToken)
+                   .tokenExpiresAt(expiresIn != null ? LocalDateTime.now().plusSeconds(expiresIn) : null)
+                   .calendarId("primary");
+        }
+
+        UserSocialAccount newSocialAccount = builder.build();
         socialAccountRepository.save(newSocialAccount);
-        log.info("소셜 계정 연동 완료: userId={}, provider={}", userId, provider);
+        log.info("소셜 계정 연동 완료: userId={}, provider={}, refreshToken존재={}", userId, provider, refreshToken != null);
 
         return SocialAccountResponse.from(newSocialAccount);
     }

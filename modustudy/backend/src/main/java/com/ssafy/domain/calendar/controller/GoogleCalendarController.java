@@ -1,23 +1,28 @@
 package com.ssafy.domain.calendar.controller;
 
 import com.ssafy.common.response.ApiResponse;
-import com.ssafy.domain.calendar.dto.CalendarEventResponse;
-import com.ssafy.domain.calendar.dto.CalendarStatusResponse;
+import com.ssafy.domain.calendar.dto.*;
 import com.ssafy.domain.calendar.entity.CalendarWatch;
 import com.ssafy.domain.calendar.repository.CalendarWatchRepository;
 import com.ssafy.domain.calendar.service.GoogleCalendarService;
+import com.ssafy.domain.calendar.service.PersonalScheduleService;
+import com.ssafy.domain.study.service.StudySessionService;
+import com.ssafy.domain.study.dto.response.StudySessionResponse;
 import com.ssafy.domain.user.service.OAuth2Service;
 import com.ssafy.domain.user.entity.SocialProvider;
 import com.ssafy.domain.user.entity.UserSocialAccount;
 import com.ssafy.domain.user.repository.UserSocialAccountRepository;
+
+import java.time.LocalDate;
+import java.util.Collections;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import com.ssafy.common.auth.CurrentUserId;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -30,6 +35,8 @@ import java.util.List;
 public class GoogleCalendarController {
 
     private final GoogleCalendarService googleCalendarService;
+    private final PersonalScheduleService personalScheduleService;
+    private final StudySessionService studySessionService;
     private final OAuth2Service oAuth2Service;
     private final UserSocialAccountRepository socialAccountRepository;
     private final CalendarWatchRepository calendarWatchRepository;
@@ -44,7 +51,7 @@ public class GoogleCalendarController {
     @GetMapping("/status")
     @Operation(summary = "캘린더 연동 상태 확인")
     public ResponseEntity<ApiResponse<CalendarStatusResponse>> getCalendarStatus(
-            @AuthenticationPrincipal Long userId) {
+            @CurrentUserId Long userId) {
 
         UserSocialAccount socialAccount = socialAccountRepository
                 .findByUserIdAndProvider(userId, SocialProvider.GOOGLE)
@@ -73,7 +80,7 @@ public class GoogleCalendarController {
     @PostMapping("/disconnect")
     @Operation(summary = "캘린더 연동 해제")
     public ResponseEntity<ApiResponse<Void>> disconnectCalendar(
-            @AuthenticationPrincipal Long userId) {
+            @CurrentUserId Long userId) {
 
         UserSocialAccount socialAccount = socialAccountRepository
                 .findByUserIdAndProvider(userId, SocialProvider.GOOGLE)
@@ -99,7 +106,7 @@ public class GoogleCalendarController {
     @GetMapping("/events")
     @Operation(summary = "캘린더 이벤트 조회")
     public ResponseEntity<ApiResponse<List<CalendarEventResponse>>> getEvents(
-            @AuthenticationPrincipal Long userId,
+            @CurrentUserId Long userId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTime,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endTime) {
 
@@ -111,12 +118,16 @@ public class GoogleCalendarController {
     @PostMapping("/sync")
     @Operation(summary = "수동 동기화 트리거")
     public ResponseEntity<ApiResponse<Void>> triggerSync(
-            @AuthenticationPrincipal Long userId) {
+            @CurrentUserId Long userId) {
 
-        // Watch가 등록되어 있지 않으면 등록
+        // Watch가 등록되어 있지 않으면 등록 시도 (실패해도 무시 - localhost에서는 webhook 불가)
         if (calendarWatchRepository.findByUserId(userId).isEmpty()) {
-            String webhookUrl = "https://i14d106.p.ssafy.io/api/v1/calendar/webhook";
-            googleCalendarService.registerWatch(userId, webhookUrl);
+            try {
+                String webhookUrl = "https://i14d106.p.ssafy.io/api/v1/calendar/webhook";
+                googleCalendarService.registerWatch(userId, webhookUrl);
+            } catch (Exception e) {
+                log.warn("Calendar Watch 등록 실패 (무시됨): {}", e.getMessage());
+            }
         }
 
         log.info("수동 동기화 요청: userId={}", userId);
@@ -157,7 +168,7 @@ public class GoogleCalendarController {
     @PostMapping("/watch/register")
     @Operation(summary = "Calendar Watch 등록 (Webhook)")
     public ResponseEntity<ApiResponse<CalendarWatch>> registerWatch(
-            @AuthenticationPrincipal Long userId) {
+            @CurrentUserId Long userId) {
 
         String webhookUrl = "https://i14d106.p.ssafy.io/api/v1/calendar/webhook";
         CalendarWatch watch = googleCalendarService.registerWatch(userId, webhookUrl);
@@ -168,7 +179,7 @@ public class GoogleCalendarController {
     @DeleteMapping("/watch")
     @Operation(summary = "Calendar Watch 해제")
     public ResponseEntity<ApiResponse<Void>> unregisterWatch(
-            @AuthenticationPrincipal Long userId) {
+            @CurrentUserId Long userId) {
 
         calendarWatchRepository.findByUserId(userId).ifPresent(watch -> {
             googleCalendarService.stopWatch(userId, watch.getChannelId(), watch.getResourceId());
@@ -176,5 +187,81 @@ public class GoogleCalendarController {
         });
 
         return ResponseEntity.ok(ApiResponse.success(null, "Watch가 해제되었습니다."));
+    }
+
+    @GetMapping("/all")
+    @Operation(summary = "모든 일정 통합 조회 (개인 + 스터디 + Google)")
+    public ResponseEntity<ApiResponse<AllSchedulesResponse>> getAllSchedules(
+            @CurrentUserId Long userId,
+            @RequestParam String startDate,
+            @RequestParam String endDate) {
+
+        log.info("모든 일정 통합 조회: userId={}, startDate={}, endDate={}", userId, startDate, endDate);
+
+        // 1. 개인 일정 조회
+        List<PersonalScheduleResponse> personalSchedules = personalScheduleService.getSchedules(userId, startDate, endDate);
+
+        // 2. 스터디 세션 조회
+        LocalDate start = LocalDate.parse(startDate);
+        LocalDate end = LocalDate.parse(endDate);
+        List<StudySessionResponse> studySessions = studySessionService.getMyStudySessions(
+                userId,
+                start.atStartOfDay(),
+                end.plusDays(1).atStartOfDay()
+        );
+
+        // 스터디 세션을 캘린더용 DTO로 변환
+        List<com.ssafy.domain.calendar.dto.StudySessionResponse> calendarSessions = studySessions.stream()
+                .map(s -> com.ssafy.domain.calendar.dto.StudySessionResponse.builder()
+                        .id(s.getId())
+                        .studyId(s.getStudyId())
+                        .sessionNumber(s.getSessionNumber())
+                        .title(s.getTitle())
+                        .description(s.getDescription())
+                        .scheduledAt(s.getScheduledAt() != null ? s.getScheduledAt().toString() : null)
+                        .durationMinutes(s.getDurationMinutes())
+                        .location(s.getLocation())
+                        .isOnline(s.getIsOnline())
+                        .status(s.getStatus() != null ? s.getStatus().name() : null)
+                        .completedAt(s.getCompletedAt() != null ? s.getCompletedAt().toString() : null)
+                        .createdAt(s.getCreatedAt() != null ? s.getCreatedAt().toString() : null)
+                        .build())
+                .toList();
+
+        // 3. Google Calendar 이벤트 조회 (연동된 경우에만)
+        List<CalendarEventResponse> googleEvents = Collections.emptyList();
+        try {
+            UserSocialAccount socialAccount = socialAccountRepository
+                    .findByUserIdAndProvider(userId, SocialProvider.GOOGLE)
+                    .orElse(null);
+
+            // 디버그 로깅
+            if (socialAccount == null) {
+                log.info("Google Calendar 조회 스킵: Google 소셜 계정 없음, userId={}", userId);
+            } else {
+                log.info("Google Calendar 상태: userId={}, hasCalendarAccess={}, isTokenExpired={}, refreshToken존재={}",
+                        userId,
+                        socialAccount.hasCalendarAccess(),
+                        socialAccount.isTokenExpired(),
+                        socialAccount.getRefreshToken() != null);
+            }
+
+            if (socialAccount != null && socialAccount.hasCalendarAccess() && !socialAccount.isTokenExpired()) {
+                LocalDateTime startDateTime = start.atStartOfDay();
+                LocalDateTime endDateTime = end.plusDays(1).atStartOfDay();
+                googleEvents = googleCalendarService.getEvents(userId, startDateTime, endDateTime);
+                log.info("Google Calendar 이벤트 조회 완료: {}개 이벤트", googleEvents.size());
+            }
+        } catch (Exception e) {
+            log.warn("Google Calendar 이벤트 조회 실패: {}", e.getMessage(), e);
+        }
+
+        AllSchedulesResponse response = AllSchedulesResponse.builder()
+                .personal(personalSchedules)
+                .studySessions(calendarSessions)
+                .googleEvents(googleEvents)
+                .build();
+
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

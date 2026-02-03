@@ -21,6 +21,7 @@ import com.ssafy.domain.user.dto.request.SocialLinkRequest;
 import com.ssafy.domain.user.dto.response.LinkedAccountsResponse;
 import com.ssafy.domain.user.dto.response.SocialAccountResponse;
 import com.ssafy.domain.user.entity.SocialProvider;
+import com.ssafy.common.auth.CurrentUserId;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -190,7 +191,7 @@ public class AuthController {
      */
     @GetMapping("/social/my")
     public ResponseEntity<ApiResponse<LinkedAccountsResponse>> getLinkedAccounts(
-            @org.springframework.security.core.annotation.AuthenticationPrincipal Long userId) {
+            @CurrentUserId Long userId) {
 
         if (userId == null) {
             return ResponseEntity
@@ -209,7 +210,7 @@ public class AuthController {
      */
     @PostMapping("/social/{provider}/link")
     public ResponseEntity<ApiResponse<SocialAccountResponse>> linkSocialAccount(
-            @org.springframework.security.core.annotation.AuthenticationPrincipal Long userId,
+            @CurrentUserId Long userId,
             @PathVariable String provider,
             @RequestBody SocialLinkRequest request) {
 
@@ -240,7 +241,7 @@ public class AuthController {
      */
     @DeleteMapping("/social/{provider}")
     public ResponseEntity<ApiResponse<MessageResponse>> unlinkSocialAccount(
-            @org.springframework.security.core.annotation.AuthenticationPrincipal Long userId,
+            @CurrentUserId Long userId,
             @PathVariable String provider) {
 
         // provider 문자열을 enum으로 변환
