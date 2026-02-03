@@ -42,6 +42,7 @@ fun MainScreen(
     onNavigateToStudyHome: (Long) -> Unit,
     onNavigateToQuizSolve: (Long) -> Unit,
     onNavigateToWrongNotes: () -> Unit,
+    onNavigateToReviewSession: () -> Unit,
     onNavigateToEditProfile: () -> Unit,
     onNavigateToMyActivity: () -> Unit,
     onNavigateToBookmarkedStudies: () -> Unit,
@@ -90,14 +91,8 @@ fun MainScreen(
                     onMyApplicationsClick = onNavigateToMyApplications,
                     onTemplatesClick = onNavigateToStudyTemplates,
                     onStartReview = {
-                        // 퀴즈 탭으로 이동
-                        navController.navigate(NavRoutes.QuizHome.route) {
-                            popUpTo(navController.graph.findStartDestination().id) {
-                                saveState = true
-                            }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
+                        // 바로 복습 세션으로 이동
+                        onNavigateToReviewSession()
                     }
                 )
             }
@@ -111,7 +106,8 @@ fun MainScreen(
             composable(NavRoutes.QuizHome.route) {
                 QuizHomeScreen(
                     onQuizClick = onNavigateToQuizSolve,
-                    onWrongNotesClick = onNavigateToWrongNotes
+                    onWrongNotesClick = onNavigateToWrongNotes,
+                    onStartReview = onNavigateToReviewSession
                 )
             }
 

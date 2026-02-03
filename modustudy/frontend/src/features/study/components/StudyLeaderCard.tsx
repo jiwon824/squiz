@@ -5,9 +5,7 @@ import { Button } from '@/shared/components';
 import { useUIStore } from '@/store/uiStore';
 import { useAuthStore } from '@/store/authStore';
 import { cn } from '@/shared/utils/cn';
-
-// 기본 프로필 이미지 경로
-const DEFAULT_PROFILE_IMAGE = '/images/default-profile.png';
+import { getProfileImageUrl } from '@/shared/utils/profileImage';
 
 /**
  * 스터디 리더 정보 카드 컴포넌트
@@ -151,7 +149,7 @@ const StudyLeaderCard: React.FC<StudyLeaderCardProps> = ({
                 <div className="text-center mb-6">
                     <div className="relative inline-block mb-4">
                         <img
-                            src={leader.profileImage || DEFAULT_PROFILE_IMAGE}
+                            src={getProfileImageUrl(leader.profileImage)}
                             alt={leader.nickname}
                             className={cn(
                                 'w-20 h-20 rounded-2xl object-cover',

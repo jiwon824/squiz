@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Search, SlidersHorizontal, X, Plus, ChevronDown, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/StudyFilter.css';
@@ -6,6 +6,9 @@ import '../styles/StudyFilter.css';
 interface StudyFilterProps {
     onFilterChange: (filters: FilterState) => void;
     onSearch: (keyword: string) => void;
+    defaultOpen?: boolean;
+    showHeader?: boolean;
+    filters: FilterState;
 }
 
 export interface FilterState {
@@ -18,34 +21,31 @@ export interface FilterState {
     regionId: number[];
 }
 
-// 대분류 → 소분류 매핑
+// 대분류 → 소분류 매핑 (topic_format_init.sql 기준)
 const TOPIC_CATEGORIES: Record<string, string[]> = {
-    '알고리즘/코딩테스트': ['백준', '프로그래머스', 'SWEA', 'LeetCode', '코딩테스트 대비'],
-    'CS 기초': ['자료구조', '알고리즘 이론', '운영체제', '네트워크', '데이터베이스', '컴퓨터구조', '디자인패턴', '시스템 설계'],
-    '프론트엔드': ['HTML/CSS', 'JavaScript', 'TypeScript', 'React', 'Vue', 'Next.js', '웹 접근성/성능'],
-    '백엔드': ['Java/Spring', 'Python/Django', 'Python/FastAPI', 'Node.js/Express', 'Go', 'Kotlin', 'API 설계'],
-    '인프라/DevOps': ['Docker', 'Kubernetes', 'CI/CD', 'AWS', 'GCP', 'Linux', '모니터링'],
-    'AI/ML': ['머신러닝 기초', '딥러닝', 'NLP', '컴퓨터 비전', 'MLOps', '논문 리뷰'],
-    '모바일': ['Android (Kotlin)', 'Android (Java)', 'iOS (Swift)', 'Flutter', 'React Native'],
-    '자격증': ['정보처리기사', 'SQLD/SQLP', '리눅스마스터', '네트워크관리사', 'AWS 자격증', 'Azure 자격증', 'CKAD/CKA'],
-    '취업 준비': ['기술 면접', '코딩테스트 대비', '포트폴리오', '이력서/자소서', '모의 면접'],
-    '프로젝트': ['사이드 프로젝트', '클론 코딩', '오픈소스 기여', '해커톤 준비']
+    '알고리즘/코딩테스트': ['백준', '프로그래머스', 'SWEA', 'LeetCode', '코드포스'],
+    'CS 기초': ['자료구조', '운영체제', '네트워크', '데이터베이스', '컴퓨터구조'],
+    '프론트엔드': ['HTML/CSS', 'JavaScript', 'TypeScript', 'React', 'Vue', 'Angular', 'Next.js'],
+    '백엔드': ['Java/Spring', 'Python/Django', 'Node.js', 'Go', 'Kotlin', 'C#/.NET'],
+    '인프라/DevOps': ['Docker/Kubernetes', 'AWS', 'CI/CD', 'Linux'],
+    '모바일': ['Android', 'iOS/Swift', 'Flutter', 'React Native'],
+    'AI/머신러닝': ['머신러닝 기초', '딥러닝', '자연어처리', '컴퓨터비전'],
+    '데이터': ['데이터 분석', '데이터 엔지니어링', 'SQL'],
+    '보안': ['웹 보안', '시스템 보안', '암호학'],
+    '기타': ['개발 문화', '취업 준비', '사이드 프로젝트'],
 };
 
-const StudyFilter: React.FC<StudyFilterProps> = ({ onFilterChange, onSearch }) => {
+const StudyFilter: React.FC<StudyFilterProps> = ({
+    onFilterChange,
+    onSearch,
+    defaultOpen = false,
+    showHeader = true,
+    filters,
+}) => {
     const navigate = useNavigate();
     const [searchKeyword, setSearchKeyword] = useState('');
-    const [showFilters, setShowFilters] = useState(false);
+    const [showFilters, setShowFilters] = useState(defaultOpen);
     const [expandedTopics, setExpandedTopics] = useState<string[]>([]); // 펼쳐진 대분류
-    const [filters, setFilters] = useState<FilterState>({
-        status: [],
-        topic: [],
-        subTopic: [],
-        meetingType: [],
-        difficulty: [],
-        studyType: [],
-        regionId: [],
-    });
 
     // 필터 옵션 정의
     const filterOptions = {
@@ -85,20 +85,17 @@ const StudyFilter: React.FC<StudyFilterProps> = ({ onFilterChange, onSearch }) =
     };
 
     const handleFilterToggle = (category: keyof FilterState, value: string | number) => {
-        setFilters((prev) => {
-            const categoryFilters = prev[category] as any[];
-            const newFilters = categoryFilters.includes(value)
-                ? categoryFilters.filter((v) => v !== value)
-                : [...categoryFilters, value];
+        const categoryFilters = filters[category] as any[];
+        const newFilters = categoryFilters.includes(value)
+            ? categoryFilters.filter((v) => v !== value)
+            : [...categoryFilters, value];
 
-            const updatedFilters = {
-                ...prev,
-                [category]: newFilters,
-            };
+        const updatedFilters = {
+            ...filters,
+            [category]: newFilters,
+        };
 
-            onFilterChange(updatedFilters);
-            return updatedFilters;
-        });
+        onFilterChange(updatedFilters);
     };
 
     // 대분류 펼침/접기 토글
@@ -120,7 +117,6 @@ const StudyFilter: React.FC<StudyFilterProps> = ({ onFilterChange, onSearch }) =
             studyType: [],
             regionId: [],
         };
-        setFilters(emptyFilters);
         setExpandedTopics([]);
         onFilterChange(emptyFilters);
     };
@@ -129,10 +125,17 @@ const StudyFilter: React.FC<StudyFilterProps> = ({ onFilterChange, onSearch }) =
         return Object.values(filters).reduce((acc, curr) => acc + curr.length, 0);
     };
 
+    useEffect(() => {
+        if (defaultOpen) {
+            setShowFilters(true);
+        }
+    }, [defaultOpen]);
+
     return (
         <div className="study-filter">
             {/* 검색 및 필터 버튼 행 */}
-            <div className="filter-row">
+            {showHeader && (
+                <div className="filter-row">
                 {/* 스터디 생성 버튼 (강조) */}
                 <button
                     className="create-study-btn"
@@ -175,7 +178,8 @@ const StudyFilter: React.FC<StudyFilterProps> = ({ onFilterChange, onSearch }) =
                         <span className="filter-count">{getActiveFilterCount()}</span>
                     )}
                 </button>
-            </div>
+                </div>
+            )}
 
             {/* 필터 패널 */}
             {showFilters && (
@@ -299,6 +303,16 @@ const StudyFilter: React.FC<StudyFilterProps> = ({ onFilterChange, onSearch }) =
                                 ))}
                             </div>
                         </div>
+                    </div>
+
+                    <div className="filter-footer">
+                        <button
+                            type="button"
+                            className="filter-apply-btn"
+                            onClick={() => onSearch(searchKeyword)}
+                        >
+                            검색
+                        </button>
                     </div>
                 </div>
             )}
