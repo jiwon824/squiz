@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { cn, classBuilder, conditionalClasses } from '@/shared/utils/cn';
+import { cn, conditionalClasses } from '@/shared/utils/cn';
 import { MeetingRoomChatMessage } from '../types';
-import { Send, Trash2, MessageCircle } from 'lucide-react';
+import { Send, Trash2, MessageCircle, X } from 'lucide-react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 
 interface MeetingChatPanelProps {
@@ -12,6 +12,8 @@ interface MeetingChatPanelProps {
     currentSender: string;
     /** 최대화 모드에서 플로팅 패널로 표시될 때 compact UI 적용 */
     compact?: boolean;
+    /** 닫기 버튼 클릭 시 */
+    onClose?: () => void;
 }
 
 const MeetingChatPanel: React.FC<MeetingChatPanelProps> = ({
@@ -21,6 +23,7 @@ const MeetingChatPanel: React.FC<MeetingChatPanelProps> = ({
     currentUserId,
     currentSender,
     compact = false,
+    onClose,
 }) => {
     const [text, setText] = useState('');
     const scrollContainerRef = useRef<HTMLDivElement | null>(null);
@@ -60,15 +63,25 @@ const MeetingChatPanel: React.FC<MeetingChatPanelProps> = ({
 
     return (
         <section className={cn(
-            classBuilder.card('default'),
-            'rounded-2xl shadow-sm flex flex-col min-h-0',
+            'bg-white rounded-2xl shadow-[0_4px_15px_rgba(0,0,0,0.05)] flex flex-col min-h-0',
             compact ? 'p-3 gap-2 flex-1' : 'p-4 gap-3 flex-[1_1_58%]'
         )}>
             {/* 헤더 */}
-            <h3 className={cn(
-                'font-semibold text-gray-900',
-                compact ? 'text-xs' : 'text-sm'
-            )}>채팅</h3>
+            <div className="flex items-center justify-between">
+                <h3 className={cn(
+                    'font-bold text-gray-900',
+                    compact ? 'text-lg' : 'text-xl'
+                )}>채팅</h3>
+                {onClose && (
+                    <button
+                        className="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center transition-colors cursor-pointer active:scale-95"
+                        onClick={onClose}
+                        title="닫기"
+                    >
+                        <X size={18} className="text-gray-400" />
+                    </button>
+                )}
+            </div>
 
             {/* 메시지 목록 (가상 스크롤) */}
             <div
@@ -77,8 +90,8 @@ const MeetingChatPanel: React.FC<MeetingChatPanelProps> = ({
             >
                 {messages.length === 0 ? (
                     <div className="flex flex-col items-center justify-center gap-2 py-8 text-gray-300">
-                        <MessageCircle size={compact ? 24 : 32} />
-                        <span className={compact ? 'text-xs' : 'text-sm'}>아직 채팅이 없습니다.</span>
+                        <MessageCircle size={compact ? 28 : 36} />
+                        <span className={compact ? 'text-sm' : 'text-base'}>아직 채팅이 없습니다.</span>
                     </div>
                 ) : (
                     <div
@@ -90,12 +103,24 @@ const MeetingChatPanel: React.FC<MeetingChatPanelProps> = ({
                     >
                         {virtualizer.getVirtualItems().map((virtualItem) => {
                             const message = messages[virtualItem.index];
+                            const prevMessage = virtualItem.index > 0 ? messages[virtualItem.index - 1] : null;
+                            const nextMessage = virtualItem.index < messages.length - 1 ? messages[virtualItem.index + 1] : null;
+
                             const isOwn =
                                 (currentUserId !== null &&
                                     currentUserId !== undefined &&
                                     message.userId !== null &&
                                     message.userId === currentUserId) ||
                                 message.sender === currentSender;
+
+                            // 연속 메시지 그룹화: 같은 사람이 연속으로 보낸 메시지인지 확인
+                            const isSameSenderAsPrev = prevMessage && prevMessage.sender === message.sender;
+                            const isSameSenderAsNext = nextMessage && nextMessage.sender === message.sender;
+
+                            // 그룹의 첫 번째 메시지: 이름 표시 (상대방만)
+                            const showSenderName = !isOwn && !isSameSenderAsPrev;
+                            // 그룹의 마지막 메시지: 시간 표시
+                            const showTime = !isSameSenderAsNext;
 
                             return (
                                 <div
@@ -112,14 +137,14 @@ const MeetingChatPanel: React.FC<MeetingChatPanelProps> = ({
                                 >
                                     <div className={cn(
                                         'flex flex-col max-w-[85%] group',
-                                        compact ? 'pb-1.5' : 'pb-2',
+                                        compact ? 'pb-1' : 'pb-1.5',
                                         conditionalClasses.state(isOwn, 'ml-auto items-end', 'mr-auto items-start')
                                     )}>
-                                        {/* 발신자 이름 (상대방만) */}
-                                        {!isOwn && (
+                                        {/* 발신자 이름 (상대방, 그룹 첫 메시지만) */}
+                                        {showSenderName && (
                                             <span className={cn(
                                                 'text-gray-400 mb-0.5 ml-1',
-                                                compact ? 'text-[10px]' : 'text-[11px]'
+                                                compact ? 'text-xs' : 'text-sm'
                                             )}>
                                                 {message.sender}
                                             </span>
@@ -128,7 +153,7 @@ const MeetingChatPanel: React.FC<MeetingChatPanelProps> = ({
                                         {/* 말풍선 */}
                                         <div className={cn(
                                             'relative rounded-2xl break-words',
-                                            compact ? 'px-2.5 py-1.5 text-xs' : 'px-3 py-2 text-sm',
+                                            compact ? 'px-3 py-2 text-sm' : 'px-3.5 py-2.5 text-base',
                                             conditionalClasses.state(
                                                 isOwn,
                                                 'bg-blue-600 text-white rounded-br-md',
@@ -141,22 +166,24 @@ const MeetingChatPanel: React.FC<MeetingChatPanelProps> = ({
                                             {isOwn && (
                                                 <button
                                                     type="button"
-                                                    className="absolute -left-7 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-gray-100 cursor-pointer"
+                                                    className="absolute -left-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-full hover:bg-gray-100 cursor-pointer"
                                                     onClick={() => onDelete(message)}
                                                 >
-                                                    <Trash2 size={compact ? 10 : 12} className="text-gray-400" />
+                                                    <Trash2 size={compact ? 12 : 14} className="text-gray-400" />
                                                 </button>
                                             )}
                                         </div>
 
-                                        {/* 시간 */}
-                                        <span className={cn(
-                                            'text-gray-300 mt-0.5',
-                                            compact ? 'text-[9px]' : 'text-[10px]',
-                                            conditionalClasses.state(isOwn, 'mr-1', 'ml-1')
-                                        )}>
-                                            {new Date(message.sentAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        </span>
+                                        {/* 시간 (그룹 마지막 메시지만) */}
+                                        {showTime && (
+                                            <span className={cn(
+                                                'text-gray-300 mt-0.5',
+                                                compact ? 'text-[10px]' : 'text-xs',
+                                                conditionalClasses.state(isOwn, 'mr-1', 'ml-1')
+                                            )}>
+                                                {new Date(message.sentAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                             );
@@ -166,31 +193,31 @@ const MeetingChatPanel: React.FC<MeetingChatPanelProps> = ({
             </div>
 
             {/* 입력 영역 */}
-            <form className="flex items-center gap-2" onSubmit={handleSubmit}>
+            <form className="flex items-center gap-2.5" onSubmit={handleSubmit}>
                 <input
                     type="text"
                     value={text}
                     onChange={(event) => setText(event.target.value)}
                     placeholder="메시지를 입력하세요"
                     className={cn(
-                        'flex-1 min-w-0 bg-gray-50 border border-gray-200 rounded-full placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all',
-                        compact ? 'px-3 py-1.5 text-xs' : 'px-4 py-2 text-sm'
+                        'flex-1 min-w-0 bg-gray-50 rounded-full placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all',
+                        compact ? 'px-4 py-2 text-sm' : 'px-5 py-2.5 text-base'
                     )}
                 />
                 <button
                     type="submit"
                     className={cn(
                         'flex-shrink-0 rounded-full flex items-center justify-center transition-all cursor-pointer',
-                        compact ? 'w-7 h-7' : 'w-9 h-9',
+                        compact ? 'w-9 h-9' : 'w-10 h-10',
                         conditionalClasses.state(
                             !!text.trim(),
                             'bg-blue-600 text-white hover:bg-blue-700 shadow-sm',
-                            'bg-gray-100 text-gray-400'
+                            'bg-blue-200 text-blue-400'
                         )
                     )}
                     disabled={!text.trim()}
                 >
-                    <Send size={compact ? 13 : 16} />
+                    <Send size={compact ? 16 : 18} />
                 </button>
             </form>
         </section>

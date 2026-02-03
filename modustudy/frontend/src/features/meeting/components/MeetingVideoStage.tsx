@@ -49,14 +49,14 @@ const VideoTile: React.FC<VideoTileProps> = ({ stream, label, isPresenter, isLoc
 
             {/* 발표자 배지 (좌상단) */}
             {isPresenter && (
-                <div className="absolute top-3 left-3 inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500 text-white text-xs font-medium rounded-full shadow-sm">
-                    <Crown size={12} />
+                <div className="absolute top-3 left-3 inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-500 text-white text-sm font-medium rounded-full shadow-sm">
+                    <Crown size={14} />
                     발표자
                 </div>
             )}
 
             {/* 이름 라벨 (좌하단) */}
-            <div className="absolute left-3 bottom-3 inline-flex items-center gap-1.5 text-white text-sm font-medium drop-shadow-md">
+            <div className="absolute left-3 bottom-3 inline-flex items-center gap-1.5 text-white text-base font-medium drop-shadow-md">
                 {label}
             </div>
         </div>
@@ -113,8 +113,8 @@ const MeetingVideoStage: React.FC<MeetingVideoStageProps> = ({
             )}
             {!localStream && remoteVideoStreams.length === 0 && (
                 <div className="flex flex-col items-center justify-center gap-3 py-12 text-gray-400">
-                    <UserCircle size={48} />
-                    <span className="text-sm">미디어 스트림이 없습니다.</span>
+                    <UserCircle size={56} />
+                    <span className="text-base">미디어 스트림이 없습니다.</span>
                 </div>
             )}
         </div>
