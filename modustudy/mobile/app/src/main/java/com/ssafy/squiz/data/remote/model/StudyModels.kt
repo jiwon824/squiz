@@ -130,3 +130,74 @@ data class TopicDTO(
     @SerializedName("name") val name: String,
     @SerializedName("children") val children: List<TopicDTO>? = null
 )
+
+// ========== 스터디 생성 요청 ==========
+
+/**
+ * 스터디 생성 요청 DTO
+ * 백엔드 StudyCreateRequest에 맞춤
+ */
+data class StudyCreateRequest(
+    @SerializedName("name") val name: String,
+    @SerializedName("intro") val intro: String? = null,
+    @SerializedName("description") val description: String? = null,
+    @SerializedName("topicId") val topicId: Long,
+    @SerializedName("formatId") val formatId: Long? = null,
+    @SerializedName("studyType") val studyType: String = "PLANNED", // PLANNED, LIGHTNING
+    @SerializedName("meetingType") val meetingType: String = "ONLINE", // ONLINE, OFFLINE, HYBRID
+    @SerializedName("regionId") val regionId: Long? = null,
+    @SerializedName("locationDetail") val locationDetail: String? = null,
+    @SerializedName("scheduleSummary") val scheduleSummary: String? = null,
+    @SerializedName("scheduleDays") val scheduleDays: String? = null, // 쉼표 구분 문자열
+    @SerializedName("scheduleTime") val scheduleTime: String? = null, // HH:mm
+    @SerializedName("maxMembers") val maxMembers: Int = 4,
+    @SerializedName("isPublic") val isPublic: Boolean = true,
+    @SerializedName("penaltyPolicy") val penaltyPolicy: String = "NORMAL",
+    @SerializedName("startDate") val startDate: String, // yyyy-MM-dd
+    @SerializedName("endDate") val endDate: String, // yyyy-MM-dd
+    @SerializedName("totalSessions") val totalSessions: Int? = null,
+    @SerializedName("recruitStartDate") val recruitStartDate: String? = null,
+    @SerializedName("recruitEndDate") val recruitEndDate: String? = null,
+    @SerializedName("textbook") val textbook: String? = null,
+    @SerializedName("goal") val goal: String? = null,
+    @SerializedName("difficulty") val difficulty: String = "BEGINNER", // BEGINNER, INTERMEDIATE, ADVANCED
+    @SerializedName("prerequisites") val prerequisites: String? = null,
+    @SerializedName("processDetail") val processDetail: String? = null,
+    @SerializedName("status") val status: String? = null // RECRUITING, PENDING 등
+)
+
+// 난이도 열거형
+enum class StudyDifficulty(val label: String) {
+    BEGINNER("입문"),
+    INTERMEDIATE("중급"),
+    ADVANCED("고급")
+}
+
+// 진행 방식 열거형
+enum class MeetingTypeEnum(val label: String) {
+    ONLINE("온라인"),
+    OFFLINE("오프라인"),
+    HYBRID("혼합")
+}
+
+// 스터디 타입 열거형
+enum class StudyTypeEnum(val label: String) {
+    PLANNED("일반 스터디"),
+    LIGHTNING("번개 스터디")
+}
+
+// 스터디 세션 DTO
+data class StudySessionDTO(
+    @SerializedName("id") val id: Long,
+    @SerializedName("studyId") val studyId: Long,
+    @SerializedName("sessionNumber") val sessionNumber: Int? = null,
+    @SerializedName("title") val title: String? = null,
+    @SerializedName("description") val description: String? = null,
+    @SerializedName("scheduledAt") val scheduledAt: String? = null,
+    @SerializedName("durationMinutes") val durationMinutes: Int? = null,
+    @SerializedName("location") val location: String? = null,
+    @SerializedName("isOnline") val isOnline: Boolean? = true,
+    @SerializedName("status") val status: String? = null, // SCHEDULED, IN_PROGRESS, COMPLETED, CANCELLED
+    @SerializedName("completedAt") val completedAt: String? = null,
+    @SerializedName("createdAt") val createdAt: String? = null
+)

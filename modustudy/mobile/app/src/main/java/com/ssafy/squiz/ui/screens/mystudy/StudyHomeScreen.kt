@@ -1,5 +1,6 @@
 package com.ssafy.squiz.ui.screens.mystudy
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -19,9 +20,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ssafy.squiz.data.remote.model.StudySessionDTO
 import com.ssafy.squiz.ui.components.*
 import com.ssafy.squiz.ui.theme.*
 
@@ -39,14 +43,26 @@ fun StudyHomeScreen(
     onNavigateToAttendanceCalendar: () -> Unit,
     onNavigateToExtendRecruitment: () -> Unit,
     onNavigateToTempChannel: () -> Unit,
-    onNavigateToConvertToOfficial: () -> Unit
+    onNavigateToConvertToOfficial: () -> Unit,
+    onNavigateToMeetingList: () -> Unit,
+    onNavigateToAttendance: (studyId: Long, sessionId: Long, isLeader: Boolean) -> Unit = { _, _, _ -> }
 ) {
-    val isLeader = true // TODO: Get from ViewModel
+    val context = LocalContext.current
+    val viewModel: StudyHomeViewModel = viewModel()
+    val studyDetail by viewModel.studyDetail.collectAsState()
+    val nextSession by viewModel.nextSession.collectAsState()
+    val isLeader by viewModel.isLeader.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+
+    // 스터디 홈 데이터 로드
+    LaunchedEffect(studyId) {
+        viewModel.loadStudyHome(studyId)
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("알고리즘 스터디") },
+                title = { Text(studyDetail?.name ?: "스터디") },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "뒤로")
@@ -67,14 +83,38 @@ fun StudyHomeScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Next Session Card
+            // Next Session Card (핵심: 출석체크 버튼 포함)
             item {
                 NextSessionCard(
-                    onAttendanceClick = { /* Start attendance */ }
+                    session = nextSession,
+                    studyName = studyDetail?.name ?: "스터디",
+                    onAttendanceClick = {
+                        val session = nextSession
+                        if (session != null) {
+                            // 세션 정보가 있으면 출석 화면으로 이동
+                            onNavigateToAttendance(studyId, session.id, isLeader)
+                        } else {
+                            // 세션 정보가 없으면 토스트 메시지
+                            Toast.makeText(context, "예정된 세션이 없습니다", Toast.LENGTH_SHORT).show()
+                        }
+                    }
                 )
             }
 
-            // Quick Actions
+            // Activity Section (핵심 기능: 출석 캘린더, 미팅 녹음)
+            item {
+                SectionHeader(title = "활동")
+            }
+
+            item {
+                ActivityMenus(
+                    onAttendanceCalendarClick = onNavigateToAttendanceCalendar,
+                    onRecordingClick = onNavigateToMeetingList
+                )
+            }
+
+            /* 간소화를 위해 주석처리
+            // Quick Actions (채팅, 자료실, 커리큘럼, 진행현황)
             item {
                 QuickActionsSection(
                     onChatClick = onNavigateToChannelList,
@@ -95,18 +135,6 @@ fun StudyHomeScreen(
                 )
             }
 
-            // Activity Section
-            item {
-                SectionHeader(title = "활동")
-            }
-
-            item {
-                ActivityMenus(
-                    onAttendanceCalendarClick = onNavigateToAttendanceCalendar,
-                    onRecordingClick = { /* TODO: 녹음/실시간 STT 화면 */ }
-                )
-            }
-
             // Leader Only Section
             if (isLeader) {
                 item {
@@ -122,14 +150,27 @@ fun StudyHomeScreen(
                     )
                 }
             }
+            */
         }
     }
 }
 
 @Composable
 private fun NextSessionCard(
+    session: StudySessionDTO?,
+    studyName: String,
     onAttendanceClick: () -> Unit
 ) {
+    // 세션 정보 파싱
+    val sessionInfo = if (session != null) {
+        // 날짜/시간 포맷팅 (scheduledAt: "2024-01-15T14:00:00")
+        val dateTime = session.scheduledAt?.replace("T", " ")?.take(16) ?: "시간 미정"
+        val location = if (session.isOnline == true) "온라인" else session.location ?: "오프라인"
+        Triple(dateTime, location, true)
+    } else {
+        Triple("예정된 세션 없음", "", false)
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -159,41 +200,46 @@ private fun NextSessionCard(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "일요일 14:00",
-                        fontSize = 22.sp,
+                        text = sessionInfo.first,
+                        fontSize = if (sessionInfo.third) 22.sp else 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Discord 온라인",
-                        fontSize = 13.sp,
-                        color = Color.White.copy(alpha = 0.8f)
-                    )
+                    if (sessionInfo.second.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = sessionInfo.second,
+                            fontSize = 13.sp,
+                            color = Color.White.copy(alpha = 0.8f)
+                        )
+                    }
                 }
 
-                Surface(
-                    modifier = Modifier.clickable { onAttendanceClick() },
-                    shape = RoundedCornerShape(12.dp),
-                    color = Color.White.copy(alpha = 0.2f)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                // 세션이 있을 때만 출석 버튼 활성화
+                if (sessionInfo.third) {
+                    Surface(
+                        modifier = Modifier.clickable { onAttendanceClick() },
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color.White.copy(alpha = 0.2f)
                     ) {
-                        Icon(
-                            imageVector = Icons.Filled.QrCode2,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "출석체크",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = Color.White
-                        )
+                        Row(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.QrCode2,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "출석체크",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color.White
+                            )
+                        }
                     }
                 }
             }

@@ -23,18 +23,19 @@ public class StudySessionController {
     private final StudySessionService studySessionService;
 
     /**
-     * 세션 생성
+     * 세션 생성 (배열로 통일)
      * POST /api/v1/studies/{studyId}/sessions
+     * 단건: [{ ... }], 다건: [{ ... }, { ... }, ...]
      */
     @PostMapping
-    public ResponseEntity<StudySessionResponse> createSession(
+    public ResponseEntity<List<StudySessionResponse>> createSessions(
             @PathVariable Long studyId,
             @RequestHeader("User-Id") Long userId,
-            @Valid @RequestBody StudySessionCreateRequest request) {
+            @Valid @RequestBody List<StudySessionCreateRequest> requests) {
 
-        log.info("세션 생성 요청 - studyId: {}, userId: {}", studyId, userId);
-        StudySessionResponse response = studySessionService.createSession(studyId, userId, request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        log.info("세션 생성 요청 - studyId: {}, userId: {}, count: {}", studyId, userId, requests.size());
+        List<StudySessionResponse> responses = studySessionService.createSessionsBulk(studyId, userId, requests);
+        return ResponseEntity.status(HttpStatus.CREATED).body(responses);
     }
 
     /**

@@ -10,6 +10,7 @@ import {
 import { useAuthStore } from '@/store/authStore';
 import { studyService, Study } from '../services/studyService';
 import { studyApi, getStudySessions, StudySessionItem, deleteStudy, getLeaderReviews, getLeaderInfo, LeaderReviewResponse, LeaderInfoResponse, getProvinces, getDistricts, getMyLeaderReview } from '@/api/endpoints/studyApi';
+import { PageNavHeader } from '@/shared/components/layouts/PageNavHeader';
 import StudyApplyModalV2 from './StudyApplyModalV2';
 import { StudyReportModal } from './StudyReportModal';
 import LeaderReviewModal from './LeaderReviewModal';
@@ -18,7 +19,7 @@ import StudyListContainer from './StudyListContainer';
 import StudyLeaderCard from './StudyLeaderCard';
 import StudyCommentSection from './StudyCommentSection';
 import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
-import { Button, ArrowButton, Dropdown } from '@/shared/components';
+import { Button, Dropdown } from '@/shared/components';
 import { cn } from '@/shared/utils/cn';
 import { useDMStore } from '@/features/dm/store/dmStore';
 import { useUIStore } from '@/store/uiStore';
@@ -110,15 +111,11 @@ const StudyDetailPageV3: React.FC = () => {
             try {
                 // 스터디 상세 조회
                 const data = await studyApi.getStudyDetail(Number(id));
-                console.log('[스터디 상세 API 응답]', data);
                 setStudyDetail(data as StudyDetail);
 
                 // 세션(커리큘럼) 목록 조회
                 try {
-                    console.log('[세션 조회 시작] studyId:', id);
                     const sessionData = await getStudySessions(Number(id));
-                    console.log('[세션 목록 API 응답]', sessionData);
-                    console.log('[세션 개수]', Array.isArray(sessionData) ? sessionData.length : 'not array');
                     setSessions(Array.isArray(sessionData) ? sessionData : []);
                 } catch (sessionError: any) {
                     console.error('세션 목록 조회 실패:', sessionError);
@@ -129,7 +126,6 @@ const StudyDetailPageV3: React.FC = () => {
                 // 스터디장 정보 조회 (평점, 리뷰 수 포함)
                 try {
                     const leaderData = await getLeaderInfo(Number(id));
-                    console.log('[스터디장 정보 API 응답]', leaderData);
                     setLeaderInfo(leaderData);
                     setLeaderAvgRating(leaderData.leaderRating);
                     setLeaderReviewCount(leaderData.leaderReviewCount || 0);
@@ -315,7 +311,6 @@ const StudyDetailPageV3: React.FC = () => {
     };
 
     const handleReportSubmit = (reason: string) => {
-        console.log(`[REPORT] Study ID: ${studyDetail.id}, Reason: ${reason}`);
         showToast('신고가 접수되었습니다.', 'success');
     };
 
@@ -473,25 +468,20 @@ const StudyDetailPageV3: React.FC = () => {
     const isClosed = isFullCapacity || isRecruitDeadlinePassed;
 
     // 디버그용: 콘솔에서 확인
-    console.log('[isOwner 확인]', { userId: user?.id, leaderId: study.leader?.id, isOwner });
 
     return (
         <UserLayoutV2>
             <StudyListContainer className="px-4 md:px-6">
                 <div className="max-w-8xl mx-auto py-8 animate-fadeIn">
                     {/* 상단 네비게이션 */}
-                    <div className="flex justify-between items-center mb-6">
-                        <div className="flex items-center gap-3">
-                            <ArrowButton
-                                direction="left"
-                                onClick={() => navigate('/study')}
-                                size="md"
-                            />
-                            <span className="text-sm font-semibold text-[var(--color-text-secondary)]">
-                                스터디 상세
-                            </span>
-                        </div>
-                    </div>
+                    <PageNavHeader
+                        title="스터디 상세"
+                        breadcrumbs={[
+                            { label: '스터디', path: '/study' },
+                            { label: '스터디 상세' },
+                        ]}
+                        onBack={() => navigate('/study')}
+                    />
 
                     {/* 메인 콘텐츠 */}
                     <div className="grid grid-cols-1 2xl:grid-cols-4 gap-6">

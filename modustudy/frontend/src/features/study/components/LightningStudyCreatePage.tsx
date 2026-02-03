@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Zap, MapPin, Users, Calendar } from 'lucide-react';
+import { Zap, MapPin, Users, Calendar } from 'lucide-react';
+import { PageNavHeader } from '@/shared/components/layouts/PageNavHeader';
 import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { Button } from '@/shared/components/Button';
 import { Input } from '@/shared/components/Input';
@@ -300,13 +301,8 @@ const LightningStudyCreatePage: React.FC = () => {
                 status,
             };
 
-            console.log('번개 스터디 생성 payload:', payload);
-            console.log('선택된 주제:', formData.topic, '/', formData.subTopic);
-            console.log('선택된 형식:', formData.format);
-            console.log('매핑된 topicId:', topicId, '/ formatId:', formatId);
 
             const createdStudy = await createStudy(payload);
-            console.log('번개 스터디 생성 성공:', createdStudy);
 
             showToast('번개 스터디가 개설되었습니다!', 'success');
             navigate('/study');
@@ -325,21 +321,14 @@ const LightningStudyCreatePage: React.FC = () => {
         <UserLayoutV2>
             <div className="max-w-6xl mx-auto px-4 py-8">
                 {/* 헤더 */}
-                <div className="mb-8">
-                    <div className="flex items-center gap-3">
-                        <button
-                            onClick={() => navigate('/study/create')}
-                            className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
-                        >
-                            <ChevronLeft size={24} />
-                        </button>
-                        <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
-                            <Zap size={22} className="text-amber-500" />
-                        </div>
-                        <h1 className="text-2xl font-bold text-gray-800">번개 스터디 개설</h1>
-                    </div>
-                    <p className="text-gray-500 text-sm mt-0.5 ml-16">1회성 빠른 스터디를 만들어보세요</p>
-                </div>
+                <PageNavHeader
+                    title="번개 스터디 만들기"
+                    breadcrumbs={[
+                        { label: '스터디', path: '/study' },
+                        { label: '번개 스터디 만들기' },
+                    ]}
+                    onBack={() => navigate('/study/create')}
+                />
 
                 <form onSubmit={handleSubmit}>
                     <div className="flex flex-col lg:flex-row gap-8 items-start relative">

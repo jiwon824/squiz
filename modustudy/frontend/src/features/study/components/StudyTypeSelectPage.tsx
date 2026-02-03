@@ -1,8 +1,9 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Calendar, Zap, Users, Clock, Target } from 'lucide-react';
+import { Calendar, Zap, Users, Clock, Target } from 'lucide-react';
 import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { cn } from '@/shared/utils/cn';
+import { PageNavHeader } from '@/shared/components/layouts/PageNavHeader';
 
 const StudyTypeSelectPage: React.FC = () => {
     const navigate = useNavigate();
@@ -11,18 +12,13 @@ const StudyTypeSelectPage: React.FC = () => {
         <UserLayoutV2>
             <div className="max-w-3xl mx-auto px-4 py-8">
                 {/* 헤더 */}
-                <div className="flex items-center gap-3 mb-8">
-                    <button
-                        onClick={() => navigate(-1)}
-                        className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
-                    >
-                        <ChevronLeft size={24} />
-                    </button>
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-800">스터디 개설</h1>
-                        <p className="text-gray-500 text-sm mt-1">어떤 유형의 스터디를 개설하시겠어요?</p>
-                    </div>
-                </div>
+                <PageNavHeader
+                    title="스터디 유형 선택"
+                    breadcrumbs={[
+                        { label: '스터디', path: '/study' },
+                        { label: '스터디 유형 선택' },
+                    ]}
+                />
 
                 {/* 타입 선택 카드 */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -70,6 +70,23 @@ export const classBuilder = {
   },
   
   /**
+   * 플로팅 인풋 클래스 빌더
+   */
+  floatingInput: (size: 'xs' | 'sm' | 'md' | 'lg' | 'xl' = 'md') => {
+    const baseClasses = 'relative';
+
+    const sizes = {
+      xs: 'h-9',
+      sm: 'h-10',
+      md: 'h-12',
+      lg: 'h-14',
+      xl: 'h-16',
+    };
+
+    return cn(baseClasses, sizes[size]);
+  },
+
+  /**
    * 텍스트 클래스 빌더
    */
   text: (variant: 'heading' | 'body' | 'caption', size?: 'sm' | 'md' | 'lg') => {

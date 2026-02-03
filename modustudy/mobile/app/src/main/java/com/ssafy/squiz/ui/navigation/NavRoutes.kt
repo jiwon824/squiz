@@ -24,6 +24,8 @@ sealed class NavRoutes(val route: String) {
     object BookmarkedStudies : NavRoutes("bookmarked_studies")
     object MyApplications : NavRoutes("my_applications")
     object StudyTemplates : NavRoutes("study_templates")
+    object StudyCreate : NavRoutes("study_create")
+    object StudyCreateLightning : NavRoutes("study_create_lightning")
 
     // My Studies
     object MyStudies : NavRoutes("my_studies")
@@ -85,6 +87,14 @@ sealed class NavRoutes(val route: String) {
         fun createRoute(sessionId: Long) = "session_memo/$sessionId"
     }
 
+    // 회의록 (모바일 전용 - 녹음 기반)
+    object MeetingList : NavRoutes("meeting_list/{studyId}") {
+        fun createRoute(studyId: Long) = "meeting_list/$studyId"
+    }
+    object MeetingDetail : NavRoutes("meeting_detail/{meetingId}") {
+        fun createRoute(meetingId: Long) = "meeting_detail/$meetingId"
+    }
+
     // Schedule
     object ScheduleList : NavRoutes("schedule_list")
     object ScheduleCalendar : NavRoutes("schedule_calendar")
@@ -120,5 +130,12 @@ sealed class NavRoutes(val route: String) {
     // User Profile (스터디 멤버 프로필 조회용)
     object UserProfile : NavRoutes("user_profile/{userId}") {
         fun createRoute(userId: Long) = "user_profile/$userId"
+    }
+
+    // DM (1:1 채팅)
+    object DmList : NavRoutes("dm_list")
+    object DmChat : NavRoutes("dm_chat/{conversationId}/{partnerId}/{partnerNickname}") {
+        fun createRoute(conversationId: Long, partnerId: Long, partnerNickname: String) =
+            "dm_chat/$conversationId/$partnerId/${java.net.URLEncoder.encode(partnerNickname, "UTF-8")}"
     }
 }

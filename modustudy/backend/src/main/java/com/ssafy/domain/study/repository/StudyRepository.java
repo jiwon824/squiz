@@ -42,6 +42,11 @@ public interface StudyRepository extends JpaRepository<Study, Long>, StudyReposi
     Page<Study> findByLeaderId(Long leaderId, Pageable pageable);
 
     /**
+     * 특정 스터디장이 생성한 스터디 개수 조회
+     */
+    long countByLeaderId(Long leaderId);
+
+    /**
      * 특정 상태의 스터디 개수 조회
      */
     Long countByStatus(Status status);

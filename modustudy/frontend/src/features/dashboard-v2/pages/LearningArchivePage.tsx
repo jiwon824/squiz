@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Archive,
-    ChevronLeft,
     ChevronRight,
     Calendar,
     Search,
@@ -17,6 +16,7 @@ import {
     Loader2
 } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
+import { PageNavHeader } from '@/shared/components/layouts';
 import '../styles/DashboardV2.css';
 import { studyApi } from '@/api/endpoints/studyApi';
 import { meetingApi } from '@/features/meeting/services/meetingApi';
@@ -180,53 +180,22 @@ export const LearningArchivePage: React.FC = () => {
     return (
         <div className="py-8">
             <div className="max-w-[1400px] mx-auto px-8">
-                {/* 브레드크럼 + 미니멀 헤더 */}
-                <div className="mb-6">
-                    {/* 브레드크럼 */}
-                    <nav className="flex items-center gap-1.5 text-sm mb-2">
-                        <button
-                            onClick={() => navigate('/dashboard')}
-                            className="text-text-tertiary hover:text-primary transition-colors"
-                        >
-                            대시보드
-                        </button>
-                        <ChevronRight size={14} className="text-text-tertiary" />
-                        <button
-                            onClick={selectedArchive ? () => setSelectedArchive(null) : undefined}
-                            className={cn(
-                                selectedArchive
-                                    ? 'text-text-tertiary hover:text-primary transition-colors'
-                                    : 'text-text-primary font-medium'
-                            )}
-                        >
-                            학습 보관함
-                        </button>
-                        {selectedArchive && (
-                            <>
-                                <ChevronRight size={14} className="text-text-tertiary" />
-                                <span className="text-text-primary font-medium">{selectedArchive.title}</span>
-                            </>
-                        )}
-                    </nav>
-
-                    {/* 페이지 타이틀 + 뒤로가기 */}
-                    <div className="flex items-center gap-3">
-                        <button
-                            onClick={handleBack}
-                            className="text-text-tertiary hover:text-text-primary transition-colors"
-                        >
-                            <ChevronLeft size={24} strokeWidth={1.5} />
-                        </button>
-                        <h1 className="text-2xl font-bold text-text-primary mb-0">
-                            {selectedArchive ? selectedArchive.title : '학습 보관함'}
-                        </h1>
-                        {selectedArchive && (
-                            <span className="px-3 py-1 bg-accent/10 text-accent rounded-full text-sm font-medium">
-                                {selectedArchive.studyName}
-                            </span>
-                        )}
-                    </div>
-                </div>
+                {/* 브레드크럼 + 헤더 */}
+                <PageNavHeader
+                    title={selectedArchive ? selectedArchive.title : '학습 보관함'}
+                    breadcrumbs={[
+                        { label: '대시보드', path: '/dashboard' },
+                        ...(selectedArchive
+                            ? [
+                                { label: '학습 보관함', onClick: () => setSelectedArchive(null) },
+                                { label: selectedArchive.title },
+                            ]
+                            : [{ label: '학습 보관함' }]
+                        ),
+                    ]}
+                    onBack={handleBack}
+                    badge={selectedArchive ? { text: selectedArchive.studyName, className: 'bg-accent/10 text-accent' } : undefined}
+                />
 
                 {selectedArchive ? (
                     // 상세 뷰

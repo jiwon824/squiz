@@ -160,4 +160,25 @@ object RetrofitClient {
     val homeApi: HomeApi by lazy {
         retrofit.create(HomeApi::class.java)
     }
+
+    /**
+     * Meeting API (녹음/회의록)
+     */
+    val meetingApi: MeetingApi by lazy {
+        retrofit.create(MeetingApi::class.java)
+    }
+
+    /**
+     * Workspace API (스터디 채팅)
+     */
+    val workspaceApi: WorkspaceApi by lazy {
+        retrofit.create(WorkspaceApi::class.java)
+    }
+
+    /**
+     * DM API (1:1 채팅)
+     */
+    val dmApi: DmApi by lazy {
+        retrofit.create(DmApi::class.java)
+    }
 }

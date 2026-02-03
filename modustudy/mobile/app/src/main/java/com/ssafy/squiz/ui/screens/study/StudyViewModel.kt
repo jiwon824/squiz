@@ -26,6 +26,13 @@ sealed class StudyDetailUiState {
     data class Error(val message: String) : StudyDetailUiState()
 }
 
+sealed class StudyCreateUiState {
+    object Idle : StudyCreateUiState()
+    object Loading : StudyCreateUiState()
+    data class Success(val study: StudyDTO) : StudyCreateUiState()
+    data class Error(val message: String) : StudyCreateUiState()
+}
+
 class StudyViewModel : ViewModel() {
 
     // 스터디 목록 상태
@@ -58,6 +65,10 @@ class StudyViewModel : ViewModel() {
     private val _topics = MutableStateFlow<List<TopicDTO>>(emptyList())
     val topics: StateFlow<List<TopicDTO>> = _topics.asStateFlow()
 
+    // 스터디 생성 상태
+    private val _createState = MutableStateFlow<StudyCreateUiState>(StudyCreateUiState.Idle)
+    val createState: StateFlow<StudyCreateUiState> = _createState.asStateFlow()
+
     // 페이지네이션
     private var currentPage = 0
     private var isLastPage = false
@@ -67,16 +78,33 @@ class StudyViewModel : ViewModel() {
         loadTopics()
     }
 
-    // 토픽 목록 로드 (현재 하드코딩 - 백엔드 API가 생기면 연동)
-    private fun loadTopics() {
+    // 토픽 목록 로드 (실제 API 연동)
+    fun loadTopics() {
         viewModelScope.launch {
-            _topics.value = listOf(
-                TopicDTO(1, "프로그래밍"),
-                TopicDTO(2, "외국어"),
-                TopicDTO(3, "자격증"),
-                TopicDTO(4, "취업"),
-                TopicDTO(5, "기타")
-            )
+            try {
+                val response = RetrofitClient.studyApi.getTopics()
+                if (response.isSuccessful) {
+                    _topics.value = response.body() ?: emptyList()
+                } else {
+                    // 기본 토픽 (API 실패 시 폴백)
+                    _topics.value = listOf(
+                        TopicDTO(1, "프로그래밍"),
+                        TopicDTO(2, "외국어"),
+                        TopicDTO(3, "자격증"),
+                        TopicDTO(4, "취업"),
+                        TopicDTO(5, "기타")
+                    )
+                }
+            } catch (e: Exception) {
+                // 기본 토픽 (네트워크 오류 시 폴백)
+                _topics.value = listOf(
+                    TopicDTO(1, "프로그래밍"),
+                    TopicDTO(2, "외국어"),
+                    TopicDTO(3, "자격증"),
+                    TopicDTO(4, "취업"),
+                    TopicDTO(5, "기타")
+                )
+            }
         }
     }
 
@@ -263,5 +291,34 @@ class StudyViewModel : ViewModel() {
                 onResult(Result.failure(e))
             }
         }
+    }
+
+    // 스터디 생성 (실제 API 연동)
+    fun createStudy(request: StudyCreateRequest, onSuccess: (Long) -> Unit) {
+        viewModelScope.launch {
+            _createState.value = StudyCreateUiState.Loading
+            try {
+                val response = RetrofitClient.studyApi.createStudy(request)
+
+                if (response.isSuccessful) {
+                    val study = response.body()
+                    if (study != null) {
+                        _createState.value = StudyCreateUiState.Success(study)
+                        onSuccess(study.id)
+                    } else {
+                        _createState.value = StudyCreateUiState.Error("스터디 생성에 실패했습니다.")
+                    }
+                } else {
+                    _createState.value = StudyCreateUiState.Error("스터디 생성에 실패했습니다. (${response.code()})")
+                }
+            } catch (e: Exception) {
+                _createState.value = StudyCreateUiState.Error(e.message ?: "네트워크 오류가 발생했습니다.")
+            }
+        }
+    }
+
+    // 스터디 생성 상태 초기화
+    fun resetCreateState() {
+        _createState.value = StudyCreateUiState.Idle
     }
 }

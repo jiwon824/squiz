@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ChevronLeft, Info, Calendar, Plus, Trash2, BookOpen, MapPin, AlertCircle, Clock, Users, Target, Shield, Sparkles, Loader2 } from 'lucide-react';
+import { Info, Calendar, Plus, Trash2, BookOpen, MapPin, AlertCircle, Clock, Users, Target, Shield, Sparkles, Loader2 } from 'lucide-react';
+import { PageNavHeader } from '@/shared/components/layouts/PageNavHeader';
 import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { useUIStore } from '@/store/uiStore';
 import { useAuthStore } from '@/store/authStore';
@@ -677,6 +678,13 @@ const StudyCreatePage: React.FC = () => {
                             '운영체제': ['운영체제'], 'os': ['운영체제'], '네트워크': ['네트워크'], 'network': ['네트워크'],
                             '데이터베이스': ['데이터베이스'], 'database': ['데이터베이스'], 'db': ['데이터베이스'],
                             '컴퓨터구조': ['컴퓨터구조'], '디자인패턴': ['디자인패턴'], '시스템 설계': ['시스템 설계'],
+                            // TDD/테스트 관련 키워드
+                            'tdd': ['java/spring', 'python/django', 'node.js/express'], 'test': ['java/spring'],
+                            '테스트': ['java/spring'], '테스트 주도 개발': ['java/spring'], 'unit test': ['java/spring'],
+                            '단위 테스트': ['java/spring'], 'junit': ['java/spring'], 'jest': ['react', 'node.js/express'],
+                            // 클린코드/리팩토링 관련
+                            'clean code': ['java/spring'], '클린코드': ['java/spring'], '클린 코드': ['java/spring'],
+                            'refactoring': ['java/spring'], '리팩토링': ['java/spring'], 'solid': ['java/spring'],
                             'api': ['api 설계'], 'api 설계': ['api 설계'], '모니터링': ['모니터링'],
                             '머신러닝': ['머신러닝 기초'], 'machine learning': ['머신러닝 기초'], 'ml': ['머신러닝 기초'],
                             '딥러닝': ['딥러닝'], 'deep learning': ['딥러닝'], 'dl': ['딥러닝'],
@@ -755,6 +763,12 @@ const StudyCreatePage: React.FC = () => {
                                     }
                                 }
                             }
+                        }
+
+                        // 4차: 기본값 설정 (매칭 실패 시 첫 번째 주제 선택)
+                        if (!found && topics.length > 0 && topics[0].children.length > 0) {
+                            updated.topicParentId = topics[0].id;
+                            updated.topicId = topics[0].children[0].id;
                         }
                     }
 
@@ -1124,20 +1138,13 @@ const StudyCreatePage: React.FC = () => {
             <div className={styles.container}>
                 {/* 헤더 */}
                 <header className={styles.header}>
-                    <Button
-                        variant="ghost"
-                        onClick={() => navigate(-1)}
-                        leftIcon={<ChevronLeft size={20} />}
-                        className="text-gray-500 hover:text-gray-800 mb-4 -ml-2"
-                    >
-                        뒤로가기
-                    </Button>
-                    <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-                        {isEditMode ? '스터디 수정하기' : '새로운 스터디 시작하기'}
-                    </h1>
-                    <p className="text-gray-500">
-                        {isEditMode ? '스터디 정보를 수정합니다.' : '함께 성장할 팀원을 모집해보세요.'}
-                    </p>
+                    <PageNavHeader
+                        title={isEditMode ? '스터디 수정하기' : '스터디 만들기'}
+                        breadcrumbs={[
+                            { label: '스터디', path: '/study' },
+                            { label: isEditMode ? '스터디 수정하기' : '스터디 만들기' },
+                        ]}
+                    />
                 </header>
 
                 <form onSubmit={handleSubmit}>

@@ -206,12 +206,15 @@ export const ShortAnswerQuiz: React.FC<ShortAnswerQuizProps> = ({
         }
     }, [showResult]);
 
-    // 엔터 키로 제출
+    // 엔터 키로 제출 (IME 입력 고려)
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter' && !showResult && userAnswer?.trim()) {
-            e.preventDefault();
-            onSubmit();
-        }
+        // IME 조합 중일 때는 무시 (한글 입력 등)
+        if (e.nativeEvent.isComposing) return;
+        if (e.key !== 'Enter' || showResult || !userAnswer?.trim()) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+        onSubmit();
     };
 
     return (
@@ -311,19 +314,7 @@ export const ShortAnswerQuiz: React.FC<ShortAnswerQuizProps> = ({
                         >
                             제출하기
                         </button>
-                        <button
-                            onClick={() => {
-                                onChangeAnswer(null);
-                                onSubmit();
-                            }}
-                            className={cn(
-                                'px-6 py-3 rounded-xl font-bold transition-all',
-                                'bg-gray-100 hover:bg-gray-200 text-text-secondary',
-                                'disabled:opacity-50 disabled:cursor-not-allowed'
-                            )}
-                        >
-                            잘 모르겠습니다
-                        </button>
+
                     </>
                 ) : onNext ? (
                     <button

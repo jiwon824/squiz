@@ -8,6 +8,8 @@ import { RightSideBarV2 } from './components-v2/RightSideBarV2';
 import { useUIStore, SidebarMode } from '@/store/uiStore';
 import { useAuthStore } from '@/store/authStore';
 import { useNotificationStore } from '@/features/notification/store/notificationStore';
+import { useGamificationStore } from '@/features/gamification/store/gamificationStore';
+import { LevelUpModal, LevelBadge } from '@/features/gamification/components';
 import { SquizLogoNew } from '@/shared/components/SquizLogoNew';
 import { Bell, User, Settings, LogOut, Check, X, Loader2 } from 'lucide-react';
 import { studyApi } from '@/api/endpoints/studyApi';
@@ -38,6 +40,7 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEntering
     const showToast = useUIStore((state) => state.showToast);
     const { user, logout, isLoggedIn } = useAuthStore();
     const { notifications, unreadCount, fetchNotifications, fetchUnreadCount, markNotificationAsRead } = useNotificationStore();
+    const { stats, fetchStats, isLevelUpModalOpen, levelUpInfo, closeLevelUpModal } = useGamificationStore();
     const [windowWidth, setWindowWidth] = useState(window.innerWidth);
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -95,6 +98,22 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEntering
         const interval = setInterval(() => {
             fetchUnreadCount();
         }, 30000);
+
+        return () => clearInterval(interval);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isLoggedIn]);
+
+    // 게이미피케이션 통계 로드 (로그인 시 + 1분마다 갱신)
+    useEffect(() => {
+        if (!isLoggedIn) return;
+
+        // 초기 로드
+        fetchStats();
+
+        // 1분마다 통계 갱신 (레벨업 감지용)
+        const interval = setInterval(() => {
+            fetchStats();
+        }, 60000);
 
         return () => clearInterval(interval);
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -469,10 +488,19 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEntering
                                                         onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_PROFILE_IMAGE; }}
                                                     />
                                                 </div>
-                                                <div>
-                                                    <h6 className="text-base font-semibold text-gray-900">
-                                                        {user?.nickname || user?.name || '사용자'}
-                                                    </h6>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2">
+                                                        <h6 className="text-base font-semibold text-gray-900 truncate">
+                                                            {user?.nickname || user?.name || '사용자'}
+                                                        </h6>
+                                                        {stats && (
+                                                            <LevelBadge
+                                                                level={stats.level}
+                                                                size="sm"
+                                                                variant="text"
+                                                            />
+                                                        )}
+                                                    </div>
                                                     <small className="text-gray-500">회원</small>
                                                 </div>
                                             </div>
@@ -580,6 +608,17 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEntering
                     </div>
                 )}
             </div>
+
+            {/* 레벨업 축하 모달 */}
+            {levelUpInfo && (
+                <LevelUpModal
+                    isOpen={isLevelUpModalOpen}
+                    onClose={closeLevelUpModal}
+                    previousLevel={levelUpInfo.previousLevel}
+                    newLevel={levelUpInfo.newLevel}
+                    newLevelName={levelUpInfo.newLevelName}
+                />
+            )}
         </div>
     );
 };

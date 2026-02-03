@@ -5,8 +5,11 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Target, Plus, CheckCircle2, Circle, Edit3 } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
+import { PostIt, getPostItTheme } from '@/shared/components/layouts/PostIt';
 import { useGoalsStore } from '../store/goalsStore';
 import { GoalsEditModal } from './GoalsEditModal';
+
+const theme = getPostItTheme('yellow');
 
 export const TodayGoalsCard: React.FC = () => {
     const { goals, toggleGoal } = useGoalsStore();
@@ -18,20 +21,23 @@ export const TodayGoalsCard: React.FC = () => {
 
     return (
         <>
-            <div className="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
-                {/* 헤더 - InfoCard와 동일한 스타일 */}
-                <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-bold text-lg text-primary flex items-center gap-2">
-                        <Target size={18} />
-                        오늘의 목표
-                    </h3>
+            <PostIt color="yellow" rotate={1.2} tapeRotate={-2}>
+                {/* 헤더 */}
+                <div className="flex items-center justify-between mb-4 mt-1">
+                    <div className="flex items-center gap-2.5">
+                        <Target size={20} style={{ color: theme.text }} />
+                        <h3 className="font-bold text-lg leading-6 mb-0" style={{ color: theme.text }}>
+                            오늘의 목표
+                        </h3>
+                    </div>
                     <div className="flex items-center gap-2">
-                        <span className="text-xs text-text-tertiary">
+                        <span className="text-xs" style={{ color: theme.sub }}>
                             {completedCount}/{totalCount}
                         </span>
                         <button
                             onClick={() => setIsModalOpen(true)}
-                            className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-text-tertiary hover:text-text-primary"
+                            className="p-1.5 rounded-lg transition-colors hover:opacity-70"
+                            style={{ color: theme.sub }}
                             title="목표 수정"
                         >
                             <Edit3 size={14} />
@@ -42,7 +48,10 @@ export const TodayGoalsCard: React.FC = () => {
                 {/* 진행률 바 */}
                 {totalCount > 0 && (
                     <div className="mb-4">
-                        <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                        <div
+                            className="w-full rounded-full h-1.5 overflow-hidden"
+                            style={{ background: 'rgba(200,180,50,0.2)' }}
+                        >
                             <motion.div
                                 initial={{ width: 0 }}
                                 animate={{ width: `${progressPercent}%` }}
@@ -59,7 +68,7 @@ export const TodayGoalsCard: React.FC = () => {
                 {/* 목표 리스트 */}
                 {goals.length === 0 ? (
                     <div className="text-center py-4">
-                        <p className="text-text-tertiary text-sm mb-3">
+                        <p className="text-sm mb-3" style={{ color: theme.sub }}>
                             오늘의 목표를 설정해보세요
                         </p>
                         <button
@@ -86,20 +95,25 @@ export const TodayGoalsCard: React.FC = () => {
                                 >
                                     <button
                                         onClick={() => toggleGoal(goal.id)}
-                                        className="w-full flex items-start gap-2 text-sm text-text-secondary text-left group"
+                                        className="w-full flex items-start gap-2 text-sm text-left group"
+                                        style={{ color: theme.sub }}
                                     >
                                         {/* 체크 아이콘 */}
                                         <span className="flex-shrink-0 mt-0.5">
                                             {goal.completed ? (
                                                 <CheckCircle2 className="text-accent" size={16} />
                                             ) : (
-                                                <Circle className="text-gray-300 group-hover:text-primary/50 transition-colors" size={16} />
+                                                <Circle
+                                                    size={16}
+                                                    style={{ color: 'rgba(93,78,0,0.3)' }}
+                                                    className="group-hover:text-primary/50 transition-colors"
+                                                />
                                             )}
                                         </span>
                                         {/* 목표 텍스트 */}
                                         <span className={cn(
                                             'flex-1 transition-colors',
-                                            goal.completed && 'text-text-tertiary line-through'
+                                            goal.completed && 'line-through opacity-50'
                                         )}>
                                             {goal.text}
                                         </span>
@@ -113,10 +127,8 @@ export const TodayGoalsCard: React.FC = () => {
                             <li>
                                 <button
                                     onClick={() => setIsModalOpen(true)}
-                                    className={cn(
-                                        'flex items-center gap-1.5 text-sm text-text-tertiary',
-                                        'hover:text-primary transition-colors'
-                                    )}
+                                    className="flex items-center gap-1.5 text-sm transition-colors hover:opacity-70"
+                                    style={{ color: theme.sub }}
                                 >
                                     <Plus size={14} />
                                     <span>목표 추가</span>
@@ -125,7 +137,7 @@ export const TodayGoalsCard: React.FC = () => {
                         )}
                     </ul>
                 )}
-            </div>
+            </PostIt>
 
             {/* 목표 수정 모달 */}
             <GoalsEditModal
