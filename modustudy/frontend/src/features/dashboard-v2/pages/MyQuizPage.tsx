@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -20,7 +20,8 @@ import { cn } from '@/shared/utils/cn';
 import {
     QuizSingleChoice,
     QuizMultipleChoice,
-    QuizShortAnswer
+    QuizShortAnswer,
+    QuizQuestion
 } from '@/shared/components';
 import '../styles/DashboardV2.css';
 import { getTodayReviews, getWrongAnswers, submitReview, ReviewItemDto, WrongAnswerSortType } from '../api/reviewApi';
@@ -48,6 +49,87 @@ const MOCK_WEAK_CONCEPTS: WeakConcept[] = [
     },
 ];
 
+// 알파벳 옵션 ID를 인덱스로 변환하는 헬퍼 함수 (A -> 0, B -> 1, ...)
+const optionIdToIndex = (id: string): number => {
+    const normalized = id.trim().toUpperCase();
+    if (normalized.length === 1 && normalized >= 'A' && normalized <= 'Z') {
+        return normalized.charCodeAt(0) - 'A'.charCodeAt(0);
+    }
+    // 숫자인 경우
+    const parsed = parseInt(id, 10);
+    return isNaN(parsed) ? -1 : parsed;
+};
+
+// 퀴즈 문제 변환 로직 (ReviewItemDto -> QuizQuestion)
+// MyQuizWidget.tsx의 transformToQuizQuestion과 동일한 로직
+const transformToQuizQuestion = (item: ReviewItemDto): QuizQuestion => {
+    const q = item.question;
+    const isMultiple = q.questionType === 'MULTIPLE_CHOICE';
+    const isMultipleAnswer = q.questionType === 'MULTIPLE_CHOICE_MULTIPLE';
+
+    // options 파싱: [{ id: "A", text: "..." }, { id: "B", text: "..." }, ...]
+    let options: string[] = [];
+    if (q.options) {
+        options = q.options.map(o => o.text);
+    }
+
+    // 정답 처리: correctAnswer는 옵션 ID 형태 (예: "A", "B" 또는 "A,B")
+    let correctAnswer: number | number[] | string = q.correctAnswer;
+
+    if (isMultiple && q.options) {
+        // 단일 정답: 옵션 ID를 인덱스로 변환 (예: "A" -> 0, "B" -> 1)
+        let index = q.options.findIndex(o => o.id === q.correctAnswer);
+        if (index === -1) {
+            // fallback: 알파벳 ID를 인덱스로 직접 변환 시도
+            index = optionIdToIndex(q.correctAnswer);
+        }
+        if (index !== -1 && index < q.options.length) {
+            correctAnswer = index;
+        } else {
+            console.warn('[transformToQuizQuestion] 단일 정답 변환 실패:', {
+                correctAnswer: q.correctAnswer,
+                options: q.options.map(o => o.id)
+            });
+        }
+    } else if (isMultipleAnswer && q.options) {
+        // 복수 정답: "A,B" -> [0, 1] (옵션 ID를 인덱스로 변환)
+        const correctIds = q.correctAnswer.split(',').map(s => s.trim());
+
+        // 1차 시도: 옵션 ID로 직접 매칭
+        let indexes = correctIds
+            .map(id => q.options.findIndex(o => o.id === id))
+            .filter(idx => idx !== -1);
+
+        // 2차 시도: 알파벳 ID를 인덱스로 직접 변환
+        if (indexes.length === 0) {
+            indexes = correctIds
+                .map(id => optionIdToIndex(id))
+                .filter(idx => idx !== -1 && idx < q.options.length);
+        }
+
+        if (indexes.length > 0) {
+            correctAnswer = indexes;
+        } else {
+            console.warn('[transformToQuizQuestion] 복수 정답 변환 실패:', {
+                correctAnswer: q.correctAnswer,
+                options: q.options.map(o => o.id)
+            });
+            // 빈 배열 대신 원래 문자열 유지 (QuizMultipleChoice에서 fallback 처리)
+        }
+    }
+
+    return {
+        id: item.reviewItemId,
+        type: 'multiple',
+        question: q.questionText,
+        options: (isMultiple || isMultipleAnswer) ? options : undefined,
+        correctAnswer,
+        explanation: q.explanation || '',
+        difficulty: item.difficulty < 3 ? 'easy' : item.difficulty < 7 ? 'medium' : 'hard',
+        category: q.category || '',
+    } as QuizQuestion;
+};
+
 type TabType = 'review' | 'wrong' | 'weak' | 'stats';
 
 export const MyQuizPage: React.FC = () => {
@@ -58,7 +140,7 @@ export const MyQuizPage: React.FC = () => {
     const [todayReviews, setTodayReviews] = useState<ReviewItemDto[]>([]);
     const [wrongReviews, setWrongReviews] = useState<ReviewItemDto[]>([]);
     const [wrongSortType, setWrongSortType] = useState<WrongAnswerSortType>('MOST_WRONG');
-    // const [loading, setLoading] = useState(false); // Lint fix: unused
+    const [loading, setLoading] = useState(false);
 
     // UI Action State
     const [selectedReviewItem, setSelectedReviewItem] = useState<ReviewItemDto | null>(null);
@@ -69,28 +151,31 @@ export const MyQuizPage: React.FC = () => {
     const [selectedAnswers, setSelectedAnswers] = useState<number[]>([]);
     const [shortAnswer, setShortAnswer] = useState<string | null>('');
     const [showResult, setShowResult] = useState(false);
+    const [isCorrectAnswer, setIsCorrectAnswer] = useState<boolean | null>(null); // 백엔드 채점 결과
 
     // Timer Hook
     const timer = useTimer();
 
+    // 데이터 패칭 함수 분리 (useCallback으로 메모이제이션)
+    const fetchData = useCallback(async () => {
+        setLoading(true);
+        try {
+            const [todayData, wrongData] = await Promise.all([
+                getTodayReviews(),
+                getWrongAnswers(wrongSortType)
+            ]);
+            setTodayReviews(todayData?.items || []);
+            setWrongReviews(wrongData?.items || []);
+        } catch (error) {
+            console.error("Failed to fetch reviews", error);
+            setTodayReviews([]);
+            setWrongReviews([]);
+        } finally {
+            setLoading(false);
+        }
+    }, [wrongSortType]);
+
     useEffect(() => {
-        const fetchData = async () => {
-            // setLoading(true);
-            try {
-                const [todayData, wrongData] = await Promise.all([
-                    getTodayReviews(),
-                    getWrongAnswers(wrongSortType)
-                ]);
-                setTodayReviews(todayData?.items || []);
-                setWrongReviews(wrongData?.items || []);
-            } catch (error) {
-                console.error("Failed to fetch reviews", error);
-                setTodayReviews([]);
-                setWrongReviews([]);
-            } finally {
-                // setLoading(false);
-            }
-        };
         fetchData();
     }, [wrongSortType]);
 
@@ -103,6 +188,7 @@ export const MyQuizPage: React.FC = () => {
             setSelectedAnswers([]);
             setShortAnswer('');
             setShowResult(false);
+            setIsCorrectAnswer(null);
         } else {
             navigate(-1);
         }
@@ -115,6 +201,7 @@ export const MyQuizPage: React.FC = () => {
         setSelectedAnswers([]);
         setShortAnswer('');
         setShowResult(false);
+        setIsCorrectAnswer(null);
         timer.start();
     };
 
@@ -135,12 +222,9 @@ export const MyQuizPage: React.FC = () => {
 
         if (!hasAnswer) return;
 
-        setShowResult(true);
-
         // API 호출
         const responseTimeMs = timer.stop();
 
-        // 정답 문자열 생성
         // 정답 문자열 생성 (Index -> Option ID 변환)
         const getOptionId = (idx: number) => {
             const option = selectedReviewItem.question.options[idx];
@@ -152,48 +236,52 @@ export const MyQuizPage: React.FC = () => {
             : selectedAnswers.sort((a, b) => a - b).map(getOptionId).join(',');
 
         try {
-            await submitReview({
+            const result = await submitReview({
                 contentType: selectedReviewItem.contentType,
                 contentId: selectedReviewItem.contentId,
                 userAnswer: answerString,
                 responseTimeMs
             });
+            // 백엔드 채점 결과 사용
+            setIsCorrectAnswer(result.isCorrect);
         } catch (e) {
             console.error("Review submission failed", e);
+            setIsCorrectAnswer(false); // 실패 시 오답 처리
         }
+        setShowResult(true);
     };
 
     const handleSubmitShort = async () => {
         if ((shortAnswer !== null && !shortAnswer.trim()) || !selectedReviewItem) return;
 
-        setShowResult(true);
-
         const responseTimeMs = timer.stop();
 
         try {
-            await submitReview({
+            const result = await submitReview({
                 contentType: selectedReviewItem.contentType,
                 contentId: selectedReviewItem.contentId,
                 userAnswer: shortAnswer,
                 responseTimeMs
             });
+            // 백엔드 채점 결과 사용
+            setIsCorrectAnswer(result.isCorrect);
         } catch (e) {
             console.error("Review submission failed", e);
+            setIsCorrectAnswer(false); // 실패 시 오답 처리
         }
-
-        setIsRetrying(false);
-        setSelectedReviewItem(null);
-        setSelectedAnswer(null);
-        setShortAnswer('');
-        setShowResult(false);
+        setShowResult(true);
     };
 
     const handleFinishRetry = () => {
         setIsRetrying(false);
         setSelectedReviewItem(null);
         setSelectedAnswer(null);
+        setSelectedAnswers([]);
         setShortAnswer('');
         setShowResult(false);
+        setIsCorrectAnswer(null);
+        // 목록으로 돌아갈 때 데이터 다시 가져오기
+        fetchData();
     };
 
     // 통계 계산 (Using wrongReviews for stats now)
@@ -273,16 +361,7 @@ export const MyQuizPage: React.FC = () => {
 
                                     {selectedReviewItem.question.questionType === 'MULTIPLE_CHOICE' ? (
                                         <QuizSingleChoice
-                                            quiz={{
-                                                id: Number(selectedReviewItem.contentId),
-                                                type: 'multiple',
-                                                question: selectedReviewItem.question.questionText,
-                                                options: selectedReviewItem.question.options.map(o => o.text),
-                                                correctAnswer: Number(selectedReviewItem.question.correctAnswer) || 0,
-                                                explanation: selectedReviewItem.question.explanation,
-                                                difficulty: selectedReviewItem.difficulty > 3 ? 'hard' : 'easy',
-                                                category: selectedReviewItem.question.category
-                                            }}
+                                            quiz={transformToQuizQuestion(selectedReviewItem)}
                                             selectedAnswer={selectedAnswer}
                                             showResult={showResult}
                                             onSelectAnswer={setSelectedAnswer}
@@ -290,16 +369,7 @@ export const MyQuizPage: React.FC = () => {
                                         />
                                     ) : selectedReviewItem.question.questionType === 'MULTIPLE_CHOICE_MULTIPLE' ? (
                                         <QuizMultipleChoice
-                                            quiz={{
-                                                id: Number(selectedReviewItem.contentId),
-                                                type: 'multiple',
-                                                question: selectedReviewItem.question.questionText,
-                                                options: selectedReviewItem.question.options.map(o => o.text),
-                                                correctAnswer: selectedReviewItem.question.correctAnswer.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n)),
-                                                explanation: selectedReviewItem.question.explanation,
-                                                difficulty: selectedReviewItem.difficulty > 3 ? 'hard' : 'easy',
-                                                category: selectedReviewItem.question.category
-                                            }}
+                                            quiz={transformToQuizQuestion(selectedReviewItem)}
                                             selectedAnswers={selectedAnswers}
                                             showResult={showResult}
                                             onToggleAnswer={handleToggleAnswer}
@@ -307,15 +377,7 @@ export const MyQuizPage: React.FC = () => {
                                         />
                                     ) : (
                                         <QuizShortAnswer
-                                            quiz={{
-                                                id: Number(selectedReviewItem.contentId),
-                                                type: 'short',
-                                                question: selectedReviewItem.question.questionText,
-                                                correctAnswer: selectedReviewItem.question.correctAnswer,
-                                                explanation: selectedReviewItem.question.explanation,
-                                                difficulty: selectedReviewItem.difficulty > 3 ? 'hard' : 'easy',
-                                                category: selectedReviewItem.question.category
-                                            }}
+                                            quiz={transformToQuizQuestion(selectedReviewItem)}
                                             userAnswer={shortAnswer}
                                             showResult={showResult}
                                             onChangeAnswer={setShortAnswer}
@@ -329,40 +391,31 @@ export const MyQuizPage: React.FC = () => {
                                             animate={{ opacity: 1, y: 0 }}
                                             className="mt-4 space-y-4"
                                         >
-                                            {/* 정답/오답 결과 표시 logic needs check */}
-                                            {(() => {
-                                                const question = selectedReviewItem.question;
-                                                const isCorrect = ['MULTIPLE_CHOICE', 'MULTIPLE_CHOICE_MULTIPLE'].includes(question.questionType)
-                                                    ? String(selectedAnswer) === String(question.correctAnswer)
-                                                    : shortAnswer?.trim().toLowerCase() === String(question.correctAnswer).trim().toLowerCase();
-
-                                                return (
-                                                    <div className={cn(
-                                                        'p-4 rounded-xl border-2 flex items-center gap-3',
-                                                        isCorrect
-                                                            ? 'bg-accent/10 border-accent/30'
-                                                            : 'bg-error/10 border-error/30'
-                                                    )}>
-                                                        {isCorrect ? (
-                                                            <>
-                                                                <CheckCircle2 className="text-accent" size={24} />
-                                                                <div>
-                                                                    <p className="font-bold text-accent">정답입니다!</p>
-                                                                    <p className="text-sm text-text-secondary">이제 이 개념을 확실히 이해하셨네요.</p>
-                                                                </div>
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <XCircle className="text-error" size={24} />
-                                                                <div>
-                                                                    <p className="font-bold text-error">오답입니다</p>
-                                                                    <p className="text-sm text-text-secondary">해설을 다시 확인해보세요.</p>
-                                                                </div>
-                                                            </>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })()}
+                                            {/* 정답/오답 결과 표시 - 백엔드 채점 결과 사용 */}
+                                            <div className={cn(
+                                                'p-4 rounded-xl border-2 flex items-center gap-3',
+                                                isCorrectAnswer
+                                                    ? 'bg-accent/10 border-accent/30'
+                                                    : 'bg-error/10 border-error/30'
+                                            )}>
+                                                {isCorrectAnswer ? (
+                                                    <>
+                                                        <CheckCircle2 className="text-accent" size={24} />
+                                                        <div>
+                                                            <p className="font-bold text-accent">정답입니다!</p>
+                                                            <p className="text-sm text-text-secondary">이제 이 개념을 확실히 이해하셨네요.</p>
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <XCircle className="text-error" size={24} />
+                                                        <div>
+                                                            <p className="font-bold text-error">오답입니다</p>
+                                                            <p className="text-sm text-text-secondary">해설을 다시 확인해보세요.</p>
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </div>
 
                                             <button
                                                 onClick={handleFinishRetry}
@@ -425,90 +478,98 @@ export const MyQuizPage: React.FC = () => {
 
                             {/* 우측 콘텐츠 영역 */}
                             <div className="flex-1 p-8">
-                                <AnimatePresence mode="wait">
-                                    {activeTab === 'review' && (
-                                        <motion.div
-                                            key="review"
-                                            initial={{ opacity: 0, x: 10 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            exit={{ opacity: 0, x: -10 }}
-                                        >
-                                            <ReviewItemList
-                                                items={todayReviews}
-                                                onRetry={handleRetry}
-                                                type="review"
-                                            />
-                                        </motion.div>
-                                    )}
+                                {/* 로딩 상태 표시 */}
+                                {loading ? (
+                                    <div className="flex flex-col items-center justify-center py-20">
+                                        <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-4" />
+                                        <p className="text-text-secondary font-medium">데이터를 불러오는 중...</p>
+                                    </div>
+                                ) : (
+                                    <AnimatePresence mode="wait">
+                                        {activeTab === 'review' && (
+                                            <motion.div
+                                                key="review"
+                                                initial={{ opacity: 0, x: 10 }}
+                                                animate={{ opacity: 1, x: 0 }}
+                                                exit={{ opacity: 0, x: -10 }}
+                                            >
+                                                <ReviewItemList
+                                                    items={todayReviews}
+                                                    onRetry={handleRetry}
+                                                    type="review"
+                                                />
+                                            </motion.div>
+                                        )}
 
-                                    {activeTab === 'wrong' && (
-                                        <motion.div
-                                            key="wrong"
-                                            initial={{ opacity: 0, x: 10 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            exit={{ opacity: 0, x: -10 }}
-                                        >
-                                            {/* Sorting Toggle */}
-                                            <div className="mb-4 flex gap-2">
-                                                <button
-                                                    onClick={() => setWrongSortType('MOST_WRONG')}
-                                                    className={cn(
-                                                        'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
-                                                        wrongSortType === 'MOST_WRONG'
-                                                            ? 'bg-primary text-white'
-                                                            : 'bg-gray-100 text-text-secondary hover:bg-gray-200'
-                                                    )}
-                                                >
-                                                    많이 틀린 순
-                                                </button>
-                                                <button
-                                                    onClick={() => setWrongSortType('FSRS_RECOMMENDED')}
-                                                    className={cn(
-                                                        'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
-                                                        wrongSortType === 'FSRS_RECOMMENDED'
-                                                            ? 'bg-primary text-white'
-                                                            : 'bg-gray-100 text-text-secondary hover:bg-gray-200'
-                                                    )}
-                                                >
-                                                    복습 우선순위
-                                                </button>
-                                            </div>
-                                            <ReviewItemList
-                                                items={wrongReviews}
-                                                onRetry={handleRetry}
-                                                type="wrong"
-                                            />
-                                        </motion.div>
-                                    )}
+                                        {activeTab === 'wrong' && (
+                                            <motion.div
+                                                key="wrong"
+                                                initial={{ opacity: 0, x: 10 }}
+                                                animate={{ opacity: 1, x: 0 }}
+                                                exit={{ opacity: 0, x: -10 }}
+                                            >
+                                                {/* Sorting Toggle */}
+                                                <div className="mb-4 flex gap-2">
+                                                    <button
+                                                        onClick={() => setWrongSortType('MOST_WRONG')}
+                                                        className={cn(
+                                                            'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                                                            wrongSortType === 'MOST_WRONG'
+                                                                ? 'bg-primary text-white'
+                                                                : 'bg-gray-100 text-text-secondary hover:bg-gray-200'
+                                                        )}
+                                                    >
+                                                        많이 틀린 순
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setWrongSortType('FSRS_RECOMMENDED')}
+                                                        className={cn(
+                                                            'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                                                            wrongSortType === 'FSRS_RECOMMENDED'
+                                                                ? 'bg-primary text-white'
+                                                                : 'bg-gray-100 text-text-secondary hover:bg-gray-200'
+                                                        )}
+                                                    >
+                                                        복습 우선순위
+                                                    </button>
+                                                </div>
+                                                <ReviewItemList
+                                                    items={wrongReviews}
+                                                    onRetry={handleRetry}
+                                                    type="wrong"
+                                                />
+                                            </motion.div>
+                                        )}
 
-                                    {activeTab === 'weak' && (
-                                        <motion.div
-                                            key="weak"
-                                            initial={{ opacity: 0, x: 10 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            exit={{ opacity: 0, x: -10 }}
-                                        >
-                                            <WeakConceptList concepts={MOCK_WEAK_CONCEPTS} />
-                                        </motion.div>
-                                    )}
+                                        {activeTab === 'weak' && (
+                                            <motion.div
+                                                key="weak"
+                                                initial={{ opacity: 0, x: 10 }}
+                                                animate={{ opacity: 1, x: 0 }}
+                                                exit={{ opacity: 0, x: -10 }}
+                                            >
+                                                <WeakConceptList concepts={MOCK_WEAK_CONCEPTS} />
+                                            </motion.div>
+                                        )}
 
-                                    {activeTab === 'stats' && (
-                                        <motion.div
-                                            key="stats"
-                                            initial={{ opacity: 0, x: 10 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            exit={{ opacity: 0, x: -10 }}
-                                        >
-                                            <StatsView
-                                                wrongReviews={wrongReviews}
-                                                totalWrong={wrongReviews.length}
-                                                totalWrongCount={totalWrongCount}
-                                                avgWrongCount={avgWrongCount}
-                                                weakConcepts={MOCK_WEAK_CONCEPTS}
-                                            />
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
+                                        {activeTab === 'stats' && (
+                                            <motion.div
+                                                key="stats"
+                                                initial={{ opacity: 0, x: 10 }}
+                                                animate={{ opacity: 1, x: 0 }}
+                                                exit={{ opacity: 0, x: -10 }}
+                                            >
+                                                <StatsView
+                                                    wrongReviews={wrongReviews}
+                                                    totalWrong={wrongReviews.length}
+                                                    totalWrongCount={totalWrongCount}
+                                                    avgWrongCount={avgWrongCount}
+                                                    weakConcepts={MOCK_WEAK_CONCEPTS}
+                                                />
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -576,7 +637,7 @@ const ReviewItemList: React.FC<ReviewItemListProps> = ({ items, onRetry, type })
                 {displayItems.map((item) => (
                     <div
                         key={item.reviewItemId}
-                        className="px-5 py-4 rounded-xl border border-gray-100 hover:border-gray-200 hover:bg-gray-50/30 transition-all"
+                        className="px-5 py-4 rounded-xl bg-white shadow-[0_4px_15px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)] hover:bg-gray-50 transition-all"
                     >
                         <div className="flex items-start justify-between gap-4">
                             <div className="flex-1 min-w-0">

@@ -91,8 +91,8 @@ sealed class NavRoutes(val route: String) {
     object MeetingList : NavRoutes("meeting_list/{studyId}") {
         fun createRoute(studyId: Long) = "meeting_list/$studyId"
     }
-    object MeetingDetail : NavRoutes("meeting_detail/{meetingId}") {
-        fun createRoute(meetingId: Long) = "meeting_detail/$meetingId"
+    object MeetingDetail : NavRoutes("meeting_detail/{studyId}/{meetingId}") {
+        fun createRoute(studyId: Long, meetingId: Long) = "meeting_detail/$studyId/$meetingId"
     }
 
     // Schedule

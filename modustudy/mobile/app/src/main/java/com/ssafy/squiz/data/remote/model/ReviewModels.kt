@@ -93,6 +93,12 @@ enum class FsrsRating(val value: Int, val label: String) {
     EASY(4, "쉬움")
 }
 
+// 틀린 문제 정렬 타입
+enum class WrongAnswerSortType(val value: String) {
+    MOST_WRONG("MOST_WRONG"),         // 많이 틀린 순
+    FSRS_RECOMMENDED("FSRS_RECOMMENDED") // 복습 우선순위
+}
+
 // 퀴즈 관련
 
 // 퀴즈 목록 아이템

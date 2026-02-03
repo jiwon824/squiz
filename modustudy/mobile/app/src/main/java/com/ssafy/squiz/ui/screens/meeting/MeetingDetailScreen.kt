@@ -39,6 +39,7 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MeetingDetailScreen(
+    studyId: Long,
     meetingId: Long,
     onBackClick: () -> Unit,
     viewModel: MeetingViewModel = viewModel()
@@ -53,8 +54,8 @@ fun MeetingDetailScreen(
     )
 
     // 데이터 로드
-    LaunchedEffect(meetingId) {
-        viewModel.loadMeetingDetail(meetingId)
+    LaunchedEffect(studyId, meetingId) {
+        viewModel.loadMeetingDetail(studyId, meetingId)
     }
 
     Scaffold(
@@ -92,7 +93,7 @@ fun MeetingDetailScreen(
                         actionButton = {
                             GradientButton(
                                 text = "다시 시도",
-                                onClick = { viewModel.loadMeetingDetail(meetingId) },
+                                onClick = { viewModel.loadMeetingDetail(studyId, meetingId) },
                                 icon = Icons.Default.Refresh
                             )
                         }

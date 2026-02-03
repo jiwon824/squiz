@@ -165,26 +165,29 @@ class StudySessionControllerTest {
     @Test
     @DisplayName("세션 생성 성공")
     void createSession_Success() throws Exception {
-        // given
+        // given - setUp의 세션(now+7일)보다 이후 날짜로 설정해야 sessionNumber가 2가 됨
         StudySessionCreateRequest request = StudySessionCreateRequest.builder()
                 .title("2회차: 스택과 큐")
                 .description("스택과 큐 자료구조 학습")
-                .scheduledAt(LocalDateTime.of(2025, 2, 12, 19, 0))
+                .scheduledAt(LocalDateTime.now().plusDays(14))
                 .durationMinutes(120)
                 .isOnline(true)
                 .build();
 
         // when & then
+        // createSessionsBulk는 전체 세션 목록을 scheduledAt 순서로 반환
+        // $[0] = setUp 세션(now+7일), $[1] = 새 세션(now+14일)
         mockMvc.perform(post("/api/v1/studies/{studyId}/sessions", testStudy.getId())
                         .header("User-Id", leader.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(List.of(request))))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$[0].id").exists())
-                .andExpect(jsonPath("$[0].studyId").value(testStudy.getId()))
-                .andExpect(jsonPath("$[0].sessionNumber").value(2))
-                .andExpect(jsonPath("$[0].title").value("2회차: 스택과 큐"))
-                .andExpect(jsonPath("$[0].status").value("SCHEDULED"));
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[1].id").exists())
+                .andExpect(jsonPath("$[1].studyId").value(testStudy.getId()))
+                .andExpect(jsonPath("$[1].sessionNumber").value(2))
+                .andExpect(jsonPath("$[1].title").value("2회차: 스택과 큐"))
+                .andExpect(jsonPath("$[1].status").value("SCHEDULED"));
     }
 
     @Test

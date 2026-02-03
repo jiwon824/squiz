@@ -62,12 +62,19 @@ public class StudySessionService {
                 .build();
 
         StudySession saved = studySessionRepository.save(session);
+        studySessionRepository.flush();
         log.info("세션 생성 완료 - studyId: {}, sessionNumber: {}", studyId, nextSessionNumber);
 
-        // 스터디 멤버들의 Google Calendar에 이벤트 자동 추가
-        syncSessionToMemberCalendars(saved, study.getName());
+        // 날짜 순서에 따라 세션 번호 재정렬
+        reorderSessionsByScheduledAt(studyId);
 
-        return StudySessionResponse.from(saved);
+        // 재정렬 후 최신 세션 정보 조회
+        StudySession reorderedSession = getSessionOrThrow(saved.getId());
+
+        // 스터디 멤버들의 Google Calendar에 이벤트 자동 추가
+        syncSessionToMemberCalendars(reorderedSession, study.getName());
+
+        return StudySessionResponse.from(reorderedSession);
     }
 
 
@@ -103,15 +110,22 @@ public class StudySessionService {
 
         // 일괄 저장
         List<StudySession> savedSessions = studySessionRepository.saveAll(sessions);
+        studySessionRepository.flush();
         log.info("세션 일괄 생성 완료 - studyId: {}, count: {}", studyId, savedSessions.size());
+
+        // 날짜 순서에 따라 세션 번호 재정렬
+        reorderSessionsByScheduledAt(studyId);
+
+        // 재정렬 후 최신 세션 목록 조회
+        List<StudySession> reorderedSessions = studySessionRepository.findByStudyIdOrderByScheduledAtAsc(studyId);
 
         // Google Calendar 동기화 (백그라운드 처리)
         String studyName = study.getName();
-        for (StudySession session : savedSessions) {
+        for (StudySession session : reorderedSessions) {
             syncSessionToMemberCalendars(session, studyName);
         }
 
-        return savedSessions.stream()
+        return reorderedSessions.stream()
                 .map(StudySessionResponse::from)
                 .toList();
     }
@@ -190,6 +204,10 @@ public class StudySessionService {
         StudySession session = getSessionOrThrow(sessionId);
         validateSessionBelongsToStudy(session, studyId);
 
+        // 날짜 변경 여부 확인 (재정렬 필요 여부)
+        boolean scheduledAtChanged = request.getScheduledAt() != null
+                && !request.getScheduledAt().equals(session.getScheduledAt());
+
         // 세션 정보 수정 (Entity 비즈니스 로직 활용)
         session.updateInfo(
                 request.getTitle(),
@@ -202,10 +220,19 @@ public class StudySessionService {
 
         log.info("세션 수정 완료 - sessionId: {}", sessionId);
 
-        // Google Calendar 이벤트도 업데이트
-        updateSessionInMemberCalendars(session, study.getName());
+        // 날짜가 변경된 경우 세션 번호 재정렬
+        if (scheduledAtChanged) {
+            studySessionRepository.flush();
+            reorderSessionsByScheduledAt(studyId);
+        }
 
-        return StudySessionResponse.from(session);
+        // 재정렬 후 최신 세션 정보 조회
+        StudySession updatedSession = getSessionOrThrow(sessionId);
+
+        // Google Calendar 이벤트도 업데이트
+        updateSessionInMemberCalendars(updatedSession, study.getName());
+
+        return StudySessionResponse.from(updatedSession);
     }
 
     /**
@@ -230,7 +257,11 @@ public class StudySessionService {
         googleCalendarService.deleteEventMappings(sessionId);
 
         studySessionRepository.delete(session);
+        studySessionRepository.flush();
         log.info("세션 삭제 완료 - sessionId: {}", sessionId);
+
+        // 삭제 후 남은 세션 번호 재정렬
+        reorderSessionsByScheduledAt(studyId);
     }
 
     /**
@@ -325,6 +356,47 @@ public class StudySessionService {
 
         session.setDurationMinutes(durationMinutes);
         updateSessionInMemberCalendars(session, study.getName());
+    }
+
+    /**
+     * 세션 번호를 scheduledAt 기준으로 재정렬
+     * 날짜 순서대로 sessionNumber를 1부터 다시 할당
+     */
+    private void reorderSessionsByScheduledAt(Long studyId) {
+        // scheduledAt 기준 오름차순으로 세션 조회
+        List<StudySession> sessions = studySessionRepository.findByStudyIdOrderByScheduledAtAsc(studyId);
+
+        if (sessions.isEmpty()) {
+            return;
+        }
+
+        // 기존 sessionNumber 목록 확인하여 재정렬 필요 여부 체크
+        boolean needsReorder = false;
+        for (int i = 0; i < sessions.size(); i++) {
+            if (!sessions.get(i).getSessionNumber().equals(i + 1)) {
+                needsReorder = true;
+                break;
+            }
+        }
+
+        if (!needsReorder) {
+            return;
+        }
+
+        // unique constraint 충돌 방지를 위해 일시적으로 음수로 변경
+        for (int i = 0; i < sessions.size(); i++) {
+            sessions.get(i).setSessionNumber(-(i + 1));
+        }
+        studySessionRepository.saveAll(sessions);
+        studySessionRepository.flush();
+
+        // 다시 양수로 할당
+        for (int i = 0; i < sessions.size(); i++) {
+            sessions.get(i).setSessionNumber(i + 1);
+        }
+        studySessionRepository.saveAll(sessions);
+
+        log.info("세션 번호 재정렬 완료 - studyId: {}, count: {}", studyId, sessions.size());
     }
 
     private Study getStudyOrThrow(Long studyId) {

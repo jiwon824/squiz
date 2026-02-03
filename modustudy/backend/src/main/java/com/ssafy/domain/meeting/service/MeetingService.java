@@ -10,6 +10,7 @@ import com.ssafy.domain.meeting.entity.MeetingSttSummary;
 import com.ssafy.domain.meeting.entity.MeetingTextTrackType;
 import com.ssafy.domain.meeting.entity.MeetingType;
 import com.ssafy.domain.meeting.entity.SummaryStatus;
+import com.ssafy.domain.meeting.entity.StudyDailyUsage;
 import com.ssafy.domain.meeting.repository.MeetingActionItemRepository;
 import com.ssafy.domain.meeting.repository.MeetingParticipantRepository;
 import com.ssafy.domain.meeting.repository.MeetingPhotoRepository;
@@ -61,6 +62,7 @@ public class MeetingService {
     private final MeetingServiceHelper helper;
     private final MeetingRecordingService meetingRecordingService;
     private final MeetingAudioService meetingAudioService;
+    private final StudyDailyUsageService dailyUsageService;
 
     @Transactional(readOnly = true)
     public Page<MeetingListItemResponse> listMeetings(Long studyId, MeetingType meetingType,
@@ -177,18 +179,36 @@ public class MeetingService {
         if (meetingRepository.existsByStudyIdAndStatus(studyId, MeetingStatus.IN_PROGRESS)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "MEETING_IN_PROGRESS");
         }
+
+        // 일일 온라인 미팅 한도 체크 (3시간)
+        int remainingSeconds = dailyUsageService.getOnlineMeetingRemainingSeconds(studyId);
+        if (remainingSeconds <= 0) {
+            throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS,
+                    "DAILY_MEETING_LIMIT_EXCEEDED: 오늘의 온라인 미팅 한도(3시간)를 초과했습니다.");
+        }
+
         MeetingType meetingType = request.meetingType() == null ? MeetingType.OTHER : request.meetingType();
         boolean autoShareSummary = Boolean.TRUE.equals(request.autoShareSummary());
         int plannedDurationSeconds = resolvePlannedDurationSeconds(
                 studyId, request.sessionId(), request.plannedDurationSeconds());
+
+        // 남은 시간보다 계획 시간이 길면 남은 시간으로 제한
+        if (plannedDurationSeconds > remainingSeconds) {
+            plannedDurationSeconds = remainingSeconds;
+            log.info("[일일 한도] 계획 시간을 남은 한도로 제한 - studyId: {}, 남은: {}초", studyId, remainingSeconds);
+        }
+
         Meeting meeting = Meeting.start(studyId, request.sessionId(), request.workspaceId(),
                 request.title(), meetingType, autoShareSummary, request.shareWorkspaceId(), LocalDateTime.now(),
                 plannedDurationSeconds);
         Meeting saved = meetingRepository.save(meeting);
         meetingRecordingService.triggerSfuRecordingStart(saved.getId());
+
+        log.info("[미팅 시작] studyId: {}, meetingId: {}, 남은 일일 한도: {}초", studyId, saved.getId(), remainingSeconds);
+
         return new MeetingResponse(saved.getId(), saved.getTitle(), helper.buildRoomToken(saved), saved.getStatus().name(),
                 saved.getMeetingType().name(), saved.getRecordingStatus().name(), saved.getSttStatus().name(),
-                helper.resolveSummaryStatus(saved).name());
+                helper.resolveSummaryStatus(saved).name(), remainingSeconds);
     }
 
     @Transactional
@@ -252,6 +272,48 @@ public class MeetingService {
                         studyId, meeting.getSessionId(), ex.getMessage());
             }
         }
+
+        // 일일 사용량 기록 (온라인 미팅)
+        if (meeting.getDurationSeconds() != null && meeting.getDurationSeconds() > 0) {
+            dailyUsageService.addOnlineMeetingUsage(studyId, meeting.getDurationSeconds());
+        }
+
+        return new MeetingEndResponse(meeting.getDurationSeconds(), meeting.getParticipantCount(),
+                meeting.getSummaryStatus().name());
+    }
+
+    /**
+     * 미팅 강제 종료 (일일 한도 초과 시 시스템에서 호출)
+     */
+    @Transactional
+    public MeetingEndResponse forceEndMeeting(Long studyId, Long meetingId, String reason) {
+        Meeting meeting = helper.getMeetingOrThrow(studyId, meetingId);
+        if (meeting.getStatus() == MeetingStatus.ENDED) {
+            log.warn("[강제 종료] 이미 종료된 미팅 - meetingId: {}", meetingId);
+            return new MeetingEndResponse(meeting.getDurationSeconds(), meeting.getParticipantCount(),
+                    meeting.getSummaryStatus().name());
+        }
+
+        log.info("[강제 종료] 미팅 강제 종료 - studyId: {}, meetingId: {}, 사유: {}", studyId, meetingId, reason);
+
+        List<MeetingParticipant> participants = meetingParticipantRepository.findByMeetingId(meetingId);
+        LocalDateTime endedAt = LocalDateTime.now();
+        for (MeetingParticipant participant : participants) {
+            if (participant.getLeftAt() == null) {
+                participant.leave(endedAt);
+            }
+        }
+        int participantCount = participants.size();
+        meeting.end(endedAt, participantCount);
+        meeting.updateSummaryStatus(SummaryStatus.PROCESSING);
+        meetingAudioService.finalizeIndividualVoiceRecordings(meetingId, participants);
+        meetingRecordingService.triggerSfuRecordingStop(meetingId);
+
+        // 일일 사용량 기록
+        if (meeting.getDurationSeconds() != null && meeting.getDurationSeconds() > 0) {
+            dailyUsageService.addOnlineMeetingUsage(studyId, meeting.getDurationSeconds());
+        }
+
         return new MeetingEndResponse(meeting.getDurationSeconds(), meeting.getParticipantCount(),
                 meeting.getSummaryStatus().name());
     }
