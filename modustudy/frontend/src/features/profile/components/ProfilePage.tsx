@@ -118,11 +118,16 @@ export const ProfilePage = () => {
                 if (contributionsRes.status === 'fulfilled') {
                     const contrib = contributionsRes.value;
                     // contributions 배열을 레벨 배열로 변환 (0-4)
+                    // activityCount 기반 레벨: 0=없음, 1=1회, 2=2-3회, 3=4-5회, 4=6+회
                     const levels = (contrib.contributions || []).map((c) => {
-                        // 활동 여부를 0-4 레벨로 변환 (간단히 0 또는 2-4 랜덤)
-                        return c.hasActivity ? Math.floor(Math.random() * 3) + 2 : 0;
+                        const count = c.activityCount || 0;
+                        if (count === 0) return 0;
+                        if (count === 1) return 1;
+                        if (count <= 3) return 2;
+                        if (count <= 5) return 3;
+                        return 4;
                     });
-                     // 데이터가 없으면 빈 배열, 있으면 28일치로 제한
+                    // 데이터가 없으면 빈 배열, 있으면 28일치로 제한
                     setActivityData(levels.length > 0 ? levels.slice(0, 28) : []);
                 }
             } catch (error) {

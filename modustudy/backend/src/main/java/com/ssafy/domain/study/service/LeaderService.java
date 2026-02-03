@@ -14,12 +14,16 @@ import com.ssafy.domain.study.repository.StudyMemberRepository;
 import com.ssafy.domain.study.repository.StudyRepository;
 import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.repository.UserRepository;
+import com.ssafy.domain.gamification.event.FirstLeaderReviewEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
 
 /**
  * 스터디장 정보/리뷰 Service
@@ -34,6 +38,7 @@ public class LeaderService {
     private final UserRepository userRepository;
     private final LeaderReviewRepository leaderReviewRepository;
     private final StudyMemberRepository studyMemberRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * 스터디장 정보 조회
@@ -200,7 +205,20 @@ public class LeaderService {
         // 7. 스터디장 평균 평점 및 리뷰 수 업데이트
         updateLeaderRatingStats(study.getLeaderId());
 
-        // 8. 응답 생성
+        // 8. 첫 리뷰인 경우 경험치 이벤트 발행
+        Long reviewCount = leaderReviewRepository.countByReviewerId(reviewerId);
+        if (reviewCount == 1) {  // 방금 저장한 것이 첫 번째 리뷰
+            log.info("첫 스터디장 리뷰 작성 - userId: {}", reviewerId);
+            eventPublisher.publishEvent(new FirstLeaderReviewEvent(
+                    reviewerId,
+                    studyId,
+                    study.getName(),
+                    study.getLeaderId(),
+                    LocalDate.now()
+            ));
+        }
+
+        // 9. 응답 생성
         LeaderReviewResponse response = LeaderReviewResponse.from(savedReview);
         userRepository.findById(reviewerId).ifPresent(reviewer ->
             response.setReviewerInfo(reviewer.getName(), reviewer.getNickname())
