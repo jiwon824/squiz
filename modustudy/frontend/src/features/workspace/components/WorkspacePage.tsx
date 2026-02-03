@@ -203,7 +203,7 @@ export const WorkspacePage: React.FC = () => {
               day: 'numeric'
             });
             showToast?.(`워크스페이스는 스터디 시작일(${formattedDate})부터 이용할 수 있습니다.`, 'info');
-            navigate(`/study/v3/${studyId}`);
+            navigate(`/study/${studyId}`);
             return;
           }
         }
