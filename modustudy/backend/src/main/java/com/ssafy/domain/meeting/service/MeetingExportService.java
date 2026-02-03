@@ -1,13 +1,18 @@
 package com.ssafy.domain.meeting.service;
 
+import com.lowagie.text.Chunk;
 import com.lowagie.text.Document;
 import com.lowagie.text.DocumentException;
 import com.lowagie.text.Element;
 import com.lowagie.text.Font;
 import com.lowagie.text.Image;
 import com.lowagie.text.Paragraph;
+import com.lowagie.text.Phrase;
+import com.lowagie.text.pdf.PdfPCell;
+import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.BaseFont;
 import com.lowagie.text.pdf.PdfWriter;
+import com.lowagie.text.pdf.draw.LineSeparator;
 import com.ssafy.common.storage.LocalFileStorageService;
 import com.ssafy.domain.meeting.entity.Meeting;
 import com.ssafy.domain.meeting.entity.MeetingPhoto;
@@ -34,6 +39,7 @@ import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.awt.Color;
 
 @Service
 @RequiredArgsConstructor
@@ -50,8 +56,115 @@ public class MeetingExportService {
     @Value("${meeting.pdf.font-path:}")
     private String pdfFontPath;
 
-    @Transactional(readOnly = true)
+        @Transactional(readOnly = true)
     public String exportMeetingMarkdown(Long studyId, Long meetingId) {
+        ExportContext ctx = loadExportContext(studyId, meetingId);
+
+        StringBuilder builder = new StringBuilder();
+        builder.append("# ").append(ctx.studyName()).append(" 회의록").append("\n\n");
+        builder.append("## 회의 정보").append("\n");
+        builder.append("- 회의 일자: ").append(ctx.meetingDate()).append("\n");
+        builder.append("- 회의 시간: ").append(ctx.startTime()).append(" ~ ").append(ctx.endTime()).append("\n");
+        builder.append("- 참석 인원: 총 ").append(ctx.participantCount()).append("명").append("\n");
+        builder.append("- 회의 주제: ").append(ctx.meetingTitle()).append("\n\n");
+        builder.append("---\n\n");
+        builder.append("## 회의 목적 / 설명\n\n");
+        if (ctx.meetingDescription() != null && !ctx.meetingDescription().isBlank()) {
+            builder.append(ctx.meetingDescription().strip()).append("\n\n");
+        } else {
+            builder.append("이번 미팅의 목적 및 주요 논의 주제를 간략히 작성하세요.").append("\n\n");
+        }
+        builder.append("---\n\n");
+        builder.append("## AI 요약\n\n");
+        if (ctx.summaryText() != null && !ctx.summaryText().isBlank()) {
+            builder.append("> ").append(ctx.summaryText().strip()).append("\n\n");
+        } else {
+            builder.append("> AI가 전체 내용을 분석하여 요약한 결과가 표시됩니다.").append("\n\n");
+        }
+
+        builder.append("\n---\n\n");
+        builder.append("## 회의 이미지\n\n");
+        builder.append("- 회의 스크린샷 또는 첨부 이미지\n\n");
+        if (!ctx.selectedPhotos().isEmpty()) {
+            for (MeetingPhoto photo : ctx.selectedPhotos()) {
+                builder.append("![회의 이미지](").append(photo.getImageUrl()).append(")\n");
+            }
+        } else {
+            builder.append("![회의 이미지](./meeting_image.png)\n");
+        }
+
+        builder.append("---\n\n");
+        builder.append("## STT 기록 (전체 대화 내용)\n\n");
+
+        if (ctx.transcriptText() != null && !ctx.transcriptText().isBlank()) {
+            builder.append(ctx.transcriptText().strip()).append("\n");
+        } else {
+            builder.append("STT 기록이 없습니다.\n");
+        }
+
+        builder.append("\n---\n");
+
+        return builder.toString();
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] exportMeetingPdf(Long studyId, Long meetingId) {
+        ExportContext ctx = loadExportContext(studyId, meetingId);
+        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+            Document document = new Document();
+            PdfWriter.getInstance(document, outputStream);
+            document.open();
+            BaseFont baseFont = resolvePdfBaseFont();
+            Font titleFont = new Font(baseFont, 18, Font.BOLD);
+            Font sectionFont = new Font(baseFont, 13, Font.BOLD);
+            Font bodyFont = new Font(baseFont, 11);
+            Font metaLabelFont = new Font(baseFont, 10, Font.BOLD);
+            Font metaValueFont = new Font(baseFont, 10);
+
+            Paragraph title = new Paragraph(ctx.studyName() + " 회의록", titleFont);
+            title.setSpacingAfter(8f);
+            document.add(title);
+            addLine(document);
+
+            addSectionTitle(document, "회의 정보", sectionFont);
+            document.add(buildMetaTable(ctx, metaLabelFont, metaValueFont));
+
+            addSectionTitle(document, "회의 목적 / 설명", sectionFont);
+            addBodyParagraph(document, ctx.meetingDescription(), bodyFont,
+                    "이번 미팅의 목적 및 주요 논의 주제를 간략히 작성하세요.");
+
+            addSectionTitle(document, "AI 요약", sectionFont);
+            addBodyParagraph(document, ctx.summaryText(), bodyFont,
+                    "AI가 전체 내용을 분석하여 요약한 결과가 표시됩니다.");
+
+            appendSelectedPhotos(document, sectionFont, bodyFont, ctx.selectedPhotos());
+
+            addSectionTitle(document, "STT 기록 (전체 대화 내용)", sectionFont);
+            addBodyParagraph(document, ctx.transcriptText(), bodyFont, "STT 기록이 없습니다.");
+
+
+            document.close();
+            return outputStream.toByteArray();
+        } catch (DocumentException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "PDF_EXPORT_FAILED");
+        } catch (IOException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "PDF_FONT_LOAD_FAILED");
+        }
+    }
+
+    private BaseFont resolvePdfBaseFont() throws IOException, DocumentException {
+        if (pdfFontPath != null && !pdfFontPath.isBlank()) {
+            // .ttc (TrueType Collection) 파일은 폰트 인덱스가 필요 (예: path.ttc,0)
+            String fontPath = pdfFontPath;
+            if (pdfFontPath.toLowerCase().endsWith(".ttc") && !pdfFontPath.contains(",")) {
+                fontPath = pdfFontPath + ",0";
+            }
+            return BaseFont.createFont(fontPath, BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+        }
+        return BaseFont.createFont(BaseFont.HELVETICA, BaseFont.WINANSI, BaseFont.NOT_EMBEDDED);
+    }
+
+    private ExportContext loadExportContext(Long studyId, Long meetingId) {
         Meeting meeting = helper.getMeetingOrThrow(studyId, meetingId);
         Study study = studyRepository.findById(studyId).orElse(null);
         MeetingSttSummary summary = meetingSttSummaryRepository
@@ -73,7 +186,7 @@ public class MeetingExportService {
         String participantCount = meeting.getParticipantCount() == null ? "N" : String.valueOf(meeting.getParticipantCount());
         String studyName = (study != null && study.getName() != null && !study.getName().isBlank())
                 ? study.getName()
-                : "스터디 명";
+                : "스터디";
         String meetingTitle = meeting.getTitle() != null && !meeting.getTitle().isBlank()
                 ? meeting.getTitle()
                 : "미팅 제목";
@@ -83,122 +196,87 @@ public class MeetingExportService {
                 .map(session -> session.getDescription())
                 .orElse(null);
 
-        StringBuilder builder = new StringBuilder();
-        builder.append("# ").append(studyName).append("\n\n");
-        builder.append("---").append("\n\n");
-        builder.append("회의 일자 : ").append(meetingDate).append("\n");
-        builder.append("회의 시간 : ").append(startTime).append(" ~ ").append(endTime).append("\n");
-        builder.append("참여 인원: 총 ").append(participantCount).append("명").append("\n\n");
-        builder.append("---").append("\n\n");
-        builder.append("## 주제 :").append(meetingTitle).append("\n\n");
-        if (meetingDescription != null && !meetingDescription.isBlank()) {
-            builder.append(meetingDescription.strip()).append("\n\n");
-        } else {
-            builder.append("이번 미팅의 목적 및 주요 논의 주제를 간략히 작성").append("\n\n");
-        }
-        builder.append("---").append("\n\n");
-        builder.append("##  AI 요약").append("\n");
         String summaryText = summary == null ? null : helper.readUploadedTextFile(summary.getFileUrl());
-        if (summaryText != null && !summaryText.isBlank()) {
-            builder.append("- ").append(summaryText.strip()).append("\n\n");
-        } else {
-            builder.append("- AI가 전체 대화를 분석하여 핵심 내용만 요약한 결과").append("\n\n");
-        }
+        String transcriptText = transcriptFile == null ? null : helper.readUploadedTextFile(transcriptFile.getFileUrl());
         List<String> keywords = helper.parseKeywords(summary == null ? null : summary.getKeywordsJson());
 
-        builder.append("\n\n").append("## 키워드 : ");
-        if (!keywords.isEmpty()) {
-            for (String keyword : keywords) {
-                builder.append("`").append(keyword).append("` ");
-            }
-            builder.append("\n\n");
-        }
-        builder.append("---").append("\n\n");
-        builder.append("##  STT 기록 (전체 대화 내역)").append("\n\n");
-
-        if (transcriptFile != null) {
-            String transcriptText = helper.readUploadedTextFile(transcriptFile.getFileUrl());
-            if (transcriptText != null && !transcriptText.isBlank()) {
-                builder.append(transcriptText).append("\n");
-            }
-        }
-
-        builder.append("\n---").append("\n\n");
-        builder.append("##  회의 이미지").append("\n\n");
-        builder.append("- 회의 스크린샷 또는 대표 이미지 첨부").append("\n\n");
-        if (!selectedPhotos.isEmpty()) {
-            for (MeetingPhoto photo : selectedPhotos) {
-                builder.append("![회의 이미지](").append(photo.getImageUrl()).append(")\n");
-            }
-        } else {
-            builder.append("![회의 이미지](./meeting_image.png)\n");
-        }
-        builder.append("\n---").append("\n");
-
-        return builder.toString();
+        return new ExportContext(
+                meetingDate,
+                startTime,
+                endTime,
+                participantCount,
+                studyName,
+                meetingTitle,
+                meetingDescription,
+                summaryText,
+                transcriptText,
+                keywords,
+                selectedPhotos
+        );
     }
 
-    @Transactional(readOnly = true)
-    public byte[] exportMeetingPdf(Long studyId, Long meetingId) {
-        String markdown = exportMeetingMarkdown(studyId, meetingId);
-        List<MeetingPhoto> selectedPhotos = meetingPhotoRepository
-                .findByMeetingIdAndIsSelectedTrueOrderByCapturedAtDesc(meetingId);
-        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
-            Document document = new Document();
-            PdfWriter.getInstance(document, outputStream);
-            document.open();
-            BaseFont baseFont = resolvePdfBaseFont();
-            Font titleFont = new Font(baseFont, 16, Font.BOLD);
-            Font sectionFont = new Font(baseFont, 13, Font.BOLD);
-            Font bodyFont = new Font(baseFont, 11);
-            for (String line : markdown.split("\n")) {
-                if (line.startsWith("##  회의 이미지") || line.startsWith("![")) {
-                    continue;
-                }
-                if (line.trim().equals("---")) {
-                    continue;
-                }
-                if (line.startsWith("# ")) {
-                    document.add(new Paragraph(line.substring(2), titleFont));
-                } else if (line.startsWith("## ")) {
-                    Paragraph paragraph = new Paragraph(line.substring(3), sectionFont);
-                    paragraph.setSpacingBefore(10f);
-                    document.add(paragraph);
-                } else {
-                    Paragraph paragraph = new Paragraph(line, bodyFont);
-                    paragraph.setLeading(0f, 1.4f);
-                    paragraph.setAlignment(Element.ALIGN_LEFT);
-                    document.add(paragraph);
-                }
-            }
-            appendSelectedPhotos(document, sectionFont, bodyFont, selectedPhotos);
-            document.close();
-            return outputStream.toByteArray();
+    private PdfPTable buildMetaTable(ExportContext ctx, Font labelFont, Font valueFont) {
+        PdfPTable table = new PdfPTable(2);
+        table.setWidthPercentage(100f);
+        try {
+            table.setWidths(new float[]{1.2f, 3.8f});
         } catch (DocumentException e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "PDF_EXPORT_FAILED");
-        } catch (IOException e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "PDF_FONT_LOAD_FAILED");
+            // fallback to default column widths
+        }
+        table.setSpacingBefore(6f);
+        table.setSpacingAfter(6f);
+
+        addMetaCell(table, "회의 일자", ctx.meetingDate(), labelFont, valueFont);
+        addMetaCell(table, "회의 시간", ctx.startTime() + " ~ " + ctx.endTime(), labelFont, valueFont);
+        addMetaCell(table, "참석 인원", "총 " + ctx.participantCount() + "명", labelFont, valueFont);
+        addMetaCell(table, "회의 주제", ctx.meetingTitle(), labelFont, valueFont);
+        return table;
+    }
+
+    private void addMetaCell(PdfPTable table, String label, String value, Font labelFont, Font valueFont) {
+        PdfPCell labelCell = new PdfPCell(new Phrase(label, labelFont));
+        labelCell.setBorder(PdfPCell.NO_BORDER);
+        labelCell.setPadding(6f);
+        PdfPCell valueCell = new PdfPCell(new Phrase(value, valueFont));
+        valueCell.setBorder(PdfPCell.NO_BORDER);
+        valueCell.setPadding(6f);
+        table.addCell(labelCell);
+        table.addCell(valueCell);
+    }
+
+    private void addSectionTitle(Document document, String title, Font font) throws DocumentException {
+        Paragraph paragraph = new Paragraph(title, font);
+        paragraph.setSpacingBefore(12f);
+        paragraph.setSpacingAfter(6f);
+        document.add(paragraph);
+        addLine(document);
+    }
+
+    private void addBodyParagraph(Document document, String text, Font font, String fallback)
+            throws DocumentException {
+        String content = (text == null || text.isBlank()) ? fallback : text.strip();
+        String[] lines = content.split("\\R");
+        for (int i = 0; i < lines.length; i++) {
+            String line = lines[i].isBlank() ? " " : lines[i];
+            Paragraph paragraph = new Paragraph(line, font);
+            paragraph.setLeading(0f, 1.4f);
+            paragraph.setSpacingAfter(i == lines.length - 1 ? 4f : 2f);
+            document.add(paragraph);
         }
     }
 
-    private BaseFont resolvePdfBaseFont() throws IOException, DocumentException {
-        if (pdfFontPath != null && !pdfFontPath.isBlank()) {
-            // .ttc (TrueType Collection) 파일은 폰트 인덱스 지정 필요 (예: path.ttc,0)
-            String fontPath = pdfFontPath;
-            if (pdfFontPath.toLowerCase().endsWith(".ttc") && !pdfFontPath.contains(",")) {
-                fontPath = pdfFontPath + ",0";
-            }
-            return BaseFont.createFont(fontPath, BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
-        }
-        return BaseFont.createFont(BaseFont.HELVETICA, BaseFont.WINANSI, BaseFont.NOT_EMBEDDED);
+    private void addLine(Document document) throws DocumentException {
+        LineSeparator line = new LineSeparator();
+        line.setLineColor(new Color(220, 220, 220));
+        line.setLineWidth(0.6f);
+        document.add(new Chunk(line));
     }
-
     private void appendSelectedPhotos(Document document, Font sectionFont, Font bodyFont, List<MeetingPhoto> photos)
             throws DocumentException {
         if (photos == null || photos.isEmpty()) {
             return;
         }
-        Paragraph paragraph = new Paragraph("회의 사진", sectionFont);
+        Paragraph paragraph = new Paragraph("회의 이미지", sectionFont);
         paragraph.setSpacingBefore(10f);
         document.add(paragraph);
         for (MeetingPhoto photo : photos) {
@@ -218,4 +296,18 @@ public class MeetingExportService {
             }
         }
     }
+    private record ExportContext(
+            String meetingDate,
+            String startTime,
+            String endTime,
+            String participantCount,
+            String studyName,
+            String meetingTitle,
+            String meetingDescription,
+            String summaryText,
+            String transcriptText,
+            List<String> keywords,
+            List<MeetingPhoto> selectedPhotos
+    ) {}
 }
+
