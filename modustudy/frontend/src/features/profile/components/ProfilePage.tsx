@@ -122,7 +122,7 @@ export const ProfilePage = () => {
                         // 활동 여부를 0-4 레벨로 변환 (간단히 0 또는 2-4 랜덤)
                         return c.hasActivity ? Math.floor(Math.random() * 3) + 2 : 0;
                     });
-                    // 데이터가 없으면 빈 배열, 있으면 28일치로 제한
+                     // 데이터가 없으면 빈 배열, 있으면 28일치로 제한
                     setActivityData(levels.length > 0 ? levels.slice(0, 28) : []);
                 }
             } catch (error) {

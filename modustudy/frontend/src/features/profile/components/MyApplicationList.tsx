@@ -4,7 +4,7 @@ import { useUIStore } from '@/store/uiStore';
 import { Clock, CheckCircle, XCircle, Loader2, FileText, Calendar, Filter } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-type ApplicationStatus = 'all' | 'PENDING' | 'APPROVED' | 'REJECTED';
+type ApplicationStatus = 'all' | 'PENDING' | 'REJECTED';
 
 interface Application {
     applicationId: number;
@@ -41,15 +41,18 @@ export const MyApplicationList: React.FC = () => {
             const content = response?.data?.content || response?.content || [];
             console.log('[MyApplicationList] 신청 내역 수:', content.length);
 
-            const mappedApplications: Application[] = content.map((app: any) => ({
-                applicationId: app.applicationId,
-                studyId: app.studyId,
-                studyName: app.studyName || '스터디명 없음',
-                message: app.message || '',
-                status: app.status,
-                createdAt: app.createdAt,
-                processedAt: app.processedAt,
-            }));
+            const mappedApplications: Application[] = content
+                // 승인된 신청은 "내 스터디 활동"에 표시되므로 여기서는 제외
+                .filter((app: any) => app.status !== 'APPROVED')
+                .map((app: any) => ({
+                    applicationId: app.applicationId,
+                    studyId: app.studyId,
+                    studyName: app.studyName || '스터디명 없음',
+                    message: app.message || '',
+                    status: app.status,
+                    createdAt: app.createdAt,
+                    processedAt: app.processedAt,
+                }));
 
             setApplications(mappedApplications);
         } catch (error) {
@@ -117,7 +120,7 @@ export const MyApplicationList: React.FC = () => {
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-xl font-bold text-text-primary">내 스터디 신청 내역</h2>
-                    <p className="text-sm text-text-secondary mt-1">신청한 스터디의 승인 현황을 확인하세요</p>
+                    <p className="text-sm text-text-secondary mt-1">대기 중이거나 거절된 신청 내역입니다. 승인된 스터디는 아래 '내 스터디 활동'에서 확인하세요.</p>
                 </div>
             </div>
 
@@ -128,7 +131,6 @@ export const MyApplicationList: React.FC = () => {
                     {[
                         { value: 'all', label: '전체' },
                         { value: 'PENDING', label: '대기 중' },
-                        { value: 'APPROVED', label: '승인됨' },
                         { value: 'REJECTED', label: '거절됨' },
                     ].map((filter) => (
                         <button
