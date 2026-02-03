@@ -11,6 +11,8 @@ import java.time.LocalDateTime;
  * FSRS 알고리즘 처리 후 갱신된 상태를 반환한다.
  *
  * @param reviewItemId     복습 항목 ID
+ * @param isCorrect        정답 여부
+ * @param correctAnswer    정답 문자열
  * @param state            카드 상태 (0:New, 1:Learning, 2:Review, 3:Relearning)
  * @param stability        안정성 (S)
  * @param difficulty       난이도 (D)
@@ -21,6 +23,10 @@ import java.time.LocalDateTime;
 public record ReviewSubmitResponse(
 
         @Schema(description = "복습 항목 ID", example = "1") Long reviewItemId,
+
+        @Schema(description = "정답 여부", example = "true") boolean isCorrect,
+
+        @Schema(description = "정답", example = "A") String correctAnswer,
 
         @Schema(description = "카드 상태 (0:New, 1:Learning, 2:Review, 3:Relearning)", example = "2") int state,
 
@@ -34,9 +40,11 @@ public record ReviewSubmitResponse(
     /**
      * UserReviewItem 엔티티로부터 응답 DTO를 생성한다.
      */
-    public static ReviewSubmitResponse from(UserReviewItem item) {
+    public static ReviewSubmitResponse from(UserReviewItem item, boolean isCorrect, String correctAnswer) {
         return new ReviewSubmitResponse(
                 item.getId(),
+                isCorrect,
+                correctAnswer,
                 item.getState(),
                 item.getStability(),
                 item.getDifficulty(),

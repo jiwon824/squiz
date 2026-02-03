@@ -25,6 +25,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.domain.quiz.dto.response.OptionItem;
+import com.ssafy.domain.quiz.dto.response.ReviewResult;
 import com.ssafy.domain.quiz.dto.response.TodayReviewResponse.ReviewItemDto;
 import com.ssafy.domain.quiz.entity.*;
 import com.ssafy.domain.quiz.entity.enums.QuestionType;
@@ -345,7 +346,7 @@ class FsrsServiceTest {
                                         .willAnswer(inv -> inv.getArgument(0));
 
                         // when
-                        UserReviewItem result = fsrsService.processReview(
+                        ReviewResult result = fsrsService.processReview(
                                         TEST_USER_ID,
                                         ReviewContentType.COURSE_QUESTION,
                                         TEST_CONTENT_ID,
@@ -355,11 +356,12 @@ class FsrsServiceTest {
 
                         // then: 신규 항목이 생성되고 FSRS 상태가 초기화됨
                         assertThat(result).isNotNull();
-                        assertThat(result.getUserId()).isEqualTo(TEST_USER_ID);
-                        assertThat(result.getContentType()).isEqualTo(ReviewContentType.COURSE_QUESTION);
-                        assertThat(result.getContentId()).isEqualTo(TEST_CONTENT_ID);
-                        assertThat(result.getReps()).isEqualTo(1);
-                        assertThat(result.getLastResponseTimeMs()).isEqualTo(1500L);
+                        assertThat(result.getItem().getUserId()).isEqualTo(TEST_USER_ID);
+                        assertThat(result.getItem().getContentType()).isEqualTo(ReviewContentType.COURSE_QUESTION);
+                        assertThat(result.getItem().getContentId()).isEqualTo(TEST_CONTENT_ID);
+                        assertThat(result.getItem().getReps()).isEqualTo(1);
+                        assertThat(result.getItem().getLastResponseTimeMs()).isEqualTo(1500L);
+                        assertThat(result.isCorrect()).isTrue();
 
                         // 복습 로그가 저장되었는지 검증
                         verify(reviewLogRepository).save(any(UserReviewLog.class));
@@ -399,7 +401,7 @@ class FsrsServiceTest {
                                         .willAnswer(inv -> inv.getArgument(0));
 
                         // when
-                        UserReviewItem result = fsrsService.processReview(
+                        ReviewResult result = fsrsService.processReview(
                                         TEST_USER_ID,
                                         ReviewContentType.COURSE_QUESTION,
                                         TEST_CONTENT_ID,
@@ -408,8 +410,8 @@ class FsrsServiceTest {
                         );
 
                         // then
-                        assertThat(result.getReps()).isEqualTo(4); // 기존 3 + 1
-                        assertThat(result.getId()).isEqualTo(1L); // 같은 ID
+                        assertThat(result.getItem().getReps()).isEqualTo(4); // 기존 3 + 1
+                        assertThat(result.getItem().getId()).isEqualTo(1L); // 같은 ID
                 }
 
                 @Test
@@ -483,7 +485,7 @@ class FsrsServiceTest {
                                         .willAnswer(inv -> inv.getArgument(0));
 
                         // when
-                        UserReviewItem result = fsrsService.processReview(
+                        ReviewResult result = fsrsService.processReview(
                                         TEST_USER_ID,
                                         ReviewContentType.COURSE_QUESTION,
                                         TEST_CONTENT_ID,
@@ -491,8 +493,9 @@ class FsrsServiceTest {
                                         4000L);
 
                         // then
-                        assertThat(result.getLapses()).isEqualTo(2); // 기존 1 + 1
-                        assertThat(result.getState()).isEqualTo(FsrsConstants.STATE_RELEARNING);
+                        assertThat(result.getItem().getLapses()).isEqualTo(2); // 기존 1 + 1
+                        assertThat(result.getItem().getState()).isEqualTo(FsrsConstants.STATE_RELEARNING);
+                        assertThat(result.isCorrect()).isFalse();
                 }
         }
 

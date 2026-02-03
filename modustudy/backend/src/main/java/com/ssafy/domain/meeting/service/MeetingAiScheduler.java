@@ -228,14 +228,23 @@ public class MeetingAiScheduler {
 
     /**
      * AI 처리 작업 시작 (공통 로직)
+     * putIfAbsent로 atomic하게 중복 실행 방지
      */
     private void startAiProcessingJob(Long studyId, Long meetingId, Meeting meeting) {
+        // atomic하게 "처리 시작" 표시 - 이미 있으면 기존값 반환, 없으면 null 반환
+        String existing = processingJobs.putIfAbsent(meetingId, "STARTING");
+        if (existing != null) {
+            log.info("이미 다른 스레드에서 처리 중 - meetingId: {}, existingJob: {}", meetingId, existing);
+            return;
+        }
+
         try {
             String jobId = meetingAiProcessingService.startAiProcessing(studyId, meetingId);
-            processingJobs.put(meetingId, jobId);
+            processingJobs.put(meetingId, jobId);  // 실제 jobId로 업데이트
             jobStartTimes.put(meetingId, System.currentTimeMillis());
             log.info("AI 처리 시작 - meetingId: {}, jobId: {}", meetingId, jobId);
         } catch (Exception e) {
+            processingJobs.remove(meetingId);  // 실패 시 제거하여 재시도 가능하게
             log.error("AI 처리 시작 실패 - meetingId: {}, error: {}", meetingId, e.getMessage());
             // 오디오 없음 등의 예외 시 PENDING으로 롤백
             if (e.getMessage() != null && e.getMessage().contains("NO_MIXED_AUDIO")) {
