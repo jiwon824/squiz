@@ -4,7 +4,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Loader2,
     CheckCircle2,
     XCircle,
     ChevronRight,
@@ -14,6 +13,7 @@ import {
     Sparkles,
     Send,
 } from 'lucide-react';
+import { Spinner } from '@/shared/components/Spinner';
 import { cn, conditionalClasses } from '@/shared/utils/cn';
 import {
     studyQuizApi,
@@ -175,8 +175,7 @@ export const QuizView: React.FC<QuizViewProps> = ({
     if (loading) {
         return (
             <div className={cn('flex items-center justify-center h-48', className)}>
-                <Loader2 size={24} className="animate-spin text-primary mr-3" />
-                <span className="text-text-secondary text-sm">퀴즈 로딩 중...</span>
+                <Spinner variant="center" size="md" label="퀴즈 로딩 중..." />
             </div>
         );
     }
@@ -207,10 +206,9 @@ export const QuizView: React.FC<QuizViewProps> = ({
                             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
                                 <Sparkles size={28} className="text-primary" />
                             </div>
-                            <Loader2
-                                size={20}
-                                className="absolute -bottom-1 -right-1 animate-spin text-accent"
-                            />
+                            <div className="absolute -bottom-1 -right-1">
+                                <Spinner size="sm" />
+                            </div>
                         </div>
                         <h3 className="text-lg font-semibold text-text-primary mb-2">
                             퀴즈 생성 중
@@ -500,7 +498,7 @@ export const QuizView: React.FC<QuizViewProps> = ({
                                         )}
                                     >
                                         {submitting ? (
-                                            <Loader2 size={15} className="animate-spin" />
+                                            <Spinner size="sm" />
                                         ) : (
                                             <Send size={15} />
                                         )}

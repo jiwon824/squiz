@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Send, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Send, CheckCircle, AlertCircle } from 'lucide-react';
+import { Spinner } from '@/shared/components/Spinner';
 import { studyService, Study } from '../services/studyService';
 import { Modal, Button } from '@/shared/components';
 
@@ -78,7 +79,7 @@ const StudyApplyModal: React.FC<StudyApplyModalProps> = ({ study, isOpen, onClos
 
                 {status === 'loading' && (
                     <div className="py-20 flex flex-col items-center justify-center gap-6">
-                        <Loader2 className="w-12 h-12 text-primary animate-spin" />
+                        <Spinner size="xl" />
                         <p className="text-lg font-bold text-text-secondary">신청 정보를 전송하고 있습니다...</p>
                     </div>
                 )}

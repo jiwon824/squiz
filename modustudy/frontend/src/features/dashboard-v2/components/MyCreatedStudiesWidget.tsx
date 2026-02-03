@@ -4,7 +4,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Crown, Plus, Users, ChevronRight, RefreshCw, Megaphone, Loader2, Maximize2, Play, AlertCircle } from 'lucide-react';
+import { Crown, Plus, Users, ChevronRight, RefreshCw, Megaphone, Maximize2, Play, AlertCircle } from 'lucide-react';
+import { Spinner } from '@/shared/components/Spinner';
 import { cn } from '@/shared/utils/cn';
 import { studyApi } from '@/api/endpoints/studyApi';
 import { useAuthStore } from '@/store/authStore';
@@ -110,8 +111,7 @@ export const MyCreatedStudiesWidget: React.FC = () => {
       {/* 로딩 상태 */}
       {loading && (
         <div className="flex flex-col items-center justify-center py-8">
-          <Loader2 size={24} className="text-blue-400 animate-spin mb-2" />
-          <p className="text-xs text-gray-400">불러오는 중...</p>
+          <Spinner variant="center" size="md" label="불러오는 중..." />
         </div>
       )}
 

@@ -1,11 +1,10 @@
 package com.ssafy.squiz.ui.screens.home
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -19,15 +18,25 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.ssafy.squiz.data.remote.model.StudyDTO
 import com.ssafy.squiz.ui.components.*
 import com.ssafy.squiz.ui.theme.*
+
+// 프리미엄 색상 상수
+private object PremiumColors {
+    val BackgroundGradientStart = Color(0xFFF8FAFC)  // 아주 연한 하늘빛
+    val BackgroundGradientEnd = Color(0xFFFFFFFF)
+    val DeepNavy = Color(0xFF1E293B)                  // 순수 검정 대신 깊은 네이비
+    val SoftShadow = Color(0xFF1E293B)                // 부드러운 그림자용
+    val GlassBorder = Color(0xFFFFFFFF)               // 유리 테두리
+    val GlassBorderSubtle = Color(0x33FFFFFF)         // 미세한 테두리
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,43 +56,59 @@ fun HomeScreen(
     val unreadCount by viewModel.unreadCount.collectAsState()
     val todayReviewState by viewModel.todayReviewState.collectAsState()
 
-    LazyColumn(
+    // 스크롤 없이 Column으로 고정 레이아웃 + 은은한 배경 그라데이션
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
-        contentPadding = PaddingValues(bottom = 24.dp)
-    ) {
-        // Top Bar (간소화: 알림만 표시)
-        item {
-            HomeTopBar(
-                hasNotification = unreadCount > 0,
-                onNotificationClick = onNotificationClick
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        PremiumColors.BackgroundGradientStart,
+                        PremiumColors.BackgroundGradientEnd
+                    )
+                )
             )
-        }
-
+            .statusBarsPadding()
+    ) {
         when (val state = homeState) {
             is HomeState.Loading -> {
-                item {
-                    Box(
-                        modifier = Modifier.fillMaxWidth().height(200.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator()
-                    }
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    GradientLoadingIndicator(size = 48.dp)
                 }
             }
             is HomeState.Error -> {
-                item {
-                    Box(
-                        modifier = Modifier.fillMaxWidth().padding(16.dp),
-                        contentAlignment = Alignment.Center
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    GlassCard(
+                        modifier = Modifier.padding(32.dp)
                     ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("데이터를 불러올 수 없습니다", color = MaterialTheme.colorScheme.error)
-                            Spacer(modifier = Modifier.height(8.dp))
-                            TextButton(onClick = { viewModel.loadHomeData() }) {
-                                Text("다시 시도")
-                            }
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.ErrorOutline,
+                                contentDescription = null,
+                                tint = Error,
+                                modifier = Modifier.size(48.dp)
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text(
+                                "데이터를 불러올 수 없습니다",
+                                color = Error,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            GradientButton(
+                                text = "다시 시도",
+                                onClick = { viewModel.loadHomeData() },
+                                icon = Icons.Default.Refresh,
+                                modifier = Modifier.fillMaxWidth()
+                            )
                         }
                     }
                 }
@@ -91,772 +116,580 @@ fun HomeScreen(
             is HomeState.Success -> {
                 val data = state.data
 
-                // Welcome Banner (핵심 기능: 일정/출석 관련)
-                item {
-                    WelcomeBanner(
+                // weight를 명확히 적용하기 위해 별도 Column 사용
+                Column(
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    // 웰컴 배너 (알림 아이콘 포함)
+                    CompactWelcomeBanner(
                         userName = data.user.nickname,
                         todayScheduleCount = data.todayScheduleCount,
-                        onScheduleClick = onScheduleClick
+                        hasNotification = unreadCount > 0,
+                        onScheduleClick = onScheduleClick,
+                        onNotificationClick = onNotificationClick
                     )
-                }
 
-                // 오늘의 복습 섹션
-                item {
-                    TodayReviewSection(
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // 오늘의 복습 섹션
+                    CompactTodayReviewSection(
                         state = todayReviewState,
                         onStartReview = onStartReview,
                         onRetry = { viewModel.loadTodayReview() }
                     )
                 }
-
-                /* 간소화를 위해 주석처리 - 추천/인기/최근 스터디 섹션
-                // Quick Actions
-                item {
-                    QuickActionsSection(
-                        onBookmarkedClick = onBookmarkedClick,
-                        onMyApplicationsClick = onMyApplicationsClick,
-                        onTemplatesClick = onTemplatesClick
-                    )
-                }
-
-                // Recommended Studies
-                if (data.recommendedStudies.isNotEmpty()) {
-                    item {
-                        SectionHeader(
-                            title = "추천 스터디",
-                            actionText = "전체보기",
-                            onActionClick = onSearchClick
-                        )
-                    }
-
-                    item {
-                        RecommendedStudiesRow(
-                            studies = data.recommendedStudies,
-                            onStudyClick = onStudyClick
-                        )
-                    }
-                }
-
-                // Popular Studies
-                if (data.popularStudies.isNotEmpty()) {
-                    item {
-                        SectionHeader(
-                            title = "인기 스터디",
-                            actionText = "전체보기",
-                            onActionClick = onSearchClick
-                        )
-                    }
-
-                    item {
-                        PopularStudiesColumn(
-                            studies = data.popularStudies,
-                            onStudyClick = onStudyClick
-                        )
-                    }
-                }
-
-                // Recent Studies
-                if (data.recentStudies.isNotEmpty()) {
-                    item {
-                        SectionHeader(
-                            title = "최근 본 스터디",
-                            actionText = "전체보기",
-                            onActionClick = onSearchClick
-                        )
-                    }
-
-                    item {
-                        RecentStudiesRow(
-                            studies = data.recentStudies,
-                            onStudyClick = onStudyClick
-                        )
-                    }
-                }
-                */
             }
         }
     }
 }
 
+// 마이크로 인터랙션: 눌렀을 때 살짝 눌리는 효과
 @Composable
-private fun HomeTopBar(
-    hasNotification: Boolean,
-    onNotificationClick: () -> Unit
+private fun PressableScale(
+    onClick: () -> Unit,
+    content: @Composable () -> Unit
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .statusBarsPadding()
-            .padding(horizontal = 20.dp, vertical = 16.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // Logo
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(
-                        brush = Brush.linearGradient(
-                            colors = listOf(GradientStart, GradientEnd)
-                        ),
-                        shape = RoundedCornerShape(12.dp)
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "S",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-            }
-            Spacer(modifier = Modifier.width(10.dp))
-            Text(
-                text = "Squiz",
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-        }
-
-        // Actions (간소화: 알림만)
-        Box {
-            IconButton(onClick = onNotificationClick) {
-                Icon(
-                    imageVector = Icons.Outlined.Notifications,
-                    contentDescription = "알림",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            if (hasNotification) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .offset(x = (-8).dp, y = 8.dp)
-                        .size(8.dp)
-                        .background(Error, CircleShape)
-                )
-            }
-        }
-    }
-}
-
-// 오늘의 복습 섹션
-@Composable
-private fun TodayReviewSection(
-    state: TodayReviewState,
-    onStartReview: () -> Unit,
-    onRetry: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+    var isPressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.96f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(20.dp)
-        ) {
-            // 헤더
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Filled.Psychology,
-                        contentDescription = null,
-                        tint = Primary,
-                        modifier = Modifier.size(28.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Column {
-                        Text(
-                            text = "오늘의 복습",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        when (state) {
-                            is TodayReviewState.Success -> {
-                                Text(
-                                    text = "${state.dueCount}개의 복습 대기 중",
-                                    fontSize = 13.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            else -> {
-                                Text(
-                                    text = "복습 현황 로딩 중...",
-                                    fontSize = 13.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
+        label = "pressScale"
+    )
+
+    Box(
+        modifier = Modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = {
+                        isPressed = true
+                        tryAwaitRelease()
+                        isPressed = false
+                        onClick()
                     }
-                }
-                // 확장 아이콘
-                Icon(
-                    imageVector = Icons.Outlined.OpenInNew,
-                    contentDescription = "전체화면",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp)
                 )
             }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // 상태별 컨텐츠
-            when (state) {
-                is TodayReviewState.Loading -> {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(100.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(32.dp),
-                            color = Primary
-                        )
-                    }
-                }
-
-                is TodayReviewState.Error -> {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = state.message,
-                            color = Error,
-                            fontSize = 14.sp
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        TextButton(onClick = onRetry) {
-                            Text("다시 시도")
-                        }
-                    }
-                }
-
-                is TodayReviewState.Success -> {
-                    if (state.dueCount == 0) {
-                        // 복습 완료 상태
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(64.dp)
-                                    .background(Success.copy(alpha = 0.1f), CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Filled.Check,
-                                    contentDescription = null,
-                                    tint = Success,
-                                    modifier = Modifier.size(36.dp)
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                text = "오늘의 복습 완료!",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "지금은 복습할 내용이 없습니다. 나중에 다시 확인해주세요.",
-                                fontSize = 13.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    } else {
-                        // 복습할 카드가 있는 상태
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            // 통계 표시
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceEvenly
-                            ) {
-                                ReviewStatItem(
-                                    label = "복습 예정",
-                                    value = state.dueCount.toString(),
-                                    color = Warning
-                                )
-                                ReviewStatItem(
-                                    label = "새 카드",
-                                    value = state.newCount.toString(),
-                                    color = Info
-                                )
-                                ReviewStatItem(
-                                    label = "전체",
-                                    value = state.totalCount.toString(),
-                                    color = Primary
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.height(20.dp))
-
-                            // 복습 시작 버튼
-                            Button(
-                                onClick = onStartReview,
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Primary
-                                )
-                            ) {
-                                Text(
-                                    text = "${state.dueCount}개 복습 시작",
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
+    ) {
+        content()
     }
 }
 
+// 컴팩트 웰컴 배너 (알림 아이콘 통합) - Premium Glassmorphism
 @Composable
-private fun ReviewStatItem(
-    label: String,
-    value: String,
-    color: Color
-) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = value,
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            color = color
-        )
-        Text(
-            text = label,
-            fontSize = 12.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-@Composable
-private fun WelcomeBanner(
+private fun CompactWelcomeBanner(
     userName: String,
     todayScheduleCount: Int,
-    onScheduleClick: () -> Unit
+    hasNotification: Boolean,
+    onScheduleClick: () -> Unit,
+    onNotificationClick: () -> Unit
 ) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .shadow(
-                elevation = 8.dp,
-                shape = RoundedCornerShape(20.dp),
-                ambientColor = Primary.copy(alpha = 0.2f),
-                spotColor = Primary.copy(alpha = 0.2f)
+                elevation = 24.dp,
+                shape = RoundedCornerShape(28.dp),
+                ambientColor = PremiumColors.SoftShadow.copy(alpha = 0.12f),
+                spotColor = PremiumColors.SoftShadow.copy(alpha = 0.16f)
             )
             .background(
-                brush = Brush.horizontalGradient(
-                    colors = listOf(GradientStart, GradientEnd)
+                brush = Brush.linearGradient(
+                    colors = listOf(GradientPrimaryStart, GradientPrimaryEnd)
                 ),
-                shape = RoundedCornerShape(20.dp)
+                shape = RoundedCornerShape(28.dp)
             )
-            .padding(20.dp)
+            .border(
+                width = 1.dp,
+                brush = Brush.verticalGradient(
+                    listOf(
+                        Color.White.copy(alpha = 0.3f),
+                        Color.White.copy(alpha = 0.1f)
+                    )
+                ),
+                shape = RoundedCornerShape(28.dp)
+            )
+            .padding(22.dp)
     ) {
         Column {
-            Text(
-                text = "안녕하세요, ${userName}님!",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "오늘도 함께 성장해요",
-                fontSize = 14.sp,
-                color = Color.White.copy(alpha = 0.9f)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                // Today's Schedule
-                Column {
-                    Text(
-                        text = "오늘 일정",
-                        fontSize = 12.sp,
-                        color = Color.White.copy(alpha = 0.8f)
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "${todayScheduleCount}개의 스터디",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color.White
-                    )
-                }
-
-                // View Schedule Button
-                Surface(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable { onScheduleClick() },
-                    shape = RoundedCornerShape(12.dp),
-                    color = Color.White.copy(alpha = 0.2f)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "일정 보기",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = Color.White
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Icon(
-                            imageVector = Icons.Default.ChevronRight,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun QuickActionsSection(
-    onBookmarkedClick: () -> Unit,
-    onMyApplicationsClick: () -> Unit,
-    onTemplatesClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 16.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly
-    ) {
-        QuickActionItem(
-            icon = Icons.Outlined.Bookmark,
-            label = "찜한 스터디",
-            onClick = onBookmarkedClick
-        )
-        QuickActionItem(
-            icon = Icons.Outlined.Assignment,
-            label = "내 지원서",
-            onClick = onMyApplicationsClick
-        )
-        QuickActionItem(
-            icon = Icons.Outlined.Description,
-            label = "템플릿",
-            onClick = onTemplatesClick
-        )
-    }
-}
-
-@Composable
-private fun QuickActionItem(
-    icon: ImageVector,
-    label: String,
-    onClick: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .clip(RoundedCornerShape(16.dp))
-            .clickable { onClick() }
-            .padding(12.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Box(
-            modifier = Modifier
-                .size(56.dp)
-                .background(
-                    Primary.copy(alpha = 0.1f),
-                    RoundedCornerShape(16.dp)
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = label,
-                tint = Primary,
-                modifier = Modifier.size(28.dp)
-            )
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = label,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-@Composable
-private fun RecommendedStudiesRow(studies: List<StudyDTO>, onStudyClick: (Long) -> Unit) {
-    LazyRow(
-        contentPadding = PaddingValues(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        items(studies) { study ->
-            RecommendedStudyCard(
-                study = study,
-                onClick = { onStudyClick(study.id) }
-            )
-        }
-    }
-}
-
-@Composable
-private fun RecommendedStudyCard(
-    study: StudyDTO,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .width(280.dp)
-            .clickable { onClick() },
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+            // 상단: 인사 + 알림 버튼
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Top
             ) {
-                Column(modifier = Modifier.weight(1f)) {
+                // 인사 텍스트
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = study.name,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        text = "👋",
+                        fontSize = 24.sp
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = study.description ?: "",
-                        fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Column {
+                        Text(
+                            text = "안녕하세요!",
+                            fontSize = 13.sp,
+                            color = Color.White.copy(alpha = 0.85f)
+                        )
+                        Text(
+                            text = "${userName}님",
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
                 }
-                StatusBadge(
-                    text = if (study.status == "RECRUITING") "모집중" else "진행중",
-                    color = if (study.status == "RECRUITING") Success else Info
-                )
+
+                // 알림 버튼 (우측 상단) - Glassmorphism
+                PressableScale(onClick = onNotificationClick) {
+                    Box {
+                        Surface(
+                            modifier = Modifier.size(44.dp),
+                            shape = RoundedCornerShape(14.dp),
+                            color = Color.White.copy(alpha = 0.18f)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .border(
+                                        width = 1.dp,
+                                        color = Color.White.copy(alpha = 0.25f),
+                                        shape = RoundedCornerShape(14.dp)
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Notifications,
+                                    contentDescription = "알림",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                        }
+                        if (hasNotification) {
+                            // 프리미엄 알림 뱃지
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .offset(x = 4.dp, y = (-4).dp)
+                                    .size(12.dp)
+                                    .shadow(4.dp, CircleShape)
+                                    .border(2.dp, Color.White, CircleShape)
+                                    .background(Error, CircleShape)
+                            )
+                        }
+                    }
+                }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
-            // Tags
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                study.tags?.take(2)?.forEach { tag ->
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = Primary.copy(alpha = 0.1f)
+            Text(
+                text = "오늘도 함께 성장해요",
+                fontSize = 14.sp,
+                color = Color.White.copy(alpha = 0.8f)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 일정 정보 카드 - Premium Glass Effect
+            PressableScale(onClick = onScheduleClick) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(
+                            width = 1.dp,
+                            color = Color.White.copy(alpha = 0.2f),
+                            shape = RoundedCornerShape(16.dp)
+                        ),
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color.White.copy(alpha = 0.12f)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            // 캘린더 아이콘 박스
+                            Box(
+                                modifier = Modifier
+                                    .size(44.dp)
+                                    .background(
+                                        Color.White.copy(alpha = 0.15f),
+                                        RoundedCornerShape(12.dp)
+                                    )
+                                    .border(
+                                        width = 1.dp,
+                                        color = Color.White.copy(alpha = 0.2f),
+                                        shape = RoundedCornerShape(12.dp)
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.CalendarToday,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(14.dp))
+                            Column {
+                                Text(
+                                    text = "오늘 일정",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Normal,
+                                    color = Color.White.copy(alpha = 0.75f)
+                                )
+                                Text(
+                                    text = "${todayScheduleCount}개의 스터디",
+                                    fontSize = 17.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                            }
+                        }
+
+                        // "일정 확인" 버튼 - 유리 질감
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = Color.White.copy(alpha = 0.25f)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "일정 확인",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                                Spacer(modifier = Modifier.width(2.dp))
+                                Icon(
+                                    imageVector = Icons.Default.ArrowForwardIos,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(10.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// 컴팩트 오늘의 복습 섹션 - Premium Card
+@Composable
+private fun CompactTodayReviewSection(
+    state: TodayReviewState,
+    onStartReview: () -> Unit,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .padding(bottom = 24.dp)
+            .shadow(
+                elevation = 32.dp,
+                shape = RoundedCornerShape(28.dp),
+                ambientColor = PremiumColors.SoftShadow.copy(alpha = 0.15f),
+                spotColor = PremiumColors.SoftShadow.copy(alpha = 0.20f)
+            )
+            .background(
+                color = Color.White,
+                shape = RoundedCornerShape(28.dp)
+            )
+            .border(
+                width = 1.5.dp,
+                color = Color(0xFFE2E8F0),  // Slate 200 테두리
+                shape = RoundedCornerShape(28.dp)
+            )
+            .padding(24.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            // 헤더 - Premium Typography
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // 아이콘 박스 - 그라데이션 + 그림자
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .shadow(
+                                elevation = 8.dp,
+                                shape = RoundedCornerShape(14.dp),
+                                ambientColor = GradientSecondaryStart.copy(alpha = 0.3f),
+                                spotColor = GradientSecondaryEnd.copy(alpha = 0.3f)
+                            )
+                            .background(
+                                brush = Brush.linearGradient(
+                                    listOf(GradientSecondaryStart, GradientSecondaryEnd)
+                                ),
+                                shape = RoundedCornerShape(14.dp)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Psychology,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(26.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(14.dp))
+                    Column {
                         Text(
-                            text = tag,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            text = "오늘의 복습",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = PremiumColors.DeepNavy
+                        )
+                        when (state) {
+                            is TodayReviewState.Success -> {
+                                Text(
+                                    text = if (state.dueCount > 0) "${state.dueCount}개의 복습 대기 중" else "오늘 복습 완료!",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Normal,
+                                    color = if (state.dueCount > 0) Warning else Success
+                                )
+                            }
+                            else -> {
+                                Text(
+                                    text = "복습 현황 로딩 중...",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Normal,
+                                    color = OnBackgroundSecondary
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // FSRS 칩 - 더 세련된 스타일
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = Primary.copy(alpha = 0.1f)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.AutoAwesome,
+                            contentDescription = null,
+                            tint = Primary,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "FSRS",
                             fontSize = 11.sp,
-                            color = Primary,
-                            fontWeight = FontWeight.Medium
+                            fontWeight = FontWeight.SemiBold,
+                            color = Primary
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // Members
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Outlined.People,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = "${study.currentMembers ?: 0}/${study.maxMembers}명",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun PopularStudiesColumn(studies: List<StudyDTO>, onStudyClick: (Long) -> Unit) {
-    Column(
-        modifier = Modifier.padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        studies.forEach { study ->
-            PopularStudyCard(
-                study = study,
-                onClick = { onStudyClick(study.id) }
-            )
-        }
-    }
-}
-
-@Composable
-private fun PopularStudyCard(
-    study: StudyDTO,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() },
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+            // 상태별 컨텐츠
             Box(
-                modifier = Modifier
-                    .size(56.dp)
-                    .background(
-                        brush = Brush.linearGradient(
-                            colors = listOf(
-                                Secondary.copy(alpha = 0.2f),
-                                Primary.copy(alpha = 0.2f)
-                            )
-                        ),
-                        shape = RoundedCornerShape(12.dp)
-                    ),
+                modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = Icons.Filled.AutoStories,
-                    contentDescription = null,
-                    tint = Primary,
-                    modifier = Modifier.size(28.dp)
-                )
-            }
+                when (state) {
+                    is TodayReviewState.Loading -> {
+                        GradientLoadingIndicator(size = 40.dp)
+                    }
 
-            Spacer(modifier = Modifier.width(16.dp))
+                    is TodayReviewState.Error -> {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.ErrorOutline,
+                                contentDescription = null,
+                                tint = Error,
+                                modifier = Modifier.size(40.dp)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = state.message,
+                                color = Error,
+                                fontSize = 14.sp
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            OutlinedGradientButton(
+                                text = "다시 시도",
+                                onClick = onRetry,
+                                icon = Icons.Default.Refresh
+                            )
+                        }
+                    }
 
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = study.name,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    study.tags?.take(2)?.forEach { tag ->
-                        Text(
-                            text = "#$tag",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                    is TodayReviewState.Success -> {
+                        if (state.dueCount == 0) {
+                            // 복습 완료 상태 - Premium Style
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(88.dp)
+                                        .shadow(
+                                            elevation = 16.dp,
+                                            shape = CircleShape,
+                                            ambientColor = Success.copy(alpha = 0.25f),
+                                            spotColor = Success.copy(alpha = 0.25f)
+                                        )
+                                        .background(
+                                            brush = Brush.linearGradient(
+                                                listOf(GradientSuccessStart, GradientSuccessEnd)
+                                            ),
+                                            shape = CircleShape
+                                        )
+                                        .border(
+                                            width = 2.dp,
+                                            color = Color.White.copy(alpha = 0.3f),
+                                            shape = CircleShape
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Check,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(48.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(20.dp))
+                                Text(
+                                    text = "오늘의 복습 완료!",
+                                    fontSize = 22.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = PremiumColors.DeepNavy
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                    text = "수고하셨어요! 내일 다시 만나요",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Normal,
+                                    color = OnBackgroundSecondary
+                                )
+                            }
+                        } else {
+                            // 복습할 카드가 있는 상태
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                // 통계 카드
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    CompactStatBox(
+                                        label = "복습 예정",
+                                        value = state.dueCount.toString(),
+                                        color = Warning,
+                                        icon = Icons.Outlined.Schedule,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    CompactStatBox(
+                                        label = "새 카드",
+                                        value = state.newCount.toString(),
+                                        color = Info,
+                                        icon = Icons.Outlined.AddCircleOutline,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    CompactStatBox(
+                                        label = "전체",
+                                        value = state.totalCount.toString(),
+                                        color = Primary,
+                                        icon = Icons.Outlined.Layers,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(24.dp))
+
+                                // 복습 시작 버튼
+                                GradientButton(
+                                    text = "${state.dueCount}개 복습 시작",
+                                    onClick = onStartReview,
+                                    icon = Icons.Default.PlayArrow,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        }
                     }
                 }
             }
-
-            Column(horizontalAlignment = Alignment.End) {
-                val isFull = (study.currentMembers ?: 0) >= (study.maxMembers ?: Int.MAX_VALUE)
-                StatusBadge(
-                    text = if (isFull) "마감" else "모집중",
-                    color = if (isFull) Error else Success
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "${study.currentMembers ?: 0}/${study.maxMembers}명",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
         }
     }
 }
 
+// Premium Stat Box
 @Composable
-private fun RecentStudiesRow(studies: List<StudyDTO>, onStudyClick: (Long) -> Unit) {
-    LazyRow(
-        contentPadding = PaddingValues(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        items(studies) { study ->
-            RecentStudyCard(
-                study = study,
-                onClick = { onStudyClick(study.id) }
-            )
-        }
-    }
-}
-
-@Composable
-private fun RecentStudyCard(
-    study: StudyDTO,
-    onClick: () -> Unit
+private fun CompactStatBox(
+    label: String,
+    value: String,
+    color: Color,
+    icon: ImageVector,
+    modifier: Modifier = Modifier
 ) {
-    Card(
-        modifier = Modifier
-            .width(200.dp)
-            .clickable { onClick() },
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    Surface(
+        modifier = modifier
+            .border(
+                width = 1.dp,
+                color = color.copy(alpha = 0.15f),
+                shape = RoundedCornerShape(16.dp)
+            ),
+        shape = RoundedCornerShape(16.dp),
+        color = color.copy(alpha = 0.08f)
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Text(
-                text = study.name,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+        Column(
+            modifier = Modifier.padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = color.copy(alpha = 0.7f),
+                modifier = Modifier.size(18.dp)
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = study.tags?.joinToString(" ") { "#$it" } ?: "",
-                fontSize = 12.sp,
-                color = Primary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                text = value,
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = color
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = label,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Normal,
+                color = OnBackgroundSecondary
             )
         }
     }

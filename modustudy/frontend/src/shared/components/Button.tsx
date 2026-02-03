@@ -1,6 +1,6 @@
 import React, { ButtonHTMLAttributes, ReactNode } from 'react';
-import { Loader2 } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
+import { Spinner } from './Spinner';
 
 type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'dark' | 'google-primary' | 'google-outline' | 'google-ghost' | 'back-button' | 'arrow-transparent' | 'text';
 type ButtonSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
@@ -83,7 +83,7 @@ export const Button: React.FC<ButtonProps> = ({
             disabled={isLoading || disabled}
             {...props}
         >
-            {isLoading && <Loader2 className="animate-spin" size={size === 'sm' ? 14 : 18} />}
+            {isLoading && <Spinner size={size === 'sm' ? 14 : 18} color="currentColor" trackOpacity={0.4} />}
             {!isLoading && leftIcon && <span className="flex-shrink-0">{leftIcon}</span>}
             {children && <span className="truncate">{children}</span>}
             {!isLoading && rightIcon && <span className="flex-shrink-0">{rightIcon}</span>}

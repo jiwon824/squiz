@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Brain, ChevronLeft, ChevronRight, Clock, CheckCircle2, Circle, Play, Loader2 } from 'lucide-react';
+import { Brain, ChevronLeft, ChevronRight, Clock, CheckCircle2, Circle, Play } from 'lucide-react';
+import { Spinner } from '@/shared/components/Spinner';
 import { cn } from '@/shared/utils/cn';
 import {
     QuizSingleChoice,
@@ -240,9 +241,8 @@ export const MyQuizWidget: React.FC = () => {
                     subtitle="FSRS 알고리즘 기반"
                     maximizePath="/quiz/my-quiz"
                 />
-                <div className="flex items-center justify-center h-64 text-text-tertiary">
-                    <Loader2 className="animate-spin mr-2" size={20} />
-                    복습 목록 로딩 중...
+                <div className="flex items-center justify-center h-64">
+                    <Spinner variant="center" size="md" label="복습 목록 로딩 중..." />
                 </div>
             </WidgetContainer>
         );

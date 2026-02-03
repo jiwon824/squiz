@@ -11,8 +11,9 @@
  * =============================================================================
  */
 
-import { Send, Loader2 } from 'lucide-react';
+import { Send } from 'lucide-react';
 import { Button } from '@/shared/components/Button';
+import { ButtonSpinner } from '@/shared/components/Spinner';
 import { cn } from '@/shared/utils/cn';
 
 // -----------------------------------------------------------------------------
@@ -74,7 +75,7 @@ export const ContinuousQuizNavigation: React.FC<ContinuousQuizNavigationProps> =
             >
                 {isLoading ? (
                     <span className="flex items-center gap-2">
-                        <Loader2 size={18} className="animate-spin" />
+                        <ButtonSpinner />
                         채점 중...
                     </span>
                 ) : (
