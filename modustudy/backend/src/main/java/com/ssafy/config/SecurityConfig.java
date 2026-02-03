@@ -54,6 +54,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/study/**").permitAll()
                         .requestMatchers("/api/v1/workspaces/**").permitAll()
                         .requestMatchers("/api/v1/studies/**").permitAll()
+                        .requestMatchers("/api/v1/boards/**").permitAll()
                         .requestMatchers("/files/**").permitAll()
                         .requestMatchers("/api/v1/notifications/**").permitAll()
                         // 퀴즈 코스 (공개 조회)

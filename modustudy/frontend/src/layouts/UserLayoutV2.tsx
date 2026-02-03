@@ -344,16 +344,19 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEntering
                                                                     case 'STUDY':
                                                                         navigate(`/study/${referenceId}`);
                                                                         break;
-                                                                    case 'STUDY_SESSION':
-                                                                    case 'MEETING':
-                                                                    navigate(`/study/${referenceId}/workspace`);
-                                                                    break;
-                                                                case 'SCHEDULE':
-                                                                    navigate('/calendar');
-                                                                    break;
-                                                            }
+                                                            case 'STUDY_SESSION':
+                                                            case 'MEETING':
+                                                            navigate(`/study/${referenceId}/workspace`);
+                                                            break;
+                                                            case 'SCHEDULE':
+                                                                navigate('/calendar');
+                                                                break;
+                                                            case 'RECRUITMENT_POST':
+                                                                navigate(`/recruitment?postId=${referenceId}`);
+                                                                break;
                                                         }
-                                                    }}
+                                                    }
+                                                }}
                                                     className={cn(
                                                         'px-4 py-3 border-b border-gray-50 cursor-pointer transition-colors',
                                                         'hover:bg-gray-50',
