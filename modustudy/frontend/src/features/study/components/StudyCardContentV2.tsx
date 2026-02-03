@@ -1,5 +1,5 @@
 import React from 'react';
-import { Heart, Users, MapPin, Clock, Star, Zap, Monitor, Handshake, Layers } from 'lucide-react';
+import { Bookmark, Users, MapPin, Clock, Star, Zap, Monitor, Handshake, Layers } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 import { DifficultyBadge } from './DifficultyBadge';
 
@@ -182,15 +182,15 @@ const StudyCardContentV2: React.FC<StudyCardContentV2Props> = ({ study, variant 
                     <button
                         className={cn(
                             "p-2 rounded-full transition-all",
-                            "hover:bg-[var(--color-error-light)]",
-                            study.isBookmarked ? "text-[var(--color-error)]" : "text-[var(--color-text-muted)] hover:text-[var(--color-error)]"
+                            "hover:bg-amber-50",
+                            study.isBookmarked ? "text-amber-500" : "text-[var(--color-text-muted)] hover:text-amber-500"
                         )}
                         onClick={(e) => {
                             e.stopPropagation();
                             onBookmarkToggle?.(study.id);
                         }}
                     >
-                        <Heart
+                        <Bookmark
                             size={18}
                             fill={study.isBookmarked ? 'currentColor' : 'none'}
                         />
@@ -241,15 +241,15 @@ const StudyCardContentV2: React.FC<StudyCardContentV2Props> = ({ study, variant 
                 <button
                     className={cn(
                         "p-2 rounded-full transition-all -mr-2",
-                        "hover:bg-[var(--color-error-light)]",
-                        study.isBookmarked ? "text-[var(--color-error)]" : "text-[var(--color-text-muted)] hover:text-[var(--color-error)]"
+                        "hover:bg-amber-50",
+                        study.isBookmarked ? "text-amber-500" : "text-[var(--color-text-muted)] hover:text-amber-500"
                     )}
                     onClick={(e) => {
                         e.stopPropagation();
                         onBookmarkToggle?.(study.id);
                     }}
                 >
-                    <Heart
+                    <Bookmark
                         size={18}
                         fill={study.isBookmarked ? 'currentColor' : 'none'}
                     />

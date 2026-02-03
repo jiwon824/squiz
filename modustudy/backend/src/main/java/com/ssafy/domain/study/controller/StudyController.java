@@ -64,21 +64,24 @@ public class StudyController {
         return ResponseEntity.ok(studies);
     }
     /**
-     * 내 스터디 목록 조회 (참여 중인 모든 스터디)
+     * 내 스터디 목록 조회 (참여 중인 스터디)
      * GET /api/v1/study/my?page=0&size=20
+     * GET /api/v1/study/my?status=COMPLETED&page=0&size=20
+     * - status 파라미터로 특정 상태의 스터디만 필터링 가능
      * - 순환참조 방지를 위해 StudyResponse DTO로 반환
      */
     @GetMapping("/my")
     public ResponseEntity<Page<StudyResponse>> getMyStudies(
             @RequestHeader("user-id") Long userId,
+            @RequestParam(required = false) Status status,
             @PageableDefault(size = 20) Pageable pageable) {
 
-        log.info("API 호출 - 내 스터디 목록 조회: userId={}", userId);
+        log.info("API 호출 - 내 스터디 목록 조회: userId={}, status={}", userId, status);
 
-        Page<StudyResponse> studies = studyService.getMyStudies(userId, pageable);
+        Page<StudyResponse> studies = studyService.getMyStudies(userId, status, pageable);
 
-        log.info("API 응답 - 내 스터디 목록: userId={}, count={}",
-                userId, studies.getTotalElements());
+        log.info("API 응답 - 내 스터디 목록: userId={}, status={}, count={}",
+                userId, status, studies.getTotalElements());
 
         return ResponseEntity.ok(studies);
     }

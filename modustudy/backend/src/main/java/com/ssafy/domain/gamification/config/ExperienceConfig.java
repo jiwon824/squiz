@@ -38,6 +38,9 @@ public final class ExperienceConfig {
     /** 첫 친구 채팅 (친구별 1회) */
     public static final int FIRST_FRIEND_CHAT_BONUS = 10;
 
+    /** 첫 스터디장 리뷰 작성 */
+    public static final int FIRST_LEADER_REVIEW_BONUS = 30;
+
     // ========== 채팅 (현재 비활성화됨) ==========
 
     /** 채팅 참여 (1회당) - 현재 비활성화 */
