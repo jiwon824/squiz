@@ -56,7 +56,7 @@ interface BackendQuestionResponse {
 /** 백엔드 POST /submit 응답 (ContinuousSubmitResponse.java) */
 interface BackendSubmitResponse {
     submittedQuestionId: number;
-    correct: boolean; // Java의 boolean isCorrect → Jackson이 "correct"로 직렬화
+    correct: boolean; // Java의 boolean isCorrect → @JsonProperty("correct")로 직렬화
     userAnswer: string;
     correctAnswer: string;
     explanation: string | null;
