@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { X, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 import { Button } from '@/shared/components';
@@ -16,9 +16,9 @@ export const RecruitmentReportModal: React.FC<RecruitmentReportModalProps> = ({ 
 
     const reasons = [
         '부적절한 홍보 게시글',
-        '욕설 및 비하 발언',
-        '음란물 또는 불법 정보',
-        '도배 및 스팸',
+        '폭력 및 비하 발언',
+        '불법 내용 또는 정보',
+        '욕설 및 스팸',
         '기타 사유'
     ];
 
@@ -66,7 +66,7 @@ export const RecruitmentReportModal: React.FC<RecruitmentReportModalProps> = ({ 
                 </div>
 
                 <div className="mb-6">
-                    <p className="text-sm text-text-secondary leading-relaxed mb-1">신고 대상:</p>
+                    <p className="text-sm text-text-secondary leading-relaxed mb-1">신고 대상</p>
                     <p className="font-bold text-text-primary line-clamp-1 italic text-sm border-l-4 border-error/30 pl-3">
                         "{targetTitle}"
                     </p>
@@ -103,7 +103,7 @@ export const RecruitmentReportModal: React.FC<RecruitmentReportModalProps> = ({ 
                     <div className="bg-background-secondary/50 p-4 rounded-2xl border border-border-light/50">
                         <div className="flex gap-3 text-[11px] text-text-tertiary leading-relaxed">
                             <ShieldCheck size={16} className="shrink-0" />
-                            <p>허위 신고일 경우 서비스 이용이 제한될 수 있습니다. 운영진이 신속하게 내용을 검토한 후 조치하겠습니다.</p>
+                            <p>허위 신고의 경우 서비스 이용이 제한될 수 있습니다. 운영진이 신속하게 내용을 검토한 뒤 조치합니다.</p>
                         </div>
                     </div>
 
@@ -135,3 +135,4 @@ export const RecruitmentReportModal: React.FC<RecruitmentReportModalProps> = ({ 
         </div>
     );
 };
+
