@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Crown, Plus, Users, RefreshCw,
-  MapPin, Settings, Clock
+  MapPin, Settings, Clock, Play
 } from 'lucide-react';
 import { Spinner } from '@/shared/components/Spinner';
 import { cn } from '@/shared/utils/cn';
@@ -277,18 +277,31 @@ export const MyCreatedStudiesPage: React.FC = () => {
                       )}
                     </div>
 
-                    {/* 관리 버튼 */}
-                    <div className="mt-3 pt-3 border-t border-gray-50">
+                    {/* 관리 버튼 + 워크스페이스 버튼 */}
+                    <div className="mt-3 pt-3 border-t border-gray-50 flex gap-2">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           navigate(`/study/manage/${study.id}`);
                         }}
-                        className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg bg-blue-50 text-blue-600 text-xs font-semibold hover:bg-blue-100 transition-colors"
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-blue-50 text-blue-600 text-xs font-semibold hover:bg-blue-100 transition-colors"
                       >
                         <Settings size={12} />
                         스터디 관리
                       </button>
+                      {/* 진행중/완료 상태일 때만 워크스페이스 버튼 표시 */}
+                      {(study.status === 'IN_PROGRESS' || study.status === 'COMPLETED') && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/study/${study.id}/workspace`);
+                          }}
+                          className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-blue-500 hover:bg-blue-600 transition-colors shadow-sm shadow-blue-200"
+                          title="워크스페이스로 이동"
+                        >
+                          <Play size={14} fill="white" className="text-white ml-0.5" />
+                        </button>
+                      )}
                     </div>
                   </motion.div>
                 );

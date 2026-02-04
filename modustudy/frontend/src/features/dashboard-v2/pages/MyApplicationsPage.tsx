@@ -1,81 +1,182 @@
-// 신청한 스터디 전체 페이지
-// 대시보드 위젯의 풀사이즈 버전
+// 내 참여 스터디 전체 페이지
+// 대시보드 위젯의 풀사이즈 버전 - 카드 형식
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Search, ChevronRight, RefreshCw,
-  Clock, CheckCircle2, XCircle, Compass, Calendar
+  Search, RefreshCw, Users, MapPin,
+  Clock, CheckCircle2, XCircle, Compass, Calendar, Play, Loader2
 } from 'lucide-react';
 import { Spinner } from '@/shared/components/Spinner';
 import { cn } from '@/shared/utils/cn';
 import { PageNavHeader } from '@/shared/components/layouts';
 import { studyApi } from '@/api/endpoints/studyApi';
 
-// 신청 상태별 스타일
-const APPLICATION_STATUS: Record<string, { label: string; className: string; dot: string; icon: React.ElementType; cardBorder: string }> = {
+// 통합 상태 타입 (신청 상태 + 스터디 상태)
+type CombinedStatus = 'PENDING' | 'APPROVED' | 'IN_PROGRESS' | 'COMPLETED' | 'REJECTED';
+
+// 상태별 스타일
+const STATUS_STYLES: Record<CombinedStatus, { label: string; className: string; dot: string; icon: React.ElementType; cardBorder: string }> = {
   PENDING: {
     label: '대기중',
     className: 'bg-amber-50 text-amber-600 ring-1 ring-amber-200',
     dot: 'bg-amber-500 animate-pulse',
     icon: Clock,
-    cardBorder: 'border-amber-100',
+    cardBorder: 'hover:border-amber-100',
   },
   APPROVED: {
-    label: '승인',
+    label: '승인됨',
+    className: 'bg-blue-50 text-blue-600 ring-1 ring-blue-200',
+    dot: 'bg-blue-500',
+    icon: CheckCircle2,
+    cardBorder: 'hover:border-blue-100',
+  },
+  IN_PROGRESS: {
+    label: '진행중',
     className: 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200',
     dot: 'bg-emerald-500',
+    icon: Play,
+    cardBorder: 'hover:border-emerald-100',
+  },
+  COMPLETED: {
+    label: '완료',
+    className: 'bg-gray-100 text-gray-500 ring-1 ring-gray-200',
+    dot: 'bg-gray-400',
     icon: CheckCircle2,
-    cardBorder: 'border-emerald-100',
+    cardBorder: 'hover:border-gray-200',
   },
   REJECTED: {
     label: '거절',
     className: 'bg-red-50 text-red-400 ring-1 ring-red-200',
     dot: 'bg-red-400',
     icon: XCircle,
-    cardBorder: 'border-red-100',
+    cardBorder: 'hover:border-red-100',
   },
 };
 
-const getApplicationBadge = (status: string) => {
-  return APPLICATION_STATUS[status] || {
-    label: status,
-    className: 'bg-gray-50 text-gray-500 ring-1 ring-gray-200',
-    dot: 'bg-gray-400',
-    icon: Clock,
-    cardBorder: 'border-gray-100',
-  };
+const getStatusBadge = (status: CombinedStatus) => {
+  return STATUS_STYLES[status] || STATUS_STYLES.PENDING;
 };
 
-interface ApplicationItem {
+// 미팅 타입 텍스트
+const getMeetingTypeText = (type?: string) => {
+  switch (type) {
+    case 'ONLINE': return '온라인';
+    case 'OFFLINE': return '오프라인';
+    case 'HYBRID': return '혼합';
+    default: return type || '-';
+  }
+};
+
+interface ParticipationItem {
   applicationId: number;
   studyId: number;
   studyName?: string;
-  status: string;
+  description?: string;
+  applicationStatus: string;
+  studyStatus?: string;
+  combinedStatus: CombinedStatus;
   message?: string;
   createdAt: string;
   processedAt?: string;
   rejectedReason?: string;
+  topic?: { name: string; icon?: string };
+  maxMembers?: number;
+  meetingType?: string;
+  scheduleTime?: string;
 }
 
-type FilterStatus = 'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED';
+type FilterStatus = 'ALL' | 'PENDING' | 'APPROVED' | 'IN_PROGRESS' | 'COMPLETED';
 
 export const MyApplicationsPage: React.FC = () => {
   const navigate = useNavigate();
-  const [applications, setApplications] = useState<ApplicationItem[]>([]);
+  const [participations, setParticipations] = useState<ParticipationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [filter, setFilter] = useState<FilterStatus>('ALL');
 
-  const fetchApplications = async () => {
+  const fetchParticipations = async () => {
     setLoading(true);
     setError(false);
     try {
+      // 신청 목록 조회
       const response = await studyApi.getMyApplications(undefined, 0, 100);
       const page = (response as any)?.content ? response : (response as any)?.data || response;
-      const content: ApplicationItem[] = page?.content || [];
-      setApplications(content);
+      const applications = page?.content || [];
+
+      // 승인된 신청들에 대해 스터디 상태 조회
+      const participationItems: ParticipationItem[] = await Promise.all(
+        applications.map(async (app: any) => {
+          let studyStatus: string | undefined;
+          let topic: { name: string; icon?: string } | undefined;
+          let maxMembers: number | undefined;
+          let meetingType: string | undefined;
+          let scheduleTime: string | undefined;
+          let description: string | undefined;
+
+          // 승인된 경우 스터디 상세 정보 조회
+          if (app.status === 'APPROVED') {
+            try {
+              const studyDetail = await studyApi.getStudyDetail(app.studyId);
+              const study = (studyDetail as any)?.data || studyDetail;
+              studyStatus = study?.status;
+              topic = study?.topic;
+              maxMembers = study?.maxMembers;
+              meetingType = study?.meetingType;
+              scheduleTime = study?.scheduleTime;
+              description = study?.description;
+            } catch {
+              // 스터디 조회 실패 시 무시
+            }
+          }
+
+          // 통합 상태 결정
+          let combinedStatus: CombinedStatus = 'PENDING';
+          if (app.status === 'REJECTED') {
+            combinedStatus = 'REJECTED';
+          } else if (app.status === 'APPROVED') {
+            if (studyStatus === 'IN_PROGRESS') {
+              combinedStatus = 'IN_PROGRESS';
+            } else if (studyStatus === 'COMPLETED') {
+              combinedStatus = 'COMPLETED';
+            } else {
+              combinedStatus = 'APPROVED';
+            }
+          }
+
+          return {
+            applicationId: app.applicationId,
+            studyId: app.studyId,
+            studyName: app.studyName,
+            description,
+            applicationStatus: app.status,
+            studyStatus,
+            combinedStatus,
+            message: app.message,
+            createdAt: app.createdAt,
+            processedAt: app.processedAt,
+            rejectedReason: app.rejectedReason,
+            topic,
+            maxMembers,
+            meetingType,
+            scheduleTime,
+          };
+        })
+      );
+
+      // 거절된 항목은 제외하고 정렬 (진행중 > 대기중 > 승인됨 > 완료)
+      const filtered = participationItems.filter(p => p.combinedStatus !== 'REJECTED');
+      const statusOrder: Record<CombinedStatus, number> = {
+        IN_PROGRESS: 0,
+        PENDING: 1,
+        APPROVED: 2,
+        COMPLETED: 3,
+        REJECTED: 4,
+      };
+      filtered.sort((a, b) => statusOrder[a.combinedStatus] - statusOrder[b.combinedStatus]);
+
+      setParticipations(filtered);
     } catch {
       setError(true);
     } finally {
@@ -84,18 +185,27 @@ export const MyApplicationsPage: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchApplications();
+    fetchParticipations();
   }, []);
 
-  const filteredApps = filter === 'ALL'
-    ? applications
-    : applications.filter((a) => a.status === filter);
+  // 필터링 로직
+  const filteredItems = filter === 'ALL'
+    ? participations
+    : participations.filter((p) => {
+        if (filter === 'PENDING') return p.combinedStatus === 'PENDING';
+        if (filter === 'APPROVED') return p.combinedStatus === 'APPROVED';
+        if (filter === 'IN_PROGRESS') return p.combinedStatus === 'IN_PROGRESS';
+        if (filter === 'COMPLETED') return p.combinedStatus === 'COMPLETED';
+        return true;
+      });
 
+  // 필터별 카운트
   const filterCounts = {
-    ALL: applications.length,
-    PENDING: applications.filter((a) => a.status === 'PENDING').length,
-    APPROVED: applications.filter((a) => a.status === 'APPROVED').length,
-    REJECTED: applications.filter((a) => a.status === 'REJECTED').length,
+    ALL: participations.length,
+    PENDING: participations.filter((p) => p.combinedStatus === 'PENDING').length,
+    APPROVED: participations.filter((p) => p.combinedStatus === 'APPROVED').length,
+    IN_PROGRESS: participations.filter((p) => p.combinedStatus === 'IN_PROGRESS').length,
+    COMPLETED: participations.filter((p) => p.combinedStatus === 'COMPLETED').length,
   };
 
   const formatDate = (dateStr: string) => {
@@ -112,12 +222,12 @@ export const MyApplicationsPage: React.FC = () => {
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
         {/* 브레드크럼 + 헤더 */}
         <PageNavHeader
-          title="신청한 스터디"
+          title="내 참여 스터디"
           breadcrumbs={[
             { label: '대시보드', path: '/dashboard' },
-            { label: '신청한 스터디' },
+            { label: '내 참여 스터디' },
           ]}
-          badge={{ text: `${applications.length}개`, className: 'bg-violet-50 text-violet-600' }}
+          badge={{ text: `${participations.length}개`, className: 'bg-violet-50 text-violet-600' }}
         />
 
         {/* 필터 탭 */}
@@ -126,7 +236,8 @@ export const MyApplicationsPage: React.FC = () => {
             { key: 'ALL' as FilterStatus, label: '전체' },
             { key: 'PENDING' as FilterStatus, label: '대기중' },
             { key: 'APPROVED' as FilterStatus, label: '승인' },
-            { key: 'REJECTED' as FilterStatus, label: '거절' },
+            { key: 'IN_PROGRESS' as FilterStatus, label: '진행중' },
+            { key: 'COMPLETED' as FilterStatus, label: '완료' },
           ]).map((tab) => (
             <button
               key={tab.key}
@@ -175,7 +286,7 @@ export const MyApplicationsPage: React.FC = () => {
             </div>
             <p className="text-gray-500 text-lg mb-4">목록을 불러오지 못했습니다</p>
             <button
-              onClick={fetchApplications}
+              onClick={fetchParticipations}
               className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-red-50 text-red-500 font-medium hover:bg-red-100 transition-colors"
             >
               <RefreshCw size={16} />
@@ -185,12 +296,12 @@ export const MyApplicationsPage: React.FC = () => {
         )}
 
         {/* 빈 상태 */}
-        {!loading && !error && applications.length === 0 && (
+        {!loading && !error && participations.length === 0 && (
           <div className="text-center py-20">
             <div className="w-20 h-20 mx-auto mb-5 bg-violet-50 rounded-2xl flex items-center justify-center">
               <Compass size={36} className="text-violet-300" />
             </div>
-            <p className="text-gray-800 text-lg font-semibold mb-2">신청한 스터디가 없어요</p>
+            <p className="text-gray-800 text-lg font-semibold mb-2">참여 중인 스터디가 없어요</p>
             <p className="text-gray-400 mb-6">관심 있는 스터디를 찾아 참여해보세요</p>
             <button
               onClick={() => navigate('/study')}
@@ -203,90 +314,140 @@ export const MyApplicationsPage: React.FC = () => {
         )}
 
         {/* 필터 결과 없음 */}
-        {!loading && !error && applications.length > 0 && filteredApps.length === 0 && (
+        {!loading && !error && participations.length > 0 && filteredItems.length === 0 && (
           <div className="text-center py-16">
-            <p className="text-gray-400">해당 상태의 신청 내역이 없습니다</p>
+            <p className="text-gray-400">해당 상태의 스터디가 없습니다</p>
           </div>
         )}
 
-        {/* 신청 목록 */}
-        {!loading && !error && filteredApps.length > 0 && (
-          <div className="space-y-3">
+        {/* 참여 스터디 목록 - 카드 그리드 */}
+        {!loading && !error && filteredItems.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <AnimatePresence>
-              {filteredApps.map((app, idx) => {
-                const badge = getApplicationBadge(app.status);
+              {filteredItems.map((item, idx) => {
+                const badge = getStatusBadge(item.combinedStatus);
                 const StatusIcon = badge.icon;
+                const canAccessWorkspace = item.combinedStatus === 'IN_PROGRESS' || item.combinedStatus === 'COMPLETED';
+
                 return (
                   <motion.div
-                    key={app.applicationId}
+                    key={item.applicationId}
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -12 }}
                     transition={{ delay: idx * 0.03 }}
-                    onClick={() => navigate(`/study/${app.studyId}`)}
+                    onClick={() => navigate(`/study/${item.studyId}`)}
                     className={cn(
-                      'bg-white rounded-2xl p-4 sm:p-5 border cursor-pointer',
+                      'bg-white rounded-2xl p-5 border border-gray-100 cursor-pointer',
                       'hover:shadow-lg hover:-translate-y-0.5',
                       'transition-all duration-200 group',
                       badge.cardBorder
                     )}
                   >
-                    <div className="flex items-center gap-3 sm:gap-4">
-                      {/* 상태 아이콘 */}
-                      <div className={cn(
-                        'w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0',
-                        app.status === 'PENDING' && 'bg-amber-50',
-                        app.status === 'APPROVED' && 'bg-emerald-50',
-                        app.status === 'REJECTED' && 'bg-red-50',
-                        !['PENDING', 'APPROVED', 'REJECTED'].includes(app.status) && 'bg-gray-50',
-                      )}>
-                        <StatusIcon size={22} className={cn(
-                          app.status === 'PENDING' && 'text-amber-500',
-                          app.status === 'APPROVED' && 'text-emerald-500',
-                          app.status === 'REJECTED' && 'text-red-400',
-                          !['PENDING', 'APPROVED', 'REJECTED'].includes(app.status) && 'text-gray-400',
-                        )} />
-                      </div>
-
-                      {/* 정보 */}
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-bold text-gray-900 group-hover:text-violet-700 transition-colors mb-1">
-                          {app.studyName || `스터디 #${app.studyId}`}
-                        </h3>
-                        <div className="flex items-center gap-4 text-xs text-gray-400">
-                          <span className="flex items-center gap-1">
-                            <Calendar size={12} />
-                            {formatDate(app.createdAt)} 신청
-                          </span>
-                          {app.processedAt && (
-                            <span className="flex items-center gap-1">
-                              <CheckCircle2 size={12} />
-                              {formatDate(app.processedAt)} 처리
-                            </span>
+                    {/* 상단: 주제 + 상태 */}
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <div className={cn(
+                          'w-8 h-8 rounded-lg flex items-center justify-center',
+                          item.combinedStatus === 'PENDING' && 'bg-amber-50',
+                          item.combinedStatus === 'APPROVED' && 'bg-blue-50',
+                          item.combinedStatus === 'IN_PROGRESS' && 'bg-emerald-50',
+                          item.combinedStatus === 'COMPLETED' && 'bg-gray-100',
+                        )}>
+                          {item.topic?.icon ? (
+                            <span className="text-sm">{item.topic.icon}</span>
+                          ) : (
+                            <StatusIcon size={14} className={cn(
+                              item.combinedStatus === 'PENDING' && 'text-amber-500',
+                              item.combinedStatus === 'APPROVED' && 'text-blue-500',
+                              item.combinedStatus === 'IN_PROGRESS' && 'text-emerald-500',
+                              item.combinedStatus === 'COMPLETED' && 'text-gray-400',
+                            )} />
                           )}
                         </div>
-                        {app.message && (
-                          <p className="text-sm text-gray-500 mt-2 line-clamp-1">
-                            "{app.message}"
-                          </p>
-                        )}
-                        {app.rejectedReason && (
-                          <p className="text-sm text-red-400 mt-2 line-clamp-1">
-                            거절 사유: {app.rejectedReason}
-                          </p>
+                        {item.topic && (
+                          <span className="text-xs font-medium text-violet-600">{item.topic.name}</span>
                         )}
                       </div>
-
-                      {/* 상태 뱃지 */}
                       <span className={cn(
-                        'text-xs font-bold px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full flex items-center gap-1.5 flex-shrink-0',
+                        'text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1',
                         badge.className
                       )}>
-                        <span className={cn('w-2 h-2 rounded-full', badge.dot)} />
+                        <span className={cn('w-1.5 h-1.5 rounded-full', badge.dot)} />
                         {badge.label}
                       </span>
+                    </div>
 
-                      <ChevronRight size={16} className="text-gray-300 flex-shrink-0 hidden sm:block" />
+                    {/* 타이틀 */}
+                    <h3 className="font-bold text-gray-900 mb-2 group-hover:text-violet-700 transition-colors line-clamp-1">
+                      {item.studyName || `스터디 #${item.studyId}`}
+                    </h3>
+
+                    {/* 설명 또는 대기 안내 */}
+                    {item.combinedStatus === 'PENDING' ? (
+                      <p className="text-sm text-amber-500 mb-3 flex items-center gap-1.5">
+                        <Loader2 size={14} className="animate-spin" />
+                        승인 대기 중입니다
+                      </p>
+                    ) : item.description ? (
+                      <p className="text-sm text-gray-500 mb-3 line-clamp-2">{item.description}</p>
+                    ) : (
+                      <p className="text-sm text-gray-400 mb-3">{formatDate(item.createdAt)} 신청</p>
+                    )}
+
+                    {/* 메타 정보 */}
+                    <div className="flex items-center gap-3 text-xs text-gray-400 mt-auto pt-3 border-t border-gray-50">
+                      {item.meetingType && (
+                        <span className="flex items-center gap-1">
+                          <MapPin size={12} />
+                          {getMeetingTypeText(item.meetingType)}
+                        </span>
+                      )}
+                      {item.maxMembers && (
+                        <span className="flex items-center gap-1">
+                          <Users size={12} />
+                          최대 {item.maxMembers}명
+                        </span>
+                      )}
+                      {item.scheduleTime && (
+                        <span className="flex items-center gap-1">
+                          <Clock size={12} />
+                          {item.scheduleTime.substring(0, 5)}
+                        </span>
+                      )}
+                      {!item.meetingType && !item.maxMembers && !item.scheduleTime && (
+                        <span className="flex items-center gap-1">
+                          <Calendar size={12} />
+                          {formatDate(item.createdAt)}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* 하단 버튼 영역 */}
+                    <div className="mt-3 pt-3 border-t border-gray-50 flex gap-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/study/${item.studyId}`);
+                        }}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-violet-50 text-violet-600 text-xs font-semibold hover:bg-violet-100 transition-colors"
+                      >
+                        <Search size={12} />
+                        스터디 상세
+                      </button>
+                      {/* 진행중/완료 상태일 때만 워크스페이스 버튼 표시 */}
+                      {canAccessWorkspace && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/study/${item.studyId}/workspace`);
+                          }}
+                          className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-violet-500 hover:bg-violet-600 transition-colors shadow-sm shadow-violet-200"
+                          title="워크스페이스로 이동"
+                        >
+                          <Play size={14} fill="white" className="text-white ml-0.5" />
+                        </button>
+                      )}
                     </div>
                   </motion.div>
                 );

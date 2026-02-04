@@ -376,10 +376,12 @@ export const studyApi = {
       const nameMatch = data.match(/"name"\s*:\s*"([^"]+)"/);
       const idMatch = data.match(/"id"\s*:\s*(\d+)/);
       const leaderMatch = data.match(/"leaderId"\s*:\s*(\d+)/);
+      const statusMatch = data.match(/"status"\s*:\s*"([^"]+)"/);
       data = {
         id: idMatch ? parseInt(idMatch[1]) : 0,
         leaderId: leaderMatch ? parseInt(leaderMatch[1]) : undefined,
         name: nameMatch ? nameMatch[1] : 'Study',
+        status: statusMatch ? statusMatch[1] : undefined,
       };
     }
 

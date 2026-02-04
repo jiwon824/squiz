@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Star, Shield, Send, MessageCircle } from 'lucide-react';
+import { Star, Shield, Send, Play } from 'lucide-react';
 import { Button } from '@/shared/components';
 import { useUIStore } from '@/store/uiStore';
 import { useAuthStore } from '@/store/authStore';
@@ -19,7 +19,6 @@ export interface LeaderInfo {
     profileImage?: string | null;
     leaderRating: number | null; // null이면 리뷰가 없는 상태
     leaderReviewCount: number;
-    loginProvider?: 'KAKAO' | 'GOOGLE' | 'NAVER'; // 스터디장의 로그인 방식
 }
 
 // 컴포넌트 Props
@@ -31,9 +30,9 @@ interface StudyLeaderCardProps {
     maxMembers: number;
     recruitEndDate?: string;
     isOwner: boolean;
+    isMember?: boolean; // 멤버 여부 (워크스페이스 버튼 표시용)
     isApplied?: boolean; // 이미 신청한 스터디인지 여부
     onInquiry: () => void;
-    onKakaoInquiry?: () => void; // 카카오톡 문의 핸들러 (백엔드 연동 시 사용)
     onRatingClick: () => void;
     onApply: () => void;
 }
@@ -46,9 +45,9 @@ const StudyLeaderCard: React.FC<StudyLeaderCardProps> = ({
     maxMembers,
     recruitEndDate,
     isOwner,
+    isMember = false,
     isApplied = false,
     onInquiry,
-    onKakaoInquiry,
     onRatingClick,
     onApply,
 }) => {
@@ -57,8 +56,8 @@ const StudyLeaderCard: React.FC<StudyLeaderCardProps> = ({
     const { showToast } = useUIStore();
     const { isLoggedIn } = useAuthStore();
 
-    // 스터디장이 카카오 로그인 사용자인지 확인
-    const isLeaderKakaoUser = leader.loginProvider === 'KAKAO';
+    // 워크스페이스 이동 가능 여부 (진행중 또는 완료 상태 + 멤버 또는 스터디장)
+    const canGoWorkspace = (studyStatus === 'IN_PROGRESS' || studyStatus === 'COMPLETED') && (isMember || isOwner);
 
     // 신청 버튼 클릭 핸들러 (로그인 체크 포함)
     const handleApplyClick = () => {
@@ -70,22 +69,6 @@ const StudyLeaderCard: React.FC<StudyLeaderCardProps> = ({
             return;
         }
         onApply();
-    };
-
-    // 카카오톡 문의 핸들러
-    const handleKakaoInquiry = () => {
-        if (!isLeaderKakaoUser) {
-            // 스터디장이 카카오 로그인 사용자가 아닌 경우 토스트 경고 표시
-            showToast('스터디장이 카카오 로그인 사용자가 아닙니다.', 'error');
-            return;
-        }
-
-        if (onKakaoInquiry) {
-            onKakaoInquiry();
-        } else {
-            // TODO: 백엔드 연동 후 실제 카카오톡 메시지 API 호출
-            showToast('카카오톡 메시지 기능은 준비 중입니다.', 'info');
-        }
     };
 
     // 신청 버튼 텍스트 결정 (상태별 분기)
@@ -143,7 +126,7 @@ const StudyLeaderCard: React.FC<StudyLeaderCardProps> = ({
 
     return (
         <div className="2xl:col-span-1">
-            <div className="2xl:fixed 2xl:top-[168px] 2xl:z-40">
+            <div className="2xl:sticky 2xl:top-[100px]">
                 <div className="bg-white rounded-2xl border border-[var(--color-border)] p-6 shadow-sm">
                 {/* 리더 프로필 */}
                 <div className="text-center mb-6">
@@ -230,33 +213,37 @@ const StudyLeaderCard: React.FC<StudyLeaderCardProps> = ({
                     궁금한 점이 있다면 아래로 문의해주세요.
                     </p> */}
 
-                    {/* 문의 버튼들 (가로 배치) */}
+                    {/* 문의 버튼 또는 워크스페이스 버튼 */}
                     <div className="flex gap-2">
-                        {/* DM 문의 버튼 */}
-                        <Button
-                            variant="google-outline"
-                            fullWidth
-                            onClick={onInquiry}
-                            leftIcon={<Send size={14} />}
-                            className="h-11 rounded-xl font-semibold text-xs"
-                        >
-                            문의하기
-                        </Button>
+                        {/* DM 문의 버튼 (스터디장 본인이 아닐 때만 표시) */}
+                        {!isOwner && (
+                            <Button
+                                variant="google-outline"
+                                fullWidth
+                                onClick={onInquiry}
+                                leftIcon={<Send size={16} />}
+                                className="h-12 rounded-xl font-bold text-sm"
+                            >
+                                문의하기
+                            </Button>
+                        )}
 
-                        {/* 카카오톡 문의 버튼 */}
-                        <Button
-                            variant="google-outline"
-                            fullWidth
-                            onClick={handleKakaoInquiry}
-                            leftIcon={<MessageCircle size={14} fill="#3C1E1E" />}
-                            className={cn(
-                                'h-11 rounded-xl font-semibold text-xs',
-                                'bg-[#FEE500] hover:bg-[#FDD835]',
-                                'text-[#3C1E1E] border-[#FEE500] hover:border-[#FDD835]'
-                            )}
-                        >
-                            카카오톡
-                        </Button>
+                        {/* 워크스페이스 이동 버튼 (진행중/완료 + 멤버일 때만) */}
+                        {canGoWorkspace && (
+                            <Button
+                                variant="primary"
+                                fullWidth
+                                onClick={() => navigate(`/study/${studyId}/workspace`)}
+                                leftIcon={<Play size={16} fill="white" />}
+                                className={cn(
+                                    'h-12 rounded-xl font-bold text-sm',
+                                    'bg-violet-600 hover:bg-violet-700',
+                                    'shadow-sm shadow-violet-200'
+                                )}
+                            >
+                                워크스페이스
+                            </Button>
+                        )}
                     </div>
                     </div>
                 </div>

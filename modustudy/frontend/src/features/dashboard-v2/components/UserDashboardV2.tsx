@@ -41,7 +41,7 @@ export const UserDashboardV2: React.FC = () => {
                 </motion.div>
 
                 {/* 내 스터디 위젯 */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 items-stretch">
                     <MyCreatedStudiesWidget />
                     <MyApplicationsWidget />
                 </div>
