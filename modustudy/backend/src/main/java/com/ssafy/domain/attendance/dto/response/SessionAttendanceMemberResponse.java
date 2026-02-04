@@ -1,10 +1,8 @@
 package com.ssafy.domain.attendance.dto.response;
 
 import com.ssafy.domain.attendance.entity.Attendance;
-import com.ssafy.domain.attendance.entity.AttendanceStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 /**
@@ -33,7 +31,7 @@ public record SessionAttendanceMemberResponse(
                 attendance.getUser() != null ? attendance.getUser().getId() : null,
                 attendance.getUser() != null ? attendance.getUser().getNickname() : null,
                 attendance.getUser() != null ? attendance.getUser().getProfileImage() : null,
-                attendance.getStatus() != null ? attendance.getStatus().name() : AttendanceStatus.PENDING.name(),
+                attendance.getStatus() != null ? attendance.getStatus().name() : "PENDING",
                 attendance.getCheckedAt() != null ? attendance.getCheckedAt().format(FORMATTER) : null
         );
     }
@@ -46,7 +44,7 @@ public record SessionAttendanceMemberResponse(
                 userId,
                 nickname,
                 profileImage,
-                AttendanceStatus.PENDING.name(),
+                "PENDING",
                 null
         );
     }
