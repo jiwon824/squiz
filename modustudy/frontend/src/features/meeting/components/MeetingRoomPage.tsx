@@ -2009,13 +2009,26 @@ const MeetingRoomPage: React.FC = () => {
     useEffect(() => {
         if (!meetingStartedAt) return;
         if (!plannedDurationSeconds) return;
-        if (!canEndMeeting) return;
         if (autoEndTriggeredRef.current) return;
         if (elapsedSeconds >= plannedDurationSeconds) {
             autoEndTriggeredRef.current = true;
-            void endMeetingInternal();
+            if (canEndMeeting) {
+                // 리더: 미팅 종료 API 호출 → 전체 참가자에게 MEETING_ENDED 이벤트 전파
+                void endMeetingInternal();
+            } else {
+                // 일반 참가자: 예정 시간 초과 시 자동 퇴장
+                setIsEnding(true);
+                sfuStopRequestedRef.current = true;
+                void (async () => {
+                    await finalizeVoiceRecording();
+                    stopCameraHardware();
+                    sessionStorage.setItem(`meeting-end-reload-${numericMeetingId}`, '1');
+                    sessionStorage.setItem('workspaceActiveMenu', 'meeting');
+                    navigate(`/study/${numericStudyId}/workspace`);
+                })();
+            }
         }
-    }, [elapsedSeconds, plannedDurationSeconds, meetingStartedAt, canEndMeeting, endMeetingInternal]);
+    }, [elapsedSeconds, plannedDurationSeconds, meetingStartedAt, canEndMeeting, endMeetingInternal, finalizeVoiceRecording, stopCameraHardware, numericMeetingId, numericStudyId, navigate]);
 
     const handleEndMeeting = useCallback(() => {
         if (!canEndMeeting) return;
