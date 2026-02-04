@@ -236,6 +236,7 @@ export type MeetingRoomEventType =
     | 'PRESENTER'
     | 'SPEAKING'
     | 'PRESENCE'
+    | 'MEETING_ENDING'
     | 'MEETING_ENDED'
     | 'MEETING_DURATION_UPDATED';
 

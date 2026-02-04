@@ -3,7 +3,9 @@ package com.ssafy.domain.board.repository;
 import com.ssafy.domain.board.entity.BoardCategory;
 import com.ssafy.domain.board.entity.BoardComment;
 import com.ssafy.domain.board.entity.BoardPost;
+import com.ssafy.domain.board.entity.RecruitmentStatus;
 import com.ssafy.domain.study.entity.Format;
+import com.ssafy.domain.study.entity.MeetingType;
 import com.ssafy.domain.study.entity.Status;
 import com.ssafy.domain.study.entity.Study;
 import com.ssafy.domain.study.entity.StudyType;
@@ -109,7 +111,7 @@ class BoardCommentRepositoryTest {
                 .topic(topic)
                 .format(format)
                 .name("Board Study")
-                .description("게시판 댓글 테스트")
+                .description("Board comment test")
                 .maxMembers(6)
                 .studyType(StudyType.PLANNED)
                 .status(Status.RECRUITING)
@@ -121,22 +123,31 @@ class BoardCommentRepositoryTest {
         studyRepository.flush();
 
         post = boardPostRepository.save(new BoardPost(
-                leader, study, BoardCategory.FREE, "모집글", "내용"));
+                leader,
+                study,
+                BoardCategory.FREE,
+                "Recruiting post",
+                "Content",
+                "backend",
+                MeetingType.ONLINE,
+                6,
+                RecruitmentStatus.RECRUITING
+        ));
         boardPostRepository.flush();
         entityManager.clear();
     }
 
     @Test
-    @DisplayName("삭제되지 않은 댓글만 등록순으로 조회한다")
+    @DisplayName("List non-deleted comments in order")
     void findByPostIdAndIsDeletedFalseOrderByCreatedAtAsc() throws Exception {
-        BoardComment first = boardCommentRepository.save(new BoardComment(post, leader, null, "첫 댓글"));
+        BoardComment first = boardCommentRepository.save(new BoardComment(post, leader, null, "First comment"));
         boardCommentRepository.flush();
         Thread.sleep(5);
-        BoardComment deleted = boardCommentRepository.save(new BoardComment(post, member, null, "삭제 댓글"));
+        BoardComment deleted = boardCommentRepository.save(new BoardComment(post, member, null, "Deleted comment"));
         deleted.delete();
         boardCommentRepository.flush();
         Thread.sleep(5);
-        BoardComment third = boardCommentRepository.save(new BoardComment(post, member, null, "세 번째 댓글"));
+        BoardComment third = boardCommentRepository.save(new BoardComment(post, member, null, "Second comment"));
         boardCommentRepository.flush();
         entityManager.clear();
 

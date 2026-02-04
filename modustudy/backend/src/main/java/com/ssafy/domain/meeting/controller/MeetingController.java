@@ -109,6 +109,20 @@ public class MeetingController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @PutMapping("/{meetingId}/end/start")
+    public ResponseEntity<ApiResponse<MessageResponse>> startEnding(
+            @PathVariable Long studyId,
+            @PathVariable Long meetingId,
+            @AuthenticationPrincipal SsafyUserDetails userDetails
+    ) {
+        Long userId = userDetails == null ? null : userDetails.getUser().getId();
+        meetingService.startMeetingEnding(studyId, meetingId, requireUserId(userId));
+        String roomId = "meeting-" + meetingId;
+        MeetingRoomEvent event = new MeetingRoomEvent(MeetingRoomEvent.Type.MEETING_ENDING, roomId);
+        messagingTemplate.convertAndSend("/topic/rooms/" + roomId + "/events", event);
+        return ResponseEntity.ok(ApiResponse.success("Meeting ending started"));
+    }
+
     @PutMapping("/{meetingId}/duration")
     public ResponseEntity<ApiResponse<MeetingDetailResponse>> updatePlannedDuration(
             @PathVariable Long studyId,

@@ -1992,6 +1992,11 @@ const MeetingRoomPage: React.FC = () => {
             try {
                 setIsEnding(true);
                 sfuStopRequestedRef.current = true;
+                try {
+                    await meetingApi.startMeetingEnding(numericStudyId, numericMeetingId);
+                } catch (error) {
+                    console.error('Failed to start meeting ending', error);
+                }
                 await finalizeVoiceRecording();
                 await meetingApi.endMeeting(numericStudyId, numericMeetingId);
             } catch (error) {
@@ -2042,12 +2047,23 @@ const MeetingRoomPage: React.FC = () => {
 
     const handleRoomEvent = useCallback(
         (event: MeetingRoomEvent) => {
+            if (event.type === 'MEETING_ENDING') {
+                if (!canEndMeeting) {
+                    showToast('미팅이 종료되었습니다.', 'info');
+                    stopCameraHardware();
+                    sessionStorage.setItem(`meeting-end-reload-${numericMeetingId}`, '1');
+                    sessionStorage.setItem('workspaceActiveMenu', 'meeting');
+                    navigate(`/study/${numericStudyId}/workspace`);
+                }
+                return;
+            }
             if (event.type === 'MEETING_ENDED') {
                 setIsEnding(true);
                 sfuStopRequestedRef.current = true;
                 void (async () => {
                     await finalizeVoiceRecording();
                     stopCameraHardware();
+                    showToast('미팅이 종료되었습니다.', 'info');
                     sessionStorage.setItem(`meeting-end-reload-${numericMeetingId}`, '1');
                     sessionStorage.setItem('workspaceActiveMenu', 'meeting');
                     navigate(`/study/${numericStudyId}/workspace`);
@@ -2103,11 +2119,13 @@ const MeetingRoomPage: React.FC = () => {
         },
         [
             appendChatMessage,
+            canEndMeeting,
             finalizeVoiceRecording,
             mergeParticipants,
             navigate,
             numericStudyId,
             numericMeetingId,
+            showToast,
             stopCameraHardware,
         ]
     );

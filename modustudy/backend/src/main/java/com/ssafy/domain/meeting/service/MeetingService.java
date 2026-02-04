@@ -282,6 +282,15 @@ public class MeetingService {
                 meeting.getSummaryStatus().name());
     }
 
+    @Transactional(readOnly = true)
+    public void startMeetingEnding(Long studyId, Long meetingId, Long userId) {
+        validateLeader(studyId, userId);
+        Meeting meeting = helper.getMeetingOrThrow(studyId, meetingId);
+        if (meeting.getStatus() == MeetingStatus.ENDED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "MEETING_ALREADY_ENDED");
+        }
+    }
+
     /**
      * 미팅 강제 종료 (일일 한도 초과 시 시스템에서 호출)
      */

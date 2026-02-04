@@ -1,5 +1,6 @@
-﻿package com.ssafy.domain.board.service;
+package com.ssafy.domain.board.service;
 
+import com.ssafy.common.exception.BusinessException;
 import com.ssafy.domain.board.dto.request.BoardCommentCreateRequest;
 import com.ssafy.domain.board.dto.request.BoardPostCreateRequest;
 import com.ssafy.domain.board.dto.response.BoardCommentResponse;
@@ -7,7 +8,6 @@ import com.ssafy.domain.board.dto.response.BoardPostDetailResponse;
 import com.ssafy.domain.board.dto.response.BoardRecruitingStudyResponse;
 import com.ssafy.domain.board.entity.BoardComment;
 import com.ssafy.domain.board.repository.BoardCommentRepository;
-import com.ssafy.common.exception.BusinessException;
 import com.ssafy.domain.board.repository.BoardPostRepository;
 import com.ssafy.domain.notification.entity.Notification;
 import com.ssafy.domain.notification.repository.NotificationRepository;
@@ -131,7 +131,7 @@ class BoardServiceTest {
     }
 
     @Test
-    @DisplayName("紐⑥쭛 ?덉젙/紐⑥쭛以??뺤젙?湲??ㅽ꽣?붾쭔 紐⑥쭛湲 ?묒꽦 ?ㅽ꽣??紐⑸줉???ы븿?쒕떎")
+    @DisplayName("Recruiting list filters by status")
     void getRecruitingStudies_filtersStatuses() {
         List<Long> studyIds = boardService.getRecruitingStudies(leader.getId())
                 .stream()
@@ -143,14 +143,14 @@ class BoardServiceTest {
     }
 
     @Test
-    @DisplayName("紐⑥쭛湲 ?볤? ?묒꽦 ???묒꽦?먯뿉寃??뚮┝???앹꽦?쒕떎 (蹂몄씤 ?볤? ?쒖쇅)")
+    @DisplayName("Add comment creates notification except for author")
     void addComment_createsNotification() {
         BoardPostDetailResponse created = boardService.createPost(
                 leader.getId(),
-                new BoardPostCreateRequest("紐⑥쭛湲 ?쒕ぉ", "紐⑥쭛湲 ?댁슜", "백엔드", MeetingType.ONLINE, 6)
+                new BoardPostCreateRequest("Recruiting post title", "Recruiting post content", "backend", MeetingType.ONLINE, 6)
         );
 
-        boardService.addComment(member.getId(), created.getId(), new BoardCommentCreateRequest(null, "?볤? ?댁슜"));
+        boardService.addComment(member.getId(), created.getId(), new BoardCommentCreateRequest(null, "Comment content"));
 
         boardPostRepository.flush();
         notificationRepository.flush();
@@ -160,7 +160,7 @@ class BoardServiceTest {
         assertThat(notifications.get(0).getContent()).contains(created.getTitle());
         assertThat(boardPostRepository.findById(created.getId()).orElseThrow().getCommentCount()).isEqualTo(1);
 
-        boardService.addComment(leader.getId(), created.getId(), new BoardCommentCreateRequest(null, "?묒꽦???볤?"));
+        boardService.addComment(leader.getId(), created.getId(), new BoardCommentCreateRequest(null, "Owner comment"));
         notificationRepository.flush();
 
         List<Notification> afterOwnerComment = notificationRepository.findByUserIdOrderByCreatedAtDesc(leader.getId());
@@ -168,17 +168,17 @@ class BoardServiceTest {
     }
 
     @Test
-    @DisplayName("?볤? ??젣 ???볤?????젣 泥섎━?섍퀬 移댁슫?멸? 媛먯냼?쒕떎")
+    @DisplayName("Delete comment marks deleted and decreases count")
     void deleteComment_marksDeleted_andDecreasesCount() {
         BoardPostDetailResponse created = boardService.createPost(
                 leader.getId(),
-                new BoardPostCreateRequest("紐⑥쭛湲 ?쒕ぉ", "紐⑥쭛湲 ?댁슜", "백엔드", MeetingType.ONLINE, 6)
+                new BoardPostCreateRequest("Recruiting post title", "Recruiting post content", "backend", MeetingType.ONLINE, 6)
         );
 
         BoardCommentResponse comment = boardService.addComment(
                 member.getId(),
                 created.getId(),
-                new BoardCommentCreateRequest(null, "?볤? ?댁슜")
+                new BoardCommentCreateRequest(null, "Comment content")
         );
 
         boardService.deleteComment(member.getId(), comment.getId());
@@ -191,17 +191,17 @@ class BoardServiceTest {
     }
 
     @Test
-    @DisplayName("?볤? ??젣???묒꽦?먮쭔 媛?ν븯??)
+    @DisplayName("Delete comment requires author")
     void deleteComment_requiresAuthor() {
         BoardPostDetailResponse created = boardService.createPost(
                 leader.getId(),
-                new BoardPostCreateRequest("紐⑥쭛湲 ?쒕ぉ", "紐⑥쭛湲 ?댁슜", "백엔드", MeetingType.ONLINE, 6)
+                new BoardPostCreateRequest("Recruiting post title", "Recruiting post content", "backend", MeetingType.ONLINE, 6)
         );
 
         BoardCommentResponse comment = boardService.addComment(
                 member.getId(),
                 created.getId(),
-                new BoardCommentCreateRequest(null, "?볤? ?댁슜")
+                new BoardCommentCreateRequest(null, "Comment content")
         );
 
         assertThatThrownBy(() -> boardService.deleteComment(leader.getId(), comment.getId()))
@@ -214,7 +214,7 @@ class BoardServiceTest {
                 .topic(topic)
                 .format(format)
                 .name(name)
-                .description("?뚯뒪???ㅽ꽣??)
+                .description("Test study description")
                 .maxMembers(6)
                 .studyType(StudyType.PLANNED)
                 .status(status)
@@ -244,4 +244,3 @@ class BoardServiceTest {
         return study;
     }
 }
-
