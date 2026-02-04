@@ -5,9 +5,7 @@ import {
 } from 'lucide-react';
 import { studyApi } from '@/api/endpoints/studyApi';
 import { useUIStore } from '@/store/uiStore';
-
-// 기본 프로필 이미지 경로
-const DEFAULT_PROFILE_IMAGE = '/images/default-profile.png';
+import { getProfileImageUrl, DEFAULT_PROFILE_IMAGE } from '@/shared/utils/profileImage';
 
 interface AttendanceManagementProps {
     studyId: number;
@@ -34,10 +32,13 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ studyId }) 
     const [selectedSession, setSelectedSession] = useState<Session | null>(null);
     const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
     const [loading, setLoading] = useState(true);
+    // userId -> 멤버 정보(닉네임, 프로필 이미지) 매핑
+    const [memberMap, setMemberMap] = useState<Map<number, { nickname: string; profileImage: string | null }>>(new Map());
     const { showToast } = useUIStore();
 
     useEffect(() => {
         fetchSessions();
+        fetchMembers();
     }, [studyId]);
 
     useEffect(() => {
@@ -60,6 +61,25 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ studyId }) 
             showToast('세션 목록을 불러오는데 실패했습니다.', 'error');
         } finally {
             setLoading(false);
+        }
+    };
+
+    // 스터디 멤버 목록 조회하여 userId -> 멤버 정보 매핑 생성
+    const fetchMembers = async () => {
+        try {
+            const response = await studyApi.getStudyMembers(studyId, 0, 100);
+            const members = response?.data?.content || response?.content || [];
+            const map = new Map<number, { nickname: string; profileImage: string | null }>();
+            members.forEach((member: any) => {
+                map.set(member.userId, {
+                    nickname: member.userNickname || member.userName || `User ${member.userId}`,
+                    // userProfileImage 또는 profileImage 둘 다 체크
+                    profileImage: member.userProfileImage || member.profileImage || null
+                });
+            });
+            setMemberMap(map);
+        } catch (error) {
+            console.error('멤버 목록 조회 실패:', error);
         }
     };
 
@@ -159,21 +179,27 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ studyId }) 
 
             {/* 세션 선택 */}
             {selectedSession && (
-                <div className="flex items-center gap-3 p-4 bg-background-secondary rounded-2xl">
-                    <Calendar size={20} className="text-primary" />
+                <div className="flex items-center gap-3 p-4 bg-background-secondary rounded-2xl overflow-hidden">
+                    <Calendar size={20} className="text-primary flex-shrink-0" />
                     <select
                         value={selectedSession.id}
                         onChange={(e) => {
                             const session = sessions.find(s => s.id === Number(e.target.value));
                             if (session) setSelectedSession(session);
                         }}
-                        className="flex-1 bg-surface border border-border-light rounded-xl px-4 py-2 text-sm font-medium text-text-primary outline-none focus:border-primary"
+                        className="flex-1 min-w-0 bg-surface border border-border-light rounded-xl px-4 py-2 text-sm font-medium text-text-primary outline-none focus:border-primary truncate"
                     >
-                        {sessions.map((session) => (
-                            <option key={session.id} value={session.id}>
-                                {session.title} - {formatDate(session.scheduledAt)} {formatTime(session.scheduledAt)}
-                            </option>
-                        ))}
+                        {sessions.map((session) => {
+                            // 제목이 너무 길면 20자로 자르기
+                            const displayTitle = session.title.length > 20
+                                ? session.title.slice(0, 20) + '...'
+                                : session.title;
+                            return (
+                                <option key={session.id} value={session.id}>
+                                    {displayTitle} - {formatDate(session.scheduledAt)} {formatTime(session.scheduledAt)}
+                                </option>
+                            );
+                        })}
                     </select>
                 </div>
             )}
@@ -193,17 +219,29 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ studyId }) 
                             출석 정보가 없습니다
                         </div>
                     ) : (
-                        attendanceRecords.map((record) => (
+                        attendanceRecords.map((record) => {
+                            const memberInfo = memberMap.get(record.userId);
+                            const nickname = memberInfo?.nickname || record.userName?.trim() || `User ${record.userId}`;
+                            const profileImage = getProfileImageUrl(memberInfo?.profileImage);
+
+                            return (
                             <div key={record.id} className="p-4 flex items-center gap-4 hover:bg-surface/50 transition-colors">
-                                {/* 아바타 */}
-                                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
-                                    {(record.userName?.trim() || `User ${record.userId}`).charAt(0).toUpperCase()}
+                                {/* 프로필 이미지 */}
+                                <div className="w-10 h-10 rounded-full overflow-hidden bg-primary/10 flex-shrink-0">
+                                    <img
+                                        src={profileImage}
+                                        alt={nickname}
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                            (e.target as HTMLImageElement).src = DEFAULT_PROFILE_IMAGE;
+                                        }}
+                                    />
                                 </div>
 
                                 {/* 멤버 정보 */}
                                 <div className="flex-1 min-w-0">
                                     <div className="font-medium text-text-primary">
-                                        {record.userName?.trim() || `User ${record.userId}`}
+                                        {nickname}
                                     </div>
                                     {record.checkedAt && (
                                         <div className="text-xs text-text-tertiary">
@@ -217,7 +255,8 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ studyId }) 
                                     {getStatusLabel(record.status)}
                                 </div>
                             </div>
-                        ))
+                            );
+                        })
                     )}
                 </div>
             </div>
