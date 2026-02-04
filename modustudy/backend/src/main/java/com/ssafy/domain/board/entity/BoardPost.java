@@ -1,6 +1,7 @@
 package com.ssafy.domain.board.entity;
 
 import com.ssafy.common.entity.BaseEntity;
+import com.ssafy.domain.study.entity.MeetingType;
 import com.ssafy.domain.study.entity.Study;
 import com.ssafy.domain.user.entity.User;
 import jakarta.persistence.*;
@@ -19,7 +20,7 @@ public class BoardPost extends BaseEntity {
     private User author;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "study_id", nullable = false)
+    @JoinColumn(name = "study_id")
     private Study study;
 
     @Enumerated(EnumType.STRING)
@@ -33,6 +34,20 @@ public class BoardPost extends BaseEntity {
     @Column(nullable = false)
     private String content;
 
+    @Column(name = "recruitment_field", length = 50)
+    private String recruitmentField;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "meeting_type")
+    private MeetingType meetingType;
+
+    @Column(name = "target_members")
+    private Integer targetMembers;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "recruitment_status")
+    private RecruitmentStatus recruitmentStatus;
+
     @Column(name = "view_count")
     private int viewCount;
 
@@ -45,21 +60,46 @@ public class BoardPost extends BaseEntity {
     @Column(name = "is_deleted")
     private boolean isDeleted;
 
-    public BoardPost(User author, Study study, BoardCategory category, String title, String content) {
+    public BoardPost(
+            User author,
+            Study study,
+            BoardCategory category,
+            String title,
+            String content,
+            String recruitmentField,
+            MeetingType meetingType,
+            Integer targetMembers,
+            RecruitmentStatus recruitmentStatus
+    ) {
         this.author = author;
         this.study = study;
         this.category = category;
         this.title = title;
         this.content = content;
+        this.recruitmentField = recruitmentField;
+        this.meetingType = meetingType;
+        this.targetMembers = targetMembers;
+        this.recruitmentStatus = recruitmentStatus;
         this.viewCount = 0;
         this.likeCount = 0;
         this.commentCount = 0;
         this.isDeleted = false;
     }
 
-    public void update(String title, String content) {
+    public void update(
+            String title,
+            String content,
+            String recruitmentField,
+            MeetingType meetingType,
+            Integer targetMembers,
+            RecruitmentStatus recruitmentStatus
+    ) {
         this.title = title;
         this.content = content;
+        this.recruitmentField = recruitmentField;
+        this.meetingType = meetingType;
+        this.targetMembers = targetMembers;
+        this.recruitmentStatus = recruitmentStatus;
     }
 
     public void increaseViewCount() {

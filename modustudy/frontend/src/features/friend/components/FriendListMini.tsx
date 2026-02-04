@@ -47,25 +47,18 @@ const FriendListMini: React.FC = () => {
 
     // 친구 클릭 시 DM 시작
     const handleFriendClick = (friend: { friendId: number; nickname: string; profileImage: string | null }) => {
-        // 대화 목록 새로고침
         fetchConversations();
-        // DM 시작 (기존 대화가 있으면 열고, 없으면 새 대화 모드)
         startConversationWith({
             id: friend.friendId,
             nickname: friend.nickname,
             profileImage: friend.profileImage
         });
-        // DM 탭으로 전환
         setActiveRightTab('dm');
     };
 
-    // 상태별 색상
+    // 상태 점 색상: ONLINE=초록, 그 외=검정
     const getStatusColor = (status: string) => {
-        switch (status) {
-            case 'ONLINE': return 'bg-green-500';
-            case 'AWAY': return 'bg-yellow-500';
-            default: return 'bg-gray-400';
-        }
+        return status === 'ONLINE' ? 'bg-green-500' : 'bg-black';
     };
 
     return (
@@ -98,7 +91,7 @@ const FriendListMini: React.FC = () => {
                             type="text"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="친구 검색..."
+                            placeholder="친구 검색.."
                             className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-study-blue"
                         />
                     </div>
@@ -194,7 +187,7 @@ const FriendListMini: React.FC = () => {
                     <div className="text-center py-8 text-gray-400">
                         <Users size={32} className="mx-auto mb-2 opacity-50" />
                         <p className="text-sm">친구가 없습니다</p>
-                        <p className="text-xs mt-1">위 버튼으로 친구를 추가하세요</p>
+                        <p className="text-xs mt-1">우측 버튼으로 친구를 추가하세요</p>
                     </div>
                 )}
             </div>

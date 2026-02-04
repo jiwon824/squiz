@@ -88,10 +88,17 @@ const DMListMini: React.FC = () => {
 
         // 새 대화 시작 모드
         if (pendingDMUser) {
-            await sendMessage(pendingDMUser.id, messageInput);
+            const targetUserId = pendingDMUser.id;
+            await sendMessage(targetUserId, messageInput);
             setMessageInput('');
             clearPendingDM();
-            fetchConversations();
+            await fetchConversations();
+            // 새로 생성된 대화방을 자동으로 열기
+            const latestConversations = useDMStore.getState().conversations;
+            const newConv = latestConversations.find(c => c.participantId === targetUserId);
+            if (newConv) {
+                setCurrentConversation(newConv.id);
+            }
             return;
         }
 
@@ -154,7 +161,7 @@ const DMListMini: React.FC = () => {
                 </div>
 
                 {/* 메시지 입력 */}
-                <div className="flex gap-2">
+                <div className="flex-shrink-0 flex items-center gap-2 pt-3 border-t border-gray-100">
                     <input
                         type="text"
                         value={messageInput}
@@ -162,7 +169,7 @@ const DMListMini: React.FC = () => {
                         onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
                         placeholder="메시지 입력..."
                         className={cn(
-                            'flex-1 px-3 py-2 text-sm rounded-lg',
+                            'flex-1 h-10 px-3 text-sm rounded-lg',
                             'border border-gray-200 focus:outline-none focus:border-study-blue'
                         )}
                         autoFocus
@@ -171,12 +178,12 @@ const DMListMini: React.FC = () => {
                         onClick={handleSendMessage}
                         disabled={!messageInput.trim()}
                         className={cn(
-                            'w-11 h-11 flex items-center justify-center rounded-lg transition-colors',
+                            'flex-shrink-0 h-10 w-10 flex items-center justify-center rounded-lg transition-colors',
                             'bg-study-blue text-white hover:bg-study-blue/90',
                             'disabled:opacity-50 disabled:cursor-not-allowed'
                         )}
                     >
-                        <Send size={18} />
+                        <Send size={16} />
                     </button>
                 </div>
             </div>
@@ -204,82 +211,100 @@ const DMListMini: React.FC = () => {
                 </div>
 
                 {/* 메시지 목록 */}
-                <div className="overflow-y-auto space-y-4 mb-4 max-h-[calc(100vh-250px)]" ref={messagesRef}>
+                <div className="flex-1 overflow-y-auto min-h-0 px-1" ref={messagesRef}>
                     {isLoading ? (
                         <div className="flex items-center justify-center py-8">
                             <Spinner size="md" color="#9ca3af" />
                         </div>
                     ) : Array.isArray(messages) && messages.length > 0 ? (
-                        messages.map(msg => {
-                            const isReceiver = msg.senderId === currentConversation?.participantId;
-                            return (
-                                <div
-                                    key={msg.id}
-                                    className={cn('flex gap-2', isReceiver ? 'flex-row' : 'flex-row-reverse')}
-                                >
-                                    {/* 아바타 */}
-                                    <div className="flex-shrink-0">
-                                        <div className={cn(
-                                            'w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm overflow-hidden',
-                                            'bg-primary/10 text-primary'
-                                        )}>
-                                            <img
-                                                src={getProfileImageUrl(isReceiver ? currentConversation?.participantProfileImage : useAuthStore.getState().user?.avatar)}
-                                                alt={isReceiver ? currentConversation?.participantNickname : '나'}
-                                                className="w-full h-full object-cover"
-                                            />
-                                        </div>
-                                    </div>
+                        <div className="py-2">
+                            {messages.map((msg, index) => {
+                                const isReceiver = msg.senderId === currentConversation?.participantId;
+                                const prevMsg = index > 0 ? messages[index - 1] : null;
+                                const nextMsg = index < messages.length - 1 ? messages[index + 1] : null;
+                                const isSameSenderAsPrev = prevMsg !== null && prevMsg.senderId === msg.senderId;
+                                const isSameSenderAsNext = nextMsg !== null && nextMsg.senderId === msg.senderId;
 
-                                    {/* 메시지 콘텐츠 */}
-                                    <div className={cn(
-                                        'flex flex-col max-w-[70%]',
-                                        isReceiver ? 'items-start' : 'items-end'
-                                    )}>
-                                        {/* 헤더: 이름 + 시간 */}
-                                        <div className={cn(
-                                            'flex items-center gap-2 mb-1',
-                                            isReceiver ? 'flex-row' : 'flex-row-reverse'
-                                        )}>
-                                            <span className="text-xs font-semibold text-text-primary">
-                                                {isReceiver ? currentConversation?.participantNickname : '나'}
-                                            </span>
-                                            <time className="text-[10px] text-text-secondary">
-                                                {formatTime(msg.createdAt)}
-                                            </time>
-                                        </div>
-
-                                        {/* 말풍선 */}
-                                        <div
-                                            className={cn(
-                                                'px-4 py-2 rounded-2xl text-sm break-words',
-                                                isReceiver
-                                                    ? 'bg-gray-100 text-text-primary rounded-tl-sm'
-                                                    : 'bg-primary text-white rounded-tr-sm'
-                                            )}
-                                        >
-                                            {renderMessageContent(msg.content)}
-                                        </div>
-
-                                        {/* 푸터: 읽음 상태 (추후 확장 가능) */}
-                                        {!isReceiver && (
-                                            <div className="text-[10px] text-text-secondary mt-1">
-                                                전송됨
-                                            </div>
+                                return (
+                                    <div
+                                        key={msg.id}
+                                        className={cn(
+                                            'flex gap-2',
+                                            isReceiver ? 'flex-row' : 'flex-row-reverse',
+                                            isSameSenderAsPrev ? 'mt-1' : index > 0 ? 'mt-4' : ''
                                         )}
+                                    >
+                                        {/* 아바타 - 같은 발신자 연속이면 빈 공간 유지 */}
+                                        <div className="flex-shrink-0 w-10">
+                                            {!isSameSenderAsPrev && (
+                                                <div className={cn(
+                                                    'w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm overflow-hidden',
+                                                    'bg-primary/10 text-primary'
+                                                )}>
+                                                    <img
+                                                        src={getProfileImageUrl(isReceiver ? currentConversation?.participantProfileImage : useAuthStore.getState().user?.avatar)}
+                                                        alt={isReceiver ? currentConversation?.participantNickname : '나'}
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* 메시지 콘텐츠 */}
+                                        <div className={cn(
+                                            'flex flex-col max-w-[70%]',
+                                            isReceiver ? 'items-start' : 'items-end'
+                                        )}>
+                                            {/* 헤더: 이름 + 시간 (그룹 첫 메시지에서만 표시) */}
+                                            {!isSameSenderAsPrev && (
+                                                <div className={cn(
+                                                    'flex items-center gap-2 mb-1',
+                                                    isReceiver ? 'flex-row' : 'flex-row-reverse'
+                                                )}>
+                                                    <span className="text-xs font-semibold text-text-primary">
+                                                        {isReceiver ? currentConversation?.participantNickname : '나'}
+                                                    </span>
+                                                    <time className="text-[10px] text-text-secondary">
+                                                        {formatTime(msg.createdAt)}
+                                                    </time>
+                                                </div>
+                                            )}
+
+                                            {/* 말풍선 */}
+                                            <div
+                                                className={cn(
+                                                    'px-4 py-2 rounded-2xl text-sm break-words',
+                                                    isReceiver
+                                                        ? 'bg-gray-100 text-text-primary'
+                                                        : 'bg-primary text-white',
+                                                    !isSameSenderAsPrev && (isReceiver ? 'rounded-tl-sm' : 'rounded-tr-sm')
+                                                )}
+                                            >
+                                                {renderMessageContent(msg.content)}
+                                            </div>
+
+                                            {/* 전송됨 표시 (그룹의 마지막 메시지에서만) */}
+                                            {!isReceiver && !isSameSenderAsNext && (
+                                                <div className="text-[10px] text-text-secondary mt-1">
+                                                    전송됨
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
-                            );
-                        })
+                                );
+                            })}
+                        </div>
                     ) : (
-                        <div className="text-center py-8 text-gray-400 text-sm">
-                            메시지가 없습니다
+                        <div className="flex-1 flex items-center justify-center h-full">
+                            <div className="text-center text-gray-400 text-sm">
+                                메시지가 없습니다
+                            </div>
                         </div>
                     )}
                 </div>
 
                 {/* 메시지 입력 */}
-                <div className="flex gap-2">
+                <div className="flex-shrink-0 flex items-center gap-2 pt-3 border-t border-gray-100">
                     <input
                         type="text"
                         value={messageInput}
@@ -287,7 +312,7 @@ const DMListMini: React.FC = () => {
                         onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
                         placeholder="메시지 입력..."
                         className={cn(
-                            'flex-1 px-3 py-2 text-sm rounded-lg',
+                            'flex-1 h-10 px-3 text-sm rounded-lg',
                             'border border-gray-200 focus:outline-none focus:border-study-blue'
                         )}
                     />
@@ -295,12 +320,12 @@ const DMListMini: React.FC = () => {
                         onClick={handleSendMessage}
                         disabled={!messageInput.trim()}
                         className={cn(
-                            'w-11 h-11 flex items-center justify-center rounded-lg transition-colors',
+                            'flex-shrink-0 h-10 w-10 flex items-center justify-center rounded-lg transition-colors',
                             'bg-study-blue text-white hover:bg-study-blue/90',
                             'disabled:opacity-50 disabled:cursor-not-allowed'
                         )}
                     >
-                        <Send size={18} />
+                        <Send size={16} />
                     </button>
                 </div>
             </div>

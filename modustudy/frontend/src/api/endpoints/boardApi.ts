@@ -13,18 +13,16 @@ export interface RecruitmentStudy {
 
 export interface RecruitmentPostSummary {
   id: number;
-  studyId: number;
-  studyName: string;
-  topicName: string | null;
   title: string;
   authorId: number;
   authorName: string;
   authorProfileImage?: string | null;
-  currentMembers: number;
-  maxMembers: number | null;
+  recruitmentField: string;
+  meetingType: string;
+  targetMembers: number | null;
   viewCount: number;
   createdAt: string;
-  studyStatus: string;
+  recruitmentStatus: string;
 }
 
 export interface RecruitmentComment {
@@ -42,14 +40,10 @@ export interface RecruitmentComment {
 
 export interface RecruitmentPostDetail {
   id: number;
-  studyId: number;
-  studyName: string;
-  topicName: string | null;
-  studyType: string;
   meetingType: string;
-  maxMembers: number | null;
-  currentMembers: number;
-  studyStatus: string;
+  recruitmentField: string;
+  targetMembers: number | null;
+  recruitmentStatus: string;
   title: string;
   content: string;
   authorId: number;
@@ -80,9 +74,11 @@ export const getRecruitingStudiesForBoard = async (): Promise<RecruitmentStudy[]
 };
 
 export const createRecruitmentPost = async (payload: {
-  studyId: number;
   title: string;
   content: string;
+  recruitmentField: string;
+  meetingType: string;
+  targetMembers: number;
 }): Promise<RecruitmentPostDetail> => {
   const response = await api.post('/api/v1/boards/recruitments', payload);
   return unwrap<RecruitmentPostDetail>(response);
@@ -90,7 +86,14 @@ export const createRecruitmentPost = async (payload: {
 
 export const updateRecruitmentPost = async (
   postId: number,
-  payload: { title: string; content: string }
+  payload: {
+    title: string;
+    content: string;
+    recruitmentField: string;
+    meetingType: string;
+    targetMembers: number;
+    recruitmentStatus: string;
+  }
 ): Promise<RecruitmentPostDetail> => {
   const response = await api.put(`/api/v1/boards/recruitments/${postId}`, payload);
   return unwrap<RecruitmentPostDetail>(response);

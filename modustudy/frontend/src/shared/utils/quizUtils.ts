@@ -60,6 +60,76 @@ export const indexToOptionId = (index: number): string => {
 };
 
 // =============================================================================
+// Option Parsing
+// =============================================================================
+
+/** 문제 선택지 인터페이스 */
+export interface QuestionOption {
+    id: string;
+    text: string;
+}
+
+/**
+ * 백엔드에서 받은 options JSON 문자열을 파싱하여 QuestionOption 배열로 변환합니다.
+ *
+ * 지원하는 형식:
+ * 1. 객체 배열: [{"id": "A", "text": "BEGIN"}, {"id": "B", "text": "START"}]
+ * 2. 문자열 배열: ["BEGIN", "START", "INIT"] → ID는 A, B, C로 자동 생성
+ * 3. 이미 파싱된 배열도 처리
+ * 
+ * @param optionsInput - JSON 문자열 또는 이미 파싱된 배열
+ * @returns QuestionOption[] 또는 빈 배열
+ */
+export const parseOptions = (optionsInput: string | unknown[] | null): QuestionOption[] => {
+    if (!optionsInput) return [];
+
+    let parsed: unknown[];
+
+    // 이미 배열인 경우
+    if (Array.isArray(optionsInput)) {
+        parsed = optionsInput;
+    } else if (typeof optionsInput === 'string') {
+        // JSON 문자열인 경우 파싱
+        try {
+            parsed = JSON.parse(optionsInput);
+            if (!Array.isArray(parsed)) {
+                console.warn('[quizUtils] parseOptions: 파싱 결과가 배열이 아님:', parsed);
+                return [];
+            }
+        } catch (e) {
+            console.error('[quizUtils] parseOptions: JSON 파싱 실패:', e, optionsInput);
+            return [];
+        }
+    } else {
+        console.warn('[quizUtils] parseOptions: 지원하지 않는 입력 타입:', typeof optionsInput);
+        return [];
+    }
+
+    return parsed.map((opt, index: number) => {
+        // 문자열인 경우: ["BEGIN", "START", ...]
+        if (typeof opt === 'string') {
+            return {
+                id: indexToOptionId(index),
+                text: opt,
+            };
+        }
+        // 객체인 경우: [{"id": "A", "text": "BEGIN"}, ...]
+        if (typeof opt === 'object' && opt !== null) {
+            const objOpt = opt as Record<string, unknown>;
+            return {
+                id: String(objOpt.id || indexToOptionId(index)),
+                text: String(objOpt.text || objOpt.label || objOpt.id || ''),
+            };
+        }
+        // 기타 경우 (숫자 등)
+        return {
+            id: indexToOptionId(index),
+            text: String(opt),
+        };
+    });
+};
+
+// =============================================================================
 // Correct Answer Normalization
 // =============================================================================
 

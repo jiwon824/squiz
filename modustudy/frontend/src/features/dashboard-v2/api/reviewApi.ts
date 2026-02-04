@@ -45,7 +45,7 @@ export const getTodayReviews = async (): Promise<TodayReviewResponse> => {
     return response.data.data;
 };
 
-export type WrongAnswerSortType = 'MOST_WRONG' | 'FSRS_RECOMMENDED';
+export type WrongAnswerSortType = 'MOST_WRONG' | 'FSRS_RECOMMENDED' | 'LATEST';
 
 export const getWrongAnswers = async (sortType?: WrongAnswerSortType): Promise<TodayReviewResponse> => {
     const params = sortType ? { sortType } : {};

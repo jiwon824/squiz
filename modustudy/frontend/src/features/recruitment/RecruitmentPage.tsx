@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { RecruitmentList } from './components/RecruitmentList';
 import { RecruitmentForm } from './components/RecruitmentForm';
@@ -16,13 +16,12 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
     RecruitmentPostDetail,
     RecruitmentPostSummary,
-    RecruitmentStudy,
     addRecruitmentComment,
     deleteRecruitmentPost,
-    getRecruitingStudiesForBoard,
     getRecruitmentPostDetail,
     getRecruitmentPosts,
     reportRecruitmentPost,
+    updateRecruitmentPost,
 } from '@/api/endpoints/boardApi';
 
 type ViewMode = 'list' | 'create' | 'edit' | 'detail';
@@ -32,17 +31,18 @@ export const RecruitmentPage = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const currentUser = useAuthStore((state) => state.user);
+    const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
     const { showToast } = useUIStore();
     const [viewMode, setViewMode] = useState<ViewMode>('list');
     const [posts, setPosts] = useState<RecruitmentPostSummary[]>([]);
     const [, setSelectedPostId] = useState<number | null>(null);
     const [selectedPost, setSelectedPost] = useState<RecruitmentPostDetail | null>(null);
-    const [availableStudies, setAvailableStudies] = useState<RecruitmentStudy[]>([]);
     const [, setIsLoading] = useState(false);
     const [commentInput, setCommentInput] = useState('');
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
     const [reportTargetId, setReportTargetId] = useState<number | null>(null);
-    const [showNoStudyModal, setShowNoStudyModal] = useState(false);
+    const [showLoginModal, setShowLoginModal] = useState(false);
+    const [isStatusUpdating, setIsStatusUpdating] = useState(false);
 
     const loadPosts = async () => {
         setIsLoading(true);
@@ -57,6 +57,19 @@ export const RecruitmentPage = () => {
     const loadPostDetail = async (id: number) => {
         const detail = await getRecruitmentPostDetail(id);
         setSelectedPost(detail);
+    };
+
+    const getMeetingTypeLabel = (type?: string | null) => {
+        switch (type) {
+            case 'ONLINE':
+                return '온라인';
+            case 'OFFLINE':
+                return '오프라인';
+            case 'HYBRID':
+                return '온·오프라인';
+            default:
+                return type || '-';
+        }
     };
 
     useEffect(() => {
@@ -80,20 +93,6 @@ export const RecruitmentPage = () => {
 
     const handleEdit = (id: number) => {
         setSelectedPostId(id);
-        if (selectedPost) {
-            setAvailableStudies([
-                {
-                    id: selectedPost.studyId,
-                    name: selectedPost.studyName,
-                    topicName: selectedPost.topicName,
-                    studyType: selectedPost.studyType,
-                    meetingType: selectedPost.meetingType,
-                    maxMembers: selectedPost.maxMembers,
-                    currentMembers: selectedPost.currentMembers,
-                    status: selectedPost.studyStatus,
-                },
-            ]);
-        }
         setViewMode('edit');
     };
 
@@ -128,13 +127,11 @@ export const RecruitmentPage = () => {
         }
     };
 
-    const handleAdd = async () => {
-        const studies = await getRecruitingStudiesForBoard();
-        if (!studies.length) {
-            setShowNoStudyModal(true);
+    const handleAdd = () => {
+        if (!isLoggedIn) {
+            setShowLoginModal(true);
             return;
         }
-        setAvailableStudies(studies);
         setViewMode('create');
     };
 
@@ -145,9 +142,29 @@ export const RecruitmentPage = () => {
         await loadPostDetail(selectedPost.id);
     };
 
+    const handleStatusChange = async (nextStatus: 'RECRUITING' | 'COMPLETED') => {
+        if (!selectedPost) return;
+        if (selectedPost.recruitmentStatus === nextStatus) return;
+        try {
+            setIsStatusUpdating(true);
+            const updated = await updateRecruitmentPost(selectedPost.id, {
+                title: selectedPost.title,
+                content: selectedPost.content,
+                recruitmentField: selectedPost.recruitmentField,
+                meetingType: selectedPost.meetingType,
+                targetMembers: selectedPost.targetMembers ?? 1,
+                recruitmentStatus: nextStatus,
+            });
+            setSelectedPost(updated);
+            loadPosts();
+        } finally {
+            setIsStatusUpdating(false);
+        }
+    };
+
     return (
         <UserLayoutV2>
-            <div className="max-w-7xl mx-auto py-8 px-4 md:px-6">
+            <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
 
                 {/* 1. List Mode */}
                 {viewMode === 'list' && (
@@ -163,7 +180,6 @@ export const RecruitmentPage = () => {
                 {(viewMode === 'create' || viewMode === 'edit') && (
                     <RecruitmentForm
                         initialData={viewMode === 'edit' ? selectedPost : null}
-                        studies={availableStudies}
                         onCancel={() => setViewMode('list')}
                         onSuccess={() => {
                             setViewMode('list');
@@ -172,10 +188,10 @@ export const RecruitmentPage = () => {
                     />
                 )}
 
-                {/* 3. Detail Mode - StudyDetailPageV3 스타일 */}
+                {/* 3. Detail Mode - Recruitment Detail*/}
                 {viewMode === 'detail' && selectedPost && (
                     <div className="max-w-5xl mx-auto animate-fadeIn">
-                        {/* 상단 네비게이션 */}
+                        {/* 상단 네비게이션*/}
                         <div className="flex justify-between items-center mb-6">
                             <div className="flex items-center gap-3">
                                 <ArrowButton
@@ -189,27 +205,27 @@ export const RecruitmentPage = () => {
                             </div>
                         </div>
 
-                        {/* 통합 카드 */}
+                        {/* 컨테이너 카드 */}
                         <div className="bg-white rounded-2xl border border-[var(--color-border)] shadow-sm overflow-hidden">
                             {/* 헤더 섹션 */}
                             <div className="p-6 md:p-8">
-                                {/* 상단: 뱃지 + 액션 버튼 */}
+                                {/* 상단: 상태 + 액션 버튼 */}
                                 <div className="flex justify-between items-start gap-4 mb-4">
-                                    {/* 뱃지 영역 */}
+                                    {/* 상태 영역 */}
                                     <div className="flex flex-wrap items-center gap-2">
                                         <span className={cn(
                                             "px-3 py-1 rounded-full text-xs font-bold",
-                                            !['SCHEDULED', 'RECRUITING', 'PENDING'].includes(selectedPost.studyStatus)
+                                            selectedPost.recruitmentStatus === 'COMPLETED'
                                                 ? "bg-[var(--color-text-tertiary)] text-white"
                                                 : "bg-[var(--color-success)] text-white"
                                         )}>
-                                            {!['SCHEDULED', 'RECRUITING', 'PENDING'].includes(selectedPost.studyStatus) ? '모집 완료' : '모집중'}
+                                            {selectedPost.recruitmentStatus === 'COMPLETED' ? '모집 완료' : '모집 중'}
                                         </span>
                                         <span className={cn(
                                             "px-3 py-1 rounded-full text-xs font-semibold",
                                             "bg-[var(--color-primary-alpha-10)] text-[var(--color-primary)]"
                                         )}>
-                                            # {selectedPost.topicName || '기타'}
+                                            # {selectedPost.recruitmentField || '-'}
                                         </span>
                                     </div>
 
@@ -224,7 +240,7 @@ export const RecruitmentPage = () => {
                                             <Share2 size={20} />
                                         </Button>
 
-                                        {/* 케밥 메뉴 */}
+                                        {/* 더보기 메뉴 */}
                                         <Dropdown
                                             trigger={({ toggle }) => (
                                                 <Button
@@ -278,7 +294,7 @@ export const RecruitmentPage = () => {
                                         </span>
                                     </div>
                                 </div>
-                                {!['SCHEDULED', 'RECRUITING', 'PENDING'].includes(selectedPost.studyStatus) && (
+                                {selectedPost.recruitmentStatus === 'COMPLETED' && (
                                     <div className="mt-4 mb-2">
                                         <span className="inline-flex items-center px-4 py-2 rounded-2xl text-sm md:text-base font-extrabold bg-[var(--color-error)] text-white shadow-lg shadow-[var(--color-error)]/30">
                                             모집 완료
@@ -287,7 +303,7 @@ export const RecruitmentPage = () => {
                                 )}
                             </div>
 
-                            {/* 구분선 */}
+                            {/* 구분선*/}
                             <div className="mx-6 md:mx-8 border-t-2 border-gray-200" />
 
                             {/* 모집 정보 섹션 */}
@@ -310,8 +326,8 @@ export const RecruitmentPage = () => {
                                                 모집 인원
                                             </p>
                                             <p className="text-sm font-bold text-[var(--color-text-primary)] flex items-center gap-2">
-                                                <span>{selectedPost.currentMembers} / {selectedPost.maxMembers ?? '-'}명</span>
-                                                {!!selectedPost.maxMembers && selectedPost.currentMembers >= selectedPost.maxMembers && (
+                                                <span>{selectedPost.targetMembers ?? '-'}명</span>
+                                                {selectedPost.recruitmentStatus === 'COMPLETED' && (
                                                     <span className="px-2 py-0.5 bg-[var(--color-error-light)] text-[var(--color-error)] text-xs font-bold rounded">
                                                         마감
                                                     </span>
@@ -320,7 +336,7 @@ export const RecruitmentPage = () => {
                                         </div>
                                     </div>
 
-                                    {/* 조회수 */}
+                                    {/* 조회수*/}
                                     <div className="flex items-start gap-3">
                                         <div className="p-2 bg-[var(--color-background-secondary)] rounded-lg text-[var(--color-primary)]">
                                             <Eye size={18} />
@@ -335,22 +351,22 @@ export const RecruitmentPage = () => {
                                         </div>
                                     </div>
 
-                                    {/* 카테고리 */}
+                                    {/* 모집 분야 */}
                                     <div className="flex items-start gap-3">
                                         <div className="p-2 bg-[var(--color-background-secondary)] rounded-lg text-[var(--color-primary)]">
                                             <Tag size={18} />
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <p className="text-xs font-semibold text-[var(--color-text-tertiary)] uppercase tracking-wide mb-1">
-                                                카테고리
+                                                모집 분야
                                             </p>
                                             <p className="text-sm font-bold text-[var(--color-text-primary)]">
-                                                {selectedPost.topicName || '기타'}
+                                                {selectedPost.recruitmentField || '-'}
                                             </p>
                                         </div>
                                     </div>
 
-                                    {/* 작성일 */}
+                                    {/* 작성일*/}
                                     <div className="flex items-start gap-3">
                                         <div className="p-2 bg-[var(--color-background-secondary)] rounded-lg text-[var(--color-primary)]">
                                             <Calendar size={18} />
@@ -369,15 +385,15 @@ export const RecruitmentPage = () => {
                                 {/* 태그 */}
                                 <div className="flex flex-wrap gap-2 mt-8">
                                     <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[var(--color-background-secondary)] text-[var(--color-text-secondary)]">
-                                        {selectedPost.studyName}
+                                        {selectedPost.recruitmentField || '-'}
                                     </span>
                                     <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[var(--color-background-secondary)] text-[var(--color-text-secondary)]">
-                                        {selectedPost.meetingType}
+                                        {getMeetingTypeLabel(selectedPost.meetingType)}
                                     </span>
                                 </div>
                             </div>
 
-                            {/* 구분선 */}
+                            {/* 구분선*/}
                             <div className="mx-6 md:mx-8 border-t-2 border-gray-200" />
 
                             {/* 본문 섹션 */}
@@ -392,34 +408,39 @@ export const RecruitmentPage = () => {
                                 <div className="text-[var(--color-text-secondary)] leading-relaxed whitespace-pre-wrap">
                                     {selectedPost.content}
                                 </div>
-
-                                {['SCHEDULED', 'RECRUITING', 'PENDING'].includes(selectedPost.studyStatus) && (
-                                    <div className="mt-8 flex justify-end">
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => navigate(`/study/${selectedPost.studyId}`)}
-                                            className="rounded-xl px-5 py-2.5 text-sm font-bold bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 hover:-translate-y-0.5 hover:bg-emerald-600 hover:shadow-emerald-500/40 transition-all"
-                                        >
-                                            지원하러 가기
-                                        </Button>
-                                    </div>
-                                )}
                             </div>
 
-                            {/* 구분선 */}
+                            {/* 구분선*/}
                             <div className="mx-6 md:mx-8 border-t-2 border-gray-200" />
 
-                            {/* 게시글 관리 (작성자용) */}
+                            {/* 게시글 관리(작성자용) */}
                             {Number(currentUser?.id) === selectedPost.authorId && (
                                 <>
                                     <div className="p-6 md:p-8">
                                         <div className="p-5 bg-[var(--color-background)] rounded-xl border border-[var(--color-border-lighter)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                             <div className="flex items-center gap-3">
                                                 <CheckCircle2 className="text-[var(--color-primary)]" size={22} />
-                                                <span className="font-bold text-[var(--color-text-primary)] text-sm">작성한 게시글 관리</span>
+                                                <span className="font-bold text-[var(--color-text-primary)] text-sm">작성자 게시글 관리</span>
                                             </div>
                                             <div className="flex gap-2 flex-wrap">
+                                                <Button
+                                                    variant={selectedPost.recruitmentStatus === 'RECRUITING' ? 'primary' : 'google-outline'}
+                                                    size="sm"
+                                                    onClick={() => handleStatusChange('RECRUITING')}
+                                                    disabled={isStatusUpdating}
+                                                    className="text-sm"
+                                                >
+                                                    모집 중
+                                                </Button>
+                                                <Button
+                                                    variant={selectedPost.recruitmentStatus === 'COMPLETED' ? 'primary' : 'google-outline'}
+                                                    size="sm"
+                                                    onClick={() => handleStatusChange('COMPLETED')}
+                                                    disabled={isStatusUpdating}
+                                                    className="text-sm"
+                                                >
+                                                    모집 완료
+                                                </Button>
                                                 <Button
                                                     variant="google-outline"
                                                     size="sm"
@@ -440,7 +461,7 @@ export const RecruitmentPage = () => {
                                         </div>
                                     </div>
 
-                                    {/* 구분선 */}
+                                    {/* 구분선*/}
                                     <div className="mx-6 md:mx-8 border-t-2 border-gray-200" />
                                 </>
                             )}
@@ -454,10 +475,10 @@ export const RecruitmentPage = () => {
                                     문의 및 댓글
                                 </h2>
 
-                                {['SCHEDULED', 'RECRUITING', 'PENDING'].includes(selectedPost.studyStatus) ? (
+                                {selectedPost.recruitmentStatus === 'RECRUITING' ? (
                                     <div className="bg-[var(--color-background)] border border-[var(--color-border-lighter)] rounded-xl p-4">
                                         <textarea
-                                            placeholder="관심 있으시다면 간단한 소개와 함께 댓글을 남겨주세요."
+                                            placeholder="문의가 있으시다면 간단하게 댓글을 남겨주세요."
                                             value={commentInput}
                                             onChange={(e) => setCommentInput(e.target.value)}
                                             className="w-full outline-none resize-none text-sm leading-relaxed bg-transparent"
@@ -507,21 +528,20 @@ export const RecruitmentPage = () => {
                     </div>
                 )}
 
-                {/* Report Modal */}
                 <Modal
-                    isOpen={showNoStudyModal}
-                    onClose={() => setShowNoStudyModal(false)}
-                    title="모집글 작성 불가"
+                    isOpen={showLoginModal}
+                    onClose={() => setShowLoginModal(false)}
+                    title="로그인 필요"
                     maxWidth="sm"
                 >
                     <p className="text-sm text-[var(--color-text-secondary)]">
-                        현재 모집중인 스터디가 없어 글 작성이 불가능합니다.
+                        로그인이 필요한 기능입니다.
                     </p>
                     <div className="flex gap-2 mt-6">
                         <Button
                             variant="google-outline"
                             size="sm"
-                            onClick={() => setShowNoStudyModal(false)}
+                            onClick={() => setShowLoginModal(false)}
                             className="flex-1"
                         >
                             취소
@@ -529,13 +549,15 @@ export const RecruitmentPage = () => {
                         <Button
                             variant="primary"
                             size="sm"
-                            onClick={() => navigate('/study/create')}
+                            onClick={() => navigate('/login')}
                             className="flex-1"
                         >
-                            스터디 만들기
+                            로그인
                         </Button>
                     </div>
                 </Modal>
+
+                {/* Report Modal */}
 
                 <RecruitmentReportModal
                     isOpen={isReportModalOpen}
@@ -547,3 +569,15 @@ export const RecruitmentPage = () => {
         </UserLayoutV2>
     );
 };
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,4 +1,4 @@
-package com.ssafy.domain.board.controller;
+﻿package com.ssafy.domain.board.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.domain.board.dto.request.BoardCommentCreateRequest;
@@ -8,6 +8,7 @@ import com.ssafy.domain.board.dto.response.BoardPostDetailResponse;
 import com.ssafy.domain.board.dto.response.BoardPostSummaryResponse;
 import com.ssafy.domain.board.dto.response.BoardRecruitingStudyResponse;
 import com.ssafy.domain.board.service.BoardService;
+import com.ssafy.domain.board.entity.RecruitmentStatus;
 import com.ssafy.domain.study.entity.MeetingType;
 import com.ssafy.domain.study.entity.Status;
 import com.ssafy.domain.study.entity.StudyType;
@@ -51,11 +52,11 @@ class BoardControllerTest {
     private BoardService boardService;
 
     @Test
-    @DisplayName("모집중 스터디 목록 조회")
+    @DisplayName("紐⑥쭛以??ㅽ꽣??紐⑸줉 議고쉶")
     void getRecruitingStudies() throws Exception {
         BoardRecruitingStudyResponse response = BoardRecruitingStudyResponse.builder()
                 .id(1L)
-                .name("모집중 스터디")
+                .name("紐⑥쭛以??ㅽ꽣??)
                 .topicName("Java")
                 .studyType(StudyType.PLANNED)
                 .meetingType(MeetingType.ONLINE)
@@ -73,20 +74,16 @@ class BoardControllerTest {
     }
 
     @Test
-    @DisplayName("모집글 작성")
+    @DisplayName("紐⑥쭛湲 ?묒꽦")
     void createPost() throws Exception {
         BoardPostDetailResponse response = BoardPostDetailResponse.builder()
                 .id(10L)
-                .studyId(1L)
-                .studyName("스터디")
-                .topicName("Java")
-                .studyType(StudyType.PLANNED)
                 .meetingType(MeetingType.ONLINE)
-                .maxMembers(6)
-                .currentMembers(2)
-                .studyStatus(Status.RECRUITING)
-                .title("모집글 제목")
-                .content("모집글 내용")
+                .recruitmentField("백엔드")
+                .targetMembers(6)
+                .recruitmentStatus(RecruitmentStatus.RECRUITING)
+                .title("紐⑥쭛湲 ?쒕ぉ")
+                .content("紐⑥쭛湲 ?댁슜")
                 .authorId(1L)
                 .authorName("leader")
                 .authorProfileImage(null)
@@ -97,7 +94,7 @@ class BoardControllerTest {
                 .build();
         when(boardService.createPost(eq(1L), any(BoardPostCreateRequest.class))).thenReturn(response);
 
-        BoardPostCreateRequest request = new BoardPostCreateRequest(1L, "모집글 제목", "모집글 내용");
+        BoardPostCreateRequest request = new BoardPostCreateRequest("紐⑥쭛湲 ?쒕ぉ", "紐⑥쭛湲 ?댁슜", "백엔드", MeetingType.ONLINE, 6);
 
         mockMvc.perform(post("/api/v1/boards/recruitments")
                         .header("User-Id", "1")
@@ -106,26 +103,24 @@ class BoardControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.id").value(10L))
-                .andExpect(jsonPath("$.data.title").value("모집글 제목"));
+                .andExpect(jsonPath("$.data.title").value("紐⑥쭛湲 ?쒕ぉ"));
     }
 
     @Test
-    @DisplayName("모집글 목록 조회")
+    @DisplayName("紐⑥쭛湲 紐⑸줉 議고쉶")
     void getPosts() throws Exception {
         BoardPostSummaryResponse summary = BoardPostSummaryResponse.builder()
                 .id(10L)
-                .studyId(1L)
-                .studyName("스터디")
-                .topicName("Java")
-                .maxMembers(6)
-                .currentMembers(2)
-                .studyStatus(Status.RECRUITING)
-                .title("모집글 제목")
+                .title("紐⑥쭛湲 ?쒕ぉ")
                 .authorId(1L)
                 .authorName("leader")
                 .authorProfileImage(null)
+                .recruitmentField("백엔드")
+                .meetingType(MeetingType.ONLINE)
+                .targetMembers(6)
                 .viewCount(0)
                 .createdAt(LocalDateTime.now())
+                .recruitmentStatus(RecruitmentStatus.RECRUITING)
                 .build();
         Page<BoardPostSummaryResponse> page = new PageImpl<>(List.of(summary), PageRequest.of(0, 10), 1);
         when(boardService.getPosts(any())).thenReturn(page);
@@ -137,7 +132,7 @@ class BoardControllerTest {
     }
 
     @Test
-    @DisplayName("모집글 댓글 작성")
+    @DisplayName("紐⑥쭛湲 ?볤? ?묒꽦")
     void addComment() throws Exception {
         BoardCommentResponse response = BoardCommentResponse.builder()
                 .id(100L)
@@ -146,14 +141,14 @@ class BoardControllerTest {
                 .authorName("member")
                 .authorProfileImage(null)
                 .parentId(null)
-                .content("댓글 내용")
+                .content("?볤? ?댁슜")
                 .isDeleted(false)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
         when(boardService.addComment(eq(2L), eq(10L), any(BoardCommentCreateRequest.class))).thenReturn(response);
 
-        BoardCommentCreateRequest request = new BoardCommentCreateRequest(null, "댓글 내용");
+        BoardCommentCreateRequest request = new BoardCommentCreateRequest(null, "?볤? ?댁슜");
 
         mockMvc.perform(post("/api/v1/boards/recruitments/10/comments")
                         .header("User-Id", "2")
@@ -165,7 +160,7 @@ class BoardControllerTest {
     }
 
     @Test
-    @DisplayName("모집글 댓글 삭제")
+    @DisplayName("紐⑥쭛湲 ?볤? ??젣")
     void deleteComment() throws Exception {
         mockMvc.perform(delete("/api/v1/boards/recruitments/10/comments/100")
                         .header("User-Id", "2"))
@@ -173,3 +168,5 @@ class BoardControllerTest {
                 .andExpect(jsonPath("$.success").value(true));
     }
 }
+
+

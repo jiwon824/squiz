@@ -29,9 +29,35 @@ interface GamificationState {
     fetchStats: () => Promise<void>;
     closeLevelUpModal: () => void;
     checkLevelUp: (newStats: UserStatsResponse) => void;
+    // 테스트용 레벨업 트리거
+    triggerTestLevelUp: (newLevel?: number) => void;
 }
 
-export const useGamificationStore = create<GamificationState>((set, get) => ({
+export const useGamificationStore = create<GamificationState>((set, get) => {
+    // 개발 모드에서 테스트용으로 window에 노출
+    if (typeof window !== 'undefined') {
+        (window as any).testLevelUp = (level = 2) => {
+            const levelNames: Record<number, string> = {
+                1: '새싹',
+                2: '학습자',
+                3: '열정가',
+                4: '성실러',
+                5: '마스터',
+                6: '그랜드마스터',
+            };
+
+            set({
+                levelUpInfo: {
+                    previousLevel: level - 1,
+                    newLevel: level,
+                    newLevelName: levelNames[level] || '학습자',
+                },
+                isLevelUpModalOpen: true,
+            });
+        };
+    }
+
+    return {
     // 초기 상태
     stats: null,
     isLoading: false,
@@ -101,4 +127,25 @@ export const useGamificationStore = create<GamificationState>((set, get) => ({
             previousLevel: newStats.level,
         });
     },
-}));
+
+    // 테스트용 레벨업 트리거
+    triggerTestLevelUp: (newLevel = 2) => {
+        const levelNames: Record<number, string> = {
+            1: '새싹',
+            2: '학습자',
+            3: '열정가',
+            4: '성실러',
+            5: '마스터',
+            6: '그랜드마스터',
+        };
+
+        set({
+            levelUpInfo: {
+                previousLevel: newLevel - 1,
+                newLevel: newLevel,
+                newLevelName: levelNames[newLevel] || '학습자',
+            },
+            isLevelUpModalOpen: true,
+        });
+    },
+}});
