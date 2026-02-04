@@ -29,6 +29,7 @@ import {
     type StudyQuizDetail,
     type StudyQuizSubmitResponse,
 } from '@/api/endpoints/studyQuizApi';
+import { parseOptions } from '@/shared/utils/quizUtils';
 
 interface StudyOption {
     id: number;
@@ -41,30 +42,7 @@ interface MeetingQuizItem {
     studyName: string;
 }
 
-/** options JSON 문자열을 파싱 */
-const parseOptions = (optionsStr: string | null): { id: string; text: string }[] => {
-    if (!optionsStr) return [];
-    try {
-        const parsed = JSON.parse(optionsStr);
-        if (Array.isArray(parsed)) {
-            return parsed.map((opt, idx) => {
-                if (typeof opt === 'string') {
-                    return { id: String.fromCharCode(65 + idx), text: opt };
-                }
-                if (typeof opt === 'object' && opt !== null) {
-                    return {
-                        id: opt.id || String.fromCharCode(65 + idx),
-                        text: opt.text || opt.label || String(opt.id || ''),
-                    };
-                }
-                return { id: String.fromCharCode(65 + idx), text: String(opt) };
-            });
-        }
-        return [];
-    } catch {
-        return [];
-    }
-};
+
 
 export const MeetingTestPage: React.FC = () => {
     const navigate = useNavigate();

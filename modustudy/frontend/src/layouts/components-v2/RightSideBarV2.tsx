@@ -580,8 +580,10 @@ export const RightSideBarV2: React.FC = () => {
                                                 <Video size={16} className="text-study-green" />
                                             </div>
                                             <div className="flex-1 min-w-0 flex flex-col justify-center">
-                                                <p className="text-xs font-black text-study-green leading-4 pt-[1px]"><br/>미팅 진행 중</p>
-                                                
+                                                <p className="text-xs font-black text-study-green leading-4 pt-[1px]">미팅 진행 중</p>
+                                                <p className="text-[11px] text-gray-500 leading-4">
+                                                    {visibleActiveMeetings.length}개 동시 진행
+                                                </p>
                                             </div>
                                             <button
                                                 onClick={(e) => {

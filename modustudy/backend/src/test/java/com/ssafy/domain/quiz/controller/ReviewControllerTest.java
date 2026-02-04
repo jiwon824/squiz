@@ -178,6 +178,30 @@ class ReviewControllerTest {
         }
 
         @Test
+        @DisplayName("오답 노트 조회 API 성공 테스트 - 최신순")
+        void getWrongAnswers_ShouldReturnListSortedByLatest() throws Exception {
+                // given
+                TodayReviewResponse.ReviewItemDto dto = new TodayReviewResponse.ReviewItemDto(
+                                4L, ReviewContentType.COURSE_QUESTION, 103L, 0.6, 6.0, 2, 3, 1, LocalDateTime.now(),
+                                null);
+
+                given(fsrsService.getWrongAnswersWithQuestions(TEST_USER_ID,
+                                com.ssafy.domain.quiz.entity.WrongAnswerSortType.LATEST))
+                                .willReturn(List.of(dto));
+
+                // when & then
+                mockMvc.perform(get("/api/v1/reviews/wrong-answers")
+                                .param("sortType", "LATEST")
+                                .with(user(userDetails))
+                                .contentType(MediaType.APPLICATION_JSON))
+                                .andDo(print())
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.success").value(true))
+                                .andExpect(jsonPath("$.data.items").isArray())
+                                .andExpect(jsonPath("$.data.items[0].reviewItemId").value(4L));
+        }
+
+        @Test
         @DisplayName("오답 노트 조회 API - sortType 없으면 기본값(MOST_WRONG) 사용")
         void getWrongAnswers_ShouldUseDefaultSortType() throws Exception {
                 // given

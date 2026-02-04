@@ -16,14 +16,14 @@ import { useAuthStore } from '@/store/authStore';
 
 // 상태별 뱃지 스타일
 const STATUS_BADGE: Record<string, { label: string; className: string; dot: string }> = {
-  RECRUITING: { label: '모집중', className: 'bg-blue-50 text-blue-600 ring-1 ring-blue-200', dot: 'bg-blue-500' },
-  RECRUIT_CLOSED: { label: '모집마감', className: 'bg-gray-50 text-gray-500 ring-1 ring-gray-200', dot: 'bg-gray-400' },
-  IN_PROGRESS: { label: '진행중', className: 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200', dot: 'bg-emerald-500' },
-  COMPLETED: { label: '완료', className: 'bg-gray-50 text-gray-400 ring-1 ring-gray-200', dot: 'bg-gray-300' },
-  SCHEDULED: { label: '예정', className: 'bg-violet-50 text-violet-600 ring-1 ring-violet-200', dot: 'bg-violet-500' },
-  CANCELLED: { label: '취소', className: 'bg-red-50 text-red-400 ring-1 ring-red-200', dot: 'bg-red-300' },
-  PENDING: { label: '대기', className: 'bg-amber-50 text-amber-600 ring-1 ring-amber-200', dot: 'bg-amber-500' },
-  DRAFT: { label: '임시저장', className: 'bg-gray-50 text-gray-400 ring-1 ring-gray-200', dot: 'bg-gray-300' },
+  RECRUITING: { label: '모집', className: 'bg-blue-50 text-blue-600', dot: 'bg-blue-500' },
+  RECRUIT_CLOSED: { label: '마감', className: 'bg-gray-50 text-gray-500', dot: 'bg-gray-400' },
+  IN_PROGRESS: { label: '진행', className: 'bg-emerald-50 text-emerald-600', dot: 'bg-emerald-500' },
+  COMPLETED: { label: '완료', className: 'bg-gray-50 text-gray-400', dot: 'bg-gray-300' },
+  SCHEDULED: { label: '예정', className: 'bg-violet-50 text-violet-600', dot: 'bg-violet-500' },
+  CANCELLED: { label: '취소', className: 'bg-red-50 text-red-400', dot: 'bg-red-300' },
+  PENDING: { label: '대기', className: 'bg-amber-50 text-amber-600', dot: 'bg-amber-500' },
+  DRAFT: { label: '임시', className: 'bg-gray-50 text-gray-400', dot: 'bg-gray-300' },
 };
 
 const getStatusBadge = (status: string) => {
@@ -57,7 +57,7 @@ interface StudyItem {
   leader?: { id: number; nickname?: string; profileImage?: string | null };
 }
 
-type FilterStatus = 'ALL' | 'RECRUITING' | 'IN_PROGRESS' | 'COMPLETED';
+type FilterStatus = 'ALL' | 'PENDING' | 'RECRUITING' | 'IN_PROGRESS' | 'COMPLETED';
 
 export const MyCreatedStudiesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -95,13 +95,26 @@ export const MyCreatedStudiesPage: React.FC = () => {
 
   const filterCounts = {
     ALL: studies.length,
+    PENDING: studies.filter((s) => s.status === 'PENDING').length,
     RECRUITING: studies.filter((s) => s.status === 'RECRUITING').length,
     IN_PROGRESS: studies.filter((s) => s.status === 'IN_PROGRESS').length,
     COMPLETED: studies.filter((s) => s.status === 'COMPLETED').length,
   };
 
+  // 페이지 전환 애니메이션 (줌인 효과)
+  const pageTransition = {
+    initial: { opacity: 0, scale: 0.95 },
+    animate: { opacity: 1, scale: 1 },
+    transition: { duration: 0.3, ease: 'easeOut' },
+  };
+
   return (
-    <div className="min-h-[calc(100vh-64px)] py-6 sm:py-8">
+    <motion.div
+      className="min-h-[calc(100vh-64px)] py-6 sm:py-8"
+      initial={pageTransition.initial}
+      animate={pageTransition.animate}
+      transition={pageTransition.transition}
+    >
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
         {/* 브레드크럼 + 헤더 */}
         <PageNavHeader
@@ -117,8 +130,9 @@ export const MyCreatedStudiesPage: React.FC = () => {
         <div className="flex flex-wrap items-center gap-2 mb-6">
           {([
             { key: 'ALL' as FilterStatus, label: '전체' },
-            { key: 'RECRUITING' as FilterStatus, label: '모집중' },
-            { key: 'IN_PROGRESS' as FilterStatus, label: '진행중' },
+            { key: 'PENDING' as FilterStatus, label: '대기' },
+            { key: 'RECRUITING' as FilterStatus, label: '모집' },
+            { key: 'IN_PROGRESS' as FilterStatus, label: '진행' },
             { key: 'COMPLETED' as FilterStatus, label: '완료' },
           ]).map((tab) => (
             <button
@@ -310,7 +324,7 @@ export const MyCreatedStudiesPage: React.FC = () => {
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 };
 

@@ -170,7 +170,7 @@ export const QuizSingleChoice: React.FC<QuizSingleChoiceProps> = ({
                 ) : onNext ? (
                     <button
                         onClick={onNext}
-                        disabled={isLastQuestion}
+                        disabled={false}
                         className={cn(
                             'flex-1 py-3 rounded-xl font-bold transition-all',
                             'bg-secondary hover:bg-secondary-dark text-white',
@@ -328,7 +328,7 @@ export const QuizMultipleChoice: React.FC<QuizMultipleChoiceProps> = ({
                 ) : onNext ? (
                     <button
                         onClick={onNext}
-                        disabled={isLastQuestion}
+                        disabled={false}
                         className={cn(
                             'flex-1 py-3 rounded-xl font-bold transition-all',
                             'bg-secondary hover:bg-secondary-dark text-white',
@@ -493,7 +493,7 @@ export const QuizShortAnswer: React.FC<QuizShortAnswerProps> = ({
                 ) : onNext ? (
                     <button
                         onClick={onNext}
-                        disabled={isLastQuestion}
+                        disabled={false}
                         className={cn(
                             'flex-1 py-3 rounded-xl font-bold transition-all',
                             'bg-secondary hover:bg-secondary-dark text-white',

@@ -1,10 +1,10 @@
 // 내 참여 스터디 위젯
 // 대시보드에서 참여 중인 스터디 표시 (승인 대기 + 진행중 + 완료)
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Users, ChevronRight, RefreshCw, Clock, CheckCircle2, XCircle, Compass, Maximize2, Play, AlertCircle } from 'lucide-react';
+import { Users, ChevronRight, RefreshCw, Clock, CheckCircle2, Compass, Maximize2, Play, AlertCircle } from 'lucide-react';
 import { Spinner } from '@/shared/components/Spinner';
 import { cn } from '@/shared/utils/cn';
 import { studyApi } from '@/api/endpoints/studyApi';
@@ -15,26 +15,26 @@ type CombinedStatus = 'PENDING' | 'APPROVED' | 'IN_PROGRESS' | 'COMPLETED';
 // 통합 상태별 뱃지 스타일 및 아이콘
 const COMBINED_STATUS_BADGE: Record<CombinedStatus, { label: string; className: string; dot: string; icon: React.ElementType }> = {
   PENDING: {
-    label: '승인 대기',
-    className: 'bg-amber-50 text-amber-600 ring-1 ring-amber-200',
+    label: '대기',
+    className: 'bg-amber-50 text-amber-600',
     dot: 'bg-amber-500 animate-pulse',
     icon: Clock,
   },
   APPROVED: {
-    label: '승인됨',
-    className: 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200',
+    label: '승인',
+    className: 'bg-emerald-50 text-emerald-600',
     dot: 'bg-emerald-500',
     icon: CheckCircle2,
   },
   IN_PROGRESS: {
-    label: '진행중',
-    className: 'bg-blue-50 text-blue-600 ring-1 ring-blue-200',
+    label: '진행',
+    className: 'bg-blue-50 text-blue-600',
     dot: 'bg-blue-500',
     icon: Play,
   },
   COMPLETED: {
     label: '완료',
-    className: 'bg-gray-50 text-gray-500 ring-1 ring-gray-200',
+    className: 'bg-gray-50 text-gray-500',
     dot: 'bg-gray-400',
     icon: CheckCircle2,
   },
@@ -50,7 +50,7 @@ const getCombinedStatusBadge = (status: CombinedStatus) => {
 };
 
 // 대시보드에 표시할 최대 개수
-const MAX_DISPLAY_COUNT = 2;
+const MAX_DISPLAY_COUNT = 3;
 
 interface ApplicationItem {
   applicationId: number;
@@ -84,6 +84,29 @@ export const MyApplicationsWidget: React.FC = () => {
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+
+  // 확대 애니메이션 상태
+  const [isExpanding, setIsExpanding] = useState(false);
+  const [initialRect, setInitialRect] = useState<DOMRect | null>(null);
+  const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
+  const widgetRef = useRef<HTMLDivElement>(null);
+
+  // main content 영역 내에서만 확대 후 페이지 이동
+  const handleExpandToPage = () => {
+    if (widgetRef.current) {
+      const rect = widgetRef.current.getBoundingClientRect();
+      setInitialRect(rect);
+
+      // UserLayout의 main content 영역 bounds 가져오기
+      const mainContent = document.getElementById('main-content-scroll');
+      if (mainContent) {
+        const mainRect = mainContent.getBoundingClientRect();
+        setTargetRect(mainRect);
+      }
+
+      setIsExpanding(true);
+    }
+  };
 
   const fetchApplications = async () => {
     setLoading(true);
@@ -130,11 +153,17 @@ export const MyApplicationsWidget: React.FC = () => {
         return app;
       });
 
-      // 정렬: 최신순 (createdAt 기준)
+      // 정렬: 진행중 > 승인 대기 > 승인됨 > 완료
+      const statusOrder: Record<CombinedStatus, number> = {
+        IN_PROGRESS: 0,
+        PENDING: 1,
+        APPROVED: 2,
+        COMPLETED: 3,
+      };
       enrichedApps.sort((a, b) => {
-        const aDate = new Date(a.createdAt).getTime();
-        const bDate = new Date(b.createdAt).getTime();
-        return bDate - aDate; // 최신순
+        const statusA = getCombinedStatus(a);
+        const statusB = getCombinedStatus(b);
+        return statusOrder[statusA] - statusOrder[statusB];
       });
 
       setTotalCount(enrichedApps.length);
@@ -169,8 +198,9 @@ export const MyApplicationsWidget: React.FC = () => {
     COMPLETED: allApplications.filter((app) => getCombinedStatus(app) === 'COMPLETED').length,
   };
 
-  return (
-    <div className="bg-gradient-to-br from-white to-violet-50/30 rounded-2xl p-6 shadow-[0_4px_15px_rgba(0,0,0,0.05)] relative overflow-hidden h-full">
+  // 위젯 내용 컴포넌트
+  const WidgetContent = () => (
+    <>
       {/* 배경 장식 */}
       <div className="absolute top-0 right-0 w-24 h-24 bg-violet-100/20 rounded-full -translate-y-8 translate-x-8" />
       <div className="absolute bottom-0 left-0 w-16 h-16 bg-violet-100/15 rounded-full translate-y-6 -translate-x-6" />
@@ -187,8 +217,8 @@ export const MyApplicationsWidget: React.FC = () => {
           </div>
         </div>
         <button
-          onClick={() => navigate('/my-studies/applications')}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          onClick={handleExpandToPage}
+          className="p-2 hover:bg-gray-100 rounded-lg transition-all active:scale-125 hover:scale-110"
           title="전체 화면으로 보기"
         >
           <Maximize2 size={18} className="text-text-secondary" />
@@ -217,7 +247,7 @@ export const MyApplicationsWidget: React.FC = () => {
             </span>
           )}
           {statusCounts.COMPLETED > 0 && (
-            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-gray-100 text-gray-500 text-xs font-medium">
+            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-gray-50 text-gray-500 text-xs font-medium">
               <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
               완료 {statusCounts.COMPLETED}
             </span>
@@ -275,6 +305,15 @@ export const MyApplicationsWidget: React.FC = () => {
                 const StatusIcon = badge.icon;
                 const canGoWorkspace = combinedStatus === 'IN_PROGRESS' || combinedStatus === 'COMPLETED';
 
+                // 진행중/완료 상태면 워크스페이스로, 그 외는 상세 페이지로
+                const handleClick = () => {
+                  if (canGoWorkspace) {
+                    navigate(`/study/${app.studyId}/workspace`);
+                  } else {
+                    navigate(`/study/${app.studyId}`);
+                  }
+                };
+
                 return (
                   <motion.li
                     key={app.applicationId}
@@ -283,16 +322,17 @@ export const MyApplicationsWidget: React.FC = () => {
                     exit={{ opacity: 0, x: -8 }}
                     transition={{ delay: idx * 0.05 }}
                   >
-                    <div
+                    <button
+                      onClick={handleClick}
                       className={cn(
                         'w-full flex items-center gap-3 text-left group',
                         'rounded-xl p-3 transition-all duration-200',
                         'hover:bg-white hover:shadow-sm border border-transparent hover:border-violet-100'
                       )}
+                      title={canGoWorkspace ? '워크스페이스로 이동' : '스터디 상세 보기'}
                     >
                       {/* 주제 아이콘 또는 상태 아이콘 */}
-                      <button
-                        onClick={() => navigate(`/study/${app.studyId}`)}
+                      <div
                         className={cn(
                           'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors',
                           combinedStatus === 'PENDING' && 'bg-amber-50 group-hover:bg-amber-100',
@@ -300,7 +340,6 @@ export const MyApplicationsWidget: React.FC = () => {
                           combinedStatus === 'IN_PROGRESS' && 'bg-blue-50 group-hover:bg-blue-100',
                           combinedStatus === 'COMPLETED' && 'bg-gray-50 group-hover:bg-gray-100',
                         )}
-                        title="스터디 상세 보기"
                       >
                         {app.topicIcon ? (
                           <span className="text-sm">{app.topicIcon}</span>
@@ -312,21 +351,17 @@ export const MyApplicationsWidget: React.FC = () => {
                             combinedStatus === 'COMPLETED' && 'text-gray-400',
                           )} />
                         )}
-                      </button>
+                      </div>
 
                       {/* 스터디 정보 */}
-                      <button
-                        onClick={() => navigate(`/study/${app.studyId}`)}
-                        className="flex-1 min-w-0 text-left flex flex-col justify-center"
-                        title="스터디 상세 보기"
-                      >
+                      <div className="flex-1 min-w-0 text-left flex flex-col justify-center">
                         <p className="text-sm font-semibold text-gray-800 truncate group-hover:text-violet-700 transition-colors leading-none mb-0">
                           {app.studyName || `스터디 #${app.studyId}`}
                         </p>
                         <p className="text-[11px] text-gray-400 leading-none mt-0.5 mb-0">
                           {combinedStatus === 'PENDING' ? '승인 대기 중입니다' : (app.topicName || formatDate(app.createdAt))}
                         </p>
-                      </button>
+                      </div>
 
                       {/* 상태 뱃지 */}
                       <span className={cn(
@@ -337,34 +372,17 @@ export const MyApplicationsWidget: React.FC = () => {
                         {badge.label}
                       </span>
 
-                      {/* 워크스페이스 이동 버튼 (진행중/완료일 때만) */}
-                      {canGoWorkspace && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/study/${app.studyId}/workspace`);
-                          }}
-                          className={cn(
-                            'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
-                            'bg-blue-500 hover:bg-blue-600 transition-colors',
-                            'shadow-sm shadow-blue-200'
-                          )}
-                          title="워크스페이스로 이동"
-                        >
-                          <Play size={14} className="text-white ml-0.5" fill="white" />
-                        </button>
-                      )}
-                    </div>
+                    </button>
                   </motion.li>
                 );
               })}
             </AnimatePresence>
           </ul>
 
-          {/* 더보기 버튼 (2개 초과 시) */}
+          {/* 더보기 버튼 (3개 초과 시) */}
           {totalCount > MAX_DISPLAY_COUNT && (
             <button
-              onClick={() => navigate('/my-studies/applications')}
+              onClick={handleExpandToPage}
               className="w-full flex items-center justify-center gap-1.5 py-2.5 mt-2 rounded-xl bg-violet-50 hover:bg-violet-100 transition-colors text-violet-600 text-sm font-medium"
             >
               <span>외 {totalCount - MAX_DISPLAY_COUNT}개 더보기</span>
@@ -373,7 +391,55 @@ export const MyApplicationsWidget: React.FC = () => {
           )}
         </div>
       )}
-    </div>
+    </>
+  );
+
+  return (
+    <>
+      {/* 기본 위젯 */}
+      <div
+        ref={widgetRef}
+        className={cn(
+          'bg-gradient-to-br from-white to-violet-50/30 rounded-2xl p-6 shadow-[0_4px_15px_rgba(0,0,0,0.05)] relative overflow-hidden h-full',
+          isExpanding && 'invisible'
+        )}
+      >
+        <WidgetContent />
+      </div>
+
+      {/* 확대 애니메이션 오버레이 */}
+      <AnimatePresence>
+        {isExpanding && initialRect && targetRect && (
+          <motion.div
+            className="fixed bg-gradient-to-br from-white to-violet-50/30 p-6 shadow-[0_4px_15px_rgba(0,0,0,0.05)] overflow-hidden"
+            style={{ zIndex: 9999 }}
+            initial={{
+              top: initialRect.top,
+              left: initialRect.left,
+              width: initialRect.width,
+              height: initialRect.height,
+              borderRadius: 16,
+            }}
+            animate={{
+              top: targetRect.top,
+              left: targetRect.left,
+              width: targetRect.width,
+              height: targetRect.height,
+              borderRadius: 24, // main content의 rounded-3xl과 일치
+            }}
+            transition={{
+              duration: 0.4,
+              ease: [0.4, 0, 0.2, 1],
+            }}
+            onAnimationComplete={() => {
+              navigate('/my-studies/applications');
+            }}
+          >
+            <WidgetContent />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 };
 
