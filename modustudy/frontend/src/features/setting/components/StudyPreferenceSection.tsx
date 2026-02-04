@@ -39,29 +39,60 @@ export const StudyPreferenceSection = () => {
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
     const [hasChanges, setHasChanges] = useState(false);
 
+    // localStorage에서 데이터 로드하는 헬퍼 함수
+    const loadFromLocalStorage = (): StudyPreference | null => {
+        const saved = localStorage.getItem('studyPreference');
+        if (saved) {
+            try {
+                return JSON.parse(saved) as StudyPreference;
+            } catch {
+                return null;
+            }
+        }
+        return null;
+    };
+
     // 초기 데이터 로드
     useEffect(() => {
         const loadPreference = async () => {
+            // 먼저 localStorage 캐시 확인 (빠른 UI 표시)
+            const cachedPref = loadFromLocalStorage();
+
+            if (cachedPref) {
+                setTechStack(cachedPref.techStack || []);
+                setAvailableDays((cachedPref.availableDays || []) as DayOfWeek[]);
+                setPreferredTimeSlot(cachedPref.preferredTimeSlot || null);
+                setPreferredDurationWeeks(cachedPref.preferredDurationWeeks || 4);
+            }
+
             try {
                 const pref: any = await getStudyPreference();
-                // 백엔드 필드명: techStacks, preferredTimeSlots (복수형)
-                setTechStack(pref.techStacks || pref.techStack || []);
-                setAvailableDays((pref.availableDays || []) as DayOfWeek[]);
-                const timeSlots = pref.preferredTimeSlots || [];
-                setPreferredTimeSlot(timeSlots[0] || pref.preferredTimeSlot || null);
-                setPreferredDurationWeeks(pref.preferredDurationWeeks || 4);
+
+                // 백엔드 필드명 호환 (techStacks/techStack, preferredTimeSlots/preferredTimeSlot)
+                const apiTechStack = pref.techStacks || pref.techStack || [];
+                const apiTimeSlot = pref.preferredTimeSlots?.[0] || pref.preferredTimeSlot || null;
+                const apiAvailableDays = pref.availableDays || [];
+                const apiDurationWeeks = pref.preferredDurationWeeks || 4;
+
+                // API 응답이 빈 배열이면 캐시 데이터 유지 (백엔드에 저장 안 된 경우)
+                const finalTechStack = apiTechStack.length > 0 ? apiTechStack : (cachedPref?.techStack || []);
+                const finalTimeSlot = apiTimeSlot || cachedPref?.preferredTimeSlot || null;
+                const finalAvailableDays = apiAvailableDays.length > 0 ? apiAvailableDays : (cachedPref?.availableDays || []);
+
+                setTechStack(finalTechStack);
+                setAvailableDays(finalAvailableDays as DayOfWeek[]);
+                setPreferredTimeSlot(finalTimeSlot);
+                setPreferredDurationWeeks(apiDurationWeeks);
+
+                // localStorage 동기화 (최종 데이터로)
+                localStorage.setItem('studyPreference', JSON.stringify({
+                    techStack: finalTechStack,
+                    availableDays: finalAvailableDays,
+                    preferredTimeSlot: finalTimeSlot,
+                    preferredDurationWeeks: apiDurationWeeks,
+                }));
             } catch {
-                // API가 아직 없으면 기본값 사용 (localStorage fallback)
-                const saved = localStorage.getItem('studyPreference');
-                if (saved) {
-                    try {
-                        const parsed: StudyPreference = JSON.parse(saved);
-                        setTechStack(parsed.techStack || []);
-                        setAvailableDays((parsed.availableDays || []) as DayOfWeek[]);
-                        setPreferredTimeSlot(parsed.preferredTimeSlot || null);
-                        setPreferredDurationWeeks(parsed.preferredDurationWeeks || 4);
-                    } catch { /* 무시 */ }
-                }
+                // API 실패 시 localStorage 캐시 사용 (이미 위에서 로드됨)
             } finally {
                 setIsLoading(false);
             }
@@ -88,8 +119,26 @@ export const StudyPreferenceSection = () => {
         setPreferredTimeSlot(prev => prev === slot ? null : slot);
     }, []);
 
+    // 유효성 검사
+    const validateForm = (): string | null => {
+        if (techStack.length === 0) {
+            return '기술 스택을 최소 1개 이상 선택해주세요.';
+        }
+        if (availableDays.length === 0) {
+            return '참여 가능한 요일을 최소 1개 이상 선택해주세요.';
+        }
+        return null;
+    };
+
     // 저장
     const handleSave = async () => {
+        // 유효성 검사
+        const validationError = validateForm();
+        if (validationError) {
+            setMessage({ type: 'error', text: validationError });
+            return;
+        }
+
         setIsSaving(true);
         setMessage(null);
 
@@ -103,6 +152,8 @@ export const StudyPreferenceSection = () => {
 
         try {
             await updateStudyPreference(data);
+            // API 성공 시에도 localStorage에 동기화 (캐시용)
+            localStorage.setItem('studyPreference', JSON.stringify(data));
             setMessage({ type: 'success', text: '스터디 선호 설정이 저장되었습니다.' });
             setHasChanges(false);
         } catch {
@@ -140,7 +191,10 @@ export const StudyPreferenceSection = () => {
                 {/* ===== 1. 기술스택 ===== */}
                 <div className="bg-white rounded-2xl border border-gray-100 p-6">
                     <div className="flex items-center gap-2 mb-4">
-                        <h3 className="text-base font-bold text-gray-900">기술 스택</h3>
+                        <h3 className="text-base font-bold text-gray-900">
+                            기술 스택
+                            <span className="text-red-500 ml-0.5">*</span>
+                        </h3>
                         <span className="text-xs text-gray-400">
                             ({techStack.length}개 선택됨)
                         </span>
@@ -160,7 +214,10 @@ export const StudyPreferenceSection = () => {
 
                 {/* ===== 2. 가용 일정 ===== */}
                 <div className="bg-white rounded-2xl border border-gray-100 p-6">
-                    <h3 className="text-base font-bold text-gray-900 mb-4">가용 일정</h3>
+                    <h3 className="text-base font-bold text-gray-900 mb-4">
+                        가용 일정
+                        <span className="text-red-500 ml-0.5">*</span>
+                    </h3>
 
                     {/* 요일 선택 */}
                     <div className="mb-5">
@@ -227,7 +284,10 @@ export const StudyPreferenceSection = () => {
 
                 {/* ===== 3. 선호 스터디 기간 ===== */}
                 <div className="bg-white rounded-2xl border border-gray-100 p-6">
-                    <h3 className="text-base font-bold text-gray-900 mb-4">선호 스터디 기간</h3>
+                    <h3 className="text-base font-bold text-gray-900 mb-4">
+                        선호 스터디 기간
+                        <span className="text-red-500 ml-0.5">*</span>
+                    </h3>
 
                     <div className="space-y-4">
                         {/* 기간 버튼 그리드 */}

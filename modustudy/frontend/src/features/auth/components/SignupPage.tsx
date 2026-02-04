@@ -40,8 +40,6 @@ export const SignupPage = () => {
         confirmPassword: '',
     });
 
-    const isPasswordConfirmed = formData.confirmPassword.length > 0 && formData.password === formData.confirmPassword;
-
     // OAuth 데이터 로드
     useEffect(() => {
         if (isOAuthMode) {
@@ -128,8 +126,10 @@ export const SignupPage = () => {
                 localStorage.removeItem('oauthTempData');
 
                 console.log('[INFO] 회원가입 완료!');
-                showToast('회원가입이 완료되었습니다.', 'success');
-                navigate('/dashboard');
+                showToast('회원가입이 완료되었습니다. 스터디 선호 설정을 완료해주세요.', 'success');
+
+                // 스터디 선호 설정 페이지로 강제 이동
+                window.location.href = '/setting?section=study';
             } else {
                 console.log('[INFO] 일반 회원가입', formData);
                 showToast('회원가입이 완료되었습니다.', 'success');
@@ -241,9 +241,6 @@ export const SignupPage = () => {
                         >
                             보기
                         </button>
-                        {isPasswordConfirmed && !viewedTerms && (
-                            <span className="terms-hint">클릭</span>
-                        )}
                     </div>
                     <div className="terms-agreement-item">
                         <input
@@ -262,9 +259,6 @@ export const SignupPage = () => {
                         >
                             보기
                         </button>
-                        {isPasswordConfirmed && !viewedPrivacy && (
-                            <span className="terms-hint">클릭</span>
-                        )}
                     </div>
                 </div>
 

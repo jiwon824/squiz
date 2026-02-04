@@ -20,12 +20,11 @@ interface Session {
 }
 
 interface AttendanceRecord {
-    id: number;
     userId: number;
-    userName?: string;
-    status: 'PRESENT' | 'ABSENT' | 'LATE' | 'EXCUSED' | null;
-    checkedAt?: string;
-    excuseStatus?: string;
+    nickname?: string;
+    profileImage?: string | null;
+    status: 'PRESENT' | 'ABSENT' | 'LATE' | 'EXCUSED' | 'PENDING' | null;
+    checkedAt?: string | null;
 }
 
 const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ studyId }) => {
@@ -87,7 +86,9 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ studyId }) 
     const fetchAttendance = async (sessionId: number) => {
         try {
             const response = await studyApi.getSessionAttendance(studyId, sessionId);
-            const records = response?.data || response || [];
+            // API 응답 구조: { sessionId, sessionTitle, totalMembers, presentCount, members: [...] }
+            const sessionData = response?.data || response || {};
+            const records = sessionData.members || [];
             setAttendanceRecords(records);
         } catch (error) {
             console.error('출석 정보 조회 실패:', error);
@@ -143,7 +144,7 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ studyId }) 
 
     if (sessions.length === 0) {
         return (
-            <div className="text-center py-12 bg-background-secondary rounded-2xl">
+            <div className="text-center py-12 bg-white rounded-2xl shadow-[0_4px_15px_rgba(0,0,0,0.05)]">
                 <Calendar size={48} className="mx-auto text-text-muted mb-4" />
                 <p className="text-text-secondary">아직 생성된 세션이 없습니다</p>
             </div>
@@ -168,7 +169,7 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ studyId }) 
                     { label: '지각', value: stats.late, color: 'warning', icon: <Clock size={16} /> },
                     { label: '소명', value: stats.excused, color: 'info', icon: <AlertCircle size={16} /> },
                 ].map((stat) => (
-                    <div key={stat.label} className={`bg-${stat.color}/5 rounded-xl p-4 border border-${stat.color}/20`}>
+                    <div key={stat.label} className="bg-white rounded-2xl p-4 shadow-[0_4px_15px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)] transition-shadow">
                         <div className="flex items-center gap-2 mb-2">
                             <span className={`text-${stat.color}`}>{stat.icon}</span>
                             <span className="text-sm text-text-secondary">{stat.label}</span>
@@ -180,7 +181,7 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ studyId }) 
 
             {/* 세션 선택 */}
             {selectedSession && (
-                <div className="flex items-center gap-3 p-4 bg-background-secondary rounded-2xl">
+                <div className="flex items-center gap-3 p-4 bg-white rounded-2xl shadow-[0_4px_15px_rgba(0,0,0,0.05)]">
                     <Calendar size={20} className="text-primary flex-shrink-0" />
                     <Dropdown
                         items={sessions.map((session): DropdownItem => {
@@ -222,8 +223,8 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ studyId }) 
             )}
 
             {/* 출석 체크 리스트 */}
-            <div className="bg-background-secondary rounded-2xl overflow-hidden">
-                <div className="p-4 border-b border-border-light flex items-center justify-between">
+            <div className="bg-white rounded-2xl shadow-[0_4px_15px_rgba(0,0,0,0.05)] overflow-hidden">
+                <div className="p-4 flex items-center justify-between">
                     <h3 className="font-bold text-text-primary flex items-center gap-2">
                         <Users size={18} />
                         멤버 출석 현황 ({attendanceRecords.length}명)
@@ -238,11 +239,11 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ studyId }) 
                     ) : (
                         attendanceRecords.map((record) => {
                             const memberInfo = memberMap.get(record.userId);
-                            const nickname = memberInfo?.nickname || record.userName?.trim() || `User ${record.userId}`;
-                            const profileImage = getProfileImageUrl(memberInfo?.profileImage);
+                            const nickname = record.nickname || memberInfo?.nickname || `User ${record.userId}`;
+                            const profileImage = getProfileImageUrl(record.profileImage || memberInfo?.profileImage);
 
                             return (
-                            <div key={record.id} className="p-4 flex items-center gap-4 hover:bg-surface/50 transition-colors">
+                            <div key={record.userId} className="p-4 flex items-center gap-4 hover:bg-surface/50 transition-colors">
                                 {/* 프로필 이미지 */}
                                 <div className="w-10 h-10 rounded-full overflow-hidden bg-primary/10 flex-shrink-0">
                                     <img

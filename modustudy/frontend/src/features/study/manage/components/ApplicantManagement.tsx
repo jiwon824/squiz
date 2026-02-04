@@ -185,7 +185,7 @@ const ApplicantManagement: React.FC<ApplicantManagementProps> = ({ studyId }) =>
 
             {/* 지원자 목록 */}
             {filteredApplicants.length === 0 ? (
-                <div className="text-center py-12 bg-background-secondary rounded-2xl">
+                <div className="text-center py-12 bg-white rounded-2xl shadow-[0_4px_15px_rgba(0,0,0,0.05)]">
                     <User size={48} className="mx-auto text-text-muted mb-4" />
                     <p className="text-text-secondary">
                         {filterStatus === 'all' ? '아직 신청자가 없습니다' : '해당 상태의 신청자가 없습니다'}
@@ -196,7 +196,7 @@ const ApplicantManagement: React.FC<ApplicantManagementProps> = ({ studyId }) =>
                     {filteredApplicants.map((app) => (
                         <div
                             key={app.applicationId}
-                            className="bg-background-secondary rounded-2xl border border-border-light overflow-hidden"
+                            className="bg-white rounded-2xl shadow-[0_4px_15px_rgba(0,0,0,0.05)] overflow-hidden"
                         >
                             {/* 카드 헤더 */}
                             <div
@@ -255,10 +255,10 @@ const ApplicantManagement: React.FC<ApplicantManagementProps> = ({ studyId }) =>
 
                             {/* 확장된 내용 */}
                             {expandedId === app.applicationId && (
-                                <div className="px-4 pb-4 border-t border-border-light">
+                                <div className="px-4 pb-4">
                                     <div className="pt-4">
                                         {/* 지원 메시지 */}
-                                        <div className="bg-surface rounded-xl p-4">
+                                        <div className="bg-gray-50 rounded-xl p-4">
                                             <div className="flex items-center gap-2 text-sm font-medium text-text-secondary mb-2">
                                                 <MessageSquare size={14} />
                                                 지원 메시지
