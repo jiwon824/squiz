@@ -2,6 +2,7 @@ package com.ssafy.domain.quiz.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ssafy.domain.gamification.event.QuizSolvedEvent;
 import com.ssafy.domain.quiz.dto.response.StudyQuizSubmitResponse;
 import com.ssafy.domain.quiz.entity.ReviewContentType;
 import com.ssafy.domain.quiz.entity.StudyQuiz;
@@ -14,8 +15,11 @@ import com.ssafy.domain.quiz.util.QuizGradingUtils;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
 
 import java.util.List;
 import java.util.Map;
@@ -35,6 +39,7 @@ public class StudyQuizService {
     private final StudyQuizQuestionRepository studyQuizQuestionRepository;
     private final FsrsService fsrsService;
     private final ObjectMapper objectMapper;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * 미팅 AI 처리 결과에서 퀴즈 저장
@@ -205,8 +210,26 @@ public class StudyQuizService {
         UserReviewItem item = fsrsService.processReviewResult(
                 userId, ReviewContentType.STUDY_QUESTION, questionId, isCorrect, responseTimeMs);
 
+        // 게이미피케이션 이벤트 발행
+        publishQuizSolvedEvent(userId, questionId, question.getQuestionText(), isCorrect);
+
         return StudyQuizSubmitResponse.from(item, isCorrect,
                 question.getCorrectAnswer(), question.getExplanation());
+    }
+
+    /**
+     * 퀴즈 풀이 이벤트 발행 (게이미피케이션 경험치 적립용)
+     */
+    private void publishQuizSolvedEvent(Long userId, Long questionId, String questionText, boolean isCorrect) {
+        try {
+            eventPublisher.publishEvent(new QuizSolvedEvent(
+                    this, userId, questionId, questionText, isCorrect, LocalDate.now()));
+            log.debug("QuizSolvedEvent 발행 - userId: {}, questionId: {}, isCorrect: {}",
+                    userId, questionId, isCorrect);
+        } catch (Exception e) {
+            log.warn("QuizSolvedEvent 발행 실패 - userId: {}, questionId: {}, error: {}",
+                    userId, questionId, e.getMessage());
+        }
     }
 
     /**
