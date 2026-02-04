@@ -1,8 +1,7 @@
-import * as cocoSsd from '@tensorflow-models/coco-ssd';
-import '@tensorflow/tfjs';
+import type { ObjectDetection } from '@tensorflow-models/coco-ssd';
 
 class AIDetectionService {
-    private model: cocoSsd.ObjectDetection | null = null;
+    private model: ObjectDetection | null = null;
     private isLoading = false;
 
     async loadModel() {
@@ -21,6 +20,9 @@ class AIDetectionService {
 
         try {
             this.isLoading = true;
+            // TensorFlow.js를 동적으로 로드 (미팅 진입 시에만 다운로드)
+            await import('@tensorflow/tfjs');
+            const cocoSsd = await import('@tensorflow-models/coco-ssd');
             this.model = await cocoSsd.load();
             this.isLoading = false;
             return this.model;

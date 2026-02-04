@@ -145,21 +145,33 @@ const MeetingRoomPage: React.FC = () => {
     const [roomGuardStatus, setRoomGuardStatus] = useState<'checking' | 'ok' | 'blocked'>('checking');
     const [roomGuardMessage, setRoomGuardMessage] = useState('회의 정보를 확인 중입니다.');
     const [sfuReady, setSfuReady] = useState(false);
+    const [aiModelReady, setAiModelReady] = useState(false);
+
+    // SFU 연결 완료 후 AI 모델 미리 로드
+    useEffect(() => {
+        if (roomGuardStatus === 'ok' && sfuReady && !aiModelReady) {
+            aiDetection.loadModel()
+                .then(() => setAiModelReady(true))
+                .catch(() => setAiModelReady(true)); // 실패해도 진입은 허용
+        }
+    }, [roomGuardStatus, sfuReady, aiModelReady]);
 
     // 미팅룸 진입 단계별 로딩 진행률 업데이트
     useEffect(() => {
         if (roomGuardStatus === 'checking') {
             startLoading();
-            setProgress(30); // 미팅 정보 확인 중
+            setProgress(20); // 미팅 정보 확인 중
         } else if (roomGuardStatus === 'ok' && !sfuReady) {
-            setProgress(60); // 입장 완료, SFU 연결 중
-        } else if (roomGuardStatus === 'ok' && sfuReady) {
-            setProgress(90); // SFU 연결 완료
+            setProgress(40); // 입장 완료, SFU 연결 중
+        } else if (roomGuardStatus === 'ok' && sfuReady && !aiModelReady) {
+            setProgress(70); // SFU 완료, AI 모델 로딩 중
+        } else if (roomGuardStatus === 'ok' && sfuReady && aiModelReady) {
+            setProgress(100); // 모든 준비 완료
             finishLoading();
         } else if (roomGuardStatus === 'blocked') {
             finishLoading(); // 차단된 경우에도 로딩 종료
         }
-    }, [roomGuardStatus, sfuReady, startLoading, setProgress, finishLoading]);
+    }, [roomGuardStatus, sfuReady, aiModelReady, startLoading, setProgress, finishLoading]);
     const [isEnding, setIsEnding] = useState(false);
     const [isExtendConfirmOpen, setIsExtendConfirmOpen] = useState(false);
     const [isEndConfirmOpen, setIsEndConfirmOpen] = useState(false);
