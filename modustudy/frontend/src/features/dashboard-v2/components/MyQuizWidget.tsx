@@ -7,92 +7,14 @@ import {
     QuizSingleChoice,
     QuizMultipleChoice,
     QuizShortAnswer,
-    QuizQuestion,
     WidgetHeader,
     WidgetContainer
 } from '@/shared/components';
 import { getTodayReviews, submitReview, ReviewItemDto } from '@/features/dashboard-v2/api/reviewApi';
 import { useTimer } from '@/features/quiz/hooks/useTimer';
+import { transformToQuizQuestion, indexToOptionId } from '@/shared/utils/quizUtils';
 
-// 알파벳 옵션 ID를 인덱스로 변환하는 헬퍼 함수 (A -> 0, B -> 1, ...)
-const optionIdToIndex = (id: string): number => {
-    const normalized = id.trim().toUpperCase();
-    if (normalized.length === 1 && normalized >= 'A' && normalized <= 'Z') {
-        return normalized.charCodeAt(0) - 'A'.charCodeAt(0);
-    }
-    // 숫자인 경우
-    const parsed = parseInt(id, 10);
-    return isNaN(parsed) ? -1 : parsed;
-};
-
-// 퀴즈 문제 변환 로직 (ReviewItemDto -> QuizQuestion)
-const transformToQuizQuestion = (item: ReviewItemDto): QuizQuestion => {
-    const q = item.question;
-    const isMultiple = q.questionType === 'MULTIPLE_CHOICE';
-    const isMultipleAnswer = q.questionType === 'MULTIPLE_CHOICE_MULTIPLE';
-
-    // options 파싱: [{ id: "A", text: "..." }, { id: "B", text: "..." }, ...]
-    let options: string[] = [];
-    if (q.options) {
-        options = q.options.map(o => o.text);
-    }
-
-    // 정답 처리: correctAnswer는 옵션 ID 형태 (예: "A", "B" 또는 "A,B")
-    let correctAnswer: number | number[] | string = q.correctAnswer;
-
-    if (isMultiple && q.options) {
-        // 단일 정답: 옵션 ID를 인덱스로 변환 (예: "A" -> 0, "B" -> 1)
-        let index = q.options.findIndex(o => o.id === q.correctAnswer);
-        if (index === -1) {
-            // fallback: 알파벳 ID를 인덱스로 직접 변환 시도
-            index = optionIdToIndex(q.correctAnswer);
-        }
-        if (index !== -1 && index < q.options.length) {
-            correctAnswer = index;
-        } else {
-            console.warn('[transformToQuizQuestion] 단일 정답 변환 실패:', {
-                correctAnswer: q.correctAnswer,
-                options: q.options.map(o => o.id)
-            });
-        }
-    } else if (isMultipleAnswer && q.options) {
-        // 복수 정답: "A,B" -> [0, 1] (옵션 ID를 인덱스로 변환)
-        const correctIds = q.correctAnswer.split(',').map(s => s.trim());
-
-        // 1차 시도: 옵션 ID로 직접 매칭
-        let indexes = correctIds
-            .map(id => q.options.findIndex(o => o.id === id))
-            .filter(idx => idx !== -1);
-
-        // 2차 시도: 알파벳 ID를 인덱스로 직접 변환
-        if (indexes.length === 0) {
-            indexes = correctIds
-                .map(id => optionIdToIndex(id))
-                .filter(idx => idx !== -1 && idx < q.options.length);
-        }
-
-        if (indexes.length > 0) {
-            correctAnswer = indexes;
-        } else {
-            console.warn('[transformToQuizQuestion] 복수 정답 변환 실패:', {
-                correctAnswer: q.correctAnswer,
-                options: q.options.map(o => o.id)
-            });
-            // 빈 배열 대신 원래 문자열 유지 (QuizMultipleChoice에서 fallback 처리)
-        }
-    }
-
-    return {
-        id: item.reviewItemId, // 위젯 내부에서는 reviewItemId를 id로 사용
-        type: 'multiple',
-        question: q.questionText,
-        options: (isMultiple || isMultipleAnswer) ? options : undefined,
-        correctAnswer,
-        explanation: q.explanation || '',
-        difficulty: item.difficulty < 3 ? 'easy' : item.difficulty < 7 ? 'medium' : 'hard',
-        category: q.category || '',
-    } as QuizQuestion;
-};
+// transformToQuizQuestion과 indexToOptionId는 quizUtils.ts에서 import됨
 
 type ViewMode = 'list' | 'quiz';
 
@@ -214,7 +136,7 @@ export const MyQuizWidget: React.FC = () => {
         // 정답 문자열 생성 (Index -> Option ID 변환)
         const getOptionId = (idx: number) => {
             const option = selectedReviewItem.question.options[idx];
-            return option?.id || String.fromCharCode(65 + idx);
+            return option?.id || indexToOptionId(idx);
         };
 
         const answerString = isSingle

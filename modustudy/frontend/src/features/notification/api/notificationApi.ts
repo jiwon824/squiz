@@ -16,6 +16,7 @@ export type NotificationType =
     | 'STUDY_EXTENSION'
     | 'STUDY_START'
     | 'QUIZ'
+    | 'REPORT'
     | 'SYSTEM'
     | 'FRIEND';
 
