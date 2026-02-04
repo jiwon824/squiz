@@ -3,7 +3,9 @@ package com.ssafy.domain.board.repository;
 import com.ssafy.domain.board.entity.BoardCategory;
 import com.ssafy.domain.board.entity.BoardComment;
 import com.ssafy.domain.board.entity.BoardPost;
+import com.ssafy.domain.board.entity.RecruitmentStatus;
 import com.ssafy.domain.study.entity.Format;
+import com.ssafy.domain.study.entity.MeetingType;
 import com.ssafy.domain.study.entity.Status;
 import com.ssafy.domain.study.entity.Study;
 import com.ssafy.domain.study.entity.StudyType;
@@ -121,7 +123,8 @@ class BoardCommentRepositoryTest {
         studyRepository.flush();
 
         post = boardPostRepository.save(new BoardPost(
-                leader, study, BoardCategory.FREE, "모집글", "내용"));
+                leader, study, BoardCategory.FREE, "모집글", "내용",
+                null, MeetingType.ONLINE, 6, RecruitmentStatus.RECRUITING));
         boardPostRepository.flush();
         entityManager.clear();
     }

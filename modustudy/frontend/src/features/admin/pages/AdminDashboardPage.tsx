@@ -9,6 +9,10 @@ import LoginMethodChart from '../components/LoginMethodChart';
 import QuizStatsChart from '../components/QuizStatsChart';
 import RecentUsersTable from '../components/RecentUsersTable';
 import PopularStudiesTable from '../components/PopularStudiesTable';
+// 새로운 차트 컴포넌트
+import ActivityTrendChart from '../components/ActivityTrendChart';
+import UserLevelChart from '../components/UserLevelChart';
+import StudyTopicChart from '../components/StudyTopicChart';
 
 const AdminDashboardPage: React.FC = () => {
     const {
@@ -19,6 +23,12 @@ const AdminDashboardPage: React.FC = () => {
         quizStats,
         recentUsers,
         popularStudies,
+        // 새로운 시계열 통계
+        dailyMeetingStats,
+        dailyAttendanceStats,
+        dailyActivityStats,
+        userLevelStats,
+        studyTopicStats,
         isLoading,
         error,
         fetchDashboardData
@@ -78,15 +88,30 @@ const AdminDashboardPage: React.FC = () => {
                     <SummaryCards summary={summary} />
                 </div>
 
-                {/* Charts Row 1 */}
+                {/* Charts Row 1: 시계열 차트 */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                     <UserSignupChart data={userSignupStats} />
-                    <StudyStatusChart data={studyStatusStats} />
+                    <ActivityTrendChart
+                        meetingData={dailyMeetingStats}
+                        attendanceData={dailyAttendanceStats}
+                        activityData={dailyActivityStats}
+                    />
                 </div>
 
-                {/* Charts Row 2 */}
+                {/* Charts Row 2: 분포 차트 */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                    <StudyStatusChart data={studyStatusStats} />
+                    <StudyTopicChart data={studyTopicStats} />
+                </div>
+
+                {/* Charts Row 3: 사용자/퀴즈 통계 */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                     <LoginMethodChart data={loginMethodStats} />
+                    <UserLevelChart data={userLevelStats} />
+                </div>
+
+                {/* Charts Row 4: 퀴즈 통계 */}
+                <div className="mb-6">
                     <QuizStatsChart data={quizStats} />
                 </div>
 
