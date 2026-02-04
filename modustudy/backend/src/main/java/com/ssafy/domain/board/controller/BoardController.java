@@ -6,6 +6,7 @@ import com.ssafy.common.response.ApiResponse;
 import com.ssafy.domain.board.dto.request.BoardCommentCreateRequest;
 import com.ssafy.domain.board.dto.request.BoardPostCreateRequest;
 import com.ssafy.domain.board.dto.request.BoardPostUpdateRequest;
+import com.ssafy.domain.board.dto.request.BoardReportRequest;
 import com.ssafy.domain.board.dto.response.BoardCommentResponse;
 import com.ssafy.domain.board.dto.response.BoardPostDetailResponse;
 import com.ssafy.domain.board.dto.response.BoardPostSummaryResponse;
@@ -90,6 +91,18 @@ public class BoardController {
         Long userId = resolveUserId(userDetails, userIdHeader);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(boardService.addComment(userId, postId, request)));
+    }
+
+    @PostMapping("/recruitments/{postId}/report")
+    public ResponseEntity<ApiResponse<Void>> reportPost(
+            @AuthenticationPrincipal SsafyUserDetails userDetails,
+            @PathVariable Long postId,
+            @RequestHeader(value = "User-Id", required = false) Long userIdHeader,
+            @Valid @RequestBody BoardReportRequest request
+    ) {
+        Long userId = resolveUserId(userDetails, userIdHeader);
+        boardService.reportPost(userId, postId, request);
+        return ResponseEntity.ok(ApiResponse.success(null, "신고가 접수되었습니다."));
     }
 
     @DeleteMapping("/recruitments/{postId}/comments/{commentId}")
