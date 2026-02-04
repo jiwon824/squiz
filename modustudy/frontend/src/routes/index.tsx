@@ -165,7 +165,7 @@ export const AppRouter = () => {
                 <Route path="/password/reset" element={<PublicRoute><PasswordResetPage /></PublicRoute>} />
 
                 {/* 퀴즈 */}
-                <Route path="/quiz" element={<PrivateRoute><UserLayoutV2><QuizGameSelection /></UserLayoutV2></PrivateRoute>} />
+                <Route path="/quiz" element={<UserLayoutV2><QuizGameSelection /></UserLayoutV2>} />
                 <Route path="/quiz/my-quiz" element={<PrivateRoute><UserLayoutV2><MyQuizPage /></UserLayoutV2></PrivateRoute>} />
                 <Route path="/quiz-commentle" element={<CommentleQuiz />} />
                 <Route path="/quiz-contest" element={<PrivateRoute><UserLayoutV2><QuizContestComingSoon /></UserLayoutV2></PrivateRoute>} />

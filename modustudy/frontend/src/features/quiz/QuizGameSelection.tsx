@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Terminal, Trophy, Dumbbell, ChevronRight, Sparkles } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 import { gamificationApi } from '@/api/endpoints/gamificationApi';
+import { useAuthStore } from '@/store/authStore';
+import { useUIStore } from '@/store/uiStore';
 import { MascotWithEyes } from './components/MascotWithEyes';
 import '@/features/dashboard-v2/styles/DashboardV2.css';
 
@@ -44,12 +46,15 @@ const TypingText = ({ text }: { text: string }) => {
  */
 export const QuizGameSelection = () => {
     const navigate = useNavigate();
+    const { isLoggedIn } = useAuthStore();
+    const { showToast } = useUIStore();
 
     // 사용자 퀴즈 통계
     const [quizCount, setQuizCount] = useState<number>(0);
 
-    // 통계 조회
+    // 통계 조회 (로그인 시에만)
     useEffect(() => {
+        if (!isLoggedIn) return;
         gamificationApi.getStats()
             .then((stats) => {
                 setQuizCount(stats.totalQuizCount || 0);
@@ -57,7 +62,22 @@ export const QuizGameSelection = () => {
             .catch((err) => {
                 console.error('퀴즈 통계 조회 실패:', err);
             });
-    }, []);
+    }, [isLoggedIn]);
+
+    // 카드 클릭 핸들러 — 꼬멘틀만 비로그인 허용
+    const handleGameClick = (game: typeof games[number]) => {
+        if (game.id === 'commentle') {
+            navigate(game.route);
+            return;
+        }
+        if (!isLoggedIn) {
+            showToast?.('로그인이 필요한 기능입니다.', 'warning');
+            sessionStorage.setItem('redirectAfterLogin', '/quiz');
+            setTimeout(() => navigate('/login'), 300);
+            return;
+        }
+        navigate(game.route);
+    };
 
     const games = [
         {
@@ -145,11 +165,10 @@ export const QuizGameSelection = () => {
                         return (
                             <div
                                 key={game.id}
-                                onClick={() => navigate(game.route)}
+                                onClick={() => handleGameClick(game)}
                                 className={cn(
-                                    "relative group cursor-pointer bg-white rounded-[32px] p-8 border border-border-light shadow-sm transition-all duration-500 hover:-translate-y-3 overflow-hidden",
-                                    "animate-slideInUp",
-                                    "hover:border-transparent"
+                                    "relative group cursor-pointer bg-white rounded-[24px] p-8 shadow-[0_4px_15px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)] transition-all duration-500 hover:-translate-y-3 overflow-hidden",
+                                    "animate-slideInUp"
                                 )}
                                 style={{
                                     animationDelay: `${index * 150}ms`,
@@ -192,7 +211,7 @@ export const QuizGameSelection = () => {
                                 </div>
 
                                 {/* 텍스트 영역 */}
-                                <div className="space-y-4">
+                                <div className="space-y-6">
                                     <div>
                                         <h2 className="text-2xl font-black text-text-primary mb-1 group-hover:text-primary transition-colors">
                                             {game.title}
@@ -271,14 +290,14 @@ export const QuizGameSelection = () => {
 
                 {/* 하단 정보 섹션 */}
                 <footer className="mt-16 animate-fadeIn" style={{ animationDelay: '600ms' }}>
-                    <div className="bg-white/40 backdrop-blur-md p-8 rounded-[32px] border border-white/60 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
+                    <div className="bg-white p-8 rounded-[24px] flex flex-col md:flex-row items-center justify-between gap-6 shadow-[0_4px_15px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)] transition-shadow duration-300">
                         <div className="flex items-center gap-4">
                             <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary">
                                 <Sparkles size={24} />
                             </div>
-                            <div>
-                                <h4 className="font-bold text-text-primary">오늘의 목표를 달성해보세요!</h4>
-                                <p className="text-sm text-text-secondary">매일 꾸준한 퀴즈 학습은 장기 기억 형성에 큰 도움이 됩니다.</p>
+                            <div className="flex flex-col justify-center">
+                                <h4 className="font-bold text-text-primary leading-snug">오늘의 목표를 달성해보세요!</h4>
+                                <p className="text-sm text-text-secondary leading-snug">매일 꾸준한 퀴즈 학습은 장기 기억 형성에 큰 도움이 됩니다.</p>
                             </div>
                         </div>
                         <div className="text-right">
