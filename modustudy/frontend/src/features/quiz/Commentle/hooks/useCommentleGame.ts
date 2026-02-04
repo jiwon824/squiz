@@ -14,6 +14,7 @@ export interface Guess {
     id: number;
     word: string;
     score: number;
+    rank: number;
     attemptNum: number;
 }
 
@@ -92,6 +93,7 @@ export const useCommentleGame = () => {
                 id: Date.now(),
                 word: result.userWord,
                 score: result.score,
+                rank: guesses.length + 1,
                 attemptNum: guesses.length + 1
             };
 

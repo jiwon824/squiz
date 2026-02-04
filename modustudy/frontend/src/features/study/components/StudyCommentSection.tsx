@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { MessageCircle, Send, CornerDownRight, MoreVertical, Pencil, Trash2, X } from 'lucide-react';
+import { MessageCircle, Send, CornerDownRight, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import { Spinner, ButtonSpinner } from '@/shared/components/Spinner';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';

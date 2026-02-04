@@ -164,7 +164,7 @@ const MeetingRoomPage: React.FC = () => {
     const [isExtendConfirmOpen, setIsExtendConfirmOpen] = useState(false);
     const [isEndConfirmOpen, setIsEndConfirmOpen] = useState(false);
     const [isPresenterConfirmOpen, setIsPresenterConfirmOpen] = useState(false);
-    const [isVideoExpanded, setIsVideoExpanded] = useState(false);
+    const [, setIsVideoExpanded] = useState(false);
     const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
     const [leaderId, setLeaderId] = useState<number | null>(null);
 
@@ -267,7 +267,7 @@ const MeetingRoomPage: React.FC = () => {
             try {
                 const detail = await studyApi.getStudyDetail(numericStudyId);
                 if (!cancelled) {
-                    const leader = detail?.leader?.id ?? detail?.leaderId ?? null;
+                    const leader = detail?.leaderId ?? null;
                     if (leader == null) {
                         setLeaderId(null);
                     } else if (typeof leader === 'number') {
@@ -541,37 +541,6 @@ const MeetingRoomPage: React.FC = () => {
             return `${httpBase.replace(/\/+$/, '')}/${path.replace(/^\/+/, '')}`;
         },
         [normalizeSfuHttpBaseUrl]
-    );
-
-    const ensureMixedAudioTrack = useCallback(
-        (tracks: MediaStreamTrack[]) => {
-            if (tracks.length <= 1) {
-                stopMixedAudioTrack();
-                return tracks[0] ?? null;
-            }
-            const ids = tracks.map((track) => track.id).sort();
-            const key = ids.join('|');
-            if (mixedAudioKeyRef.current === key && mixedAudioTrackRef.current) {
-                if (mixedAudioTrackRef.current.readyState === 'live') {
-                    return mixedAudioTrackRef.current;
-                }
-            }
-            stopMixedAudioTrack();
-            const context = new AudioContext();
-            const destination = context.createMediaStreamDestination();
-            tracks.forEach((track) => {
-                const sourceStream = new MediaStream([track]);
-                const source = context.createMediaStreamSource(sourceStream);
-                source.connect(destination);
-            });
-            context.resume().catch(() => {});
-            const outputTrack = destination.stream.getAudioTracks()[0] ?? null;
-            mixedAudioContextRef.current = context;
-            mixedAudioTrackRef.current = outputTrack;
-            mixedAudioKeyRef.current = key;
-            return outputTrack;
-        },
-        [stopMixedAudioTrack]
     );
 
     const ensureRecordingAudioTrack = useCallback(
@@ -2602,7 +2571,7 @@ const MeetingRoomPage: React.FC = () => {
                     chatMessages={chatMessages}
                     onSendChat={handleSendChat}
                     onDeleteChat={handleDeleteChat}
-                    currentUserId={user?.id ?? null}
+                    currentUserId={user?.id ? Number(user.id) : null}
                     currentSender={displayNameRef.current}
                     onExpandChange={(expanded) => {
                         setIsVideoExpanded(expanded);

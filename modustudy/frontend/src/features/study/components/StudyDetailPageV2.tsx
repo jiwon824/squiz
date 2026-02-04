@@ -54,8 +54,8 @@ const StudyDetailPageV2: React.FC = () => {
             try {
                 const data = await studyApi.getStudyDetail(Number(id));
                 if (data) {
-                    setStudy(data as Study);
-                    setIsBookmarked(data.isBookmarked || false);
+                    setStudy(data as unknown as Study);
+                    setIsBookmarked((data as any).isBookmarked || false);
                 }
             } catch (error) {
                 console.error('스터디 상세 조회 실패:', error);
@@ -84,7 +84,8 @@ const StudyDetailPageV2: React.FC = () => {
         }
     };
 
-    const handleReportSubmit = (reason: string) => {
+    const handleReportSubmit = (_reason: string) => {
+        // TODO: 신고 API에 reason 전달
         showToast('신고가 접수되었습니다.', 'success');
     };
 
@@ -104,7 +105,7 @@ const StudyDetailPageV2: React.FC = () => {
         const reviews = getReviewsByLeaderId(study.leader.id);
         const avgRating = getLeaderAverageRating(study.leader.id);
         setLeaderReviews(reviews);
-        setLeaderAvgRating(avgRating > 0 ? avgRating : study.leader.leaderRating);
+        setLeaderAvgRating(avgRating > 0 ? avgRating : study.leader.leaderRating ?? 0);
         setIsReviewModalOpen(true);
     };
 
@@ -320,7 +321,7 @@ const StudyDetailPageV2: React.FC = () => {
                                     >
                                         <Star size={14} className="text-yellow-400 fill-current" />
                                         <span className="text-sm font-bold text-[var(--color-text-primary)]">
-                                            {study.leader.leaderRating.toFixed(1)}
+                                            {(study.leader.leaderRating ?? 0).toFixed(1)}
                                         </span>
                                         <span className="text-xs text-[var(--color-text-tertiary)] group-hover:text-[var(--color-primary)]">
                                             ({study.leader.leaderReviewCount}개 리뷰)
@@ -409,7 +410,7 @@ const StudyDetailPageV2: React.FC = () => {
                 isOpen={isReviewModalOpen}
                 onClose={() => setIsReviewModalOpen(false)}
                 leaderNickname={study.leader.nickname}
-                reviews={leaderReviews}
+                reviews={leaderReviews as any}
                 averageRating={leaderAvgRating}
             />
         </UserLayoutV2>

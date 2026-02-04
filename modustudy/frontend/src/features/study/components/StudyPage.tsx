@@ -1,11 +1,11 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, SlidersHorizontal, Grid, List, X, Sparkles } from 'lucide-react';
+import { Plus, Search, SlidersHorizontal, Grid, List, X } from 'lucide-react';
 import StudyListContainer from './StudyListContainer';
 import StudyCardContentV2 from './StudyCardContentV2';
 import StudyFilter, { FilterState } from './StudyFilter';
 import { Study, SortOption } from '../services/studyService';
-import { getStudyList, getLeaderInfo, getProvinces, getDistricts, StudyListItem, LeaderInfoResponse, type RegionItem, studyApi } from '@/api/endpoints/studyApi';
+import { getStudyList, getLeaderInfo, getProvinces, getDistricts, StudyListItem, LeaderInfoResponse, studyApi } from '@/api/endpoints/studyApi';
 import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { Button, StudyCardSkeletonGrid } from '@/shared/components';
 import { Select } from '@/shared/components/Select';
@@ -101,36 +101,6 @@ const StudyPageV2: React.FC = () => {
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
     const [showFilters, setShowFilters] = useState(false);
     const pageSize = 12;
-
-    // API 응답을 화면 모델로 변환 (StudyResponse DTO 구조)
-    const convertToStudy = (item: StudyListItem): Study => ({
-        id: item.id,
-        leaderId: item.leader?.id || item.leaderId || 0,
-        name: item.name,
-        description: item.description || '',
-        topic: item.topic?.name || '',
-        format: item.format?.name || '',
-        studyType: item.studyType,
-        meetingType: item.meetingType,
-        status: item.status,
-        isPublic: true,
-        maxMembers: item.maxMembers,
-        currentMembers: item.currentMembers || 1, // API 값 사용
-        difficulty: item.difficulty || 'BEGINNER',
-        scheduleDays: item.scheduleDays || '',
-        scheduleTime: item.scheduleTime,
-        regionId: item.regionId,
-        recruitEndDate: item.recruitEndDate,
-        leader: {
-            id: item.leader?.id || item.leaderId || 0,
-            nickname: item.leader?.nickname || '스터디장',
-            profileImage: item.leader?.profileImage || null,
-            leaderRating: item.leader?.leaderRating ?? null,
-            leaderReviewCount: item.leader?.leaderReviewCount || 0,
-        },
-        isBookmarked: false,
-        createdAt: item.createdAt,
-    });
 
     // 리더 정보가 포함된 스터디 변환 (별도 API 조회 결과 사용)
     const convertToStudyWithLeader = (item: StudyListItem, leaderInfo?: LeaderInfoResponse, regionNameMap?: Map<number, string>, isBookmarked?: boolean): Study => {

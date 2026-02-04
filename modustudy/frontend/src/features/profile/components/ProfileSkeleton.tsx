@@ -1,4 +1,3 @@
-import React from 'react';
 import { Skeleton } from '@/shared/components';
 import '../styles/ProfilePage.css';
 

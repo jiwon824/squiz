@@ -107,15 +107,15 @@ export const createSfuClient = (baseUrl: string) => {
         const { params } = await request('createWebRtcTransport', { roomId });
         console.log('[sfu] send transport params', { iceServers: params.iceServers, iceCandidates: params.iceCandidates?.length });
         const transport = device.createSendTransport(params);
-        transport.on('connect', ({ dtlsParameters }, callback, errback) => {
+        transport.on('connect', ({ dtlsParameters }: { dtlsParameters: any }, callback: () => void, errback: (err: Error) => void) => {
             request('connectWebRtcTransport', { roomId, transportId: transport.id, dtlsParameters })
                 .then(() => callback())
                 .catch(errback);
         });
-        transport.on('connectionstatechange', (state) => {
+        transport.on('connectionstatechange', (state: string) => {
             console.log('[sfu] send transport state', state);
         });
-        transport.on('produce', ({ kind, rtpParameters, appData }, callback, errback) => {
+        transport.on('produce', ({ kind, rtpParameters, appData }: { kind: any; rtpParameters: any; appData: any }, callback: (arg: { id: string }) => void, errback: (err: Error) => void) => {
             request('produce', { roomId, transportId: transport.id, kind, rtpParameters, appData })
                 .then(({ producerId }) => callback({ id: producerId }))
                 .catch(errback);
@@ -146,12 +146,12 @@ export const createSfuClient = (baseUrl: string) => {
         const { params } = await request('createWebRtcTransport', { roomId });
         console.log('[sfu] recv transport params', { iceServers: params.iceServers, iceCandidates: params.iceCandidates?.length });
         const transport = device.createRecvTransport(params);
-        transport.on('connect', ({ dtlsParameters }, callback, errback) => {
+        transport.on('connect', ({ dtlsParameters }: { dtlsParameters: any }, callback: () => void, errback: (err: Error) => void) => {
             request('connectWebRtcTransport', { roomId, transportId: transport.id, dtlsParameters })
                 .then(() => callback())
                 .catch(errback);
         });
-        transport.on('connectionstatechange', (state) => {
+        transport.on('connectionstatechange', (state: string) => {
             console.log('[sfu] recv transport state', state);
         });
         return transport;

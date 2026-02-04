@@ -121,7 +121,7 @@ const MeetingQuickAccess: React.FC = () => {
                 }
 
                 const sessionsByStudy = new Map<number, StudySessionDTO[]>();
-                sessions.forEach((session) => {
+                sessions.forEach((session: StudySessionDTO) => {
                     const list = sessionsByStudy.get(session.studyId) || [];
                     list.push(session);
                     sessionsByStudy.set(session.studyId, list);
@@ -162,12 +162,12 @@ const MeetingQuickAccess: React.FC = () => {
                             meetingTitle: nextSession.title || '스터디 세션',
                             scheduledAt: new Date(nextSession.scheduledAt),
                             durationMinutes: nextSession.durationMinutes || null,
-                            status: nextSession.status,
+                            status: nextSession.status as string,
                             meetingId: matchingMeeting?.id ?? null,
                             isOnline: nextSession.isOnline,
-                        };
+                        } as UpcomingMeeting;
                     })
-                    .filter((item): item is UpcomingMeeting => Boolean(item))
+                    .filter((item): item is UpcomingMeeting => item !== null)
                     .sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime());
 
                 setMeetings(upcomingMeetings);
@@ -286,7 +286,7 @@ export const RightSideBarV2: React.FC = () => {
     const { isLoggedIn } = useAuthStore();
     const panelRef = useRef<HTMLDivElement>(null);
     const { unreadCount, fetchUnreadCount } = useDMStore();
-    const { receivedRequests, fetchReceivedRequests } = useFriendStore();
+    const { fetchReceivedRequests } = useFriendStore();
     const [badgeMeetings, setBadgeMeetings] = useState<UpcomingMeeting[]>([]);
     const [badgeNow, setBadgeNow] = useState(() => new Date());
 
@@ -328,7 +328,7 @@ export const RightSideBarV2: React.FC = () => {
         }
 
         const sessionsByStudy = new Map<number, StudySessionDTO[]>();
-        sessions.forEach((session) => {
+        sessions.forEach((session: StudySessionDTO) => {
             const list = sessionsByStudy.get(session.studyId) || [];
             list.push(session);
             sessionsByStudy.set(session.studyId, list);
@@ -346,11 +346,12 @@ export const RightSideBarV2: React.FC = () => {
                     meetingTitle: nextSession.title || '스터디 세션',
                     scheduledAt: new Date(nextSession.scheduledAt),
                     durationMinutes: nextSession.durationMinutes || null,
-                    status: nextSession.status,
+                    status: nextSession.status as string,
                     meetingId: null,
-                };
+                    isOnline: nextSession.isOnline,
+                } as UpcomingMeeting;
             })
-            .filter((item): item is UpcomingMeeting => Boolean(item))
+            .filter((item): item is UpcomingMeeting => item !== null)
             .sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime());
     }, []);
 

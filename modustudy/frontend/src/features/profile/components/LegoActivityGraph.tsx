@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Button } from '@/shared/components';
-import { Palette, Box } from 'lucide-react';
+import { Card } from '@/shared/components';
+import { Box } from 'lucide-react';
 
 interface LegoActivityGraphProps {
     data: number[]; // 0~4 사이의 활동 지수 배열

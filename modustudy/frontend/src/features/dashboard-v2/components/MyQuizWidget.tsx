@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Brain, ChevronLeft, ChevronRight, Clock, CheckCircle2, Circle, Play } from 'lucide-react';
+import { Brain, ChevronLeft, ChevronRight, Clock, CheckCircle2, Play } from 'lucide-react';
 import { Spinner } from '@/shared/components/Spinner';
 import { cn } from '@/shared/utils/cn';
 import {
     QuizSingleChoice,
     QuizMultipleChoice,
     QuizShortAnswer,
-    QuizProgress,
     QuizQuestion,
     WidgetHeader,
     WidgetContainer
@@ -100,12 +99,12 @@ type ViewMode = 'list' | 'quiz';
 export const MyQuizWidget: React.FC = () => {
     const [viewMode, setViewMode] = useState<ViewMode>('list');
     const [selectedReviewItem, setSelectedReviewItem] = useState<ReviewItemDto | null>(null);
-    const [currentIndex, setCurrentIndex] = useState(0); // 단일 문제 풀이이므로 0 고정일 수 있음
+    const [, setCurrentIndex] = useState(0); // 단일 문제 풀이이므로 0 고정
     const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
     const [selectedAnswers, setSelectedAnswers] = useState<number[]>([]);
     const [shortAnswer, setShortAnswer] = useState('');
     const [showResult, setShowResult] = useState(false);
-    const [score, setScore] = useState({ correct: 0, total: 0 });
+    const [, setScore] = useState({ correct: 0, total: 0 });
 
     // 데이터 로딩 상태
     const [reviewItems, setReviewItems] = useState<ReviewItemDto[]>([]);

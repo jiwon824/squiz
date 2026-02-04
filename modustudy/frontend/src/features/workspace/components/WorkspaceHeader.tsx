@@ -18,7 +18,7 @@ interface WorkspaceHeaderProps {
 
 export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
   studyName,
-  memberCount = 0,
+  memberCount: _memberCount = 0,
   onToggleMembers,
   isMembersVisible = true,
   onGoBack,
