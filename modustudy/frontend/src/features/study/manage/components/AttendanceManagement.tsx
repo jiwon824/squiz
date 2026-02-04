@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import {
     Calendar, Check, X,
-    Clock, AlertCircle, Users
+    Clock, AlertCircle, Users, ChevronDown
 } from 'lucide-react';
 import { studyApi } from '@/api/endpoints/studyApi';
 import { useUIStore } from '@/store/uiStore';
 import { getProfileImageUrl, DEFAULT_PROFILE_IMAGE } from '@/shared/utils/profileImage';
+import { Dropdown, DropdownItem } from '@/shared/components/Dropdown';
 
 interface AttendanceManagementProps {
     studyId: number;
@@ -179,28 +180,44 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ studyId }) 
 
             {/* 세션 선택 */}
             {selectedSession && (
-                <div className="flex items-center gap-3 p-4 bg-background-secondary rounded-2xl overflow-hidden">
+                <div className="flex items-center gap-3 p-4 bg-background-secondary rounded-2xl">
                     <Calendar size={20} className="text-primary flex-shrink-0" />
-                    <select
-                        value={selectedSession.id}
-                        onChange={(e) => {
-                            const session = sessions.find(s => s.id === Number(e.target.value));
-                            if (session) setSelectedSession(session);
-                        }}
-                        className="flex-1 min-w-0 bg-surface border border-border-light rounded-xl px-4 py-2 text-sm font-medium text-text-primary outline-none focus:border-primary truncate"
-                    >
-                        {sessions.map((session) => {
-                            // 제목이 너무 길면 20자로 자르기
+                    <Dropdown
+                        items={sessions.map((session): DropdownItem => {
                             const displayTitle = session.title.length > 20
                                 ? session.title.slice(0, 20) + '...'
                                 : session.title;
-                            return (
-                                <option key={session.id} value={session.id}>
-                                    {displayTitle} - {formatDate(session.scheduledAt)} {formatTime(session.scheduledAt)}
-                                </option>
-                            );
+                            return {
+                                label: `${displayTitle} - ${formatDate(session.scheduledAt)} ${formatTime(session.scheduledAt)}`,
+                                value: String(session.id),
+                            };
                         })}
-                    </select>
+                        onSelect={(value) => {
+                            const session = sessions.find(s => s.id === Number(value));
+                            if (session) setSelectedSession(session);
+                        }}
+                        trigger={({ isOpen, toggle }) => {
+                            const displayTitle = selectedSession.title.length > 20
+                                ? selectedSession.title.slice(0, 20) + '...'
+                                : selectedSession.title;
+                            return (
+                                <button
+                                    onClick={toggle}
+                                    className="flex-1 flex items-center justify-between bg-surface border border-border-light rounded-xl px-4 py-2 text-sm font-medium text-text-primary outline-none hover:border-primary transition-colors"
+                                >
+                                    <span className="truncate">
+                                        {displayTitle} - {formatDate(selectedSession.scheduledAt)} {formatTime(selectedSession.scheduledAt)}
+                                    </span>
+                                    <ChevronDown
+                                        size={16}
+                                        className={`ml-2 text-text-tertiary transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                                    />
+                                </button>
+                            );
+                        }}
+                        className="flex-1"
+                        menuClassName="w-full max-h-60 overflow-y-auto"
+                    />
                 </div>
             )}
 
