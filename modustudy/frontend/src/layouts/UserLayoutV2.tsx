@@ -547,13 +547,13 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEntering
                                                 </li>
                                             </ul>
 
-                                            {/* 푸터 - 로그아웃 버튼 (현재 페이지 유지) */}
+                                            {/* 푸터 - 로그아웃 버튼 */}
                                             <div className="px-3 py-2 border-t border-gray-100">
                                                 <button
                                                     onClick={() => {
                                                         logout();
                                                         setIsProfileOpen(false);
-                                                        // 로그인 페이지로 리다이렉트하지 않음 - 현재 페이지 유지
+                                                        navigate('/dashboard');
                                                     }}
                                                     className={cn(
                                                         'w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg',
