@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.board.controller;
+package com.ssafy.domain.board.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.domain.board.dto.request.BoardCommentCreateRequest;
@@ -52,11 +52,11 @@ class BoardControllerTest {
     private BoardService boardService;
 
     @Test
-    @DisplayName("紐⑥쭛以??ㅽ꽣??紐⑸줉 議고쉶")
+    @DisplayName("모집중 스터디 목록 조회")
     void getRecruitingStudies() throws Exception {
         BoardRecruitingStudyResponse response = BoardRecruitingStudyResponse.builder()
                 .id(1L)
-                .name("紐⑥쭛以??ㅽ꽣??)
+                .name("모집중 스터디")
                 .topicName("Java")
                 .studyType(StudyType.PLANNED)
                 .meetingType(MeetingType.ONLINE)
@@ -74,7 +74,7 @@ class BoardControllerTest {
     }
 
     @Test
-    @DisplayName("紐⑥쭛湲 ?묒꽦")
+    @DisplayName("모집글 작성")
     void createPost() throws Exception {
         BoardPostDetailResponse response = BoardPostDetailResponse.builder()
                 .id(10L)
@@ -82,8 +82,8 @@ class BoardControllerTest {
                 .recruitmentField("백엔드")
                 .targetMembers(6)
                 .recruitmentStatus(RecruitmentStatus.RECRUITING)
-                .title("紐⑥쭛湲 ?쒕ぉ")
-                .content("紐⑥쭛湲 ?댁슜")
+                .title("모집글 제목")
+                .content("모집글 내용")
                 .authorId(1L)
                 .authorName("leader")
                 .authorProfileImage(null)
@@ -94,7 +94,7 @@ class BoardControllerTest {
                 .build();
         when(boardService.createPost(eq(1L), any(BoardPostCreateRequest.class))).thenReturn(response);
 
-        BoardPostCreateRequest request = new BoardPostCreateRequest("紐⑥쭛湲 ?쒕ぉ", "紐⑥쭛湲 ?댁슜", "백엔드", MeetingType.ONLINE, 6);
+        BoardPostCreateRequest request = new BoardPostCreateRequest("모집글 제목", "모집글 내용", "백엔드", MeetingType.ONLINE, 6);
 
         mockMvc.perform(post("/api/v1/boards/recruitments")
                         .header("User-Id", "1")
@@ -103,15 +103,15 @@ class BoardControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.id").value(10L))
-                .andExpect(jsonPath("$.data.title").value("紐⑥쭛湲 ?쒕ぉ"));
+                .andExpect(jsonPath("$.data.title").value("모집글 제목"));
     }
 
     @Test
-    @DisplayName("紐⑥쭛湲 紐⑸줉 議고쉶")
+    @DisplayName("모집글 목록 조회")
     void getPosts() throws Exception {
         BoardPostSummaryResponse summary = BoardPostSummaryResponse.builder()
                 .id(10L)
-                .title("紐⑥쭛湲 ?쒕ぉ")
+                .title("모집글 제목")
                 .authorId(1L)
                 .authorName("leader")
                 .authorProfileImage(null)
@@ -132,7 +132,7 @@ class BoardControllerTest {
     }
 
     @Test
-    @DisplayName("紐⑥쭛湲 ?볤? ?묒꽦")
+    @DisplayName("모집글 댓글 작성")
     void addComment() throws Exception {
         BoardCommentResponse response = BoardCommentResponse.builder()
                 .id(100L)
@@ -141,14 +141,14 @@ class BoardControllerTest {
                 .authorName("member")
                 .authorProfileImage(null)
                 .parentId(null)
-                .content("?볤? ?댁슜")
+                .content("댓글 내용")
                 .isDeleted(false)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
         when(boardService.addComment(eq(2L), eq(10L), any(BoardCommentCreateRequest.class))).thenReturn(response);
 
-        BoardCommentCreateRequest request = new BoardCommentCreateRequest(null, "?볤? ?댁슜");
+        BoardCommentCreateRequest request = new BoardCommentCreateRequest(null, "댓글 내용");
 
         mockMvc.perform(post("/api/v1/boards/recruitments/10/comments")
                         .header("User-Id", "2")
@@ -160,7 +160,7 @@ class BoardControllerTest {
     }
 
     @Test
-    @DisplayName("紐⑥쭛湲 ?볤? ??젣")
+    @DisplayName("모집글 댓글 삭제")
     void deleteComment() throws Exception {
         mockMvc.perform(delete("/api/v1/boards/recruitments/10/comments/100")
                         .header("User-Id", "2"))
@@ -168,5 +168,3 @@ class BoardControllerTest {
                 .andExpect(jsonPath("$.success").value(true));
     }
 }
-
-

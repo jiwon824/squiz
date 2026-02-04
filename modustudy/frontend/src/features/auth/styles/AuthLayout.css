@@ -1,4 +1,4 @@
-/* 1. 로고 주변에 은은한 광채 효과 추가 */
+﻿/* 1. 濡쒓퀬 二쇰???????愿묒콈 ?④낵 異붽? */
 .visual-logo-wrapper {
     position: relative;
     display: inline-block;
@@ -18,11 +18,11 @@
 }
 
 .visual-logo-svg {
-    height: 48px; /* 로고 크기 조정 */
+    height: 48px; /* 濡쒓퀬 ?ш린 議곗젙 */
     filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));
 }
 
-/* 2. 텍스트 하이라이트 (몰입 부분 강조) */
+/* 2. ?띿뒪???섏씠?쇱씠??(紐곗엯 遺遺?媛뺤“) */
 .text-highlight {
     color: var(--color-primary);
     position: relative;
@@ -41,12 +41,12 @@
     z-index: -1;
 }
 
-/* 3. 카드 디자인 디테일 업그레이드 */
+/* 3. 移대뱶 ?붿옄???뷀뀒???낃렇?덉씠??*/
 .value-card {
     background: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
     box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
-    /* 아래는 마우스 호버 시 자연스러운 반응 */
+    /* ?꾨옒??留덉슦???몃쾭 ???먯뿰?ㅻ윭??諛섏쓳 */
     cursor: default;
 }
 
@@ -55,7 +55,7 @@
     box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.1);
 }
 
-/* 4. 배경에 흐르는 빛 효과 (레이어 추가) */
+/* 4. 諛곌꼍???먮Ⅴ??鍮??④낵 (?덉씠??異붽?) */
 .visual-light-ray {
     position: absolute;
     top: -50%;
@@ -171,7 +171,7 @@
     transition: all 0.5s ease-in;
 }
 
-/* Left Side - Visual Branding (글래스모피즘) */
+/* Left Side - Visual Branding (湲?섏뒪紐⑦뵾利? */
 .auth-visual {
     flex: 1;
     position: relative;
@@ -213,7 +213,7 @@
     max-width: 420px;
 }
 
-/* 카드 제거 후 중앙 정렬 레이아웃 */
+/* 移대뱶 ?쒓굅 ??以묒븰 ?뺣젹 ?덉씠?꾩썐 */
 .visual-content--centered {
     display: flex;
     flex-direction: column;
@@ -227,7 +227,7 @@
     margin-bottom: 2rem;
 }
 
-/* 로고 크기 확대 */
+/* 濡쒓퀬 ?ш린 ?뺣? */
 .visual-logo-wrapper--large {
     margin-bottom: 3rem;
 }
@@ -288,7 +288,7 @@
     transform: translateY(0);
 }
 
-/* 슬로건 중앙 정렬 */
+/* ?щ줈嫄?以묒븰 ?뺣젹 */
 .slogan-group--centered {
     text-align: center;
 }
@@ -645,7 +645,7 @@
     }
 }
 
-/* 작은 모바일 화면 */
+/* ?묒? 紐⑤컮???붾㈃ */
 @media (max-width: 600px) {
     .auth-page {
         padding: 1rem;
@@ -700,7 +700,7 @@
     }
 }
 
-/* 소셜 로그인 동그란 버튼 그룹 */
+/* ?뚯뀥 濡쒓렇???숆렇? 踰꾪듉 洹몃９ */
 .social-login-circle-group {
     display: flex;
     justify-content: center;
@@ -709,7 +709,7 @@
     margin-top: 0.5rem;
 }
 
-/* 동그란 소셜 로그인 버튼 기본 스타일 */
+/* ?숆렇? ?뚯뀥 濡쒓렇??踰꾪듉 湲곕낯 ?ㅽ???*/
 .social-circle-btn {
     display: flex;
     align-items: center;
@@ -732,7 +732,7 @@
     transform: translateY(-2px) scale(1.02);
 }
 
-/* 카카오 버튼 스타일 */
+/* 移댁뭅??踰꾪듉 ?ㅽ???*/
 .social-circle-btn.kakao {
     background: #FEE500;
     color: #3C1E1E;
@@ -742,7 +742,7 @@
     background: #FADA0A;
 }
 
-/* 구글 버튼 스타일 */
+/* 援ш? 踰꾪듉 ?ㅽ???*/
 .social-circle-btn.google {
     background: #ffffff;
 }
@@ -751,7 +751,7 @@
     background: #f8fafc;
 }
 
-/* 네이버 버튼 스타일 */
+/* ?ㅼ씠踰?踰꾪듉 ?ㅽ???*/
 .social-circle-btn.naver {
     background: #03C75A;
     color: #ffffff;
@@ -761,7 +761,7 @@
     background: #02b351;
 }
 
-/* 커스텀 좌측 콘텐츠 (회원가입 기술스택 선택 등) */
+/* 而ㅼ뒪? 醫뚯륫 肄섑뀗痢?(?뚯썝媛??湲곗닠?ㅽ깮 ?좏깮 ?? */
 .visual-content--custom {
     position: absolute;
     top: 0;
@@ -796,7 +796,7 @@
     background: rgba(99, 102, 241, 0.5);
 }
 
-/* ===== 약관 모달 ===== */
+/* ===== ?쎄? 紐⑤떖 ===== */
 .terms-modal-overlay {
     position: fixed;
     inset: 0;
@@ -947,7 +947,7 @@
     font-size: 0.95rem;
 }
 
-/* 약관 동의 체크박스 영역 */
+/* ?쎄? ?숈쓽 泥댄겕諛뺤뒪 ?곸뿭 */
 .terms-agreement {
     margin-top: 0.25rem;
     padding: 1rem 1.25rem;
@@ -1000,7 +1000,47 @@
     text-decoration: underline;
 }
 
-/* 로그인 페이지 하단 약관 링크 */
+.terms-hint {
+    position: relative;
+    margin-left: 0.4rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    background: #fef9c3;
+    color: #a16207;
+    border: 1px solid rgba(250, 204, 21, 0.6);
+    line-height: 1.1;
+    letter-spacing: 0.02em;
+    box-shadow: 0 8px 18px rgba(202, 138, 4, 0.22);
+    animation: termsHintPulse 1.6s ease-in-out infinite;
+}
+
+.terms-hint::before {
+    content: '';
+    position: absolute;
+    left: -4px;
+    top: 50%;
+    width: 8px;
+    height: 8px;
+    background: #fef9c3;
+    border-left: 1px solid rgba(250, 204, 21, 0.6);
+    border-bottom: 1px solid rgba(250, 204, 21, 0.6);
+    transform: translateY(-50%) rotate(45deg);
+}
+
+@keyframes termsHintPulse {
+    0%, 100% {
+        transform: translateY(0);
+        box-shadow: 0 8px 18px rgba(202, 138, 4, 0.22);
+    }
+    50% {
+        transform: translateY(-1px);
+        box-shadow: 0 12px 22px rgba(202, 138, 4, 0.3);
+    }
+}
+
+/* 濡쒓렇???섏씠吏 ?섎떒 ?쎄? 留곹겕 */
 .terms-links {
     margin-top: 1.5rem;
     text-align: center;
@@ -1029,3 +1069,4 @@
     color: #cbd5e1;
     font-size: 0.8125rem;
 }
+

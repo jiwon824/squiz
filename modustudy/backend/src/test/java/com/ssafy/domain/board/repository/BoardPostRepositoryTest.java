@@ -2,7 +2,9 @@ package com.ssafy.domain.board.repository;
 
 import com.ssafy.domain.board.entity.BoardCategory;
 import com.ssafy.domain.board.entity.BoardPost;
+import com.ssafy.domain.board.entity.RecruitmentStatus;
 import com.ssafy.domain.study.entity.Format;
+import com.ssafy.domain.study.entity.MeetingType;
 import com.ssafy.domain.study.entity.Status;
 import com.ssafy.domain.study.entity.Study;
 import com.ssafy.domain.study.entity.StudyType;
@@ -106,15 +108,18 @@ class BoardPostRepositoryTest {
     @DisplayName("삭제되지 않은 모집글만 최신순으로 조회한다")
     void findAllByIsDeletedFalseOrderByCreatedAtDesc() throws Exception {
         BoardPost first = boardPostRepository.save(new BoardPost(
-                leader, study, BoardCategory.FREE, "첫 번째 글", "내용1"));
+                leader, study, BoardCategory.FREE, "첫 번째 글", "내용1",
+                null, MeetingType.ONLINE, 6, RecruitmentStatus.RECRUITING));
         boardPostRepository.flush();
         Thread.sleep(5);
         BoardPost second = boardPostRepository.save(new BoardPost(
-                leader, study, BoardCategory.FREE, "두 번째 글", "내용2"));
+                leader, study, BoardCategory.FREE, "두 번째 글", "내용2",
+                null, MeetingType.ONLINE, 6, RecruitmentStatus.RECRUITING));
         boardPostRepository.flush();
         Thread.sleep(5);
         BoardPost deleted = boardPostRepository.save(new BoardPost(
-                leader, study, BoardCategory.FREE, "삭제 글", "내용3"));
+                leader, study, BoardCategory.FREE, "삭제 글", "내용3",
+                null, MeetingType.ONLINE, 6, RecruitmentStatus.RECRUITING));
         deleted.delete();
         boardPostRepository.flush();
         entityManager.clear();
@@ -130,7 +135,8 @@ class BoardPostRepositoryTest {
     @DisplayName("삭제된 모집글은 상세 조회에서 제외된다")
     void findByIdAndIsDeletedFalse() {
         BoardPost post = boardPostRepository.save(new BoardPost(
-                leader, study, BoardCategory.FREE, "상세 조회", "내용"));
+                leader, study, BoardCategory.FREE, "상세 조회", "내용",
+                null, MeetingType.ONLINE, 6, RecruitmentStatus.RECRUITING));
         boardPostRepository.flush();
 
         assertThat(boardPostRepository.findByIdAndIsDeletedFalse(post.getId())).isPresent();

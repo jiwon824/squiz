@@ -108,4 +108,62 @@ public class AdminController {
         checkAdminRole(authentication);
         return ResponseEntity.ok(ApiResponse.success(adminStatsService.getPopularStudies(limit)));
     }
+
+    // ========== 새로운 시계열 통계 API ==========
+
+    /**
+     * 일별 미팅 통계
+     * GET /api/v1/admin/stats/meetings?days=30
+     */
+    @GetMapping("/stats/meetings")
+    public ResponseEntity<ApiResponse<List<DailyMeetingStatsDto>>> getDailyMeetingStats(
+            Authentication authentication,
+            @RequestParam(defaultValue = "30") int days) {
+        checkAdminRole(authentication);
+        return ResponseEntity.ok(ApiResponse.success(adminStatsService.getDailyMeetingStats(days)));
+    }
+
+    /**
+     * 일별 출석 통계
+     * GET /api/v1/admin/stats/attendance?days=30
+     */
+    @GetMapping("/stats/attendance")
+    public ResponseEntity<ApiResponse<List<DailyAttendanceStatsDto>>> getDailyAttendanceStats(
+            Authentication authentication,
+            @RequestParam(defaultValue = "30") int days) {
+        checkAdminRole(authentication);
+        return ResponseEntity.ok(ApiResponse.success(adminStatsService.getDailyAttendanceStats(days)));
+    }
+
+    /**
+     * 일별 활동 통계 (잔디)
+     * GET /api/v1/admin/stats/activity?days=30
+     */
+    @GetMapping("/stats/activity")
+    public ResponseEntity<ApiResponse<List<DailyActivityStatsDto>>> getDailyActivityStats(
+            Authentication authentication,
+            @RequestParam(defaultValue = "30") int days) {
+        checkAdminRole(authentication);
+        return ResponseEntity.ok(ApiResponse.success(adminStatsService.getDailyActivityStats(days)));
+    }
+
+    /**
+     * 레벨별 사용자 분포
+     * GET /api/v1/admin/stats/levels
+     */
+    @GetMapping("/stats/levels")
+    public ResponseEntity<ApiResponse<List<UserLevelStatsDto>>> getUserLevelStats(Authentication authentication) {
+        checkAdminRole(authentication);
+        return ResponseEntity.ok(ApiResponse.success(adminStatsService.getUserLevelStats()));
+    }
+
+    /**
+     * 토픽별 스터디 분포
+     * GET /api/v1/admin/stats/topics
+     */
+    @GetMapping("/stats/topics")
+    public ResponseEntity<ApiResponse<List<StudyTopicStatsDto>>> getStudyTopicStats(Authentication authentication) {
+        checkAdminRole(authentication);
+        return ResponseEntity.ok(ApiResponse.success(adminStatsService.getStudyTopicStats()));
+    }
 }

@@ -55,6 +55,33 @@ export interface PopularStudy {
     status: string;
 }
 
+// ===== 새로운 시계열 통계 타입 =====
+export interface DailyMeetingStats {
+    date: string;
+    count: number;
+}
+
+export interface DailyAttendanceStats {
+    date: string;
+    count: number;
+}
+
+export interface DailyActivityStats {
+    date: string;
+    count: number;
+}
+
+export interface UserLevelStats {
+    level: number;
+    levelName: string;
+    count: number;
+}
+
+export interface StudyTopicStats {
+    topicName: string;
+    count: number;
+}
+
 // ===== API 함수들 =====
 
 /**
@@ -118,5 +145,53 @@ export const getPopularStudies = async (limit: number = 5): Promise<PopularStudy
     const response = await api.get('/api/v1/admin/popular-studies', {
         params: { limit }
     });
+    return response.data.data || [];
+};
+
+// ===== 새로운 시계열 통계 API =====
+
+/**
+ * 일별 미팅 통계
+ */
+export const getDailyMeetingStats = async (days: number = 30): Promise<DailyMeetingStats[]> => {
+    const response = await api.get('/api/v1/admin/stats/meetings', {
+        params: { days }
+    });
+    return response.data.data || [];
+};
+
+/**
+ * 일별 출석 통계
+ */
+export const getDailyAttendanceStats = async (days: number = 30): Promise<DailyAttendanceStats[]> => {
+    const response = await api.get('/api/v1/admin/stats/attendance', {
+        params: { days }
+    });
+    return response.data.data || [];
+};
+
+/**
+ * 일별 활동 통계 (잔디)
+ */
+export const getDailyActivityStats = async (days: number = 30): Promise<DailyActivityStats[]> => {
+    const response = await api.get('/api/v1/admin/stats/activity', {
+        params: { days }
+    });
+    return response.data.data || [];
+};
+
+/**
+ * 레벨별 사용자 분포
+ */
+export const getUserLevelStats = async (): Promise<UserLevelStats[]> => {
+    const response = await api.get('/api/v1/admin/stats/levels');
+    return response.data.data || [];
+};
+
+/**
+ * 토픽별 스터디 분포
+ */
+export const getStudyTopicStats = async (): Promise<StudyTopicStats[]> => {
+    const response = await api.get('/api/v1/admin/stats/topics');
     return response.data.data || [];
 };
