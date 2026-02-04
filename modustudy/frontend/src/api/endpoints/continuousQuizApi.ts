@@ -16,7 +16,7 @@
  */
 
 import api from '../axios';
-import { indexToOptionId } from '@/shared/utils/quizUtils';
+import { parseOptions, type QuestionOption } from '@/shared/utils/quizUtils';
 
 // =============================================================================
 // API Response Types (실제 백엔드 응답 구조와 매칭)
@@ -33,11 +33,6 @@ interface ApiResponse<T> {
     };
 }
 
-/** 문제 선택지 */
-export interface QuestionOption {
-    id: string;
-    text: string;
-}
 
 // -----------------------------------------------------------------------------
 // 백엔드 DTO 타입 (실제 API 응답 구조)
@@ -90,7 +85,7 @@ export interface ContinuousQuizQuestion {
     questionId: number;
     questionText: string;
     questionType: 'MULTIPLE_CHOICE' | 'MULTIPLE_CHOICE_MULTIPLE' | 'SHORT_ANSWER';
-    options: QuestionOption[] | null;
+    options: QuestionOption[];
 }
 
 /** 다음 문제 응답 (GET /next) - 프론트엔드 인터페이스 */
@@ -116,51 +111,6 @@ export interface SubmitAnswerResponse {
     explanation?: string;
 }
 
-// =============================================================================
-// Helper Functions
-// =============================================================================
-
-/**
- * 백엔드에서 받은 options JSON 문자열을 파싱하여 QuestionOption 배열로 변환
- *
- * 지원하는 형식:
- * 1. 객체 배열: [{"id": "A", "text": "BEGIN"}, {"id": "B", "text": "START"}]
- * 2. 문자열 배열: ["BEGIN", "START", "INIT"] → ID는 A, B, C로 자동 생성
- */
-const parseOptions = (optionsStr: string | null): QuestionOption[] | null => {
-    if (!optionsStr) return null;
-
-    try {
-        const parsed = JSON.parse(optionsStr);
-        if (Array.isArray(parsed)) {
-            return parsed.map((opt, index: number) => {
-                // 문자열인 경우: ["BEGIN", "START", ...]
-                if (typeof opt === 'string') {
-                    return {
-                        id: indexToOptionId(index),
-                        text: opt,
-                    };
-                }
-                // 객체인 경우: [{"id": "A", "text": "BEGIN"}, ...]
-                if (typeof opt === 'object' && opt !== null) {
-                    return {
-                        id: opt.id || indexToOptionId(index),
-                        text: opt.text || opt.label || String(opt.id || ''),
-                    };
-                }
-                // 기타 경우 (숫자 등)
-                return {
-                    id: indexToOptionId(index),
-                    text: String(opt),
-                };
-            });
-        }
-        return null;
-    } catch (e) {
-        console.error('[continuousQuizApi] options 파싱 실패:', e, optionsStr);
-        return null;
-    }
-};
 
 /**
  * 백엔드 문제 응답을 프론트엔드 형식으로 변환
