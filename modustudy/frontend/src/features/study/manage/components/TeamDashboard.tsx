@@ -84,12 +84,43 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ study, onStudyUpdate, onT
             // 대기중 소명 수
             const pendingExcuses = await studyApi.getPendingExcuseCount(study.id);
 
-            // 스터디 진행일 계산 (시작일 이후부터, 진행중 상태일 때만)
-            const startDate = new Date(study.startDate || Date.now());
+            // 스터디 진행일 계산 (첫 세션 날짜 기준, 진행중 상태일 때만)
             const today = new Date();
+            // 오늘 날짜의 자정 (시간 제거)
+            const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
             let studyDays = 0;
             if (study.status === 'IN_PROGRESS') {
-                studyDays = Math.max(0, Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
+                // 우선순위: 첫 번째 세션의 scheduledAt → startDate → createdAt
+                let referenceDate: Date | null = null;
+
+                // 1. 첫 번째 세션의 scheduledAt 사용 (가장 신뢰할 수 있음)
+                if (sessions.length > 0) {
+                    const sortedSessions = [...sessions]
+                        .filter((s: SessionData) => s.scheduledAt)
+                        .sort((a, b) => new Date(a.scheduledAt!).getTime() - new Date(b.scheduledAt!).getTime());
+                    if (sortedSessions.length > 0 && sortedSessions[0].scheduledAt) {
+                        const sessionDate = new Date(sortedSessions[0].scheduledAt);
+                        // 날짜만 추출 (시간 제거)
+                        referenceDate = new Date(sessionDate.getFullYear(), sessionDate.getMonth(), sessionDate.getDate());
+                    }
+                }
+
+                // 2. 세션이 없으면 startDate 사용
+                if (!referenceDate && study.startDate) {
+                    const startDateObj = new Date(study.startDate);
+                    referenceDate = new Date(startDateObj.getFullYear(), startDateObj.getMonth(), startDateObj.getDate());
+                }
+
+                // 3. 마지막 fallback: createdAt
+                if (!referenceDate && study.createdAt) {
+                    const createdDateObj = new Date(study.createdAt);
+                    referenceDate = new Date(createdDateObj.getFullYear(), createdDateObj.getMonth(), createdDateObj.getDate());
+                }
+
+                if (referenceDate && referenceDate <= todayMidnight) {
+                    // +1: 첫 날을 1일로 카운트 (2/3 시작 → 2/4 오늘 = 2일째)
+                    studyDays = Math.floor((todayMidnight.getTime() - referenceDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+                }
             }
 
             // 예정된 세션 수 및 다가오는 일정 추출
