@@ -4,7 +4,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Search, ChevronRight, RefreshCw, Clock, CheckCircle2, XCircle, Compass, Maximize2, Play, AlertCircle } from 'lucide-react';
+import { Send, ChevronRight, RefreshCw, Clock, CheckCircle2, XCircle, Compass, Maximize2, Play, AlertCircle } from 'lucide-react';
 import { Spinner } from '@/shared/components/Spinner';
 import { cn } from '@/shared/utils/cn';
 import { studyApi } from '@/api/endpoints/studyApi';

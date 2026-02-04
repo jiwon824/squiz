@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Filter, Plus, X, Users, Eye, CheckCircle2 } from 'lucide-react';
+import { Search, Filter, Plus, X, Users, Eye } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 import { Button } from '@/shared/components';
 import { RecruitmentPostSummary } from '@/api/endpoints/boardApi';

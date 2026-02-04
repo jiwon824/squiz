@@ -205,7 +205,7 @@ const LeaderReviewWriteModal: React.FC<LeaderReviewWriteModalProps> = ({
         <div className="flex gap-3">
           {isEditMode && (
             <Button
-              variant="danger-outline"
+              variant="danger"
               onClick={() => setShowDeleteConfirm(true)}
               disabled={isSubmitting}
               className="flex-1"

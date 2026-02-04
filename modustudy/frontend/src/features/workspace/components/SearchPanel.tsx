@@ -1,6 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { Search, X } from 'lucide-react';
-import { cn } from '@/shared/utils/cn';
 import { Spinner } from '@/shared/components/Spinner';
 import { workspaceApi } from '@/api/endpoints/workspaceApi';
 import type { MessageResponse } from '../types';

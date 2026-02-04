@@ -31,7 +31,7 @@ const getTodayDate = () => new Date().toISOString().split('T')[0];
 
 export const useGoalsStore = create<GoalsState>()(
     persist(
-        (set, get) => ({
+        (set) => ({
             goals: [],
             isLoading: false,
 

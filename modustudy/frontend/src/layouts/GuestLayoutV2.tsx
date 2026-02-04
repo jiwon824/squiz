@@ -10,7 +10,7 @@ interface GuestLayoutV2Props {
 }
 
 export const GuestLayoutV2: React.FC<GuestLayoutV2Props> = ({ children }) => {
-    const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+    const [, setWindowWidth] = useState(window.innerWidth);
 
     // 반응형 리사이즈 감지
     useEffect(() => {
