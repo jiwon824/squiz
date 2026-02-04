@@ -295,4 +295,37 @@ class ReviewControllerTest {
                                 .andExpect(jsonPath("$.data.courseStats[0].solvedCount").value(0))
                                 .andExpect(jsonPath("$.data.courseStats[1].solvedCount").value(0));
         }
+
+        @Test
+        @DisplayName("코스별 취약점 통계 조회 API 성공 테스트")
+        void getCourseWeaknessStats_ShouldReturnSuccess() throws Exception {
+                // given
+                com.ssafy.domain.quiz.dto.response.ReviewCourseWeaknessResponse.CourseWeaknessStatDto stat1 = com.ssafy.domain.quiz.dto.response.ReviewCourseWeaknessResponse.CourseWeaknessStatDto
+                                .from(1L, "Java", 100L, 20L);
+                com.ssafy.domain.quiz.dto.response.ReviewCourseWeaknessResponse.CourseWeaknessStatDto stat2 = com.ssafy.domain.quiz.dto.response.ReviewCourseWeaknessResponse.CourseWeaknessStatDto
+                                .from(2L, "Spring", 50L, 5L);
+
+                com.ssafy.domain.quiz.dto.response.ReviewCourseWeaknessResponse mockResponse = com.ssafy.domain.quiz.dto.response.ReviewCourseWeaknessResponse
+                                .from(List.of(stat1, stat2));
+
+                given(fsrsService.getCourseWeaknessStats(TEST_USER_ID))
+                                .willReturn(mockResponse);
+
+                // when & then
+                mockMvc.perform(get("/api/v1/reviews/courses/weakness")
+                                .with(user(userDetails))
+                                .contentType(MediaType.APPLICATION_JSON))
+                                .andDo(print())
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.success").value(true))
+                                .andExpect(jsonPath("$.data.courseWeaknessStats").isArray())
+                                .andExpect(jsonPath("$.data.courseWeaknessStats[0].courseId").value(1L))
+                                .andExpect(jsonPath("$.data.courseWeaknessStats[0].courseName").value("Java"))
+                                .andExpect(jsonPath("$.data.courseWeaknessStats[0].totalReps").value(100))
+                                .andExpect(jsonPath("$.data.courseWeaknessStats[0].totalLapses").value(20))
+                                .andExpect(jsonPath("$.data.courseWeaknessStats[1].courseId").value(2L))
+                                .andExpect(jsonPath("$.data.courseWeaknessStats[1].courseName").value("Spring"))
+                                .andExpect(jsonPath("$.data.courseWeaknessStats[1].totalReps").value(50))
+                                .andExpect(jsonPath("$.data.courseWeaknessStats[1].totalLapses").value(5));
+        }
 }
