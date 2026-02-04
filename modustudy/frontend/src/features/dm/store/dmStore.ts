@@ -99,9 +99,12 @@ export const useDMStore = create<DMState>((set, get) => ({
         try {
             // REST API로 전송하여 서버 응답(에러 포함)을 확실히 받음
             const newMessage = await sendMessageApi(receiverId, content);
-            set(state => ({
-                messages: [...state.messages, newMessage]
-            }));
+            // 중복 체크 (WebSocket echo-back이 먼저 도착한 경우 방지)
+            set(state => {
+                const exists = state.messages.some(m => m.id === newMessage.id);
+                if (exists) return state;
+                return { messages: [...state.messages, newMessage] };
+            });
             // 대화방 목록 새로고침
             get().fetchConversations();
         } catch (error: any) {
