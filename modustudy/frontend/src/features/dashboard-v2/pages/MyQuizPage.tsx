@@ -49,6 +49,7 @@ export const MyQuizPage: React.FC = () => {
     totalWrongCount,
     avgWrongCount,
     courseQuizStats,
+    reviewStats,
   } = useMyQuiz();
 
   // 퀴즈 재도전 상태에서 개별 값 사용을 위한 로컬 상태
@@ -127,6 +128,7 @@ export const MyQuizPage: React.FC = () => {
             totalWrongCount={totalWrongCount}
             avgWrongCount={avgWrongCount}
             courseQuizStats={courseQuizStats}
+            reviewStats={reviewStats}
             onRetry={handleStartRetry}
           />
         )}
@@ -209,6 +211,7 @@ interface MainContentProps {
   totalWrongCount: number;
   avgWrongCount: string;
   courseQuizStats: ReturnType<typeof useMyQuiz>['courseQuizStats'];
+  reviewStats: ReturnType<typeof useMyQuiz>['reviewStats'];
   onRetry: (item: ReturnType<typeof useMyQuiz>['todayReviews'][0]) => void;
 }
 
@@ -225,6 +228,7 @@ const MainContent: React.FC<MainContentProps> = React.memo(
     totalWrongCount,
     avgWrongCount,
     courseQuizStats,
+    reviewStats,
     onRetry,
   }) => (
     <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
@@ -283,6 +287,7 @@ const MainContent: React.FC<MainContentProps> = React.memo(
                     avgWrongCount={avgWrongCount}
                     weakConcepts={weakConcepts}
                     courseQuizStats={courseQuizStats}
+                    reviewStats={reviewStats}
                   />
                 </TabContent>
               )}

@@ -7,6 +7,8 @@ import {
   WrongAnswerSortType,
   getCourseWeaknessStats,
   ReviewCourseWeaknessResponse,
+  getReviewStats,
+  ReviewStatsResponse,
 } from '../../api/reviewApi';
 import { useTimer } from '@/features/quiz/hooks/useTimer';
 import { indexToOptionId } from '@/shared/utils/quizUtils';
@@ -41,6 +43,7 @@ export const useMyQuiz = (): UseMyQuizReturn => {
   const [wrongReviews, setWrongReviews] = useState<ReviewItemDto[]>([]);
   const [courseStats, setCourseStats] = useState<ReviewCourseWeaknessResponse | null>(null);
   const [courseQuizStats, setCourseQuizStats] = useState<CourseQuizStat[]>([]);
+  const [reviewStats, setReviewStats] = useState<ReviewStatsResponse | null>(null);
   const [loading, setLoading] = useState(false);
 
   // === UI 상태 ===
@@ -57,16 +60,18 @@ export const useMyQuiz = (): UseMyQuizReturn => {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [todayData, wrongData, statsData, quizStatsData] = await Promise.all([
+      const [todayData, wrongData, statsData, quizStatsData, reviewStatsData] = await Promise.all([
         getTodayReviews(),
         getWrongAnswers(wrongSortType),
         getCourseWeaknessStats(),
         getCourseQuizStats(),
+        getReviewStats(),
       ]);
       setTodayReviews(todayData?.items || []);
       setWrongReviews(wrongData?.items || []);
       setCourseStats(statsData || null);
       setCourseQuizStats(quizStatsData || []);
+      setReviewStats(reviewStatsData || null);
     } catch (error) {
       console.error('Failed to fetch reviews', error);
       setTodayReviews([]);
@@ -218,6 +223,7 @@ export const useMyQuiz = (): UseMyQuizReturn => {
     wrongReviews,
     weakConcepts,
     courseQuizStats,
+    reviewStats,
     loading,
 
     // 탭 관리

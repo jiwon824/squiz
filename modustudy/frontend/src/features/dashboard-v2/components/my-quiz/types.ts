@@ -1,4 +1,4 @@
-import { ReviewItemDto, WrongAnswerSortType } from '../../api/reviewApi';
+import { ReviewItemDto, WrongAnswerSortType, ReviewStatsResponse } from '../../api/reviewApi';
 import { CourseQuizStat } from '@/api/endpoints/continuousQuizApi';
 
 // 탭 타입 정의
@@ -71,6 +71,7 @@ export interface StatsViewProps {
   avgWrongCount: string;
   weakConcepts: WeakConcept[];
   courseQuizStats: CourseQuizStat[];
+  reviewStats: ReviewStatsResponse | null;
 }
 
 // QuizRetryView 컴포넌트 Props
@@ -96,6 +97,7 @@ export interface UseMyQuizReturn {
   wrongReviews: ReviewItemDto[];
   weakConcepts: WeakConcept[];
   courseQuizStats: CourseQuizStat[];
+  reviewStats: ReviewStatsResponse | null;
   loading: boolean;
 
   // 탭 관리

@@ -1,7 +1,7 @@
 import React from 'react';
 import { StatsViewProps } from '../types';
 import { SummaryCards } from './SummaryCards';
-import { CategoryDistribution } from './CategoryDistribution';
+
 import { TechStackProficiencyView } from './TechStackProficiency';
 import { LearningRecommendation } from './LearningRecommendation';
 import { CourseQuizStatsChart } from './CourseQuizStatsChart';
@@ -12,12 +12,11 @@ import { CourseQuizStatsChart } from './CourseQuizStatsChart';
  * 구성:
  * - 요약 카드: 총 틀린 문제 수, 오답 횟수, 평균
  * - 코스별 학습 현황 그래프 (Attempted vs Correct)
- * - 카테고리별 오답 분포
  * - 기술 스택 숙련도
  * - 학습 제안
  */
 export const StatsView: React.FC<StatsViewProps> = React.memo(
-  ({ wrongReviews, totalWrong, totalWrongCount, avgWrongCount, weakConcepts, courseQuizStats }) => {
+  ({ totalWrong, totalWrongCount, avgWrongCount, weakConcepts, courseQuizStats, reviewStats }) => {
     return (
       <div className="space-y-6">
         {/* 요약 카드 */}
@@ -25,13 +24,13 @@ export const StatsView: React.FC<StatsViewProps> = React.memo(
           totalWrong={totalWrong}
           totalWrongCount={totalWrongCount}
           avgWrongCount={avgWrongCount}
+          reviewStats={reviewStats}
         />
 
         {/* 코스별 학습 현황 (꺾은선 그래프) */}
         <CourseQuizStatsChart data={courseQuizStats} />
 
-        {/* 카테고리별 오답 분포 */}
-        <CategoryDistribution wrongReviews={wrongReviews} />
+
 
         {/* 기술 스택 숙련도 */}
         <TechStackProficiencyView />
