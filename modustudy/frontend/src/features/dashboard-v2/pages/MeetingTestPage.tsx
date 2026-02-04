@@ -29,7 +29,6 @@ import {
     type StudyQuizDetail,
     type StudyQuizSubmitResponse,
 } from '@/api/endpoints/studyQuizApi';
-
 interface StudyOption {
     id: number;
     name: string;

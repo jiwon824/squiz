@@ -8,6 +8,7 @@ import com.ssafy.domain.board.dto.response.BoardPostDetailResponse;
 import com.ssafy.domain.board.dto.response.BoardPostSummaryResponse;
 import com.ssafy.domain.board.dto.response.BoardRecruitingStudyResponse;
 import com.ssafy.domain.board.service.BoardService;
+import com.ssafy.domain.board.entity.RecruitmentStatus;
 import com.ssafy.domain.study.entity.MeetingType;
 import com.ssafy.domain.study.entity.Status;
 import com.ssafy.domain.study.entity.StudyType;
@@ -77,14 +78,10 @@ class BoardControllerTest {
     void createPost() throws Exception {
         BoardPostDetailResponse response = BoardPostDetailResponse.builder()
                 .id(10L)
-                .studyId(1L)
-                .studyName("스터디")
-                .topicName("Java")
-                .studyType(StudyType.PLANNED)
                 .meetingType(MeetingType.ONLINE)
-                .maxMembers(6)
-                .currentMembers(2)
-                .studyStatus(Status.RECRUITING)
+                .recruitmentField("백엔드")
+                .targetMembers(6)
+                .recruitmentStatus(RecruitmentStatus.RECRUITING)
                 .title("모집글 제목")
                 .content("모집글 내용")
                 .authorId(1L)
@@ -97,7 +94,7 @@ class BoardControllerTest {
                 .build();
         when(boardService.createPost(eq(1L), any(BoardPostCreateRequest.class))).thenReturn(response);
 
-        BoardPostCreateRequest request = new BoardPostCreateRequest(1L, "모집글 제목", "모집글 내용");
+        BoardPostCreateRequest request = new BoardPostCreateRequest("모집글 제목", "모집글 내용", "백엔드", MeetingType.ONLINE, 6);
 
         mockMvc.perform(post("/api/v1/boards/recruitments")
                         .header("User-Id", "1")
@@ -114,18 +111,16 @@ class BoardControllerTest {
     void getPosts() throws Exception {
         BoardPostSummaryResponse summary = BoardPostSummaryResponse.builder()
                 .id(10L)
-                .studyId(1L)
-                .studyName("스터디")
-                .topicName("Java")
-                .maxMembers(6)
-                .currentMembers(2)
-                .studyStatus(Status.RECRUITING)
                 .title("모집글 제목")
                 .authorId(1L)
                 .authorName("leader")
                 .authorProfileImage(null)
+                .recruitmentField("백엔드")
+                .meetingType(MeetingType.ONLINE)
+                .targetMembers(6)
                 .viewCount(0)
                 .createdAt(LocalDateTime.now())
+                .recruitmentStatus(RecruitmentStatus.RECRUITING)
                 .build();
         Page<BoardPostSummaryResponse> page = new PageImpl<>(List.of(summary), PageRequest.of(0, 10), 1);
         when(boardService.getPosts(any())).thenReturn(page);

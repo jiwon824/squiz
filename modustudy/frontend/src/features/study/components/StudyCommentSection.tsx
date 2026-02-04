@@ -270,7 +270,7 @@ const StudyCommentSection: React.FC<StudyCommentSectionProps> = ({
                                 </button>
 
                                 {openMenuId === comment.id && (
-                                    <div className="absolute right-0 top-full mt-1 w-24 bg-white rounded-lg border border-[var(--color-border)] shadow-lg z-20 overflow-hidden">
+                                    <div className="absolute right-0 top-full mt-1 w-24 bg-white rounded-lg shadow-lg z-20 overflow-hidden">
                                         {canEditComment(comment) && (
                                             <button
                                                 onClick={() => {
@@ -418,7 +418,7 @@ const StudyCommentSection: React.FC<StudyCommentSectionProps> = ({
     );
 
     return (
-        <div className="bg-white rounded-2xl border border-[var(--color-border)] p-6">
+        <div className="bg-white rounded-2xl p-6 shadow-[0_4px_15px_rgba(0,0,0,0.05)] transition-shadow hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)]">
             {/* 헤더 */}
             <div className="flex items-center gap-2 mb-6">
                 <MessageCircle size={20} className="text-[var(--color-primary)]" />

@@ -12,6 +12,7 @@ import {
     dmWebSocket
 } from '@/api/endpoints/dmApi';
 import { useAuthStore } from '@/store/authStore';
+import { useUIStore } from '@/store/uiStore';
 
 // 새 대화 시작을 위한 사용자 정보
 interface PendingDMUser {
@@ -93,41 +94,29 @@ export const useDMStore = create<DMState>((set, get) => ({
         }
     },
 
-    // 메시지 전송 (WebSocket 우선, 실패 시 REST API 폴백 + 낙관적 업데이트)
+    // 메시지 전송 (REST API 우선 → 에러 즉시 감지, 성공 시 WebSocket으로 실시간 수신)
     sendMessage: async (receiverId: number, content: string) => {
         try {
-            if (get().isWebSocketConnected && dmWebSocket.isConnected()) {
-                // WebSocket으로 전송
-                dmWebSocket.sendMessage(receiverId, content);
-                // 낙관적 업데이트: 서버 echo-back 전에 로컬에 즉시 표시
-                const authUser = useAuthStore.getState().user;
-                if (authUser) {
-                    const optimisticMessage: Message = {
-                        id: Date.now(), // 임시 ID (서버 echo-back 시 중복 체크로 교체)
-                        conversationId: get().currentConversationId || 0,
-                        senderId: Number(authUser.id),
-                        senderNickname: authUser.nickname || authUser.name,
-                        senderProfileImage: authUser.avatar || null,
-                        content,
-                        isDeleted: false,
-                        isMine: true,
-                        createdAt: new Date().toISOString()
-                    };
-                    set(state => ({
-                        messages: [...state.messages, optimisticMessage]
-                    }));
-                }
-            } else {
-                // REST API 폴백
-                const newMessage = await sendMessageApi(receiverId, content);
-                set(state => ({
-                    messages: [...state.messages, newMessage]
-                }));
-            }
+            // REST API로 전송하여 서버 응답(에러 포함)을 확실히 받음
+            const newMessage = await sendMessageApi(receiverId, content);
+            // 중복 체크 (WebSocket echo-back이 먼저 도착한 경우 방지)
+            set(state => {
+                const exists = state.messages.some(m => m.id === newMessage.id);
+                if (exists) return state;
+                return { messages: [...state.messages, newMessage] };
+            });
             // 대화방 목록 새로고침
             get().fetchConversations();
         } catch (error: any) {
-            set({ error: error.response?.data?.message || '메시지 전송에 실패했습니다.' });
+            const status = error.response?.status;
+            const serverMessage = error.response?.data?.message || error.response?.data?.error?.message;
+            // 403: 친구 관계 필요 등 비즈니스 에러 → 토스트로 안내
+            if (status === 403) {
+                const friendMessage = serverMessage || '친구 추가 후 DM을 보낼 수 있습니다.';
+                useUIStore.getState().showToast(friendMessage, 'warning');
+            } else {
+                set({ error: serverMessage || '메시지 전송에 실패했습니다.' });
+            }
         }
     },
 

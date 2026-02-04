@@ -88,7 +88,7 @@ api.interceptors.response.use(
                 isRefreshing = false;
                 localStorage.removeItem('accessToken');
                 localStorage.removeItem('refreshToken');
-                window.location.href = '/login';
+                window.location.replace('/login');
                 return Promise.reject(error);
             }
 
@@ -116,15 +116,16 @@ api.interceptors.response.use(
                 isRefreshing = false;
                 localStorage.removeItem('accessToken');
                 localStorage.removeItem('refreshToken');
-                window.location.href = '/login';
+                window.location.replace('/login');
                 return Promise.reject(refreshError);
             }
         }
 
         // 403, 500, 503 에러 시 에러 페이지로 리다이렉트
+        // 단, 403은 비즈니스 로직(DM 친구 필요 등)에서도 사용하므로 호출부에서 처리할 수 있도록 제외
         const status = error.response?.status;
-        if (status === 403 || status === 500 || status === 503) {
-            window.location.href = `/error/${status}`;
+        if (status === 500 || status === 503) {
+            window.location.replace(`/error/${status}`);
             return Promise.reject(error);
         }
 

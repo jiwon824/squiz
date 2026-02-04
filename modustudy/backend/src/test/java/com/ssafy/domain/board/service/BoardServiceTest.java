@@ -14,6 +14,7 @@ import com.ssafy.domain.notification.repository.NotificationRepository;
 import com.ssafy.domain.study.entity.Format;
 import com.ssafy.domain.study.entity.MemberRole;
 import com.ssafy.domain.study.entity.MemberStatus;
+import com.ssafy.domain.study.entity.MeetingType;
 import com.ssafy.domain.study.entity.Status;
 import com.ssafy.domain.study.entity.Study;
 import com.ssafy.domain.study.entity.StudyMember;
@@ -146,7 +147,7 @@ class BoardServiceTest {
     void addComment_createsNotification() {
         BoardPostDetailResponse created = boardService.createPost(
                 leader.getId(),
-                new BoardPostCreateRequest(recruitingStudy.getId(), "모집글 제목", "모집글 내용")
+                new BoardPostCreateRequest("모집글 제목", "모집글 내용", "백엔드", MeetingType.ONLINE, 6)
         );
 
         boardService.addComment(member.getId(), created.getId(), new BoardCommentCreateRequest(null, "댓글 내용"));
@@ -171,7 +172,7 @@ class BoardServiceTest {
     void deleteComment_marksDeleted_andDecreasesCount() {
         BoardPostDetailResponse created = boardService.createPost(
                 leader.getId(),
-                new BoardPostCreateRequest(recruitingStudy.getId(), "모집글 제목", "모집글 내용")
+                new BoardPostCreateRequest("모집글 제목", "모집글 내용", "백엔드", MeetingType.ONLINE, 6)
         );
 
         BoardCommentResponse comment = boardService.addComment(
@@ -194,7 +195,7 @@ class BoardServiceTest {
     void deleteComment_requiresAuthor() {
         BoardPostDetailResponse created = boardService.createPost(
                 leader.getId(),
-                new BoardPostCreateRequest(recruitingStudy.getId(), "모집글 제목", "모집글 내용")
+                new BoardPostCreateRequest("모집글 제목", "모집글 내용", "백엔드", MeetingType.ONLINE, 6)
         );
 
         BoardCommentResponse comment = boardService.addComment(

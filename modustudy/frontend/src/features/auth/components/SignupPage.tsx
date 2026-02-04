@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PasswordInput } from './PasswordInput';
 import { TermsModal } from './TermsModal';
@@ -35,7 +35,7 @@ export const SignupPage = () => {
     // 약관 모달 상태
     const [modalContent, setModalContent] = useState<{ title: string; content: string; type: 'terms' | 'privacy' } | null>(null);
 
-    // 폼 상태
+    // 입력 상태
     const [formData, setFormData] = useState({
         name: '',
         email: '',
@@ -43,6 +43,8 @@ export const SignupPage = () => {
         password: '',
         confirmPassword: '',
     });
+
+    const isPasswordConfirmed = formData.confirmPassword.length > 0 && formData.password === formData.confirmPassword;
 
     // OAuth 데이터 로드
     useEffect(() => {
@@ -61,7 +63,7 @@ export const SignupPage = () => {
                 navigate('/login');
             }
         }
-    }, [isOAuthMode, navigate]);
+    }, [isOAuthMode, navigate, showToast]);
 
     // 입력 핸들러
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -69,7 +71,7 @@ export const SignupPage = () => {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    // 폼 제출
+    // 가입 제출
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -130,11 +132,11 @@ export const SignupPage = () => {
                 localStorage.removeItem('oauthTempData');
 
                 console.log('[INFO] 회원가입 완료!');
-                showToast('회원가입이 완료되었습니다!', 'success');
+                showToast('회원가입이 완료되었습니다.', 'success');
                 navigate('/dashboard');
             } else {
-                console.log('[INFO] 일반 회원가입:', formData);
-                showToast('회원가입이 완료되었습니다!', 'success');
+                console.log('[INFO] 일반 회원가입', formData);
+                showToast('회원가입이 완료되었습니다.', 'success');
                 navigate('/login');
             }
         } catch (error) {
@@ -151,8 +153,8 @@ export const SignupPage = () => {
                 <h3>{isOAuthMode ? '추가 정보 입력' : '회원가입'}</h3>
                 <p>
                     {isOAuthMode
-                        ? '서비스 이용을 위해 추가 정보를 입력해주세요'
-                        : 'SQUIZ 스터디 팀의 일원이 되어보세요'}
+                        ? '서비스 이용을 위해 추가 정보를 입력해주세요.'
+                        : 'SQUIZ 스터디 커뮤니티에 참여해보세요.'}
                 </p>
             </div>
 
@@ -165,12 +167,12 @@ export const SignupPage = () => {
                         name="name"
                         value={formData.name}
                         onChange={handleChange}
-                        placeholder="성함을 입력해주세요"
+                        placeholder="이름을 입력해주세요"
                         required
                     />
                     {isOAuthMode && (
                         <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-tertiary)', marginTop: '0.4rem' }}>
-                            소셜 계정의 이름이 기본 입력되어 있습니다. 필요한 경우 수정해 주세요.
+                            소셜 계정 이름이 기본 입력되어 있습니다. 필요 시 수정해주세요.
                         </p>
                     )}
                 </div>
@@ -193,9 +195,9 @@ export const SignupPage = () => {
                     />
                     {isOAuthMode && oauthData && (
                         <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-tertiary)', marginTop: '0.5rem' }}>
-                            {oauthData?.loginProvider === 'KAKAO' && '카카오 계정의 이메일이 사용됩니다.'}
-                            {oauthData?.loginProvider === 'NAVER' && '네이버 계정의 이메일이 사용됩니다.'}
-                            {oauthData?.loginProvider === 'GOOGLE' && '구글 계정의 이메일이 사용됩니다.'}
+                            {oauthData?.loginProvider === 'KAKAO' && '카카오 계정 이메일을 사용합니다.'}
+                            {oauthData?.loginProvider === 'NAVER' && '네이버 계정 이메일을 사용합니다.'}
+                            {oauthData?.loginProvider === 'GOOGLE' && '구글 계정 이메일을 사용합니다.'}
                         </p>
                     )}
                 </div>
@@ -208,7 +210,7 @@ export const SignupPage = () => {
                         name="nickname"
                         value={formData.nickname}
                         onChange={handleChange}
-                        placeholder="사용하실 닉네임을 입력해주세요"
+                        placeholder="사용할 닉네임을 입력해주세요"
                         maxLength={50}
                         required
                     />
@@ -247,6 +249,9 @@ export const SignupPage = () => {
                         >
                             보기
                         </button>
+                        {isPasswordConfirmed && !viewedTerms && (
+                            <span className="terms-hint">클릭</span>
+                        )}
                     </div>
                     <div className="terms-agreement-item">
                         <input
@@ -269,6 +274,9 @@ export const SignupPage = () => {
                         >
                             보기
                         </button>
+                        {isPasswordConfirmed && !viewedPrivacy && (
+                            <span className="terms-hint">클릭</span>
+                        )}
                     </div>
                     {(!viewedTerms || !viewedPrivacy) && (
                         <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0 }}>

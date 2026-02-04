@@ -19,36 +19,36 @@ type CombinedStatus = 'PENDING' | 'APPROVED' | 'IN_PROGRESS' | 'COMPLETED' | 'RE
 // 상태별 스타일
 const STATUS_STYLES: Record<CombinedStatus, { label: string; className: string; dot: string; icon: React.ElementType; cardBorder: string }> = {
   PENDING: {
-    label: '대기중',
-    className: 'bg-amber-50 text-amber-600 ring-1 ring-amber-200',
+    label: '대기',
+    className: 'bg-amber-50 text-amber-600',
     dot: 'bg-amber-500 animate-pulse',
     icon: Clock,
     cardBorder: 'hover:border-amber-100',
   },
   APPROVED: {
-    label: '승인됨',
-    className: 'bg-blue-50 text-blue-600 ring-1 ring-blue-200',
-    dot: 'bg-blue-500',
+    label: '승인',
+    className: 'bg-emerald-50 text-emerald-600',
+    dot: 'bg-emerald-500',
     icon: CheckCircle2,
-    cardBorder: 'hover:border-blue-100',
+    cardBorder: 'hover:border-emerald-100',
   },
   IN_PROGRESS: {
-    label: '진행중',
-    className: 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200',
-    dot: 'bg-emerald-500',
+    label: '진행',
+    className: 'bg-blue-50 text-blue-600',
+    dot: 'bg-blue-500',
     icon: Play,
-    cardBorder: 'hover:border-emerald-100',
+    cardBorder: 'hover:border-blue-100',
   },
   COMPLETED: {
     label: '완료',
-    className: 'bg-gray-100 text-gray-500 ring-1 ring-gray-200',
+    className: 'bg-gray-50 text-gray-500',
     dot: 'bg-gray-400',
     icon: CheckCircle2,
     cardBorder: 'hover:border-gray-200',
   },
   REJECTED: {
     label: '거절',
-    className: 'bg-red-50 text-red-400 ring-1 ring-red-200',
+    className: 'bg-red-50 text-red-400',
     dot: 'bg-red-400',
     icon: XCircle,
     cardBorder: 'hover:border-red-100',
@@ -217,8 +217,20 @@ export const MyApplicationsPage: React.FC = () => {
     }
   };
 
+  // 페이지 전환 애니메이션 (줌인 효과)
+  const pageTransition = {
+    initial: { opacity: 0, scale: 0.95 },
+    animate: { opacity: 1, scale: 1 },
+    transition: { duration: 0.3, ease: 'easeOut' },
+  };
+
   return (
-    <div className="min-h-[calc(100vh-64px)] py-6 sm:py-8">
+    <motion.div
+      className="min-h-[calc(100vh-64px)] py-6 sm:py-8"
+      initial={pageTransition.initial}
+      animate={pageTransition.animate}
+      transition={pageTransition.transition}
+    >
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
         {/* 브레드크럼 + 헤더 */}
         <PageNavHeader
@@ -234,9 +246,9 @@ export const MyApplicationsPage: React.FC = () => {
         <div className="flex flex-wrap items-center gap-2 mb-6">
           {([
             { key: 'ALL' as FilterStatus, label: '전체' },
-            { key: 'PENDING' as FilterStatus, label: '대기중' },
+            { key: 'PENDING' as FilterStatus, label: '대기' },
             { key: 'APPROVED' as FilterStatus, label: '승인' },
-            { key: 'IN_PROGRESS' as FilterStatus, label: '진행중' },
+            { key: 'IN_PROGRESS' as FilterStatus, label: '진행' },
             { key: 'COMPLETED' as FilterStatus, label: '완료' },
           ]).map((tab) => (
             <button
@@ -350,17 +362,17 @@ export const MyApplicationsPage: React.FC = () => {
                         <div className={cn(
                           'w-8 h-8 rounded-lg flex items-center justify-center',
                           item.combinedStatus === 'PENDING' && 'bg-amber-50',
-                          item.combinedStatus === 'APPROVED' && 'bg-blue-50',
-                          item.combinedStatus === 'IN_PROGRESS' && 'bg-emerald-50',
-                          item.combinedStatus === 'COMPLETED' && 'bg-gray-100',
+                          item.combinedStatus === 'APPROVED' && 'bg-emerald-50',
+                          item.combinedStatus === 'IN_PROGRESS' && 'bg-blue-50',
+                          item.combinedStatus === 'COMPLETED' && 'bg-gray-50',
                         )}>
                           {item.topic?.icon ? (
                             <span className="text-sm">{item.topic.icon}</span>
                           ) : (
                             <StatusIcon size={14} className={cn(
                               item.combinedStatus === 'PENDING' && 'text-amber-500',
-                              item.combinedStatus === 'APPROVED' && 'text-blue-500',
-                              item.combinedStatus === 'IN_PROGRESS' && 'text-emerald-500',
+                              item.combinedStatus === 'APPROVED' && 'text-emerald-500',
+                              item.combinedStatus === 'IN_PROGRESS' && 'text-blue-500',
                               item.combinedStatus === 'COMPLETED' && 'text-gray-400',
                             )} />
                           )}
@@ -456,7 +468,7 @@ export const MyApplicationsPage: React.FC = () => {
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 };
 

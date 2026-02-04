@@ -109,7 +109,7 @@ export const LevelProgressBar: React.FC<LevelProgressBarProps> = ({
 
     // 풀 버전 (프로필용)
     return (
-        <div className={cn("bg-white rounded-2xl p-6 border border-gray-100 shadow-sm", className)}>
+        <div className={cn("bg-white rounded-2xl p-6", className)}>
             <LevelDetailCard
                 level={level}
                 levelName={levelName}
@@ -225,7 +225,7 @@ const LevelDetailCard: React.FC<LevelDetailCardProps> = ({
             </div>
 
             {/* 통계 */}
-            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-gray-100">
+            <div className="grid grid-cols-2 gap-3 pt-2">
                 <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
                     <Award size={16} className="text-amber-500" />
                     <div>

@@ -3,6 +3,7 @@ import { Calendar, ScheduleModal, ScheduleDetailModal, GoogleCalendarSync, DateS
 import { useCalendarData } from '@/features/calendar/hooks';
 import { UnifiedSchedule } from '@/features/calendar/types';
 import { Button } from '@/shared/components';
+import { PageListHeader } from '@/shared/components/layouts';
 import { Plus, Settings, ChevronLeft, ChevronRight } from 'lucide-react';
 import { TodayGoalsCard } from '@/features/dashboard-v2/components/TodayGoalsCard';
 import { usePageLoading } from '@/shared/hooks/usePageLoading';
@@ -104,36 +105,32 @@ export const CalendarPage = () => {
 
     return (
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
-            {/* 페이지 헤더 - 디자인 시스템 통일 */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-6">
-                <div>
-                    <h2 className="text-3xl font-black text-text-primary tracking-tight mb-2">
-                        캘린더
-                    </h2>
-                    <p className="text-text-secondary font-medium">
-                        모든 일정을 한눈에 관리하세요
-                    </p>
-                </div>
-                <div className="flex items-center gap-3">
-                    {/* Google로 가입한 사용자만 설정 버튼 표시 */}
-                    {isGoogleUser && (
+            {/* 페이지 헤더 - 공통 컴포넌트 */}
+            <PageListHeader
+                title="캘린더"
+                subtitle="모든 일정을 한눈에 관리하세요"
+                actions={
+                    <>
+                        {/* Google로 가입한 사용자만 설정 버튼 표시 */}
+                        {isGoogleUser && (
+                            <Button
+                                variant="outline"
+                                leftIcon={<Settings size={18} />}
+                                onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+                            >
+                                설정
+                            </Button>
+                        )}
                         <Button
-                            variant="outline"
-                            leftIcon={<Settings size={18} />}
-                            onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+                            variant="primary"
+                            leftIcon={<Plus size={20} />}
+                            onClick={handleAddClick}
                         >
-                            설정
+                            일정 추가
                         </Button>
-                    )}
-                    <Button
-                        variant="primary"
-                        leftIcon={<Plus size={20} />}
-                        onClick={handleAddClick}
-                    >
-                        일정 추가
-                    </Button>
-                </div>
-            </div>
+                    </>
+                }
+            />
 
             {/* 메인 컨텐츠 */}
             <div className="flex gap-6">

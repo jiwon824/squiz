@@ -17,19 +17,12 @@
    프로필 헤더
    ============================================ */
 .profile-header {
-    background: white;
-    border-radius: 24px;
-    padding: 2.5rem;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    background: transparent;
+    padding: 0;
     display: flex;
     align-items: center;
     gap: 2rem;
     position: relative;
-    transition: all 0.3s ease;
-}
-
-.profile-header:hover {
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
 }
 
 /* 프로필 아바타 */
@@ -430,7 +423,7 @@
     .profile-header {
         flex-direction: column;
         text-align: center;
-        padding: 2rem 1.5rem;
+        padding: 0;
     }
 
     .profile-info {
