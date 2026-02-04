@@ -7,6 +7,8 @@ import com.ssafy.domain.attendance.dto.request.AttendanceExcuseRequest;
 import com.ssafy.domain.attendance.dto.request.AttendanceManualUpdateRequest;
 import com.ssafy.domain.attendance.dto.response.AttendanceCalendarResponse;
 import com.ssafy.domain.attendance.dto.response.AttendanceResponse;
+import com.ssafy.domain.attendance.dto.response.SessionAttendanceInfoResponse;
+import com.ssafy.domain.attendance.dto.response.SessionAttendanceMemberResponse;
 import com.ssafy.domain.attendance.entity.Attendance;
 import com.ssafy.domain.attendance.entity.AttendanceCheckType;
 import com.ssafy.domain.attendance.entity.AttendanceExcuseStatus;
@@ -34,7 +36,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -190,16 +195,73 @@ public class AttendanceService {
         return AttendanceResponse.from(saved);
     }
 
+    /**
+     * 세션 출석 현황 조회 (스터디장 화면용)
+     * 출석 체크된 멤버를 먼저 보여주고, 출석 시간 역순으로 정렬
+     */
     @Transactional(readOnly = true)
-    public List<AttendanceResponse> getSessionAttendance(Long studyId, Long sessionId, Long requesterId) {
+    public SessionAttendanceInfoResponse getSessionAttendance(Long studyId, Long sessionId, Long requesterId) {
         validateLeader(studyId, requesterId);
-        getSessionOrThrow(sessionId, studyId);
-        List<Attendance> items = attendanceRepository.findBySessionId(sessionId);
-        List<AttendanceResponse> responses = new ArrayList<>();
-        for (Attendance item : items) {
-            responses.add(AttendanceResponse.from(item));
+        StudySession session = getSessionOrThrow(sessionId, studyId);
+
+        // 스터디 멤버 목록 조회
+        List<StudyMember> members = studyMemberRepository.findByStudyIdAndStatus(studyId, MemberStatus.APPROVED);
+
+        // 기존 출석 기록 조회
+        List<Attendance> attendances = attendanceRepository.findBySessionId(sessionId);
+        Map<Long, Attendance> attendanceMap = attendances.stream()
+                .filter(a -> a.getUser() != null)
+                .collect(Collectors.toMap(a -> a.getUser().getId(), a -> a, (a1, a2) -> a1));
+
+        // 멤버별 출석 현황 생성
+        List<SessionAttendanceMemberResponse> memberResponses = new ArrayList<>();
+        int presentCount = 0;
+
+        for (StudyMember member : members) {
+            Attendance attendance = attendanceMap.get(member.getUserId());
+            User user = getUserOrThrow(member.getUserId());
+
+            if (attendance != null) {
+                memberResponses.add(SessionAttendanceMemberResponse.from(attendance));
+                if (attendance.getStatus() == AttendanceStatus.PRESENT ||
+                    attendance.getStatus() == AttendanceStatus.LATE) {
+                    presentCount++;
+                }
+            } else {
+                // 출석 기록이 없는 멤버는 PENDING 상태로 추가
+                memberResponses.add(SessionAttendanceMemberResponse.pending(
+                        user.getId(),
+                        user.getNickname(),
+                        user.getProfileImage()
+                ));
+            }
         }
-        return responses;
+
+        // 정렬: 출석 체크된 멤버를 먼저 (출석 시간 역순), 그 다음 대기 중인 멤버
+        memberResponses.sort(Comparator
+                .comparing((SessionAttendanceMemberResponse m) -> {
+                    // PRESENT, LATE는 0, 나머지는 1 (출석한 멤버가 먼저)
+                    String status = m.status();
+                    return "PRESENT".equals(status) || "LATE".equals(status) ? 0 : 1;
+                })
+                .thenComparing((SessionAttendanceMemberResponse m) -> {
+                    // 출석 시간 역순 (최근 출석이 먼저)
+                    return m.checkedAt() != null ? m.checkedAt() : "";
+                }, Comparator.reverseOrder())
+        );
+
+        // 세션 제목 생성
+        String sessionTitle = session.getTitle() != null && !session.getTitle().isBlank()
+                ? session.getTitle()
+                : session.getSessionNumber() + "회차 세션";
+
+        return SessionAttendanceInfoResponse.of(
+                sessionId,
+                sessionTitle,
+                members.size(),
+                presentCount,
+                memberResponses
+        );
     }
 
     @Transactional(readOnly = true)

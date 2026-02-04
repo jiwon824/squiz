@@ -388,6 +388,46 @@ public class MeetingService {
         participant.updateMute(muted);
     }
 
+    /**
+     * 오프라인 녹음 업로드 (회의 생성 + 오디오 업로드 + AI 처리 트리거)
+     * 온라인 회의와 달리 IN_PROGRESS 체크 없이 바로 ENDED 상태로 생성
+     */
+    @Transactional
+    public MeetingResponse createOfflineMeetingWithAudio(Long studyId, String title,
+                                                          org.springframework.web.multipart.MultipartFile audio) {
+        if (audio == null || audio.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "AUDIO_REQUIRED");
+        }
+
+        // 일일 오프라인 STT 한도 체크
+        int remainingSeconds = dailyUsageService.getOfflineSttRemainingSeconds(studyId);
+        if (remainingSeconds <= 0) {
+            log.warn("[일일 한도 초과] 오프라인 녹음 업로드 차단 - studyId: {}", studyId);
+            throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "OFFLINE_STT_DAILY_LIMIT_EXCEEDED");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        Meeting meeting = Meeting.createOffline(studyId, title, now, null);
+        Meeting saved = meetingRepository.save(meeting);
+
+        // 오디오 파일 저장
+        String filename = "voice.webm";
+        String recordingUrl = helper.getLocalFileStorageService().saveMeetingVoiceFinal(saved.getId(), filename, audio);
+
+        // 오디오 길이 추출 및 사용량 기록
+        java.nio.file.Path audioFile = helper.getLocalFileStorageService().resolveMeetingVoiceFile(saved.getId(), filename);
+        int durationSeconds = helper.getAudioDurationSeconds(audioFile);
+        if (durationSeconds > 0) {
+            dailyUsageService.addOfflineSttUsage(studyId, durationSeconds);
+        }
+
+        log.info("[오프라인 녹음] 업로드 완료 - studyId: {}, meetingId: {}, duration: {}초", studyId, saved.getId(), durationSeconds);
+
+        return new MeetingResponse(saved.getId(), saved.getTitle(), null, saved.getStatus().name(),
+                saved.getMeetingType().name(), saved.getRecordingStatus().name(), saved.getSttStatus().name(),
+                helper.resolveSummaryStatus(saved).name(), remainingSeconds);
+    }
+
     private void validateLeader(Long studyId, Long userId) {
         Study study = studyRepository.findById(studyId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "STUDY_NOT_FOUND"));

@@ -123,16 +123,8 @@ class BoardCommentRepositoryTest {
         studyRepository.flush();
 
         post = boardPostRepository.save(new BoardPost(
-                leader,
-                study,
-                BoardCategory.FREE,
-                "Recruiting post",
-                "Content",
-                "backend",
-                MeetingType.ONLINE,
-                6,
-                RecruitmentStatus.RECRUITING
-        ));
+                leader, study, BoardCategory.FREE, "모집글", "내용",
+                null, MeetingType.ONLINE, 6, RecruitmentStatus.RECRUITING));
         boardPostRepository.flush();
         entityManager.clear();
     }

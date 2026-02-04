@@ -7,13 +7,23 @@ import {
     QuizStats,
     RecentUser,
     PopularStudy,
+    DailyMeetingStats,
+    DailyAttendanceStats,
+    DailyActivityStats,
+    UserLevelStats,
+    StudyTopicStats,
     getDashboardSummary,
     getUserSignupStats,
     getStudyStatusStats,
     getLoginMethodStats,
     getQuizStats,
     getRecentUsers,
-    getPopularStudies
+    getPopularStudies,
+    getDailyMeetingStats,
+    getDailyAttendanceStats,
+    getDailyActivityStats,
+    getUserLevelStats,
+    getStudyTopicStats
 } from '../../../api/endpoints/adminApi';
 
 interface AdminState {
@@ -25,6 +35,12 @@ interface AdminState {
     quizStats: QuizStats | null;
     recentUsers: RecentUser[];
     popularStudies: PopularStudy[];
+    // 새로운 시계열 통계
+    dailyMeetingStats: DailyMeetingStats[];
+    dailyAttendanceStats: DailyAttendanceStats[];
+    dailyActivityStats: DailyActivityStats[];
+    userLevelStats: UserLevelStats[];
+    studyTopicStats: StudyTopicStats[];
 
     // 로딩 상태
     isLoading: boolean;
@@ -39,6 +55,12 @@ interface AdminState {
     fetchQuizStats: (days?: number) => Promise<void>;
     fetchRecentUsers: (limit?: number) => Promise<void>;
     fetchPopularStudies: (limit?: number) => Promise<void>;
+    // 새로운 액션
+    fetchDailyMeetingStats: (days?: number) => Promise<void>;
+    fetchDailyAttendanceStats: (days?: number) => Promise<void>;
+    fetchDailyActivityStats: (days?: number) => Promise<void>;
+    fetchUserLevelStats: () => Promise<void>;
+    fetchStudyTopicStats: () => Promise<void>;
 }
 
 export const useAdminStore = create<AdminState>((set) => ({
@@ -50,6 +72,12 @@ export const useAdminStore = create<AdminState>((set) => ({
     quizStats: null,
     recentUsers: [],
     popularStudies: [],
+    // 새로운 시계열 통계 초기값
+    dailyMeetingStats: [],
+    dailyAttendanceStats: [],
+    dailyActivityStats: [],
+    userLevelStats: [],
+    studyTopicStats: [],
     isLoading: false,
     error: null,
 
@@ -64,7 +92,12 @@ export const useAdminStore = create<AdminState>((set) => ({
                 loginMethodStats,
                 quizStats,
                 recentUsers,
-                popularStudies
+                popularStudies,
+                dailyMeetingStats,
+                dailyAttendanceStats,
+                dailyActivityStats,
+                userLevelStats,
+                studyTopicStats
             ] = await Promise.all([
                 getDashboardSummary(),
                 getUserSignupStats(30),
@@ -72,7 +105,12 @@ export const useAdminStore = create<AdminState>((set) => ({
                 getLoginMethodStats(),
                 getQuizStats(30),
                 getRecentUsers(10),
-                getPopularStudies(5)
+                getPopularStudies(5),
+                getDailyMeetingStats(30),
+                getDailyAttendanceStats(30),
+                getDailyActivityStats(30),
+                getUserLevelStats(),
+                getStudyTopicStats()
             ]);
 
             set({
@@ -83,6 +121,11 @@ export const useAdminStore = create<AdminState>((set) => ({
                 quizStats,
                 recentUsers,
                 popularStudies,
+                dailyMeetingStats,
+                dailyAttendanceStats,
+                dailyActivityStats,
+                userLevelStats,
+                studyTopicStats,
                 isLoading: false
             });
         } catch (error) {
@@ -153,6 +196,53 @@ export const useAdminStore = create<AdminState>((set) => ({
             set({ popularStudies });
         } catch (error) {
             console.error('Failed to fetch popular studies:', error);
+        }
+    },
+
+    // ===== 새로운 시계열 통계 액션 =====
+
+    fetchDailyMeetingStats: async (days = 30) => {
+        try {
+            const dailyMeetingStats = await getDailyMeetingStats(days);
+            set({ dailyMeetingStats });
+        } catch (error) {
+            console.error('Failed to fetch daily meeting stats:', error);
+        }
+    },
+
+    fetchDailyAttendanceStats: async (days = 30) => {
+        try {
+            const dailyAttendanceStats = await getDailyAttendanceStats(days);
+            set({ dailyAttendanceStats });
+        } catch (error) {
+            console.error('Failed to fetch daily attendance stats:', error);
+        }
+    },
+
+    fetchDailyActivityStats: async (days = 30) => {
+        try {
+            const dailyActivityStats = await getDailyActivityStats(days);
+            set({ dailyActivityStats });
+        } catch (error) {
+            console.error('Failed to fetch daily activity stats:', error);
+        }
+    },
+
+    fetchUserLevelStats: async () => {
+        try {
+            const userLevelStats = await getUserLevelStats();
+            set({ userLevelStats });
+        } catch (error) {
+            console.error('Failed to fetch user level stats:', error);
+        }
+    },
+
+    fetchStudyTopicStats: async () => {
+        try {
+            const studyTopicStats = await getStudyTopicStats();
+            set({ studyTopicStats });
+        } catch (error) {
+            console.error('Failed to fetch study topic stats:', error);
         }
     }
 }));

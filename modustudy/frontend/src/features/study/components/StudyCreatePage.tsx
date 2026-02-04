@@ -307,36 +307,52 @@ const StudyCreatePage: React.FC = () => {
 
     useEffect(() => {
         const loadPreference = async () => {
+            // localStorage 캐시 먼저 로드 (빠른 UI 표시)
+            let cachedTechStack: string[] = [];
+            let cachedSchedule = {
+                availableDays: [] as string[],
+                preferredDurationWeeks: 4,
+                preferredTimeSlot: null as string | null,
+            };
+
+            try {
+                const saved = localStorage.getItem('studyPreference');
+                if (saved) {
+                    const cached = JSON.parse(saved);
+                    cachedTechStack = cached.techStacks || cached.techStack || [];
+                    const cachedTimeSlots = cached.preferredTimeSlots || [];
+                    cachedSchedule = {
+                        availableDays: cached.availableDays || [],
+                        preferredDurationWeeks: cached.preferredDurationWeeks || 4,
+                        preferredTimeSlot: cachedTimeSlots[0] || cached.preferredTimeSlot || null,
+                    };
+                    // 캐시 데이터 먼저 적용
+                    if (cachedTechStack.length > 0) setUserTechStack(cachedTechStack);
+                    if (cachedSchedule.availableDays.length > 0) setUserSchedule(cachedSchedule);
+                }
+            } catch { /* 무시 */ }
+
             try {
                 // API에서 선호 설정 가져오기
                 const pref: any = await getStudyPreference();
-                const techStacks = pref.techStacks || pref.techStack || [];
-                if (techStacks.length > 0) {
-                    setUserTechStack(techStacks);
+                const apiTechStacks = pref.techStacks || pref.techStack || [];
+                const apiTimeSlots = pref.preferredTimeSlots || [];
+                const apiAvailableDays = pref.availableDays || [];
+
+                // API 응답이 빈 배열이면 캐시 데이터 유지
+                const finalTechStack = apiTechStacks.length > 0 ? apiTechStacks : cachedTechStack;
+                const finalAvailableDays = apiAvailableDays.length > 0 ? apiAvailableDays : cachedSchedule.availableDays;
+
+                if (finalTechStack.length > 0) {
+                    setUserTechStack(finalTechStack);
                 }
-                // 일정 정보 로드 (선호 시간대 포함)
-                const timeSlots = pref.preferredTimeSlots || [];
                 setUserSchedule({
-                    availableDays: pref.availableDays || [],
-                    preferredDurationWeeks: pref.preferredDurationWeeks || 4,
-                    preferredTimeSlot: timeSlots[0] || pref.preferredTimeSlot || null,
+                    availableDays: finalAvailableDays,
+                    preferredDurationWeeks: pref.preferredDurationWeeks || cachedSchedule.preferredDurationWeeks,
+                    preferredTimeSlot: apiTimeSlots[0] || pref.preferredTimeSlot || cachedSchedule.preferredTimeSlot,
                 });
-            } catch (err) {
-                // localStorage fallback
-                try {
-                    const saved = localStorage.getItem('studyPreference');
-                    if (saved) {
-                        const pref = JSON.parse(saved);
-                        const stack = pref.techStacks || pref.techStack || [];
-                        if (stack.length > 0) setUserTechStack(stack);
-                        const timeSlots = pref.preferredTimeSlots || [];
-                        setUserSchedule({
-                            availableDays: pref.availableDays || [],
-                            preferredDurationWeeks: pref.preferredDurationWeeks || 4,
-                            preferredTimeSlot: timeSlots[0] || pref.preferredTimeSlot || null,
-                        });
-                    }
-                } catch { /* 무시 */ }
+            } catch {
+                // API 실패 시 localStorage 캐시 사용 (이미 위에서 적용됨)
             }
             setPreferenceLoaded(true);
         };
@@ -987,16 +1003,38 @@ const StudyCreatePage: React.FC = () => {
             let availableDays: string[] = [];
             let preferredTimeSlot: string | null = null;
 
+            // localStorage 캐시 먼저 로드
+            let cachedTechStack: string[] = [];
+            let cachedAvailableDays: string[] = [];
+            let cachedTimeSlot: string | null = null;
+            let cachedDurationWeeks = 4;
+
+            try {
+                const saved = localStorage.getItem('studyPreference');
+                if (saved) {
+                    const cached = JSON.parse(saved);
+                    cachedTechStack = cached.techStacks || cached.techStack || [];
+                    cachedAvailableDays = cached.availableDays || [];
+                    const cachedTimeSlots = cached.preferredTimeSlots || [];
+                    cachedTimeSlot = cachedTimeSlots[0] || cached.preferredTimeSlot || null;
+                    cachedDurationWeeks = cached.preferredDurationWeeks || 4;
+                }
+            } catch { /* 무시 */ }
+
             try {
                 const pref: any = await getStudyPreference();
                 // 백엔드 필드명: techStacks, preferredTimeSlots (복수형)
-                const stacks = pref.techStacks || pref.techStack || [];
-                if (stacks.length > 0) techStack = stacks;
+                const apiStacks = pref.techStacks || pref.techStack || [];
+                const apiAvailableDays = pref.availableDays || [];
+                const apiTimeSlots = pref.preferredTimeSlots || [];
 
-                availableDays = pref.availableDays || [];
-                const timeSlots = pref.preferredTimeSlots || [];
-                preferredTimeSlot = timeSlots[0] || pref.preferredTimeSlot || null;
-                preferredDurationWeeks = pref.preferredDurationWeeks || 4;
+                // API 응답이 빈 배열이면 캐시 데이터 사용
+                const finalStacks = apiStacks.length > 0 ? apiStacks : cachedTechStack;
+                if (finalStacks.length > 0) techStack = finalStacks;
+
+                availableDays = apiAvailableDays.length > 0 ? apiAvailableDays : cachedAvailableDays;
+                preferredTimeSlot = apiTimeSlots[0] || pref.preferredTimeSlot || cachedTimeSlot;
+                preferredDurationWeeks = pref.preferredDurationWeeks || cachedDurationWeeks;
 
                 if (availableDays.length > 0) {
                     const timeSlotMap: Record<string, string> = {
@@ -1009,30 +1047,22 @@ const StudyCreatePage: React.FC = () => {
                     schedule = availableDays.map((d: string) => timeStr ? `${d} ${timeStr}` : d);
                 }
             } catch {
-                // API 실패 시 localStorage fallback
-                try {
-                    const saved = localStorage.getItem('studyPreference');
-                    if (saved) {
-                        const pref = JSON.parse(saved);
-                        const stacks = pref.techStacks || pref.techStack || [];
-                        if (stacks.length > 0) techStack = stacks;
-                        availableDays = pref.availableDays || [];
-                        const timeSlots = pref.preferredTimeSlots || [];
-                        preferredTimeSlot = timeSlots[0] || pref.preferredTimeSlot || null;
-                        preferredDurationWeeks = pref.preferredDurationWeeks || 4;
+                // API 실패 시 localStorage 캐시 사용
+                if (cachedTechStack.length > 0) techStack = cachedTechStack;
+                availableDays = cachedAvailableDays;
+                preferredTimeSlot = cachedTimeSlot;
+                preferredDurationWeeks = cachedDurationWeeks;
 
-                        if (availableDays.length > 0) {
-                            const timeSlotMap: Record<string, string> = {
-                                morning: '07:00-12:00',
-                                afternoon: '12:00-18:00',
-                                evening: '18:00-22:00',
-                                night: '22:00-02:00',
-                            };
-                            const timeStr = preferredTimeSlot ? timeSlotMap[preferredTimeSlot] : '';
-                            schedule = availableDays.map((d: string) => timeStr ? `${d} ${timeStr}` : d);
-                        }
-                    }
-                } catch { /* 무시 */ }
+                if (availableDays.length > 0) {
+                    const timeSlotMap: Record<string, string> = {
+                        morning: '07:00-12:00',
+                        afternoon: '12:00-18:00',
+                        evening: '18:00-22:00',
+                        night: '22:00-02:00',
+                    };
+                    const timeStr = preferredTimeSlot ? timeSlotMap[preferredTimeSlot] : '';
+                    schedule = availableDays.map((d: string) => timeStr ? `${d} ${timeStr}` : d);
+                }
             }
 
             // 날짜 계산 (모집기간: 오늘~7일, 스터디기간: 7일후~선호주)

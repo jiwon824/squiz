@@ -74,4 +74,41 @@ public class AdminStatsService {
     public List<PopularStudyDto> getPopularStudies(int limit) {
         return adminStatsMapper.getPopularStudies(limit);
     }
+
+    // ========== 새로운 시계열 통계 ==========
+
+    /**
+     * 일별 미팅 통계
+     */
+    public List<DailyMeetingStatsDto> getDailyMeetingStats(int days) {
+        return adminStatsMapper.getDailyMeetingStats(days);
+    }
+
+    /**
+     * 일별 출석 통계
+     */
+    public List<DailyAttendanceStatsDto> getDailyAttendanceStats(int days) {
+        return adminStatsMapper.getDailyAttendanceStats(days);
+    }
+
+    /**
+     * 일별 활동 통계 (잔디)
+     */
+    public List<DailyActivityStatsDto> getDailyActivityStats(int days) {
+        return adminStatsMapper.getDailyActivityStats(days);
+    }
+
+    /**
+     * 레벨별 사용자 분포
+     */
+    public List<UserLevelStatsDto> getUserLevelStats() {
+        return adminStatsMapper.getUserLevelStats();
+    }
+
+    /**
+     * 토픽별 스터디 분포
+     */
+    public List<StudyTopicStatsDto> getStudyTopicStats() {
+        return adminStatsMapper.getStudyTopicStats();
+    }
 }

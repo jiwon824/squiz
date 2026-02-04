@@ -314,7 +314,7 @@ public interface ContinuousQuizRepository extends JpaRepository<QuizCourseQuesti
           ON uri.content_type = 'COURSE_QUESTION'
           AND uri.content_id = q.id
           AND uri.user_id = :userId
-      JOIN user_review_logs url
+      JOIN user_review_log url
           ON url.review_item_id = uri.id
           AND url.is_correct = true
       GROUP BY q.quiz_course_id
@@ -327,7 +327,7 @@ public interface ContinuousQuizRepository extends JpaRepository<QuizCourseQuesti
   @Query(value = """
       SELECT COUNT(DISTINCT uri.content_id)
       FROM user_review_items uri
-      JOIN user_review_logs url
+      JOIN user_review_log url
           ON url.review_item_id = uri.id
           AND url.is_correct = true
       WHERE uri.user_id = :userId

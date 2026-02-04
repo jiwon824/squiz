@@ -12,7 +12,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
 
+import org.springframework.beans.factory.annotation.Value;
+
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -104,5 +107,40 @@ public class MeetingServiceHelper {
         }
         String extension = filename.substring(dotIndex + 1).toLowerCase(Locale.ROOT);
         return extension.isBlank() ? null : extension;
+    }
+
+    public LocalFileStorageService getLocalFileStorageService() {
+        return localFileStorageService;
+    }
+
+    /**
+     * ffprobe를 사용해 오디오 파일의 길이(초)를 추출
+     * @return 길이(초), 실패 시 0 반환
+     */
+    public int getAudioDurationSeconds(Path audioFile) {
+        if (audioFile == null || !Files.exists(audioFile)) {
+            return 0;
+        }
+        try {
+            List<String> args = List.of(
+                    "ffprobe",
+                    "-v", "error",
+                    "-show_entries", "format=duration",
+                    "-of", "default=noprint_wrappers=1:nokey=1",
+                    audioFile.toAbsolutePath().toString()
+            );
+            ProcessBuilder builder = new ProcessBuilder(args);
+            builder.redirectErrorStream(true);
+            Process process = builder.start();
+            String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8).trim();
+            int exit = process.waitFor();
+            if (exit != 0) {
+                return 0;
+            }
+            double duration = Double.parseDouble(output);
+            return (int) Math.ceil(duration);
+        } catch (IOException | InterruptedException | NumberFormatException e) {
+            return 0;
+        }
     }
 }

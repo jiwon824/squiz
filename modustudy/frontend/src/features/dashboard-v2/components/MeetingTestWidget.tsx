@@ -43,22 +43,46 @@ const parseOptions = (optionsStr: string | null): { id: string; text: string }[]
         const parsed = JSON.parse(optionsStr);
         if (Array.isArray(parsed)) {
             return parsed.map((opt, idx) => {
+                const defaultId = String.fromCharCode(65 + idx);
                 if (typeof opt === 'string') {
-                    return { id: String.fromCharCode(65 + idx), text: opt };
+                    // 이미 "A. " 또는 "A." 형태의 prefix가 있는지 확인
+                    const prefixMatch = opt.match(/^([A-Z])\.[\s]*(.*)/);
+                    if (prefixMatch) {
+                        // prefix가 있으면 ID는 추출, text는 prefix 제거된 내용만
+                        return { id: prefixMatch[1], text: prefixMatch[2] };
+                    }
+                    return { id: defaultId, text: opt };
                 }
                 if (typeof opt === 'object' && opt !== null) {
-                    return {
-                        id: opt.id || String.fromCharCode(65 + idx),
-                        text: opt.text || opt.label || String(opt.id || ''),
-                    };
+                    const id = opt.id || defaultId;
+                    let text = opt.text || opt.label || String(opt.id || '');
+                    // 객체의 text도 prefix 중복 확인
+                    const textMatch = text.match(/^([A-Z])\.[\s]*(.*)/);
+                    if (textMatch) {
+                        text = textMatch[2];
+                    }
+                    return { id, text };
                 }
-                return { id: String.fromCharCode(65 + idx), text: String(opt) };
+                return { id: defaultId, text: String(opt) };
             });
         }
         return [];
     } catch {
         return [];
     }
+};
+
+/** 정답 텍스트 찾기 헬퍼 함수 */
+const getCorrectAnswerText = (
+    correctAnswer: string | null | undefined,
+    options: { id: string; text: string }[]
+): string => {
+    if (!correctAnswer) return correctAnswer ?? '';
+    // correctAnswer가 "A", "B" 같은 ID인 경우 해당 옵션의 text 반환
+    const option = options.find(opt => opt.id === correctAnswer);
+    if (option) return `${option.id}. ${option.text}`;
+    // ID로 못 찾으면 원본 값 반환
+    return correctAnswer;
 };
 
 export const MeetingTestWidget: React.FC = () => {
@@ -455,7 +479,9 @@ export const MeetingTestWidget: React.FC = () => {
                                                         </div>
                                                         {!result.isCorrect && (
                                                             <p className="text-text-secondary ml-6">
-                                                                정답: <span className="font-medium text-secondary">{result.correctAnswer}</span>
+                                                                정답: <span className="font-medium text-secondary">
+                                                                    {getCorrectAnswerText(result.correctAnswer, options)}
+                                                                </span>
                                                             </p>
                                                         )}
                                                         {result.explanation && (

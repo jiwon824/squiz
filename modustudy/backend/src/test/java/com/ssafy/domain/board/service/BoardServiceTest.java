@@ -131,7 +131,7 @@ class BoardServiceTest {
     }
 
     @Test
-    @DisplayName("Recruiting list filters by status")
+    @DisplayName("모집 예정/모집중/확정대기 스터디만 모집글 작성 스터디 목록에 포함된다")
     void getRecruitingStudies_filtersStatuses() {
         List<Long> studyIds = boardService.getRecruitingStudies(leader.getId())
                 .stream()
@@ -143,14 +143,14 @@ class BoardServiceTest {
     }
 
     @Test
-    @DisplayName("Add comment creates notification except for author")
+    @DisplayName("모집글 댓글 작성 시 작성자에게 알림이 생성된다 (본인 댓글 제외)")
     void addComment_createsNotification() {
         BoardPostDetailResponse created = boardService.createPost(
                 leader.getId(),
-                new BoardPostCreateRequest("Recruiting post title", "Recruiting post content", "backend", MeetingType.ONLINE, 6)
+                new BoardPostCreateRequest("모집글 제목", "모집글 내용", "백엔드", MeetingType.ONLINE, 6)
         );
 
-        boardService.addComment(member.getId(), created.getId(), new BoardCommentCreateRequest(null, "Comment content"));
+        boardService.addComment(member.getId(), created.getId(), new BoardCommentCreateRequest(null, "댓글 내용"));
 
         boardPostRepository.flush();
         notificationRepository.flush();
@@ -160,7 +160,7 @@ class BoardServiceTest {
         assertThat(notifications.get(0).getContent()).contains(created.getTitle());
         assertThat(boardPostRepository.findById(created.getId()).orElseThrow().getCommentCount()).isEqualTo(1);
 
-        boardService.addComment(leader.getId(), created.getId(), new BoardCommentCreateRequest(null, "Owner comment"));
+        boardService.addComment(leader.getId(), created.getId(), new BoardCommentCreateRequest(null, "작성자 댓글"));
         notificationRepository.flush();
 
         List<Notification> afterOwnerComment = notificationRepository.findByUserIdOrderByCreatedAtDesc(leader.getId());
@@ -168,17 +168,17 @@ class BoardServiceTest {
     }
 
     @Test
-    @DisplayName("Delete comment marks deleted and decreases count")
+    @DisplayName("댓글 삭제 시 댓글이 삭제 처리되고 카운트가 감소한다")
     void deleteComment_marksDeleted_andDecreasesCount() {
         BoardPostDetailResponse created = boardService.createPost(
                 leader.getId(),
-                new BoardPostCreateRequest("Recruiting post title", "Recruiting post content", "backend", MeetingType.ONLINE, 6)
+                new BoardPostCreateRequest("모집글 제목", "모집글 내용", "백엔드", MeetingType.ONLINE, 6)
         );
 
         BoardCommentResponse comment = boardService.addComment(
                 member.getId(),
                 created.getId(),
-                new BoardCommentCreateRequest(null, "Comment content")
+                new BoardCommentCreateRequest(null, "댓글 내용")
         );
 
         boardService.deleteComment(member.getId(), comment.getId());
@@ -191,17 +191,17 @@ class BoardServiceTest {
     }
 
     @Test
-    @DisplayName("Delete comment requires author")
+    @DisplayName("댓글 삭제는 작성자만 가능하다")
     void deleteComment_requiresAuthor() {
         BoardPostDetailResponse created = boardService.createPost(
                 leader.getId(),
-                new BoardPostCreateRequest("Recruiting post title", "Recruiting post content", "backend", MeetingType.ONLINE, 6)
+                new BoardPostCreateRequest("모집글 제목", "모집글 내용", "백엔드", MeetingType.ONLINE, 6)
         );
 
         BoardCommentResponse comment = boardService.addComment(
                 member.getId(),
                 created.getId(),
-                new BoardCommentCreateRequest(null, "Comment content")
+                new BoardCommentCreateRequest(null, "댓글 내용")
         );
 
         assertThatThrownBy(() -> boardService.deleteComment(leader.getId(), comment.getId()))
@@ -214,7 +214,7 @@ class BoardServiceTest {
                 .topic(topic)
                 .format(format)
                 .name(name)
-                .description("Test study description")
+                .description("테스트 스터디")
                 .maxMembers(6)
                 .studyType(StudyType.PLANNED)
                 .status(status)

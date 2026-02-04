@@ -108,42 +108,18 @@ class BoardPostRepositoryTest {
     @DisplayName("List latest non-deleted posts")
     void findAllByIsDeletedFalseOrderByCreatedAtDesc() throws Exception {
         BoardPost first = boardPostRepository.save(new BoardPost(
-                leader,
-                study,
-                BoardCategory.FREE,
-                "First post",
-                "Content 1",
-                "backend",
-                MeetingType.ONLINE,
-                6,
-                RecruitmentStatus.RECRUITING
-        ));
+                leader, study, BoardCategory.FREE, "첫 번째 글", "내용1",
+                null, MeetingType.ONLINE, 6, RecruitmentStatus.RECRUITING));
         boardPostRepository.flush();
         Thread.sleep(5);
         BoardPost second = boardPostRepository.save(new BoardPost(
-                leader,
-                study,
-                BoardCategory.FREE,
-                "Second post",
-                "Content 2",
-                "backend",
-                MeetingType.ONLINE,
-                6,
-                RecruitmentStatus.RECRUITING
-        ));
+                leader, study, BoardCategory.FREE, "두 번째 글", "내용2",
+                null, MeetingType.ONLINE, 6, RecruitmentStatus.RECRUITING));
         boardPostRepository.flush();
         Thread.sleep(5);
         BoardPost deleted = boardPostRepository.save(new BoardPost(
-                leader,
-                study,
-                BoardCategory.FREE,
-                "Deleted post",
-                "Content 3",
-                "backend",
-                MeetingType.ONLINE,
-                6,
-                RecruitmentStatus.RECRUITING
-        ));
+                leader, study, BoardCategory.FREE, "삭제 글", "내용3",
+                null, MeetingType.ONLINE, 6, RecruitmentStatus.RECRUITING));
         deleted.delete();
         boardPostRepository.flush();
         entityManager.clear();
@@ -159,16 +135,8 @@ class BoardPostRepositoryTest {
     @DisplayName("Exclude deleted post from detail query")
     void findByIdAndIsDeletedFalse() {
         BoardPost post = boardPostRepository.save(new BoardPost(
-                leader,
-                study,
-                BoardCategory.FREE,
-                "Detail view",
-                "Content",
-                "backend",
-                MeetingType.ONLINE,
-                6,
-                RecruitmentStatus.RECRUITING
-        ));
+                leader, study, BoardCategory.FREE, "상세 조회", "내용",
+                null, MeetingType.ONLINE, 6, RecruitmentStatus.RECRUITING));
         boardPostRepository.flush();
 
         assertThat(boardPostRepository.findByIdAndIsDeletedFalse(post.getId())).isPresent();

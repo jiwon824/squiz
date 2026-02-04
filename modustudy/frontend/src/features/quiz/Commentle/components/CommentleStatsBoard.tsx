@@ -1,5 +1,6 @@
 import React from 'react';
-import { Crown, Trophy, Clock } from 'lucide-react';
+import { Crown, Trophy, Clock, LogIn } from 'lucide-react';
+import { useAuthStore } from '@/store/authStore';
 
 interface LeaderboardEntry {
     nickname: string;
@@ -13,6 +14,8 @@ interface CommentleStatsBoardProps {
 }
 
 export const CommentleStatsBoard: React.FC<CommentleStatsBoardProps> = ({ leaderboard }) => {
+    const { isLoggedIn } = useAuthStore();
+
     return (
         <div className="bg-surface border border-border-light rounded-3xl p-6 shadow-sm overflow-hidden min-h-[600px] flex flex-col">
             <div className="flex items-center gap-3 mb-6">
@@ -22,6 +25,23 @@ export const CommentleStatsBoard: React.FC<CommentleStatsBoardProps> = ({ leader
                 <h3 className="text-xl font-bold text-text-primary">명예의 전당</h3>
                 <span className="ml-auto text-xs font-bold text-text-tertiary">TOP 10</span>
             </div>
+
+            {/* 비로그인 안내 배너 */}
+            {!isLoggedIn && (
+                <div className="mb-4 p-4 bg-white/60 backdrop-blur-sm rounded-xl border border-warning/20">
+                    <div className="flex items-start gap-3">
+                        <div className="bg-warning/10 p-1.5 rounded-lg text-amber-500 mt-0.5">
+                            <LogIn size={16} />
+                        </div>
+                        <div className="space-y-1">
+                            <p className="text-sm font-bold text-text-primary">로그인하면 기록이 등록돼요</p>
+                            <p className="text-xs text-text-tertiary leading-relaxed">
+                                지금도 퀴즈를 풀 수 있지만, 리더보드에 기록을 남기려면 로그인이 필요합니다.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {leaderboard.length > 0 ? (
                 <div className="space-y-2">
