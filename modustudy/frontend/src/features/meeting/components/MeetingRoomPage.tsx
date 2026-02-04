@@ -1992,8 +1992,10 @@ const MeetingRoomPage: React.FC = () => {
             try {
                 setIsEnding(true);
                 sfuStopRequestedRef.current = true;
-                await finalizeVoiceRecording();
+                // 종료 API를 먼저 호출하여 팀원들에게 즉시 MEETING_ENDED 이벤트 전파
                 await meetingApi.endMeeting(numericStudyId, numericMeetingId);
+                // 리더 쪽 녹음 정리는 이벤트 전파 후 처리
+                await finalizeVoiceRecording();
             } catch (error) {
                 console.error('Failed to end meeting', error);
             } finally {
@@ -2473,10 +2475,13 @@ const MeetingRoomPage: React.FC = () => {
             <div className="meeting-room">
                 {isEnding && (
                     <div className="meeting-room__ending-overlay">
-                        <div className="meeting-room__ending-text">
-                            미팅 종료 중 입니다. <br/>
-                            미팅 내용을 요약 중 입니다. <br/> 
-                            잠시만 기다려주세요.
+                        <div className="meeting-room__ending-card">
+                            <div className="meeting-room__ending-spinner" />
+                            <p className="meeting-room__ending-title">미팅을 종료하고 있습니다</p>
+                            <p className="meeting-room__ending-desc">
+                                미팅 내용을 요약하고 있습니다.<br />
+                                잠시만 기다려주세요.
+                            </p>
                         </div>
                     </div>
                 )}

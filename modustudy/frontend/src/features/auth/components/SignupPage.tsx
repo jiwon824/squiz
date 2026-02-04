@@ -24,10 +24,6 @@ export const SignupPage = () => {
     const [oauthData, setOauthData] = useState<OAuthTempData | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
-    // 약관 열람 여부 (보기를 해야 체크 가능)
-    const [viewedTerms, setViewedTerms] = useState(false);
-    const [viewedPrivacy, setViewedPrivacy] = useState(false);
-
     // 약관 동의 상태
     const [agreeTerms, setAgreeTerms] = useState(false);
     const [agreePrivacy, setAgreePrivacy] = useState(false);
@@ -231,13 +227,9 @@ export const SignupPage = () => {
                             type="checkbox"
                             id="agreeTerms"
                             checked={agreeTerms}
-                            disabled={!viewedTerms}
                             onChange={(e) => setAgreeTerms(e.target.checked)}
                         />
-                        <label
-                            htmlFor="agreeTerms"
-                            style={!viewedTerms ? { color: '#94a3b8', cursor: 'default' } : {}}
-                        >
+                        <label htmlFor="agreeTerms">
                             서비스 이용약관에 동의합니다 (필수)
                         </label>
                         <button
@@ -253,13 +245,9 @@ export const SignupPage = () => {
                             type="checkbox"
                             id="agreePrivacy"
                             checked={agreePrivacy}
-                            disabled={!viewedPrivacy}
                             onChange={(e) => setAgreePrivacy(e.target.checked)}
                         />
-                        <label
-                            htmlFor="agreePrivacy"
-                            style={!viewedPrivacy ? { color: '#94a3b8', cursor: 'default' } : {}}
-                        >
+                        <label htmlFor="agreePrivacy">
                             개인정보처리방침에 동의합니다 (필수)
                         </label>
                         <button
@@ -270,11 +258,6 @@ export const SignupPage = () => {
                             보기
                         </button>
                     </div>
-                    {(!viewedTerms || !viewedPrivacy) && (
-                        <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0 }}>
-                            약관을 확인해야 동의할 수 있습니다
-                        </p>
-                    )}
                 </div>
 
                 <button
@@ -298,11 +281,7 @@ export const SignupPage = () => {
                 <TermsModal
                     title={modalContent.title}
                     content={modalContent.content}
-                    onClose={() => {
-                        if (modalContent.type === 'terms') setViewedTerms(true);
-                        if (modalContent.type === 'privacy') setViewedPrivacy(true);
-                        setModalContent(null);
-                    }}
+                    onClose={() => setModalContent(null)}
                 />
             )}
         </AuthLayout>

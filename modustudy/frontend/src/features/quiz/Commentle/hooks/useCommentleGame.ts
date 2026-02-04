@@ -117,7 +117,10 @@ export const useCommentleGame = () => {
             }
 
             if (result.isCorrect) {
-                updateLeaderboard(guesses.length + 1);
+                // 로그인 사용자만 리더보드에 기록 등록
+                if (isLoggedIn) {
+                    updateLeaderboard(guesses.length + 1);
+                }
                 setShowSuccess(true);
             }
         } catch (error) {
