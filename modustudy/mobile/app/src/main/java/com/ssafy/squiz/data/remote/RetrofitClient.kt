@@ -70,12 +70,13 @@ object RetrofitClient {
 
     /**
      * Logging Interceptor (디버그용) - squiz 태그 사용
+     * HEADERS 레벨 사용: BODY 레벨은 멀티파트 파일 업로드 시 Content-Length 불일치 유발
      */
     private val loggingInterceptor = HttpLoggingInterceptor { message ->
         Log.d(TAG, message)
     }.apply {
         level = if (BuildConfig.DEBUG) {
-            HttpLoggingInterceptor.Level.BODY
+            HttpLoggingInterceptor.Level.HEADERS
         } else {
             HttpLoggingInterceptor.Level.NONE
         }
