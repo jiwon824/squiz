@@ -291,7 +291,20 @@ public class ApplicationService {
         log.info("신청 승인 완료 - applicationId: {}, userId: {} 스터디 멤버로 추가됨",
                 applicationId, application.getUserId());
 
-        // 8. 게이미피케이션 이벤트 발행 - 스터디 가입
+        // 8. 신청자에게 승인 알림 전송
+        String approvalTitle = "스터디 신청 승인";
+        String approvalContent = String.format("'%s' 스터디 참가 신청이 승인되었습니다! 이제 스터디에 참여할 수 있습니다.", study.getName());
+        notificationService.createNotification(
+                application.getUserId(),
+                NotificationType.STUDY_APPLICATION,
+                approvalTitle,
+                approvalContent,
+                "STUDY",
+                studyId
+        );
+        log.info("신청자에게 승인 알림 전송 완료 - userId: {}", application.getUserId());
+
+        // 9. 게이미피케이션 이벤트 발행 - 스터디 가입
         // 첫 스터디 여부 확인 (현재 가입한 스터디 제외하고 다른 승인된 멤버십이 있는지)
         int otherMemberships = studyMemberRepository.findByUserIdAndStatus(application.getUserId(), MemberStatus.APPROVED).size();
         boolean isFirstStudy = otherMemberships <= 1; // 방금 가입한 것만 있으면 첫 스터디
@@ -304,10 +317,10 @@ public class ApplicationService {
                 isFirstStudy
         ));
 
-        // 9. 모집 인원 충족 여부 확인 및 상태 변경
+        // 10. 모집 인원 충족 여부 확인 및 상태 변경
         studyService.checkAndUpdateRecruitmentStatus(studyId);
 
-        // 10. DTO 변환
+        // 11. DTO 변환
         ApplicationResponse response = ApplicationResponse.from(updated);
         response.setStudyName(study.getName());
 
@@ -359,7 +372,23 @@ public class ApplicationService {
 
         log.info("신청 거절 완료 - applicationId: {}, reason: {}", applicationId, rejectedReason);
 
-        // 6. DTO 변환
+        // 6. 신청자에게 거절 알림 전송
+        String rejectionTitle = "스터디 신청 결과";
+        String rejectionContent = String.format("'%s' 스터디 참가 신청이 거절되었습니다.", study.getName());
+        if (rejectedReason != null && !rejectedReason.isBlank()) {
+            rejectionContent += String.format(" 사유: %s", rejectedReason);
+        }
+        notificationService.createNotification(
+                application.getUserId(),
+                NotificationType.STUDY_APPLICATION,
+                rejectionTitle,
+                rejectionContent,
+                "STUDY",
+                studyId
+        );
+        log.info("신청자에게 거절 알림 전송 완료 - userId: {}", application.getUserId());
+
+        // 7. DTO 변환
         ApplicationResponse response = ApplicationResponse.from(updated);
         response.setStudyName(study.getName());
 
