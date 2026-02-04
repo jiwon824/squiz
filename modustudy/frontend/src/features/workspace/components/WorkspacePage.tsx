@@ -693,6 +693,41 @@ export const WorkspacePage: React.FC = () => {
     setPendingNavigateMessageId(null);
   }, []);
 
+  // 멤버 프로필 이미지 매핑 (백엔드가 메시지에 profileImageUrl을 반환하지 않으므로 멤버 데이터로 보완)
+  const profileImageMap = useMemo(() => {
+    const map = new Map<number, string | null>();
+    for (const member of members) {
+      if (member.profileImageUrl) {
+        map.set(member.id, member.profileImageUrl);
+      }
+    }
+    return map;
+  }, [members]);
+
+  // 메시지에 프로필 이미지 보강
+  const enrichedMessages = useMemo(() => {
+    if (profileImageMap.size === 0) return messages;
+    return messages.map((msg) => {
+      const profileUrl = profileImageMap.get(msg.author.id);
+      if (profileUrl && !msg.author.profileImageUrl) {
+        return { ...msg, author: { ...msg.author, profileImageUrl: profileUrl } };
+      }
+      return msg;
+    });
+  }, [messages, profileImageMap]);
+
+  // 고정 메시지에도 프로필 이미지 보강
+  const enrichedPinnedMessages = useMemo(() => {
+    if (profileImageMap.size === 0) return pinnedMessages;
+    return pinnedMessages.map((msg) => {
+      const profileUrl = profileImageMap.get(msg.author.id);
+      if (profileUrl && !msg.author.profileImageUrl) {
+        return { ...msg, author: { ...msg.author, profileImageUrl: profileUrl } };
+      }
+      return msg;
+    });
+  }, [pinnedMessages, profileImageMap]);
+
   // 고정된 메시지 ID 목록 (ChatArea에 전달용)
   const pinnedMessageIds = useMemo(() => {
     return pinnedMessages.map((m) => m.id);
@@ -864,7 +899,7 @@ export const WorkspacePage: React.FC = () => {
             {activeMenu === 'chat' && (
               <>
                 <ChatArea
-                  messages={messages}
+                  messages={enrichedMessages}
                   isLoading={isMessagesLoading}
                   onLoadMore={handleLoadMore}
                   hasMore={hasMoreMessages}
@@ -926,7 +961,7 @@ export const WorkspacePage: React.FC = () => {
         onMemberClick={() => {
           // TODO: 멤버 클릭 프로필 보기 기능 추가
         }}
-        pinnedMessages={pinnedMessages}
+        pinnedMessages={enrichedPinnedMessages}
         onUnpin={handleUnpinMessage}
         onPinnedMessageClick={handleMessageNavigate}
       />
