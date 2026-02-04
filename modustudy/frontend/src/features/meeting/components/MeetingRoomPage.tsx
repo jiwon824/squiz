@@ -192,6 +192,7 @@ const MeetingRoomPage: React.FC = () => {
     const screenSharingRef = useRef(screenSharing);
     const mixedRetryRef = useRef<{ attempts: number; timer: number | null }>({ attempts: 0, timer: null });
     const isPresenterRef = useRef(false);
+    const presenterNameRef = useRef(presenterName);
     const MAX_PLANNED_DURATION_SECONDS = 3 * 60 * 60;
     const warningThresholds = useMemo(() => [10 * 60, 5 * 60], []);
     const warningFlagsRef = useRef<Record<number, boolean>>({});
@@ -211,6 +212,10 @@ const MeetingRoomPage: React.FC = () => {
     useEffect(() => {
         screenSharingRef.current = screenSharing;
     }, [screenSharing]);
+
+    useEffect(() => {
+        presenterNameRef.current = presenterName;
+    }, [presenterName]);
 
     useEffect(() => {
         if (!meetingStartedAt) return;
@@ -279,7 +284,8 @@ const MeetingRoomPage: React.FC = () => {
             try {
                 const detail = await studyApi.getStudyDetail(numericStudyId);
                 if (!cancelled) {
-                    const leader = detail?.leaderId ?? null;
+                    // 백엔드 응답에서 leader ID 추출 (leader.id 또는 레거시 leaderId)
+                    const leader = detail?.leaderId ?? detail?.leader?.id ?? null;
                     if (leader == null) {
                         setLeaderId(null);
                     } else if (typeof leader === 'number') {
@@ -730,11 +736,18 @@ const MeetingRoomPage: React.FC = () => {
     }, []);
 
     const appendChatMessage = useCallback((message: MeetingRoomChatMessage) => {
-        const key = message.id ? `id:${message.id}` : `${message.sentAt}-${message.sender}-${message.text}`;
-        if (chatDedupRef.current.has(key)) {
+        const contentKey = `${message.sentAt}-${message.sender}-${message.text}`;
+        const idKey = message.id ? `id:${message.id}` : null;
+
+        // 내용 기반 키 또는 id 기반 키 중 하나라도 이미 존재하면 중복
+        if (chatDedupRef.current.has(contentKey) || (idKey && chatDedupRef.current.has(idKey))) {
+            // 서버 응답(id 포함)이 도착하면 id 키도 등록하여 이후 중복 방지
+            if (idKey) chatDedupRef.current.add(idKey);
             return;
         }
-        chatDedupRef.current.add(key);
+
+        chatDedupRef.current.add(contentKey);
+        if (idKey) chatDedupRef.current.add(idKey);
         setChatMessages((prev) => [...prev, message]);
     }, []);
 
@@ -1837,12 +1850,13 @@ const MeetingRoomPage: React.FC = () => {
             sender: displayNameRef.current,
             text,
             sentAt: new Date().toISOString(),
-            userId: selfParticipantIdRef.current ?? null,
+            // 렌더링 시 currentUserId(user.id)와 비교하므로 동일한 auth user ID 사용
+            userId: user?.id ? Number(user.id) : null,
         };
         // 낙관적 업데이트: 전송 즉시 로컬 상태에 추가
         appendChatMessage(payload);
         wsClientRef.current.sendChat(roomIdRef.current, payload);
-    }, [appendChatMessage]);
+    }, [appendChatMessage, user?.id]);
 
     const captureFrame = (video: HTMLVideoElement) =>
         new Promise<Blob | null>((resolve) => {
@@ -2064,7 +2078,7 @@ const MeetingRoomPage: React.FC = () => {
             } else if (event.type === 'MEETING_DURATION_UPDATED') {
                 setPlannedDurationSeconds(event.plannedDurationSeconds ?? null);
             }
-            const presenterNameFromEvent = event.presenterName ?? presenterName;
+            const presenterNameFromEvent = event.presenterName ?? presenterNameRef.current;
             if (
                 event.presenterId &&
                 presenterNameFromEvent &&
@@ -2081,7 +2095,6 @@ const MeetingRoomPage: React.FC = () => {
             navigate,
             numericStudyId,
             numericMeetingId,
-            presenterName,
             stopCameraHardware,
         ]
     );
@@ -2174,6 +2187,40 @@ const MeetingRoomPage: React.FC = () => {
         }
     }, [updateVoiceRecordingSource]);
 
+    // setup effect 내부에서 사용하는 콜백들의 안정적 참조 (effect 재실행 방지)
+    const setupCallbacksRef = useRef({
+        handleRoomEvent,
+        handleNewConsumer,
+        handlePeerLeft,
+        handleProducerClosed,
+        finalizeVoiceRecording,
+        ensureMicrophoneStream,
+        requestDevicePermissions,
+        refreshOutgoingAudio,
+        startMicrophone,
+        stopCameraHardware,
+        stopMicProcessedTrack,
+        stopMixedAudioTrack,
+        stopRecordingAudioTrack,
+    });
+    useEffect(() => {
+        setupCallbacksRef.current = {
+            handleRoomEvent,
+            handleNewConsumer,
+            handlePeerLeft,
+            handleProducerClosed,
+            finalizeVoiceRecording,
+            ensureMicrophoneStream,
+            requestDevicePermissions,
+            refreshOutgoingAudio,
+            startMicrophone,
+            stopCameraHardware,
+            stopMicProcessedTrack,
+            stopMixedAudioTrack,
+            stopRecordingAudioTrack,
+        };
+    });
+
     useEffect(() => {
         let cancelled = false;
         const setup = async () => {
@@ -2241,8 +2288,9 @@ const MeetingRoomPage: React.FC = () => {
             try {
                 await wsClient.connect();
                 if (cancelled) return;
-                wsUnsubscribeRef.current.push(wsClient.subscribeRoomEvents(roomId, handleRoomEvent));
-                wsUnsubscribeRef.current.push(wsClient.subscribeChatHistory(roomId, handleRoomEvent));
+                // ref 래퍼로 구독하여 항상 최신 핸들러를 호출
+                wsUnsubscribeRef.current.push(wsClient.subscribeRoomEvents(roomId, (e) => setupCallbacksRef.current.handleRoomEvent(e)));
+                wsUnsubscribeRef.current.push(wsClient.subscribeChatHistory(roomId, (e) => setupCallbacksRef.current.handleRoomEvent(e)));
                 wsClient.joinRoom(roomId, { displayName: displayNameRef.current });
             } catch (error) {
                 console.error('Failed to connect websocket', error);
@@ -2265,19 +2313,19 @@ const MeetingRoomPage: React.FC = () => {
                 await sfuClient.connect({
                     targetRoomId: roomId,
                     displayName: displayNameRef.current,
-                    onNewConsumer: handleNewConsumer,
-                    onPeerLeft: handlePeerLeft,
-                    onProducerClosed: handleProducerClosed,
+                    onNewConsumer: (p) => setupCallbacksRef.current.handleNewConsumer(p),
+                    onPeerLeft: (p) => setupCallbacksRef.current.handlePeerLeft(p),
+                    onProducerClosed: (p) => setupCallbacksRef.current.handleProducerClosed(p),
                 });
                 setSfuReady(true);
-                await requestDevicePermissions();
-                await refreshOutgoingAudio();
+                await setupCallbacksRef.current.requestDevicePermissions();
+                await setupCallbacksRef.current.refreshOutgoingAudio();
                 if (!cancelled) {
                     if (useSfuRecording) {
-                        await ensureMicrophoneStream(true);
+                        await setupCallbacksRef.current.ensureMicrophoneStream(true);
                     }
                     if (micEnabledRef.current) {
-                        await startMicrophone();
+                        await setupCallbacksRef.current.startMicrophone();
                     }
                 }
                 // SFU 녹음은 첫 오디오 생산 이후에 시작 (무음 세그먼트 방지)
@@ -2293,7 +2341,7 @@ const MeetingRoomPage: React.FC = () => {
         return () => {
             cancelled = true;
             if (sfuStopRequestedRef.current) {
-                void finalizeVoiceRecording();
+                void setupCallbacksRef.current.finalizeVoiceRecording();
             }
             wsUnsubscribeRef.current.forEach((unsubscribe) => unsubscribe());
             wsUnsubscribeRef.current = [];
@@ -2334,11 +2382,11 @@ const MeetingRoomPage: React.FC = () => {
             utteranceChunksRef.current = [];
 
             stopTracks(localMicStreamRef.current);
-            stopCameraHardware();
+            setupCallbacksRef.current.stopCameraHardware();
             stopTracks(localScreenStreamRef.current);
-            stopMixedAudioTrack();
-            stopRecordingAudioTrack();
-            stopMicProcessedTrack();
+            setupCallbacksRef.current.stopMixedAudioTrack();
+            setupCallbacksRef.current.stopRecordingAudioTrack();
+            setupCallbacksRef.current.stopMicProcessedTrack();
             remoteAudioElementsRef.current.forEach((audio) => {
                 try {
                     audio.pause();
@@ -2356,24 +2404,9 @@ const MeetingRoomPage: React.FC = () => {
                 });
             }
         };
-    }, [
-        numericStudyId,
-        numericMeetingId,
-        canEndMeeting, // 의존성 추가
-        handleNewConsumer,
-        handlePeerLeft,
-        handleProducerClosed,
-        handleRoomEvent,
-        finalizeVoiceRecording,
-        ensureMicrophoneStream,
-        requestDevicePermissions,
-        refreshOutgoingAudio,
-        startSfuRecording,
-        stopMicProcessedTrack,
-        stopMixedAudioTrack,
-        stopRecordingAudioTrack,
-        startMicrophone,
-    ]);
+        // 미팅 ID가 변경될 때만 재실행 (콜백은 ref로 접근하여 안정적)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [numericStudyId, numericMeetingId]);
 
     useEffect(() => {
         if (!micEnabled && audioDetectionActiveRef.current) {
@@ -2569,6 +2602,7 @@ const MeetingRoomPage: React.FC = () => {
                     localStream={localStream}
                     localLabel={displayNameRef.current}
                     localIsPresenter={isPresenter}
+                    isScreenSharing={screenSharing}
                     remoteVideoStreams={remoteVideoStreams.map((item) => ({
                         id: item.id,
                         stream: item.stream,
