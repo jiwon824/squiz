@@ -411,7 +411,7 @@ export const MyApplicationsWidget: React.FC = () => {
       <AnimatePresence>
         {isExpanding && initialRect && targetRect && (
           <motion.div
-            className="fixed bg-gradient-to-br from-white to-violet-50/30 p-6 shadow-[0_4px_15px_rgba(0,0,0,0.05)] overflow-hidden"
+            className="fixed p-6 shadow-[0_4px_15px_rgba(0,0,0,0.05)] overflow-hidden"
             style={{ zIndex: 9999 }}
             initial={{
               top: initialRect.top,
@@ -419,13 +419,15 @@ export const MyApplicationsWidget: React.FC = () => {
               width: initialRect.width,
               height: initialRect.height,
               borderRadius: 16,
+              background: 'linear-gradient(to bottom right, white, rgba(237, 233, 254, 0.3))',
             }}
             animate={{
               top: targetRect.top,
               left: targetRect.left,
               width: targetRect.width,
               height: targetRect.height,
-              borderRadius: 24, // main content의 rounded-3xl과 일치
+              borderRadius: 24,
+              background: 'white',
             }}
             transition={{
               duration: 0.4,
@@ -435,7 +437,14 @@ export const MyApplicationsWidget: React.FC = () => {
               navigate('/my-studies/applications');
             }}
           >
-            <WidgetContent />
+            {/* 콘텐츠 페이드아웃 */}
+            <motion.div
+              initial={{ opacity: 1 }}
+              animate={{ opacity: 0 }}
+              transition={{ duration: 0.25, ease: 'easeOut' }}
+            >
+              <WidgetContent />
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
