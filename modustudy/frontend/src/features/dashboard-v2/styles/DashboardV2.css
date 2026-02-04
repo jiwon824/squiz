@@ -713,3 +713,381 @@
         opacity: 1;
     }
 }
+
+/* ============================================
+   네온사인 효과
+   ============================================ */
+
+/* 네온 플리커 애니메이션 */
+@keyframes neonFlicker {
+    0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+        text-shadow:
+            0 0 5px #fff,
+            0 0 10px #fff,
+            0 0 20px #0ff,
+            0 0 40px #0ff,
+            0 0 60px #0ff,
+            0 0 80px #0ff;
+    }
+    20%, 24%, 55% {
+        text-shadow:
+            0 0 2px #fff,
+            0 0 5px #fff,
+            0 0 10px #0ff,
+            0 0 20px #0ff;
+    }
+}
+
+/* 네온 텍스트 클래스 */
+.neon-text {
+    color: #fff;
+    text-shadow:
+        0 0 5px #fff,
+        0 0 10px #fff,
+        0 0 20px #0ff,
+        0 0 40px #0ff,
+        0 0 60px #0ff,
+        0 0 80px #0ff;
+    animation: neonFlicker 2s ease-in-out infinite alternate;
+}
+
+/* 네온 핑크 버전 */
+.neon-text-pink {
+    color: #fff;
+    text-shadow:
+        0 0 5px #fff,
+        0 0 10px #fff,
+        0 0 20px #ff0080,
+        0 0 40px #ff0080,
+        0 0 60px #ff0080,
+        0 0 80px #ff0080;
+    animation: neonFlickerPink 2s ease-in-out infinite alternate;
+}
+
+@keyframes neonFlickerPink {
+    0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+        text-shadow:
+            0 0 5px #fff,
+            0 0 10px #fff,
+            0 0 20px #ff0080,
+            0 0 40px #ff0080,
+            0 0 60px #ff0080,
+            0 0 80px #ff0080;
+    }
+    20%, 24%, 55% {
+        text-shadow:
+            0 0 2px #fff,
+            0 0 5px #fff,
+            0 0 10px #ff0080,
+            0 0 20px #ff0080;
+    }
+}
+
+/* 네온 블루 버전 (Google Blue #4285F4) */
+.neon-text-blue {
+    color: #202124;
+    text-shadow:
+        0 0 5px rgba(66, 133, 244, 0.3),
+        0 0 10px rgba(66, 133, 244, 0.4),
+        0 0 20px rgba(66, 133, 244, 0.5),
+        0 0 40px rgba(66, 133, 244, 0.4),
+        0 0 60px rgba(66, 133, 244, 0.3);
+    animation: neonFlickerBlue 2s ease-in-out infinite alternate;
+}
+
+@keyframes neonFlickerBlue {
+    0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+        text-shadow:
+            0 0 5px rgba(66, 133, 244, 0.3),
+            0 0 10px rgba(66, 133, 244, 0.4),
+            0 0 20px rgba(66, 133, 244, 0.5),
+            0 0 40px rgba(66, 133, 244, 0.4),
+            0 0 60px rgba(66, 133, 244, 0.3);
+    }
+    20%, 24%, 55% {
+        text-shadow:
+            0 0 3px rgba(66, 133, 244, 0.2),
+            0 0 8px rgba(66, 133, 244, 0.3),
+            0 0 15px rgba(66, 133, 244, 0.4);
+    }
+}
+
+/* ============================================
+   퀴즈 카드 특수 애니메이션
+   ============================================ */
+
+/* 타이핑 커서 애니메이션 (COMMENTLE) */
+@keyframes typingCursor {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+}
+
+.typing-cursor {
+    display: inline-block;
+    width: 2px;
+    height: 1em;
+    background-color: currentColor;
+    margin-left: 2px;
+    animation: typingCursor 1s infinite;
+}
+
+/* 트로피 반짝임 애니메이션 (QUIZ CONTEST) */
+@keyframes trophySparkle {
+    0%, 100% {
+        transform: scale(1) rotate(0deg);
+        filter: drop-shadow(0 0 0 transparent);
+    }
+    25% {
+        transform: scale(1.05) rotate(-3deg);
+        filter: drop-shadow(0 0 8px rgba(250, 204, 21, 0.6));
+    }
+    50% {
+        transform: scale(1.1) rotate(0deg);
+        filter: drop-shadow(0 0 15px rgba(250, 204, 21, 0.8));
+    }
+    75% {
+        transform: scale(1.05) rotate(3deg);
+        filter: drop-shadow(0 0 8px rgba(250, 204, 21, 0.6));
+    }
+}
+
+.trophy-sparkle {
+    animation: trophySparkle 2s ease-in-out infinite;
+}
+
+/* 별 반짝임 (트로피 주변) */
+@keyframes starTwinkle {
+    0%, 100% { opacity: 0; transform: scale(0); }
+    50% { opacity: 1; transform: scale(1); }
+}
+
+.star-particle {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    background: #fbbf24;
+    border-radius: 50%;
+    animation: starTwinkle 1.5s ease-in-out infinite;
+}
+
+/* 진행바 애니메이션 (PRACTICE MODE) */
+@keyframes progressFill {
+    0% { width: 0%; }
+    50% { width: 75%; }
+    100% { width: 100%; }
+}
+
+@keyframes progressPulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+}
+
+.progress-bar-animated {
+    animation: progressFill 3s ease-in-out infinite;
+}
+
+.progress-bar-pulse {
+    animation: progressPulse 1.5s ease-in-out infinite;
+}
+
+/* ============================================
+   QUIZ CONTEST 배틀 애니메이션
+   ============================================ */
+
+/* 왼쪽 파이터 (공격) */
+@keyframes fighterLeft {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(4px); }
+}
+
+/* 오른쪽 파이터 (공격) */
+@keyframes fighterRight {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(-4px); }
+}
+
+/* VS 펄스 */
+@keyframes vsPulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 0.8;
+    }
+    50% {
+        transform: scale(1.2);
+        opacity: 1;
+    }
+}
+
+/* 충돌 이펙트 */
+@keyframes clashEffect {
+    0%, 100% {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* 에너지 링 */
+@keyframes energyRing {
+    0% {
+        transform: scale(0.8);
+        opacity: 0.8;
+    }
+    100% {
+        transform: scale(1.5);
+        opacity: 0;
+    }
+}
+
+.fighter-left {
+    animation: fighterLeft 0.8s ease-in-out infinite;
+}
+
+.fighter-right {
+    animation: fighterRight 0.8s ease-in-out infinite;
+    animation-delay: 0.4s;
+}
+
+.vs-pulse {
+    animation: vsPulse 1s ease-in-out infinite;
+}
+
+.clash-effect {
+    animation: clashEffect 1.2s ease-in-out infinite;
+}
+
+.energy-ring {
+    animation: energyRing 1.5s ease-out infinite;
+}
+
+/* ============================================
+   물방울 애니메이션 (SQUIZ 게임 센터)
+   ============================================ */
+
+/* 물방울 컨테이너 */
+.bubble-container {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* 물방울 올라가는 애니메이션 */
+@keyframes bubbleFloat {
+    0% {
+        transform: translateY(0) scale(1);
+        opacity: 0;
+    }
+    5% {
+        opacity: 0.7;
+    }
+    90% {
+        opacity: 0.4;
+    }
+    100% {
+        transform: translateY(-150px) scale(0.6);
+        opacity: 0;
+    }
+}
+
+/* 물방울 좌우 흔들림 */
+@keyframes bubbleWobble {
+    0%, 100% {
+        margin-left: 0;
+    }
+    25% {
+        margin-left: -4px;
+    }
+    75% {
+        margin-left: 4px;
+    }
+}
+
+.bubble {
+    position: absolute;
+    bottom: -20px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(66, 133, 244, 0.4) 0%, rgba(66, 133, 244, 0.15) 100%);
+    border: 1px solid rgba(66, 133, 244, 0.3);
+    animation: bubbleFloat 4s ease-out infinite, bubbleWobble 2s ease-in-out infinite;
+    pointer-events: none;
+}
+
+.bubble::before {
+    content: '';
+    position: absolute;
+    top: 15%;
+    left: 20%;
+    width: 30%;
+    height: 30%;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 50%;
+}
+
+.bubble-1 {
+    width: 14px;
+    height: 14px;
+    left: 5%;
+    animation-delay: 0s;
+    animation-duration: 3.5s, 2s;
+}
+
+.bubble-2 {
+    width: 10px;
+    height: 10px;
+    left: 15%;
+    animation-delay: 0.7s;
+    animation-duration: 4s, 2.2s;
+}
+
+.bubble-3 {
+    width: 16px;
+    height: 16px;
+    left: 25%;
+    animation-delay: 1.4s;
+    animation-duration: 3.8s, 1.8s;
+}
+
+.bubble-4 {
+    width: 8px;
+    height: 8px;
+    left: 35%;
+    animation-delay: 0.3s;
+    animation-duration: 4.2s, 2.5s;
+}
+
+.bubble-5 {
+    width: 12px;
+    height: 12px;
+    left: 45%;
+    animation-delay: 2s;
+    animation-duration: 3.6s, 2.1s;
+}
+
+.bubble-6 {
+    width: 9px;
+    height: 9px;
+    left: 55%;
+    animation-delay: 1s;
+    animation-duration: 4.5s, 1.9s;
+}
+
+.bubble-7 {
+    width: 11px;
+    height: 11px;
+    left: 65%;
+    animation-delay: 1.8s;
+    animation-duration: 3.9s, 2.3s;
+}
+
+.bubble-8 {
+    width: 13px;
+    height: 13px;
+    left: 75%;
+    animation-delay: 0.5s;
+    animation-duration: 4.1s, 2s;
+}
