@@ -29,25 +29,16 @@ import { transformToQuizQuestion, indexToOptionId } from '@/shared/utils/quizUti
 
 // 흔들리는 개념 타입
 interface WeakConcept {
-    id: number;
+    id: string;
     concept: string;
     category: string;
     wrongCount: number;
+    totalReps: number;
+    wrongRate: number; // (wrongCount / totalReps) * 100
     relatedQuestions: number[];
     lastReviewDate: string;
 }
 
-// Mock 데이터 - 흔들리는 개념들 (유지)
-const MOCK_WEAK_CONCEPTS: WeakConcept[] = [
-    {
-        id: 1,
-        concept: 'useEffect 생명주기',
-        category: 'React',
-        wrongCount: 5,
-        relatedQuestions: [1, 5, 8],
-        lastReviewDate: '2025-01-28',
-    },
-];
 
 // transformToQuizQuestion과 indexToOptionId는 quizUtils.ts에서 import됨
 
@@ -99,6 +90,52 @@ export const MyQuizPage: React.FC = () => {
     useEffect(() => {
         fetchData();
     }, [wrongSortType]);
+
+    // Weak Concepts Calculation
+    const weakConcepts: WeakConcept[] = React.useMemo(() => {
+        if (!wrongReviews || wrongReviews.length === 0) return [];
+
+        // Debugging logs
+        console.log('WrongReviews Data:', wrongReviews);
+
+        const grouped = wrongReviews.reduce((acc, item) => {
+            const key = item.question.category || 'General';
+
+            if (!acc[key]) {
+                acc[key] = {
+                    id: key,
+                    concept: key,
+                    category: key,
+                    wrongCount: 0,
+                    totalReps: 0,
+                    wrongRate: 0,
+                    relatedQuestions: [],
+                    lastReviewDate: item.question.lastReviewAt || '',
+                };
+            }
+
+            acc[key].wrongCount += (item.lapses || 0);
+            // Ensure reps is at least equal to lapses if data is inconsistent
+            const safeReps = Math.max(item.reps || 0, item.lapses || 0);
+            acc[key].totalReps += safeReps;
+
+            acc[key].relatedQuestions.push(item.question.questionNumber);
+
+            if (item.question.lastReviewAt && (!acc[key].lastReviewDate || new Date(item.question.lastReviewAt) > new Date(acc[key].lastReviewDate))) {
+                acc[key].lastReviewDate = item.question.lastReviewAt;
+            }
+
+            return acc;
+        }, {} as Record<string, WeakConcept>);
+
+        return Object.values(grouped).map(concept => ({
+            ...concept,
+            // Prevent division by zero and cap at 100%
+            wrongRate: concept.totalReps > 0
+                ? Math.min((concept.wrongCount / concept.totalReps) * 100, 100)
+                : 0
+        })).sort((a, b) => b.wrongRate - a.wrongRate);
+    }, [wrongReviews]);
 
 
     const handleBack = () => {
@@ -359,7 +396,7 @@ export const MyQuizPage: React.FC = () => {
                                 {[
                                     { id: 'review' as TabType, label: '오늘의 복습', icon: Clock, count: todayReviews.length },
                                     { id: 'wrong' as TabType, label: '틀린 문제', icon: XCircle, count: wrongReviews.length },
-                                    { id: 'weak' as TabType, label: '취약 개념', icon: TrendingDown, count: MOCK_WEAK_CONCEPTS.length },
+                                    { id: 'weak' as TabType, label: '취약 개념', icon: TrendingDown, count: weakConcepts.length },
                                     { id: 'stats' as TabType, label: '통계', icon: BarChart3 },
                                 ].map(tab => (
                                     <button
@@ -480,7 +517,7 @@ export const MyQuizPage: React.FC = () => {
                                                 animate={{ opacity: 1, x: 0 }}
                                                 exit={{ opacity: 0, x: -10 }}
                                             >
-                                                <WeakConceptList concepts={MOCK_WEAK_CONCEPTS} />
+                                                <WeakConceptList concepts={weakConcepts} />
                                             </motion.div>
                                         )}
 
@@ -496,7 +533,7 @@ export const MyQuizPage: React.FC = () => {
                                                     totalWrong={wrongReviews.length}
                                                     totalWrongCount={totalWrongCount}
                                                     avgWrongCount={avgWrongCount}
-                                                    weakConcepts={MOCK_WEAK_CONCEPTS}
+                                                    weakConcepts={weakConcepts}
                                                 />
                                             </motion.div>
                                         )}
@@ -689,71 +726,100 @@ interface WeakConceptListProps {
 
 const WeakConceptList: React.FC<WeakConceptListProps> = ({ concepts }) => {
     // 틀린 횟수로 정렬
-    const sortedConcepts = [...concepts].sort((a, b) => b.wrongCount - a.wrongCount);
+    const sortedConcepts = [...concepts].sort((a, b) => b.wrongRate - a.wrongRate);
+
+    // 최대 오답률 (상대적인 길이 계산용)
+    const maxRate = Math.max(...sortedConcepts.map(c => c.wrongRate), 1);
+
+    if (concepts.length === 0) {
+        return (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                    <CheckCircle2 size={32} className="text-gray-400" />
+                </div>
+                <h3 className="text-lg font-bold text-text-primary mb-1">
+                    취약한 개념이 없습니다
+                </h3>
+                <p className="text-text-tertiary">
+                    틀린 문제가 없어서 분석할 취약점이 없습니다.
+                </p>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-4">
-            {sortedConcepts.map((concept, index) => (
-                <div
-                    key={concept.id}
-                    className="px-5 py-4 rounded-xl border border-gray-100 hover:border-gray-200 transition-all"
-                >
-                    <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-3">
-                                {/* 순위 뱃지 */}
-                                <span className={cn(
-                                    'w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold',
-                                    index === 0 ? 'bg-error/10 text-error' :
-                                        index === 1 ? 'bg-warning/10 text-warning' :
-                                            index === 2 ? 'bg-secondary/10 text-secondary' :
-                                                'bg-gray-50 text-gray-400'
-                                )}>
-                                    {index + 1}
-                                </span>
-                                <span className="px-2.5 py-1 bg-gray-50 rounded-full text-xs font-medium text-text-secondary">
-                                    {concept.category}
-                                </span>
-                            </div>
+            {sortedConcepts.map((concept, index) => {
+                const relativeWidth = maxRate > 0 ? (concept.wrongRate / maxRate) * 100 : 0;
 
-                            <h4 className="font-bold text-text-primary mb-2">
-                                {concept.concept}
-                            </h4>
+                return (
+                    <div
+                        key={concept.id}
+                        className="px-5 py-4 rounded-xl border border-gray-100 hover:border-gray-200 transition-all"
+                    >
+                        <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1">
+                                <div className="flex items-center gap-3 mb-3">
+                                    {/* 순위 뱃지 */}
+                                    <span className={cn(
+                                        'w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold',
+                                        index === 0 ? 'bg-red-100 text-red-600' :
+                                            index === 1 ? 'bg-amber-100 text-amber-600' :
+                                                index === 2 ? 'bg-blue-100 text-blue-600' :
+                                                    'bg-gray-100 text-gray-500'
+                                    )}>
+                                        {index + 1}
+                                    </span>
+                                    <span className="px-2.5 py-1 bg-gray-50 rounded-full text-xs font-medium text-gray-600">
+                                        {concept.category}
+                                    </span>
+                                </div>
 
-                            <div className="flex items-center gap-4 text-xs text-text-tertiary">
-                                <span className="flex items-center gap-1.5">
-                                    <XCircle size={12} className="text-error/70" />
-                                    관련 오답 {concept.wrongCount}회
-                                </span>
-                                <span className="flex items-center gap-1.5">
-                                    <BookOpen size={12} />
-                                    관련 문제 {concept.relatedQuestions.length}개
-                                </span>
-                                <span className="flex items-center gap-1.5">
-                                    <Clock size={12} />
-                                    {concept.lastReviewDate}
-                                </span>
-                            </div>
-                        </div>
+                                <h4 className="font-bold text-gray-900 mb-2">
+                                    {concept.concept}
+                                </h4>
 
-                        {/* 취약도 표시 바 */}
-                        <div className="flex-shrink-0 w-28">
-                            <div className="text-xs text-text-tertiary mb-1.5 text-right">취약도</div>
-                            <div className="w-full bg-gray-100 rounded-full h-2">
-                                <div
-                                    className={cn(
-                                        'h-2 rounded-full transition-all',
-                                        concept.wrongCount >= 4 ? 'bg-error/80' :
-                                            concept.wrongCount >= 3 ? 'bg-warning/80' :
-                                                'bg-secondary/80'
+                                <div className="flex items-center gap-4 text-xs text-gray-500">
+                                    <span className="flex items-center gap-1.5">
+                                        <XCircle size={12} className="text-red-500" />
+                                        오답률 {Math.round(concept.wrongRate)}%
+                                        <span className="text-gray-300">|</span>
+                                        {concept.wrongCount}회 오답
+                                    </span>
+                                    <span className="flex items-center gap-1.5">
+                                        <BookOpen size={12} />
+                                        관련 {concept.relatedQuestions.length}문제
+                                    </span>
+                                    {concept.lastReviewDate && (
+                                        <span className="flex items-center gap-1.5">
+                                            <Clock size={12} />
+                                            {new Date(concept.lastReviewDate).toLocaleDateString()}
+                                        </span>
                                     )}
-                                    style={{ width: `${Math.min(concept.wrongCount * 20, 100)}%` }}
-                                />
+                                </div>
+                            </div>
+
+                            {/* 취약도 표시 바 */}
+                            <div className="flex-shrink-0 w-28">
+                                <div className="text-xs text-gray-500 mb-1.5 text-right">취약도</div>
+                                <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                                    <motion.div
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${relativeWidth}%` }}
+                                        transition={{ duration: 0.8, ease: "easeOut" }}
+                                        className={cn(
+                                            'h-2 rounded-full',
+                                            concept.wrongRate >= 50 ? 'bg-red-500' :
+                                                concept.wrongRate >= 30 ? 'bg-amber-500' :
+                                                    'bg-blue-500'
+                                        )}
+                                    />
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            ))}
+                );
+            })}
         </div>
     );
 };
