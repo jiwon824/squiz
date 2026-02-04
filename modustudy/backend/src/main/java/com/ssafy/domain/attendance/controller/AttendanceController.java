@@ -8,6 +8,7 @@ import com.ssafy.domain.attendance.dto.request.AttendanceExcuseRequest;
 import com.ssafy.domain.attendance.dto.request.AttendanceManualUpdateRequest;
 import com.ssafy.domain.attendance.dto.response.AttendanceCalendarResponse;
 import com.ssafy.domain.attendance.dto.response.AttendanceResponse;
+import com.ssafy.domain.attendance.dto.response.SessionAttendanceInfoResponse;
 import com.ssafy.domain.attendance.service.AttendanceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -115,7 +116,7 @@ public class AttendanceController {
      */
     @Operation(summary = "실시간 출석 현황 조회", description = "스터디장이 세션별 출석 현황을 조회합니다.")
     @GetMapping("/sessions/{sessionId}/attendance")
-    public ResponseEntity<ApiResponse<List<AttendanceResponse>>> getSessionAttendance(
+    public ResponseEntity<ApiResponse<SessionAttendanceInfoResponse>> getSessionAttendance(
             @Parameter(description = "스터디 ID") @PathVariable Long studyId,
             @Parameter(description = "세션 ID") @PathVariable Long sessionId,
             @AuthenticationPrincipal SsafyUserDetails userDetails

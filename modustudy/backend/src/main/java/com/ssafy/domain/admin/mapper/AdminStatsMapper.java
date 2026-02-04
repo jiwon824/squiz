@@ -63,4 +63,31 @@ public interface AdminStatsMapper {
      * 인기 스터디 TOP N
      */
     List<PopularStudyDto> getPopularStudies(@Param("limit") int limit);
+
+    // ========== 새로운 시계열 통계 ==========
+
+    /**
+     * 일별 미팅 통계
+     */
+    List<DailyMeetingStatsDto> getDailyMeetingStats(@Param("days") int days);
+
+    /**
+     * 일별 출석 통계
+     */
+    List<DailyAttendanceStatsDto> getDailyAttendanceStats(@Param("days") int days);
+
+    /**
+     * 일별 활동 통계 (잔디)
+     */
+    List<DailyActivityStatsDto> getDailyActivityStats(@Param("days") int days);
+
+    /**
+     * 레벨별 사용자 분포
+     */
+    List<UserLevelStatsDto> getUserLevelStats();
+
+    /**
+     * 토픽별 스터디 분포
+     */
+    List<StudyTopicStatsDto> getStudyTopicStats();
 }

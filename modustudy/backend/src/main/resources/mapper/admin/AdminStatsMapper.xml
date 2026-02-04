@@ -7,9 +7,9 @@
         SELECT COUNT(*) FROM user
     </select>
 
-    <!-- 활성 스터디 수 (테이블 없으면 0) -->
+    <!-- 활성 스터디 수 -->
     <select id="countActiveStudies" resultType="int">
-        SELECT 0
+        SELECT COUNT(*) FROM study WHERE status IN ('RECRUITING', 'IN_PROGRESS')
     </select>
 
     <!-- 오늘 가입자 수 -->
@@ -34,9 +34,11 @@
         ORDER BY date ASC
     </select>
 
-    <!-- 스터디 상태별 통계 (빈 결과) -->
+    <!-- 스터디 상태별 통계 -->
     <select id="getStudyStatusStats" resultType="com.ssafy.domain.admin.dto.StudyStatusStatsDto">
-        SELECT 'NONE' as status, 0 as count WHERE 1=0
+        SELECT status, COUNT(*) as count
+        FROM study
+        GROUP BY status
     </select>
 
     <!-- 로그인 방식별 통계 -->
@@ -48,14 +50,25 @@
         GROUP BY provider
     </select>
 
-    <!-- 일별 퀴즈 시도 통계 (빈 결과) -->
+    <!-- 일별 퀴즈 시도 통계 -->
     <select id="getDailyQuizAttempts" resultType="com.ssafy.domain.admin.dto.QuizStatsDto$DailyQuizAttemptDto">
-        SELECT CURDATE() as date, 0 as count WHERE 1=0
+        SELECT DATE(updated_at) as date, COUNT(*) as count
+        FROM user_review_item
+        WHERE updated_at >= DATE_SUB(CURDATE(), INTERVAL #{days} DAY)
+        GROUP BY DATE(updated_at)
+        ORDER BY date ASC
     </select>
 
-    <!-- 코스별 참여자 통계 (빈 결과) -->
+    <!-- 코스별 참여자 통계 -->
     <select id="getCourseParticipation" resultType="com.ssafy.domain.admin.dto.QuizStatsDto$CourseParticipationDto">
-        SELECT 'NONE' as courseName, 0 as participantCount WHERE 1=0
+        SELECT qc.name as courseName, COUNT(DISTINCT uri.user_id) as participantCount
+        FROM user_review_item uri
+        JOIN quiz_course_question qcq ON uri.content_id = qcq.id AND uri.content_type = 'COURSE_QUESTION'
+        JOIN quiz_course_section qcs ON qcq.section_id = qcs.id
+        JOIN quiz_course qc ON qcs.course_id = qc.id
+        GROUP BY qc.id, qc.name
+        ORDER BY participantCount DESC
+        LIMIT 5
     </select>
 
     <!-- 최근 가입 회원 -->
@@ -72,9 +85,63 @@
         LIMIT #{limit}
     </select>
 
-    <!-- 인기 스터디 TOP N (빈 결과) -->
+    <!-- 인기 스터디 TOP N -->
     <select id="getPopularStudies" resultType="com.ssafy.domain.admin.dto.PopularStudyDto">
-        SELECT 0 as id, 'NONE' as name, 'NONE' as topicName, 0 as memberCount, 'NONE' as status WHERE 1=0
+        SELECT s.id, s.name, t.name as topicName,
+               (SELECT COUNT(*) FROM study_member sm WHERE sm.study_id = s.id AND sm.status = 'ACTIVE') as memberCount,
+               s.status
+        FROM study s
+        LEFT JOIN topic t ON s.topic_id = t.id
+        ORDER BY memberCount DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- ========== 새로운 시계열 통계 ========== -->
+
+    <!-- 일별 미팅 통계 -->
+    <select id="getDailyMeetingStats" resultType="com.ssafy.domain.admin.dto.DailyMeetingStatsDto">
+        SELECT DATE(started_at) as date, COUNT(*) as count
+        FROM meeting
+        WHERE started_at >= DATE_SUB(CURDATE(), INTERVAL #{days} DAY)
+          AND status IN ('IN_PROGRESS', 'ENDED')
+        GROUP BY DATE(started_at)
+        ORDER BY date ASC
+    </select>
+
+    <!-- 일별 출석 통계 -->
+    <select id="getDailyAttendanceStats" resultType="com.ssafy.domain.admin.dto.DailyAttendanceStatsDto">
+        SELECT DATE(checked_at) as date, COUNT(*) as count
+        FROM attendance
+        WHERE checked_at >= DATE_SUB(CURDATE(), INTERVAL #{days} DAY)
+          AND status IN ('PRESENT', 'LATE')
+        GROUP BY DATE(checked_at)
+        ORDER BY date ASC
+    </select>
+
+    <!-- 일별 활동 통계 (잔디) -->
+    <select id="getDailyActivityStats" resultType="com.ssafy.domain.admin.dto.DailyActivityStatsDto">
+        SELECT contribution_date as date, SUM(activity_count) as count
+        FROM daily_contribution
+        WHERE contribution_date >= DATE_SUB(CURDATE(), INTERVAL #{days} DAY)
+        GROUP BY contribution_date
+        ORDER BY date ASC
+    </select>
+
+    <!-- 레벨별 사용자 분포 -->
+    <select id="getUserLevelStats" resultType="com.ssafy.domain.admin.dto.UserLevelStatsDto">
+        SELECT level, level_name as levelName, COUNT(*) as count
+        FROM user_stats
+        GROUP BY level, level_name
+        ORDER BY level ASC
+    </select>
+
+    <!-- 토픽별 스터디 분포 -->
+    <select id="getStudyTopicStats" resultType="com.ssafy.domain.admin.dto.StudyTopicStatsDto">
+        SELECT t.name as topicName, COUNT(s.id) as count
+        FROM study s
+        JOIN topic t ON s.topic_id = t.id
+        GROUP BY t.id, t.name
+        ORDER BY count DESC
     </select>
 
 </mapper>
