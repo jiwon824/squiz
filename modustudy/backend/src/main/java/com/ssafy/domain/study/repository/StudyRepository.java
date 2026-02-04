@@ -47,6 +47,11 @@ public interface StudyRepository extends JpaRepository<Study, Long>, StudyReposi
     long countByLeaderId(Long leaderId);
 
     /**
+     * 특정 스터디장의 스터디 존재 여부 확인
+     */
+    boolean existsByLeaderId(Long leaderId);
+
+    /**
      * 특정 상태의 스터디 개수 조회
      */
     Long countByStatus(Status status);
