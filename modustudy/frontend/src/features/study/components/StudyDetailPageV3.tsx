@@ -928,6 +928,11 @@ const StudyDetailPageV3: React.FC = () => {
                     study={study}
                     isOpen={isApplyModalOpen}
                     onClose={() => setIsApplyModalOpen(false)}
+                    onApplySuccess={() => {
+                        // 신청 성공 후 상태 업데이트
+                        setIsApplied(true);
+                        showToast('스터디 신청이 완료되었습니다!', 'success');
+                    }}
                 />
             )}
 

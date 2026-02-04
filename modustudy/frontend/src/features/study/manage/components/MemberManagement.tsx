@@ -155,17 +155,14 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ studyId, maxMembers
 
                                 {/* 출석률 바 */}
                                 <div className="space-y-1">
-                                    <div className="flex items-center justify-between text-xs">
+                                    <div className="flex items-center text-xs">
                                         <span className="text-text-tertiary flex items-center gap-1">
                                             <TrendingUp size={12} />
                                             출석률
                                         </span>
-                                        <span className={`font-bold ${getAttendanceColor(member.attendanceRate)}`}>
-                                            {member.attendanceRate}%
-                                        </span>
                                     </div>
                                     <div className="h-2 bg-border-light rounded-full overflow-hidden">
-                                        <div 
+                                        <div
                                             className={`h-full rounded-full transition-all ${
                                                 member.attendanceRate >= 90 ? 'bg-success' :
                                                 member.attendanceRate >= 70 ? 'bg-warning' : 'bg-error'
@@ -176,16 +173,23 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ studyId, maxMembers
                                 </div>
                             </div>
 
-                            {/* 강퇴 버튼 */}
-                            {member.role !== 'LEADER' && (
-                                <button
-                                    onClick={() => handleExpel(member.userId, member.nickname)}
-                                    className="opacity-0 group-hover:opacity-100 w-9 h-9 rounded-xl bg-error/10 text-error flex items-center justify-center hover:bg-error/20 transition-all"
-                                    title="강퇴하기"
-                                >
-                                    <UserMinus size={16} />
-                                </button>
-                            )}
+                            {/* 오른쪽: 강퇴 버튼 + 출석률 % */}
+                            <div className="flex flex-col items-center">
+                                {member.role !== 'LEADER' ? (
+                                    <button
+                                        onClick={() => handleExpel(member.userId, member.nickname)}
+                                        className="opacity-0 group-hover:opacity-100 w-9 h-9 rounded-xl bg-error/10 text-error flex items-center justify-center hover:bg-error/20 transition-all"
+                                        title="강퇴하기"
+                                    >
+                                        <UserMinus size={16} />
+                                    </button>
+                                ) : (
+                                    <div className="w-9 h-9" />
+                                )}
+                                <span className={`mt-6 text-sm font-bold ${getAttendanceColor(member.attendanceRate)}`}>
+                                    {member.attendanceRate}%
+                                </span>
+                            </div>
                         </div>
                     </div>
                 ))}

@@ -48,9 +48,36 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         set({ isLoading: true, error: null });
         try {
             const response = await getNotifications(page, size, type);
+
+            // 중복 알림 필터링 및 제목 통일
+            // 백엔드에서 승인/거절 시 알림을 2번 보내는 문제 해결
+            const filteredNotifications = response.content
+                .filter((notification) => {
+                    // "스터디 신청 승인" 또는 "스터디 신청 결과" 제목의 알림은 제외
+                    // (STUDY_APPLICATION 타입으로 오는 중복 알림)
+                    if (notification.type === 'STUDY_APPLICATION' &&
+                        (notification.title === '스터디 신청 승인' || notification.title === '스터디 신청 결과')) {
+                        return false;
+                    }
+                    return true;
+                })
+                .map((notification) => {
+                    // "스터디 가입 승인/거절" 제목을 "스터디 신청이 승인/거절되었습니다"로 변경
+                    if (notification.title === '스터디 가입 승인') {
+                        return { ...notification, title: '스터디 신청이 승인되었습니다' };
+                    }
+                    if (notification.title === '스터디 가입 거절') {
+                        return { ...notification, title: '스터디 신청이 거절되었습니다' };
+                    }
+                    return notification;
+                });
+
+            // 필터링된 알림 기준으로 읽지 않은 개수 재계산
+            const filteredUnreadCount = filteredNotifications.filter(n => !n.isRead).length;
+
             set({
-                notifications: response.content,
-                unreadCount: response.unreadCount,
+                notifications: filteredNotifications,
+                unreadCount: filteredUnreadCount,
                 isLoading: false,
                 hasFetched: true,
             });
