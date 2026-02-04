@@ -15,8 +15,7 @@ public class MeetingActionItem extends BaseEntity {
     @Column(name = "meeting_id", nullable = false)
     private Long meetingId;
 
-    @Lob
-    @Column(name = "content", nullable = false)
+    @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     private String content;
 
     @Column(name = "assignee_id")

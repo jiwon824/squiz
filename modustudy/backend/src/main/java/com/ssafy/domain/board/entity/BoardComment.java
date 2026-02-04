@@ -25,8 +25,7 @@ public class BoardComment extends BaseEntity {
     @JoinColumn(name = "parent_id")
     private BoardComment parent;
 
-    @Lob
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
     @Column(name = "is_deleted")

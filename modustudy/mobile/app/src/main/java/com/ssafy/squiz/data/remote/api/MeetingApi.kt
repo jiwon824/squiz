@@ -51,7 +51,7 @@ interface MeetingApi {
     ): Response<ApiResponse<MeetingEndDTO>>
 
     /**
-     * 오디오 파일 업로드
+     * 오디오 파일 업로드 (기존 회의에 업로드)
      * POST /api/v1/studies/{studyId}/meetings/{meetingId}/recording/audio
      * trackType: MIXED (전체 녹음) 또는 INDIVIDUAL (개인 녹음)
      */
@@ -63,6 +63,19 @@ interface MeetingApi {
         @Part audio: MultipartBody.Part,
         @Query("trackType") trackType: String = "MIXED"
     ): Response<ApiResponse<AudioUploadResponse>>
+
+    /**
+     * 오프라인 녹음 업로드 (회의 자동 생성)
+     * POST /api/v1/studies/{studyId}/meetings/offline/audio
+     * 회의 생성 없이 바로 오디오 업로드 → 회의 자동 생성 + AI 처리 시작
+     */
+    @Multipart
+    @POST("api/v1/studies/{studyId}/meetings/offline/audio")
+    suspend fun uploadOfflineRecording(
+        @Path("studyId") studyId: Long,
+        @Part audio: MultipartBody.Part,
+        @Query("title") title: String? = null
+    ): Response<ApiResponse<MeetingDTO>>
 
     /**
      * 회의 요약 조회 (STT Summary)

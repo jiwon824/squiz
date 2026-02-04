@@ -17,6 +17,8 @@ import { CalendarTestPage } from '../features/calendar/components/CalendarTestPa
 import { CalendarPage } from '../features/calendar/components/CalendarPage';
 import { authApi } from '@/api/endpoints/authApi';
 import { useAuthStore } from '@/store/authStore';
+import { PrivateRoute } from './PrivateRoute';
+import { PublicRoute } from './PublicRoute';
 import ReuseTest from '../features/reuseTest';
 
 // Lazy 로드: 나머지 페이지들
@@ -150,68 +152,67 @@ export const AppRouter = () => {
                 <Route path="/" element={<DashboardV2 />} />
                 <Route path="/dashboard" element={<DashboardV2 />} />
                 <Route path="/dashboard/guest" element={<GuestLayoutV2><GuestDashboardV2 /></GuestLayoutV2>} />
-                <Route path="/dashboard/user" element={<UserLayoutV2><UserDashboardV2 /></UserLayoutV2>} />
-                <Route path="/calendar" element={<UserLayoutV2><CalendarPage /></UserLayoutV2>} />
+                <Route path="/dashboard/user" element={<PrivateRoute><UserLayoutV2><UserDashboardV2 /></UserLayoutV2></PrivateRoute>} />
+                <Route path="/calendar" element={<PrivateRoute><UserLayoutV2><CalendarPage /></UserLayoutV2></PrivateRoute>} />
                 <Route path="/test-calendar" element={<CalendarTestPage />} />
                 <Route path="/reuse-test" element={<ReuseTest />} />
-                {/* origin/dev 추가 */}
-                <Route path="/workspace-test" element={<WorkspacePage />} />
+                <Route path="/workspace-test" element={<PrivateRoute><WorkspacePage /></PrivateRoute>} />
 
-                {/* 인증 */}
-                <Route path="/login" element={<LoginPage />} />
+                {/* 인증 (로그인 상태면 대시보드로 리다이렉트) */}
+                <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
                 <Route path="/login/callback" element={<LoginCallbackPage />} />
-                <Route path="/signup" element={<SignupPage />} />
-                <Route path="/password/reset" element={<PasswordResetPage />} />
+                <Route path="/signup" element={<PublicRoute><SignupPage /></PublicRoute>} />
+                <Route path="/password/reset" element={<PublicRoute><PasswordResetPage /></PublicRoute>} />
 
                 {/* 퀴즈 */}
                 <Route path="/quiz" element={<UserLayoutV2><QuizGameSelection /></UserLayoutV2>} />
-
-                {/* 내 브랜치 추가 */}
-                <Route path="/quiz/my-quiz" element={<UserLayoutV2><MyQuizPage /></UserLayoutV2>} />
-                <Route path="/meeting-report" element={<UserLayoutV2><STTReportPage /></UserLayoutV2>} />
-                <Route path="/meeting-test" element={<UserLayoutV2><MeetingTestPage /></UserLayoutV2>} />
-                <Route path="/learning-archive" element={<UserLayoutV2><LearningArchivePage /></UserLayoutV2>} />
-                <Route path="/my-studies/created" element={<UserLayoutV2><MyCreatedStudiesPage /></UserLayoutV2>} />
-                <Route path="/my-studies/applications" element={<UserLayoutV2><MyApplicationsPage /></UserLayoutV2>} />
+                <Route path="/quiz/my-quiz" element={<PrivateRoute><UserLayoutV2><MyQuizPage /></UserLayoutV2></PrivateRoute>} />
                 <Route path="/quiz-commentle" element={<CommentleQuiz />} />
-                <Route path="/quiz-contest" element={<UserLayoutV2><QuizContestComingSoon /></UserLayoutV2>} />
+                <Route path="/quiz-contest" element={<PrivateRoute><UserLayoutV2><QuizContestComingSoon /></UserLayoutV2></PrivateRoute>} />
                 <Route path="/quiz-practice" element={<QuizCourseList />} />
                 <Route path="/quiz-practice/:courseId" element={<CourseDetail />} />
-                {/* 연속 학습 모드 (Sayvoca 스타일) */}
                 <Route
                     path="/continuous-quiz/:courseId/section/:sectionNumber"
                     element={<ContinuousQuizSessionPage />}
                 />
 
+                {/* 개인 페이지 (로그인 필수) */}
+                <Route path="/meeting-report" element={<PrivateRoute><UserLayoutV2><STTReportPage /></UserLayoutV2></PrivateRoute>} />
+                <Route path="/meeting-test" element={<PrivateRoute><UserLayoutV2><MeetingTestPage /></UserLayoutV2></PrivateRoute>} />
+                <Route path="/learning-archive" element={<PrivateRoute><UserLayoutV2><LearningArchivePage /></UserLayoutV2></PrivateRoute>} />
+                <Route path="/my-studies/created" element={<PrivateRoute><UserLayoutV2><MyCreatedStudiesPage /></UserLayoutV2></PrivateRoute>} />
+                <Route path="/my-studies/applications" element={<PrivateRoute><UserLayoutV2><MyApplicationsPage /></UserLayoutV2></PrivateRoute>} />
+
                 {/* 스터디 */}
                 <Route path="/study" element={<StudyPage />} />
-                <Route path="/study/create" element={<StudyTypeSelectPage />} />
-                <Route path="/study/create/planned" element={<StudyCreatePage />} />
-                <Route path="/study/create/lightning" element={<LightningStudyCreatePage />} />
-                <Route path="/study/edit/lightning/:studyId" element={<LightningStudyEditPage />} />
+                <Route path="/study/create" element={<PrivateRoute><StudyTypeSelectPage /></PrivateRoute>} />
+                <Route path="/study/create/planned" element={<PrivateRoute><StudyCreatePage /></PrivateRoute>} />
+                <Route path="/study/create/lightning" element={<PrivateRoute><LightningStudyCreatePage /></PrivateRoute>} />
+                <Route path="/study/edit/lightning/:studyId" element={<PrivateRoute><LightningStudyEditPage /></PrivateRoute>} />
                 <Route path="/study/:id" element={<StudyDetailPageV3 />} />
-                <Route path="/study/manage/:id" element={<StudyManagementPage />} />
-                {/* origin/dev 추가 */}
-                <Route path="/study/:studyId/workspace" element={<WorkspacePage />} />
+                <Route path="/study/manage/:id" element={<PrivateRoute><StudyManagementPage /></PrivateRoute>} />
+                <Route path="/study/:studyId/workspace" element={<PrivateRoute><WorkspacePage /></PrivateRoute>} />
 
-                {/* 미팅 */}
-                <Route path="/study/:studyId/meetings" element={<MeetingHistoryPage />} />
-                <Route path="/study/:studyId/meetings/:meetingId" element={<MeetingDetailPage />} />
-                <Route path="/study/:studyId/meetings/:meetingId/room" element={<MeetingRoomPage />} />
+                {/* 미팅 (로그인 필수) */}
+                <Route path="/study/:studyId/meetings" element={<PrivateRoute><MeetingHistoryPage /></PrivateRoute>} />
+                <Route path="/study/:studyId/meetings/:meetingId" element={<PrivateRoute><MeetingDetailPage /></PrivateRoute>} />
+                <Route path="/study/:studyId/meetings/:meetingId/room" element={<PrivateRoute><MeetingRoomPage /></PrivateRoute>} />
 
                 {/* 기타 */}
                 <Route path="/recruitment" element={<RecruitmentPage />} />
-                <Route path="/notifications" element={<NotificationPage />} />
-                <Route path="/setting" element={<SettingPage />} />
+                <Route path="/notifications" element={<PrivateRoute><NotificationPage /></PrivateRoute>} />
+                <Route path="/setting" element={<PrivateRoute><SettingPage /></PrivateRoute>} />
                 <Route
                     path="/profile"
                     element={
-                        <Suspense fallback={<ProfileSkeleton />}>
-                            <ProfilePage />
-                        </Suspense>
+                        <PrivateRoute>
+                            <Suspense fallback={<ProfileSkeleton />}>
+                                <ProfilePage />
+                            </Suspense>
+                        </PrivateRoute>
                     }
                 />
-                <Route path="/admin" element={<AdminDashboardPage />} />
+                <Route path="/admin" element={<PrivateRoute><AdminDashboardPage /></PrivateRoute>} />
 
                 {/* 에러 페이지 */}
                 <Route path="/error" element={<ErrorPage />} />

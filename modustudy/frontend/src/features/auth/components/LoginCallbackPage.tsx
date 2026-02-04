@@ -17,6 +17,13 @@ export const LoginCallbackPage = () => {
 
     // 연동 모드인지 확인하는 상태
     const [isLinkMode, setIsLinkMode] = useState(false);
+    const [isExiting, setIsExiting] = useState(false);
+
+    // exit 애니메이션 후 페이지 이동
+    const navigateWithExit = (path: string) => {
+        setIsExiting(true);
+        setTimeout(() => navigate(path, { replace: true }), 500);
+    };
 
     // 중복 요청 방지를 위한 ref (React StrictMode에서 useEffect 두 번 실행 대응)
     const isProcessingRef = useRef(false);
@@ -64,7 +71,7 @@ export const LoginCallbackPage = () => {
                     sessionStorage.removeItem('oauth_provider');
                     sessionStorage.removeItem('oauth_redirect_path');
 
-                    navigate(redirectPath || '/setting', { replace: true });
+                    navigateWithExit(redirectPath || '/setting');
                 } catch (error: any) {
                     console.error('Social link error:', error);
                     isProcessingRef.current = false;
@@ -105,7 +112,7 @@ export const LoginCallbackPage = () => {
                         sessionStorage.removeItem('oauth_redirect_path');
 
                         showToast('Google Calendar가 연동되었습니다.', 'success');
-                        navigate(redirectUrl, { replace: true });
+                        navigateWithExit(redirectUrl);
                         return;
                     } catch (linkError: any) {
                         console.error('Google 계정 연동 실패:', linkError);
@@ -147,7 +154,7 @@ export const LoginCallbackPage = () => {
                         loginProvider: provider.toUpperCase()
                     }));
 
-                    navigate('/signup?oauth=true', { replace: true });
+                    navigateWithExit('/signup?oauth=true');
                 } else {
                     // 기존 유저인 경우 바로 로그인 처리 및 대시보드 이동
                     localStorage.setItem('accessToken', data.accessToken);
@@ -170,10 +177,9 @@ export const LoginCallbackPage = () => {
                     if (loginRedirectUrl) {
                         sessionStorage.removeItem('redirectAfterLogin');
                         sessionStorage.removeItem('oauth_redirect_path');
-                        navigate(loginRedirectUrl, { replace: true });
-                    } else {
-                        navigate('/dashboard', { replace: true });
                     }
+
+                    navigateWithExit(loginRedirectUrl || '/dashboard');
                 }
 
                 // 처리 완료 후 provider 삭제
@@ -193,7 +199,7 @@ export const LoginCallbackPage = () => {
     }, [searchParams, navigate, login, completeSocialLink, refetchSocialAccounts, showToast]);
 
     return (
-        <AuthLayout hideBranding>
+        <AuthLayout pageState={isExiting ? 'page-exit' : ''}>
             <div style={{
                 display: 'flex',
                 flexDirection: 'column',

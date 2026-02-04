@@ -5,7 +5,6 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -30,16 +29,13 @@ public class MeetingSttSummary extends BaseEntity {
     @Column(name = "file_url", nullable = false, length = 500)
     private String fileUrl;
 
-    @Lob
-    @Column(name = "action_items")
+    @Column(name = "action_items", columnDefinition = "TEXT")
     private String actionItemsJson;
 
-    @Lob
-    @Column(name = "keywords")
+    @Column(name = "keywords", columnDefinition = "TEXT")
     private String keywordsJson;
 
-    @Lob
-    @Column(name = "highlights_json")
+    @Column(name = "highlights_json", columnDefinition = "TEXT")
     private String highlightsJson;
 
     @Enumerated(EnumType.STRING)
