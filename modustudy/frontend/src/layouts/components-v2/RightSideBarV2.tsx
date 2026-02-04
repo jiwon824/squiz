@@ -1,6 +1,6 @@
 ﻿import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useUIStore } from '@/store/uiStore';
 import { useAuthStore } from '@/store/authStore';
 import { Users, MessageSquare, Video, Calendar, Clock, Play, X } from 'lucide-react';
@@ -59,6 +59,7 @@ const resolveNextSession = (sessions: StudySessionDTO[], currentTime: Date) => {
 // 다가오는 미팅 빠른 접근
 const MeetingQuickAccess: React.FC = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { showToast } = useUIStore();
     const [meetings, setMeetings] = useState<UpcomingMeeting[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -414,7 +415,8 @@ export const RightSideBarV2: React.FC = () => {
     const visibleActiveMeetings = dismissedMeetingId === -1
         ? []
         : activeMeetings.filter((meeting) => meeting.id !== dismissedMeetingId);
-    const showMeetingPopover = popoverReady && visibleActiveMeetings.length > 0;
+    const isMeetingRoomPage = location.pathname.includes('/meetings/') && location.pathname.endsWith('/room');
+    const showMeetingPopover = popoverReady && visibleActiveMeetings.length > 0 && !isMeetingRoomPage;
 
     // 리사이즈 상태
     const [panelWidth, setPanelWidth] = useState(DEFAULT_PANEL_WIDTH);
