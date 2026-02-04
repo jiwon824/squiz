@@ -68,10 +68,9 @@ const ExcuseManagement: React.FC<ExcuseManagementProps> = ({ studyId }) => {
             for (const session of sessions) {
                 try {
                     const attendanceResponse = await studyApi.getSessionAttendance(studyId, session.id);
+                    // API 응답 구조: { sessionId, sessionTitle, totalMembers, presentCount, members: [...] }
                     const attendancePayload = (attendanceResponse as any)?.data ?? attendanceResponse;
-                    const attendances = Array.isArray(attendancePayload?.data)
-                        ? attendancePayload.data
-                        : attendancePayload || [];
+                    const attendances = attendancePayload?.members || [];
 
                     const sessionExcuses = attendances
                         .filter((att: any) => att.excuseReason && att.excuseStatus)
@@ -245,7 +244,7 @@ const ExcuseManagement: React.FC<ExcuseManagementProps> = ({ studyId }) => {
             </div>
 
             {filteredExcuses.length === 0 ? (
-                <div className="text-center py-12 bg-background-secondary rounded-2xl">
+                <div className="text-center py-12 bg-white rounded-2xl shadow-[0_4px_15px_rgba(0,0,0,0.05)]">
                     <FileWarning size={48} className="mx-auto text-text-muted mb-4" />
                     <p className="text-text-secondary">처리할 소명 요청이 없습니다</p>
                 </div>
@@ -254,7 +253,7 @@ const ExcuseManagement: React.FC<ExcuseManagementProps> = ({ studyId }) => {
                     {pagedExcuses.map((excuse) => (
                         <div
                             key={excuse.attendanceId}
-                            className="bg-background-secondary rounded-2xl border border-border-light overflow-hidden"
+                            className="bg-white rounded-2xl shadow-[0_4px_15px_rgba(0,0,0,0.05)] overflow-hidden"
                         >
                             <div
                                 className="p-4 flex items-center gap-4 cursor-pointer hover:bg-surface/50 transition-colors"
@@ -295,9 +294,9 @@ const ExcuseManagement: React.FC<ExcuseManagementProps> = ({ studyId }) => {
                             </div>
 
                             {expandedId === excuse.attendanceId && (
-                                <div className="px-4 pb-4 pt-0 space-y-4 border-t border-border-light mt-0">
+                                <div className="px-4 pb-4 pt-0 space-y-4 mt-0">
                                     <div className="pt-4">
-                                        <div className="bg-surface rounded-xl p-4 mb-4">
+                                        <div className="bg-gray-50 rounded-xl p-4 mb-4">
                                             <div className="flex items-center gap-2 text-sm font-medium text-text-secondary mb-2">
                                                 <MessageSquare size={14} />
                                                 소명 사유
@@ -336,7 +335,7 @@ const ExcuseManagement: React.FC<ExcuseManagementProps> = ({ studyId }) => {
                 <div className="flex items-center justify-center gap-2 pt-2">
                     <button
                         type="button"
-                        className="px-3 py-1.5 rounded-lg text-sm font-medium bg-background-secondary text-text-secondary hover:bg-background-tertiary disabled:opacity-50"
+                        className="px-3 py-1.5 rounded-lg text-sm font-medium bg-white shadow-sm text-text-secondary hover:bg-gray-50 disabled:opacity-50"
                         onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                         disabled={safePage === 1}
                     >
@@ -352,7 +351,7 @@ const ExcuseManagement: React.FC<ExcuseManagementProps> = ({ studyId }) => {
                                     className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                                         page === safePage
                                             ? 'bg-primary text-white'
-                                            : 'bg-background-secondary text-text-secondary hover:bg-background-tertiary'
+                                            : 'bg-white shadow-sm text-text-secondary hover:bg-gray-50'
                                     }`}
                                     onClick={() => setCurrentPage(page)}
                                 >
@@ -363,7 +362,7 @@ const ExcuseManagement: React.FC<ExcuseManagementProps> = ({ studyId }) => {
                     </div>
                     <button
                         type="button"
-                        className="px-3 py-1.5 rounded-lg text-sm font-medium bg-background-secondary text-text-secondary hover:bg-background-tertiary disabled:opacity-50"
+                        className="px-3 py-1.5 rounded-lg text-sm font-medium bg-white shadow-sm text-text-secondary hover:bg-gray-50 disabled:opacity-50"
                         onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                         disabled={safePage === totalPages}
                     >

@@ -624,7 +624,9 @@ export const studyApi = {
           const attendanceResponse = await api.get<any>(
             `/api/v1/studies/${studyId}/sessions/${session.id}/attendance`
           );
-          const attendances = attendanceResponse.data?.data || attendanceResponse.data || [];
+          // API 응답 구조: { sessionId, sessionTitle, totalMembers, presentCount, members: [...] }
+          const sessionData = attendanceResponse.data?.data || attendanceResponse.data || {};
+          const attendances = sessionData.members || [];
 
           // PENDING 상태의 소명 카운트
           const pending = attendances.filter(
