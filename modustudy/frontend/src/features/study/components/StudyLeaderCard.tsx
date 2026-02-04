@@ -127,7 +127,7 @@ const StudyLeaderCard: React.FC<StudyLeaderCardProps> = ({
     return (
         <div className="2xl:col-span-1">
             <div className="2xl:sticky 2xl:top-[100px]">
-                <div className="bg-white rounded-2xl border border-[var(--color-border)] p-6 shadow-sm">
+                <div className="bg-white rounded-2xl p-6 shadow-[0_4px_15px_rgba(0,0,0,0.05)] transition-shadow hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)]">
                 {/* 리더 프로필 */}
                 <div className="text-center mb-6">
                     <div className="relative inline-block mb-4">
@@ -187,22 +187,26 @@ const StudyLeaderCard: React.FC<StudyLeaderCardProps> = ({
                             size="lg"
                             onClick={() => navigate(`/study/manage/${studyId}`)}
                             className={cn(
-                                'h-12 rounded-xl font-bold',
-                                'shadow-lg shadow-[var(--color-primary-alpha-30)]'
+                                'h-12 rounded-xl font-bold text-sm',
+                                'bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500',
+                                'hover:from-blue-600 hover:via-indigo-600 hover:to-violet-600',
+                                'shadow-lg shadow-indigo-500/30'
                             )}
                         >
                             스터디 관리하기
                         </Button>
                     ) : (
                         <Button
-                            variant="primary"
+                            variant={isApplyDisabled ? 'google-outline' : 'primary'}
                             fullWidth
                             size="lg"
                             onClick={handleApplyClick}
                             disabled={isApplyDisabled}
                             className={cn(
-                                'h-12 rounded-xl font-bold',
-                                'shadow-lg shadow-[var(--color-primary-alpha-30)]'
+                                'h-12 rounded-xl font-bold text-sm',
+                                isApplyDisabled
+                                    ? ''
+                                    : 'shadow-lg shadow-[var(--color-primary-alpha-30)]'
                             )}
                         >
                             {getApplyButtonText()}
@@ -218,11 +222,11 @@ const StudyLeaderCard: React.FC<StudyLeaderCardProps> = ({
                         {/* DM 문의 버튼 (스터디장 본인이 아닐 때만 표시) */}
                         {!isOwner && (
                             <Button
-                                variant="google-outline"
+                                variant="primary"
                                 fullWidth
                                 onClick={onInquiry}
                                 leftIcon={<Send size={16} />}
-                                className="h-12 rounded-xl font-bold text-sm"
+                                className="h-12 rounded-xl font-bold text-sm shadow-lg shadow-blue-500/20"
                             >
                                 문의하기
                             </Button>
