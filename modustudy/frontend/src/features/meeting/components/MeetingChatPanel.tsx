@@ -106,12 +106,16 @@ const MeetingChatPanel: React.FC<MeetingChatPanelProps> = ({
                             const prevMessage = virtualItem.index > 0 ? messages[virtualItem.index - 1] : null;
                             const nextMessage = virtualItem.index < messages.length - 1 ? messages[virtualItem.index + 1] : null;
 
+                            // userId가 있으면 정확한 ID 비교, 게스트(userId 없음)일 때만 이름 비교 폴백
                             const isOwn =
                                 (currentUserId !== null &&
                                     currentUserId !== undefined &&
                                     message.userId !== null &&
+                                    message.userId !== undefined &&
                                     message.userId === currentUserId) ||
-                                message.sender === currentSender;
+                                (currentUserId == null &&
+                                    message.userId == null &&
+                                    message.sender === currentSender);
 
                             // 연속 메시지 그룹화: 같은 사람이 연속으로 보낸 메시지인지 확인
                             const isSameSenderAsPrev = prevMessage && prevMessage.sender === message.sender;
