@@ -912,6 +912,7 @@ const StudyDetailPageV3: React.FC = () => {
                             maxMembers={study.maxMembers}
                             recruitEndDate={study.recruitEndDate}
                             isOwner={isOwner}
+                            isMember={isMember}
                             isApplied={isApplied}
                             onInquiry={handleInquiry}
                             onRatingClick={handleRatingClick}

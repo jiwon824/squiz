@@ -26,6 +26,7 @@ const HERO_MESSAGES = [
         description: 'AI 기반 대화 요약본과 핵심 키워드 퀴즈를 자동 생성',
         icon: Brain,
         spotlightGradient: true, // 중앙 스포트라이트 + 파란색 그라데이션
+        backgroundImage: '/images/background8.png', // 배경 이미지 경로
     },
     {
         id: 3,
@@ -33,7 +34,7 @@ const HERO_MESSAGES = [
         subtitle: '실시간 화상 스터디',
         description: '화면 공유와 음성 채팅이 결합된 강력한 학습 환경',
         icon: Video,
-        backgroundImage: '/images/background6.png', // 배경 이미지 경로
+        backgroundImage: '/images/background9.png', // 배경 이미지 경로
     },
 ];
 

@@ -36,6 +36,9 @@ const CourseDetail = lazy(() =>
 const ContinuousQuizSessionPage = lazy(() =>
     import('../features/quiz').then(m => ({ default: m.ContinuousQuizSession }))
 );
+const QuizContestComingSoon = lazy(() =>
+    import('../features/quiz').then(m => ({ default: m.QuizContestComingSoon }))
+);
 const LoginPage = lazy(() =>
     import('../features/auth/index').then(m => ({ default: m.LoginPage }))
 );
@@ -161,7 +164,7 @@ export const AppRouter = () => {
                 <Route path="/password/reset" element={<PasswordResetPage />} />
 
                 {/* 퀴즈 */}
-                <Route path="/quiz" element={<QuizGameSelection />} />
+                <Route path="/quiz" element={<UserLayoutV2><QuizGameSelection /></UserLayoutV2>} />
 
                 {/* 내 브랜치 추가 */}
                 <Route path="/quiz/my-quiz" element={<UserLayoutV2><MyQuizPage /></UserLayoutV2>} />
@@ -171,6 +174,7 @@ export const AppRouter = () => {
                 <Route path="/my-studies/created" element={<UserLayoutV2><MyCreatedStudiesPage /></UserLayoutV2>} />
                 <Route path="/my-studies/applications" element={<UserLayoutV2><MyApplicationsPage /></UserLayoutV2>} />
                 <Route path="/quiz-commentle" element={<CommentleQuiz />} />
+                <Route path="/quiz-contest" element={<UserLayoutV2><QuizContestComingSoon /></UserLayoutV2>} />
                 <Route path="/quiz-practice" element={<QuizCourseList />} />
                 <Route path="/quiz-practice/:courseId" element={<CourseDetail />} />
                 {/* 연속 학습 모드 (Sayvoca 스타일) */}

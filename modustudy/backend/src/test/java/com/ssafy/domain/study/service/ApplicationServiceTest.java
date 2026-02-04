@@ -30,7 +30,10 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.BDDMockito.*;
+import com.ssafy.domain.notification.entity.NotificationType;
 
 /**
  * ApplicationService 단위 테스트
@@ -647,6 +650,16 @@ class ApplicationServiceTest {
         verify(applicationRepository, times(1)).findById(applicationId);
         verify(applicationRepository, times(1)).save(application);
         verify(studyMemberRepository, times(1)).save(any(StudyMember.class));
+
+        // 신청자에게 승인 알림 전송 검증
+        verify(notificationService, times(1)).createNotification(
+                eq(applicantUserId),
+                eq(NotificationType.STUDY_APPLICATION),
+                eq("스터디 신청 승인"),
+                contains("알고리즘 스터디"),
+                eq("STUDY"),
+                eq(studyId)
+        );
     }
 
     @Test
@@ -782,6 +795,7 @@ class ApplicationServiceTest {
         Long studyId = 1L;
         Long applicationId = 1L;
         Long leaderId = 2L;
+        Long applicantUserId = 10L;
         String reason = "정원 초과";
 
         Study study = Study.builder()
@@ -794,7 +808,7 @@ class ApplicationServiceTest {
 
         StudyApplication application = StudyApplication.builder()
                 .studyId(studyId)
-                .userId(10L)
+                .userId(applicantUserId)
                 .status(ApplicationStatus.PENDING)
                 .build();
         ReflectionTestUtils.setField(application, "id", applicationId);
@@ -808,7 +822,7 @@ class ApplicationServiceTest {
         given(studyRepository.findById(studyId)).willReturn(Optional.of(study));
         given(applicationRepository.findById(applicationId)).willReturn(Optional.of(application));
         given(applicationRepository.save(any(StudyApplication.class))).willReturn(application);
-        given(userRepository.findById(10L)).willReturn(Optional.of(user));
+        given(userRepository.findById(applicantUserId)).willReturn(Optional.of(user));
 
         // when
         ApplicationResponse response = applicationService.rejectApplication(studyId, applicationId, leaderId, reason);
@@ -822,6 +836,16 @@ class ApplicationServiceTest {
         verify(studyRepository, times(1)).findById(studyId);
         verify(applicationRepository, times(1)).findById(applicationId);
         verify(applicationRepository, times(1)).save(application);
+
+        // 신청자에게 거절 알림 전송 검증
+        verify(notificationService, times(1)).createNotification(
+                eq(applicantUserId),
+                eq(NotificationType.STUDY_APPLICATION),
+                eq("스터디 신청 결과"),
+                contains("알고리즘 스터디"),
+                eq("STUDY"),
+                eq(studyId)
+        );
     }
 
     @Test

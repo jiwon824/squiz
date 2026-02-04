@@ -1,7 +1,8 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FileWarning, Check, X, MessageSquare, Calendar, ChevronDown, Filter } from 'lucide-react';
 import { studyApi } from '@/api/endpoints/studyApi';
 import { useUIStore } from '@/store/uiStore';
+import { getProfileImageUrl, DEFAULT_PROFILE_IMAGE } from '@/shared/utils/profileImage';
 
 interface ExcuseManagementProps {
     studyId: number;
@@ -15,6 +16,7 @@ interface Excuse {
     userId: number;
     userName: string;
     userNickname: string;
+    userProfileImage: string | null;
     sessionTitle: string;
     scheduledAt: string;
     excuseReason: string;
@@ -47,10 +49,14 @@ const ExcuseManagement: React.FC<ExcuseManagementProps> = ({ studyId }) => {
             const members = Array.isArray(membersPayload?.content)
                 ? membersPayload.content
                 : membersPayload?.data?.content || [];
-            const memberNameById = new Map<number, string>();
+            // userId -> { nickname, profileImage } 매핑
+            const memberInfoById = new Map<number, { nickname: string; profileImage: string | null }>();
             members.forEach((member: any) => {
                 if (member?.userId) {
-                    memberNameById.set(member.userId, member.userName || member.userNickname || '이름 없음');
+                    memberInfoById.set(member.userId, {
+                        nickname: member.userNickname || member.userName || '이름 없음',
+                        profileImage: member.userProfileImage || member.profileImage || null
+                    });
                 }
             });
 
@@ -69,18 +75,22 @@ const ExcuseManagement: React.FC<ExcuseManagementProps> = ({ studyId }) => {
 
                     const sessionExcuses = attendances
                         .filter((att: any) => att.excuseReason && att.excuseStatus)
-                        .map((att: any) => ({
-                            attendanceId: att.id,
-                            sessionId: session.id,
-                            userId: att.userId,
-                            userName: memberNameById.get(att.userId) || '이름 없음',
-                            userNickname: memberNameById.get(att.userId) || '이름 없음',
-                            sessionTitle: session.title || `${session.sessionNumber}회차`,
-                            scheduledAt: session.scheduledAt,
-                            excuseReason: att.excuseReason,
-                            excuseStatus: att.excuseStatus,
-                            checkedAt: att.checkedAt || new Date().toISOString(),
-                        }));
+                        .map((att: any) => {
+                            const memberInfo = memberInfoById.get(att.userId);
+                            return {
+                                attendanceId: att.id,
+                                sessionId: session.id,
+                                userId: att.userId,
+                                userName: memberInfo?.nickname || '이름 없음',
+                                userNickname: memberInfo?.nickname || '이름 없음',
+                                userProfileImage: memberInfo?.profileImage || null,
+                                sessionTitle: session.title || `${session.sessionNumber}회차`,
+                                scheduledAt: session.scheduledAt,
+                                excuseReason: att.excuseReason,
+                                excuseStatus: att.excuseStatus,
+                                checkedAt: att.checkedAt || new Date().toISOString(),
+                            };
+                        });
 
                     allExcuses.push(...sessionExcuses);
                 } catch (error) {
@@ -250,8 +260,16 @@ const ExcuseManagement: React.FC<ExcuseManagementProps> = ({ studyId }) => {
                                 className="p-4 flex items-center gap-4 cursor-pointer hover:bg-surface/50 transition-colors"
                                 onClick={() => setExpandedId(expandedId === excuse.attendanceId ? null : excuse.attendanceId)}
                             >
-                                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
-                                    {excuse.userNickname.charAt(0).toUpperCase()}
+                                {/* 프로필 이미지 */}
+                                <div className="w-10 h-10 rounded-full overflow-hidden bg-primary/10 flex-shrink-0">
+                                    <img
+                                        src={getProfileImageUrl(excuse.userProfileImage)}
+                                        alt={excuse.userNickname}
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                            (e.target as HTMLImageElement).src = DEFAULT_PROFILE_IMAGE;
+                                        }}
+                                    />
                                 </div>
 
                                 <div className="flex-1 min-w-0">
