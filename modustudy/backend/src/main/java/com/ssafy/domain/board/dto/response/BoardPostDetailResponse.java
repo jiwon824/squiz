@@ -1,9 +1,8 @@
 package com.ssafy.domain.board.dto.response;
 
 import com.ssafy.domain.board.entity.BoardPost;
+import com.ssafy.domain.board.entity.RecruitmentStatus;
 import com.ssafy.domain.study.entity.MeetingType;
-import com.ssafy.domain.study.entity.Status;
-import com.ssafy.domain.study.entity.StudyType;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -14,14 +13,10 @@ import java.util.List;
 @Builder
 public class BoardPostDetailResponse {
     private Long id;
-    private Long studyId;
-    private String studyName;
-    private String topicName;
-    private StudyType studyType;
     private MeetingType meetingType;
-    private Integer maxMembers;
-    private int currentMembers;
-    private Status studyStatus;
+    private String recruitmentField;
+    private Integer targetMembers;
+    private RecruitmentStatus recruitmentStatus;
     private String title;
     private String content;
     private Long authorId;
@@ -34,20 +29,14 @@ public class BoardPostDetailResponse {
 
     public static BoardPostDetailResponse from(
             BoardPost post,
-            int currentMembers,
-            Status studyStatus,
             List<BoardCommentResponse> comments
     ) {
         return BoardPostDetailResponse.builder()
                 .id(post.getId())
-                .studyId(post.getStudy().getId())
-                .studyName(post.getStudy().getName())
-                .topicName(post.getStudy().getTopicName())
-                .studyType(post.getStudy().getStudyType())
-                .meetingType(post.getStudy().getMeetingType())
-                .maxMembers(post.getStudy().getMaxMembers())
-                .currentMembers(currentMembers)
-                .studyStatus(studyStatus)
+                .meetingType(post.getMeetingType())
+                .recruitmentField(post.getRecruitmentField())
+                .targetMembers(post.getTargetMembers())
+                .recruitmentStatus(post.getRecruitmentStatus())
                 .title(post.getTitle())
                 .content(post.getContent())
                 .authorId(post.getAuthor().getId())
