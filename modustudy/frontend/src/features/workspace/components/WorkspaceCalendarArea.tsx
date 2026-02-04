@@ -363,7 +363,7 @@ export const WorkspaceCalendarArea: React.FC<WorkspaceCalendarAreaProps> = ({
               onClick={handleAddSession}
               className="gap-1"
             >
-              세션 추가하기
+              일정 추가하기
             </Button>
           )}
         </div>
@@ -480,7 +480,7 @@ export const WorkspaceCalendarArea: React.FC<WorkspaceCalendarAreaProps> = ({
                 className="w-full gap-1.5 text-sm"
                 onClick={() => selectedDate && handleQuickAdd(selectedDate)}
               >
-                해당 날짜에 세션 추가
+                해당 날짜에 일정 추가
               </Button>
             </div>
           )}
