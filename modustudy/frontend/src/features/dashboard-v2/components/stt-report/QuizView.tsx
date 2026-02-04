@@ -123,22 +123,21 @@ export const QuizView: React.FC<QuizViewProps> = ({
                 studyId,
                 quiz.id,
                 question.id,
-                userAnswer,
-                responseTimeMs
+                { userAnswer, responseTimeMs }
             );
             setResult(res);
             setSubmitted(true);
-            if (res.correct) {
+            if (res.isCorrect) {
                 setCorrectCount(prev => prev + 1);
             }
         } catch (err) {
             console.error('답안 제출 실패:', err);
             // 제출 실패 시에도 로컬에서 정답 비교
             setResult({
-                correct: userAnswer.trim().toLowerCase() === question.correctAnswer.trim().toLowerCase(),
+                isCorrect: userAnswer.trim().toLowerCase() === question.correctAnswer.trim().toLowerCase(),
                 correctAnswer: question.correctAnswer,
                 explanation: question.explanation,
-            });
+            } as StudyQuizSubmitResponse);
             setSubmitted(true);
             if (userAnswer.trim().toLowerCase() === question.correctAnswer.trim().toLowerCase()) {
                 setCorrectCount(prev => prev + 1);
@@ -280,7 +279,7 @@ export const QuizView: React.FC<QuizViewProps> = ({
                                     className={cn(
                                         'h-3 rounded-full',
                                         scorePercent >= 80 ? 'bg-secondary' :
-                                        scorePercent >= 50 ? 'bg-accent' : 'bg-error'
+                                            scorePercent >= 50 ? 'bg-accent' : 'bg-error'
                                     )}
                                 />
                             </div>
@@ -374,7 +373,7 @@ export const QuizView: React.FC<QuizViewProps> = ({
                                     {options.map(opt => {
                                         const isSelected = userAnswer === opt.id;
                                         const showCorrect = submitted && result && opt.id === result.correctAnswer;
-                                        const showWrong = submitted && result && isSelected && !result.correct;
+                                        const showWrong = submitted && result && isSelected && !result.isCorrect;
 
                                         return (
                                             <button
@@ -452,24 +451,24 @@ export const QuizView: React.FC<QuizViewProps> = ({
                                     >
                                         <div className={cn(
                                             'rounded-xl p-4 border',
-                                            result.correct
+                                            result.isCorrect
                                                 ? 'bg-secondary/5 border-secondary/30'
                                                 : 'bg-error/5 border-error/30'
                                         )}>
                                             <div className="flex items-center gap-2 mb-2">
-                                                {result.correct ? (
+                                                {result.isCorrect ? (
                                                     <CheckCircle2 size={18} className="text-secondary" />
                                                 ) : (
                                                     <XCircle size={18} className="text-error" />
                                                 )}
                                                 <span className={cn(
                                                     'text-sm font-semibold',
-                                                    result.correct ? 'text-secondary-dark' : 'text-error'
+                                                    result.isCorrect ? 'text-secondary-dark' : 'text-error'
                                                 )}>
-                                                    {result.correct ? '정답입니다!' : '오답입니다'}
+                                                    {result.isCorrect ? '정답입니다!' : '오답입니다'}
                                                 </span>
                                             </div>
-                                            {!result.correct && (
+                                            {!result.isCorrect && (
                                                 <p className="text-sm text-text-secondary mb-1">
                                                     정답: <span className="font-medium text-secondary">{result.correctAnswer}</span>
                                                 </p>

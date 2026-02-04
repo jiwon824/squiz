@@ -169,15 +169,15 @@ export const MeetingTestWidget: React.FC = () => {
         setSubmitting(true);
         try {
             const res = await studyQuizApi.submitAnswer(
-                selectedItem.studyId, quizDetail.id, question.id, userAnswer, responseTimeMs
+                selectedItem.studyId, quizDetail.id, question.id, { userAnswer, responseTimeMs }
             );
             setResult(res);
             setSubmitted(true);
-            if (res.correct) setCorrectCount(prev => prev + 1);
+            if (res.isCorrect) setCorrectCount(prev => prev + 1);
         } catch {
             // 제출 실패 시 로컬 비교
             const isCorrect = userAnswer.trim().toLowerCase() === question.correctAnswer.trim().toLowerCase();
-            setResult({ correct: isCorrect, correctAnswer: question.correctAnswer, explanation: question.explanation });
+            setResult({ isCorrect, correctAnswer: question.correctAnswer, explanation: question.explanation } as StudyQuizSubmitResponse);
             setSubmitted(true);
             if (isCorrect) setCorrectCount(prev => prev + 1);
         } finally {
@@ -367,7 +367,7 @@ export const MeetingTestWidget: React.FC = () => {
                                                 {options.map(opt => {
                                                     const isSelected = userAnswer === opt.id;
                                                     const showCorrect = submitted && result && opt.id === result.correctAnswer;
-                                                    const showWrong = submitted && result && isSelected && !result.correct;
+                                                    const showWrong = submitted && result && isSelected && !result.isCorrect;
 
                                                     return (
                                                         <button
@@ -436,24 +436,24 @@ export const MeetingTestWidget: React.FC = () => {
                                                 >
                                                     <div className={cn(
                                                         'rounded-xl p-3 border text-sm',
-                                                        result.correct
+                                                        result.isCorrect
                                                             ? 'bg-secondary/5 border-secondary/30'
                                                             : 'bg-error/5 border-error/30'
                                                     )}>
                                                         <div className="flex items-center gap-2 mb-1">
-                                                            {result.correct ? (
+                                                            {result.isCorrect ? (
                                                                 <CheckCircle2 size={16} className="text-secondary" />
                                                             ) : (
                                                                 <XCircle size={16} className="text-error" />
                                                             )}
                                                             <span className={cn(
                                                                 'font-semibold',
-                                                                result.correct ? 'text-secondary-dark' : 'text-error'
+                                                                result.isCorrect ? 'text-secondary-dark' : 'text-error'
                                                             )}>
-                                                                {result.correct ? '정답!' : '오답'}
+                                                                {result.isCorrect ? '정답!' : '오답'}
                                                             </span>
                                                         </div>
-                                                        {!result.correct && (
+                                                        {!result.isCorrect && (
                                                             <p className="text-text-secondary ml-6">
                                                                 정답: <span className="font-medium text-secondary">{result.correctAnswer}</span>
                                                             </p>
