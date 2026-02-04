@@ -56,6 +56,8 @@ interface SocialAccountCardProps {
     disabled?: boolean;
     /** 저장 중 여부 */
     isSaving?: boolean;
+    /** 현재 로그인 방식인지 여부 */
+    isCurrentLoginMethod?: boolean;
 }
 
 export const SocialAccountCard = ({
@@ -63,6 +65,7 @@ export const SocialAccountCard = ({
     onUnlink,
     disabled = false,
     isSaving = false,
+    isCurrentLoginMethod = false,
 }: SocialAccountCardProps) => {
     const config = providerConfig[account.provider];
 
@@ -77,7 +80,10 @@ export const SocialAccountCard = ({
     };
 
     return (
-        <div className="social-account-card">
+        <div className={cn(
+            'social-account-card',
+            isCurrentLoginMethod && 'ring-2 ring-[var(--color-primary)] ring-opacity-50'
+        )}>
             <div
                 className={cn('social-account-icon', account.provider.toLowerCase())}
                 style={{
@@ -88,20 +94,45 @@ export const SocialAccountCard = ({
                 {config.icon}
             </div>
             <div className="social-account-info">
-                <div className="social-account-name">{config.name}</div>
+                <div className="social-account-name">
+                    {config.name}
+                    {isCurrentLoginMethod && (
+                        <span
+                            className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
+                            style={{
+                                backgroundColor: 'var(--color-primary-alpha-10)',
+                                color: 'var(--color-primary)',
+                            }}
+                        >
+                            현재 로그인
+                        </span>
+                    )}
+                </div>
                 <div className="social-account-email">{account.email}</div>
                 <div className="social-account-date">{formatDate(account.linkedAt)} 연동</div>
             </div>
             <div className="social-account-action">
-                <Button
-                    variant="danger"
-                    size="sm"
-                    onClick={() => onUnlink(account.provider)}
-                    disabled={disabled}
-                    isLoading={isSaving}
-                >
-                    연동 해제
-                </Button>
+                {isCurrentLoginMethod ? (
+                    <span
+                        className="text-xs px-3 py-1.5 rounded-lg font-medium"
+                        style={{
+                            backgroundColor: '#f1f5f9',
+                            color: '#64748b',
+                        }}
+                    >
+                        현재 로그인 방식
+                    </span>
+                ) : (
+                    <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => onUnlink(account.provider)}
+                        disabled={disabled}
+                        isLoading={isSaving}
+                    >
+                        연동 해제
+                    </Button>
+                )}
             </div>
         </div>
     );

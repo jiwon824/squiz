@@ -9,6 +9,8 @@ import {
     updateNotificationSettings,
     getSocialAccounts,
     unlinkSocialAccount,
+    linkSocialAccount,
+    getSocialLinkAuthUrl,
     setPassword,
     changePassword,
     getGoogleCalendarStatus,
@@ -19,6 +21,7 @@ import type {
     NotificationSetting,
     NotificationType,
     SocialAccount,
+    SocialProvider,
     GoogleCalendarStatus,
     SettingSection,
 } from '../types';
@@ -60,6 +63,9 @@ interface SettingState {
     // 액션: 소셜 계정
     fetchSocialAccounts: () => Promise<void>;
     unlinkSocialAccount: (provider: string) => Promise<void>;
+    startSocialLink: (provider: SocialProvider) => Promise<void>;
+    completeSocialLink: (provider: SocialProvider, code: string) => Promise<void>;
+    refetchSocialAccounts: () => Promise<void>;
 
     // 액션: 비밀번호
     setNewPassword: (password: string, passwordConfirm: string) => Promise<void>;
@@ -200,6 +206,73 @@ export const useSettingStore = create<SettingState>((set, get) => ({
             set({
                 error: error instanceof Error ? error.message : '소셜 연동 해제에 실패했습니다.',
                 isSaving: false,
+            });
+        }
+    },
+
+    /**
+     * 소셜 계정 연동 시작 (OAuth 리다이렉트)
+     */
+    startSocialLink: async (provider) => {
+        try {
+            const authUrl = await getSocialLinkAuthUrl(provider);
+            // 연동 모드임을 표시
+            sessionStorage.setItem('oauth_mode', 'link');
+            sessionStorage.setItem('oauth_provider', provider.toLowerCase());
+            sessionStorage.setItem('oauth_redirect_path', '/setting');
+            window.location.href = authUrl;
+        } catch (error) {
+            set({
+                error: error instanceof Error ? error.message : '소셜 연동 URL을 가져오는데 실패했습니다.',
+            });
+        }
+    },
+
+    /**
+     * 소셜 계정 연동 완료 (OAuth 콜백 처리)
+     */
+    completeSocialLink: async (provider, code) => {
+        set({ isSaving: true, error: null });
+        try {
+            const linkedAccount = await linkSocialAccount(provider, code);
+            const { socialAccounts } = get();
+
+            // 연동된 계정 목록에 추가
+            const newAccount: SocialAccount = {
+                provider: linkedAccount.provider as SocialProvider,
+                email: linkedAccount.email,
+                linkedAt: linkedAccount.linkedAt,
+            };
+
+            set({
+                socialAccounts: [...socialAccounts, newAccount],
+                isSaving: false,
+            });
+        } catch (error) {
+            set({
+                error: error instanceof Error ? error.message : '소셜 계정 연동에 실패했습니다.',
+                isSaving: false,
+            });
+            throw error;
+        }
+    },
+
+    /**
+     * 소셜 계정 목록 강제 새로고침
+     */
+    refetchSocialAccounts: async () => {
+        set({ isLoading: true, error: null });
+        try {
+            const response = await getSocialAccounts();
+            set({
+                socialAccounts: response.linkedAccounts,
+                hasPassword: response.hasPassword,
+                isLoading: false,
+            });
+        } catch (error) {
+            set({
+                error: error instanceof Error ? error.message : '소셜 계정 정보를 불러오는데 실패했습니다.',
+                isLoading: false,
             });
         }
     },
