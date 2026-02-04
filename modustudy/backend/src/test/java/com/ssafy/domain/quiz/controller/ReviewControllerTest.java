@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.common.auth.SsafyUserDetails;
 import com.ssafy.common.util.JwtTokenUtil;
 import com.ssafy.domain.quiz.dto.request.ReviewSubmitRequest;
+import com.ssafy.domain.quiz.dto.response.ReviewCourseStatsResponse;
 import com.ssafy.domain.quiz.dto.response.ReviewResult;
 import com.ssafy.domain.quiz.dto.response.ReviewSubmitResponse;
 import com.ssafy.domain.quiz.dto.response.TodayReviewResponse;
@@ -197,5 +198,77 @@ class ReviewControllerTest {
                                 .andExpect(jsonPath("$.success").value(true))
                                 .andExpect(jsonPath("$.data.items").isArray())
                                 .andExpect(jsonPath("$.data.items[0].reviewItemId").value(2L));
+        }
+
+        // ========== 코스별 정답 통계 조회 테스트 ==========
+
+        @Test
+        @DisplayName("코스별 정답 통계 조회 API - 여러 코스에서 문제를 맞힌 경우 + sortOrder 정렬 검증")
+        void getCourseStats_ShouldReturnCourseStatsWithMultipleCoursesAndVerifySortOrder() throws Exception {
+                // given: sortOrder 순서대로 정렬된 Mock 데이터 (Java=1, Python=2, Algorithm=3)
+                ReviewCourseStatsResponse.CourseStatDto javaCourse = ReviewCourseStatsResponse.CourseStatDto.from(
+                                1L, "Java 기초", 50L, 30L);
+                ReviewCourseStatsResponse.CourseStatDto pythonCourse = ReviewCourseStatsResponse.CourseStatDto.from(
+                                2L, "Python 입문", 40L, 20L);
+                ReviewCourseStatsResponse.CourseStatDto algorithmCourse = ReviewCourseStatsResponse.CourseStatDto.from(
+                                3L, "알고리즘", 60L, 15L);
+
+                // totalSolvedCount = 30 + 20 + 15 = 65 (중복 제거된 값)
+                ReviewCourseStatsResponse mockResponse = ReviewCourseStatsResponse.from(
+                                65L, List.of(javaCourse, pythonCourse, algorithmCourse));
+
+                given(fsrsService.getCourseStats(TEST_USER_ID))
+                                .willReturn(mockResponse);
+
+                // when & then
+                mockMvc.perform(get("/api/v1/reviews/courses/stats")
+                                .with(user(userDetails))
+                                .contentType(MediaType.APPLICATION_JSON))
+                                .andDo(print())
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.success").value(true))
+                                // 전체 맞춘 문제 수 검증
+                                .andExpect(jsonPath("$.data.totalSolvedCount").value(65))
+                                // courseStats 리스트 구조 검증
+                                .andExpect(jsonPath("$.data.courseStats").isArray())
+                                .andExpect(jsonPath("$.data.courseStats.length()").value(3))
+                                // sortOrder 순서 검증 (Java → Python → Algorithm)
+                                .andExpect(jsonPath("$.data.courseStats[0].courseId").value(1L))
+                                .andExpect(jsonPath("$.data.courseStats[0].courseName").value("Java 기초"))
+                                .andExpect(jsonPath("$.data.courseStats[0].totalQuestions").value(50))
+                                .andExpect(jsonPath("$.data.courseStats[0].solvedCount").value(30))
+                                .andExpect(jsonPath("$.data.courseStats[1].courseId").value(2L))
+                                .andExpect(jsonPath("$.data.courseStats[1].courseName").value("Python 입문"))
+                                .andExpect(jsonPath("$.data.courseStats[2].courseId").value(3L))
+                                .andExpect(jsonPath("$.data.courseStats[2].courseName").value("알고리즘"));
+        }
+
+        @Test
+        @DisplayName("코스별 정답 통계 조회 API - 정답 이력이 없는 경우 0 반환")
+        void getCourseStats_ShouldReturnZeroWhenNoSolvedQuestions() throws Exception {
+                // given: 맞춘 문제 수가 0인 Mock 데이터
+                ReviewCourseStatsResponse.CourseStatDto javaCourse = ReviewCourseStatsResponse.CourseStatDto.from(
+                                1L, "Java 기초", 50L, 0L);
+                ReviewCourseStatsResponse.CourseStatDto pythonCourse = ReviewCourseStatsResponse.CourseStatDto.from(
+                                2L, "Python 입문", 40L, 0L);
+
+                ReviewCourseStatsResponse mockResponse = ReviewCourseStatsResponse.from(
+                                0L, List.of(javaCourse, pythonCourse));
+
+                given(fsrsService.getCourseStats(TEST_USER_ID))
+                                .willReturn(mockResponse);
+
+                // when & then
+                mockMvc.perform(get("/api/v1/reviews/courses/stats")
+                                .with(user(userDetails))
+                                .contentType(MediaType.APPLICATION_JSON))
+                                .andDo(print())
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.success").value(true))
+                                // 전체 맞춘 문제 수 = 0
+                                .andExpect(jsonPath("$.data.totalSolvedCount").value(0))
+                                // 각 코스의 solvedCount = 0 검증
+                                .andExpect(jsonPath("$.data.courseStats[0].solvedCount").value(0))
+                                .andExpect(jsonPath("$.data.courseStats[1].solvedCount").value(0));
         }
 }
