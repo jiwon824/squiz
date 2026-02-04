@@ -1,13 +1,18 @@
 package com.ssafy.domain.quiz.service;
 
 import com.ssafy.common.exception.BusinessException;
+import com.ssafy.domain.quiz.dto.response.ReviewCourseStatsResponse;
+import com.ssafy.domain.quiz.dto.response.ReviewCourseStatsResponse.CourseStatDto;
 import com.ssafy.domain.quiz.dto.response.ReviewHistoryResponse;
 import com.ssafy.domain.quiz.dto.response.ReviewResult;
 import com.ssafy.domain.quiz.dto.response.ReviewStatsResponse;
+import com.ssafy.domain.quiz.entity.QuizCourse;
 import com.ssafy.domain.quiz.entity.ReviewContentType;
 import com.ssafy.domain.quiz.entity.UserReviewItem;
 import com.ssafy.domain.quiz.entity.UserReviewLog;
 import com.ssafy.domain.quiz.entity.WrongAnswerSortType;
+import com.ssafy.domain.quiz.repository.CourseQuestionStatsProjection;
+import com.ssafy.domain.quiz.repository.QuizCourseRepository;
 import com.ssafy.domain.quiz.repository.UserReviewItemRepository;
 import com.ssafy.domain.quiz.repository.UserReviewLogRepository;
 import com.ssafy.domain.quiz.util.QuizGradingUtils;
@@ -52,6 +57,7 @@ public class FsrsService {
 
     private final ContinuousQuizRepository continuousQuizRepository;
     private final StudyQuizQuestionRepository studyQuizQuestionRepository;
+    private final QuizCourseRepository quizCourseRepository;
     private final ObjectMapper objectMapper;
 
     // ── Rating 자동 산출 ──
@@ -283,6 +289,56 @@ public class FsrsService {
     }
 
     // ── 복습 통계 조회 ──
+
+    /**
+     * 사용자의 코스별 정답 통계를 조회한다.
+     *
+     * <p>
+     * 성능 최적화:
+     * </p>
+     * <ul>
+     * <li>GROUP BY 배치 쿼리로 N+1 문제 방지 (4개 쿼리로 전체 통계 조회)</li>
+     * <li>Map 구조로 O(1) 조회</li>
+     * </ul>
+     *
+     * @param userId 사용자 ID
+     * @return 코스별 정답 통계 응답
+     */
+    public ReviewCourseStatsResponse getCourseStats(Long userId) {
+        // 1. 전체 맞춘 문제 수 조회 (1개 쿼리)
+        long totalSolved = continuousQuizRepository.countTotalSolvedQuestions(userId);
+
+        // 2. 코스별 전체 문제 수 집계 (1개 쿼리) → Map 변환
+        Map<Long, Long> totalQuestionsMap = continuousQuizRepository
+                .countTotalQuestionsGroupByCourse()
+                .stream()
+                .collect(Collectors.toMap(
+                        CourseQuestionStatsProjection::getCourseId,
+                        CourseQuestionStatsProjection::getQuestionCount));
+
+        // 3. 코스별 맞춘 문제 수 집계 (1개 쿼리) → Map 변환
+        Map<Long, Long> solvedQuestionsMap = continuousQuizRepository
+                .countSolvedQuestionsGroupByCourse(userId)
+                .stream()
+                .collect(Collectors.toMap(
+                        CourseQuestionStatsProjection::getCourseId,
+                        CourseQuestionStatsProjection::getQuestionCount));
+
+        // 4. 활성 코스 목록 조회 (1개 쿼리)
+        List<QuizCourse> courses = quizCourseRepository
+                .findAllByIsActiveTrueOrderBySortOrderAscIdAsc();
+
+        // 5. 코스별 통계 DTO 조립 (DB 접근 없이 Map 조회)
+        List<CourseStatDto> courseStats = courses.stream()
+                .map(course -> CourseStatDto.from(
+                        course.getId(),
+                        course.getName(),
+                        totalQuestionsMap.getOrDefault(course.getId(), 0L),
+                        solvedQuestionsMap.getOrDefault(course.getId(), 0L)))
+                .toList();
+
+        return ReviewCourseStatsResponse.from(totalSolved, courseStats);
+    }
 
     /**
      * 사용자의 전체 복습 통계를 조회한다.
