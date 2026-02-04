@@ -129,7 +129,7 @@ export interface StudyMemberResponse {
   userName: string;
   userNickname: string;
   userEmail: string;
-  userProfileImage?: string | null;
+  profileImage?: string | null;
   role: 'LEADER' | 'MEMBER';
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   isProbation: boolean;

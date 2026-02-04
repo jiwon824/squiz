@@ -41,7 +41,7 @@ const isSessionInProgress = (session: StudySessionResponse): boolean => {
 const toWorkspaceMember = (member: StudyMemberResponse): WorkspaceMember => ({
   id: member.userId,
   nickname: member.userNickname || member.userName,
-  profileImageUrl: member.userProfileImage || null,
+  profileImageUrl: member.profileImage || null,
   role: member.role,
   isOnline: false, // 온라인 상태는 별도 WebSocket으로 관리 필요
   isIdle: false,
