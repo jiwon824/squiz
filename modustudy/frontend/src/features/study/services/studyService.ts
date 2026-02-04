@@ -47,6 +47,7 @@ export interface Study {
     }>;
     isBookmarked: boolean;
     createdAt: string;
+    updatedAt?: string; // 상태 변경 시 업데이트됨 (스터디 시작 시점 추정용)
 }
 
 export interface FilterOptions {
