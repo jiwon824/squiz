@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { studyApi } from '@/api/endpoints/studyApi';
 import { UserMinus, Users, CheckCircle2, Search, Crown, Shield, TrendingUp } from 'lucide-react';
-import RoleBadge from '@/shared/components/RoleBadge';
+import RoleBadge, { UserRole } from '@/shared/components/RoleBadge';
 import { useUIStore } from '@/store/uiStore';
 import { getProfileImageUrl } from '@/shared/utils/profileImage';
 
@@ -14,7 +14,7 @@ interface Member {
     userId: number;
     nickname: string;
     profileImage?: string;
-    role: string;
+    role: UserRole;
     joinedAt: string;
     attendanceRate: number;
 }
@@ -33,7 +33,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ studyId, maxMembers
         setLoading(true);
         try {
             const response = await studyApi.getStudyMembers(studyId, 0, 100);
-            const content = response?.data?.content || response?.content || [];
+            const content = response?.content || [];
 
             const mappedMembers: Member[] = content.map((member: any) => ({
                 userId: member.userId || member.id,
@@ -53,7 +53,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ studyId, maxMembers
         }
     };
 
-    const handleExpel = (userId: number, nickname: string) => {
+    const handleExpel = (_userId: number, _nickname: string) => {
         // TODO: 백엔드 API 구현 후 연동
         showToast('멤버 강퇴 기능은 준비 중입니다.', 'info');
     };

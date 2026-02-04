@@ -373,10 +373,16 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEntering
                                                             <span className="mt-2 w-2 h-2 bg-blue-500 rounded-full flex-shrink-0" />
                                                         )}
                                                         <div className={cn('flex-1', notification.isRead && 'ml-5')}>
-                                                            <p className="text-sm font-medium text-gray-900 line-clamp-1">
+                                                            <p className={cn(
+                                                                'text-sm font-medium line-clamp-1',
+                                                                notification.type === 'REPORT' ? 'text-red-600' : 'text-gray-900'
+                                                            )}>
                                                                 {notification.title}
                                                             </p>
-                                                            <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
+                                                            <p className={cn(
+                                                                'text-xs mt-0.5 line-clamp-2',
+                                                                notification.type === 'REPORT' ? 'text-red-600' : 'text-gray-500'
+                                                            )}>
                                                                 {notification.content}
                                                             </p>
                                                             <p className="text-[10px] text-gray-400 mt-1">

@@ -25,7 +25,7 @@ interface FriendState {
     fetchFriends: () => Promise<void>;
     fetchReceivedRequests: () => Promise<void>;
     searchUsers: (query: string) => Promise<void>;
-    sendRequest: (userId: number, message?: string) => Promise<void>;
+    sendRequest: (userId: number) => Promise<void>;
     acceptRequest: (requestId: number) => Promise<void>;
     rejectRequest: (requestId: number) => Promise<void>;
     removeFriend: (friendshipId: number) => Promise<void>;
@@ -82,9 +82,9 @@ export const useFriendStore = create<FriendState>((set, get) => ({
     },
 
     // 친구 요청 보내기
-    sendRequest: async (userId: number, message?: string) => {
+    sendRequest: async (userId: number) => {
         try {
-            await sendFriendRequest(userId, message);
+            await sendFriendRequest(userId);
             // 검색 결과 업데이트 (isPending: true)
             set(state => ({
                 searchResults: state.searchResults.map(user =>

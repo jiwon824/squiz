@@ -224,7 +224,7 @@ export const useDMStore = create<DMState>((set, get) => ({
             return;
         }
 
-        dmWebSocket.connect(Number(user.id), user.nickname, {
+        dmWebSocket.connect(Number(user.id), user.nickname || '', {
             onMessage: (event) => {
                 // 새 메시지 수신 - 백엔드는 event.message로 전송
                 if (event.message) {

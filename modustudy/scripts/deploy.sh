@@ -176,6 +176,9 @@ deploy() {
     if ! health_check_all; then
         error "헬스체크 실패! 배포 중단"
         docker compose -p squiz-app -f docker-compose.app.yml down
+        # 실패 후에도 Nginx 리로드하여 DNS 캐시 정리 (502 방지)
+        warn "Nginx 리로드 (DNS 캐시 정리)..."
+        docker exec squiz-nginx-proxy nginx -s reload 2>/dev/null || true
         exit 1
     fi
 

@@ -47,6 +47,7 @@ export interface Study {
     }>;
     isBookmarked: boolean;
     createdAt: string;
+    updatedAt?: string; // 상태 변경 시 업데이트됨 (스터디 시작 시점 추정용)
 }
 
 export interface FilterOptions {
@@ -208,7 +209,7 @@ class StudyService {
     }
 
     // 스터디 신청 (API 시뮬레이션)
-    async applyToStudy(studyId: number, message: string): Promise<{ success: boolean; message: string }> {
+    async applyToStudy(_studyId: number, _message: string): Promise<{ success: boolean; message: string }> {
         // 비동기 통신 시뮬레이션 (1.5초 대기)
         return new Promise((resolve) => {
             setTimeout(() => {

@@ -4,7 +4,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Crown, Plus, Users, ChevronRight, RefreshCw, Megaphone, Maximize2, Play, AlertCircle } from 'lucide-react';
+import { Crown, Users, ChevronRight, RefreshCw, Megaphone, Maximize2, Play, AlertCircle } from 'lucide-react';
 import { Spinner } from '@/shared/components/Spinner';
 import { cn } from '@/shared/utils/cn';
 import { studyApi } from '@/api/endpoints/studyApi';
@@ -43,6 +43,7 @@ export const MyCreatedStudiesWidget: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const [studies, setStudies] = useState<StudyItem[]>([]);
+  const [allStudies, setAllStudies] = useState<StudyItem[]>([]); // 전체 목록 (카운트용)
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -68,6 +69,7 @@ export const MyCreatedStudiesWidget: React.FC = () => {
       });
 
       setTotalCount(myCreated.length);
+      setAllStudies(myCreated); // 전체 목록 저장 (카운트용)
       // 최신순 2개만 표시
       setStudies(myCreated.slice(0, MAX_DISPLAY_COUNT));
     } catch (err) {
@@ -78,12 +80,20 @@ export const MyCreatedStudiesWidget: React.FC = () => {
     }
   };
 
+  // 상태별 카운트
+  const statusCounts = {
+    PENDING: allStudies.filter((s) => s.status === 'PENDING').length,
+    RECRUITING: allStudies.filter((s) => s.status === 'RECRUITING').length,
+    IN_PROGRESS: allStudies.filter((s) => s.status === 'IN_PROGRESS').length,
+    COMPLETED: allStudies.filter((s) => s.status === 'COMPLETED').length,
+  };
+
   useEffect(() => {
     fetchStudies();
   }, [user?.id]);
 
   return (
-    <div className="bg-gradient-to-br from-white to-blue-50/30 rounded-2xl p-6 shadow-[0_4px_15px_rgba(0,0,0,0.05)] relative overflow-hidden">
+    <div className="bg-gradient-to-br from-white to-blue-50/30 rounded-2xl p-6 shadow-[0_4px_15px_rgba(0,0,0,0.05)] relative overflow-hidden h-full">
       {/* 배경 장식 */}
       <div className="absolute top-0 right-0 w-24 h-24 bg-blue-100/20 rounded-full -translate-y-8 translate-x-8" />
       <div className="absolute bottom-0 left-0 w-16 h-16 bg-blue-100/15 rounded-full translate-y-6 -translate-x-6" />
@@ -107,6 +117,36 @@ export const MyCreatedStudiesWidget: React.FC = () => {
           <Maximize2 size={18} className="text-text-secondary" />
         </button>
       </div>
+
+      {/* 상태별 카운트 요약 */}
+      {!loading && !error && allStudies.length > 0 && (
+        <div className="flex items-center gap-2 mb-4 flex-wrap">
+          {statusCounts.PENDING > 0 && (
+            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-violet-50 text-violet-600 text-xs font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse" />
+              대기 {statusCounts.PENDING}
+            </span>
+          )}
+          {statusCounts.RECRUITING > 0 && (
+            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-50 text-amber-600 text-xs font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+              모집 {statusCounts.RECRUITING}
+            </span>
+          )}
+          {statusCounts.IN_PROGRESS > 0 && (
+            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-blue-50 text-blue-600 text-xs font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+              진행 {statusCounts.IN_PROGRESS}
+            </span>
+          )}
+          {statusCounts.COMPLETED > 0 && (
+            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-gray-100 text-gray-500 text-xs font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
+              완료 {statusCounts.COMPLETED}
+            </span>
+          )}
+        </div>
+      )}
 
       {/* 로딩 상태 */}
       {loading && (
@@ -133,7 +173,7 @@ export const MyCreatedStudiesWidget: React.FC = () => {
 
       {/* 빈 상태 */}
       {!loading && !error && studies.length === 0 && (
-        <div className="text-center py-12">
+        <div className="text-center py-4">
           <Megaphone className="mx-auto text-gray-300 mb-4" size={48} />
           <p className="text-text-secondary">개설한 스터디가 없어요</p>
           <p className="text-sm text-text-tertiary mt-1">스터디를 만들고 함께 성장할 멤버를 모아보세요</p>
@@ -150,7 +190,7 @@ export const MyCreatedStudiesWidget: React.FC = () => {
       {/* 스터디 목록 */}
       {!loading && !error && studies.length > 0 && (
         <div className="space-y-2 relative">
-          <ul className="space-y-2">
+          <ul className="space-y-2 min-h-[120px]">
             <AnimatePresence>
               {studies.map((study, idx) => {
                 const badge = getStatusBadge(study.status);
@@ -185,14 +225,14 @@ export const MyCreatedStudiesWidget: React.FC = () => {
                       {/* 스터디 정보 */}
                       <button
                         onClick={() => navigate(`/study/${study.id}`)}
-                        className="flex-1 min-w-0 text-left"
+                        className="flex-1 min-w-0 text-left flex flex-col justify-center"
                         title="스터디 상세 보기"
                       >
-                        <p className="text-sm font-semibold text-gray-800 truncate group-hover:text-blue-700 transition-colors">
+                        <p className="text-sm font-semibold text-gray-800 truncate group-hover:text-blue-700 transition-colors leading-none mb-0">
                           {study.name}
                         </p>
                         {study.topic && (
-                          <p className="text-[11px] text-gray-400 truncate mt-0.5">{study.topic.name}</p>
+                          <p className="text-[11px] text-gray-400 truncate leading-none mt-0.5 mb-0">{study.topic.name}</p>
                         )}
                       </button>
 

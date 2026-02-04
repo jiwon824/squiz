@@ -13,7 +13,7 @@ const StudyManagementPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const [study, setStudy] = useState<Study | null>(null);
-    const [activeTab, setActiveTab] = useState<'applicants' | 'members' | 'attendance'>('applicants');
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'applicants' | 'members' | 'attendance' | 'excuse'>('applicants');
 
     useEffect(() => {
         if (id) {

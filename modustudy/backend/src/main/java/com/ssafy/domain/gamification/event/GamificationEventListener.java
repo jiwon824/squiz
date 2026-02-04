@@ -3,6 +3,7 @@ package com.ssafy.domain.gamification.event;
 import com.ssafy.domain.gamification.config.ExperienceConfig;
 import com.ssafy.domain.gamification.entity.*;
 import com.ssafy.domain.gamification.repository.*;
+import com.ssafy.domain.gamification.service.GamificationAsyncService;
 import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +11,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.time.LocalDate;
 import java.util.Optional;
@@ -23,6 +26,7 @@ public class GamificationEventListener {
     private final DailyContributionRepository dailyContributionRepository;
     private final ContributionDetailRepository contributionDetailRepository;
     private final UserRepository userRepository;
+    private final GamificationAsyncService gamificationAsyncService;
 
     /**
      * 스터디 출석 이벤트 처리
@@ -138,43 +142,12 @@ public class GamificationEventListener {
 
     /**
      * 스터디 생성 이벤트 처리 (첫 생성만 경험치 지급)
+     * - AFTER_COMMIT: 스터디 생성 트랜잭션 커밋 후 실행
+     * - GamificationAsyncService로 비동기 처리 위임
      */
-    @EventListener
-    @Transactional
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleStudyCreate(StudyCreateEvent event) {
-        log.info("[Gamification] 스터디 생성: userId={}, studyId={}, isFirst={}",
-                event.getUserId(), event.getStudyId(), event.isFirstStudy());
-
-        User user = findUser(event.getUserId());
-        UserStats stats = getOrCreateUserStats(user);
-
-        // 스터디 리더 카운트 증가 (통계용, 항상 증가)
-        stats.incrementStudiesLed();
-
-        // 첫 스터디 생성인 경우에만 경험치 지급
-        if (event.isFirstStudy()) {
-            // 1. 잔디 기록
-            recordDailyContribution(user, event.getCreateDate());
-
-            // 2. 활동 상세 기록
-            recordContributionDetail(user, event.getCreateDate(),
-                    ContributionDetail.ActivityType.STUDY_CREATE,
-                    event.getStudyId(), event.getStudyName());
-
-            // 3. 활동일 기록
-            int streakBonus = stats.recordActivity(event.getCreateDate());
-
-            // 4. 경험치 부여
-            int totalExp = ExperienceConfig.FIRST_STUDY_CREATE_BONUS + streakBonus;
-            boolean leveledUp = stats.addExperience(totalExp);
-
-            log.info("[Gamification] 첫 스터디 생성 완료: +{}XP (첫생성 {}XP + 연속 {}XP), 레벨업={}",
-                    totalExp, ExperienceConfig.FIRST_STUDY_CREATE_BONUS, streakBonus, leveledUp);
-        } else {
-            log.info("[Gamification] 스터디 생성 (경험치 없음 - 첫 생성 아님)");
-        }
-
-        userStatsRepository.save(stats);
+        gamificationAsyncService.processStudyCreateAsync(event);
     }
 
     /**

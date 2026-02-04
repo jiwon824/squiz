@@ -28,8 +28,6 @@ class DmWebSocketService {
     private nickname: string = '';
     private handlers: DmWebSocketHandlers = {};
     private connectionStatus: ConnectionStatus = 'DISCONNECTED';
-    private reconnectAttempts = 0;
-    private maxReconnectAttempts = 5;
 
     /**
      * WebSocket 연결
@@ -73,7 +71,6 @@ class DmWebSocketService {
     private onConnected(): void {
         console.log('DM WebSocket connected');
         this.setConnectionStatus('CONNECTED');
-        this.reconnectAttempts = 0;
 
         // DM 연결 메시지 전송
         this.client?.publish({

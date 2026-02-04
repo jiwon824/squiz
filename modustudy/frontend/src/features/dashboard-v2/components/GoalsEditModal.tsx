@@ -176,7 +176,7 @@ export const GoalsEditModal: React.FC<GoalsEditModalProps> = ({
                                     </div>
                                 ) : (
                                     <ul className="space-y-2">
-                                        {goals.map((goal, index) => (
+                                        {goals.map((goal) => (
                                             <motion.li
                                                 key={goal.id}
                                                 layout

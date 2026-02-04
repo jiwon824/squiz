@@ -16,6 +16,7 @@
  */
 
 import api from '../axios';
+import { indexToOptionId } from '@/shared/utils/quizUtils';
 
 // =============================================================================
 // API Response Types (실제 백엔드 응답 구조와 매칭)
@@ -136,20 +137,20 @@ const parseOptions = (optionsStr: string | null): QuestionOption[] | null => {
                 // 문자열인 경우: ["BEGIN", "START", ...]
                 if (typeof opt === 'string') {
                     return {
-                        id: String.fromCharCode(65 + index), // A, B, C, ...
+                        id: indexToOptionId(index),
                         text: opt,
                     };
                 }
                 // 객체인 경우: [{"id": "A", "text": "BEGIN"}, ...]
                 if (typeof opt === 'object' && opt !== null) {
                     return {
-                        id: opt.id || String.fromCharCode(65 + index),
+                        id: opt.id || indexToOptionId(index),
                         text: opt.text || opt.label || String(opt.id || ''),
                     };
                 }
                 // 기타 경우 (숫자 등)
                 return {
-                    id: String.fromCharCode(65 + index),
+                    id: indexToOptionId(index),
                     text: String(opt),
                 };
             });

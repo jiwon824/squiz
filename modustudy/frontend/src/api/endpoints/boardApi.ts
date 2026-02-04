@@ -130,3 +130,10 @@ export const addRecruitmentComment = async (
 export const deleteRecruitmentComment = async (postId: number, commentId: number): Promise<void> => {
   await api.delete(`/api/v1/boards/recruitments/${postId}/comments/${commentId}`);
 };
+
+export const reportRecruitmentPost = async (
+  postId: number,
+  payload: { reason: string }
+): Promise<void> => {
+  await api.post(`/api/v1/boards/recruitments/${postId}/report`, payload);
+};

@@ -28,7 +28,7 @@ export const Select: React.FC<SelectProps> = ({
     className,
     buttonClassName,
     disabled = false,
-    name
+    name: _name
 }) => {
     const [isOpen, setIsOpen] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
