@@ -18,6 +18,7 @@ interface MeetingRoomContentProps {
     localStream: MediaStream | null;
     localLabel: string;
     localIsPresenter: boolean;
+    isScreenSharing?: boolean;
     remoteVideoStreams: RemoteVideoStream[];
     videoStageRef: React.RefObject<HTMLDivElement>;
     aiVideoRef: React.RefObject<HTMLVideoElement>;
@@ -37,6 +38,7 @@ const MeetingRoomContent: React.FC<MeetingRoomContentProps> = ({
     localStream,
     localLabel,
     localIsPresenter,
+    isScreenSharing,
     remoteVideoStreams,
     videoStageRef,
     aiVideoRef,
@@ -79,6 +81,7 @@ const MeetingRoomContent: React.FC<MeetingRoomContentProps> = ({
                         localStream={localStream}
                         localLabel={localLabel}
                         localIsPresenter={localIsPresenter}
+                        isScreenSharing={isScreenSharing}
                         containerRef={videoStageRef}
                         remoteVideoStreams={remoteVideoStreams}
                     />

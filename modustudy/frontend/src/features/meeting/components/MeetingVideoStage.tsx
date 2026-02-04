@@ -7,10 +7,11 @@ interface VideoTileProps {
     label: string;
     isPresenter?: boolean;
     isLocal?: boolean;
+    isScreenShare?: boolean;
 }
 
 // 비디오 타일 컴포넌트
-const VideoTile: React.FC<VideoTileProps> = ({ stream, label, isPresenter, isLocal }) => {
+const VideoTile: React.FC<VideoTileProps> = ({ stream, label, isPresenter, isLocal, isScreenShare }) => {
     const videoRef = useRef<HTMLVideoElement | null>(null);
 
     useEffect(() => {
@@ -35,7 +36,7 @@ const VideoTile: React.FC<VideoTileProps> = ({ stream, label, isPresenter, isLoc
                     muted
                     className={cn(
                         'w-full h-full object-contain block',
-                        isLocal && '-scale-x-100'
+                        isLocal && !isScreenShare && '-scale-x-100'
                     )}
                 />
             ) : (
@@ -67,6 +68,7 @@ interface MeetingVideoStageProps {
     localStream: MediaStream | null;
     localLabel: string;
     localIsPresenter: boolean;
+    isScreenSharing?: boolean;
     remoteVideoStreams: Array<{
         id: string;
         stream: MediaStream;
@@ -80,6 +82,7 @@ const MeetingVideoStage: React.FC<MeetingVideoStageProps> = ({
     localStream,
     localLabel,
     localIsPresenter,
+    isScreenSharing,
     remoteVideoStreams,
     containerRef,
 }) => {
@@ -101,7 +104,7 @@ const MeetingVideoStage: React.FC<MeetingVideoStageProps> = ({
             ref={containerRef}
         >
             {localIsPresenter && localStream && (
-                <VideoTile stream={localStream} label={`${localLabel} (나)`} isPresenter isLocal />
+                <VideoTile stream={localStream} label={`${localLabel} (나)`} isPresenter isLocal isScreenShare={isScreenSharing} />
             )}
             {showRemote && primaryRemote && (
                 <VideoTile

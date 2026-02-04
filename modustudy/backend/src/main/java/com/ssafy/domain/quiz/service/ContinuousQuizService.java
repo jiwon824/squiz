@@ -3,6 +3,7 @@ package com.ssafy.domain.quiz.service;
 import com.ssafy.common.exception.BusinessException;
 import com.ssafy.common.exception.NotFoundException;
 import com.ssafy.domain.gamification.entity.Badge;
+import com.ssafy.domain.gamification.event.QuizSolvedEvent;
 import com.ssafy.domain.gamification.repository.BadgeRepository;
 import com.ssafy.domain.quiz.dto.request.ContinuousAnswerRequest;
 import com.ssafy.domain.quiz.dto.response.BadgeInfo;
@@ -31,7 +32,9 @@ import com.ssafy.domain.quiz.dto.response.WeakConceptDto;
 import lombok.RequiredArgsConstructor;
 import java.util.Comparator;
 import java.util.Set;
+import java.time.LocalDate;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -84,6 +87,7 @@ public class ContinuousQuizService {
         private final UserCourseProgressRepository userCourseProgressRepository;
         private final BadgeRepository badgeRepository;
         private final UserReviewItemRepository reviewItemRepository;
+        private final ApplicationEventPublisher eventPublisher;
 
         // ==================== 코스 조회 ====================
 
@@ -328,7 +332,10 @@ public class ContinuousQuizService {
                                 userId, questionId, isCorrect,
                                 reviewItem.getStability(), reviewItem.getNextReviewAt());
 
-                // 5. 결과 반환
+                // 5. 게이미피케이션 이벤트 발행
+                publishQuizSolvedEvent(userId, questionId, question.getQuestionText(), isCorrect);
+
+                // 6. 결과 반환
                 return ContinuousAnswerResponse.builder()
                                 .questionId(questionId)
                                 .isCorrect(isCorrect)
@@ -449,6 +456,9 @@ public class ContinuousQuizService {
                         builder.nextQuestion(null);
                 }
 
+                // 7. 게이미피케이션 이벤트 발행
+                publishQuizSolvedEvent(userId, questionId, currentQuestion.getQuestionText(), isCorrect);
+
                 log.info("Atomic Submit & Next - userId: {}, questionId: {}, isCorrect: {}, " +
                                 "nextQuestionId: {}, stability: {:.2f}",
                                 userId, questionId, isCorrect,
@@ -459,6 +469,21 @@ public class ContinuousQuizService {
         }
 
         // ==================== Private Methods ====================
+
+        /**
+         * 퀴즈 풀이 이벤트 발행 (게이미피케이션 경험치 적립용)
+         */
+        private void publishQuizSolvedEvent(Long userId, Long questionId, String questionText, boolean isCorrect) {
+                try {
+                        eventPublisher.publishEvent(new QuizSolvedEvent(
+                                        this, userId, questionId, questionText, isCorrect, LocalDate.now()));
+                        log.debug("QuizSolvedEvent 발행 - userId: {}, questionId: {}, isCorrect: {}",
+                                        userId, questionId, isCorrect);
+                } catch (Exception e) {
+                        log.warn("QuizSolvedEvent 발행 실패 - userId: {}, questionId: {}, error: {}",
+                                        userId, questionId, e.getMessage());
+                }
+        }
 
         private SectionSummary toSectionSummary(QuizCourseSection section) {
                 return new SectionSummary(

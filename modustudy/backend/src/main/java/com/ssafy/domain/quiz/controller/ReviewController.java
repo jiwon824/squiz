@@ -3,6 +3,7 @@ package com.ssafy.domain.quiz.controller;
 import com.ssafy.common.auth.SsafyUserDetails;
 import com.ssafy.common.response.ApiResponse;
 import com.ssafy.domain.quiz.dto.request.ReviewSubmitRequest;
+import com.ssafy.domain.quiz.dto.response.ReviewCourseStatsResponse;
 import com.ssafy.domain.quiz.dto.response.ReviewHistoryResponse;
 import com.ssafy.domain.quiz.dto.response.ReviewResult;
 import com.ssafy.domain.quiz.dto.response.ReviewStatsResponse;
@@ -151,5 +152,23 @@ public class ReviewController {
         Long userId = userDetails.getUser().getId();
 
         return ApiResponse.success(fsrsService.getStats(userId));
+    }
+
+    /**
+     * 사용자의 코스별 정답 통계를 조회한다.
+     *
+     * 중복 카운트 방지: 한 문제를 여러 번 맞혔어도 '맞춘 문제'는 1개로 취급한다.
+     *
+     * @param userDetails 인증된 사용자 정보
+     * @return 전체 맞춘 문제 수 및 코스별 상세 통계
+     */
+    @Operation(summary = "코스별 정답 통계 조회", description = "사용자의 전체 맞춘 문제 수와 코스별 상세 통계를 조회합니다. 인증 필요.")
+    @GetMapping("/courses/stats")
+    public ApiResponse<ReviewCourseStatsResponse> getCourseStats(
+            @AuthenticationPrincipal SsafyUserDetails userDetails) {
+
+        Long userId = userDetails.getUser().getId();
+
+        return ApiResponse.success(fsrsService.getCourseStats(userId));
     }
 }

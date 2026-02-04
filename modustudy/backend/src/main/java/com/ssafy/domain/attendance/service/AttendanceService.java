@@ -12,6 +12,7 @@ import com.ssafy.domain.attendance.entity.AttendanceCheckType;
 import com.ssafy.domain.attendance.entity.AttendanceExcuseStatus;
 import com.ssafy.domain.attendance.entity.AttendanceStatus;
 import com.ssafy.domain.attendance.repository.AttendanceRepository;
+import com.ssafy.domain.gamification.event.StudyAttendanceEvent;
 import com.ssafy.domain.notification.entity.NotificationType;
 import com.ssafy.domain.notification.service.NotificationService;
 import com.ssafy.domain.study.entity.MemberRole;
@@ -25,6 +26,8 @@ import com.ssafy.domain.study.repository.StudySessionRepository;
 import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,6 +36,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -40,16 +44,22 @@ public class AttendanceService {
     private static final int SELF_ATTENDANCE_DELAY_MINUTES = 15;
     private static final int LATE_THRESHOLD_MINUTES = 10;
 
+    // 세션 시간 검증용 상수
+    private static final int ATTENDANCE_WINDOW_BEFORE_MINUTES = 30;  // 세션 시작 30분 전부터 출석 가능
+    private static final int ATTENDANCE_WINDOW_AFTER_MINUTES = 30;   // 세션 종료 30분 후까지 출석 가능
+
     private final AttendanceRepository attendanceRepository;
     private final StudySessionRepository studySessionRepository;
     private final StudyMemberRepository studyMemberRepository;
     private final StudyRepository studyRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public MessageResponse startBleAttendance(Long studyId, Long sessionId, Long leaderId) {
         StudySession session = getSessionOrThrow(sessionId, studyId);
         validateLeader(studyId, leaderId);
+        validateAttendanceTimeWindow(session);
         initializeAttendanceRows(session);
         return new MessageResponse("BLE 출석이 시작되었습니다.");
     }
@@ -57,31 +67,72 @@ public class AttendanceService {
     public AttendanceResponse checkAttendanceBle(Long studyId, Long sessionId, Long userId) {
         StudySession session = getSessionOrThrow(sessionId, studyId);
         validateMember(studyId, userId);
+        validateAttendanceTimeWindow(session);
         Attendance attendance = getOrCreateAttendance(session, userId);
         updateCheckInfo(attendance, AttendanceCheckType.BLE, session);
         attendance.setCheckedBy(getStudyLeaderUser(studyId));
-        return AttendanceResponse.from(attendanceRepository.save(attendance));
+        Attendance saved = attendanceRepository.save(attendance);
+
+        // 게이미피케이션 이벤트 발행
+        publishAttendanceEvent(saved, studyId);
+
+        return AttendanceResponse.from(saved);
     }
 
     public AttendanceResponse checkAttendanceSelf(Long studyId, Long sessionId, Long userId) {
         StudySession session = getSessionOrThrow(sessionId, studyId);
         validateMember(studyId, userId);
+        validateAttendanceTimeWindow(session);
         validateSelfAttendanceWindow(session, studyId);
         Attendance attendance = getOrCreateAttendance(session, userId);
         updateCheckInfo(attendance, AttendanceCheckType.SELF, session);
         attendance.setCheckedBy(null);
-        return AttendanceResponse.from(attendanceRepository.save(attendance));
+        Attendance saved = attendanceRepository.save(attendance);
+
+        // 게이미피케이션 이벤트 발행
+        publishAttendanceEvent(saved, studyId);
+
+        return AttendanceResponse.from(saved);
     }
 
     @Transactional
     public AttendanceResponse checkAttendanceAutoOnline(Long studyId, Long sessionId, Long userId) {
         StudySession session = getSessionOrThrow(sessionId, studyId);
         validateMember(studyId, userId);
+        validateAttendanceTimeWindow(session);
         validateAutoAttendanceSession(session);
         Attendance attendance = getOrCreateAttendance(session, userId);
         updateCheckInfo(attendance, AttendanceCheckType.AUTO, session);
         attendance.setCheckedBy(null);
-        return AttendanceResponse.from(attendanceRepository.save(attendance));
+        Attendance saved = attendanceRepository.save(attendance);
+
+        // 게이미피케이션 이벤트 발행
+        publishAttendanceEvent(saved, studyId);
+
+        return AttendanceResponse.from(saved);
+    }
+
+    /**
+     * 출석 성공 시 게이미피케이션 이벤트 발행
+     */
+    private void publishAttendanceEvent(Attendance attendance, Long studyId) {
+        if (attendance.getStatus() == AttendanceStatus.PRESENT ||
+            attendance.getStatus() == AttendanceStatus.LATE) {
+            try {
+                Study study = getStudyOrThrow(studyId);
+                eventPublisher.publishEvent(new StudyAttendanceEvent(
+                    this,
+                    attendance.getUser().getId(),
+                    studyId,
+                    study.getName(),
+                    LocalDate.now()
+                ));
+                log.info("[Attendance] 게이미피케이션 이벤트 발행: userId={}, studyId={}",
+                    attendance.getUser().getId(), studyId);
+            } catch (Exception e) {
+                log.warn("[Attendance] 게이미피케이션 이벤트 발행 실패: {}", e.getMessage());
+            }
+        }
     }
 
     /**
@@ -122,13 +173,21 @@ public class AttendanceService {
         StudySession session = getSessionOrThrow(sessionId, studyId);
         validateLeader(studyId, leaderId);
         Attendance attendance = getOrCreateAttendance(session, targetUserId);
+        AttendanceStatus previousStatus = attendance.getStatus();
         attendance.setStatus(request.status());
         attendance.setCheckType(AttendanceCheckType.SELF);
         attendance.setCheckedBy(getUserOrThrow(leaderId));
         if (request.reason() != null && !request.reason().isBlank()) {
             attendance.setExcuseReason(request.reason());
         }
-        return AttendanceResponse.from(attendanceRepository.save(attendance));
+        Attendance saved = attendanceRepository.save(attendance);
+
+        // 이전 상태가 출석이 아니었고, 새 상태가 출석이면 이벤트 발행
+        if (previousStatus != AttendanceStatus.PRESENT && previousStatus != AttendanceStatus.LATE) {
+            publishAttendanceEvent(saved, studyId);
+        }
+
+        return AttendanceResponse.from(saved);
     }
 
     @Transactional(readOnly = true)
@@ -224,6 +283,11 @@ public class AttendanceService {
         }
         attendance.setCheckedBy(getUserOrThrow(leaderId));
         Attendance saved = attendanceRepository.save(attendance);
+
+        // 소명 승인 시 게이미피케이션 이벤트 발행
+        if (request.status() == AttendanceExcuseStatus.APPROVED) {
+            publishAttendanceEvent(saved, studyId);
+        }
 
         try {
             Study study = getStudyOrThrow(studyId);
@@ -322,8 +386,33 @@ public class AttendanceService {
         if (session.getIsOnline() == null || !session.getIsOnline()) {
             throw new IllegalStateException("오프라인 세션은 자동 출석을 처리할 수 없습니다.");
         }
-        // 10분 이후 입장해도 LATE로 처리되도록 예외 던지지 않음
-        // updateCheckInfo()에서 시간에 따라 PRESENT/LATE 자동 판정
+    }
+
+    /**
+     * 세션 출석 가능 시간 검증
+     */
+    private void validateAttendanceTimeWindow(StudySession session) {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime sessionStart = session.getScheduledAt();
+        int duration = session.getDurationMinutes() != null ? session.getDurationMinutes() : 60;
+        LocalDateTime sessionEnd = sessionStart.plusMinutes(duration);
+
+        LocalDateTime windowStart = sessionStart.minusMinutes(ATTENDANCE_WINDOW_BEFORE_MINUTES);
+        LocalDateTime windowEnd = sessionEnd.plusMinutes(ATTENDANCE_WINDOW_AFTER_MINUTES);
+
+        if (now.isBefore(windowStart)) {
+            throw new IllegalStateException(
+                    String.format("출석 가능 시간이 아닙니다. %s부터 출석 가능합니다.",
+                            windowStart.toLocalTime().toString().substring(0, 5))
+            );
+        }
+
+        if (now.isAfter(windowEnd)) {
+            throw new IllegalStateException(
+                    String.format("출석 가능 시간이 종료되었습니다. (세션 종료: %s)",
+                            sessionEnd.toLocalTime().toString().substring(0, 5))
+            );
+        }
     }
 
     private StudySession getSessionOrThrow(Long sessionId, Long studyId) {
