@@ -103,12 +103,42 @@ const TechCard = React.memo<TechCardProps>(({
 
             <div
                 className={cn(
-                    'rounded-lg flex items-center justify-center font-bold text-white',
-                    compact ? 'w-8 h-8 text-xs' : 'w-10 h-10 text-sm'
+                    'rounded-lg flex items-center justify-center overflow-hidden',
+                    compact ? 'w-10 h-10' : 'w-12 h-12'
                 )}
-                style={{ backgroundColor: selected ? tech.color : `${tech.color}99` }}
+                style={{ backgroundColor: selected ? `${tech.color}20` : `${tech.color}15` }}
             >
-                {tech.initial}
+                {tech.icon ? (
+                    <img
+                        src={tech.icon}
+                        alt={tech.name}
+                        className={cn(
+                            'object-contain',
+                            compact ? 'w-7 h-7' : 'w-9 h-9'
+                        )}
+                        onError={(e) => {
+                            // 아이콘 로드 실패 시 initial로 폴백
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            if (target.nextSibling) return;
+                            const span = document.createElement('span');
+                            span.className = `font-bold ${compact ? 'text-xs' : 'text-sm'}`;
+                            span.style.color = tech.color;
+                            span.textContent = tech.initial;
+                            target.parentElement?.appendChild(span);
+                        }}
+                    />
+                ) : (
+                    <span
+                        className={cn(
+                            'font-bold',
+                            compact ? 'text-xs' : 'text-sm'
+                        )}
+                        style={{ color: tech.color }}
+                    >
+                        {tech.initial}
+                    </span>
+                )}
             </div>
 
             <span className={cn(

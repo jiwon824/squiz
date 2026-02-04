@@ -486,7 +486,7 @@ const StudyDetailPageV3: React.FC = () => {
                         {/* 좌측: 스터디 정보 (3열) */}
                         <div className="2xl:col-span-3">
                             {/* 통합 카드 */}
-                            <div className="bg-white rounded-2xl border border-[var(--color-border)] shadow-sm overflow-hidden">
+                            <div className="bg-white rounded-2xl shadow-[0_4px_15px_rgba(0,0,0,0.05)] overflow-hidden transition-shadow hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)]">
                                 {/* 헤더 섹션 */}
                                 <div className="p-6 md:p-8">
                                     {/* 상단: 뱃지 + 액션 버튼 */}
@@ -610,7 +610,7 @@ const StudyDetailPageV3: React.FC = () => {
                                 </div>
 
                                 {/* 구분선 */}
-                                <div className="mx-6 md:mx-8 border-t-2 border-gray-200" />
+                                <div className="mx-6 md:mx-8 border-t border-gray-100" />
 
                                 {/* 모집 정보 섹션 */}
                                 <div className="p-6 md:p-8">
@@ -698,7 +698,7 @@ const StudyDetailPageV3: React.FC = () => {
                                 </div>
 
                                 {/* 구분선 */}
-                                <div className="mx-6 md:mx-8 border-t-2 border-gray-200" />
+                                <div className="mx-6 md:mx-8 border-t border-gray-100" />
 
                                 {/* 스터디 상세 정보 섹션 */}
                                 <div className="p-6 md:p-8">
@@ -805,7 +805,7 @@ const StudyDetailPageV3: React.FC = () => {
                                 {studyDetail.studyType !== 'LIGHTNING' && (
                                 <>
                                 {/* 구분선 */}
-                                <div className="mx-6 md:mx-8 border-t-2 border-gray-200" />
+                                <div className="mx-6 md:mx-8 border-t border-gray-100" />
 
                                 <div className="p-6 md:p-8">
                                     <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--color-text-primary)] mb-8">
@@ -839,7 +839,7 @@ const StudyDetailPageV3: React.FC = () => {
 
                             {/* 스터디장 평가 섹션 (완료된 스터디 + 멤버 + 스터디장 아닐 때) */}
                             {study.status === 'COMPLETED' && isMember && !isOwner && (
-                                <div className="mt-6 bg-white rounded-2xl border border-[var(--color-border)] p-6 shadow-sm">
+                                <div className="mt-6 bg-white rounded-2xl p-6 shadow-[0_4px_15px_rgba(0,0,0,0.05)] transition-shadow hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)]">
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
                                             <div className="p-2 bg-yellow-50 rounded-xl">
@@ -928,6 +928,11 @@ const StudyDetailPageV3: React.FC = () => {
                     study={study}
                     isOpen={isApplyModalOpen}
                     onClose={() => setIsApplyModalOpen(false)}
+                    onApplySuccess={() => {
+                        // 신청 성공 후 상태 업데이트
+                        setIsApplied(true);
+                        showToast('스터디 신청이 완료되었습니다!', 'success');
+                    }}
                 />
             )}
 

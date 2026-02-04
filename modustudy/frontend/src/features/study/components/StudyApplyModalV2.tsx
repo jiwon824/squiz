@@ -9,6 +9,7 @@ interface StudyApplyModalV2Props {
     study: Study;
     isOpen: boolean;
     onClose: () => void;
+    onApplySuccess?: () => void;
 }
 
 /**
@@ -20,7 +21,7 @@ interface StudyApplyModalV2Props {
  * - 상태별 UI (idle, loading, success, error)
  * - 깔끔한 레이아웃
  */
-const StudyApplyModalV2: React.FC<StudyApplyModalV2Props> = ({ study, isOpen, onClose }) => {
+const StudyApplyModalV2: React.FC<StudyApplyModalV2Props> = ({ study, isOpen, onClose, onApplySuccess }) => {
     const [message, setMessage] = useState('');
     const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
     const [statusMessage, setStatusMessage] = useState('');
@@ -56,6 +57,10 @@ const StudyApplyModalV2: React.FC<StudyApplyModalV2Props> = ({ study, isOpen, on
     };
 
     const handleClose = () => {
+        // 신청 성공 상태였으면 콜백 호출
+        if (status === 'success' && onApplySuccess) {
+            onApplySuccess();
+        }
         // 상태 초기화
         setMessage('');
         setStatus('idle');
@@ -161,16 +166,31 @@ const StudyApplyModalV2: React.FC<StudyApplyModalV2Props> = ({ study, isOpen, on
                                 placeholder="자기소개나 참여 동기를 자유롭게 작성해 주세요! (10자 이상)"
                                 value={message}
                                 onChange={(e) => {
-                                    setMessage(e.target.value);
-                                    if (messageError) setMessageError('');
+                                    // 500자 제한
+                                    if (e.target.value.length <= 500) {
+                                        setMessage(e.target.value);
+                                        if (messageError) setMessageError('');
+                                    }
                                 }}
                                 error={messageError}
                                 rows={5}
                                 required
+                                maxLength={500}
                             />
-                            <p className="text-xs text-[var(--color-text-tertiary)] mt-2 ml-1">
-                                신청 메시지는 스터디장이 승인 여부를 결정할 때 참고하게 됩니다.
-                            </p>
+                            <div className="flex items-center justify-between mt-3 ml-1">
+                                <p className="text-xs text-[var(--color-text-tertiary)]">
+                                    신청 메시지는 스터디장이 승인 여부를 결정할 때 참고하게 됩니다.
+                                </p>
+                                <span className={`text-xs font-medium mt-5 ${
+                                    message.length < 10
+                                        ? 'text-red-500'
+                                        : message.length >= 450
+                                            ? 'text-amber-500'
+                                            : 'text-[var(--color-text-tertiary)]'
+                                }`}>
+                                    {message.length}/500
+                                </span>
+                            </div>
                         </div>
 
                         {/* 버튼 영역 */}
