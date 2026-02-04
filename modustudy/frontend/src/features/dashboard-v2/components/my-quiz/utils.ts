@@ -1,59 +1,94 @@
-import { ReviewItemDto } from '../../api/reviewApi';
+import { ReviewItemDto, ReviewCourseWeaknessResponse } from '../../api/reviewApi';
 import { WeakConcept, CategoryStats } from './types';
 
 /**
- * 오답 리뷰 데이터에서 취약 개념 목록을 계산합니다.
- * 카테고리별로 그룹화하고 오답률을 계산합니다.
+ * 오답 목록을 분석하여 취약 개념(코스/카테고리)을 추출하고 통계를 계산합니다.
+ * 
+ * 변경 전: 오답 목록에 있는 문제들의 reps/lapses 만으로 계산하여 오답률이 부정확함.
+ * 변경 후: 백엔드에서 집계된 '전체 코스 통계(courseWeaknessStats)'를 사용하여 
+ *         (전체 오답 횟수 / 전체 복습 횟수)로 정확한 오답률을 계산합니다.
  */
-export const calculateWeakConcepts = (wrongReviews: ReviewItemDto[]): WeakConcept[] => {
+export const calculateWeakConcepts = (
+  wrongReviews: ReviewItemDto[],
+  courseStats: ReviewCourseWeaknessResponse | null
+): WeakConcept[] => {
   if (!wrongReviews || wrongReviews.length === 0) return [];
 
-  // 카테고리별로 그룹화
-  const grouped = wrongReviews.reduce((acc, item) => {
-    const key = item.question.category || 'General';
+  // 1. 오답 목록을 카테고리별로 그룹화 (관련 문제 번호, 최근 복습일 수집용)
+  const categoryMap = new Map<string, ReviewItemDto[]>();
 
-    if (!acc[key]) {
-      acc[key] = {
-        id: key,
-        concept: key,
-        category: key,
-        wrongCount: 0,
-        totalReps: 0,
-        wrongRate: 0,
-        relatedQuestions: [],
-        lastReviewDate: item.question.lastReviewAt || '',
-      };
+  wrongReviews.forEach((item) => {
+    // 코스 이름(category)을 키로 사용
+    const category = item.question.category || '기타';
+    if (!categoryMap.has(category)) {
+      categoryMap.set(category, []);
+    }
+    categoryMap.get(category)?.push(item);
+  });
+
+  // 2. 전체 코스 통계를 맵으로 변환 (빠른 조회를 위해)
+  const statsMap = new Map<string, { totalReps: number; totalLapses: number }>();
+  if (courseStats?.courseWeaknessStats) {
+    courseStats.courseWeaknessStats.forEach(stat => {
+      statsMap.set(stat.courseName, {
+        totalReps: stat.totalReps,
+        totalLapses: stat.totalLapses
+      });
+    });
+  }
+
+  // 3. 취약 개념 데이터 생성
+  const weakConcepts: WeakConcept[] = Array.from(categoryMap.entries()).map(([category, items]) => {
+    // 3-1. 해당 카테고리의 전체 통계 가져오기
+    const stats = statsMap.get(category);
+
+    // 3-2. 오답률 계산
+    let totalReps = 0;
+    let wrongRate = 0;
+
+    if (stats && stats.totalReps > 0) {
+      // 통계 데이터가 있으면 사용 (정확한 계산)
+      totalReps = stats.totalReps;
+      // totalLapses는 사용하지 않지만 stats에 있음. wrongRate는 lapses/reps
+      wrongRate = (stats.totalLapses / stats.totalReps) * 100;
+    } else {
+      // 통계 데이터가 없으면 기존 방식대로 오답 목록 내에서 추산 (fallback)
+      const localReps = items.reduce((sum, item) => sum + item.reps, 0);
+      const localLapses = items.reduce((sum, item) => sum + item.lapses, 0);
+      totalReps = localReps;
+      wrongRate = localReps > 0 ? (localLapses / localReps) * 100 : 0;
     }
 
-    acc[key].wrongCount += item.lapses || 0;
-    // reps가 lapses보다 작은 경우를 방지
-    const safeReps = Math.max(item.reps || 0, item.lapses || 0);
-    acc[key].totalReps += safeReps;
+    // 3-3. 기타 메타데이터 수집
+    const wrongCount = items.length;
 
-    acc[key].relatedQuestions.push(item.question.questionNumber);
+    // 관련 문제 번호 추출 (중복 제거 및 정렬)
+    const relatedQuestions = Array.from(
+      new Set(items.map((item) => item.question?.questionNumber || 0))
+    )
+      .filter((num) => num > 0)
+      .sort((a, b) => a - b);
 
-    // 가장 최근 리뷰 날짜 업데이트
-    if (
-      item.question.lastReviewAt &&
-      (!acc[key].lastReviewDate ||
-        new Date(item.question.lastReviewAt) > new Date(acc[key].lastReviewDate))
-    ) {
-      acc[key].lastReviewDate = item.question.lastReviewAt;
-    }
+    // 가장 최근 복습 날짜 찾기
+    const lastReviewDate = items.reduce((latest, item) => {
+      const current = item.question?.lastReviewAt || '';
+      return current > latest ? current : latest;
+    }, '');
 
-    return acc;
-  }, {} as Record<string, WeakConcept>);
+    return {
+      id: category,
+      concept: category,
+      category,
+      wrongCount,  // 현재 오답 목록에 있는 문제 개수
+      totalReps,   // 전체 복습 횟수 (통계 기준)
+      wrongRate,   // 전체 오답률 (통계 기준)
+      relatedQuestions,
+      lastReviewDate,
+    };
+  });
 
-  // 오답률 계산 및 정렬
-  return Object.values(grouped)
-    .map((concept) => ({
-      ...concept,
-      wrongRate:
-        concept.totalReps > 0
-          ? Math.min((concept.wrongCount / concept.totalReps) * 100, 100)
-          : 0,
-    }))
-    .sort((a, b) => b.wrongRate - a.wrongRate);
+  // 4. 오답률 높은 순으로 정렬
+  return weakConcepts.sort((a, b) => b.wrongRate - a.wrongRate);
 };
 
 /**

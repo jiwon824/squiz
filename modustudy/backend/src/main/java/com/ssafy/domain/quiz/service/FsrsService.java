@@ -341,6 +341,44 @@ public class FsrsService {
     }
 
     /**
+     * 사용자의 코스별 취약점 통계(reps, lapses)를 조회한다.
+     * 
+     * @param userId 사용자 ID
+     * @return 코스별 취약점 통계 응답
+     */
+    public com.ssafy.domain.quiz.dto.response.ReviewCourseWeaknessResponse getCourseWeaknessStats(Long userId) {
+        // 1. 코스별 총 복습/오답 통계 집계 (1개 쿼리) -> Map 변환
+        Map<Long, CourseQuestionStatsProjection> reviewStatsMap = continuousQuizRepository
+                .countReviewStatsGroupByCourse(userId)
+                .stream()
+                .collect(Collectors.toMap(
+                        CourseQuestionStatsProjection::getCourseId,
+                        Function.identity()));
+
+        // 2. 활성 코스 목록 조회 (1개 쿼리)
+        List<QuizCourse> courses = quizCourseRepository
+                .findAllByIsActiveTrueOrderBySortOrderAscIdAsc();
+
+        // 3. 코스별 통계 DTO 조립
+        List<com.ssafy.domain.quiz.dto.response.ReviewCourseWeaknessResponse.CourseWeaknessStatDto> stats = courses
+                .stream()
+                .map(course -> {
+                    CourseQuestionStatsProjection p = reviewStatsMap.get(course.getId());
+                    long totalReps = p != null ? (p.getSumReps() != null ? p.getSumReps() : 0L) : 0L;
+                    long totalLapses = p != null ? (p.getSumLapses() != null ? p.getSumLapses() : 0L) : 0L;
+
+                    return com.ssafy.domain.quiz.dto.response.ReviewCourseWeaknessResponse.CourseWeaknessStatDto.from(
+                            course.getId(),
+                            course.getName(),
+                            totalReps,
+                            totalLapses);
+                })
+                .toList();
+
+        return com.ssafy.domain.quiz.dto.response.ReviewCourseWeaknessResponse.from(stats);
+    }
+
+    /**
      * 사용자의 전체 복습 통계를 조회한다.
      * <p>
      * 상태별 항목 수, 평균 안정성, 총 복습/오답 횟수, 숙련도 등을 집계한다.

@@ -18,4 +18,14 @@ public interface CourseQuestionStatsProjection {
      * 문제 수 (전체 또는 정답)
      */
     Long getQuestionCount();
+
+    /**
+     * 총 복습 횟수(reps) 합계
+     */
+    Long getSumReps();
+
+    /**
+     * 총 오답 횟수(lapses) 합계
+     */
+    Long getSumLapses();
 }

@@ -5,6 +5,8 @@ import {
   submitReview,
   ReviewItemDto,
   WrongAnswerSortType,
+  getCourseWeaknessStats,
+  ReviewCourseWeaknessResponse,
 } from '../../api/reviewApi';
 import { useTimer } from '@/features/quiz/hooks/useTimer';
 import { indexToOptionId } from '@/shared/utils/quizUtils';
@@ -36,6 +38,7 @@ export const useMyQuiz = (): UseMyQuizReturn => {
   // === 데이터 상태 ===
   const [todayReviews, setTodayReviews] = useState<ReviewItemDto[]>([]);
   const [wrongReviews, setWrongReviews] = useState<ReviewItemDto[]>([]);
+  const [courseStats, setCourseStats] = useState<ReviewCourseWeaknessResponse | null>(null);
   const [loading, setLoading] = useState(false);
 
   // === UI 상태 ===
@@ -52,12 +55,14 @@ export const useMyQuiz = (): UseMyQuizReturn => {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [todayData, wrongData] = await Promise.all([
+      const [todayData, wrongData, statsData] = await Promise.all([
         getTodayReviews(),
         getWrongAnswers(wrongSortType),
+        getCourseWeaknessStats(),
       ]);
       setTodayReviews(todayData?.items || []);
       setWrongReviews(wrongData?.items || []);
+      setCourseStats(statsData || null);
     } catch (error) {
       console.error('Failed to fetch reviews', error);
       setTodayReviews([]);
@@ -74,8 +79,8 @@ export const useMyQuiz = (): UseMyQuizReturn => {
 
   // === Memoized 계산 ===
   const weakConcepts = useMemo(
-    () => calculateWeakConcepts(wrongReviews),
-    [wrongReviews]
+    () => calculateWeakConcepts(wrongReviews, courseStats),
+    [wrongReviews, courseStats]
   );
 
   const totalWrongCount = useMemo(
