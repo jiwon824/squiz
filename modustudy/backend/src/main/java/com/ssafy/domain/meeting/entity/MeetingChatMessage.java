@@ -3,7 +3,6 @@ package com.ssafy.domain.meeting.entity;
 import com.ssafy.common.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
@@ -25,8 +24,7 @@ public class MeetingChatMessage extends BaseEntity {
     @Column(name = "sender_name", nullable = false, length = 100)
     private String senderName;
 
-    @Lob
-    @Column(name = "content", nullable = false)
+    @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     private String content;
 
     @Column(name = "sent_at", nullable = false)

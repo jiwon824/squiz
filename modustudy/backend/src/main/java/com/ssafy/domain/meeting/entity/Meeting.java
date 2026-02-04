@@ -126,6 +126,26 @@ public class Meeting extends BaseEntity {
                 .build();
     }
 
+    /**
+     * 오프라인 녹음용 회의 생성 (즉시 ENDED 상태로 생성)
+     */
+    public static Meeting createOffline(Long studyId, String title, java.time.LocalDateTime now, Integer durationSeconds) {
+        return Meeting.builder()
+                .studyId(studyId)
+                .title(title)
+                .meetingType(MeetingType.OFFLINE)
+                .startedAt(now)
+                .endedAt(now)
+                .durationSeconds(durationSeconds)
+                .participantCount(1)
+                .status(MeetingStatus.ENDED)
+                .recordingStatus(RecordingStatus.READY)
+                .sttStatus(SttStatus.PENDING)
+                .summaryStatus(SummaryStatus.PROCESSING)
+                .autoShareSummary(false)
+                .build();
+    }
+
     public void startFromWaiting(java.time.LocalDateTime now) {
         if (this.status != MeetingStatus.WAITING) {
             return;

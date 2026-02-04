@@ -4,5 +4,6 @@ public enum MeetingType {
     DAILY,
     WEEKLY,
     FREE,
-    OTHER
+    OTHER,
+    OFFLINE
 }

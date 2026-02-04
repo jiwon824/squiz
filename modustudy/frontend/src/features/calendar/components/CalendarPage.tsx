@@ -7,6 +7,7 @@ import { PageListHeader } from '@/shared/components/layouts';
 import { Plus, Settings, ChevronLeft, ChevronRight } from 'lucide-react';
 import { TodayGoalsCard } from '@/features/dashboard-v2/components/TodayGoalsCard';
 import { usePageLoading } from '@/shared/hooks/usePageLoading';
+import { useAuthStore } from '@/store/authStore';
 
 /**
  * 캘린더 메인 페이지
@@ -15,6 +16,10 @@ import { usePageLoading } from '@/shared/hooks/usePageLoading';
  */
 export const CalendarPage = () => {
     const [currentDate, setCurrentDate] = useState(new Date());
+    const { user } = useAuthStore();
+
+    // Google로 가입한 사용자만 캘린더 연동 가능
+    const isGoogleUser = user?.loginProvider === 'GOOGLE';
 
     // 데이터 페칭
     const { schedules, loading, error } = useCalendarData(currentDate);
@@ -106,13 +111,16 @@ export const CalendarPage = () => {
                 subtitle="모든 일정을 한눈에 관리하세요"
                 actions={
                     <>
-                        <Button
-                            variant="outline"
-                            leftIcon={<Settings size={18} />}
-                            onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-                        >
-                            설정
-                        </Button>
+                        {/* Google로 가입한 사용자만 설정 버튼 표시 */}
+                        {isGoogleUser && (
+                            <Button
+                                variant="outline"
+                                leftIcon={<Settings size={18} />}
+                                onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+                            >
+                                설정
+                            </Button>
+                        )}
                         <Button
                             variant="primary"
                             leftIcon={<Plus size={20} />}
@@ -176,8 +184,8 @@ export const CalendarPage = () => {
                     </div>
                 </div>
 
-                {/* 사이드바 (설정 패널) */}
-                {isSettingsOpen && (
+                {/* 사이드바 (설정 패널) - Google 사용자만 */}
+                {isGoogleUser && isSettingsOpen && (
                     <div className="w-80 flex-shrink-0">
                         <GoogleCalendarSync />
                     </div>

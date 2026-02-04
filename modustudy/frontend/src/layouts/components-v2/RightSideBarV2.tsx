@@ -186,7 +186,7 @@ const MeetingQuickAccess: React.FC = () => {
     return (
         <div className="h-full bg-transparent flex flex-col">
             {/* 헤더 */}
-            <div className="p-4 border-b border-gray-100">
+            <div className="p-4 border-b border-gray-200">
                 <div className="flex items-center gap-2 text-study-blue">
                     <Video size={20} />
                     <h3 className="font-bold text-sm">다가오는 미팅</h3>
@@ -264,7 +264,7 @@ const MeetingQuickAccess: React.FC = () => {
             </div>
 
             {/* 하단 액션 */}
-            <div className="p-3 border-t border-gray-100">
+            <div className="p-3 border-t border-gray-200">
                 <button
                     onClick={() => navigate('/calendar')}
                     className="w-full py-2 text-xs font-medium text-study-blue hover:bg-study-blue/5 rounded-lg transition-colors"
@@ -380,9 +380,9 @@ export const RightSideBarV2: React.FC = () => {
         };
     }, [isLoggedIn, loadMeetingBadge]);
 
-    const hasActiveMeeting = useMemo(() => {
+    const activeMeetings = useMemo(() => {
         const nowTime = badgeNow.getTime();
-        return badgeMeetings.some((meeting) => {
+        return badgeMeetings.filter((meeting) => {
             if (meeting.status === 'CANCELLED') return false;
             const startAt = meeting.scheduledAt.getTime();
             const durationMinutes = meeting.durationMinutes || 60;
@@ -391,44 +391,30 @@ export const RightSideBarV2: React.FC = () => {
         });
     }, [badgeMeetings, badgeNow]);
 
-    // 현재 활성화된 미팅 정보
-    const activeMeeting = useMemo(() => {
-        const nowTime = badgeNow.getTime();
-        return badgeMeetings.find((meeting) => {
-            if (meeting.status === 'CANCELLED') return false;
-            const startAt = meeting.scheduledAt.getTime();
-            const durationMinutes = meeting.durationMinutes || 60;
-            const endAt = startAt + durationMinutes * 60 * 1000;
-            return startAt <= nowTime && nowTime <= endAt;
-        }) || null;
-    }, [badgeMeetings, badgeNow]);
+    const hasActiveMeeting = activeMeetings.length > 0;
 
-    // 팝오버 닫기 상태 - sessionStorage로 관리하여 페이지 이동 후에도 중복 표시 방지
-    const DISMISSED_KEY = 'dismissedMeetingPopoverId';
-    const [dismissedMeetingId, setDismissedMeetingId] = useState<number | null>(() => {
-        const stored = sessionStorage.getItem(DISMISSED_KEY);
-        return stored ? Number(stored) : null;
-    });
-    const dismissMeeting = (meetingId: number) => {
-        setDismissedMeetingId(meetingId);
-        sessionStorage.setItem(DISMISSED_KEY, String(meetingId));
-    };
+    // 팝오버 닫기 상태 (활성 미팅이 바뀌면 다시 표시)
+    const [dismissedMeetingId, setDismissedMeetingId] = useState<number | null>(null);
+    useEffect(() => {
+        if (activeMeetings.length === 0) {
+            setDismissedMeetingId(null);
+            return;
+        }
+        if (dismissedMeetingId === -1) return;
+        if (dismissedMeetingId !== null && !activeMeetings.some((meeting) => meeting.id === dismissedMeetingId)) {
+            setDismissedMeetingId(null);
+        }
+    }, [activeMeetings, dismissedMeetingId]);
     // 마운트 직후 팝오버가 바로 뜨지 않도록 지연 (워크스페이스 진입 시 2번 뜨는 문제 방지)
     const [popoverReady, setPopoverReady] = useState(false);
     useEffect(() => {
         const timer = setTimeout(() => setPopoverReady(true), 1500);
         return () => clearTimeout(timer);
     }, []);
-    // 첫 표시 후 자동으로 dismiss 처리 (한 번만 표시)
-    useEffect(() => {
-        if (popoverReady && hasActiveMeeting && activeMeeting && activeMeeting.id !== dismissedMeetingId) {
-            const autoTimer = setTimeout(() => {
-                dismissMeeting(activeMeeting.id);
-            }, 5000);
-            return () => clearTimeout(autoTimer);
-        }
-    }, [popoverReady, hasActiveMeeting, activeMeeting, dismissedMeetingId]);
-    const showMeetingPopover = popoverReady && hasActiveMeeting && activeMeeting && activeMeeting.id !== dismissedMeetingId;
+    const visibleActiveMeetings = dismissedMeetingId === -1
+        ? []
+        : activeMeetings.filter((meeting) => meeting.id !== dismissedMeetingId);
+    const showMeetingPopover = popoverReady && visibleActiveMeetings.length > 0;
 
     // 리사이즈 상태
     const [panelWidth, setPanelWidth] = useState(DEFAULT_PANEL_WIDTH);
@@ -555,7 +541,7 @@ export const RightSideBarV2: React.FC = () => {
             </AnimatePresence>
 
             {/* 고정 아이콘 바 */}
-            <div className="w-14 h-full flex flex-col items-center py-4 gap-4 bg-slate-200">
+            <div className="w-14 h-full flex flex-col items-center py-4 gap-4 bg-gray-200">
                 {/* 미팅 버튼 + 활성 미팅 팝오버 */}
                 <div className="relative">
                     <button
@@ -569,13 +555,13 @@ export const RightSideBarV2: React.FC = () => {
                         <Video size={20} className="group-hover:scale-110 transition-transform" />
                         {/* 알림 배지 */}
                         {hasActiveMeeting && (
-                            <div className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-study-green rounded-full border-2 border-white animate-pulse" />
+                            <div className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-study-green rounded-full border-2 border-gray-200 animate-pulse" />
                         )}
                     </button>
 
                     {/* 활성 미팅 팝오버 */}
                     <AnimatePresence>
-                        {showMeetingPopover && activeMeeting && (
+                        {showMeetingPopover && (
                             <motion.div
                                 initial={{ opacity: 0, x: 10, scale: 0.95 }}
                                 animate={{ opacity: 1, x: 0, scale: 1 }}
@@ -583,33 +569,52 @@ export const RightSideBarV2: React.FC = () => {
                                 transition={{ type: 'spring', damping: 20, stiffness: 300 }}
                                 className="absolute right-[calc(100%+12px)] top-0 z-50"
                             >
-                                <div className="relative bg-white rounded-2xl shadow-lg border border-study-green/20 p-3 min-w-[220px] max-w-[260px]">
+                                <div className="relative bg-white rounded-2xl shadow-xl border border-study-green/20 p-0 min-w-[260px] max-w-[320px] overflow-hidden">
                                     {/* 화살표 - 비디오 아이콘 중심을 정확히 가리킴 */}
-                                    <div className="absolute top-4 -right-1.5 w-3 h-3 bg-white border-r border-t border-study-green/20 rotate-45" />
+                                    <div className="absolute top-5 -right-1.5 w-3 h-3 bg-white border-r border-t border-study-green/20 rotate-45" />
 
-                                    <div className="flex items-start gap-2.5">
-                                        {/* 카메라 아이콘 */}
-                                        <div className="flex-shrink-0 w-8 h-8 bg-study-green/10 rounded-lg flex items-center justify-center">
-                                            <Video size={16} className="text-study-green" />
+                                    {/* 헤더 */}
+                                    <div className="px-3 py-2.5 bg-gradient-to-r from-study-green/15 via-study-green/5 to-white border-b border-study-green/10">
+                                        <div className="flex items-center gap-2">
+                                            <div className="flex-shrink-0 w-8 h-8 bg-study-green/15 rounded-lg flex items-center justify-center">
+                                                <Video size={16} className="text-study-green" />
+                                            </div>
+                                            <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                                <p className="text-xs font-black text-study-green leading-4 pt-[1px]">미팅 진행 중</p>
+                                                <p className="text-[11px] text-gray-500 leading-4">
+                                                    {visibleActiveMeetings.length}개 동시 진행
+                                                </p>
+                                            </div>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setDismissedMeetingId(-1);
+                                                }}
+                                                className="flex-shrink-0 p-1 rounded-full hover:bg-white/70 transition-colors text-gray-300 hover:text-gray-500"
+                                            >
+                                                <X size={14} />
+                                            </button>
                                         </div>
+                                    </div>
 
-                                        {/* 미팅 정보 */}
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-xs font-bold text-study-green mb-0.5">미팅 진행 중</p>
-                                            <p className="text-xs text-gray-700 font-medium truncate">{activeMeeting.studyName}</p>
-                                            <p className="text-[11px] text-gray-400 truncate">{activeMeeting.meetingTitle}</p>
-                                        </div>
-
-                                        {/* X 닫기 버튼 */}
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                dismissMeeting(activeMeeting.id);
-                                            }}
-                                            className="flex-shrink-0 p-0.5 rounded-full hover:bg-gray-100 transition-colors text-gray-300 hover:text-gray-500"
-                                        >
-                                            <X size={14} />
-                                        </button>
+                                    {/* 미팅 리스트 */}
+                                    <div className="p-3 space-y-2">
+                                        {visibleActiveMeetings.map((meeting, index) => (
+                                            <div
+                                                key={meeting.id}
+                                                className={cn(
+                                                    'rounded-xl px-2.5 py-2 border',
+                                                    index === 0
+                                                        ? 'border-study-green/30 bg-study-green/10 shadow-sm'
+                                                        : 'border-gray-200 bg-gray-50'
+                                                )}
+                                            >
+                                                <div className="flex items-center gap-2 pl-1 pt-1">
+                                                    <p className="text-xs text-gray-700 font-semibold truncate">{meeting.studyName}</p>
+                                                </div>
+                                                <p className="text-[11px] text-gray-400 truncate mt-1 pl-1">{meeting.meetingTitle}</p>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             </motion.div>
@@ -617,7 +622,7 @@ export const RightSideBarV2: React.FC = () => {
                     </AnimatePresence>
                 </div>
 
-                <div className="w-8 h-px bg-gray-100 my-1" />
+                <div className="w-8 h-px bg-gray-300 my-1" />
 
                 <button
                     onClick={() => toggleRightTab('friend')}
@@ -640,13 +645,17 @@ export const RightSideBarV2: React.FC = () => {
                 >
                     <MessageSquare size={20} className="group-hover:scale-110 transition-transform" />
                     {unreadCount > 0 && (
-                        <div className="absolute top-2 right-2 w-2 h-2 bg-red-400 rounded-full border-2 border-white" />
+                        <div className="absolute top-2 right-2 w-2 h-2 bg-red-400 rounded-full border-2 border-gray-200" />
                     )}
                 </button>
             </div>
         </div>
     );
 };
+
+
+
+
 
 
 

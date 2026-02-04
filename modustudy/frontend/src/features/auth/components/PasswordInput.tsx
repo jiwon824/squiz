@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Eye, EyeOff, Check, X } from 'lucide-react';
 
 interface PasswordInputProps {
@@ -27,7 +27,7 @@ export const PasswordInput = ({
     });
     const [passwordsMatch, setPasswordsMatch] = useState(true);
 
-    // 비밀번호 유효성 검사
+    // 鍮꾨?踰덊샇 ?좏슚??寃??
     useEffect(() => {
         setValidations({
             minLength: password.length >= 8,
@@ -36,7 +36,7 @@ export const PasswordInput = ({
         });
     }, [password]);
 
-    // 비밀번호 일치 확인
+    // 鍮꾨?踰덊샇 ?쇱튂 ?뺤씤
     useEffect(() => {
         if (confirmPassword.length > 0) {
             setPasswordsMatch(password === confirmPassword);
@@ -196,3 +196,4 @@ export const PasswordInput = ({
         </div>
     );
 };
+

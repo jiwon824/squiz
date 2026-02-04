@@ -13,35 +13,33 @@ import { Select } from '@/shared/components/Select';
 import { cn } from '@/shared/utils/cn';
 import { usePageLoading } from '@/shared/hooks/usePageLoading';
 
-// 배경에 은은한 shimmer 효과 CSS
-const shimmerStyles = `
-@keyframes shimmer {
-  0% {
+// 햇빛이 자연스럽게 스치는 효과
+const sunlightStyles = `
+@keyframes sunlight {
+  0%, 100% {
     background-position: 200% center;
   }
-  100% {
-    background-position: -200% center;
+  50% {
+    background-position: -100% center;
   }
 }
 
-.shimmer-text {
+.sunlight-text {
   background: linear-gradient(
-    90deg,
+    110deg,
     var(--color-text-primary) 0%,
-    var(--color-text-primary) 40%,
-    #4285f4 50%,
-    var(--color-text-primary) 60%,
+    var(--color-text-primary) 25%,
+    #7ba8d4 42%,
+    #a3c4e8 50%,
+    #7ba8d4 58%,
+    var(--color-text-primary) 75%,
     var(--color-text-primary) 100%
   );
-  background-size: 200% auto;
+  background-size: 300% auto;
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  animation: shimmer 5s ease-in-out infinite;
-}
-
-.shimmer-text:hover {
-  animation: shimmer 2.5s ease-in-out infinite;
+  animation: sunlight 10s ease-in-out infinite;
 }
 `;
 
@@ -372,13 +370,13 @@ const StudyPageV2: React.FC = () => {
 
     return (
         <UserLayoutV2>
-            <style>{shimmerStyles}</style>
+            <style>{sunlightStyles}</style>
             <StudyListContainer>
                 <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
                     {/* 헤더 - 공통 컴포넌트 */}
                     <PageListHeader
                         title="성장을 시작하고, 스터디를 둘러보기"
-                        titleClassName="shimmer-text"
+                        titleClassName="sunlight-text"
                         subtitle={
                             <>총 <span className="font-bold text-[var(--color-primary)]">{totalElements}</span>개의 스터디</>
                         }

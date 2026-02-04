@@ -7,6 +7,8 @@ import com.ssafy.domain.attendance.dto.request.AttendanceExcuseRequest;
 import com.ssafy.domain.attendance.dto.request.AttendanceManualUpdateRequest;
 import com.ssafy.domain.attendance.dto.response.AttendanceCalendarResponse;
 import com.ssafy.domain.attendance.dto.response.AttendanceResponse;
+import com.ssafy.domain.attendance.dto.response.SessionAttendanceInfoResponse;
+import com.ssafy.domain.attendance.dto.response.SessionAttendanceMemberResponse;
 import com.ssafy.domain.attendance.entity.AttendanceCheckType;
 import com.ssafy.domain.attendance.entity.AttendanceExcuseStatus;
 import com.ssafy.domain.attendance.entity.AttendanceStatus;
@@ -169,20 +171,26 @@ class AttendanceControllerTest {
     @Test
     @DisplayName("세션 출석 현황 조회")
     void getSessionAttendance() throws Exception {
-        AttendanceResponse response = attendanceResponse(
-                5L,
-                10L,
+        SessionAttendanceMemberResponse memberResponse = new SessionAttendanceMemberResponse(
                 2L,
-                AttendanceCheckType.BLE,
-                AttendanceStatus.PRESENT,
-                1L
+                "테스트유저",
+                null,
+                "PRESENT",
+                "2026-01-29T10:00:00"
         );
-        when(attendanceService.getSessionAttendance(1L, 10L, 1L)).thenReturn(List.of(response));
+        SessionAttendanceInfoResponse response = SessionAttendanceInfoResponse.of(
+                10L,
+                "알고리즘 스터디 1회차",
+                5,
+                3,
+                List.of(memberResponse)
+        );
+        when(attendanceService.getSessionAttendance(1L, 10L, 1L)).thenReturn(response);
 
         mockMvc.perform(get("/api/v1/studies/1/sessions/10/attendance")
                         .with(authentication(authUser(1L))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data[0].status").value("PRESENT"));
+                .andExpect(jsonPath("$.data.members[0].status").value("PRESENT"));
     }
 
     @Test
