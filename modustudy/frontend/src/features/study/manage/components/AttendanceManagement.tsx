@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import {
-    Calendar, ChevronLeft, ChevronRight, Check, X,
-    Clock, AlertCircle, Users, TrendingUp
+    Calendar, Check, X,
+    Clock, AlertCircle, Users
 } from 'lucide-react';
 import { studyApi } from '@/api/endpoints/studyApi';
 import { useUIStore } from '@/store/uiStore';
 
-// 기본 프로필 이미지 경로
-const DEFAULT_PROFILE_IMAGE = '/images/default-profile.png';
+// 기본 프로필 이미지 경로 (추후 사용 예정)
+// const DEFAULT_PROFILE_IMAGE = '/images/default-profile.png';
 
 interface AttendanceManagementProps {
     studyId: number;

@@ -9,9 +9,7 @@ class CanvasComposerService {
   private canvas!: HTMLCanvasElement;
   private ctx!: CanvasRenderingContext2D;
   private animationFrame: number | null = null;
-  private frameRequestId: number | null = null;
   private frameTimerId: number | null = null;
-  private lastFrameTs = 0;
   private isComposing = false;
   private lastCameraFrameTs = 0;
   private CAMERA_FRAME_INTERVAL = 100; // ms (10fps)
@@ -83,7 +81,8 @@ class CanvasComposerService {
     // 🔥 백그라운드에서도 안정적인 프레임 레이트 유지
     const fps = CAPTURE_FPS;
     if (this.useOffscreen && this.offscreenCanvas) {
-      this.composedStream = this.offscreenCanvas.captureStream(fps);
+      // OffscreenCanvas의 captureStream은 일부 브라우저에서만 지원
+      this.composedStream = (this.offscreenCanvas as any).captureStream(fps);
     } else {
       this.composedStream = this.canvas.captureStream(fps);
     }
@@ -216,7 +215,7 @@ class CanvasComposerService {
   async composeStreams(
     screenStream: MediaStream,
     cameraStream: MediaStream,
-    options?: { pipPosition?: typeof this.pipPosition }
+    options?: { pipPosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' }
   ): Promise<MediaStream> {
     if (options?.pipPosition) {
       this.pipPosition = options.pipPosition;
@@ -274,7 +273,8 @@ class CanvasComposerService {
   // 🔥 Worker 기반 또는 일반 루프
   private startFrameLoop() {
     this.stopFrameLoop();
-    this.lastFrameTs = 0;
+    this.lastScreenFrameTs = 0;
+    this.lastCameraFrameTs = 0;
 
     if (this.useOffscreen && this.frameWorker) {
       this.frameWorker.postMessage({ type: 'start' });
@@ -316,7 +316,7 @@ class CanvasComposerService {
 
       try {
         const cameraBitmap = await createImageBitmap(this.cameraVideo);
-        this.frameWorker.postMessage(
+        this.frameWorker?.postMessage(
           { type: 'cameraFrame', data: { bitmap: cameraBitmap } },
           [cameraBitmap]
         );

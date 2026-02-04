@@ -4,7 +4,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Crown, Plus, Users, ChevronRight, RefreshCw, Megaphone, Maximize2, Play, AlertCircle } from 'lucide-react';
+import { Crown, Users, ChevronRight, RefreshCw, Megaphone, Maximize2, Play, AlertCircle } from 'lucide-react';
 import { Spinner } from '@/shared/components/Spinner';
 import { cn } from '@/shared/utils/cn';
 import { studyApi } from '@/api/endpoints/studyApi';

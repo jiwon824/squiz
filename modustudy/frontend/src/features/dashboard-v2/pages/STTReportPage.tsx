@@ -79,7 +79,6 @@ export const STTReportPage: React.FC = () => {
         updateSummary,
         updateTranscript,
         setStudy,
-        studyId: currentStudyId,
     } = useSttStore();
 
     const [activeTab, setActiveTab] = useState<TabType>('summary');

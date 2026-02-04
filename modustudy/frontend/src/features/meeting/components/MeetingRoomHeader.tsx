@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn, classBuilder, conditionalClasses } from '@/shared/utils/cn';
+import { cn, conditionalClasses } from '@/shared/utils/cn';
 import { ArrowLeft, Presentation, Users } from 'lucide-react';
 import MeetingControls from './MeetingControls';
 

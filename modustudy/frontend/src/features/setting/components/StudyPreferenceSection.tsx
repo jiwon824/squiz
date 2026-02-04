@@ -93,11 +93,11 @@ export const StudyPreferenceSection = () => {
         setIsSaving(true);
         setMessage(null);
 
-        // 백엔드 필드명에 맞춤 (techStacks, preferredTimeSlots)
+        // 타입 인터페이스에 맞춤
         const data = {
-            techStacks: techStack,
+            techStack,
             availableDays,
-            preferredTimeSlots: preferredTimeSlot ? [preferredTimeSlot] : [],
+            preferredTimeSlot,
             preferredDurationWeeks,
         };
 

@@ -306,7 +306,7 @@ const LightningStudyCreatePage: React.FC = () => {
             };
 
 
-            const createdStudy = await createStudy(payload);
+            await createStudy(payload);
 
             showToast('번개 스터디가 개설되었습니다!', 'success');
             navigate('/study');

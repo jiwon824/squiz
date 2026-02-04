@@ -10,7 +10,7 @@ import {
 import { PageSpinner, ButtonSpinner } from '@/shared/components/Spinner';
 import { CurriculumRoadmap, CurriculumStop } from './CurriculumRoadmap';
 import { useAuthStore } from '@/store/authStore';
-import { studyService, Study } from '../services/studyService';
+import { Study } from '../services/studyService';
 import { studyApi, getStudySessions, StudySessionItem, deleteStudy, getLeaderReviews, getLeaderInfo, LeaderReviewResponse, LeaderInfoResponse, getProvinces, getDistricts, getMyLeaderReview } from '@/api/endpoints/studyApi';
 import { PageNavHeader } from '@/shared/components/layouts/PageNavHeader';
 import StudyApplyModalV2 from './StudyApplyModalV2';
@@ -92,7 +92,7 @@ const StudyDetailPageV3: React.FC = () => {
     const [isDeleting, setIsDeleting] = useState(false);
     const [leaderReviews, setLeaderReviews] = useState<LeaderReviewResponse[]>([]);
     const [leaderAvgRating, setLeaderAvgRating] = useState<number | null>(null);
-    const [leaderReviewCount, setLeaderReviewCount] = useState(0);
+    const [, setLeaderReviewCount] = useState(0);
     const [leaderInfo, setLeaderInfo] = useState<LeaderInfoResponse | null>(null);
     const [regionName, setRegionName] = useState<string | null>(null);
     const [isReviewWriteModalOpen, setIsReviewWriteModalOpen] = useState(false);
@@ -306,7 +306,8 @@ const StudyDetailPageV3: React.FC = () => {
         }
     };
 
-    const handleReportSubmit = (reason: string) => {
+    const handleReportSubmit = (_reason: string) => {
+        // TODO: 신고 API에 reason 전달
         showToast('신고가 접수되었습니다.', 'success');
     };
 

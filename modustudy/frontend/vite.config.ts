@@ -1,11 +1,19 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { visualizer } from 'rollup-plugin-visualizer';
 import fs from 'fs';
 import path from 'path';
 
 export default defineConfig({
     assetsInclude: ['**/*.lottie'],
-    plugins: [react()],
+    plugins: [
+        react(),
+        visualizer({
+            filename: 'dist/bundle-report.html',
+            open: true,
+            gzipSize: true,
+        }),
+    ],
     define: {
         global: 'window',
     },
