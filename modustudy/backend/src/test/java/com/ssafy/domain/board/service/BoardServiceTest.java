@@ -1,5 +1,6 @@
 package com.ssafy.domain.board.service;
 
+import com.ssafy.common.exception.BusinessException;
 import com.ssafy.domain.board.dto.request.BoardCommentCreateRequest;
 import com.ssafy.domain.board.dto.request.BoardPostCreateRequest;
 import com.ssafy.domain.board.dto.response.BoardCommentResponse;
@@ -7,7 +8,6 @@ import com.ssafy.domain.board.dto.response.BoardPostDetailResponse;
 import com.ssafy.domain.board.dto.response.BoardRecruitingStudyResponse;
 import com.ssafy.domain.board.entity.BoardComment;
 import com.ssafy.domain.board.repository.BoardCommentRepository;
-import com.ssafy.common.exception.BusinessException;
 import com.ssafy.domain.board.repository.BoardPostRepository;
 import com.ssafy.domain.notification.entity.Notification;
 import com.ssafy.domain.notification.repository.NotificationRepository;

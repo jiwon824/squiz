@@ -62,6 +62,10 @@ export const meetingApi = {
         return data.data;
     },
 
+    async startMeetingEnding(studyId: number, meetingId: number): Promise<void> {
+        await api.put(`${buildMeetingPath(studyId, meetingId)}/end/start`);
+    },
+
     async updatePlannedDuration(
         studyId: number,
         meetingId: number,

@@ -1,6 +1,6 @@
 ﻿import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useUIStore } from '@/store/uiStore';
 import { useAuthStore } from '@/store/authStore';
 import { Users, MessageSquare, Video, Calendar, Clock, Play, X } from 'lucide-react';
@@ -59,6 +59,7 @@ const resolveNextSession = (sessions: StudySessionDTO[], currentTime: Date) => {
 // 다가오는 미팅 빠른 접근
 const MeetingQuickAccess: React.FC = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { showToast } = useUIStore();
     const [meetings, setMeetings] = useState<UpcomingMeeting[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -211,12 +212,12 @@ const MeetingQuickAccess: React.FC = () => {
                         return (
                             <motion.div
                                 key={meeting.id}
-                                className={cn(
-                                    'p-3 rounded-lg border transition-all',
-                                    hasStarted
-                                        ? 'border-study-green bg-study-green/5 shadow-sm'
-                                        : 'border-gray-200 bg-gray-50/50'
-                                )}
+                                    className={cn(
+                                        'p-3 rounded-lg border transition-all',
+                                        hasStarted
+                                            ? 'border-study-green bg-white shadow-sm'
+                                            : 'border-gray-200 bg-gray-50/50'
+                                    )}
                                 whileHover={{ scale: 1.02 }}
                             >
                                 <div className="flex items-start justify-between mb-2">
@@ -414,7 +415,8 @@ export const RightSideBarV2: React.FC = () => {
     const visibleActiveMeetings = dismissedMeetingId === -1
         ? []
         : activeMeetings.filter((meeting) => meeting.id !== dismissedMeetingId);
-    const showMeetingPopover = popoverReady && visibleActiveMeetings.length > 0;
+    const isMeetingRoomPage = location.pathname.includes('/meetings/') && location.pathname.endsWith('/room');
+    const showMeetingPopover = popoverReady && visibleActiveMeetings.length > 0 && !isMeetingRoomPage;
 
     // 리사이즈 상태
     const [panelWidth, setPanelWidth] = useState(DEFAULT_PANEL_WIDTH);
@@ -580,10 +582,7 @@ export const RightSideBarV2: React.FC = () => {
                                                 <Video size={16} className="text-study-green" />
                                             </div>
                                             <div className="flex-1 min-w-0 flex flex-col justify-center">
-                                                <p className="text-xs font-black text-study-green leading-4 pt-[1px]">미팅 진행 중</p>
-                                                <p className="text-[11px] text-gray-500 leading-4">
-                                                    {visibleActiveMeetings.length}개 동시 진행
-                                                </p>
+                                                <p className="text-xs font-black text-study-green leading-4 pt-[1px]"><br/>미팅 진행 중</p>
                                             </div>
                                             <button
                                                 onClick={(e) => {
@@ -599,15 +598,10 @@ export const RightSideBarV2: React.FC = () => {
 
                                     {/* 미팅 리스트 */}
                                     <div className="p-3 space-y-2">
-                                        {visibleActiveMeetings.map((meeting, index) => (
+                                        {visibleActiveMeetings.map((meeting) => (
                                             <div
                                                 key={meeting.id}
-                                                className={cn(
-                                                    'rounded-xl px-2.5 py-2 border',
-                                                    index === 0
-                                                        ? 'border-study-green/30 bg-study-green/10 shadow-sm'
-                                                        : 'border-gray-200 bg-gray-50'
-                                                )}
+                                                className="rounded-xl px-2.5 py-2 border border-study-green/30 bg-study-green/10 shadow-sm"
                                             >
                                                 <div className="flex items-center gap-2 pl-1 pt-1">
                                                     <p className="text-xs text-gray-700 font-semibold truncate">{meeting.studyName}</p>

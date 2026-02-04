@@ -50,6 +50,19 @@ export interface ReviewStatsResponse {
   proficiency: number;
 }
 
+// 코스별 통계 타입
+export interface CourseStatItem {
+  courseId: number;
+  courseName: string;
+  totalQuestions: number;
+  solvedCount: number;
+}
+
+export interface CourseStatsResponse {
+  totalSolvedCount: number;
+  courseStats: CourseStatItem[];
+}
+
 // --- API 함수 ---
 
 const BASE = '/api/v1/reviews';
@@ -78,5 +91,11 @@ export async function getTodayReviews(): Promise<TodayReviewResponse> {
 /** 복습 통계 조회 */
 export async function getReviewStats(): Promise<ReviewStatsResponse> {
   const res = await api.get<{ success: boolean; data: ReviewStatsResponse }>(`${BASE}/stats`);
+  return res.data.data;
+}
+
+/** 코스별 학습 통계 조회 (전체 맞춘 문제 수 포함) */
+export async function getCourseStats(): Promise<CourseStatsResponse> {
+  const res = await api.get<{ success: boolean; data: CourseStatsResponse }>(`${BASE}/courses/stats`);
   return res.data.data;
 }

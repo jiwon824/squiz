@@ -91,7 +91,7 @@ class BoardPostRepositoryTest {
                 .topic(topic)
                 .format(format)
                 .name("Board Study")
-                .description("게시판 테스트")
+                .description("Board study description")
                 .maxMembers(6)
                 .studyType(StudyType.PLANNED)
                 .status(Status.RECRUITING)
@@ -105,7 +105,7 @@ class BoardPostRepositoryTest {
     }
 
     @Test
-    @DisplayName("삭제되지 않은 모집글만 최신순으로 조회한다")
+    @DisplayName("List latest non-deleted posts")
     void findAllByIsDeletedFalseOrderByCreatedAtDesc() throws Exception {
         BoardPost first = boardPostRepository.save(new BoardPost(
                 leader, study, BoardCategory.FREE, "첫 번째 글", "내용1",
@@ -132,7 +132,7 @@ class BoardPostRepositoryTest {
     }
 
     @Test
-    @DisplayName("삭제된 모집글은 상세 조회에서 제외된다")
+    @DisplayName("Exclude deleted post from detail query")
     void findByIdAndIsDeletedFalse() {
         BoardPost post = boardPostRepository.save(new BoardPost(
                 leader, study, BoardCategory.FREE, "상세 조회", "내용",

@@ -241,7 +241,7 @@ export const MeetingTestWidget: React.FC = () => {
                 <WidgetHeader
                     icon={ClipboardCheck}
                     iconColor="neutral"
-                    title="미팅 테스트"
+                    title="미팅 퀴즈"
                     subtitle="미팅 후 자동 생성 퀴즈"
                     maximizePath="/meeting-test"
                 />
@@ -257,7 +257,7 @@ export const MeetingTestWidget: React.FC = () => {
             <WidgetHeader
                 icon={ClipboardCheck}
                 iconColor="neutral"
-                title={viewMode === 'list' ? '미팅 테스트' : quizDetail?.title || ''}
+                title={viewMode === 'list' ? '미팅 퀴즈' : quizDetail?.title || ''}
                 subtitle={viewMode === 'list' ? '미팅 후 자동 생성 퀴즈' : selectedItem?.studyName}
                 showBackButton={viewMode === 'quiz'}
                 onBack={handleBackToList}
@@ -293,7 +293,7 @@ export const MeetingTestWidget: React.FC = () => {
                                     ) : (
                                         <>
                                             <ClipboardCheck className="mx-auto text-gray-300 mb-4" size={48} />
-                                            <p className="text-text-secondary">아직 미팅 테스트가 없습니다</p>
+                                            <p className="text-text-secondary">아직 미팅 퀴즈가 없습니다</p>
                                             <p className="text-sm text-text-tertiary mt-1">
                                                 스터디 미팅 후 AI가 자동으로 퀴즈를 생성합니다
                                             </p>

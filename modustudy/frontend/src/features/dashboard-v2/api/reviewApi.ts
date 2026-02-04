@@ -75,3 +75,17 @@ export const submitReview = async (data: ReviewSubmitRequest): Promise<ReviewSub
     const response = await api.post<ApiResponse<ReviewSubmitResponse>>('/api/v1/reviews', data);
     return response.data.data;
 };
+
+export interface ReviewCourseWeaknessResponse {
+    courseWeaknessStats: {
+        courseId: number;
+        courseName: string;
+        totalReps: number;
+        totalLapses: number;
+    }[];
+}
+
+export const getCourseWeaknessStats = async (): Promise<ReviewCourseWeaknessResponse> => {
+    const response = await api.get<ApiResponse<ReviewCourseWeaknessResponse>>('/api/v1/reviews/courses/weakness');
+    return response.data.data;
+};

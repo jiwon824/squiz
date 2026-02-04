@@ -27,6 +27,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.domain.quiz.dto.response.OptionItem;
 import com.ssafy.domain.quiz.dto.response.ReviewCourseStatsResponse;
 import com.ssafy.domain.quiz.dto.response.ReviewCourseStatsResponse.CourseStatDto;
+import com.ssafy.domain.quiz.dto.response.ReviewCourseWeaknessResponse;
+import com.ssafy.domain.quiz.dto.response.ReviewCourseWeaknessResponse.CourseWeaknessStatDto;
 import com.ssafy.domain.quiz.dto.response.ReviewResult;
 import com.ssafy.domain.quiz.dto.response.TodayReviewResponse.ReviewItemDto;
 import com.ssafy.domain.quiz.entity.*;
@@ -749,6 +751,16 @@ class FsrsServiceTest {
                                 public Long getQuestionCount() {
                                         return questionCount;
                                 }
+
+                                @Override
+                                public Long getSumReps() {
+                                        return 0L; // getCourseStats 테스트에서는 사용되지 않음
+                                }
+
+                                @Override
+                                public Long getSumLapses() {
+                                        return 0L; // getCourseStats 테스트에서는 사용되지 않음
+                                }
                         };
                 }
 
@@ -760,6 +772,83 @@ class FsrsServiceTest {
                                         .build();
                         ReflectionTestUtils.setField(course, "id", id);
                         return course;
+                }
+                // ══════════════════════════════════════════════════════
+                // getCourseWeaknessStats 테스트
+                // ══════════════════════════════════════════════════════
+
+                @Nested
+                @DisplayName("getCourseWeaknessStats 메서드는")
+                class GetCourseWeaknessStats {
+
+                        @Test
+                        @DisplayName("코스별 취약점 통계를 정확하게 집계하여 반환한다")
+                        void shouldReturnCorrectWeaknessStats() {
+                                // given
+                                // 코스별 통계 Projection Mock (reps, lapses)
+                                CourseQuestionStatsProjection p1 = createMockProjection(1L, 100L, 20L); // Java
+                                CourseQuestionStatsProjection p2 = createMockProjection(2L, 50L, 5L); // Python
+
+                                given(continuousQuizRepository.countReviewStatsGroupByCourse(TEST_USER_ID))
+                                                .willReturn(List.of(p1, p2));
+
+                                // 활성 코스 목록 (sortOrder 순서)
+                                QuizCourse course1 = createMockCourse(1L, "Java 기초");
+                                QuizCourse course2 = createMockCourse(2L, "Python 입문");
+                                QuizCourse course3 = createMockCourse(3L, "알고리즘"); // 통계 없음
+
+                                given(quizCourseRepository.findAllByIsActiveTrueOrderBySortOrderAscIdAsc())
+                                                .willReturn(List.of(course1, course2, course3));
+
+                                // when
+                                ReviewCourseWeaknessResponse result = fsrsService.getCourseWeaknessStats(TEST_USER_ID);
+
+                                // then
+                                assertThat(result.courseWeaknessStats()).hasSize(3);
+
+                                // Java
+                                assertThat(result.courseWeaknessStats().get(0).courseId()).isEqualTo(1L);
+                                assertThat(result.courseWeaknessStats().get(0).courseName()).isEqualTo("Java 기초");
+                                assertThat(result.courseWeaknessStats().get(0).totalReps()).isEqualTo(100L);
+                                assertThat(result.courseWeaknessStats().get(0).totalLapses()).isEqualTo(20L);
+
+                                // Python
+                                assertThat(result.courseWeaknessStats().get(1).courseId()).isEqualTo(2L);
+                                assertThat(result.courseWeaknessStats().get(1).courseName()).isEqualTo("Python 입문");
+                                assertThat(result.courseWeaknessStats().get(1).totalReps()).isEqualTo(50L);
+                                assertThat(result.courseWeaknessStats().get(1).totalLapses()).isEqualTo(5L);
+
+                                // Algorithm (통계 없음 -> 0 처리)
+                                assertThat(result.courseWeaknessStats().get(2).courseId()).isEqualTo(3L);
+                                assertThat(result.courseWeaknessStats().get(2).courseName()).isEqualTo("알고리즘");
+                                assertThat(result.courseWeaknessStats().get(2).totalReps()).isEqualTo(0L);
+                                assertThat(result.courseWeaknessStats().get(2).totalLapses()).isEqualTo(0L);
+                        }
+
+                        private CourseQuestionStatsProjection createMockProjection(Long courseId, Long sumReps,
+                                        Long sumLapses) {
+                                return new CourseQuestionStatsProjection() {
+                                        @Override
+                                        public Long getCourseId() {
+                                                return courseId;
+                                        }
+
+                                        @Override
+                                        public Long getQuestionCount() {
+                                                return 0L; // Not used in this test
+                                        }
+
+                                        @Override
+                                        public Long getSumReps() {
+                                                return sumReps;
+                                        }
+
+                                        @Override
+                                        public Long getSumLapses() {
+                                                return sumLapses;
+                                        }
+                                };
+                        }
                 }
         }
 }

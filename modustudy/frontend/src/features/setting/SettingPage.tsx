@@ -5,7 +5,7 @@
  */
 
 import { useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { useSettingStore } from './store/settingStore';
 import { SettingSidebar } from './components/SettingSidebar';
@@ -19,8 +19,12 @@ import './styles/SettingPage.css';
 import '@/features/profile/styles/ProfilePage.css';
 import type { SettingSection } from './types';
 
+// 유효한 섹션 목록
+const VALID_SECTIONS: SettingSection[] = ['notification', 'account', 'profile', 'study', 'theme'];
+
 export const SettingPage = () => {
     const location = useLocation();
+    const [searchParams] = useSearchParams();
     const {
         activeSection,
         setActiveSection,
@@ -29,13 +33,21 @@ export const SettingPage = () => {
         isLoading,
     } = useSettingStore();
 
-    // URL state로 전달된 섹션이 있으면 해당 섹션으로 이동
+    // URL state 또는 쿼리 파라미터로 전달된 섹션이 있으면 해당 섹션으로 이동
     useEffect(() => {
+        // 우선순위: location.state > 쿼리 파라미터
         const state = location.state as { section?: SettingSection } | null;
         if (state?.section) {
             setActiveSection(state.section);
+            return;
         }
-    }, [location.state, setActiveSection]);
+
+        // 쿼리 파라미터에서 섹션 확인
+        const sectionParam = searchParams.get('section') as SettingSection | null;
+        if (sectionParam && VALID_SECTIONS.includes(sectionParam)) {
+            setActiveSection(sectionParam);
+        }
+    }, [location.state, searchParams, setActiveSection]);
 
     // 초기 데이터 로드
     useEffect(() => {

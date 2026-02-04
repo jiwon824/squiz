@@ -4,6 +4,7 @@ import com.ssafy.common.auth.SsafyUserDetails;
 import com.ssafy.common.response.ApiResponse;
 import com.ssafy.domain.quiz.dto.request.ReviewSubmitRequest;
 import com.ssafy.domain.quiz.dto.response.ReviewCourseStatsResponse;
+import com.ssafy.domain.quiz.dto.response.ReviewCourseWeaknessResponse;
 import com.ssafy.domain.quiz.dto.response.ReviewHistoryResponse;
 import com.ssafy.domain.quiz.dto.response.ReviewResult;
 import com.ssafy.domain.quiz.dto.response.ReviewStatsResponse;
@@ -170,5 +171,15 @@ public class ReviewController {
         Long userId = userDetails.getUser().getId();
 
         return ApiResponse.success(fsrsService.getCourseStats(userId));
+    }
+
+    @Operation(summary = "코스별 취약점 통계 조회", description = "코스별 총 복습 횟수, 오답 횟수를 포함한 취약점 분석 데이터를 조회합니다. 인증 필요.")
+    @GetMapping("/courses/weakness")
+    public ApiResponse<ReviewCourseWeaknessResponse> getCourseWeaknessStats(
+            @AuthenticationPrincipal SsafyUserDetails userDetails) {
+
+        Long userId = userDetails.getUser().getId();
+
+        return ApiResponse.success(fsrsService.getCourseWeaknessStats(userId));
     }
 }
