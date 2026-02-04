@@ -186,7 +186,7 @@ const MeetingQuickAccess: React.FC = () => {
     return (
         <div className="h-full bg-transparent flex flex-col">
             {/* 헤더 */}
-            <div className="p-4 border-b border-gray-100">
+            <div className="p-4 border-b border-gray-200">
                 <div className="flex items-center gap-2 text-study-blue">
                     <Video size={20} />
                     <h3 className="font-bold text-sm">다가오는 미팅</h3>
@@ -264,7 +264,7 @@ const MeetingQuickAccess: React.FC = () => {
             </div>
 
             {/* 하단 액션 */}
-            <div className="p-3 border-t border-gray-100">
+            <div className="p-3 border-t border-gray-200">
                 <button
                     onClick={() => navigate('/calendar')}
                     className="w-full py-2 text-xs font-medium text-study-blue hover:bg-study-blue/5 rounded-lg transition-colors"
@@ -555,7 +555,7 @@ export const RightSideBarV2: React.FC = () => {
             </AnimatePresence>
 
             {/* 고정 아이콘 바 */}
-            <div className="w-14 h-full flex flex-col items-center py-4 gap-4 bg-slate-200">
+            <div className="w-14 h-full flex flex-col items-center py-4 gap-4 bg-gray-200">
                 {/* 미팅 버튼 + 활성 미팅 팝오버 */}
                 <div className="relative">
                     <button
@@ -569,7 +569,7 @@ export const RightSideBarV2: React.FC = () => {
                         <Video size={20} className="group-hover:scale-110 transition-transform" />
                         {/* 알림 배지 */}
                         {hasActiveMeeting && (
-                            <div className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-study-green rounded-full border-2 border-white animate-pulse" />
+                            <div className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-study-green rounded-full border-2 border-gray-200 animate-pulse" />
                         )}
                     </button>
 
@@ -606,7 +606,7 @@ export const RightSideBarV2: React.FC = () => {
                                                 e.stopPropagation();
                                                 dismissMeeting(activeMeeting.id);
                                             }}
-                                            className="flex-shrink-0 p-0.5 rounded-full hover:bg-gray-100 transition-colors text-gray-300 hover:text-gray-500"
+                                            className="flex-shrink-0 p-0.5 rounded-full hover:bg-gray-200 transition-colors text-gray-300 hover:text-gray-500"
                                         >
                                             <X size={14} />
                                         </button>
@@ -617,7 +617,7 @@ export const RightSideBarV2: React.FC = () => {
                     </AnimatePresence>
                 </div>
 
-                <div className="w-8 h-px bg-gray-100 my-1" />
+                <div className="w-8 h-px bg-gray-300 my-1" />
 
                 <button
                     onClick={() => toggleRightTab('friend')}
@@ -640,7 +640,7 @@ export const RightSideBarV2: React.FC = () => {
                 >
                     <MessageSquare size={20} className="group-hover:scale-110 transition-transform" />
                     {unreadCount > 0 && (
-                        <div className="absolute top-2 right-2 w-2 h-2 bg-red-400 rounded-full border-2 border-white" />
+                        <div className="absolute top-2 right-2 w-2 h-2 bg-red-400 rounded-full border-2 border-gray-200" />
                     )}
                 </button>
             </div>

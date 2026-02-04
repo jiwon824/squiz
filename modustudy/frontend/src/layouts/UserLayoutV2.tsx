@@ -223,7 +223,7 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEntering
 
     return (
         <div className={cn(
-            "flex flex-col h-screen bg-slate-200 overflow-hidden",
+            "flex flex-col h-screen bg-gray-200 overflow-hidden",
             isEnteringFromWorkspace && "layout-entering-from-workspace",
             isExitingToWorkspace && "layout-exiting-to-workspace",
             isDashboardExiting && "layout-exiting-to-workspace",
@@ -236,7 +236,7 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEntering
             {/* 헤더 - 회의 룸에서는 숨김 */}
             {!shouldHideHeader && (
                 <header className={cn(
-                    "h-16 w-full bg-slate-200 flex items-center flex-shrink-0 z-50",
+                    "h-16 w-full bg-gray-200 flex items-center flex-shrink-0 z-50",
                     isEnteringFromWorkspace && "layout-header-enter"
                 )}>
                     {/* 좌측 영역: 사이드바와 동일 너비 — closed 시 햄버거 버튼 표시 */}
@@ -259,10 +259,10 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEntering
                     </div>
 
                     {/* 콘텐츠 영역: 흰색 메인 시작점과 x축 정렬 */}
-                    <div className="flex-1 flex items-center justify-between pr-14">
+                    <div className="flex-1 flex items-center justify-between pr-14 h-full">
                         {/* 로고 — 흰색 콘텐츠 시작 위치와 일치 */}
                         <Link to="/dashboard" className="flex items-center">
-                            <SquizLogoNew width={160} height={55} className="scale-110 origin-left" />
+                            <SquizLogoNew width={180} height={60} className="scale-110 origin-left" />
                         </Link>
 
                         {/* 우측 인증 영역 */}
@@ -288,7 +288,7 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEntering
                                             {unreadCount > 99 ? '99+' : unreadCount}
                                         </span>
                                     )}
-                                    <Bell size={20} className="text-gray-700" />
+                                    <Bell size={24} className="text-gray-700" />
                                 </div>
                             </button>
 
@@ -577,7 +577,7 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEntering
                                     )}
                                     aria-label="로그인"
                                 >
-                                    <User size={20} className="text-gray-700" />
+                                    <User size={24} className="text-gray-700" />
                                 </button>
                             )}
                         </div>
@@ -595,8 +595,8 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEntering
                 <main
                     className={cn(
                         'flex-1 flex flex-col overflow-hidden',
-                        'pb-6 pr-0 bg-slate-200 transition-all duration-300 ease-out',
-                        shouldHideHeader ? 'pt-4' : 'pt-2',
+                        'pb-6 pr-0 bg-gray-200 transition-all duration-300 ease-out',
+                        shouldHideHeader ? 'pt-4' : 'pt-0',
                         sidebarMode === 'closed' ? 'pl-4' : 'pl-0',
                         isEnteringFromWorkspace && 'layout-main-enter'
                     )}

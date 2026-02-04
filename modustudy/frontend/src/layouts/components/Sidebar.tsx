@@ -49,7 +49,7 @@ export const Sidebar = () => {
     return (
         <motion.aside
             className={cn(
-                "h-full flex flex-col bg-slate-200 flex-shrink-0",
+                "h-full flex flex-col bg-gray-200 flex-shrink-0",
                 isClosed ? "overflow-hidden" : "overflow-visible"
             )}
             animate={{ width: isClosed ? 0 : SIDEBAR_WIDTH, minWidth: isClosed ? 0 : SIDEBAR_WIDTH }}
@@ -190,12 +190,12 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
 
                     {/* 배지 점 */}
                     {badge !== undefined && (
-                        <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[var(--color-google-blue)] border-2 border-slate-200" />
+                        <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[var(--color-google-blue)] border-2 border-gray-200" />
                     )}
 
                     {/* 활성 상태 점 */}
                     {showDot && !isActive && (
-                        <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[var(--color-google-green)] border-2 border-slate-200" />
+                        <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[var(--color-google-green)] border-2 border-gray-200" />
                     )}
                 </div>
             </div>
