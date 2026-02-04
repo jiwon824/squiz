@@ -63,6 +63,50 @@ export const unlinkSocialAccount = async (provider: string): Promise<void> => {
     await api.delete(`/api/v1/auth/social/${provider.toLowerCase()}`);
 };
 
+/**
+ * 소셜 계정 연동 추가
+ * POST /api/v1/auth/social/{provider}/link
+ * OAuth 인가 코드를 사용하여 소셜 계정 연동
+ */
+export const linkSocialAccount = async (
+    provider: string,
+    code: string
+): Promise<{ provider: string; email: string; linkedAt: string }> => {
+    const response = await api.post<{
+        success: boolean;
+        data: { provider: string; email: string; linkedAt: string };
+    }>(`/api/v1/auth/social/${provider.toLowerCase()}/link`, { code });
+    return response.data.data;
+};
+
+/**
+ * 소셜 계정 연동용 OAuth URL 조회
+ * 기존 로그인 API와 동일하지만, 연동 모드로 사용
+ */
+export const getSocialLinkAuthUrl = async (provider: string): Promise<string> => {
+    const { authApi } = await import('@/api/endpoints/authApi');
+    let authUrl: string;
+
+    switch (provider.toLowerCase()) {
+        case 'kakao':
+            const kakaoResponse = await authApi.getKakaoAuthUrl();
+            authUrl = kakaoResponse.authUrl;
+            break;
+        case 'naver':
+            const naverResponse = await authApi.getNaverAuthUrl();
+            authUrl = naverResponse.authUrl;
+            break;
+        case 'google':
+            const googleResponse = await authApi.getGoogleAuthUrl();
+            authUrl = googleResponse.authUrl;
+            break;
+        default:
+            throw new Error('지원하지 않는 OAuth 제공자입니다.');
+    }
+
+    return authUrl;
+};
+
 // ============================================
 // 비밀번호 API
 // ============================================
@@ -157,6 +201,8 @@ export const settingApi = {
     // 소셜 계정
     getSocialAccounts,
     unlinkSocialAccount,
+    linkSocialAccount,
+    getSocialLinkAuthUrl,
     // 비밀번호
     setPassword,
     changePassword,
