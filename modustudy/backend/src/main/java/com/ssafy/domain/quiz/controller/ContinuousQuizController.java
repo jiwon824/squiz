@@ -125,4 +125,15 @@ public class ContinuousQuizController {
         return ApiResponse.success(
                 continuousQuizService.getWeakConcepts(userDetails.getUser().getId(), limit));
     }
+
+    /**
+     * 코스별 학습 통계 조회.
+     */
+    @Operation(summary = "코스별 학습 통계 조회", description = "코스별 시도한 문제 수(Attempted)와 정답 수(Correct)를 조회합니다.")
+    @GetMapping("/course-stats")
+    public ApiResponse<List<com.ssafy.domain.quiz.dto.response.CourseQuizStatDto>> getCourseStats(
+            @AuthenticationPrincipal SsafyUserDetails userDetails) {
+
+        return ApiResponse.success(continuousQuizService.getCourseStats(userDetails.getUser().getId()));
+    }
 }

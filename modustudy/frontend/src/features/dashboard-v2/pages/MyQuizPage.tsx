@@ -48,6 +48,7 @@ export const MyQuizPage: React.FC = () => {
     resetRetryState,
     totalWrongCount,
     avgWrongCount,
+    courseQuizStats,
   } = useMyQuiz();
 
   // 퀴즈 재도전 상태에서 개별 값 사용을 위한 로컬 상태
@@ -125,6 +126,7 @@ export const MyQuizPage: React.FC = () => {
             setWrongSortType={setWrongSortType}
             totalWrongCount={totalWrongCount}
             avgWrongCount={avgWrongCount}
+            courseQuizStats={courseQuizStats}
             onRetry={handleStartRetry}
           />
         )}
@@ -206,6 +208,7 @@ interface MainContentProps {
   setWrongSortType: ReturnType<typeof useMyQuiz>['setWrongSortType'];
   totalWrongCount: number;
   avgWrongCount: string;
+  courseQuizStats: ReturnType<typeof useMyQuiz>['courseQuizStats'];
   onRetry: (item: ReturnType<typeof useMyQuiz>['todayReviews'][0]) => void;
 }
 
@@ -221,6 +224,7 @@ const MainContent: React.FC<MainContentProps> = React.memo(
     setWrongSortType,
     totalWrongCount,
     avgWrongCount,
+    courseQuizStats,
     onRetry,
   }) => (
     <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
@@ -278,6 +282,7 @@ const MainContent: React.FC<MainContentProps> = React.memo(
                     totalWrongCount={totalWrongCount}
                     avgWrongCount={avgWrongCount}
                     weakConcepts={weakConcepts}
+                    courseQuizStats={courseQuizStats}
                   />
                 </TabContent>
               )}

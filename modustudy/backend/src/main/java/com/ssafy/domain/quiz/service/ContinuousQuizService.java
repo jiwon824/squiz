@@ -16,8 +16,10 @@ import com.ssafy.domain.quiz.dto.response.QuizCourseListItem;
 import com.ssafy.domain.quiz.dto.response.QuizCourseListResponse;
 import com.ssafy.domain.quiz.dto.response.SectionSummary;
 import com.ssafy.domain.quiz.dto.response.SectionWithProgressDto;
+import com.ssafy.domain.quiz.dto.response.CourseQuizStatDto;
 import com.ssafy.domain.quiz.dto.response.SectionsWithProgressResponse;
 import com.ssafy.domain.quiz.entity.QuizCourse;
+import com.ssafy.domain.quiz.repository.CourseQuizStatProjection;
 import com.ssafy.domain.quiz.entity.QuizCourseQuestion;
 import com.ssafy.domain.quiz.entity.QuizCourseSection;
 import com.ssafy.domain.quiz.entity.ReviewContentType;
@@ -281,6 +283,26 @@ public class ContinuousQuizService {
                                                                                                               // 순(취약한
                                                                                                               // 순)
                                 .limit(limit)
+                                .toList();
+        }
+
+        /**
+         * 사용자별 코스 통계 조회.
+         *
+         * @param userId 사용자 ID
+         * @return 코스별 통계 (attempted, correct)
+         */
+        public List<CourseQuizStatDto> getCourseStats(Long userId) {
+                // Native Query Projection 조회
+                List<CourseQuizStatProjection> projections = quizCourseRepository.findCourseStats(userId);
+
+                // DTO 변환
+                return projections.stream()
+                                .map(p -> CourseQuizStatDto.builder()
+                                                .courseName(p.getCourseName())
+                                                .attemptedCount(p.getAttemptedCount())
+                                                .correctCount(p.getCorrectCount())
+                                                .build())
                                 .toList();
         }
 
