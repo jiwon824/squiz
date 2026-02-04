@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, ChevronRight, RefreshCw,
-  Clock, CheckCircle2, XCircle, Compass, Calendar
+  Clock, CheckCircle2, XCircle, Compass, Calendar, Play
 } from 'lucide-react';
 import { Spinner } from '@/shared/components/Spinner';
 import { cn } from '@/shared/utils/cn';
@@ -285,6 +285,20 @@ export const MyApplicationsPage: React.FC = () => {
                         <span className={cn('w-2 h-2 rounded-full', badge.dot)} />
                         {badge.label}
                       </span>
+
+                      {/* 승인된 경우 워크스페이스 버튼 표시 */}
+                      {app.status === 'APPROVED' && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/study/${app.studyId}/workspace`);
+                          }}
+                          className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-emerald-500 hover:bg-emerald-600 transition-colors shadow-sm shadow-emerald-200"
+                          title="워크스페이스로 이동"
+                        >
+                          <Play size={14} fill="white" className="text-white ml-0.5" />
+                        </button>
+                      )}
 
                       <ChevronRight size={16} className="text-gray-300 flex-shrink-0 hidden sm:block" />
                     </div>
