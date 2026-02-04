@@ -2,6 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Check, X, ChevronRight, CheckSquare, Square, Circle, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
+import { normalizeCorrectAnswer } from '@/shared/utils/quizUtils';
 
 // 퀴즈 타입 정의
 export interface QuizQuestion {
@@ -210,41 +211,8 @@ export const QuizMultipleChoice: React.FC<QuizMultipleChoiceProps> = ({
     isLastQuestion = false,
     className,
 }) => {
-    // 정답 배열 파싱 - 숫자 배열, 단일 숫자, 또는 문자열 형태 모두 지원
-    const correctAnswers: number[] = (() => {
-        if (Array.isArray(quiz.correctAnswer)) {
-            // 이미 배열인 경우 (숫자 배열이어야 함)
-            return quiz.correctAnswer as number[];
-        }
-        if (typeof quiz.correctAnswer === 'number') {
-            // 단일 숫자인 경우
-            return [quiz.correctAnswer];
-        }
-        if (typeof quiz.correctAnswer === 'string' && quiz.correctAnswer.trim() !== '') {
-            // 문자열인 경우: 변환이 안 된 경우이므로 로그 출력 (디버깅용)
-            console.warn('[QuizMultipleChoice] correctAnswer가 문자열로 전달됨:', quiz.correctAnswer);
-
-            // 쉼표로 구분된 각 항목을 파싱
-            const parts = quiz.correctAnswer.split(',').map(s => s.trim());
-
-            // 알파벳 ID를 인덱스로 변환하는 헬퍼 함수
-            const optionIdToIndex = (id: string): number => {
-                const normalized = id.toUpperCase();
-                if (normalized.length === 1 && normalized >= 'A' && normalized <= 'Z') {
-                    return normalized.charCodeAt(0) - 'A'.charCodeAt(0);
-                }
-                const parsed = parseInt(id, 10);
-                return isNaN(parsed) ? -1 : parsed;
-            };
-
-            const indexes = parts
-                .map(s => optionIdToIndex(s))
-                .filter(n => n !== -1);
-
-            return indexes;
-        }
-        return [];
-    })();
+    // 정답 배열 파싱 - normalizeCorrectAnswer 유틸리티 사용 (항상 number[] 반환)
+    const correctAnswers: number[] = normalizeCorrectAnswer(quiz.correctAnswer);
 
     return (
         <div className={cn('space-y-4', className)}>
