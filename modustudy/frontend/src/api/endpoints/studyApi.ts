@@ -64,6 +64,8 @@ export interface RegionItem {
 export interface StudyDetailResponse {
   id: number;
   leaderId: number;
+  // 백엔드 StudyResponse가 실제로 반환하는 스터디장 정보
+  leader?: { id: number; nickname: string; profileImage?: string };
   name: string;
   intro: string | null;
   description: string | null;

@@ -121,6 +121,13 @@ api.interceptors.response.use(
             }
         }
 
+        // 403, 500, 503 에러 시 에러 페이지로 리다이렉트
+        const status = error.response?.status;
+        if (status === 403 || status === 500 || status === 503) {
+            window.location.href = `/error/${status}`;
+            return Promise.reject(error);
+        }
+
         return Promise.reject(error);
     }
 );
