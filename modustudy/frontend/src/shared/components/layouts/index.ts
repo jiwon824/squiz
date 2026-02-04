@@ -20,3 +20,9 @@ export type { TabLayoutProps, TabItem, TabContentProps } from './TabLayout';
 
 export { PostIt, getPostItTheme } from './PostIt';
 export type { PostItProps, PostItColor } from './PostIt';
+
+export { PageListHeader } from './PageListHeader';
+export type { PageListHeaderProps } from './PageListHeader';
+
+export { PageListSubHeader } from './PageListSubHeader';
+export type { PageListSubHeaderProps } from './PageListSubHeader';
