@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { Skeleton } from '../shared/components';
+import { ErrorBoundary } from '../features/error/ErrorBoundary';
 
 // Dashboard V2 (메인 대시보드)
 import { DashboardV2, GuestDashboardV2, UserDashboardV2 } from '../features/dashboard-v2';
@@ -34,6 +35,9 @@ const CourseDetail = lazy(() =>
 );
 const ContinuousQuizSessionPage = lazy(() =>
     import('../features/quiz').then(m => ({ default: m.ContinuousQuizSession }))
+);
+const QuizContestComingSoon = lazy(() =>
+    import('../features/quiz').then(m => ({ default: m.QuizContestComingSoon }))
 );
 const LoginPage = lazy(() =>
     import('../features/auth/index').then(m => ({ default: m.LoginPage }))
@@ -99,6 +103,9 @@ const AdminDashboardPage = lazy(() =>
 const NotificationPage = lazy(() =>
     import('../features/notification/pages/NotificationPage').then(m => ({ default: m.NotificationPage }))
 );
+const ErrorPage = lazy(() =>
+    import('../features/error/ErrorPage').then(m => ({ default: m.ErrorPage }))
+);
 
 export const AppRouter = () => {
     const { login, logout, isInitialized, setInitialized } = useAuthStore();
@@ -136,6 +143,7 @@ export const AppRouter = () => {
     }
 
     return (
+        <ErrorBoundary>
         <Suspense fallback={<div className="p-6"><Skeleton variant="rect" height="100vh" /></div>}>
             <Routes>
                 {/* 메인 대시보드 (로그인 여부에 따라 Guest/User 자동 분기) */}
@@ -156,7 +164,7 @@ export const AppRouter = () => {
                 <Route path="/password/reset" element={<PasswordResetPage />} />
 
                 {/* 퀴즈 */}
-                <Route path="/quiz" element={<QuizGameSelection />} />
+                <Route path="/quiz" element={<UserLayoutV2><QuizGameSelection /></UserLayoutV2>} />
 
                 {/* 내 브랜치 추가 */}
                 <Route path="/quiz/my-quiz" element={<UserLayoutV2><MyQuizPage /></UserLayoutV2>} />
@@ -166,6 +174,7 @@ export const AppRouter = () => {
                 <Route path="/my-studies/created" element={<UserLayoutV2><MyCreatedStudiesPage /></UserLayoutV2>} />
                 <Route path="/my-studies/applications" element={<UserLayoutV2><MyApplicationsPage /></UserLayoutV2>} />
                 <Route path="/quiz-commentle" element={<CommentleQuiz />} />
+                <Route path="/quiz-contest" element={<UserLayoutV2><QuizContestComingSoon /></UserLayoutV2>} />
                 <Route path="/quiz-practice" element={<QuizCourseList />} />
                 <Route path="/quiz-practice/:courseId" element={<CourseDetail />} />
                 {/* 연속 학습 모드 (Sayvoca 스타일) */}
@@ -203,7 +212,13 @@ export const AppRouter = () => {
                     }
                 />
                 <Route path="/admin" element={<AdminDashboardPage />} />
+
+                {/* 에러 페이지 */}
+                <Route path="/error" element={<ErrorPage />} />
+                <Route path="/error/:code" element={<ErrorPage />} />
+                <Route path="*" element={<ErrorPage />} />
             </Routes>
         </Suspense>
+        </ErrorBoundary>
     );
 };

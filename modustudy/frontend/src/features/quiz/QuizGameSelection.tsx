@@ -1,9 +1,42 @@
-import { useMemo, useState, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Terminal, Trophy, Dumbbell, ChevronRight, Sparkles } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
-import { ArrowButton } from '@/shared/components';
+import { gamificationApi } from '@/api/endpoints/gamificationApi';
+import { MascotWithEyes } from './components/MascotWithEyes';
 import '@/features/dashboard-v2/styles/DashboardV2.css';
+
+/**
+ * 타이핑 애니메이션 컴포넌트
+ */
+const TypingText = ({ text }: { text: string }) => {
+    const [displayText, setDisplayText] = useState('');
+    const [index, setIndex] = useState(0);
+
+    useEffect(() => {
+        if (index < text.length) {
+            const timer = setTimeout(() => {
+                setDisplayText(prev => prev + text[index]);
+                setIndex(prev => prev + 1);
+            }, 150);
+            return () => clearTimeout(timer);
+        } else {
+            // 타이핑 완료 후 잠시 대기 후 리셋
+            const resetTimer = setTimeout(() => {
+                setDisplayText('');
+                setIndex(0);
+            }, 2000);
+            return () => clearTimeout(resetTimer);
+        }
+    }, [index, text]);
+
+    return (
+        <span>
+            {displayText}
+            <span className="typing-cursor" />
+        </span>
+    );
+};
 
 /**
  * 퀴즈 게임 선택 메인 페이지
@@ -12,31 +45,19 @@ import '@/features/dashboard-v2/styles/DashboardV2.css';
 export const QuizGameSelection = () => {
     const navigate = useNavigate();
 
-    // 대시보드에서 진입 시 애니메이션 플래그 (최초 렌더 시 한 번만 확인)
-    const isEnteringFromDashboard = useMemo(() => {
-        const flag = sessionStorage.getItem('fromDashboard') === 'true';
-        if (flag) {
-            sessionStorage.removeItem('fromDashboard');
-        }
-        return flag;
+    // 사용자 퀴즈 통계
+    const [quizCount, setQuizCount] = useState<number>(0);
+
+    // 통계 조회
+    useEffect(() => {
+        gamificationApi.getStats()
+            .then((stats) => {
+                setQuizCount(stats.totalQuizCount || 0);
+            })
+            .catch((err) => {
+                console.error('퀴즈 통계 조회 실패:', err);
+            });
     }, []);
-
-    // 퇴장 애니메이션 상태
-    const [isExiting, setIsExiting] = useState(false);
-
-    // 대시보드로 돌아가기 (전환 애니메이션 포함)
-    const handleNavigateToDashboard = useCallback(() => {
-        // 퇴장 애니메이션 시작
-        setIsExiting(true);
-
-        // 대시보드에서 진입 애니메이션을 위한 플래그 설정
-        sessionStorage.setItem('fromQuiz', 'true');
-
-        // 애니메이션 완료 후 네비게이션 (500ms)
-        setTimeout(() => {
-            navigate('/dashboard');
-        }, 500);
-    }, [navigate]);
 
     const games = [
         {
@@ -74,41 +95,38 @@ export const QuizGameSelection = () => {
     ];
 
     return (
-        <div className={cn(
-            "min-h-screen bg-background p-6 md:p-12 lg:p-16",
-            isEnteringFromDashboard && "quiz-entering-from-dashboard",
-            isExiting && "quiz-exiting-to-dashboard"
-        )}>
+        <div className="p-6 md:p-8 lg:p-10">
             <div className="max-w-7xl mx-auto">
-                {/* 상단 네비게이션 및 헤더 */}
-                <header className="mb-16 animate-fadeIn">
-                    <div
-                        className="flex items-center gap-4 mb-10 cursor-pointer group w-fit"
-                        onClick={handleNavigateToDashboard}
-                    >
-                        <ArrowButton
-                            direction="left"
-                            onClick={handleNavigateToDashboard}
-                            size="md"
-                        />
-                        <span className="text-sm font-bold text-text-secondary group-hover:text-text-primary transition-colors">
-                            대시보드로 돌아가기
-                        </span>
+                {/* 헤더 */}
+                <header className="relative mb-12 animate-fadeIn overflow-hidden">
+                    {/* 물방울 애니메이션 배경 */}
+                    <div className="bubble-container">
+                        <span className="bubble bubble-1" />
+                        <span className="bubble bubble-2" />
+                        <span className="bubble bubble-3" />
+                        <span className="bubble bubble-4" />
+                        <span className="bubble bubble-5" />
+                        <span className="bubble bubble-6" />
+                        <span className="bubble bubble-7" />
+                        <span className="bubble bubble-8" />
                     </div>
 
-                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
                         <div>
                             <div className="flex items-center gap-2 text-primary font-black text-xs uppercase tracking-widest mb-3">
                                 <Sparkles size={14} className="animate-pulse" />
                                 Interactive Learning
                             </div>
                             <h1 className="text-4xl md:text-5xl font-black text-text-primary tracking-tight mb-2">
-                                🎮 SQUIZ 게임 센터
+                                SQUIZ 아일랜드🏝️
                             </h1>
                             <p className="text-lg text-text-secondary font-medium">
-                                지식을 테스트하고 새로운 개념을 습득할 게임 모드를 선택하세요.
+                                다양한 모드를 정복하며 지식의 보물을 모아보세요!
                             </p>
                         </div>
+
+                        {/* 마스코트 (눈이 커서를 따라감) */}
+                        <MascotWithEyes size={120} className="hidden md:block flex-shrink-0" />
                     </div>
                 </header>
 
@@ -116,15 +134,34 @@ export const QuizGameSelection = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {games.map((game, index) => {
                         const Icon = game.icon;
+                        // 테마별 글로우 색상 (파랑, 초록, 노랑)
+                        const glowColors: Record<string, string> = {
+                            primary: 'rgba(59, 130, 246, 0.4)',    // 파란색
+                            secondary: 'rgba(34, 197, 94, 0.4)',   // 초록색
+                            accent: 'rgba(250, 204, 21, 0.5)',     // 노란색
+                        };
+                        const glowColor = glowColors[game.theme] || glowColors.primary;
+
                         return (
                             <div
                                 key={game.id}
                                 onClick={() => navigate(game.route)}
                                 className={cn(
-                                    "relative group cursor-pointer bg-white rounded-[32px] p-8 border border-border-light shadow-sm transition-all duration-500 hover:shadow-2xl hover:shadow-primary/10 hover:-translate-y-3 overflow-hidden",
-                                    "animate-slideInUp"
+                                    "relative group cursor-pointer bg-white rounded-[32px] p-8 border border-border-light shadow-sm transition-all duration-500 hover:-translate-y-3 overflow-hidden",
+                                    "animate-slideInUp",
+                                    "hover:border-transparent"
                                 )}
-                                style={{ animationDelay: `${index * 150}ms` }}
+                                style={{
+                                    animationDelay: `${index * 150}ms`,
+                                    // @ts-ignore
+                                    '--glow-color': glowColor,
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.boxShadow = `0 0 40px ${glowColor}, 0 20px 50px rgba(0, 0, 0, 0.1)`;
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.boxShadow = '';
+                                }}
                             >
                                 {/* 카드 배경 장식 */}
                                 <div className={cn(
@@ -143,12 +180,15 @@ export const QuizGameSelection = () => {
                                 )}
 
                                 {/* 아이콘 유닛 */}
-                                <div className={cn(
-                                    "mb-8 inline-flex items-center justify-center w-16 h-16 rounded-2xl shadow-lg transform group-hover:scale-110 group-hover:rotate-6 transition-all duration-500",
-                                    "bg-gradient-to-br",
-                                    game.gradient
-                                )}>
-                                    <Icon size={32} className="text-white" />
+                                <div className="relative mb-8">
+                                    <div className={cn(
+                                        "inline-flex items-center justify-center w-16 h-16 rounded-2xl shadow-lg transform group-hover:scale-110 group-hover:rotate-6 transition-all duration-500",
+                                        "bg-gradient-to-br",
+                                        game.gradient
+                                    )}>
+                                        <Icon size={32} className="text-white" />
+                                    </div>
+
                                 </div>
 
                                 {/* 텍스트 영역 */}
@@ -168,6 +208,51 @@ export const QuizGameSelection = () => {
                                     <p className="text-sm text-text-secondary leading-relaxed line-clamp-2 min-h-[44px]">
                                         {game.description}
                                     </p>
+
+                                    {/* COMMENTLE: 타이핑 애니메이션 */}
+                                    {game.id === 'commentle' && (
+                                        <div className="mt-3 font-mono text-xs bg-gray-900 text-green-400 px-3 py-2 rounded-lg">
+                                            <span className="opacity-60">&gt; </span>
+                                            <TypingText text="ALGORITHM" />
+                                        </div>
+                                    )}
+
+                                    {/* QUIZ CONTEST: 배틀 애니메이션 */}
+                                    {game.id === 'contest' && (
+                                        <div className="mt-3 flex items-center justify-center gap-5">
+                                            {/* 왼쪽 파이터 */}
+                                            <div className="fighter-left flex items-center gap-1">
+                                                <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-xs text-white font-black shadow-lg">
+                                                    P1
+                                                </div>
+                                                <span className="text-xs font-bold text-blue-600">TEAM</span>
+                                            </div>
+                                            {/* VS */}
+                                            <div className="vs-pulse text-lg font-black text-orange-500">
+                                                VS
+                                            </div>
+                                            {/* 오른쪽 파이터 */}
+                                            <div className="fighter-right flex items-center gap-1">
+                                                <span className="text-xs font-bold text-red-600">TEAM</span>
+                                                <div className="w-8 h-8 bg-gradient-to-br from-red-400 to-red-600 rounded-full flex items-center justify-center text-xs text-white font-black shadow-lg">
+                                                    P2
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* PRACTICE MODE: 진행바 */}
+                                    {game.id === 'practice' && (
+                                        <div className="mt-3">
+                                            <div className="flex justify-between text-xs text-text-tertiary mb-1">
+                                                <span>학습 진행률</span>
+                                                <span className="progress-bar-pulse">진행중...</span>
+                                            </div>
+                                            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                                                <div className="h-full bg-gradient-to-r from-accent to-accent-dark rounded-full progress-bar-animated" />
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* 시작하기 버튼부 */}
@@ -197,8 +282,8 @@ export const QuizGameSelection = () => {
                             </div>
                         </div>
                         <div className="text-right">
-                            <span className="text-xs font-black text-text-tertiary uppercase tracking-widest block mb-1">User Progress</span>
-                            <div className="text-2xl font-black text-primary">Level 12</div>
+                            <span className="text-xs font-black text-text-tertiary uppercase tracking-widest block mb-1">맞춘 문제</span>
+                            <div className="text-2xl font-black text-primary">{quizCount}문제</div>
                         </div>
                     </div>
                 </footer>
