@@ -5,7 +5,7 @@ import java.util.List;
 
 public class MeetingRoomEvent {
     // WebSocket event envelope for room presence/chat/presenter updates.
-    public enum Type { JOIN, LEAVE, CHAT, CHAT_HISTORY, CHAT_DELETED, PRESENTER, SPEAKING, PRESENCE, MEETING_ENDED, MEETING_DURATION_UPDATED }
+    public enum Type { JOIN, LEAVE, CHAT, CHAT_HISTORY, CHAT_DELETED, PRESENTER, SPEAKING, PRESENCE, MEETING_ENDING, MEETING_ENDED, MEETING_DURATION_UPDATED }
 
     private Type type;
     private String roomId;

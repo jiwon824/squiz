@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 
 /**
- * 세션 모달 전용 네이티브 날짜 선택기
+ * 일정 모달 전용 네이티브 날짜 선택기
  * Modal의 overflow-hidden 문제를 피하기 위해 네이티브 input 사용
  */
 const SessionDatePicker: React.FC<{
@@ -186,7 +186,7 @@ const WheelColumn: React.FC<{
 };
 
 /**
- * 세션 모달 전용 휠 스타일 시간 선택기
+ * 일정 모달 전용 휠 스타일 시간 선택기
  */
 const SessionTimePicker: React.FC<{
   value: string;
@@ -302,7 +302,7 @@ interface SessionModalProps {
 }
 
 /**
- * 스터디 세션 생성/편집 모달
+ * 스터디 일정 생성/편집 모달
  */
 export const SessionModal: React.FC<SessionModalProps> = ({
   isOpen,
@@ -332,7 +332,7 @@ export const SessionModal: React.FC<SessionModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       if (session) {
-        // 편집 모드: 기존 세션 데이터로 초기화
+        // 편집 모드: 기존 일정 데이터로 초기화
         setTitle(session.title || '');
         setDescription(session.description || '');
         // scheduledAt에서 날짜와 시간 분리
@@ -411,17 +411,17 @@ export const SessionModal: React.FC<SessionModalProps> = ({
 
       if (isEditMode && session) {
         await sessionApi.updateSession(studyId, session.id, requestData);
-        showToast?.('세션이 수정되었습니다.', 'success');
+        showToast?.('일정이 수정되었습니다.', 'success');
       } else {
         await sessionApi.createSession(studyId, requestData);
-        showToast?.('세션이 생성되었습니다.', 'success');
+        showToast?.('일정이 생성되었습니다.', 'success');
       }
 
       onSuccess?.();
       onClose();
     } catch (err: any) {
       const errorMessage =
-        err?.response?.data?.message || '세션 저장에 실패했습니다.';
+        err?.response?.data?.message || '일정 저장에 실패했습니다.';
       showToast?.(errorMessage, 'error');
     } finally {
       setSubmitting(false);
@@ -435,10 +435,10 @@ export const SessionModal: React.FC<SessionModalProps> = ({
         {/* 헤더 */}
         <div className="mb-4">
           <h2 className="text-lg font-bold text-gray-900">
-            {isReadOnly ? '세션 상세' : isEditMode ? '세션 수정' : '새 세션 추가'}
+            {isReadOnly ? '일정 상세' : isEditMode ? '일정 수정' : '새 일정 추가'}
           </h2>
           <p className="text-xs text-gray-500 mt-0.5">
-            {isReadOnly ? '세션 정보를 확인하세요' : '스터디 일정을 설정하세요'}
+            {isReadOnly ? '일정 정보를 확인하세요' : '스터디 일정을 설정하세요'}
           </p>
         </div>
 
@@ -471,7 +471,7 @@ export const SessionModal: React.FC<SessionModalProps> = ({
               onChange={(e) => setDescription(e.target.value)}
               className="w-full p-2.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none resize-none disabled:bg-gray-100 disabled:cursor-not-allowed"
               rows={2}
-              placeholder="세션에 대한 상세 내용을 입력하세요"
+              placeholder="일정에 대한 상세 내용을 입력하세요"
               disabled={isReadOnly}
             />
           </div>
