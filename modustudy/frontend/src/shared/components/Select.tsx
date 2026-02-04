@@ -76,16 +76,17 @@ export const Select: React.FC<SelectProps> = ({
                     onClick={() => !disabled && setIsOpen(!isOpen)}
                     disabled={disabled}
                     className={cn(
-                        "w-full text-left flex items-center justify-between",
-                        "p-3.5 bg-gray-50 border border-gray-200 rounded-xl",
-                        "transition-all text-base",
-                        "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary",
-                        disabled && "opacity-50 cursor-not-allowed bg-gray-100",
-                        !disabled && "hover:bg-white",
-                        isOpen && "border-primary ring-2 ring-primary/20 bg-white",
-                        !selectedOption && "text-gray-400",
-                        selectedOption && "text-gray-800",
+                        "w-full text-left flex items-center justify-between transition-all",
+                        "focus:outline-none focus:ring-2 focus:ring-primary/20",
+                        // 기본 외형 (buttonClassName 제공 시 대체됨)
                         buttonClassName
+                            ? buttonClassName
+                            : "p-3.5 bg-gray-50 border border-gray-200 rounded-xl text-base hover:bg-white",
+                        // 상태별 스타일
+                        disabled && "opacity-50 cursor-not-allowed bg-gray-100",
+                        !buttonClassName && isOpen && "border-primary ring-2 ring-primary/20 bg-white",
+                        !selectedOption && "text-gray-400",
+                        selectedOption && "text-gray-800"
                     )}
                 >
                     <span className="truncate">

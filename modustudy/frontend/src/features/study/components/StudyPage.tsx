@@ -1,6 +1,7 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, SlidersHorizontal, Grid, List, X } from 'lucide-react';
+import { Plus, Search, SlidersHorizontal, Grid, List } from 'lucide-react';
+import { PageListHeader, PageListSubHeader } from '@/shared/components/layouts';
 import StudyListContainer from './StudyListContainer';
 import StudyCardContentV2 from './StudyCardContentV2';
 import StudyFilter, { FilterState } from './StudyFilter';
@@ -374,20 +375,14 @@ const StudyPageV2: React.FC = () => {
             <style>{shimmerStyles}</style>
             <StudyListContainer>
                 <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
-                    {/* 헤더 */}
-                    <div className="flex justify-between mb-2">
-                        <div className="flex items-center pt-2">
-                            <div>
-                                <h1 className="shimmer-text text-2xl md:text-3xl font-bold text-[var(--color-text-primary)]">
-                                    성장을 시작하고, 스터디를 둘러보기
-                                </h1>
-                                <p className="text-sm text-[var(--color-text-secondary)] mt-1">
-                                    총 <span className="font-bold text-[var(--color-primary)]">{totalElements}</span>개의 스터디
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center">
+                    {/* 헤더 - 공통 컴포넌트 */}
+                    <PageListHeader
+                        title="성장을 시작하고, 스터디를 둘러보기"
+                        titleClassName="shimmer-text"
+                        subtitle={
+                            <>총 <span className="font-bold text-[var(--color-primary)]">{totalElements}</span>개의 스터디</>
+                        }
+                        actions={
                             <Button
                                 variant="primary"
                                 size="md"
@@ -397,37 +392,17 @@ const StudyPageV2: React.FC = () => {
                             >
                                 스터디 만들기
                             </Button>
-                        </div>
-                    </div>
+                        }
+                    />
 
-                    {/* 검색바 및 컨트롤 */}
-                    <div className="mb-6">
-                        <div className="flex flex-col lg:flex-row gap-4">
-                            {/* 검색바 */}
-                            <form onSubmit={handleSearch} className="flex-1">
-                                <div className="relative">
-                                    <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-text-tertiary)]" />
-                                    <input
-                                        type="text"
-                                        placeholder="스터디 이름, 주제로 검색..."
-                                        value={searchInput}
-                                        onChange={(e) => setSearchInput(e.target.value)}
-                                        className="w-full h-11 pl-11 pr-4 bg-[var(--color-background)] rounded-xl text-sm focus:outline-none ring-0 focus:ring-2 ring-[var(--color-primary-alpha-10)] transition-all duration-300 ease-in-out"
-                                    />
-                                    {searchInput && (
-                                        <button
-                                            type="button"
-                                            onClick={() => setSearchInput('')}
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-[var(--color-background-secondary)] text-[var(--color-text-tertiary)]"
-                                        >
-                                            <X size={16} />
-                                        </button>
-                                    )}
-                                </div>
-                            </form>
-
-                            {/* 컨트롤 버튼 */}
-                            <div className="flex items-center gap-3">
+                    {/* 서브헤더 - 공통 컴포넌트 */}
+                    <PageListSubHeader
+                        searchValue={searchInput}
+                        onSearchChange={setSearchInput}
+                        searchPlaceholder="스터디 이름, 주제로 검색..."
+                        onSearchSubmit={handleSearch}
+                        filterControls={
+                            <>
                                 {/* 미팅 타입 필터 */}
                                 <div className="flex items-center h-11 bg-[var(--color-background)] rounded-xl px-1">
                                     {[
@@ -505,22 +480,22 @@ const StudyPageV2: React.FC = () => {
                                 >
                                     필터
                                 </Button>
-                            </div>
-                        </div>
-
-                        {/* 확장 필터 */}
-                        {showFilters && (
-                            <div className="mt-4 pt-4 border-t border-[var(--color-border-lighter)]">
-                                <StudyFilter
-                                    onFilterChange={handleFilterChange}
-                                    onSearch={() => applyFilters(true)}
-                                    defaultOpen
-                                    showHeader={false}
-                                    filters={pendingFilters}
-                                />
-                            </div>
-                        )}
-                    </div>
+                            </>
+                        }
+                        expandedFilter={
+                            showFilters ? (
+                                <div className="mt-4 pt-4 border-t border-[var(--color-border-lighter)]">
+                                    <StudyFilter
+                                        onFilterChange={handleFilterChange}
+                                        onSearch={() => applyFilters(true)}
+                                        defaultOpen
+                                        showHeader={false}
+                                        filters={pendingFilters}
+                                    />
+                                </div>
+                            ) : null
+                        }
+                    />
 
                     {/* 난이도 범례 */}
                     <div className="flex items-center gap-4 mb-4 text-xs">

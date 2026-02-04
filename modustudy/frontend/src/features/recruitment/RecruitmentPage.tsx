@@ -164,7 +164,7 @@ export const RecruitmentPage = () => {
 
     return (
         <UserLayoutV2>
-            <div className="max-w-7xl mx-auto py-8 px-4 md:px-6">
+            <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
 
                 {/* 1. List Mode */}
                 {viewMode === 'list' && (

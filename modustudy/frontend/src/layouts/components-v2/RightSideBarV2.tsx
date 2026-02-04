@@ -403,14 +403,31 @@ export const RightSideBarV2: React.FC = () => {
         }) || null;
     }, [badgeMeetings, badgeNow]);
 
-    // 팝오버 닫기 상태 (활성 미팅이 바뀌면 다시 표시)
-    const [dismissedMeetingId, setDismissedMeetingId] = useState<number | null>(null);
+    // 팝오버 닫기 상태 - sessionStorage로 관리하여 페이지 이동 후에도 중복 표시 방지
+    const DISMISSED_KEY = 'dismissedMeetingPopoverId';
+    const [dismissedMeetingId, setDismissedMeetingId] = useState<number | null>(() => {
+        const stored = sessionStorage.getItem(DISMISSED_KEY);
+        return stored ? Number(stored) : null;
+    });
+    const dismissMeeting = (meetingId: number) => {
+        setDismissedMeetingId(meetingId);
+        sessionStorage.setItem(DISMISSED_KEY, String(meetingId));
+    };
     // 마운트 직후 팝오버가 바로 뜨지 않도록 지연 (워크스페이스 진입 시 2번 뜨는 문제 방지)
     const [popoverReady, setPopoverReady] = useState(false);
     useEffect(() => {
         const timer = setTimeout(() => setPopoverReady(true), 1500);
         return () => clearTimeout(timer);
     }, []);
+    // 첫 표시 후 자동으로 dismiss 처리 (한 번만 표시)
+    useEffect(() => {
+        if (popoverReady && hasActiveMeeting && activeMeeting && activeMeeting.id !== dismissedMeetingId) {
+            const autoTimer = setTimeout(() => {
+                dismissMeeting(activeMeeting.id);
+            }, 5000);
+            return () => clearTimeout(autoTimer);
+        }
+    }, [popoverReady, hasActiveMeeting, activeMeeting, dismissedMeetingId]);
     const showMeetingPopover = popoverReady && hasActiveMeeting && activeMeeting && activeMeeting.id !== dismissedMeetingId;
 
     // 리사이즈 상태
@@ -587,7 +604,7 @@ export const RightSideBarV2: React.FC = () => {
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                setDismissedMeetingId(activeMeeting.id);
+                                                dismissMeeting(activeMeeting.id);
                                             }}
                                             className="flex-shrink-0 p-0.5 rounded-full hover:bg-gray-100 transition-colors text-gray-300 hover:text-gray-500"
                                         >
