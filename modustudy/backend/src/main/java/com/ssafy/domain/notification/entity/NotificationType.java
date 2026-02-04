@@ -17,6 +17,7 @@ public enum NotificationType {
     STUDY_START("스터디 시작 알림"),
     QUIZ("퀴즈 알림"),
     FRIEND("친구 알림"),
+    REPORT("신고 알림"),
     SYSTEM("시스템 알림");
 
     private final String displayName;

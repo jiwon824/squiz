@@ -26,10 +26,11 @@ import {
     Play,
     CalendarPlus,
     UserCheck,
+    AlertTriangle,
 } from 'lucide-react';
 
 // 알림 타입별 아이콘 및 색상
-const notificationTypeConfig: Record<NotificationType, { icon: React.ReactNode; color: string; label: string }> = {
+const notificationTypeConfig: Record<Exclude<NotificationType, 'REPORT'>, { icon: React.ReactNode; color: string; label: string }> = {
     CHAT: { icon: <MessageSquare size={18} />, color: 'text-blue-500 bg-blue-50', label: '채팅' },
     SCHEDULE: { icon: <Calendar size={18} />, color: 'text-purple-500 bg-purple-50', label: '일정' },
     ATTENDANCE: { icon: <CheckCircle size={18} />, color: 'text-green-500 bg-green-50', label: '출석' },
@@ -41,6 +42,11 @@ const notificationTypeConfig: Record<NotificationType, { icon: React.ReactNode; 
     QUIZ: { icon: <HelpCircle size={18} />, color: 'text-pink-500 bg-pink-50', label: '퀴즈' },
     SYSTEM: { icon: <Settings size={18} />, color: 'text-gray-500 bg-gray-50', label: '시스템' },
     FRIEND: { icon: <UserPlus size={18} />, color: 'text-cyan-500 bg-cyan-50', label: '친구' },
+};
+
+const notificationTypeConfigWithReport: Record<NotificationType, { icon: React.ReactNode; color: string; label: string }> = {
+    ...notificationTypeConfig,
+    REPORT: { icon: <AlertTriangle size={18} />, color: 'text-red-600 bg-red-50', label: '신고' },
 };
 
 // 필터 타입
@@ -289,7 +295,8 @@ const NotificationListItem = ({
     onClick: () => void;
     formatTime: (date: string) => string;
 }) => {
-    const config = notificationTypeConfig[notification.type];
+    const config = notificationTypeConfigWithReport[notification.type];
+    const isReport = notification.type === 'REPORT';
 
     return (
         <div
@@ -312,7 +319,11 @@ const NotificationListItem = ({
                     <div className="flex items-center gap-2">
                         <h4 className={cn(
                             'text-sm line-clamp-1',
-                            notification.isRead ? 'text-gray-700' : 'text-gray-900 font-semibold'
+                            isReport
+                                ? 'text-red-600 font-semibold'
+                                : notification.isRead
+                                    ? 'text-gray-700'
+                                    : 'text-gray-900 font-semibold'
                         )}>
                             {notification.title}
                         </h4>
@@ -320,7 +331,10 @@ const NotificationListItem = ({
                             <span className="w-2 h-2 bg-study-blue rounded-full flex-shrink-0" />
                         )}
                     </div>
-                    <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
+                    <p className={cn(
+                        'text-xs mt-0.5 line-clamp-2',
+                        isReport ? 'text-red-600' : 'text-gray-500'
+                    )}>
                         {notification.content}
                     </p>
                     <div className="flex items-center gap-2 mt-1.5">
@@ -348,7 +362,7 @@ const NotificationDetail = ({
     notification: NotificationItem;
     onNavigate: () => void;
 }) => {
-    const config = notificationTypeConfig[notification.type];
+    const config = notificationTypeConfigWithReport[notification.type];
 
     // 버튼 텍스트
     const getButtonText = () => {
@@ -388,13 +402,21 @@ const NotificationDetail = ({
                             })}
                         </span>
                     </div>
-                    <h2 className="text-xl font-bold text-gray-900">{notification.title}</h2>
+                    <h2 className={cn(
+                        'text-xl font-bold',
+                        isReport ? 'text-red-600' : 'text-gray-900'
+                    )}>
+                        {notification.title}
+                    </h2>
                 </div>
             </div>
 
             {/* 본문 */}
             <div className="py-6">
-                <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
+                <p className={cn(
+                    'whitespace-pre-wrap leading-relaxed',
+                    isReport ? 'text-red-600' : 'text-gray-700'
+                )}>
                     {notification.content}
                 </p>
             </div>

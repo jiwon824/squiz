@@ -315,6 +315,16 @@ public class ApplicationService {
                 response.setUserInfo(user.getName(), user.getNickname(), user.getEmail(), user.getProfileImage())
         );
 
+        // 11. 신청자에게 승인 알림
+        notificationService.createNotification(
+                application.getUserId(),
+                NotificationType.SYSTEM,
+                "스터디 가입 승인",
+                String.format("지원한 '%s' 스터디 가입이 승인되었습니다.", study.getName()),
+                "STUDY",
+                studyId
+        );
+
         return response;
     }
 
@@ -365,6 +375,16 @@ public class ApplicationService {
 
         userRepository.findById(application.getUserId()).ifPresent(user ->
                 response.setUserInfo(user.getName(), user.getNickname(), user.getEmail(), user.getProfileImage())
+        );
+
+        // 7. 신청자에게 거절 알림
+        notificationService.createNotification(
+                application.getUserId(),
+                NotificationType.SYSTEM,
+                "스터디 가입 거절",
+                String.format("지원한 '%s' 스터디 가입이 거절되었습니다.", study.getName()),
+                "STUDY",
+                studyId
         );
 
         return response;

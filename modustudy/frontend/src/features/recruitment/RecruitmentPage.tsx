@@ -22,6 +22,7 @@ import {
     getRecruitingStudiesForBoard,
     getRecruitmentPostDetail,
     getRecruitmentPosts,
+    reportRecruitmentPost,
 } from '@/api/endpoints/boardApi';
 
 type ViewMode = 'list' | 'create' | 'edit' | 'detail';
@@ -116,9 +117,14 @@ export const RecruitmentPage = () => {
         showToast('링크가 복사되었습니다.', 'success');
     };
 
-    const submitReport = (reason: string) => {
-        if (reportTargetId) {
-            console.log('Report submitted:', { targetId: reportTargetId, reason });
+    const submitReport = async (reason: string) => {
+        if (!reportTargetId) return;
+        try {
+            await reportRecruitmentPost(reportTargetId, { reason });
+            showToast('신고가 접수되었습니다.', 'success');
+        } catch (error: any) {
+            const message = error?.response?.data?.message || '신고 접수에 실패했습니다.';
+            showToast(message, 'error');
         }
     };
 
