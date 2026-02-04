@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { Skeleton } from '../shared/components';
+import { ErrorBoundary } from '../features/error/ErrorBoundary';
 
 // Dashboard V2 (메인 대시보드)
 import { DashboardV2, GuestDashboardV2, UserDashboardV2 } from '../features/dashboard-v2';
@@ -99,6 +100,9 @@ const AdminDashboardPage = lazy(() =>
 const NotificationPage = lazy(() =>
     import('../features/notification/pages/NotificationPage').then(m => ({ default: m.NotificationPage }))
 );
+const ErrorPage = lazy(() =>
+    import('../features/error/ErrorPage').then(m => ({ default: m.ErrorPage }))
+);
 
 export const AppRouter = () => {
     const { login, logout, isInitialized, setInitialized } = useAuthStore();
@@ -136,6 +140,7 @@ export const AppRouter = () => {
     }
 
     return (
+        <ErrorBoundary>
         <Suspense fallback={<div className="p-6"><Skeleton variant="rect" height="100vh" /></div>}>
             <Routes>
                 {/* 메인 대시보드 (로그인 여부에 따라 Guest/User 자동 분기) */}
@@ -203,7 +208,13 @@ export const AppRouter = () => {
                     }
                 />
                 <Route path="/admin" element={<AdminDashboardPage />} />
+
+                {/* 에러 페이지 */}
+                <Route path="/error" element={<ErrorPage />} />
+                <Route path="/error/:code" element={<ErrorPage />} />
+                <Route path="*" element={<ErrorPage />} />
             </Routes>
         </Suspense>
+        </ErrorBoundary>
     );
 };
