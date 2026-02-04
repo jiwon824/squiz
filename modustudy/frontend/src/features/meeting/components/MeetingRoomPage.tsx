@@ -145,26 +145,38 @@ const MeetingRoomPage: React.FC = () => {
     const [roomGuardStatus, setRoomGuardStatus] = useState<'checking' | 'ok' | 'blocked'>('checking');
     const [roomGuardMessage, setRoomGuardMessage] = useState('회의 정보를 확인 중입니다.');
     const [sfuReady, setSfuReady] = useState(false);
+    const [aiModelReady, setAiModelReady] = useState(false);
+
+    // SFU 연결 완료 후 AI 모델 미리 로드
+    useEffect(() => {
+        if (roomGuardStatus === 'ok' && sfuReady && !aiModelReady) {
+            aiDetection.loadModel()
+                .then(() => setAiModelReady(true))
+                .catch(() => setAiModelReady(true)); // 실패해도 진입은 허용
+        }
+    }, [roomGuardStatus, sfuReady, aiModelReady]);
 
     // 미팅룸 진입 단계별 로딩 진행률 업데이트
     useEffect(() => {
         if (roomGuardStatus === 'checking') {
             startLoading();
-            setProgress(30); // 미팅 정보 확인 중
+            setProgress(20); // 미팅 정보 확인 중
         } else if (roomGuardStatus === 'ok' && !sfuReady) {
-            setProgress(60); // 입장 완료, SFU 연결 중
-        } else if (roomGuardStatus === 'ok' && sfuReady) {
-            setProgress(90); // SFU 연결 완료
+            setProgress(40); // 입장 완료, SFU 연결 중
+        } else if (roomGuardStatus === 'ok' && sfuReady && !aiModelReady) {
+            setProgress(70); // SFU 완료, AI 모델 로딩 중
+        } else if (roomGuardStatus === 'ok' && sfuReady && aiModelReady) {
+            setProgress(100); // 모든 준비 완료
             finishLoading();
         } else if (roomGuardStatus === 'blocked') {
             finishLoading(); // 차단된 경우에도 로딩 종료
         }
-    }, [roomGuardStatus, sfuReady, startLoading, setProgress, finishLoading]);
+    }, [roomGuardStatus, sfuReady, aiModelReady, startLoading, setProgress, finishLoading]);
     const [isEnding, setIsEnding] = useState(false);
     const [isExtendConfirmOpen, setIsExtendConfirmOpen] = useState(false);
     const [isEndConfirmOpen, setIsEndConfirmOpen] = useState(false);
     const [isPresenterConfirmOpen, setIsPresenterConfirmOpen] = useState(false);
-    const [isVideoExpanded, setIsVideoExpanded] = useState(false);
+    const [, setIsVideoExpanded] = useState(false);
     const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
     const [leaderId, setLeaderId] = useState<number | null>(null);
 
@@ -267,7 +279,7 @@ const MeetingRoomPage: React.FC = () => {
             try {
                 const detail = await studyApi.getStudyDetail(numericStudyId);
                 if (!cancelled) {
-                    const leader = detail?.leader?.id ?? detail?.leaderId ?? null;
+                    const leader = detail?.leaderId ?? null;
                     if (leader == null) {
                         setLeaderId(null);
                     } else if (typeof leader === 'number') {
@@ -541,37 +553,6 @@ const MeetingRoomPage: React.FC = () => {
             return `${httpBase.replace(/\/+$/, '')}/${path.replace(/^\/+/, '')}`;
         },
         [normalizeSfuHttpBaseUrl]
-    );
-
-    const ensureMixedAudioTrack = useCallback(
-        (tracks: MediaStreamTrack[]) => {
-            if (tracks.length <= 1) {
-                stopMixedAudioTrack();
-                return tracks[0] ?? null;
-            }
-            const ids = tracks.map((track) => track.id).sort();
-            const key = ids.join('|');
-            if (mixedAudioKeyRef.current === key && mixedAudioTrackRef.current) {
-                if (mixedAudioTrackRef.current.readyState === 'live') {
-                    return mixedAudioTrackRef.current;
-                }
-            }
-            stopMixedAudioTrack();
-            const context = new AudioContext();
-            const destination = context.createMediaStreamDestination();
-            tracks.forEach((track) => {
-                const sourceStream = new MediaStream([track]);
-                const source = context.createMediaStreamSource(sourceStream);
-                source.connect(destination);
-            });
-            context.resume().catch(() => {});
-            const outputTrack = destination.stream.getAudioTracks()[0] ?? null;
-            mixedAudioContextRef.current = context;
-            mixedAudioTrackRef.current = outputTrack;
-            mixedAudioKeyRef.current = key;
-            return outputTrack;
-        },
-        [stopMixedAudioTrack]
     );
 
     const ensureRecordingAudioTrack = useCallback(
@@ -2602,7 +2583,7 @@ const MeetingRoomPage: React.FC = () => {
                     chatMessages={chatMessages}
                     onSendChat={handleSendChat}
                     onDeleteChat={handleDeleteChat}
-                    currentUserId={user?.id ?? null}
+                    currentUserId={user?.id ? Number(user.id) : null}
                     currentSender={displayNameRef.current}
                     onExpandChange={(expanded) => {
                         setIsVideoExpanded(expanded);

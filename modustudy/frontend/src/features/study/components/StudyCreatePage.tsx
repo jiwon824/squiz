@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Info, Calendar, Plus, Trash2, BookOpen, MapPin, AlertCircle, Clock, Users, Target, Shield, Sparkles, ChevronUp, ChevronDown, GripVertical } from 'lucide-react';
+import { Info, Calendar, Plus, Trash2, BookOpen, MapPin, AlertCircle, Clock, Users, Target, Shield, Sparkles, GripVertical } from 'lucide-react';
 import { Spinner, ButtonSpinner } from '@/shared/components/Spinner';
 import { PageNavHeader } from '@/shared/components/layouts/PageNavHeader';
 import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
@@ -13,7 +13,7 @@ import { cn } from '@/shared/utils/cn';
 import { DateRangePicker } from './DateRangePicker';
 import { DatePicker, TimePicker } from '@/shared/components';
 import {
-    getTopics, getFormats, getProvinces, getDistricts, createStudy, updateStudy, generateStudyPlan, generateStudyPlanStream, getMyTemplates, createTemplate, studyApi, createStudySessions, getStudySessions,
+    getTopics, getFormats, getProvinces, getDistricts, createStudy, updateStudy, generateStudyPlanStream, getMyTemplates, createTemplate, studyApi, createStudySessions, getStudySessions,
     type TopicParent, type FormatItem, type RegionItem, type StudyCreatePayload, type AiStudyPlanResponse, type StudyTemplateItem
 } from '@/api/endpoints/studyApi';
 import { getStudyPreference } from '@/features/setting/api/settingApi';
@@ -295,7 +295,7 @@ const StudyCreatePage: React.FC = () => {
         preferredDurationWeeks: number;
         preferredTimeSlot: string | null;
     }>({ availableDays: [], preferredDurationWeeks: 4, preferredTimeSlot: null });
-    const [preferenceLoaded, setPreferenceLoaded] = useState(false);
+    const [, setPreferenceLoaded] = useState(false);
 
     // 시간대 → 중간 시간 변환 맵
     const timeSlotToMiddleTime: Record<string, string> = {
@@ -418,89 +418,6 @@ const StudyCreatePage: React.FC = () => {
             }
         };
     }, []);
-
-    // 요일 토글 핸들러
-    const handleDayToggle = (day: string) => {
-        setFormData(prev => {
-            const newScheduleDays = prev.scheduleDays.includes(day)
-                ? prev.scheduleDays.filter(d => d !== day)
-                : [...prev.scheduleDays, day];
-
-            // 커리큘럼이 있으면 날짜 재계산
-            if (prev.hasCurriculum && prev.curriculum.length > 0 && prev.startDate && newScheduleDays.length > 0) {
-                const formatDate = (d: Date) =>
-                    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-
-                const dayToNum: Record<string, number> = {
-                    '일': 0, '월': 1, '화': 2, '수': 3, '목': 4, '금': 5, '토': 6,
-                    'SUN': 0, 'MON': 1, 'TUE': 2, 'WED': 3, 'THU': 4, 'FRI': 5, 'SAT': 6,
-                };
-
-                const startDate = new Date(prev.startDate);
-                const selectedDayNums = newScheduleDays.map(d => dayToNum[d] ?? 0).sort((a, b) => a - b);
-                const daysPerWeek = newScheduleDays.length;
-
-                // 시작일 이후 첫 번째 선호 요일 찾기
-                const findFirstPreferredDay = (from: Date, preferredDays: number[]): Date => {
-                    const result = new Date(from);
-                    const currentDay = result.getDay();
-                    // 가장 가까운 선호 요일까지의 거리 계산
-                    let minDays = 7;
-                    for (const dayNum of preferredDays) {
-                        let daysUntil = dayNum - currentDay;
-                        if (daysUntil < 0) daysUntil += 7;
-                        if (daysUntil < minDays) minDays = daysUntil;
-                    }
-                    result.setDate(result.getDate() + minDays);
-                    return result;
-                };
-
-                const firstSessionDate = findFirstPreferredDay(startDate, selectedDayNums);
-                const firstDayNum = firstSessionDate.getDay();
-
-                // 첫 세션 요일 기준으로 재정렬 (첫 세션 요일이 먼저 오도록)
-                const orderedDayNums = [
-                    ...selectedDayNums.filter(d => d >= firstDayNum),
-                    ...selectedDayNums.filter(d => d < firstDayNum)
-                ];
-
-                let lastSessionDate: Date | null = null;
-                const updatedCurriculum = prev.curriculum.map((item, index) => {
-                    const sessionDate = new Date(firstSessionDate);
-                    if (daysPerWeek === 1) {
-                        sessionDate.setDate(sessionDate.getDate() + index * 7);
-                    } else {
-                        const weekIndex = Math.floor(index / daysPerWeek);
-                        const dayIndex = index % daysPerWeek;
-                        const targetDayNum = orderedDayNums[dayIndex];
-                        let daysFromFirst = targetDayNum - firstDayNum;
-                        if (daysFromFirst < 0) daysFromFirst += 7;
-                        sessionDate.setDate(firstSessionDate.getDate() + weekIndex * 7 + daysFromFirst);
-                    }
-                    lastSessionDate = sessionDate;
-                    return { ...item, date: formatDate(sessionDate) };
-                });
-
-                // 종료일 업데이트
-                let newEndDate = prev.endDate;
-                if (lastSessionDate && prev.endDate) {
-                    const currentEndDate = new Date(prev.endDate);
-                    if (lastSessionDate > currentEndDate) {
-                        newEndDate = formatDate(lastSessionDate);
-                    }
-                }
-
-                return {
-                    ...prev,
-                    scheduleDays: newScheduleDays,
-                    curriculum: updatedCurriculum,
-                    endDate: newEndDate,
-                };
-            }
-
-            return { ...prev, scheduleDays: newScheduleDays };
-        });
-    };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -693,8 +610,9 @@ const StudyCreatePage: React.FC = () => {
                 let finalEndDate = end;
                 if (lastSessionDate) {
                     const endDateObj = end ? new Date(end) : null;
-                    if (!endDateObj || lastSessionDate > endDateObj) {
-                        finalEndDate = formatDate(lastSessionDate);
+                    const lastDate = lastSessionDate as Date;
+                    if (!endDateObj || lastDate > endDateObj) {
+                        finalEndDate = formatDate(lastDate);
                     }
                 }
 
@@ -810,8 +728,9 @@ const StudyCreatePage: React.FC = () => {
                             // 마지막 세션 날짜가 종료일보다 이후면 종료일 자동 확장
                             if (lastSessionDate && updates.endDate) {
                                 const currentEndDate = new Date(updates.endDate);
-                                if (lastSessionDate > currentEndDate) {
-                                    updates.endDate = formatDate(lastSessionDate);
+                                const lastDate = lastSessionDate as Date;
+                                if (lastDate > currentEndDate) {
+                                    updates.endDate = formatDate(lastDate);
                                 }
                             }
                         }
@@ -992,43 +911,6 @@ const StudyCreatePage: React.FC = () => {
         });
     };
 
-    // 회차 위치 변경 (위로/아래로 이동) - 날짜도 재계산
-    const moveSession = (index: number, direction: 'up' | 'down') => {
-        setFormData(prev => {
-            const newCurriculum = [...prev.curriculum];
-            const targetIndex = direction === 'up' ? index - 1 : index + 1;
-
-            // 범위 체크
-            if (targetIndex < 0 || targetIndex >= newCurriculum.length) return prev;
-
-            // 내용만 교환 (날짜는 위치에 따라 재계산)
-            const tempDescription = newCurriculum[index].description;
-            const tempType = newCurriculum[index].type;
-            newCurriculum[index].description = newCurriculum[targetIndex].description;
-            newCurriculum[index].type = newCurriculum[targetIndex].type;
-            newCurriculum[targetIndex].description = tempDescription;
-            newCurriculum[targetIndex].type = tempType;
-
-            // 날짜 재계산
-            const reorderedCurriculum = recalculateCurriculumDates(newCurriculum, prev.startDate, prev.scheduleDays);
-
-            // 마지막 세션 날짜 기준으로 종료일 확인
-            let newEndDate = prev.endDate;
-            const lastSession = reorderedCurriculum[reorderedCurriculum.length - 1];
-            if (lastSession?.date && prev.endDate) {
-                const lastDate = new Date(lastSession.date);
-                const currentEndDate = new Date(prev.endDate);
-                if (lastDate > currentEndDate) {
-                    const formatDate = (d: Date) =>
-                        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-                    newEndDate = formatDate(lastDate);
-                }
-            }
-
-            return { ...prev, curriculum: reorderedCurriculum, endDate: newEndDate };
-        });
-    };
-
     // 드래그앤드롭 상태
     const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
@@ -1037,7 +919,7 @@ const StudyCreatePage: React.FC = () => {
         setDraggedIndex(index);
     };
 
-    const handleDragOver = (e: React.DragEvent, index: number) => {
+    const handleDragOver = (e: React.DragEvent, _index: number) => {
         e.preventDefault();
     };
 
@@ -1477,7 +1359,7 @@ const StudyCreatePage: React.FC = () => {
                     updated.curriculum = curriculum;
 
                     if (curriculum.length > 0) {
-                        updated.endDate = curriculum[curriculum.length - 1].date;
+                        updated.endDate = curriculum[curriculum.length - 1].date ?? null;
                     }
 
                     return updated;
@@ -2399,7 +2281,6 @@ const StudyCreatePage: React.FC = () => {
                                                 placeholder="예: 백준 온라인 저지, Do It! 알고리즘"
                                                 value={formData.textbook}
                                                 onChange={handleChange}
-                                                helperText={formData.textbook ? undefined : "예: 공식 문서, 인프런 강의, 교재명 등"}
                                             />
                                         </div>
                                     </div>

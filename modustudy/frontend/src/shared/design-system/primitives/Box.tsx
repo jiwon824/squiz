@@ -10,7 +10,6 @@
 
 import React from 'react';
 import { cn } from '@/shared/utils/cn';
-import { ComponentSize } from '../tokens';
 
 type SpacingValue = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl';
 type ColorValue = 'white' | 'gray-50' | 'gray-100' | 'google-blue' | 'google-green' | 'google-red' | 'google-yellow';
@@ -101,7 +100,7 @@ export const Box: React.FC<BoxProps> = ({
     );
 
     return (
-        <Component className={classes} {...props}>
+        <Component className={classes} {...(props as any)}>
             {children}
         </Component>
     );

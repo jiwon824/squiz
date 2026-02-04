@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
-    Calendar, ChevronLeft, ChevronRight, Check, X,
-    Clock, AlertCircle, Users, TrendingUp
+    Calendar, Check, X,
+    Clock, AlertCircle, Users
 } from 'lucide-react';
 import { studyApi } from '@/api/endpoints/studyApi';
 import { useUIStore } from '@/store/uiStore';

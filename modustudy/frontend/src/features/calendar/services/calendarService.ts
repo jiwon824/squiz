@@ -131,7 +131,7 @@ class CalendarService {
         }
 
         if (studySessions.status === 'fulfilled') {
-            schedules.push(...studySessions.value.map(dto => this.mapStudySessionToUnified(dto)));
+            schedules.push(...studySessions.value.map((dto: StudySessionDTO) => this.mapStudySessionToUnified(dto)));
         }
 
         // Google Calendar 이벤트 조회 (연동된 경우에만)

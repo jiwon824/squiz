@@ -22,6 +22,7 @@ import {
     getRecruitingStudiesForBoard,
     getRecruitmentPostDetail,
     getRecruitmentPosts,
+    reportRecruitmentPost,
 } from '@/api/endpoints/boardApi';
 
 type ViewMode = 'list' | 'create' | 'edit' | 'detail';
@@ -34,10 +35,10 @@ export const RecruitmentPage = () => {
     const { showToast } = useUIStore();
     const [viewMode, setViewMode] = useState<ViewMode>('list');
     const [posts, setPosts] = useState<RecruitmentPostSummary[]>([]);
-    const [selectedPostId, setSelectedPostId] = useState<number | null>(null);
+    const [, setSelectedPostId] = useState<number | null>(null);
     const [selectedPost, setSelectedPost] = useState<RecruitmentPostDetail | null>(null);
     const [availableStudies, setAvailableStudies] = useState<RecruitmentStudy[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
+    const [, setIsLoading] = useState(false);
     const [commentInput, setCommentInput] = useState('');
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
     const [reportTargetId, setReportTargetId] = useState<number | null>(null);
@@ -116,9 +117,14 @@ export const RecruitmentPage = () => {
         showToast('링크가 복사되었습니다.', 'success');
     };
 
-    const submitReport = (reason: string) => {
-        if (reportTargetId) {
-            console.log('Report submitted:', { targetId: reportTargetId, reason });
+    const submitReport = async (reason: string) => {
+        if (!reportTargetId) return;
+        try {
+            await reportRecruitmentPost(reportTargetId, { reason });
+            showToast('신고가 접수되었습니다.', 'success');
+        } catch (error: any) {
+            const message = error?.response?.data?.message || '신고 접수에 실패했습니다.';
+            showToast(message, 'error');
         }
     };
 
@@ -405,7 +411,7 @@ export const RecruitmentPage = () => {
                             <div className="mx-6 md:mx-8 border-t-2 border-gray-200" />
 
                             {/* 게시글 관리 (작성자용) */}
-                            {currentUser?.id === selectedPost.authorId && (
+                            {Number(currentUser?.id) === selectedPost.authorId && (
                                 <>
                                     <div className="p-6 md:p-8">
                                         <div className="p-5 bg-[var(--color-background)] rounded-xl border border-[var(--color-border-lighter)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

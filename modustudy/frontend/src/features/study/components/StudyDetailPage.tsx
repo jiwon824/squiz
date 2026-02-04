@@ -156,7 +156,8 @@ const StudyDetailPage: React.FC = () => {
         setIsBookmarked(!isBookmarked);
     };
 
-    const handleReportSubmit = (reason: string) => {
+    const handleReportSubmit = (_reason: string) => {
+        // TODO: 신고 API 연동
     };
 
     // 스터디장에게 문의하기 (친구 여부와 관계없이 DM 가능)
@@ -178,7 +179,7 @@ const StudyDetailPage: React.FC = () => {
         const reviews = getReviewsByLeaderId(study.leader.id);
         const avgRating = getLeaderAverageRating(study.leader.id);
         setLeaderReviews(reviews);
-        setLeaderAvgRating(avgRating > 0 ? avgRating : study.leader.leaderRating);
+        setLeaderAvgRating(avgRating > 0 ? avgRating : study.leader.leaderRating ?? 0);
         setIsReviewModalOpen(true);
     };
 
@@ -374,7 +375,7 @@ const StudyDetailPage: React.FC = () => {
                                     <div className={styles.ratingWrapper}>
                                         <button onClick={handleRatingClick} className={styles.ratingButton}>
                                             <Star size={14} className={styles.ratingStar} />
-                                            <span className={styles.ratingValue}>{study.leader.leaderRating.toFixed(1)}</span>
+                                            <span className={styles.ratingValue}>{(study.leader.leaderRating ?? 0).toFixed(1)}</span>
                                             <span className={styles.ratingCount}>리뷰 {study.leader.leaderReviewCount}개</span>
                                         </button>
                                     </div>
@@ -446,7 +447,7 @@ const StudyDetailPage: React.FC = () => {
                 isOpen={isReviewModalOpen}
                 onClose={() => setIsReviewModalOpen(false)}
                 leaderNickname={study.leader.nickname}
-                reviews={leaderReviews}
+                reviews={leaderReviews as any}
                 averageRating={leaderAvgRating}
             />
         </UserLayoutV2>

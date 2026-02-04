@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { cn, classBuilder, conditionalClasses } from '@/shared/utils/cn';
+import { cn, conditionalClasses } from '@/shared/utils/cn';
 import { MeetingRoomParticipant } from '../types';
 import { Crown, Mic, X } from 'lucide-react';
 import { useVirtualizer } from '@tanstack/react-virtual';
@@ -97,7 +97,7 @@ const MeetingParticipants: React.FC<MeetingParticipantsProps> = ({ participants,
                                         <div className={cn(
                                             'w-1 rounded-full shrink-0 transition-colors',
                                             conditionalClasses.state(
-                                                participant.isSpeaking,
+                                                !!participant.isSpeaking,
                                                 'bg-emerald-500',
                                                 participant.active ? 'bg-emerald-300' : 'bg-gray-200'
                                             )
@@ -107,7 +107,7 @@ const MeetingParticipants: React.FC<MeetingParticipantsProps> = ({ participants,
                                         <div className={cn(
                                             'flex-1 flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-200',
                                             conditionalClasses.state(
-                                                participant.isSpeaking,
+                                                !!participant.isSpeaking,
                                                 'bg-emerald-50',
                                                 'hover:bg-gray-50'
                                             )

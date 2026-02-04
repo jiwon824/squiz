@@ -32,7 +32,7 @@ export function useTimer() {
       return accumulatedTimeRef.current;
     }
 
-    const currentSession = performance.now() - startTimeRef.current;
+    const currentSession = performance.now() - (startTimeRef.current ?? 0);
     const total = Math.round(accumulatedTimeRef.current + currentSession);
     const capped = Math.min(total, MAX_RESPONSE_TIME_MS);
 

@@ -26,7 +26,7 @@ interface CurriculumRoadmapProps {
  */
 export const CurriculumRoadmap: React.FC<CurriculumRoadmapProps> = ({
     curriculum,
-    currentSession = 1,
+    currentSession: _currentSession = 1,
     onStopClick
 }) => {
     const [selectedStop, setSelectedStop] = useState<CurriculumStop | null>(null);
