@@ -5,6 +5,7 @@ import com.ssafy.common.exception.NotFoundException;
 import com.ssafy.domain.board.dto.request.BoardCommentCreateRequest;
 import com.ssafy.domain.board.dto.request.BoardPostCreateRequest;
 import com.ssafy.domain.board.dto.request.BoardPostUpdateRequest;
+import com.ssafy.domain.board.dto.request.BoardReportRequest;
 import com.ssafy.domain.board.dto.response.BoardCommentResponse;
 import com.ssafy.domain.board.dto.response.BoardPostDetailResponse;
 import com.ssafy.domain.board.dto.response.BoardPostSummaryResponse;
@@ -21,6 +22,7 @@ import com.ssafy.domain.study.entity.Status;
 import com.ssafy.domain.study.entity.Study;
 import com.ssafy.domain.study.repository.StudyMemberRepository;
 import com.ssafy.domain.study.repository.StudyRepository;
+import com.ssafy.domain.user.entity.Role;
 import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -161,6 +163,39 @@ public class BoardService {
             );
         }
         return BoardCommentResponse.from(saved);
+    }
+
+    @Transactional
+    public void reportPost(Long userId, Long postId, BoardReportRequest request) {
+        BoardPost post = boardPostRepository.findByIdAndIsDeletedFalse(postId)
+                .orElseThrow(() -> new NotFoundException("BOARD_POST_NOT_FOUND", "紐⑥쭛湲??李얠쓣 ???놁뒿?덈떎."));
+        User reporter = userRepository.findById(userId).orElseThrow(NotFoundException::user);
+
+        List<User> admins = userRepository.findAllByRole(Role.ADMIN);
+        if (admins.isEmpty()) {
+            return;
+        }
+
+        String reporterName = reporter.getNickname() != null ? reporter.getNickname() : reporter.getName();
+        String title = "모집 게시글 신고";
+        String content = String.format("'%s' 게시글이 신고되었습니다. 신고자: %s, 사유: %s",
+                post.getTitle(),
+                reporterName == null ? "익명" : reporterName,
+                request.reason());
+
+        for (User admin : admins) {
+            if (admin.getId().equals(userId)) {
+                continue;
+            }
+            notificationService.createNotification(
+                    admin.getId(),
+                    NotificationType.REPORT,
+                    title,
+                    content,
+                    "RECRUITMENT_POST",
+                    post.getId()
+            );
+        }
     }
 
     @Transactional

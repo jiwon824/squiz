@@ -181,26 +181,33 @@ public class StudyService {
 
     /**
      * 스터디 생성
+     *
+     * 성능 최적화:
+     * - EXISTS 쿼리로 첫 스터디 여부 확인 (COUNT보다 빠름)
+     * - 첫 스터디 체크를 INSERT 전에 수행하여 불필요한 쿼리 제거
      */
     @Transactional
     public StudyResponse createStudy(StudyCreateRequest request, Long leaderId) {
         log.info("스터디 생성 시작 - 스터디장: {}, 스터디명: {}", leaderId, request.getName());
 
-        // 1. 스터디장(User) 존재 확인
+        // 1. 첫 스터디 여부 확인 (INSERT 전에 체크 - EXISTS 쿼리 사용)
+        boolean isFirstStudy = !studyRepository.existsByLeaderId(leaderId);
+
+        // 2. 스터디장(User) 존재 확인
         User leader = userRepository.findById(leaderId)
                 .orElseThrow(() -> {
                     log.error("존재하지 않는 사용자 - leaderId: {}", leaderId);
                     return NotFoundException.user();
                 });
 
-        // 2. Topic 조회 (필수)
+        // 3. Topic 조회 (필수)
         Topic topic = topicRepository.findById(request.getTopicId())
                 .orElseThrow(() -> {
                     log.error("존재하지 않는 주제 - topicId: {}", request.getTopicId());
                     return new StudyException.InvalidStudyRequestException("존재하지 않는 주제입니다: " + request.getTopicId());
                 });
 
-        // 3. Format 조회 (선택)
+        // 4. Format 조회 (선택)
         Format format = null;
         if (request.getFormatId() != null) {
             format = formatRepository.findById(request.getFormatId())
@@ -210,16 +217,16 @@ public class StudyService {
                     });
         }
 
-        // 4. 비즈니스 검증
+        // 5. 비즈니스 검증
         validateStudyCreate(request);
 
-        // 5. DTO -> Entity 변환 (Topic, Format 전달)
+        // 6. DTO -> Entity 변환 (Topic, Format 전달)
         Study study = request.toEntity(leaderId, topic, format);
 
-        // 6. Study 저장
+        // 7. Study 저장
         Study savedStudy = studyRepository.save(study);
 
-        // 7. 스터디장을 StudyMember로 자동 추가
+        // 8. 스터디장을 StudyMember로 자동 추가
         StudyMember leaderMember = StudyMember.builder()
                 .studyId(savedStudy.getId())
                 .userId(leaderId)
@@ -234,11 +241,7 @@ public class StudyService {
         log.info("스터디 생성 완료 - studyId: {}, topicId: {}, formatId: {}",
                 savedStudy.getId(), topic.getId(), format != null ? format.getId() : null);
 
-        // 게이미피케이션 이벤트 발행 - 스터디 생성
-        // 첫 스터디 생성 여부 확인 (방금 생성한 스터디만 있으면 첫 스터디)
-        long studiesLedCount = studyRepository.countByLeaderId(leaderId);
-        boolean isFirstStudy = studiesLedCount <= 1;
-
+        // 9. 게이미피케이션 이벤트 발행 (비동기 처리됨)
         eventPublisher.publishEvent(new StudyCreateEvent(
                 leaderId,
                 savedStudy.getId(),

@@ -319,6 +319,14 @@ public class GoogleCalendarService {
         mappingRepository.deleteBySessionId(sessionId);
     }
 
+    /**
+     * 특정 사용자의 세션 매핑 삭제
+     */
+    @Transactional
+    public void deleteEventMapping(Long sessionId, Long userId) {
+        mappingRepository.deleteBySessionIdAndUserId(sessionId, userId);
+    }
+
     // ==================== Helper Methods ====================
 
     private Event buildEventFromSession(StudySession session, String studyTitle) {
