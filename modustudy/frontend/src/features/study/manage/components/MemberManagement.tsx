@@ -90,7 +90,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ studyId, maxMembers
 
     if (members.length === 0) {
         return (
-            <div className="text-center py-12 bg-background-secondary rounded-2xl">
+            <div className="text-center py-12 bg-white rounded-2xl shadow-[0_4px_15px_rgba(0,0,0,0.05)]">
                 <Users size={48} className="mx-auto text-text-muted mb-4" />
                 <p className="text-text-secondary">현재 스터디에 참여 중인 멤버가 없습니다</p>
             </div>
@@ -119,7 +119,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ studyId, maxMembers
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="멤버 검색..."
-                    className="w-full pl-11 pr-4 py-3 bg-background-secondary border border-border-light rounded-xl text-sm outline-none focus:border-primary transition-colors"
+                    className="w-full pl-11 pr-4 py-3 bg-white shadow-[0_4px_15px_rgba(0,0,0,0.05)] rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                 />
             </div>
 
@@ -128,7 +128,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ studyId, maxMembers
                 {filteredMembers.map((member) => (
                     <div
                         key={member.userId}
-                        className="bg-background-secondary rounded-2xl p-5 border border-border-light hover:shadow-md transition-all group"
+                        className="bg-white rounded-2xl p-5 shadow-[0_4px_15px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)] transition-all group"
                     >
                         <div className="flex items-start gap-4">
                             {/* 아바타 */}
@@ -137,7 +137,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ studyId, maxMembers
                                     <img src={getProfileImageUrl(member.profileImage)} alt={member.nickname} className="w-full h-full object-cover" />
                                 </div>
                                 {getRoleIcon(member.role) && (
-                                    <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-surface border-2 border-background-secondary flex items-center justify-center">
+                                    <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-white border-2 border-white shadow-sm flex items-center justify-center">
                                         {getRoleIcon(member.role)}
                                     </div>
                                 )}

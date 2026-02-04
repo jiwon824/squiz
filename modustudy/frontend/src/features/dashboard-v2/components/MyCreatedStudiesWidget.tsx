@@ -220,7 +220,7 @@ export const MyCreatedStudiesWidget: React.FC = () => {
             onClick={() => navigate('/study')}
             className="inline-flex items-center gap-1 mt-4 text-sm font-medium text-text-tertiary hover:text-text-secondary transition-colors"
           >
-            스터디 탐색하기
+            스터디 개설하기
             <ChevronRight size={14} />
           </button>
         </div>

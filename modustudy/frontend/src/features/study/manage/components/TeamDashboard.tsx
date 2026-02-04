@@ -156,7 +156,9 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ study, onStudyUpdate, onT
                 for (const session of completedSessions) {
                     try {
                         const attendanceData = await studyApi.getSessionAttendance(study.id, session.id);
-                        const attendances = attendanceData?.data || attendanceData || [];
+                        // API 응답 구조: { sessionId, sessionTitle, totalMembers, presentCount, members: [...] }
+                        const sessionData = attendanceData?.data || attendanceData || {};
+                        const attendances = sessionData.members || [];
 
                         attendances.forEach((att: any) => {
                             if (memberAttendanceMap[att.userId]) {
@@ -406,7 +408,7 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ study, onStudyUpdate, onT
 
             {/* 스터디 관리 액션 버튼 */}
             {(canStartStudy || canExtendRecruitment) && (
-                <div className="bg-primary/5 border border-primary/20 rounded-2xl p-5">
+                <div className="bg-white rounded-2xl shadow-[0_4px_15px_rgba(0,0,0,0.05)] p-5">
                     <h3 className="text-sm font-bold text-text-primary mb-3 flex items-center gap-2">
                         <Target size={16} className="text-primary" />
                         스터디 관리
@@ -456,7 +458,7 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ study, onStudyUpdate, onT
                 {statCards.map((stat, idx) => (
                     <div
                         key={idx}
-                        className="bg-background-secondary rounded-2xl p-5 border border-border-light hover:shadow-md transition-shadow"
+                        className="bg-white rounded-2xl p-5 shadow-[0_4px_15px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)] transition-shadow"
                     >
                         <div className="flex items-center justify-between mb-3">
                             <span className={`w-10 h-10 rounded-xl flex items-center justify-center bg-${stat.color}/10 text-${stat.color}`}>
@@ -471,7 +473,7 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ study, onStudyUpdate, onT
             </div>
 
             {/* 알림 섹션 */}
-            <div className="bg-warning/5 border border-warning/20 rounded-2xl p-4">
+            <div className="bg-white rounded-2xl shadow-[0_4px_15px_rgba(0,0,0,0.05)] p-4">
                 <h3 className="text-sm font-bold text-text-primary mb-3 flex items-center gap-2">
                     <Target size={16} className="text-warning" />
                     처리가 필요한 항목
@@ -480,7 +482,7 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ study, onStudyUpdate, onT
                     {alertItems.map((item, idx) => (
                         <div
                             key={idx}
-                            className="flex items-center justify-between bg-surface rounded-xl px-4 py-3"
+                            className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3"
                         >
                             <div className="flex items-center gap-3">
                                 <span className={`text-${item.type}`}>{item.icon}</span>
@@ -500,7 +502,7 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ study, onStudyUpdate, onT
             {/* 최근 활동 & 출석 현황 */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* 출석률 Top 3 */}
-                <div className="bg-background-secondary rounded-2xl p-5 border border-border-light">
+                <div className="bg-white rounded-2xl p-5 shadow-[0_4px_15px_rgba(0,0,0,0.05)]">
                     <h3 className="text-sm font-bold text-text-primary mb-4 flex items-center gap-2">
                         <Award size={16} className="text-warning" />
                         출석률 TOP 3
@@ -536,7 +538,7 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ study, onStudyUpdate, onT
                 </div>
 
                 {/* 다가오는 일정 */}
-                <div className="bg-background-secondary rounded-2xl p-5 border border-border-light">
+                <div className="bg-white rounded-2xl p-5 shadow-[0_4px_15px_rgba(0,0,0,0.05)]">
                     <h3 className="text-sm font-bold text-text-primary mb-4 flex items-center gap-2">
                         <Calendar size={16} className="text-info" />
                         다가오는 일정
@@ -544,7 +546,7 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ study, onStudyUpdate, onT
                     <div className="space-y-3">
                         {upcomingEvents.length > 0 ? (
                             upcomingEvents.map((event, idx) => (
-                                <div key={event.id || idx} className="flex items-center gap-3 p-3 bg-surface rounded-xl">
+                                <div key={event.id || idx} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
                                     <div className="w-10 h-10 rounded-xl bg-info/10 flex items-center justify-center">
                                         <Calendar size={18} className="text-info" />
                                     </div>
