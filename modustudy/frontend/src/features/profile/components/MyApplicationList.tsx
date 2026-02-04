@@ -150,7 +150,7 @@ export const MyApplicationList: React.FC = () => {
 
             {/* 신청 내역 목록 */}
             {applications.length === 0 ? (
-                <div className="text-center py-12 bg-background-secondary rounded-2xl">
+                <div className="text-center py-12 rounded-2xl bg-white shadow-[0_4px_15px_rgba(0,0,0,0.05)]">
                     <FileText size={48} className="mx-auto text-text-muted mb-4" />
                     <p className="text-text-secondary">
                         {filterStatus === 'all' ? '아직 신청한 스터디가 없습니다' : '해당 상태의 신청 내역이 없습니다'}
@@ -161,7 +161,7 @@ export const MyApplicationList: React.FC = () => {
                     {applications.map((app) => (
                         <div
                             key={app.applicationId}
-                            className="bg-background-secondary rounded-2xl p-5 border border-border-light hover:shadow-md transition-all cursor-pointer"
+                            className="rounded-2xl p-5 bg-white shadow-[0_4px_15px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)] transition-all cursor-pointer"
                             onClick={() => handleStudyClick(app.studyId)}
                         >
                             <div className="flex items-start justify-between gap-4">

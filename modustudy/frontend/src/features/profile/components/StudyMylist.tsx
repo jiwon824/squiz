@@ -36,7 +36,7 @@ export const StudyMylist: React.FC<StudyMylistProps> = ({ studies }) => {
         <Card
             key={study.id}
             variant="flat"
-            className="study-activity-card relative cursor-pointer border border-gray-100/80 bg-white/70 backdrop-blur-sm hover:border-blue-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-300 group overflow-hidden"
+            className="study-activity-card relative cursor-pointer bg-white transition-all duration-300 group overflow-hidden"
             onClick={() => handleCardClick(study.id)}
         >
             <div className="absolute top-0 left-0 w-1 h-full bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -75,7 +75,7 @@ export const StudyMylist: React.FC<StudyMylistProps> = ({ studies }) => {
 
     return (
         <div className="my-studies-section space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <div className="flex justify-between items-center bg-white/80 backdrop-blur-md p-5 rounded-[24px] shadow-sm border border-gray-100/50">
+            <div className="flex justify-between items-center bg-white p-5 rounded-[24px] shadow-[0_4px_15px_rgba(0,0,0,0.05)]">
                 <h2 className="section-title !m-0 !p-0 flex items-center gap-3">
                     내 스터디 활동
                 </h2>

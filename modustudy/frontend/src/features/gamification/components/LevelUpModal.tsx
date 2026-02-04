@@ -1,13 +1,12 @@
 /**
  * 레벨업 축하 모달
  * 사용자가 레벨업 했을 때 표시되는 축하 애니메이션 모달
+ * SQUIZ 아일랜드 - 돌고래 마스코트 컨셉
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Trophy, Star, ArrowRight, X } from 'lucide-react';
-import { cn } from '@/shared/utils/cn';
-import { Button } from '@/shared/components';
+import { Sparkles, Trophy, ArrowRight, X } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 interface LevelUpModalProps {
@@ -18,16 +17,6 @@ interface LevelUpModalProps {
     newLevelName: string;
 }
 
-// 레벨별 테마 색상
-const LEVEL_THEMES: Record<number, { gradient: string; accent: string; emoji: string }> = {
-    1: { gradient: 'from-emerald-400 to-emerald-600', accent: 'bg-emerald-500', emoji: '🌱' },
-    2: { gradient: 'from-blue-400 to-blue-600', accent: 'bg-blue-500', emoji: '📚' },
-    3: { gradient: 'from-purple-400 to-purple-600', accent: 'bg-purple-500', emoji: '🔥' },
-    4: { gradient: 'from-orange-400 to-orange-600', accent: 'bg-orange-500', emoji: '⭐' },
-    5: { gradient: 'from-rose-400 to-rose-600', accent: 'bg-rose-500', emoji: '👑' },
-    6: { gradient: 'from-amber-400 to-amber-600', accent: 'bg-amber-500', emoji: '💎' },
-};
-
 // 레벨업 보상 메시지
 const LEVEL_REWARDS: Record<number, string[]> = {
     2: ['학습의 즐거움을 알아가는 중!', '첫 걸음을 내딛었어요'],
@@ -37,6 +26,44 @@ const LEVEL_REWARDS: Record<number, string[]> = {
     6: ['전설의 그랜드마스터!', '모든 도전을 정복했습니다'],
 };
 
+// 돌고래 자연스러운 수영 애니메이션
+const dolphinSwim1 = {
+    animate: {
+        // 부드러운 8자 곡선 경로
+        x: [-160, -100, 0, 100, 160, 100, 0, -100, -160],
+        y: [-60, -100, -80, -100, -60, 100, 120, 100, -60],
+        // 이동 방향에 따라 자연스럽게 회전
+        rotate: [15, 5, -5, -15, -25, -15, 5, 15, 15],
+        // 자연스러운 좌우 반전
+        scaleX: [1, 1, 1, 1, -1, -1, -1, -1, 1],
+        // 원근감을 위한 크기 변화
+        scale: [1, 1.05, 1.1, 1.05, 1, 0.95, 0.9, 0.95, 1],
+    },
+    transition: {
+        duration: 8,
+        repeat: Infinity,
+        ease: 'easeInOut' as const,
+        times: [0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1],
+    },
+};
+
+const dolphinSwim2 = {
+    animate: {
+        // 반대 방향 8자 곡선
+        x: [160, 100, 0, -100, -160, -100, 0, 100, 160],
+        y: [80, 120, 100, 120, 80, -80, -100, -80, 80],
+        rotate: [-15, -5, 5, 15, 25, 15, -5, -15, -15],
+        scaleX: [-1, -1, -1, -1, 1, 1, 1, 1, -1],
+        scale: [1, 0.95, 0.9, 0.95, 1, 1.05, 1.1, 1.05, 1],
+    },
+    transition: {
+        duration: 8,
+        repeat: Infinity,
+        ease: 'easeInOut' as const,
+        times: [0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1],
+    },
+};
+
 export const LevelUpModal: React.FC<LevelUpModalProps> = ({
     isOpen,
     onClose,
@@ -44,16 +71,11 @@ export const LevelUpModal: React.FC<LevelUpModalProps> = ({
     newLevel,
     newLevelName,
 }) => {
-    const [showContent, setShowContent] = useState(false);
-    const theme = LEVEL_THEMES[newLevel] || LEVEL_THEMES[1];
     const rewards = LEVEL_REWARDS[newLevel] || ['축하합니다!', '레벨업을 달성했어요'];
 
     // 모달 열릴 때 confetti 효과
     useEffect(() => {
         if (isOpen) {
-            // 잠시 후 콘텐츠 표시
-            const timer = setTimeout(() => setShowContent(true), 300);
-
             // Confetti 효과
             const duration = 3000;
             const end = Date.now() + duration;
@@ -79,10 +101,6 @@ export const LevelUpModal: React.FC<LevelUpModalProps> = ({
                 }
             };
             frame();
-
-            return () => clearTimeout(timer);
-        } else {
-            setShowContent(false);
         }
     }, [isOpen]);
 
@@ -95,152 +113,202 @@ export const LevelUpModal: React.FC<LevelUpModalProps> = ({
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                 >
-                    {/* 배경 오버레이 */}
+                    {/* 배경 오버레이 - 바다 느낌 그라데이션 */}
                     <motion.div
-                        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                        className="absolute inset-0"
+                        style={{
+                            background: 'linear-gradient(180deg, rgba(0,80,120,0.85) 0%, rgba(0,60,100,0.9) 50%, rgba(0,40,80,0.95) 100%)',
+                        }}
                         onClick={onClose}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                     />
 
-                    {/* 모달 카드 */}
+                    {/* 배경 거품 효과 */}
+                    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                        {[...Array(12)].map((_, i) => (
+                            <motion.div
+                                key={i}
+                                className="absolute text-white/30"
+                                style={{
+                                    left: `${Math.random() * 100}%`,
+                                    bottom: -30,
+                                    fontSize: 16 + Math.random() * 20,
+                                }}
+                                animate={{
+                                    y: -window.innerHeight - 100,
+                                    opacity: [0, 0.5, 0.5, 0],
+                                }}
+                                transition={{
+                                    duration: 5 + Math.random() * 3,
+                                    delay: i * 0.4,
+                                    repeat: Infinity,
+                                    ease: 'linear',
+                                }}
+                            >
+                                🫧
+                            </motion.div>
+                        ))}
+                    </div>
+
+                    {/* 메인 컨텐츠 - 카드 + 회전하는 돌고래 */}
                     <motion.div
-                        className="relative w-full max-w-md mx-4"
+                        className="relative flex items-center justify-center px-4"
                         initial={{ scale: 0.5, opacity: 0, y: 50 }}
                         animate={{ scale: 1, opacity: 1, y: 0 }}
                         exit={{ scale: 0.8, opacity: 0, y: 20 }}
                         transition={{ type: 'spring', damping: 20, stiffness: 300 }}
                     >
-                        {/* 닫기 버튼 */}
-                        <button
-                            onClick={onClose}
-                            className="absolute -top-3 -right-3 w-8 h-8 bg-white rounded-full shadow-lg flex items-center justify-center z-10 hover:bg-gray-100 transition-colors"
-                        >
-                            <X size={16} className="text-gray-500" />
-                        </button>
+                        {/* 카드 주변을 헤엄치는 돌고래 1 */}
+                        <motion.img
+                            src="/images/dancing_dolphin.png"
+                            alt="돌고래"
+                            className="absolute w-16 h-16 sm:w-20 sm:h-20 object-contain z-20 hidden sm:block"
+                            animate={dolphinSwim1.animate}
+                            transition={dolphinSwim1.transition}
+                        />
 
-                        {/* 그라데이션 배경 카드 */}
-                        <div className={cn(
-                            "relative overflow-hidden rounded-3xl",
-                            "bg-gradient-to-br",
-                            theme.gradient,
-                            "shadow-2xl"
-                        )}>
-                            {/* 배경 장식 */}
-                            <div className="absolute inset-0 overflow-hidden">
-                                {/* 반짝이는 별들 */}
-                                {[...Array(20)].map((_, i) => (
-                                    <motion.div
-                                        key={i}
-                                        className="absolute w-1 h-1 bg-white rounded-full"
-                                        style={{
-                                            left: `${Math.random() * 100}%`,
-                                            top: `${Math.random() * 100}%`,
-                                        }}
-                                        animate={{
-                                            opacity: [0, 1, 0],
-                                            scale: [0, 1, 0],
-                                        }}
-                                        transition={{
-                                            duration: 2,
-                                            repeat: Infinity,
-                                            delay: Math.random() * 2,
-                                        }}
-                                    />
-                                ))}
-                            </div>
+                        {/* 카드 주변을 헤엄치는 돌고래 2 */}
+                        <motion.img
+                            src="/images/dancing_dolphin.png"
+                            alt="돌고래"
+                            className="absolute w-16 h-16 sm:w-20 sm:h-20 object-contain z-20 hidden sm:block"
+                            animate={dolphinSwim2.animate}
+                            transition={dolphinSwim2.transition}
+                        />
 
-                            {/* 콘텐츠 */}
-                            <div className="relative p-8 text-center">
-                                {/* 아이콘 배지 */}
-                                <AnimatePresence>
-                                    {showContent && (
+                        {/* 레벨업 카드 */}
+                        <div className="relative w-full max-w-sm z-10">
+                            {/* 닫기 버튼 */}
+                            <button
+                                onClick={onClose}
+                                className="absolute -top-3 -right-3 w-8 h-8 bg-white rounded-full shadow-lg flex items-center justify-center z-10 hover:bg-gray-100 transition-colors"
+                            >
+                                <X size={16} className="text-gray-500" />
+                            </button>
+
+                            {/* 글래스모피즘 카드 */}
+                            <div className="relative overflow-hidden rounded-3xl backdrop-blur-md bg-white/20 shadow-2xl">
+                                {/* 배경 장식 - 반짝이는 별들 */}
+                                <div className="absolute inset-0 overflow-hidden">
+                                    {[...Array(15)].map((_, i) => (
                                         <motion.div
-                                            initial={{ scale: 0, rotate: -180 }}
-                                            animate={{ scale: 1, rotate: 0 }}
-                                            transition={{ type: 'spring', damping: 10, stiffness: 200, delay: 0.2 }}
-                                            className="relative mx-auto mb-6"
+                                            key={i}
+                                            className="absolute text-yellow-300"
+                                            style={{
+                                                left: `${Math.random() * 100}%`,
+                                                top: `${Math.random() * 100}%`,
+                                                fontSize: 10 + Math.random() * 8,
+                                            }}
+                                            animate={{
+                                                opacity: [0, 1, 0],
+                                                scale: [0, 1, 0],
+                                            }}
+                                            transition={{
+                                                duration: 2,
+                                                repeat: Infinity,
+                                                delay: Math.random() * 2,
+                                            }}
                                         >
-                                            {/* 빛나는 링 */}
-                                            <motion.div
-                                                className="absolute inset-0 rounded-full border-4 border-white/30"
-                                                animate={{
-                                                    scale: [1, 1.3, 1],
-                                                    opacity: [0.5, 0, 0.5],
-                                                }}
-                                                transition={{ duration: 2, repeat: Infinity }}
-                                                style={{ width: 120, height: 120, left: -10, top: -10 }}
-                                            />
-
-                                            {/* 레벨 아이콘 */}
-                                            <div className="w-24 h-24 mx-auto bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-5xl shadow-lg">
-                                                {theme.emoji}
-                                            </div>
+                                            ✨
                                         </motion.div>
-                                    )}
-                                </AnimatePresence>
+                                    ))}
+                                </div>
 
-                                {/* 레벨업 텍스트 */}
-                                <motion.div
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: 0.4 }}
-                                >
-                                    <div className="flex items-center justify-center gap-2 mb-2">
-                                        <Sparkles size={20} className="text-yellow-300" />
-                                        <span className="text-white/80 text-sm font-medium tracking-wider uppercase">
-                                            Level Up!
-                                        </span>
-                                        <Sparkles size={20} className="text-yellow-300" />
+                                {/* 콘텐츠 */}
+                                <div className="relative p-6 sm:p-8 text-center">
+                                    {/* 모바일 돌고래 (상단) */}
+                                    <div className="flex justify-center gap-4 mb-4 sm:hidden">
+                                        <motion.img
+                                            src="/images/dancing_dolphin.png"
+                                            alt="돌고래"
+                                            className="w-14 h-14 object-contain"
+                                            animate={{
+                                                y: [0, -8, 0],
+                                                rotate: [-5, 5, -5],
+                                            }}
+                                            transition={{
+                                                duration: 1.5,
+                                                repeat: Infinity,
+                                                ease: 'easeInOut',
+                                            }}
+                                        />
+                                        <motion.img
+                                            src="/images/dancing_dolphin.png"
+                                            alt="돌고래"
+                                            className="w-14 h-14 object-contain"
+                                            style={{ scaleX: -1 }}
+                                            animate={{
+                                                y: [0, -8, 0],
+                                                rotate: [5, -5, 5],
+                                            }}
+                                            transition={{
+                                                duration: 1.5,
+                                                repeat: Infinity,
+                                                ease: 'easeInOut',
+                                            }}
+                                        />
                                     </div>
 
-                                    <h2 className="text-4xl font-black text-white mb-1">
-                                        Lv.{newLevel}
-                                    </h2>
-                                    <p className="text-xl font-bold text-white/90 mb-4">
-                                        {newLevelName}
-                                    </p>
-
-                                    {/* 레벨 전환 표시 */}
-                                    <div className="flex items-center justify-center gap-3 mb-6">
-                                        <span className="px-3 py-1 bg-white/20 rounded-full text-white/80 text-sm">
-                                            Lv.{previousLevel}
-                                        </span>
-                                        <ArrowRight size={20} className="text-white/60" />
-                                        <span className="px-3 py-1 bg-white/30 rounded-full text-white font-bold text-sm">
-                                            Lv.{newLevel}
-                                        </span>
-                                    </div>
-                                </motion.div>
-
-                                {/* 보상 메시지 */}
-                                <motion.div
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: 0.6 }}
-                                    className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 mb-6"
-                                >
-                                    <div className="flex items-center justify-center gap-2 mb-2">
-                                        <Trophy size={16} className="text-yellow-300" />
-                                        <span className="text-white/90 font-medium">{rewards[0]}</span>
-                                    </div>
-                                    <p className="text-white/70 text-sm">{rewards[1]}</p>
-                                </motion.div>
-
-                                {/* 확인 버튼 */}
-                                <motion.div
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: 0.8 }}
-                                >
-                                    <Button
-                                        onClick={onClose}
-                                        className="w-full bg-white text-gray-800 hover:bg-gray-100 font-bold py-3 rounded-xl shadow-lg"
+                                    {/* 축하 메시지 */}
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: 0.3 }}
+                                        className="mb-2"
                                     >
-                                        <Star size={16} className="mr-2 text-yellow-500" />
-                                        확인
-                                    </Button>
-                                </motion.div>
+                                        <span className="text-2xl">🎉</span>
+                                        <p className="text-white font-bold text-lg mt-1">축하합니다!</p>
+                                    </motion.div>
+
+                                    {/* 레벨업 텍스트 */}
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: 0.4 }}
+                                    >
+                                        <div className="flex items-center justify-center gap-2 mb-2">
+                                            <Sparkles size={18} className="text-yellow-300" />
+                                            <span className="text-white/80 text-xs font-medium tracking-wider uppercase">
+                                                Level Up!
+                                            </span>
+                                            <Sparkles size={18} className="text-yellow-300" />
+                                        </div>
+
+                                        <h2 className="text-5xl font-black text-white mb-1" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.3)' }}>
+                                            Lv.{newLevel}
+                                        </h2>
+                                        <p className="text-xl font-bold text-cyan-200 mb-4">
+                                            {newLevelName}
+                                        </p>
+
+                                        {/* 레벨 전환 표시 */}
+                                        <div className="flex items-center justify-center gap-3 mb-4">
+                                            <span className="px-3 py-1 bg-white/20 rounded-full text-white/80 text-sm">
+                                                Lv.{previousLevel}
+                                            </span>
+                                            <ArrowRight size={18} className="text-white/60" />
+                                            <span className="px-3 py-1 bg-cyan-400/40 rounded-full text-white font-bold text-sm">
+                                                Lv.{newLevel}
+                                            </span>
+                                        </div>
+                                    </motion.div>
+
+                                    {/* 보상 메시지 */}
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: 0.6 }}
+                                        className="bg-white/10 backdrop-blur-sm rounded-2xl p-3 mb-4"
+                                    >
+                                        <div className="flex items-center justify-center gap-2 mb-1">
+                                            <Trophy size={14} className="text-yellow-300" />
+                                            <span className="text-white/90 font-medium text-sm">{rewards[0]}</span>
+                                        </div>
+                                        <p className="text-white/70 text-xs">{rewards[1]}</p>
+                                    </motion.div>
+
+                                </div>
                             </div>
                         </div>
                     </motion.div>
