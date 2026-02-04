@@ -192,15 +192,7 @@ public class AuthController {
     @GetMapping("/social/my")
     public ResponseEntity<ApiResponse<LinkedAccountsResponse>> getLinkedAccounts(
             @CurrentUserId Long userId) {
-
-        if (userId == null) {
-            return ResponseEntity
-                    .status(401)
-                    .body(ApiResponse.error("UNAUTHORIZED", "인증이 필요합니다."));
-        }
-
         LinkedAccountsResponse response = oAuth2Service.getLinkedSocialAccounts(userId);
-
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -230,7 +222,6 @@ public class AuthController {
                 request.getCode()
         );
 
-        // 메시지 없이 data만 반환
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
