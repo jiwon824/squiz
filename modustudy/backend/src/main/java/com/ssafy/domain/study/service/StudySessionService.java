@@ -2,7 +2,7 @@ package com.ssafy.domain.study.service;
 
 import com.ssafy.common.exception.NotFoundException;
 import com.ssafy.common.exception.StudyException;
-import com.ssafy.domain.calendar.service.GoogleCalendarService;
+import com.ssafy.domain.calendar.service.CalendarSyncService;
 import com.ssafy.domain.study.dto.request.StudySessionCreateRequest;
 import com.ssafy.domain.study.dto.request.StudySessionUpdateRequest;
 import com.ssafy.domain.study.dto.response.StudySessionResponse;
@@ -20,6 +20,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDateTime;
 import java.util.Comparator;
@@ -34,8 +36,8 @@ public class StudySessionService {
     private final StudySessionRepository studySessionRepository;
     private final StudyRepository studyRepository;
     private final StudyMemberRepository studyMemberRepository;
-    private final GoogleCalendarService googleCalendarService;
     private final NotificationService notificationService;
+    private final CalendarSyncService calendarSyncService;
 
     /**
      * 세션 생성
@@ -71,8 +73,15 @@ public class StudySessionService {
         // 재정렬 후 최신 세션 정보 조회
         StudySession reorderedSession = getSessionOrThrow(saved.getId());
 
-        // 스터디 멤버들의 Google Calendar에 이벤트 자동 추가
-        syncSessionToMemberCalendars(reorderedSession, study.getName());
+        // 스터디 멤버들의 Google Calendar에 이벤트 자동 추가 (트랜잭션 커밋 후 비동기 처리)
+        String studyName = study.getName();
+        Long sessionId = reorderedSession.getId();
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                calendarSyncService.syncSessionsToMemberCalendarsAsync(List.of(sessionId), studyId, studyName);
+            }
+        });
 
         return StudySessionResponse.from(reorderedSession);
     }
@@ -119,11 +128,15 @@ public class StudySessionService {
         // 재정렬 후 최신 세션 목록 조회
         List<StudySession> reorderedSessions = studySessionRepository.findByStudyIdOrderByScheduledAtAsc(studyId);
 
-        // Google Calendar 동기화 (백그라운드 처리)
+        // Google Calendar 동기화 (트랜잭션 커밋 후 비동기 처리)
         String studyName = study.getName();
-        for (StudySession session : reorderedSessions) {
-            syncSessionToMemberCalendars(session, studyName);
-        }
+        List<Long> sessionIds = reorderedSessions.stream().map(StudySession::getId).toList();
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                calendarSyncService.syncSessionsToMemberCalendarsAsync(sessionIds, studyId, studyName);
+            }
+        });
 
         return reorderedSessions.stream()
                 .map(StudySessionResponse::from)
@@ -229,8 +242,8 @@ public class StudySessionService {
         // 재정렬 후 최신 세션 정보 조회
         StudySession updatedSession = getSessionOrThrow(sessionId);
 
-        // Google Calendar 이벤트도 업데이트
-        updateSessionInMemberCalendars(updatedSession, study.getName());
+        // Google Calendar 이벤트도 업데이트 (비동기)
+        calendarSyncService.updateSessionInMemberCalendarsAsync(sessionId, studyId, study.getName());
 
         return StudySessionResponse.from(updatedSession);
     }
@@ -253,8 +266,8 @@ public class StudySessionService {
             throw new IllegalStateException("완료된 세션은 삭제할 수 없습니다");
         }
 
-        // Google Calendar 이벤트 삭제
-        googleCalendarService.deleteEventMappings(sessionId);
+        // Google Calendar 이벤트 삭제 (비동기)
+        calendarSyncService.deleteSessionFromMemberCalendarsAsync(sessionId, studyId);
 
         studySessionRepository.delete(session);
         studySessionRepository.flush();
@@ -355,7 +368,7 @@ public class StudySessionService {
         validateSessionBelongsToStudy(session, studyId);
 
         session.setDurationMinutes(durationMinutes);
-        updateSessionInMemberCalendars(session, study.getName());
+        calendarSyncService.updateSessionInMemberCalendarsAsync(sessionId, studyId, study.getName());
     }
 
     /**
@@ -418,67 +431,6 @@ public class StudySessionService {
     private void validateSessionBelongsToStudy(StudySession session, Long studyId) {
         if (!session.getStudyId().equals(studyId)) {
             throw new NotFoundException("SESSION_NOT_FOUND", "해당 스터디의 세션이 아닙니다");
-        }
-    }
-
-    /**
-     * 스터디 멤버들의 Google Calendar에 세션 이벤트 동기화
-     */
-    private void syncSessionToMemberCalendars(StudySession session, String studyTitle) {
-        try {
-            // 활성 스터디 멤버 조회
-            List<StudyMember> activeMembers = studyMemberRepository
-                    .findByStudyIdAndStatus(session.getStudyId(), MemberStatus.APPROVED);
-
-            for (StudyMember member : activeMembers) {
-                try {
-                    // Google Calendar 연동 확인
-                    if (googleCalendarService.isCalendarLinked(member.getUserId())) {
-                        String eventId = googleCalendarService.createEvent(
-                                member.getUserId(), session, studyTitle);
-
-                        // 이벤트 매핑 저장
-                        googleCalendarService.saveEventMapping(
-                                session.getId(), member.getUserId(), eventId);
-
-                        log.debug("캘린더 이벤트 생성 - userId: {}, sessionId: {}",
-                                member.getUserId(), session.getId());
-                    }
-                } catch (Exception e) {
-                    // 개별 멤버 캘린더 동기화 실패 시 로그만 남기고 계속 진행
-                    log.warn("캘린더 이벤트 생성 실패 - userId: {}, error: {}",
-                            member.getUserId(), e.getMessage());
-                }
-            }
-        } catch (Exception e) {
-            log.error("캘린더 동기화 중 오류 발생 - sessionId: {}, error: {}",
-                    session.getId(), e.getMessage());
-        }
-    }
-
-    /**
-     * 세션 수정 시 Google Calendar 이벤트도 업데이트
-     */
-    private void updateSessionInMemberCalendars(StudySession session, String studyTitle) {
-        try {
-            List<StudyMember> activeMembers = studyMemberRepository
-                    .findByStudyIdAndStatus(session.getStudyId(), MemberStatus.APPROVED);
-
-            for (StudyMember member : activeMembers) {
-                try {
-                    googleCalendarService.getEventMapping(session.getId(), member.getUserId())
-                            .ifPresent(mapping -> {
-                                googleCalendarService.updateEvent(
-                                        member.getUserId(), session,
-                                        mapping.getGoogleEventId(), studyTitle);
-                            });
-                } catch (Exception e) {
-                    log.warn("캘린더 이벤트 수정 실패 - userId: {}, error: {}",
-                            member.getUserId(), e.getMessage());
-                }
-            }
-        } catch (Exception e) {
-            log.error("캘린더 수정 동기화 중 오류 발생 - sessionId: {}", session.getId());
         }
     }
 
