@@ -58,6 +58,13 @@ public class UserReviewItemRepositoryImpl implements UserReviewItemRepositoryCus
                         item.stability.asc(),
                         item.lapses.desc()
                 };
+            case LATEST ->
+                // 최신순: lastReviewedAt 내림차순 (가장 최근에 틀린 문제 우선)
+                // lastReviewedAt이 null인 경우 createdAt 기준
+                new OrderSpecifier<?>[] {
+                        item.lastReviewedAt.desc().nullsLast(),
+                        item.createdAt.desc()
+                };
         };
     }
 }

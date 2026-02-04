@@ -453,6 +453,17 @@ export const MyQuizPage: React.FC = () => {
                                                     >
                                                         복습 우선순위
                                                     </button>
+                                                    <button
+                                                        onClick={() => setWrongSortType('LATEST')}
+                                                        className={cn(
+                                                            'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                                                            wrongSortType === 'LATEST'
+                                                                ? 'bg-primary text-white'
+                                                                : 'bg-gray-100 text-text-secondary hover:bg-gray-200'
+                                                        )}
+                                                    >
+                                                        최신순
+                                                    </button>
                                                 </div>
                                                 <ReviewItemList
                                                     items={wrongReviews}
