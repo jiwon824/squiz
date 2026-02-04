@@ -303,23 +303,23 @@ public interface ContinuousQuizRepository extends JpaRepository<QuizCourseQuesti
             """, nativeQuery = true)
     List<CourseQuestionStatsProjection> countTotalQuestionsGroupByCourse();
 
-    /**
-     * 사용자가 코스별로 1회 이상 정답을 맞힌 고유 문제 수를 집계한다.
-     * (중복 카운트 방지: 같은 문제를 여러 번 맞혀도 1개로 집계)
-     */
-    @Query(value = """
-            SELECT q.quiz_course_id AS courseId, COUNT(DISTINCT q.id) AS questionCount
-            FROM quiz_course_question q
-            JOIN user_review_items uri
-                ON uri.content_type = 'COURSE_QUESTION'
-                AND uri.content_id = q.id
-                AND uri.user_id = :userId
-            JOIN user_review_logs url
-                ON url.review_item_id = uri.id
-                AND url.is_correct = true
-            GROUP BY q.quiz_course_id
-            """, nativeQuery = true)
-    List<CourseQuestionStatsProjection> countSolvedQuestionsGroupByCourse(@Param("userId") Long userId);
+  /**
+   * 사용자가 코스별로 1회 이상 정답을 맞힌 고유 문제 수를 집계한다.
+   * (중복 카운트 방지: 같은 문제를 여러 번 맞혀도 1개로 집계)
+   */
+  @Query(value = """
+      SELECT q.quiz_course_id AS courseId, COUNT(DISTINCT q.id) AS questionCount
+      FROM quiz_course_question q
+      JOIN user_review_items uri
+          ON uri.content_type = 'COURSE_QUESTION'
+          AND uri.content_id = q.id
+          AND uri.user_id = :userId
+      JOIN user_review_log url
+          ON url.review_item_id = uri.id
+          AND url.is_correct = true
+      GROUP BY q.quiz_course_id
+      """, nativeQuery = true)
+  List<CourseQuestionStatsProjection> countSolvedQuestionsGroupByCourse(@Param("userId") Long userId);
 
     /**
      * 코스별 총 복습 횟수(reps)와 오답 횟수(lapses)를 집계한다.
@@ -344,7 +344,7 @@ public interface ContinuousQuizRepository extends JpaRepository<QuizCourseQuesti
     @Query(value = """
             SELECT COUNT(DISTINCT uri.content_id)
             FROM user_review_items uri
-            JOIN user_review_logs url
+            JOIN user_review_log url
                 ON url.review_item_id = uri.id
                 AND url.is_correct = true
             WHERE uri.user_id = :userId

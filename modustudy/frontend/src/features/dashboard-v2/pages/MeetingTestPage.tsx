@@ -261,10 +261,10 @@ export const MeetingTestPage: React.FC = () => {
             <div className="max-w-[1600px] mx-auto px-8">
                 {/* 브레드크럼 헤더 */}
                 <PageNavHeader
-                    title="미팅 테스트"
+                    title="미팅 퀴즈"
                     breadcrumbs={[
                         { label: '대시보드', path: '/dashboard' },
-                        { label: '미팅 테스트' },
+                        { label: '미팅 퀴즈' },
                     ]}
                     onBack={() => navigate(-1)}
                 />
@@ -370,7 +370,7 @@ export const MeetingTestPage: React.FC = () => {
                                 ) : filteredItems.length === 0 ? (
                                     <div className="flex flex-col items-center justify-center h-32 text-text-tertiary text-sm">
                                         <ClipboardCheck size={24} className="mb-2 opacity-50" />
-                                        <span>미팅 테스트가 없습니다</span>
+                                        <span>미팅 퀴즈가 없습니다</span>
                                     </div>
                                 ) : (
                                     filteredItems.map(item => {

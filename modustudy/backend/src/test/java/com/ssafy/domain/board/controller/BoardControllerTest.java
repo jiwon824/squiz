@@ -7,8 +7,8 @@ import com.ssafy.domain.board.dto.response.BoardCommentResponse;
 import com.ssafy.domain.board.dto.response.BoardPostDetailResponse;
 import com.ssafy.domain.board.dto.response.BoardPostSummaryResponse;
 import com.ssafy.domain.board.dto.response.BoardRecruitingStudyResponse;
-import com.ssafy.domain.board.service.BoardService;
 import com.ssafy.domain.board.entity.RecruitmentStatus;
+import com.ssafy.domain.board.service.BoardService;
 import com.ssafy.domain.study.entity.MeetingType;
 import com.ssafy.domain.study.entity.Status;
 import com.ssafy.domain.study.entity.StudyType;
@@ -79,7 +79,7 @@ class BoardControllerTest {
         BoardPostDetailResponse response = BoardPostDetailResponse.builder()
                 .id(10L)
                 .meetingType(MeetingType.ONLINE)
-                .recruitmentField("백엔드")
+                .recruitmentField("backend")
                 .targetMembers(6)
                 .recruitmentStatus(RecruitmentStatus.RECRUITING)
                 .title("모집글 제목")
@@ -115,7 +115,7 @@ class BoardControllerTest {
                 .authorId(1L)
                 .authorName("leader")
                 .authorProfileImage(null)
-                .recruitmentField("백엔드")
+                .recruitmentField("backend")
                 .meetingType(MeetingType.ONLINE)
                 .targetMembers(6)
                 .viewCount(0)
