@@ -71,7 +71,7 @@ const getCorrectAnswerText = (
     correctAnswer: string | null | undefined,
     options: { id: string; text: string }[]
 ): string => {
-    if (!correctAnswer) return '정답 정보 없음';
+    if (!correctAnswer) return correctAnswer ?? '';
     // correctAnswer가 "A", "B" 같은 ID인 경우 해당 옵션의 text 반환
     const option = options.find(opt => opt.id === correctAnswer);
     if (option) return `${option.id}. ${option.text}`;
