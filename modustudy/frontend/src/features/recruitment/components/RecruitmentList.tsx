@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
-import { Search, Filter, Plus, X, Users, Eye } from 'lucide-react';
+import { Filter, Plus, Users, Eye } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 import { Button } from '@/shared/components';
+import { PageListHeader, PageListSubHeader } from '@/shared/components/layouts';
 import { RecruitmentPostSummary } from '@/api/endpoints/boardApi';
 
 interface RecruitmentListProps {
@@ -44,20 +45,14 @@ export const RecruitmentList: React.FC<RecruitmentListProps> = ({ posts, onDetai
     const gridColsMobile = 'grid-cols-[1fr_70px_72px]';
 
     return (
-        <div className="space-y-6 animate-fadeIn">
-            <div className="flex justify-between mb-2">
-                <div className="flex items-center pt-2">
-                    <div>
-                        <h1 className="text-2xl md:text-3xl font-bold text-[var(--color-text-primary)]">
-                            자유 모집 게시판
-                        </h1>
-                        <p className="text-sm text-[var(--color-text-secondary)] mt-1">
-                            총 <span className="font-bold text-[var(--color-primary)]">{filteredPosts.length}</span>개의 모집글
-                        </p>
-                    </div>
-                </div>
-
-                <div className="flex items-center">
+        <div className="animate-fadeIn">
+            {/* 헤더 - 공통 컴포넌트 */}
+            <PageListHeader
+                title="자유 모집 게시판"
+                subtitle={
+                    <>총 <span className="font-bold text-[var(--color-primary)]">{filteredPosts.length}</span>개의 모집글</>
+                }
+                actions={
                     <Button
                         onClick={onAdd}
                         variant="primary"
@@ -67,31 +62,15 @@ export const RecruitmentList: React.FC<RecruitmentListProps> = ({ posts, onDetai
                     >
                         모집글 작성하기
                     </Button>
-                </div>
-            </div>
+                }
+            />
 
-            <div className="mb-6">
-                <div className="flex flex-col lg:flex-row gap-4">
-                    <div className="flex-1 relative">
-                        <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-text-tertiary)]" />
-                        <input
-                            type="text"
-                            placeholder="제목, 모집 분야로 검색.."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            className="w-full h-11 pl-11 pr-10 bg-[var(--color-background)] rounded-xl text-sm focus:outline-none ring-0 focus:ring-2 ring-[var(--color-primary-alpha-10)] transition-all duration-300 ease-in-out"
-                        />
-                        {search && (
-                            <button
-                                type="button"
-                                onClick={() => setSearch('')}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-[var(--color-background-secondary)] text-[var(--color-text-tertiary)]"
-                            >
-                                <X size={16} />
-                            </button>
-                        )}
-                    </div>
-
+            {/* 서브헤더 - 공통 컴포넌트 */}
+            <PageListSubHeader
+                searchValue={search}
+                onSearchChange={setSearch}
+                searchPlaceholder="제목, 모집 분야로 검색.."
+                filterControls={
                     <div className="flex items-center h-11 bg-[var(--color-background)] rounded-xl px-1">
                         {(['all', 'recruiting', 'completed'] as const).map((status) => (
                             <button
@@ -108,8 +87,8 @@ export const RecruitmentList: React.FC<RecruitmentListProps> = ({ posts, onDetai
                             </button>
                         ))}
                     </div>
-                </div>
-            </div>
+                }
+            />
 
             {filteredPosts.length > 0 ? (
                 <div className="bg-white rounded-2xl border border-[var(--color-border)] overflow-hidden">
