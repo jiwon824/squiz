@@ -88,9 +88,25 @@ const ApplicantManagement: React.FC<ApplicantManagementProps> = ({ studyId }) =>
 
             // 목록 새로고침
             await fetchApplicants();
-        } catch (error) {
+        } catch (error: any) {
             console.error('신청 처리 실패:', error);
-            showToast('신청 처리에 실패했습니다.', 'error');
+
+            // 정원 초과 에러 체크
+            const errorMessage = error?.response?.data?.message || error?.response?.data?.error?.message || '';
+            const errorCode = error?.response?.data?.code || error?.response?.data?.error?.code || '';
+
+            if (
+                errorMessage.includes('정원') ||
+                errorMessage.includes('인원') ||
+                errorMessage.includes('capacity') ||
+                errorMessage.includes('full') ||
+                errorCode === 'STUDY_FULL' ||
+                errorCode === 'CAPACITY_EXCEEDED'
+            ) {
+                showToast('스터디 정원이 다 찼습니다.', 'error');
+            } else {
+                showToast(errorMessage || '신청 처리에 실패했습니다.', 'error');
+            }
         }
     };
 
@@ -158,7 +174,7 @@ const ApplicantManagement: React.FC<ApplicantManagementProps> = ({ studyId }) =>
                             className={`px-4 py-2 rounded-xl text-sm font-medium transition-all
                                 ${filterStatus === filter.value
                                     ? 'bg-primary text-white'
-                                    : 'bg-background-secondary text-text-secondary hover:bg-background-tertiary'
+                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                 }`}
                         >
                             {filter.label}

@@ -235,7 +235,7 @@ const ExcuseManagement: React.FC<ExcuseManagementProps> = ({ studyId }) => {
                             className={`px-4 py-2 rounded-xl text-sm font-medium transition-all
                                 ${filterStatus === filter.value
                                     ? 'bg-primary text-white'
-                                    : 'bg-background-secondary text-text-secondary hover:bg-background-tertiary'
+                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                 }`}
                         >
                             {filter.label}

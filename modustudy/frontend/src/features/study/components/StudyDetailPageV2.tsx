@@ -396,6 +396,10 @@ const StudyDetailPageV2: React.FC = () => {
                     study={study}
                     isOpen={isApplyModalOpen}
                     onClose={() => setIsApplyModalOpen(false)}
+                    onApplySuccess={() => {
+                        // 신청 성공 후 토스트 알림
+                        showToast('스터디 신청이 완료되었습니다!', 'success');
+                    }}
                 />
             )}
 
