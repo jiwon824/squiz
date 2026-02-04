@@ -25,11 +25,15 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.domain.quiz.dto.response.OptionItem;
+import com.ssafy.domain.quiz.dto.response.ReviewCourseStatsResponse;
+import com.ssafy.domain.quiz.dto.response.ReviewCourseStatsResponse.CourseStatDto;
 import com.ssafy.domain.quiz.dto.response.ReviewResult;
 import com.ssafy.domain.quiz.dto.response.TodayReviewResponse.ReviewItemDto;
 import com.ssafy.domain.quiz.entity.*;
 import com.ssafy.domain.quiz.entity.enums.QuestionType;
 import com.ssafy.domain.quiz.repository.ContinuousQuizRepository;
+import com.ssafy.domain.quiz.repository.CourseQuestionStatsProjection;
+import com.ssafy.domain.quiz.repository.QuizCourseRepository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
@@ -67,6 +71,9 @@ class FsrsServiceTest {
 
         @Mock
         private ObjectMapper objectMapper;
+
+        @Mock
+        private QuizCourseRepository quizCourseRepository;
 
         private static final Long TEST_USER_ID = 1L;
         private static final Long TEST_CONTENT_ID = 100L;
@@ -611,6 +618,148 @@ class FsrsServiceTest {
                         // then
                         assertThat(result).hasSize(1);
                         assertThat(result.get(0).question()).isNull(); // 문제 정보가 없으면 null
+                }
+        }
+
+        // ══════════════════════════════════════════════════════
+        // getCourseStats 테스트
+        // ══════════════════════════════════════════════════════
+
+        @Nested
+        @DisplayName("getCourseStats 메서드는")
+        class GetCourseStats {
+
+                @Test
+                @DisplayName("여러 코스에서 문제를 맞힌 경우 정확한 통계를 반환한다")
+                void shouldReturnCorrectStatsWhenUserHasSolvedQuestionsInMultipleCourses() {
+                        // given
+                        // 전체 맞춘 문제 수 (중복 제거)
+                        given(continuousQuizRepository.countTotalSolvedQuestions(TEST_USER_ID))
+                                        .willReturn(45L);
+
+                        // 코스별 전체 문제 수 Projection Mock
+                        CourseQuestionStatsProjection totalProj1 = createMockProjection(1L, 50L);
+                        CourseQuestionStatsProjection totalProj2 = createMockProjection(2L, 40L);
+                        CourseQuestionStatsProjection totalProj3 = createMockProjection(3L, 60L);
+                        given(continuousQuizRepository.countTotalQuestionsGroupByCourse())
+                                        .willReturn(List.of(totalProj1, totalProj2, totalProj3));
+
+                        // 코스별 맞춘 문제 수 Projection Mock
+                        CourseQuestionStatsProjection solvedProj1 = createMockProjection(1L, 30L);
+                        CourseQuestionStatsProjection solvedProj2 = createMockProjection(2L, 15L);
+                        // courseId=3 은 맞춘 문제가 없음 → Map에 없음
+                        given(continuousQuizRepository.countSolvedQuestionsGroupByCourse(TEST_USER_ID))
+                                        .willReturn(List.of(solvedProj1, solvedProj2));
+
+                        // 활성 코스 목록 (sortOrder 순서대로)
+                        QuizCourse course1 = createMockCourse(1L, "Java 기초");
+                        QuizCourse course2 = createMockCourse(2L, "Python 입문");
+                        QuizCourse course3 = createMockCourse(3L, "알고리즘");
+                        given(quizCourseRepository.findAllByIsActiveTrueOrderBySortOrderAscIdAsc())
+                                        .willReturn(List.of(course1, course2, course3));
+
+                        // when
+                        ReviewCourseStatsResponse result = fsrsService.getCourseStats(TEST_USER_ID);
+
+                        // then
+                        assertThat(result.totalSolvedCount()).isEqualTo(45L);
+                        assertThat(result.courseStats()).hasSize(3);
+
+                        // sortOrder 순서 검증
+                        assertThat(result.courseStats().get(0).courseId()).isEqualTo(1L);
+                        assertThat(result.courseStats().get(0).courseName()).isEqualTo("Java 기초");
+                        assertThat(result.courseStats().get(0).totalQuestions()).isEqualTo(50L);
+                        assertThat(result.courseStats().get(0).solvedCount()).isEqualTo(30L);
+
+                        assertThat(result.courseStats().get(1).courseId()).isEqualTo(2L);
+                        assertThat(result.courseStats().get(1).solvedCount()).isEqualTo(15L);
+
+                        // courseId=3은 맞춘 문제 없음 → 0 반환 (getOrDefault 검증)
+                        assertThat(result.courseStats().get(2).courseId()).isEqualTo(3L);
+                        assertThat(result.courseStats().get(2).solvedCount()).isEqualTo(0L);
+                }
+
+                @Test
+                @DisplayName("정답 이력이 없는 코스는 solvedCount=0을 반환한다")
+                void shouldReturnZeroForCourseWithNoSolvedQuestions() {
+                        // given
+                        given(continuousQuizRepository.countTotalSolvedQuestions(TEST_USER_ID))
+                                        .willReturn(0L);
+
+                        CourseQuestionStatsProjection totalProj = createMockProjection(1L, 50L);
+                        given(continuousQuizRepository.countTotalQuestionsGroupByCourse())
+                                        .willReturn(List.of(totalProj));
+
+                        // 맞춘 문제 없음 → 빈 리스트
+                        given(continuousQuizRepository.countSolvedQuestionsGroupByCourse(TEST_USER_ID))
+                                        .willReturn(List.of());
+
+                        QuizCourse course = createMockCourse(1L, "Java 기초");
+                        given(quizCourseRepository.findAllByIsActiveTrueOrderBySortOrderAscIdAsc())
+                                        .willReturn(List.of(course));
+
+                        // when
+                        ReviewCourseStatsResponse result = fsrsService.getCourseStats(TEST_USER_ID);
+
+                        // then
+                        assertThat(result.totalSolvedCount()).isEqualTo(0L);
+                        assertThat(result.courseStats()).hasSize(1);
+                        assertThat(result.courseStats().get(0).solvedCount()).isEqualTo(0L);
+                        assertThat(result.courseStats().get(0).totalQuestions()).isEqualTo(50L);
+                }
+
+                @Test
+                @DisplayName("한 문제를 여러 번 맞혀도 중복 제거되어 1개로 집계된다 (Repository Mock 데이터 기반)")
+                void shouldHandleDuplicateCorrectAnswersAsSingleCount() {
+                        // given: Repository가 이미 COUNT(DISTINCT ...)로 중복 제거된 값을 반환
+                        // 예: 문제 ID 1, 2, 3을 각각 여러 번 맞혔지만 solvedCount=3 (중복 제거 후)
+                        given(continuousQuizRepository.countTotalSolvedQuestions(TEST_USER_ID))
+                                        .willReturn(3L); // 실제로는 5번 맞혔지만 중복 제거 후 3개
+
+                        CourseQuestionStatsProjection totalProj = createMockProjection(1L, 10L);
+                        given(continuousQuizRepository.countTotalQuestionsGroupByCourse())
+                                        .willReturn(List.of(totalProj));
+
+                        // 문제 3개를 여러 번 맞혔지만 중복 제거 후 3개
+                        CourseQuestionStatsProjection solvedProj = createMockProjection(1L, 3L);
+                        given(continuousQuizRepository.countSolvedQuestionsGroupByCourse(TEST_USER_ID))
+                                        .willReturn(List.of(solvedProj));
+
+                        QuizCourse course = createMockCourse(1L, "Java 기초");
+                        given(quizCourseRepository.findAllByIsActiveTrueOrderBySortOrderAscIdAsc())
+                                        .willReturn(List.of(course));
+
+                        // when
+                        ReviewCourseStatsResponse result = fsrsService.getCourseStats(TEST_USER_ID);
+
+                        // then: 중복 제거된 값 검증
+                        assertThat(result.totalSolvedCount()).isEqualTo(3L);
+                        assertThat(result.courseStats().get(0).solvedCount()).isEqualTo(3L);
+                }
+
+                // Helper methods for mock creation
+                private CourseQuestionStatsProjection createMockProjection(Long courseId, Long questionCount) {
+                        return new CourseQuestionStatsProjection() {
+                                @Override
+                                public Long getCourseId() {
+                                        return courseId;
+                                }
+
+                                @Override
+                                public Long getQuestionCount() {
+                                        return questionCount;
+                                }
+                        };
+                }
+
+                private QuizCourse createMockCourse(Long id, String name) {
+                        QuizCourse course = QuizCourse.builder()
+                                        .code(name.toUpperCase().replace(" ", "_"))
+                                        .name(name)
+                                        .isActive(true)
+                                        .build();
+                        ReflectionTestUtils.setField(course, "id", id);
+                        return course;
                 }
         }
 }

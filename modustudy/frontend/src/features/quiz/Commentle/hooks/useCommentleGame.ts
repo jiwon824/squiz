@@ -53,31 +53,43 @@ export const useCommentleGame = () => {
                 setStartTime(Date.now());
             }
 
-            try {
-                const data = await fetchDailyWord();
+            // 문제와 리더보드를 병렬로 로드 (하나가 실패해도 다른 하나는 로드됨)
+            const [problemResult, leaderboardResult] = await Promise.allSettled([
+                fetchDailyWord(),
+                fetchLeaderboard(today, 10)
+            ]);
+
+            // 문제 처리
+            if (problemResult.status === 'fulfilled') {
+                const data = problemResult.value;
                 setProblem({
                     id: data.id,
                     category: data.category,
                     difficulty: data.difficulty || 'Medium',
                     hints: data.hints || [],
                 });
-
-                const leaderboardData = await fetchLeaderboard(today, 10);
-                setLeaderboard(leaderboardData.rankings || []);
-
-                if (isLoggedIn && user?.id) {
-                    const savedGuesses = getLocalUserGuesses(user.id, today);
-                    if (savedGuesses.length > 0) {
-                        setGuesses(savedGuesses);
-                    }
-                }
-
-                cleanupOldGuesses();
-            } catch (error) {
-                console.error('Failed to load quiz data:', error);
-            } finally {
-                setProblemLoading(false);
+            } else {
+                console.error('Failed to load problem:', problemResult.reason);
             }
+
+            // 리더보드 처리 (문제 실패와 무관하게 항상 시도)
+            if (leaderboardResult.status === 'fulfilled') {
+                setLeaderboard(leaderboardResult.value.rankings || []);
+            } else {
+                console.error('Failed to load leaderboard:', leaderboardResult.reason);
+                setLeaderboard([]);
+            }
+
+            // 유저 데이터 로드
+            if (isLoggedIn && user?.id) {
+                const savedGuesses = getLocalUserGuesses(user.id, today);
+                if (savedGuesses.length > 0) {
+                    setGuesses(savedGuesses);
+                }
+            }
+
+            cleanupOldGuesses();
+            setProblemLoading(false);
         };
         loadQuizData();
     }, [currentDate, isLoggedIn, user?.id]);
