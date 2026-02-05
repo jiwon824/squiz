@@ -48,6 +48,8 @@ export const MyQuizPage: React.FC = () => {
     resetRetryState,
     totalWrongCount,
     avgWrongCount,
+    courseQuizStats,
+    reviewStats,
   } = useMyQuiz();
 
   // 퀴즈 재도전 상태에서 개별 값 사용을 위한 로컬 상태
@@ -125,6 +127,8 @@ export const MyQuizPage: React.FC = () => {
             setWrongSortType={setWrongSortType}
             totalWrongCount={totalWrongCount}
             avgWrongCount={avgWrongCount}
+            courseQuizStats={courseQuizStats}
+            reviewStats={reviewStats}
             onRetry={handleStartRetry}
           />
         )}
@@ -184,7 +188,7 @@ const PageHeader: React.FC<PageHeaderProps> = React.memo(
         </h1>
         {isRetrying && selectedReviewItem && (
           <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium">
-            {selectedReviewItem.question.category}
+            {selectedReviewItem.question?.category || '일반'}
           </span>
         )}
       </div>
@@ -206,6 +210,8 @@ interface MainContentProps {
   setWrongSortType: ReturnType<typeof useMyQuiz>['setWrongSortType'];
   totalWrongCount: number;
   avgWrongCount: string;
+  courseQuizStats: ReturnType<typeof useMyQuiz>['courseQuizStats'];
+  reviewStats: ReturnType<typeof useMyQuiz>['reviewStats'];
   onRetry: (item: ReturnType<typeof useMyQuiz>['todayReviews'][0]) => void;
 }
 
@@ -221,6 +227,8 @@ const MainContent: React.FC<MainContentProps> = React.memo(
     setWrongSortType,
     totalWrongCount,
     avgWrongCount,
+    courseQuizStats,
+    reviewStats,
     onRetry,
   }) => (
     <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
@@ -278,6 +286,8 @@ const MainContent: React.FC<MainContentProps> = React.memo(
                     totalWrongCount={totalWrongCount}
                     avgWrongCount={avgWrongCount}
                     weakConcepts={weakConcepts}
+                    courseQuizStats={courseQuizStats}
+                    reviewStats={reviewStats}
                   />
                 </TabContent>
               )}

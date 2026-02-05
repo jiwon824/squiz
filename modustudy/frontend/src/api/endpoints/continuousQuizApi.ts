@@ -111,6 +111,14 @@ export interface SubmitAnswerResponse {
     explanation?: string;
 }
 
+/** 코스별 퀴즈 통계 (Attempted vs Correct) */
+export interface CourseQuizStat {
+    courseName: string;
+    courseCode: string;
+    attemptedCount: number;
+    correctCount: number;
+}
+
 
 /**
  * 백엔드 문제 응답을 프론트엔드 형식으로 변환
@@ -225,4 +233,18 @@ export const submitAnswer = async (
     console.log(`[continuousQuizApi] 답안 제출 성공: correct=${backendData.correct}, isCorrect=${result.isCorrect}, nextQuestionId=${result.nextQuestion?.questionId}`);
 
     return result;
+};
+
+/**
+ * 코스별 퀴즈 통계 조회
+ * GET /api/v1/continuous-quiz/course-stats
+ * 인증: 필요
+ */
+export const getCourseQuizStats = async (): Promise<CourseQuizStat[]> => {
+    console.log('[continuousQuizApi] 코스별 통계 요청');
+    const response = await api.get<ApiResponse<CourseQuizStat[]>>(
+        '/api/v1/continuous-quiz/course-stats'
+    );
+    // TODO: Error handling if needed
+    return response.data.data;
 };

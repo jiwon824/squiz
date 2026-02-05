@@ -18,6 +18,35 @@
  * =============================================================================
  */
 
+// =============================================================================
+// IMPORTS
+// =============================================================================
+import {
+    Cpu,
+    Network,
+    Database,
+    Binary,
+    Code2,
+    Leaf,
+    Globe,
+    Atom,
+    Smartphone,
+    Layers,
+    Terminal,
+    Server,
+    FileCode,
+    GitBranch,
+    Box,
+    Layout,
+    Cloud,
+    Shield,
+    Award,
+    LucideIcon,
+    MonitorPlay,
+    Braces,
+    Workflow,
+} from 'lucide-react';
+
 // -----------------------------------------------------------------------------
 // 카테고리 타입 정의 (CATEGORY TYPE DEFINITION)
 // -----------------------------------------------------------------------------
@@ -102,159 +131,207 @@ export interface Course {
  * * 이 객체는 각 카테고리별 표시 설정(한국어 레이블, 색상, 그라데이션)을 저장합니다.
  * 백엔드에서 새로운 코드가 추가될 수 있으므로 키 타입을 string으로 확장했습니다.
  */
-export const CATEGORY_CONFIG: Record<string, { label: string; color: string; gradient: string }> = {
+export const CATEGORY_CONFIG: Record<
+    string,
+    { label: string; color: string; gradient: string; icon: LucideIcon }
+> = {
     // 기존 매핑
     OS: {
         label: '운영체제',
         color: 'var(--color-primary)',
         gradient: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%)',
+        icon: Cpu,
     },
     Network: {
         label: '네트워크',
         color: 'var(--color-secondary)',
         gradient: 'linear-gradient(135deg, var(--color-secondary) 0%, var(--color-accent) 100%)',
+        icon: Network,
     },
     DB: {
         label: '데이터베이스',
         color: 'var(--color-accent)',
         gradient: 'linear-gradient(135deg, var(--color-accent) 0%, var(--color-primary) 100%)',
+        icon: Database,
     },
     DataStructure: {
         label: '자료구조',
         color: 'var(--color-google-blue)',
         gradient: 'linear-gradient(135deg, var(--color-google-blue) 0%, var(--color-google-green) 100%)',
+        icon: Binary,
     },
     // 추가된 DB 코드 매핑
     ALGORITHM: {
         label: '알고리즘',
         color: 'var(--color-warning)', // 노란색 계열
         gradient: 'linear-gradient(135deg, var(--color-warning) 0%, var(--color-error) 100%)',
+        icon: Workflow,
     },
     JAVA_SPRING: {
         label: 'Spring',
         color: 'var(--color-success)', // 초록색 계열
         gradient: 'linear-gradient(135deg, var(--color-success) 0%, var(--color-info) 100%)',
+        icon: Leaf,
     },
     WEB: {
         label: 'Web',
         color: 'var(--color-info)', // 파란색 계열
         gradient: 'linear-gradient(135deg, var(--color-info) 0%, var(--color-primary) 100%)',
+        icon: Globe,
     },
     // FrontEnd & Mobile
     REACT: {
         label: 'React',
         color: '#61DAFB',
         gradient: 'linear-gradient(135deg, #61DAFB 0%, #2188FF 100%)',
+        icon: Atom,
     },
     MOBILE: {
         label: '모바일',
         color: '#42A5F5',
         gradient: 'linear-gradient(135deg, #42A5F5 0%, #1565C0 100%)',
+        icon: Smartphone,
     },
     WEB_BASIC: {
         label: '웹 기초',
         color: '#E65100',
         gradient: 'linear-gradient(135deg, #FFA726 0%, #E65100 100%)',
+        icon: Layout,
     },
     // BackEnd & Languages
     PYTHON: {
         label: 'Python',
         color: '#FFD54F',
         gradient: 'linear-gradient(135deg, #FFD54F 0%, #FF6F00 100%)',
+        icon: Code2,
     },
     NODEJS: {
         label: 'Node.js',
         color: '#66BB6A',
         gradient: 'linear-gradient(135deg, #81C784 0%, #2E7D32 100%)',
+        icon: Server,
     },
     KOTLIN: {
         label: 'Kotlin',
         color: '#7E57C2',
         gradient: 'linear-gradient(135deg, #7E57C2 0%, #512DA8 100%)',
+        icon: FileCode,
+    },
+    TYPESCRIPT: {
+        label: 'TypeScript',
+        color: '#3178C6',
+        gradient: 'linear-gradient(135deg, #3178C6 0%, #235A97 100%)',
+        icon: Braces,
+    },
+    JAVASCRIPT: {
+        label: 'JavaScript',
+        color: '#F7DF1E',
+        gradient: 'linear-gradient(135deg, #F7DF1E 0%, #E6C800 100%)',
+        icon: Code2,
     },
     // Infrastructure & DevOps
     DEVOPS: {
         label: 'DevOps',
         color: '#26A69A',
         gradient: 'linear-gradient(135deg, #26A69A 0%, #00695C 100%)',
+        icon: Layers,
     },
     LINUX: {
         label: 'Linux',
         color: '#78909C',
         gradient: 'linear-gradient(135deg, #B0BEC5 0%, #455A64 100%)',
+        icon: Terminal,
     },
     GIT: {
         label: 'Git',
         color: '#F4511E',
         gradient: 'linear-gradient(135deg, #FF7043 0%, #bf360c 100%)',
+        icon: GitBranch,
     },
     // CS Fundamentals & Design
     DESIGN_PATTERN: {
         label: '디자인패턴',
         color: '#AB47BC',
         gradient: 'linear-gradient(135deg, #AB47BC 0%, #7B1FA2 100%)',
+        icon: Box,
     },
     SYSTEM_DESIGN: {
         label: '시스템설계',
         color: '#5C6BC0',
         gradient: 'linear-gradient(135deg, #7986CB 0%, #3949AB 100%)',
+        icon: Cloud,
     },
     COMPUTER_ARCH: {
         label: '컴퓨터구조',
         color: '#8D6E63',
         gradient: 'linear-gradient(135deg, #A1887F 0%, #5D4037 100%)',
+        icon: MonitorPlay,
     },
     SW_ENG: {
         label: 'SW공학',
         color: '#7CB342', // light green
         gradient: 'linear-gradient(135deg, #AED581 0%, #689F38 100%)',
+        icon: Code2,
     },
     OS_EXT: {
         label: 'OS심화',
         color: '#0288D1', // dark blue
         gradient: 'linear-gradient(135deg, #29B6F6 0%, #01579B 100%)',
+        icon: Cpu,
     },
     NETWORK_EXT: {
         label: '네트워크심화',
         color: '#0097A7', // cyan
         gradient: 'linear-gradient(135deg, #4DD0E1 0%, #006064 100%)',
+        icon: Network,
     },
     // Advanced Tech
     AI_ML: {
         label: 'AI/ML',
         color: '#FF4081',
         gradient: 'linear-gradient(135deg, #FF80AB 0%, #C51162 100%)',
+        icon: Cpu,
     },
     NOSQL_MQ: {
         label: 'NoSQL/MQ',
         color: '#D81B60',
         gradient: 'linear-gradient(135deg, #EC407A 0%, #880E4F 100%)',
+        icon: Database,
     },
     SECURITY: {
         label: '정보보안',
         color: '#424242',
         gradient: 'linear-gradient(135deg, #757575 0%, #212121 100%)',
+        icon: Shield,
     },
     // Certification (Special Request)
     CERT_EIP: {
         label: 'CERT',
         color: '#607D8B', // blue grey
         gradient: 'linear-gradient(135deg, #90A4AE 0%, #455A64 100%)',
+        icon: Award,
     },
     CERT_SQLD: {
         label: 'CERT',
         color: '#FFB74D', // orange
         gradient: 'linear-gradient(135deg, #FFB74D 0%, #F57C00 100%)',
-    }
+        icon: Award,
+    },
 };
 
 /**
  * 기본 카테고리 설정 (매핑되지 않은 코드용 Fallback)
  */
-export const DEFAULT_CATEGORY_CONFIG = {
+export const DEFAULT_CATEGORY_CONFIG: {
+    label: string;
+    color: string;
+    gradient: string;
+    icon: LucideIcon;
+} = {
     label: '기타',
     color: 'var(--color-gray-500)',
     gradient: 'linear-gradient(135deg, var(--color-gray-500) 0%, var(--color-gray-700) 100%)',
+    icon: Code2,
 };
 
 // -----------------------------------------------------------------------------

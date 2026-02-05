@@ -3,6 +3,7 @@ package com.ssafy.domain.dm.websocket;
 import com.ssafy.domain.dm.dto.request.DirectMessageRequest;
 import com.ssafy.domain.dm.dto.response.DirectMessageResponse;
 import com.ssafy.domain.dm.service.DirectMessageService;
+import com.ssafy.domain.friend.websocket.FriendPresenceService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,30 +37,40 @@ public class DmWebSocketController {
     private final DmSessionService dmSessionService;
     private final SimpMessagingTemplate messagingTemplate;
     private final DmRedisPublisher dmRedisPublisher;
+    private final FriendPresenceService friendPresenceService;
 
     public DmWebSocketController(DirectMessageService directMessageService,
                                   DmSessionService dmSessionService,
                                   SimpMessagingTemplate messagingTemplate,
-                                  DmRedisPublisher dmRedisPublisher) {
+                                  DmRedisPublisher dmRedisPublisher,
+                                  FriendPresenceService friendPresenceService) {
         this.directMessageService = directMessageService;
         this.dmSessionService = dmSessionService;
         this.messagingTemplate = messagingTemplate;
         this.dmRedisPublisher = dmRedisPublisher;
+        this.friendPresenceService = friendPresenceService;
     }
 
     /**
-     * DM 연결 - 사용자 세션 등록
+     * DM 연결 - 사용자 세션 등록 및 친구들에게 온라인 상태 알림
      */
     @MessageMapping("/dm/connect")
     public void connect(@Header("userId") Long userId,
                         SimpMessageHeaderAccessor headerAccessor) {
         String sessionId = headerAccessor.getSessionId();
+        boolean wasOffline = !dmSessionService.isUserOnline(userId);
         dmSessionService.registerSession(userId, sessionId);
         log.info("DM connected: userId={}, sessionId={}", userId, sessionId);
 
-        // 온라인 상태 알림 (추후 친구 목록에 활용 가능)
-        DmWebSocketEvent onlineEvent = DmWebSocketEvent.online(userId);
-        // 필요시 친구들에게 온라인 상태 브로드캐스트
+        // 첫 연결 시 친구들에게 온라인 상태 브로드캐스트
+        if (wasOffline) {
+            try {
+                friendPresenceService.broadcastPresence(userId, true, null);
+                log.debug("Broadcasted online status for userId={}", userId);
+            } catch (Exception e) {
+                log.warn("Failed to broadcast online status: {}", e.getMessage());
+            }
+        }
     }
 
     /**

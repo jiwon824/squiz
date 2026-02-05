@@ -29,6 +29,11 @@ EXPOSE 5000
 ENV HOST=0.0.0.0
 ENV PORT=5000
 ENV DEBUG=False
+ENV DB_HOST=squiz-mysql
+ENV DB_PORT=3306
+ENV DB_NAME=REMOVED_DB_NAME
+ENV DB_USER=REMOVED_DB_USER
+ENV DB_PASSWORD=REMOVED_DB_PASSWORD
 
 # gunicorn으로 프로덕션 실행 (requirements.txt에 포함됨)
 CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "--timeout", "120", "app:create_app()"]

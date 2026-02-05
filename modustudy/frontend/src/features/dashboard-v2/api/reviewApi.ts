@@ -89,3 +89,21 @@ export const getCourseWeaknessStats = async (): Promise<ReviewCourseWeaknessResp
     const response = await api.get<ApiResponse<ReviewCourseWeaknessResponse>>('/api/v1/reviews/courses/weakness');
     return response.data.data;
 };
+
+export interface ReviewStatsResponse {
+    totalItems: number;
+    dueItems: number;
+    newItems: number;
+    learningItems: number;
+    reviewItems: number;
+    relearningItems: number;
+    averageStability: number;
+    totalReps: number;
+    totalLapses: number;
+    proficiency: number;
+}
+
+export const getReviewStats = async (): Promise<ReviewStatsResponse> => {
+    const response = await api.get<ApiResponse<ReviewStatsResponse>>('/api/v1/reviews/stats');
+    return response.data.data;
+};

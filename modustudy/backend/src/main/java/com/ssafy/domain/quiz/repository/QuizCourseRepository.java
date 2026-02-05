@@ -31,4 +31,34 @@ public interface QuizCourseRepository extends JpaRepository<QuizCourse, Long> {
      */
     @Query("SELECT c FROM QuizCourse c LEFT JOIN FETCH c.sections WHERE c.id = :courseId")
     Optional<QuizCourse> findByIdWithSections(@Param("courseId") Long courseId);
+
+    /**
+     * 사용자별 코스 통계 조회.
+     * <p>
+     * - Attempted: 풀이 이력이 있는 고유 문제 수
+     * - Correct: 마지막 풀이가 정답인 고유 문제 수
+     * </p>
+     */
+    @Query(value = """
+            SELECT
+                c.name as courseName,
+                c.code as courseCode,
+                COUNT(DISTINCT q.id) as attemptedCount,
+                COUNT(DISTINCT CASE WHEN sub.is_correct = true THEN q.id ELSE NULL END) as correctCount
+            FROM quiz_course c
+            INNER JOIN quiz_course_section s ON s.quiz_course_id = c.id
+            INNER JOIN quiz_course_question q ON q.quiz_course_id = s.quiz_course_id AND q.section_number = s.section_number
+            INNER JOIN user_review_items uri ON uri.content_id = q.id AND uri.content_type = 'COURSE_QUESTION'
+            INNER JOIN (
+                 SELECT review_item_id, is_correct
+                 FROM (
+                     SELECT review_item_id, is_correct,
+                            ROW_NUMBER() OVER (PARTITION BY review_item_id ORDER BY reviewed_at DESC) as rn
+                     FROM user_review_log
+                 ) t WHERE rn = 1
+            ) sub ON sub.review_item_id = uri.id
+            WHERE uri.user_id = :userId
+            GROUP BY c.id, c.name, c.code
+            """, nativeQuery = true)
+    List<CourseQuizStatProjection> findCourseStats(@Param("userId") Long userId);
 }
