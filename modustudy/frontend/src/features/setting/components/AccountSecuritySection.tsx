@@ -36,23 +36,27 @@ export const AccountSecuritySection = () => {
     const { isLoggedIn, user } = useAuthStore();
     const showToast = useUIStore((state) => state.showToast);
 
-    // 현재 로그인 방식 (KAKAO, GOOGLE, NAVER)
-    const currentLoginProvider = user?.loginProvider;
-    const isGoogleLogin = currentLoginProvider === 'GOOGLE';
+    // 구글 계정 연동 여부 확인 (socialAccounts에서 GOOGLE이 있는지)
+    const hasGoogleAccount = socialAccounts.some((a) => a.provider === 'GOOGLE');
 
     // 최초 1번만 fetch 실행하기 위한 ref
     const hasFetchedRef = useRef(false);
 
-    // 로그인 상태일 때만 소셜 계정 및 캘린더 상태 조회 (최초 마운트 1회)
+    // 로그인 상태일 때만 소셜 계정 조회 (최초 마운트 1회)
     useEffect(() => {
         if (!isLoggedIn || hasFetchedRef.current) return;
         hasFetchedRef.current = true;
         fetchSocialAccounts();
-        if (currentLoginProvider === 'GOOGLE') {
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isLoggedIn]);
+
+    // 구글 계정이 연동되어 있으면 캘린더 상태 조회
+    useEffect(() => {
+        if (hasGoogleAccount) {
             fetchGoogleCalendarStatus();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isLoggedIn]);
+    }, [hasGoogleAccount]);
 
     // 비밀번호 폼 상태
     const [showPasswordForm, setShowPasswordForm] = useState(false);
@@ -321,8 +325,8 @@ export const AccountSecuritySection = () => {
                 )}
             </div>
 
-            {/* Google 캘린더 연동 영역 */}
-            {isGoogleLogin && (
+            {/* Google 캘린더 연동 영역 - 구글 계정 연동 시에만 표시 */}
+            {hasGoogleAccount && (
                 <div className="calendar-integration-section">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
                         <Calendar size={20} style={{ color: '#64748b' }} />
