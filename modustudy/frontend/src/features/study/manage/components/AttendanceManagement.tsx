@@ -7,6 +7,7 @@ import { studyApi } from '@/api/endpoints/studyApi';
 import { useUIStore } from '@/store/uiStore';
 import { getProfileImageUrl, DEFAULT_PROFILE_IMAGE } from '@/shared/utils/profileImage';
 import { Dropdown, DropdownItem } from '@/shared/components/Dropdown';
+import { cn, classBuilder } from '@/shared/utils/cn';
 
 interface AttendanceManagementProps {
     studyId: number;
@@ -144,7 +145,7 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ studyId }) 
 
     if (sessions.length === 0) {
         return (
-            <div className="text-center py-12 bg-white rounded-2xl shadow-[0_4px_15px_rgba(0,0,0,0.05)]">
+            <div className={cn(classBuilder.card('elevated'), 'text-center py-12')}>
                 <Calendar size={48} className="mx-auto text-text-muted mb-4" />
                 <p className="text-text-secondary">아직 생성된 세션이 없습니다</p>
             </div>
@@ -169,7 +170,7 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ studyId }) 
                     { label: '지각', value: stats.late, color: 'warning', icon: <Clock size={16} /> },
                     { label: '소명', value: stats.excused, color: 'info', icon: <AlertCircle size={16} /> },
                 ].map((stat) => (
-                    <div key={stat.label} className="bg-white rounded-2xl p-4 shadow-[0_4px_15px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)] transition-shadow">
+                    <div key={stat.label} className={cn(classBuilder.card('elevated'), 'p-4')}>
                         <div className="flex items-center gap-2 mb-2">
                             <span className={`text-${stat.color}`}>{stat.icon}</span>
                             <span className="text-sm text-text-secondary">{stat.label}</span>
@@ -181,7 +182,7 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ studyId }) 
 
             {/* 세션 선택 */}
             {selectedSession && (
-                <div className="flex items-center gap-3 p-4 bg-white rounded-2xl shadow-[0_4px_15px_rgba(0,0,0,0.05)]">
+                <div className={cn(classBuilder.card('elevated'), 'flex items-center gap-3 p-4')}>
                     <Calendar size={20} className="text-primary flex-shrink-0" />
                     <Dropdown
                         items={sessions.map((session): DropdownItem => {
@@ -223,7 +224,7 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ studyId }) 
             )}
 
             {/* 출석 체크 리스트 */}
-            <div className="bg-white rounded-2xl shadow-[0_4px_15px_rgba(0,0,0,0.05)] overflow-hidden">
+            <div className={cn(classBuilder.card('elevated'), 'overflow-hidden')}>
                 <div className="p-4 flex items-center justify-between">
                     <h3 className="font-bold text-text-primary flex items-center gap-2">
                         <Users size={18} />

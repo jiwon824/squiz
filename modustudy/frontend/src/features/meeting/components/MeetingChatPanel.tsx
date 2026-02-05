@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { cn, conditionalClasses } from '@/shared/utils/cn';
+import { cn, classBuilder, conditionalClasses } from '@/shared/utils/cn';
 import { MeetingRoomChatMessage } from '../types';
 import { Send, Trash2, MessageCircle, X } from 'lucide-react';
 import { useVirtualizer } from '@tanstack/react-virtual';
@@ -63,7 +63,7 @@ const MeetingChatPanel: React.FC<MeetingChatPanelProps> = ({
 
     return (
         <section className={cn(
-            'bg-white rounded-2xl shadow-[0_4px_15px_rgba(0,0,0,0.05)] flex flex-col min-h-0',
+            classBuilder.card('elevated'), 'flex flex-col min-h-0',
             compact ? 'p-3 gap-2 flex-1' : 'p-4 gap-3 flex-[1_1_58%]'
         )}>
             {/* 헤더 */}

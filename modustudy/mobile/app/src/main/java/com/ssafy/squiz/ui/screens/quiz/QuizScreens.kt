@@ -415,7 +415,8 @@ private fun StatsTab(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(16.dp),
+                    .verticalScroll(rememberScrollState())
+                    .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 100.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // 요약 카드
@@ -913,9 +914,7 @@ private fun ReviewStatItem(
 @Composable
 private fun StatsCard(stats: com.ssafy.squiz.data.remote.model.ReviewStatsResponse) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = Primary.copy(alpha = 0.1f)

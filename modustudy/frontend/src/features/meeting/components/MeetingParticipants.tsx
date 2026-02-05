@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { cn, conditionalClasses } from '@/shared/utils/cn';
+import { cn, classBuilder, conditionalClasses } from '@/shared/utils/cn';
 import { MeetingRoomParticipant } from '../types';
 import { Crown, Mic, X } from 'lucide-react';
 import { useVirtualizer } from '@tanstack/react-virtual';
@@ -38,7 +38,7 @@ const MeetingParticipants: React.FC<MeetingParticipantsProps> = ({ participants,
     });
 
     return (
-        <section className="bg-white rounded-2xl p-4 shadow-[0_4px_15px_rgba(0,0,0,0.05)] flex flex-col gap-3 min-h-0 flex-[0_1_42%]">
+        <section className={cn(classBuilder.card('elevated'), 'p-4 flex flex-col gap-3 min-h-0 flex-[0_1_42%]')}>
             {/* 헤더 */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">

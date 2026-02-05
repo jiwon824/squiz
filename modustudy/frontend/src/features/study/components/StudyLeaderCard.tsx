@@ -4,7 +4,7 @@ import { Star, Shield, Play } from 'lucide-react';
 import { Button } from '@/shared/components';
 import { useUIStore } from '@/store/uiStore';
 import { useAuthStore } from '@/store/authStore';
-import { cn } from '@/shared/utils/cn';
+import { cn, classBuilder } from '@/shared/utils/cn';
 import { getProfileImageUrl } from '@/shared/utils/profileImage';
 
 /**
@@ -127,7 +127,7 @@ const StudyLeaderCard: React.FC<StudyLeaderCardProps> = ({
     return (
         <div className="2xl:col-span-1">
             <div className="2xl:sticky 2xl:top-[100px]">
-                <div className="bg-white rounded-2xl p-6 shadow-[0_4px_15px_rgba(0,0,0,0.05)] transition-shadow hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)]">
+                <div className={cn(classBuilder.card('elevated'), 'p-6')}>
                 {/* 리더 프로필 */}
                 <div className="text-center mb-6">
                     <div className="relative inline-block mb-4">

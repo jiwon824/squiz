@@ -30,45 +30,48 @@ export function cn(...inputs: ClassValue[]) {
 
 /**
  * 🎨 디자인 토큰 기반 클래스 빌더
+ * 프로젝트 실제 패턴을 기반으로 정의된 스타일 프리셋
  */
 export const classBuilder = {
   /**
-   * 버튼 클래스 빌더
+   * 버튼 클래스 빌더 — shared Button 컴포넌트를 쓰지 않는 raw <button>용
    */
-  button: (variant: 'primary' | 'secondary' | 'outline' | 'ghost', size: 'sm' | 'md' | 'lg') => {
+  button: (variant: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger', size: 'sm' | 'md' | 'lg') => {
     const baseClasses = 'inline-flex items-center justify-center font-semibold transition-all duration-200 active:scale-[0.98] disabled:opacity-50';
-    
+
     const variants = {
-      primary: 'bg-google-blue hover:bg-google-blue-dark text-white shadow-sm',
-      secondary: 'bg-gray-100 hover:bg-gray-200 text-gray-700',
-      outline: 'border border-google-blue text-google-blue hover:bg-google-blue-light',
-      ghost: 'text-gray-700 hover:bg-gray-100',
+      primary: 'bg-primary hover:bg-primary-dark text-white shadow-sm',
+      secondary: 'bg-background-secondary hover:bg-gray-200 text-text-secondary',
+      outline: 'border border-primary text-primary hover:bg-primary/5',
+      ghost: 'text-text-secondary hover:bg-gray-100',
+      danger: 'bg-error hover:bg-error/90 text-white',
     };
-    
+
     const sizes = {
-      sm: 'px-3 py-1.5 text-xs rounded-md gap-1.5',
+      sm: 'px-3 py-1.5 text-xs rounded-lg gap-1.5',
       md: 'px-6 py-2.5 text-sm rounded-lg gap-2',
       lg: 'px-8 py-3.5 text-base rounded-xl gap-2.5',
     };
-    
+
     return cn(baseClasses, variants[variant], sizes[size]);
   },
-  
+
   /**
    * 카드 클래스 빌더
    */
-  card: (variant: 'default' | 'outlined' | 'elevated' = 'default') => {
-    const baseClasses = 'bg-white rounded-lg';
-    
+  card: (variant: 'default' | 'outlined' | 'elevated' | 'modal' = 'default') => {
+    const baseClasses = 'bg-white rounded-2xl';
+
     const variants = {
-      default: 'border border-gray-100',
-      outlined: 'border-2 border-gray-300',
-      elevated: 'shadow-md hover:shadow-lg transition-shadow',
+      default: 'border border-gray-100 shadow-sm',
+      outlined: 'border border-gray-200',
+      elevated: 'shadow-[0_4px_15px_rgba(0,0,0,0.05)] transition-shadow hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)]',
+      modal: 'shadow-xl',
     };
-    
+
     return cn(baseClasses, variants[variant]);
   },
-  
+
   /**
    * 플로팅 인풋 클래스 빌더
    */
@@ -92,7 +95,7 @@ export const classBuilder = {
   text: (variant: 'heading' | 'body' | 'caption', size?: 'sm' | 'md' | 'lg') => {
     const variants = {
       heading: cn(
-        'font-semibold text-black',
+        'font-semibold text-text-primary',
         {
           'text-lg': size === 'sm',
           'text-xl': size === 'md' || !size,
@@ -100,15 +103,15 @@ export const classBuilder = {
         }
       ),
       body: cn(
-        'text-gray-700',
+        'text-text-secondary',
         {
           'text-sm': size === 'sm',
-          'text-base': size === 'md' || !size,  
+          'text-base': size === 'md' || !size,
           'text-lg': size === 'lg',
         }
       ),
       caption: cn(
-        'text-gray-500',
+        'text-text-tertiary',
         {
           'text-xs': size === 'sm' || !size,
           'text-sm': size === 'md',
@@ -116,9 +119,31 @@ export const classBuilder = {
         }
       ),
     };
-    
+
     return variants[variant];
-  }
+  },
+
+  /**
+   * 뱃지 클래스 빌더 — 상태/카테고리 표시용 라운드 라벨
+   */
+  badge: (variant: 'primary' | 'success' | 'warning' | 'error' | 'gray' = 'gray', size: 'xs' | 'sm' = 'sm') => {
+    const baseClasses = 'rounded-full font-semibold';
+
+    const variants = {
+      primary: 'bg-[var(--color-primary-alpha-10)] text-primary',
+      success: 'bg-green-50 text-green-700',
+      warning: 'bg-[#FEF7E0] text-[#f9ab00]',
+      error: 'bg-error/10 text-error',
+      gray: 'bg-background-secondary text-text-secondary',
+    };
+
+    const sizes = {
+      xs: 'px-2 py-0.5 text-[10px]',
+      sm: 'px-3 py-1 text-xs',
+    };
+
+    return cn(baseClasses, variants[variant], sizes[size]);
+  },
 };
 
 /**

@@ -15,7 +15,7 @@ import LeaderReviewModal from './LeaderReviewModal';
 import StudyListContainer from './StudyListContainer';
 import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { Button, ArrowButton } from '@/shared/components';
-import { cn } from '@/shared/utils/cn';
+import { cn, classBuilder } from '@/shared/utils/cn';
 import { useDMStore } from '@/features/dm/store/dmStore';
 import { useUIStore } from '@/store/uiStore';
 import { getReviewsByLeaderId, getLeaderAverageRating, LeaderReview } from '../mockData';
@@ -173,7 +173,7 @@ const StudyDetailPageV2: React.FC = () => {
                         {/* 좌측: 스터디 정보 (2열) */}
                         <div className="lg:col-span-2 space-y-6">
                             {/* 헤더 카드 */}
-                            <div className="bg-white rounded-2xl p-6 md:p-8 shadow-[0_4px_15px_rgba(0,0,0,0.05)] transition-shadow hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)]">
+                            <div className={cn(classBuilder.card('elevated'), 'p-6 md:p-8')}>
                                 {/* 뱃지 영역 */}
                                 <div className="flex flex-wrap items-center gap-2 mb-4">
                                     <span className={cn(
@@ -183,7 +183,7 @@ const StudyDetailPageV2: React.FC = () => {
                                         {statusConfig.text}
                                     </span>
                                     <DifficultyBadge difficulty={study.difficulty} size="md" />
-                                    <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[var(--color-background-secondary)] text-[var(--color-text-secondary)]">
+                                    <span className={classBuilder.badge('gray')}>
                                         {study.topic}
                                     </span>
                                 </div>
@@ -225,7 +225,7 @@ const StudyDetailPageV2: React.FC = () => {
                             </div>
 
                             {/* 모집 정보 카드 */}
-                            <div className="bg-white rounded-2xl p-6 md:p-8 shadow-[0_4px_15px_rgba(0,0,0,0.05)] transition-shadow hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)]">
+                            <div className={cn(classBuilder.card('elevated'), 'p-6 md:p-8')}>
                                 <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--color-text-primary)] mb-6">
                                     <div className="p-2 bg-[var(--color-primary-alpha-10)] rounded-xl">
                                         <Target size={18} className="text-[var(--color-primary)]" />
@@ -254,7 +254,7 @@ const StudyDetailPageV2: React.FC = () => {
                             </div>
 
                             {/* 커리큘럼 카드 */}
-                            <div className="bg-white rounded-2xl p-6 md:p-8 shadow-[0_4px_15px_rgba(0,0,0,0.05)] transition-shadow hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)]">
+                            <div className={cn(classBuilder.card('elevated'), 'p-6 md:p-8')}>
                                 <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--color-text-primary)] mb-6">
                                     <div className="p-2 bg-[var(--color-primary-alpha-10)] rounded-xl">
                                         <BookOpen size={18} className="text-[var(--color-primary)]" />
@@ -296,7 +296,7 @@ const StudyDetailPageV2: React.FC = () => {
 
                         {/* 우측: 리더 정보 (1열) */}
                         <div className="lg:col-span-1">
-                            <div className="bg-white rounded-2xl p-6 shadow-[0_4px_15px_rgba(0,0,0,0.05)] transition-shadow hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)] sticky top-6">
+                            <div className={cn(classBuilder.card('elevated'), 'p-6 sticky top-6')}>
                                 {/* 리더 프로필 */}
                                 <div className="text-center mb-6">
                                     <div className="relative inline-block mb-4">
