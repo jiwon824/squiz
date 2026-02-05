@@ -100,7 +100,6 @@ export const StudyReportModal: React.FC<StudyReportModalProps> = ({ isOpen, onCl
                             fullWidth
                             className="h-14 font-black shadow-lg shadow-error/20"
                         >
-                            <AlertTriangle size={18} className="mr-2" />
                             신고하기
                         </Button>
                     </div>
