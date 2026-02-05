@@ -2700,7 +2700,7 @@ const MeetingRoomPage: React.FC = () => {
                 maxWidth="sm"
             >
                 <p className="text-sm text-gray-600">
-                    발표자가 되시겠습니까? 현재 발표자는 권한을 내려야 합니다.
+                    발표자가 되시겠습니까? <br/>현재 발표자는 권한을 내려야 합니다.
                 </p>
                 <div className="mt-6 flex justify-end gap-3">
                     <Button variant="ghost" size="sm" onClick={() => setIsPresenterConfirmOpen(false)}>

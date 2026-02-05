@@ -509,11 +509,19 @@ fun SquizNavHost(
         // 회의록 (모바일 전용 - 녹음 기반)
         composable(
             route = NavRoutes.MeetingList.route,
-            arguments = listOf(navArgument("studyId") { type = NavType.LongType })
+            arguments = listOf(
+                navArgument("studyId") { type = NavType.LongType },
+                navArgument("sessionId") {
+                    type = NavType.LongType
+                    defaultValue = -1L  // 기본값 -1은 세션 미지정
+                }
+            )
         ) { backStackEntry ->
             val studyId = backStackEntry.arguments?.getLong("studyId") ?: 0L
+            val sessionId = backStackEntry.arguments?.getLong("sessionId") ?: -1L
             MeetingListScreen(
                 studyId = studyId,
+                sessionId = if (sessionId > 0) sessionId else null,  // -1이면 null로 전달
                 onBackClick = { navController.popBackStack() },
                 onMeetingClick = { meetingId ->
                     navController.navigate(NavRoutes.MeetingDetail.createRoute(studyId, meetingId))
@@ -581,6 +589,10 @@ fun SquizNavHost(
                     } else {
                         navController.navigate(NavRoutes.AttendanceMember.createRoute(studyId, sessionId))
                     }
+                },
+                onStartRecording = { sId, sessId ->
+                    // 오프라인 녹음: 세션과 연결된 상태로 미팅 녹음 화면으로 이동
+                    navController.navigate(NavRoutes.MeetingList.createRoute(sId, sessId))
                 }
             )
         }

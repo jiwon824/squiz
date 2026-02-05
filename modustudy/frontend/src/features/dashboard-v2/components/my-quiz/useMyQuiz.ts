@@ -67,8 +67,11 @@ export const useMyQuiz = (): UseMyQuizReturn => {
         getCourseQuizStats(),
         getReviewStats(),
       ]);
-      setTodayReviews(todayData?.items || []);
-      setWrongReviews(wrongData?.items || []);
+      // question이 null인 항목 필터링 (백엔드 데이터 무결성 방어)
+      const filteredToday = (todayData?.items || []).filter(item => item.question != null) as ReviewItemDto[];
+      const filteredWrong = (wrongData?.items || []).filter(item => item.question != null) as ReviewItemDto[];
+      setTodayReviews(filteredToday);
+      setWrongReviews(filteredWrong);
       setCourseStats(statsData || null);
       setCourseQuizStats(quizStatsData || []);
       setReviewStats(reviewStatsData || null);

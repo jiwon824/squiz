@@ -68,12 +68,14 @@ interface MeetingApi {
      * 오프라인 녹음 업로드 (회의 자동 생성)
      * POST /api/v1/studies/{studyId}/meetings/offline/audio
      * 회의 생성 없이 바로 오디오 업로드 → 회의 자동 생성 + AI 처리 시작
+     * @param sessionId 연결할 세션 ID (선택사항, 오프라인 미팅이 어느 세션에 해당하는지 지정)
      */
     @Multipart
     @POST("api/v1/studies/{studyId}/meetings/offline/audio")
     suspend fun uploadOfflineRecording(
         @Path("studyId") studyId: Long,
         @Part audio: MultipartBody.Part,
+        @Query("sessionId") sessionId: Long? = null,
         @Query("title") title: String? = null
     ): Response<ApiResponse<MeetingDTO>>
 

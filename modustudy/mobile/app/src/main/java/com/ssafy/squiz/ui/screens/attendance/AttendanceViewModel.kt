@@ -121,7 +121,13 @@ class AttendanceViewModel(application: Application) : AndroidViewModel(applicati
                         _attendanceState.value = AttendanceUiState.Error("BLE 광고를 시작할 수 없습니다. Bluetooth를 확인해주세요.")
                     }
                 } else {
-                    _attendanceState.value = AttendanceUiState.Error("서버 연결 실패: ${response.code()}")
+                    // 400 에러는 출석체크 시간이 아닌 경우 (세션 시작 ±30분)
+                    val errorMessage = if (response.code() == 400) {
+                        "출석체크 시간이 아닙니다.\n(세션 시작 전후 30분 이내에 가능)"
+                    } else {
+                        "서버 연결 실패: ${response.code()}"
+                    }
+                    _attendanceState.value = AttendanceUiState.Error(errorMessage)
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "BLE 출석 시작 실패", e)
@@ -246,7 +252,13 @@ class AttendanceViewModel(application: Application) : AndroidViewModel(applicati
                 _attendanceState.value = AttendanceUiState.Success(message)
                 Log.d(TAG, "출석 체크 성공: $status")
             } else {
-                _attendanceState.value = AttendanceUiState.Error("출석 체크 실패: ${response.code()}")
+                // 400 에러는 출석체크 시간이 아닌 경우 (세션 시작 ±30분)
+                val errorMessage = if (response.code() == 400) {
+                    "출석체크 시간이 아닙니다.\n(세션 시작 전후 30분 이내에 가능)"
+                } else {
+                    "출석 체크 실패: ${response.code()}"
+                }
+                _attendanceState.value = AttendanceUiState.Error(errorMessage)
             }
         } catch (e: Exception) {
             Log.e(TAG, "출석 체크 실패", e)
