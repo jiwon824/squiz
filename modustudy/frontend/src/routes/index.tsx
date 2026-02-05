@@ -146,80 +146,80 @@ export const AppRouter = () => {
 
     return (
         <ErrorBoundary>
-        <Suspense fallback={<div className="p-6"><Skeleton variant="rect" height="100vh" /></div>}>
-            <Routes>
-                {/* 메인 대시보드 (로그인 여부에 따라 Guest/User 자동 분기) */}
-                <Route path="/" element={<DashboardV2 />} />
-                <Route path="/dashboard" element={<DashboardV2 />} />
-                <Route path="/dashboard/guest" element={<GuestLayoutV2><GuestDashboardV2 /></GuestLayoutV2>} />
-                <Route path="/dashboard/user" element={<PrivateRoute><UserLayoutV2><UserDashboardV2 /></UserLayoutV2></PrivateRoute>} />
-                <Route path="/calendar" element={<PrivateRoute><UserLayoutV2><CalendarPage /></UserLayoutV2></PrivateRoute>} />
-                <Route path="/test-calendar" element={<CalendarTestPage />} />
-                <Route path="/reuse-test" element={<ReuseTest />} />
-                <Route path="/workspace-test" element={<PrivateRoute><WorkspacePage /></PrivateRoute>} />
+            <Suspense fallback={<div className="p-6"><Skeleton variant="rect" height="100vh" /></div>}>
+                <Routes>
+                    {/* 메인 대시보드 (로그인 여부에 따라 Guest/User 자동 분기) */}
+                    <Route path="/" element={<DashboardV2 />} />
+                    <Route path="/dashboard" element={<DashboardV2 />} />
+                    <Route path="/dashboard/guest" element={<GuestLayoutV2><GuestDashboardV2 /></GuestLayoutV2>} />
+                    <Route path="/dashboard/user" element={<PrivateRoute><UserLayoutV2><UserDashboardV2 /></UserLayoutV2></PrivateRoute>} />
+                    <Route path="/calendar" element={<PrivateRoute><UserLayoutV2><CalendarPage /></UserLayoutV2></PrivateRoute>} />
+                    <Route path="/test-calendar" element={<CalendarTestPage />} />
+                    <Route path="/reuse-test" element={<ReuseTest />} />
+                    <Route path="/workspace-test" element={<PrivateRoute><WorkspacePage /></PrivateRoute>} />
 
-                {/* 인증 (로그인 상태면 대시보드로 리다이렉트) */}
-                <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
-                <Route path="/login/callback" element={<LoginCallbackPage />} />
-                <Route path="/signup" element={<PublicRoute><SignupPage /></PublicRoute>} />
-                <Route path="/password/reset" element={<PublicRoute><PasswordResetPage /></PublicRoute>} />
+                    {/* 인증 (로그인 상태면 대시보드로 리다이렉트) */}
+                    <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+                    <Route path="/login/callback" element={<LoginCallbackPage />} />
+                    <Route path="/signup" element={<PublicRoute><SignupPage /></PublicRoute>} />
+                    <Route path="/password/reset" element={<PublicRoute><PasswordResetPage /></PublicRoute>} />
 
-                {/* 퀴즈 */}
-                <Route path="/quiz" element={<UserLayoutV2><QuizGameSelection /></UserLayoutV2>} />
-                <Route path="/quiz/my-quiz" element={<PrivateRoute><UserLayoutV2><MyQuizPage /></UserLayoutV2></PrivateRoute>} />
-                <Route path="/quiz-commentle" element={<CommentleQuiz />} />
-                <Route path="/quiz-contest" element={<PrivateRoute><UserLayoutV2><QuizContestComingSoon /></UserLayoutV2></PrivateRoute>} />
-                <Route path="/quiz-practice" element={<QuizCourseList />} />
-                <Route path="/quiz-practice/:courseId" element={<CourseDetail />} />
-                <Route
-                    path="/continuous-quiz/:courseId/section/:sectionNumber"
-                    element={<ContinuousQuizSessionPage />}
-                />
+                    {/* 퀴즈 */}
+                    <Route path="/quiz" element={<UserLayoutV2><QuizGameSelection /></UserLayoutV2>} />
+                    <Route path="/quiz/my-quiz" element={<PrivateRoute><UserLayoutV2><MyQuizPage /></UserLayoutV2></PrivateRoute>} />
+                    <Route path="/quiz-commentle" element={<CommentleQuiz />} />
+                    <Route path="/quiz-contest" element={<PrivateRoute><UserLayoutV2><QuizContestComingSoon /></UserLayoutV2></PrivateRoute>} />
+                    <Route path="/quiz-practice" element={<UserLayoutV2><QuizCourseList /></UserLayoutV2>} />
+                    <Route path="/quiz-practice/:courseId" element={<UserLayoutV2><CourseDetail /></UserLayoutV2>} />
+                    <Route
+                        path="/continuous-quiz/:courseId/section/:sectionNumber"
+                        element={<UserLayoutV2><ContinuousQuizSessionPage /></UserLayoutV2>}
+                    />
 
-                {/* 개인 페이지 (로그인 필수) */}
-                <Route path="/meeting-report" element={<PrivateRoute><UserLayoutV2><STTReportPage /></UserLayoutV2></PrivateRoute>} />
-                <Route path="/meeting-test" element={<PrivateRoute><UserLayoutV2><MeetingTestPage /></UserLayoutV2></PrivateRoute>} />
-                <Route path="/learning-archive" element={<PrivateRoute><UserLayoutV2><LearningArchivePage /></UserLayoutV2></PrivateRoute>} />
-                <Route path="/my-studies/created" element={<PrivateRoute><UserLayoutV2><MyCreatedStudiesPage /></UserLayoutV2></PrivateRoute>} />
-                <Route path="/my-studies/applications" element={<PrivateRoute><UserLayoutV2><MyApplicationsPage /></UserLayoutV2></PrivateRoute>} />
+                    {/* 개인 페이지 (로그인 필수) */}
+                    <Route path="/meeting-report" element={<PrivateRoute><UserLayoutV2><STTReportPage /></UserLayoutV2></PrivateRoute>} />
+                    <Route path="/meeting-test" element={<PrivateRoute><UserLayoutV2><MeetingTestPage /></UserLayoutV2></PrivateRoute>} />
+                    <Route path="/learning-archive" element={<PrivateRoute><UserLayoutV2><LearningArchivePage /></UserLayoutV2></PrivateRoute>} />
+                    <Route path="/my-studies/created" element={<PrivateRoute><UserLayoutV2><MyCreatedStudiesPage /></UserLayoutV2></PrivateRoute>} />
+                    <Route path="/my-studies/applications" element={<PrivateRoute><UserLayoutV2><MyApplicationsPage /></UserLayoutV2></PrivateRoute>} />
 
-                {/* 스터디 */}
-                <Route path="/study" element={<StudyPage />} />
-                <Route path="/study/create" element={<PrivateRoute><StudyTypeSelectPage /></PrivateRoute>} />
-                <Route path="/study/create/planned" element={<PrivateRoute><StudyCreatePage /></PrivateRoute>} />
-                <Route path="/study/create/lightning" element={<PrivateRoute><LightningStudyCreatePage /></PrivateRoute>} />
-                <Route path="/study/edit/lightning/:studyId" element={<PrivateRoute><LightningStudyEditPage /></PrivateRoute>} />
-                <Route path="/study/:id" element={<StudyDetailPageV3 />} />
-                <Route path="/study/manage/:id" element={<PrivateRoute><StudyManagementPage /></PrivateRoute>} />
-                <Route path="/study/:studyId/workspace" element={<PrivateRoute><WorkspacePage /></PrivateRoute>} />
+                    {/* 스터디 */}
+                    <Route path="/study" element={<StudyPage />} />
+                    <Route path="/study/create" element={<PrivateRoute><StudyTypeSelectPage /></PrivateRoute>} />
+                    <Route path="/study/create/planned" element={<PrivateRoute><StudyCreatePage /></PrivateRoute>} />
+                    <Route path="/study/create/lightning" element={<PrivateRoute><LightningStudyCreatePage /></PrivateRoute>} />
+                    <Route path="/study/edit/lightning/:studyId" element={<PrivateRoute><LightningStudyEditPage /></PrivateRoute>} />
+                    <Route path="/study/:id" element={<StudyDetailPageV3 />} />
+                    <Route path="/study/manage/:id" element={<PrivateRoute><StudyManagementPage /></PrivateRoute>} />
+                    <Route path="/study/:studyId/workspace" element={<PrivateRoute><WorkspacePage /></PrivateRoute>} />
 
-                {/* 미팅 (로그인 필수) */}
-                <Route path="/study/:studyId/meetings" element={<PrivateRoute><MeetingHistoryPage /></PrivateRoute>} />
-                <Route path="/study/:studyId/meetings/:meetingId" element={<PrivateRoute><MeetingDetailPage /></PrivateRoute>} />
-                <Route path="/study/:studyId/meetings/:meetingId/room" element={<PrivateRoute><MeetingRoomPage /></PrivateRoute>} />
+                    {/* 미팅 (로그인 필수) */}
+                    <Route path="/study/:studyId/meetings" element={<PrivateRoute><MeetingHistoryPage /></PrivateRoute>} />
+                    <Route path="/study/:studyId/meetings/:meetingId" element={<PrivateRoute><MeetingDetailPage /></PrivateRoute>} />
+                    <Route path="/study/:studyId/meetings/:meetingId/room" element={<PrivateRoute><MeetingRoomPage /></PrivateRoute>} />
 
-                {/* 기타 */}
-                <Route path="/recruitment" element={<RecruitmentPage />} />
-                <Route path="/notifications" element={<PrivateRoute><NotificationPage /></PrivateRoute>} />
-                <Route path="/setting" element={<PrivateRoute><SettingPage /></PrivateRoute>} />
-                <Route
-                    path="/profile"
-                    element={
-                        <PrivateRoute>
-                            <Suspense fallback={<ProfileSkeleton />}>
-                                <ProfilePage />
-                            </Suspense>
-                        </PrivateRoute>
-                    }
-                />
-                <Route path="/admin" element={<PrivateRoute><AdminDashboardPage /></PrivateRoute>} />
+                    {/* 기타 */}
+                    <Route path="/recruitment" element={<RecruitmentPage />} />
+                    <Route path="/notifications" element={<PrivateRoute><NotificationPage /></PrivateRoute>} />
+                    <Route path="/setting" element={<PrivateRoute><SettingPage /></PrivateRoute>} />
+                    <Route
+                        path="/profile"
+                        element={
+                            <PrivateRoute>
+                                <Suspense fallback={<ProfileSkeleton />}>
+                                    <ProfilePage />
+                                </Suspense>
+                            </PrivateRoute>
+                        }
+                    />
+                    <Route path="/admin" element={<PrivateRoute><AdminDashboardPage /></PrivateRoute>} />
 
-                {/* 에러 페이지 */}
-                <Route path="/error" element={<ErrorPage />} />
-                <Route path="/error/:code" element={<ErrorPage />} />
-                <Route path="*" element={<ErrorPage />} />
-            </Routes>
-        </Suspense>
+                    {/* 에러 페이지 */}
+                    <Route path="/error" element={<ErrorPage />} />
+                    <Route path="/error/:code" element={<ErrorPage />} />
+                    <Route path="*" element={<ErrorPage />} />
+                </Routes>
+            </Suspense>
         </ErrorBoundary>
     );
 };
