@@ -43,7 +43,7 @@ export const CommentleProblemCard: React.FC<CommentleProblemCardProps> = ({ prob
             </div>
 
             {/* 힌트 섹션 */}
-            <div className="bg-surface border border-border-light rounded-3xl p-6 shadow-sm">
+            <div className="bg-white rounded-2xl p-6 shadow-[0_4px_15px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)] transition-shadow">
                 <div className="flex items-center gap-3 mb-6">
                     <div className="bg-warning/10 p-2 rounded-xl text-amber-500">
                         <HelpCircle size={20} />

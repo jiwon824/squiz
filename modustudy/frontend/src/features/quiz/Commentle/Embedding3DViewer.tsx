@@ -206,8 +206,35 @@ interface CameraOscillationProps {
 }
 
 function CameraOscillation({ controlsRef }: CameraOscillationProps) {
+    const isUserInteracting = React.useRef(false);
+    const idleTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    React.useEffect(() => {
+        const controls = controlsRef.current;
+        if (!controls) return;
+
+        const onStart = () => {
+            isUserInteracting.current = true;
+            if (idleTimer.current) clearTimeout(idleTimer.current);
+        };
+        const onEnd = () => {
+            // 사용자 조작 끝난 후 3초 뒤 자동 진동 재개
+            idleTimer.current = setTimeout(() => {
+                isUserInteracting.current = false;
+            }, 3000);
+        };
+
+        controls.addEventListener('start', onStart);
+        controls.addEventListener('end', onEnd);
+        return () => {
+            controls.removeEventListener('start', onStart);
+            controls.removeEventListener('end', onEnd);
+            if (idleTimer.current) clearTimeout(idleTimer.current);
+        };
+    }, [controlsRef]);
+
     useFrame(({ clock }) => {
-        if (controlsRef.current) {
+        if (controlsRef.current && !isUserInteracting.current) {
             const t = clock.getElapsedTime();
             // 좌우로 -45도 ~ +45도 사이를 부드럽게 왔다갔다 (0.2 = 느린 속도)
             const angle = Math.sin(t * 0.2) * (Math.PI / 4);
@@ -290,11 +317,6 @@ function Scene({ guesses }: SceneProps) {
                 autoRotate={false}
                 minDistance={0.5}
                 maxDistance={3}
-                // 회전 범위 제한: 정면 기준 좌우 ±60도, 상하 30도~150도
-                minAzimuthAngle={-Math.PI / 3}
-                maxAzimuthAngle={Math.PI / 3}
-                minPolarAngle={Math.PI / 6}
-                maxPolarAngle={5 * Math.PI / 6}
             />
         </>
     );

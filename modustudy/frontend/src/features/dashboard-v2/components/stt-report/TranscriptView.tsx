@@ -1,7 +1,7 @@
-// 전체 기록 뷰: 검색 + EditableTranscript + 다운로드/재생
+// 전체 기록 뷰: 검색 + EditableTranscript
 
 import React, { useState, useCallback } from 'react';
-import { Search, Play } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 import type { MeetingReport, TranscriptItem } from './types';
 import { EditableTranscript } from './EditableTranscript';
@@ -71,16 +71,6 @@ export const TranscriptView: React.FC<TranscriptViewProps> = ({
                 </div>
             </div>
 
-            {/* 재생 버튼 */}
-            <div className="flex justify-center pt-4">
-                <button className={cn(
-                    'inline-flex items-center gap-2 px-6 py-3 font-medium rounded-xl',
-                    'bg-primary text-white hover:bg-primary-dark transition-colors'
-                )}>
-                    <Play size={18} />
-                    음성 재생
-                </button>
-            </div>
         </div>
     );
 };
