@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { cn, conditionalClasses } from '@/shared/utils/cn';
+import { cn, classBuilder, conditionalClasses } from '@/shared/utils/cn';
 import MeetingParticipants from './MeetingParticipants';
 import MeetingChatPanel from './MeetingChatPanel';
 import MeetingVideoStage from './MeetingVideoStage';
@@ -167,7 +167,7 @@ const MeetingRoomContent: React.FC<MeetingRoomContentProps> = ({
                         className="h-full shrink-0 overflow-hidden"
                         style={{ willChange: 'width, opacity' }}
                     >
-                        <div className="h-full w-[340px] bg-white rounded-2xl shadow-[0_4px_15px_rgba(0,0,0,0.05)] overflow-hidden flex flex-col">
+                        <div className={cn(classBuilder.card('elevated'), 'h-full w-[340px] overflow-hidden flex flex-col')}>
                             {miniTab === 'participants' ? (
                                 <MeetingParticipants
                                     participants={participants}

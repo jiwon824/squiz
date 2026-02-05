@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn, conditionalClasses } from '@/shared/utils/cn';
+import { cn, classBuilder, conditionalClasses } from '@/shared/utils/cn';
 import { ArrowLeft, Presentation, Users } from 'lucide-react';
 import MeetingControls from './MeetingControls';
 
@@ -56,7 +56,7 @@ const MeetingRoomHeader: React.FC<MeetingRoomHeaderProps> = ({
         : 0;
 
     return (
-        <div className="bg-white flex flex-col gap-3 rounded-2xl p-4 shadow-[0_4px_15px_rgba(0,0,0,0.05)] shrink-0">
+        <div className={cn(classBuilder.card('elevated'), 'flex flex-col gap-3 p-4 shrink-0')}>
             {/* 상단: 제목 + 타이머 + 상태 */}
             <div className="flex items-center justify-between gap-4 flex-wrap">
                 <div className="flex items-center gap-4 min-w-0 flex-1">

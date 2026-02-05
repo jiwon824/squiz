@@ -31,7 +31,7 @@ export const CommentleHistory: React.FC<CommentleHistoryProps> = ({ guesses }) =
     }, [guesses, sortOrder]);
 
     return (
-        <section className="bg-white rounded-2xl p-6 shadow-[0_4px_15px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)] transition-shadow">
+        <section className={cn(classBuilder.card('elevated'), 'p-6')}>
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-border-light">
                 <div className="flex items-center gap-3">
                     <div className="bg-primary/10 p-2 rounded-xl text-primary">

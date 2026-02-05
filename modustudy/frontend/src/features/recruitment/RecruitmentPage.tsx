@@ -7,7 +7,7 @@ import {
     MessageSquare, Share2, MoreVertical, CheckCircle2,
     Users, Eye, Calendar, Tag, AlertTriangle
 } from 'lucide-react';
-import { cn } from '@/shared/utils/cn';
+import { cn, classBuilder } from '@/shared/utils/cn';
 import { Button, ArrowButton, Dropdown, Modal } from '@/shared/components';
 import { getProfileImageUrl } from '@/shared/utils/profileImage';
 import { useAuthStore } from '@/store/authStore';
@@ -221,10 +221,7 @@ export const RecruitmentPage = () => {
                                         )}>
                                             {selectedPost.recruitmentStatus === 'COMPLETED' ? '모집 완료' : '모집 중'}
                                         </span>
-                                        <span className={cn(
-                                            "px-3 py-1 rounded-full text-xs font-semibold",
-                                            "bg-[var(--color-primary-alpha-10)] text-[var(--color-primary)]"
-                                        )}>
+                                        <span className={classBuilder.badge('primary')}>
                                             # {selectedPost.recruitmentField || '-'}
                                         </span>
                                     </div>
@@ -273,7 +270,7 @@ export const RecruitmentPage = () => {
                                         <h1 className="text-2xl md:text-3xl font-extrabold text-[var(--color-text-primary)] leading-tight">
                                             {selectedPost.title}
                                         </h1>
-                                        <span className="inline-flex items-center px-3 py-1 rounded-full bg-[var(--color-background-secondary)] text-xs font-semibold text-[var(--color-text-secondary)]">
+                                        <span className={cn(classBuilder.badge('gray'), 'inline-flex items-center')}>
                                             {new Date(selectedPost.createdAt).toLocaleDateString('ko-KR', {
                                                 year: 'numeric',
                                                 month: 'long',
@@ -384,10 +381,10 @@ export const RecruitmentPage = () => {
 
                                 {/* 태그 */}
                                 <div className="flex flex-wrap gap-2 mt-8">
-                                    <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[var(--color-background-secondary)] text-[var(--color-text-secondary)]">
+                                    <span className={classBuilder.badge('gray')}>
                                         {selectedPost.recruitmentField || '-'}
                                     </span>
-                                    <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[var(--color-background-secondary)] text-[var(--color-text-secondary)]">
+                                    <span className={classBuilder.badge('gray')}>
                                         {getMeetingTypeLabel(selectedPost.meetingType)}
                                     </span>
                                 </div>

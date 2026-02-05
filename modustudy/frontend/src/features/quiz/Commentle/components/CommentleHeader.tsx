@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Info } from 'lucide-react';
 import { ArrowButton } from '@/shared/components';
+import { cn, classBuilder } from '@/shared/utils/cn';
 
 interface CommentleHeaderProps {
     onInfoClick?: () => void;
@@ -30,7 +31,7 @@ export const CommentleHeader: React.FC<CommentleHeaderProps> = ({ onInfoClick })
                 </button>
 
                 {/* 엔진 정보 및 점수 산정 툴팁 */}
-                <div className="absolute top-12 right-0 w-96 p-6 bg-white rounded-2xl shadow-xl border border-border-light opacity-0 invisible translate-y-[-10px] group-hover/info:opacity-100 group-hover/info:visible group-hover/info:translate-y-0 transition-all z-[60]">
+                <div className={cn(classBuilder.card('modal'), 'absolute top-12 right-0 w-96 p-6 border border-border-light opacity-0 invisible translate-y-[-10px] group-hover/info:opacity-100 group-hover/info:visible group-hover/info:translate-y-0 transition-all z-[60]')}>
                     <h4 className="text-lg font-black text-text-primary mb-3 flex items-center gap-2">
                         <span className="w-2 h-5 bg-primary rounded-full"></span>
                         AI 시맨틱 엔진 로직

@@ -4,7 +4,7 @@ import { MessageCircle, Send, CornerDownRight, MoreVertical, Pencil, Trash2 } fr
 import { Spinner, ButtonSpinner } from '@/shared/components/Spinner';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
-import { cn } from '@/shared/utils/cn';
+import { cn, classBuilder } from '@/shared/utils/cn';
 import { getProfileImageUrl } from '@/shared/utils/profileImage';
 import {
     StudyCommentResponse,
@@ -418,7 +418,7 @@ const StudyCommentSection: React.FC<StudyCommentSectionProps> = ({
     );
 
     return (
-        <div className="bg-white rounded-2xl p-6 shadow-[0_4px_15px_rgba(0,0,0,0.05)] transition-shadow hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)]">
+        <div className={cn(classBuilder.card('elevated'), 'p-6')}>
             {/* 헤더 */}
             <div className="flex items-center gap-2 mb-6">
                 <MessageCircle size={20} className="text-[var(--color-primary)]" />

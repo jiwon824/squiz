@@ -4,6 +4,7 @@ import { UserMinus, Users, CheckCircle2, Search, Crown, Shield, TrendingUp } fro
 import RoleBadge, { UserRole } from '@/shared/components/RoleBadge';
 import { useUIStore } from '@/store/uiStore';
 import { getProfileImageUrl } from '@/shared/utils/profileImage';
+import { cn, classBuilder } from '@/shared/utils/cn';
 
 interface MemberManagementProps {
     studyId: number;
@@ -90,7 +91,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ studyId, maxMembers
 
     if (members.length === 0) {
         return (
-            <div className="text-center py-12 bg-white rounded-2xl shadow-[0_4px_15px_rgba(0,0,0,0.05)]">
+            <div className={cn(classBuilder.card('elevated'), 'text-center py-12')}>
                 <Users size={48} className="mx-auto text-text-muted mb-4" />
                 <p className="text-text-secondary">현재 스터디에 참여 중인 멤버가 없습니다</p>
             </div>
@@ -128,7 +129,7 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ studyId, maxMembers
                 {filteredMembers.map((member) => (
                     <div
                         key={member.userId}
-                        className="bg-white rounded-2xl p-5 shadow-[0_4px_15px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)] transition-all group"
+                        className={cn(classBuilder.card('elevated'), 'p-5 group')}
                     >
                         <div className="flex items-start gap-4">
                             {/* 아바타 */}

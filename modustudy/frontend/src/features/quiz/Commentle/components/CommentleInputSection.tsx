@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send } from 'lucide-react';
 import { ButtonSpinner } from '@/shared/components/Spinner';
+import { cn, classBuilder } from '@/shared/utils/cn';
 
 interface CommentleInputSectionProps {
     onGuess: (word: string) => void;
@@ -27,7 +28,7 @@ export const CommentleInputSection: React.FC<CommentleInputSectionProps> = ({ on
     };
 
     return (
-        <section className="bg-white rounded-2xl p-8 shadow-[0_4px_15px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)] transition-shadow">
+        <section className={cn(classBuilder.card('elevated'), 'p-8')}>
             <div className="flex items-center gap-3 mb-6">
                 <div className="bg-primary/10 p-2 rounded-xl text-primary">
                     <Send size={20} />

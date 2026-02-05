@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { X, Calendar, CheckCircle, Clock } from 'lucide-react';
+import { cn, classBuilder } from '@/shared/utils/cn';
 
 // 커리큘럼 정류장 타입
 export interface CurriculumStop {
@@ -540,7 +541,7 @@ export const CurriculumRoadmap: React.FC<CurriculumRoadmapProps> = ({
                     onClick={() => setSelectedStop(null)}
                 >
                     <div
-                        className="bg-white rounded-2xl p-6 w-full max-w-md mx-4 shadow-xl animate-fadeIn"
+                        className={cn(classBuilder.card('modal'), 'p-6 w-full max-w-md mx-4 animate-fadeIn')}
                         onClick={e => e.stopPropagation()}
                     >
                         {/* 모달 헤더 */}

@@ -6,7 +6,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Zap, ChevronDown, ChevronUp, Award, TrendingUp } from 'lucide-react';
-import { cn } from '@/shared/utils/cn';
+import { cn, classBuilder } from '@/shared/utils/cn';
 import type { UserStatsResponse } from '@/api/endpoints/gamificationApi';
 
 interface LevelProgressBarProps {
@@ -89,7 +89,7 @@ export const LevelProgressBar: React.FC<LevelProgressBarProps> = ({
                         initial={{ opacity: 0, y: -10, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                        className="absolute top-full right-0 mt-2 w-72 bg-white rounded-2xl shadow-xl border border-gray-100 p-4 z-50"
+                        className={cn(classBuilder.card('modal'), 'absolute top-full right-0 mt-2 w-72 border border-gray-100 p-4 z-50')}
                     >
                         <LevelDetailCard
                             level={level}

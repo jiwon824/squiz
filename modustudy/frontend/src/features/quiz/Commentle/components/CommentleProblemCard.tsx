@@ -1,6 +1,7 @@
 import React from 'react';
 import { Problem } from '../hooks/useCommentleGame';
 import { Tag, Zap, HelpCircle } from 'lucide-react';
+import { cn, classBuilder } from '@/shared/utils/cn';
 
 interface CommentleProblemCardProps {
     problem: Problem;
@@ -43,7 +44,7 @@ export const CommentleProblemCard: React.FC<CommentleProblemCardProps> = ({ prob
             </div>
 
             {/* 힌트 섹션 */}
-            <div className="bg-white rounded-2xl p-6 shadow-[0_4px_15px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)] transition-shadow">
+            <div className={cn(classBuilder.card('elevated'), 'p-6')}>
                 <div className="flex items-center gap-3 mb-6">
                     <div className="bg-warning/10 p-2 rounded-xl text-amber-500">
                         <HelpCircle size={20} />
