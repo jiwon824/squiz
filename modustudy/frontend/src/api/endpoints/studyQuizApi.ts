@@ -75,6 +75,7 @@ export const getQuizDetail = async (studyId: number, quizId: number): Promise<St
 /**
  * 퀴즈 답안 제출
  * POST /api/v1/studies/{studyId}/quizzes/{quizId}/questions/{questionId}/submit
+ * 백엔드는 ApiResponse<StudyQuizSubmitResponse> 형태로 래핑하여 반환
  */
 export const submitAnswer = async (
     studyId: number,
@@ -82,11 +83,12 @@ export const submitAnswer = async (
     questionId: number,
     data: StudyQuizSubmitRequest
 ): Promise<StudyQuizSubmitResponse> => {
-    const response = await api.post(
+    const response = await api.post<{ success: boolean; data: StudyQuizSubmitResponse }>(
         `/api/v1/studies/${studyId}/quizzes/${quizId}/questions/${questionId}/submit`,
         data
     );
-    return response.data;
+    // ApiResponse 래퍼에서 data 필드 추출
+    return response.data.data;
 };
 
 export const studyQuizApi = {
