@@ -111,7 +111,10 @@ export interface ReviewStatsResponse {
     averageStability: number;
     totalReps: number;
     totalLapses: number;
-    proficiency: number;
+    todayReviewsComplete?: boolean;
+    averageRetrievability: number;
+    matureCards: number;
+    dailyMaxCombo: number;
 }
 
 export const getReviewStats = async (): Promise<ReviewStatsResponse> => {

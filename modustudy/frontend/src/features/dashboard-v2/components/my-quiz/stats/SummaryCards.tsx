@@ -1,46 +1,62 @@
 import React from 'react';
 import { ReviewStatsResponse } from '../../../api/reviewApi';
-import { XCircle, AlertTriangle, Target, LucideIcon } from 'lucide-react';
+import { Brain, Medal, Zap, LucideIcon } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 
 interface StatCard {
   label: string;
   value: number | string;
   icon: LucideIcon;
-  color: 'error' | 'warning' | 'secondary';
+  color: 'retention' | 'mature' | 'combo';
+  description: string;
 }
 
 interface SummaryCardsProps {
-  totalWrong: number;
-  totalWrongCount: number;
-  avgWrongCount: string;
+  totalWrong?: number; // kept for backward compatibility if needed, but not used in new design
+  totalWrongCount?: number;
+  avgWrongCount?: string;
   reviewStats?: ReviewStatsResponse | null;
 }
 
 /**
  * 통계 요약 카드를 표시하는 컴포넌트
+ * (Retention Rate, Mature Cards, Daily Max Combo)
  */
 export const SummaryCards: React.FC<SummaryCardsProps> = React.memo(
-  ({ totalWrong, totalWrongCount, avgWrongCount, reviewStats }) => {
-    // reviewStats가 있으면 그것을 우선 사용
-    // 총 오답 횟수는 reviewStats.totalLapses (누적) 사용
-    const displayTotalWrongCount = reviewStats ? reviewStats.totalLapses : totalWrongCount;
+  ({ reviewStats }) => {
+    // 1. 예상 기억도 (Retention Rate)
+    const retentionRate = reviewStats?.averageRetrievability
+      ? Math.round(reviewStats.averageRetrievability * 100)
+      : 0;
 
-    // 평균 오답 횟수도 reviewStats 데이터로 재계산 가능하지만, 
-    // 기존 로직(오답 문제들의 평균)을 유지하되 분모/분자를 명확히 함.
-    // 여기서는 단순히 카운트를 업데이트합니다.
+    // 2. 장기 기억 전환 (Mature Cards)
+    const matureCards = reviewStats?.matureCards || 0;
 
-    // 만약 reviewStats가 있다면, 평균은 (총 누적 오답 / 총 누적 오답 문제수)여야 하는데, 
-    // 총 누적 오답 문제수는 reviewStats에 없으므로 기존 wrongReviews.length(totalWrong)을 사용하거나
-    // totalWrong이 0이면 0으로 처리.
-    // 기존 avgWrongCount는 이미 계산되어 넘어오므로 그대로 사용하되, 
-    // displayTotalWrongCount가 바뀌었으므로 일관성을 위해 다시 계산할 수도 있음.
-    // 하지만 일단 넘겨받은 값을 존중하되, 오답 카운트만 보정.
+    // 3. 오늘의 최고 콤보 (Daily Max Combo)
+    const dailyMaxCombo = reviewStats?.dailyMaxCombo || 0;
 
     const stats: StatCard[] = [
-      { label: '틀린 문제 수', value: totalWrong, icon: XCircle, color: 'error' },
-      { label: '총 오답 횟수', value: displayTotalWrongCount, icon: AlertTriangle, color: 'warning' },
-      { label: '평균 오답 횟수', value: avgWrongCount, icon: Target, color: 'secondary' },
+      {
+        label: '예상 기억도',
+        value: `${retentionRate}%`,
+        icon: Brain,
+        color: 'retention',
+        description: `현재 학습 개념의 ${retentionRate}%를 기억 중입니다`
+      },
+      {
+        label: '장기 기억 전환',
+        value: matureCards,
+        icon: Medal,
+        color: 'mature',
+        description: '21일 이상 기억된 완전 학습 카드'
+      },
+      {
+        label: '오늘의 최고 콤보',
+        value: dailyMaxCombo,
+        icon: Zap,
+        color: 'combo',
+        description: `오늘 최대 ${dailyMaxCombo}문제를 연속으로 맞혔습니다!`
+      },
     ];
 
     return (
@@ -63,29 +79,46 @@ interface StatCardItemProps {
 const StatCardItem: React.FC<StatCardItemProps> = React.memo(({ stat }) => {
   const Icon = stat.icon;
 
+  // 색상 매핑
+  const colorStyles = {
+    retention: {
+      bg: 'bg-indigo-50',
+      text: 'text-indigo-600',
+      iconBg: 'bg-indigo-100',
+    },
+    mature: {
+      bg: 'bg-emerald-50',
+      text: 'text-emerald-600',
+      iconBg: 'bg-emerald-100',
+    },
+    combo: {
+      bg: 'bg-amber-50',
+      text: 'text-amber-600',
+      iconBg: 'bg-amber-100',
+    },
+  };
+
+  const style = colorStyles[stat.color];
+
   return (
-    <div className="rounded-xl border border-gray-100 px-5 py-4">
-      <div className="flex items-center gap-4">
+    <div className="rounded-xl border border-gray-100 px-5 py-4 bg-white shadow-sm hover:shadow-md transition-shadow duration-200">
+      <div className="flex items-start gap-4">
         <div
           className={cn(
-            'w-12 h-12 rounded-xl flex items-center justify-center',
-            stat.color === 'error' && 'bg-error/5',
-            stat.color === 'warning' && 'bg-warning/5',
-            stat.color === 'secondary' && 'bg-secondary/5'
+            'w-12 h-12 rounded-xl flex items-center justify-center shrink-0',
+            style.iconBg
           )}
         >
-          <Icon
-            className={cn(
-              stat.color === 'error' && 'text-error/80',
-              stat.color === 'warning' && 'text-warning/80',
-              stat.color === 'secondary' && 'text-secondary/80'
-            )}
-            size={22}
-          />
+          <Icon className={style.text} size={24} />
         </div>
-        <div>
-          <div className="text-2xl font-bold text-text-primary">{stat.value}</div>
-          <div className="text-sm text-text-tertiary">{stat.label}</div>
+        <div className="flex-1">
+          <div className="flex items-baseline gap-1">
+            <span className="text-2xl font-bold text-gray-900">{stat.value}</span>
+            <span className="text-sm text-gray-500 font-medium">{stat.label}</span>
+          </div>
+          <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+            {stat.description}
+          </p>
         </div>
       </div>
     </div>
