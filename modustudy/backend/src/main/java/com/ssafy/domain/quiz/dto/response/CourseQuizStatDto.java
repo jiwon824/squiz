@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class CourseQuizStatDto {
     private String courseName;
+    private String courseCode;
     private Long attemptedCount;
     private Long correctCount;
 }

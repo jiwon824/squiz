@@ -21,5 +21,4 @@ export {
   CategoryDistribution,
   TechStackProficiencyView,
   LearningRecommendation,
-  TECH_STACK_DATA,
 } from './stats';

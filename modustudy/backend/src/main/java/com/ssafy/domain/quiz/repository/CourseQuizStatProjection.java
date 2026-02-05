@@ -6,4 +6,6 @@ public interface CourseQuizStatProjection {
     Long getAttemptedCount();
 
     Long getCorrectCount();
+
+    String getCourseCode();
 }

@@ -42,6 +42,7 @@ public interface QuizCourseRepository extends JpaRepository<QuizCourse, Long> {
     @Query(value = """
             SELECT
                 c.name as courseName,
+                c.code as courseCode,
                 COUNT(DISTINCT q.id) as attemptedCount,
                 COUNT(DISTINCT CASE WHEN sub.is_correct = true THEN q.id ELSE NULL END) as correctCount
             FROM quiz_course c
@@ -57,7 +58,7 @@ public interface QuizCourseRepository extends JpaRepository<QuizCourse, Long> {
                  ) t WHERE rn = 1
             ) sub ON sub.review_item_id = uri.id
             WHERE uri.user_id = :userId
-            GROUP BY c.id, c.name
+            GROUP BY c.id, c.name, c.code
             """, nativeQuery = true)
     List<CourseQuizStatProjection> findCourseStats(@Param("userId") Long userId);
 }

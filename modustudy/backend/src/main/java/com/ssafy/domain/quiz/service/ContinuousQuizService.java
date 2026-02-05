@@ -300,6 +300,7 @@ public class ContinuousQuizService {
                 return projections.stream()
                                 .map(p -> CourseQuizStatDto.builder()
                                                 .courseName(p.getCourseName())
+                                                .courseCode(p.getCourseCode())
                                                 .attemptedCount(p.getAttemptedCount())
                                                 .correctCount(p.getCorrectCount())
                                                 .build())

@@ -3,13 +3,8 @@ package com.ssafy.domain.quiz.controller;
 import com.ssafy.common.auth.SsafyUserDetails;
 import com.ssafy.common.response.ApiResponse;
 import com.ssafy.domain.quiz.dto.request.ContinuousAnswerRequest;
-import com.ssafy.domain.quiz.dto.response.ContinuousQuestionResponse;
-import com.ssafy.domain.quiz.dto.response.ContinuousSubmitResponse;
-import com.ssafy.domain.quiz.dto.response.QuizCourseDetailResponse;
-import com.ssafy.domain.quiz.dto.response.QuizCourseListResponse;
+import com.ssafy.domain.quiz.dto.response.*;
 import com.ssafy.domain.quiz.dto.response.SectionsWithProgressResponse;
-import com.ssafy.domain.quiz.dto.response.SectionsWithProgressResponse;
-import com.ssafy.domain.quiz.dto.response.WeakConceptDto;
 import com.ssafy.domain.quiz.service.ContinuousQuizService;
 import java.util.List;
 import io.swagger.v3.oas.annotations.Operation;
@@ -131,7 +126,7 @@ public class ContinuousQuizController {
      */
     @Operation(summary = "코스별 학습 통계 조회", description = "코스별 시도한 문제 수(Attempted)와 정답 수(Correct)를 조회합니다.")
     @GetMapping("/course-stats")
-    public ApiResponse<List<com.ssafy.domain.quiz.dto.response.CourseQuizStatDto>> getCourseStats(
+    public ApiResponse<List<CourseQuizStatDto>> getCourseStats(
             @AuthenticationPrincipal SsafyUserDetails userDetails) {
 
         return ApiResponse.success(continuousQuizService.getCourseStats(userDetails.getUser().getId()));

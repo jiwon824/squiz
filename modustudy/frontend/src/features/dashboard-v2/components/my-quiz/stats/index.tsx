@@ -33,7 +33,7 @@ export const StatsView: React.FC<StatsViewProps> = React.memo(
 
 
         {/* 기술 스택 숙련도 */}
-        <TechStackProficiencyView />
+        <TechStackProficiencyView courseStats={courseQuizStats} />
 
         {/* 학습 제안 */}
         <LearningRecommendation weakConcepts={weakConcepts} />
@@ -47,7 +47,7 @@ StatsView.displayName = 'StatsView';
 // Re-export sub-components for direct access if needed
 export { SummaryCards } from './SummaryCards';
 export { CategoryDistribution } from './CategoryDistribution';
-export { TechStackProficiencyView, TECH_STACK_DATA } from './TechStackProficiency';
+export { TechStackProficiencyView } from './TechStackProficiency';
 export { LearningRecommendation } from './LearningRecommendation';
 
 export default StatsView;

@@ -114,6 +114,7 @@ export interface SubmitAnswerResponse {
 /** 코스별 퀴즈 통계 (Attempted vs Correct) */
 export interface CourseQuizStat {
     courseName: string;
+    courseCode: string;
     attemptedCount: number;
     correctCount: number;
 }
