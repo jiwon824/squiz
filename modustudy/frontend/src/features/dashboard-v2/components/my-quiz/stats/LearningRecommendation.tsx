@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Brain, Play } from 'lucide-react';
 import { WeakConcept } from '../types';
 
@@ -11,7 +12,15 @@ interface LearningRecommendationProps {
  */
 export const LearningRecommendation: React.FC<LearningRecommendationProps> = React.memo(
   ({ weakConcepts }) => {
+    const navigate = useNavigate();
     const topWeakConcept = weakConcepts[0];
+
+    // 네비게이션 핸들러
+    const handleNavigate = React.useCallback(() => {
+      if (topWeakConcept?.courseId) {
+        navigate(`/quiz-practice/${topWeakConcept.courseId}`);
+      }
+    }, [navigate, topWeakConcept?.courseId]);
 
     if (!topWeakConcept) {
       return (
@@ -49,10 +58,15 @@ export const LearningRecommendation: React.FC<LearningRecommendationProps> = Rea
                   가장 많이 틀린 개념입니다. 관련 문제를 다시 풀어보고,
                   해당 개념에 대한 추가 학습을 권장합니다.
                 </p>
-                <button className="mt-4 flex items-center gap-2 text-sm font-medium text-primary hover:text-primary-dark transition-colors">
-                  <Play size={14} />
-                  관련 문제 풀기
-                </button>
+                {topWeakConcept.courseId && (
+                  <button
+                    onClick={handleNavigate}
+                    className="mt-4 flex items-center gap-2 text-sm font-medium text-primary hover:text-primary-dark transition-colors"
+                  >
+                    <Play size={14} />
+                    관련 문제 풀기
+                  </button>
+                )}
               </div>
             </div>
           </div>

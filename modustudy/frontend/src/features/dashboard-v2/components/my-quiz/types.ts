@@ -14,6 +14,7 @@ export interface WeakConcept {
   wrongRate: number; // (wrongCount / totalReps) * 100
   relatedQuestions: number[];
   lastReviewDate: string;
+  courseId?: number;
 }
 
 // 탭 구성 정보 인터페이스
