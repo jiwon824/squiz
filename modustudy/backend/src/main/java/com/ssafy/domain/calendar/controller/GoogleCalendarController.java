@@ -111,6 +111,40 @@ public class GoogleCalendarController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @PostMapping("/connect/mobile")
+    @Operation(summary = "Google 캘린더 연동 - 모바일용 (redirect_uri 없이)")
+    public ResponseEntity<ApiResponse<CalendarStatusResponse>> connectGoogleCalendarMobile(
+            @CurrentUserId Long userId,
+            @RequestBody java.util.Map<String, String> request) {
+
+        String code = request.get("code");
+        if (code == null || code.isBlank()) {
+            throw new IllegalArgumentException("Authorization code가 필요합니다.");
+        }
+
+        log.info("Google Calendar 모바일 연동 요청: userId={}", userId);
+
+        // 모바일용 연동 (redirect_uri 없이)
+        oAuth2Service.linkSocialAccountMobile(userId, SocialProvider.GOOGLE, code);
+
+        // 연동 완료 후 상태 반환
+        UserSocialAccount socialAccount = socialAccountRepository
+                .findByUserIdAndProvider(userId, SocialProvider.GOOGLE)
+                .orElseThrow(() -> new IllegalStateException("Google 계정 연동에 실패했습니다."));
+
+        CalendarStatusResponse response = CalendarStatusResponse.builder()
+                .connected(true)
+                .email(socialAccount.getEmail())
+                .tokenExpiresAt(socialAccount.getTokenExpiresAt())
+                .hasValidToken(!socialAccount.isTokenExpired())
+                .calendarId(socialAccount.getCalendarId())
+                .build();
+
+        log.info("Google Calendar 모바일 연동 완료: userId={}, email={}", userId, socialAccount.getEmail());
+
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
     @PostMapping("/disconnect")
     @Operation(summary = "캘린더 연동 해제")
     public ResponseEntity<ApiResponse<Void>> disconnectCalendar(

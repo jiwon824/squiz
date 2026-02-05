@@ -399,7 +399,45 @@ public class FsrsService {
         long dueCount = reviewItemRepository
                 .countByUserIdAndNextReviewAtBefore(userId, LocalDateTime.now());
 
-        return ReviewStatsResponse.from(allItems, (int) dueCount);
+        // 1. Calculate Average Retrievability
+        double totalRetrievability = 0.0;
+        int matureCards = 0;
+
+        for (UserReviewItem item : allItems) {
+            int elapsedMinutes = calculateElapsedMinutes(item);
+            double R = calculateRetrievability(elapsedMinutes, item.getStability());
+            totalRetrievability += R;
+
+            // 2. Calculate Mature Cards (Scheduled Interval >= 21 days)
+            // 21 days * 24 * 60 = 30240 minutes
+            if (item.getScheduledMinutes() >= 30240) {
+                matureCards++;
+            }
+        }
+        double avgRetrievability = (allItems.size() > 0) ? (totalRetrievability / allItems.size()) : 0.0;
+
+        // 3. Calculate Daily Max Combo (KST)
+        LocalDateTime now = LocalDateTime.now(java.time.ZoneId.of("Asia/Seoul"));
+        LocalDateTime startOfDay = now.toLocalDate().atStartOfDay();
+        LocalDateTime endOfDay = now.toLocalDate().atTime(23, 59, 59);
+
+        List<UserReviewLog> todayLogs = reviewLogRepository
+                .findAllByReviewItemUserIdAndReviewedAtBetweenOrderByReviewedAtAsc(userId, startOfDay, endOfDay);
+
+        int maxCombo = 0;
+        int currentCombo = 0;
+
+        for (UserReviewLog log : todayLogs) {
+            if (log.getIsCorrect()) {
+                currentCombo++;
+                maxCombo = Math.max(maxCombo, currentCombo);
+            } else {
+                currentCombo = 0;
+            }
+        }
+
+        return ReviewStatsResponse.from(allItems, (int) dueCount)
+                .withExtraStats(avgRetrievability, matureCards, maxCombo);
     }
 
     // ── 복습 항목 이력 조회 ──
