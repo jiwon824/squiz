@@ -4,7 +4,9 @@ import com.ssafy.domain.dm.dto.request.DirectMessageRequest;
 import com.ssafy.domain.dm.dto.response.DirectMessageResponse;
 import com.ssafy.domain.dm.service.DirectMessageService;
 import com.ssafy.domain.friend.websocket.FriendPresenceService;
+import com.ssafy.domain.user.repository.UserRepository;
 import jakarta.validation.Valid;
+import java.time.LocalDateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
@@ -38,17 +40,20 @@ public class DmWebSocketController {
     private final SimpMessagingTemplate messagingTemplate;
     private final DmRedisPublisher dmRedisPublisher;
     private final FriendPresenceService friendPresenceService;
+    private final UserRepository userRepository;
 
     public DmWebSocketController(DirectMessageService directMessageService,
                                   DmSessionService dmSessionService,
                                   SimpMessagingTemplate messagingTemplate,
                                   DmRedisPublisher dmRedisPublisher,
-                                  FriendPresenceService friendPresenceService) {
+                                  FriendPresenceService friendPresenceService,
+                                  UserRepository userRepository) {
         this.directMessageService = directMessageService;
         this.dmSessionService = dmSessionService;
         this.messagingTemplate = messagingTemplate;
         this.dmRedisPublisher = dmRedisPublisher;
         this.friendPresenceService = friendPresenceService;
+        this.userRepository = userRepository;
     }
 
     /**
@@ -62,13 +67,18 @@ public class DmWebSocketController {
         dmSessionService.registerSession(userId, sessionId);
         log.info("DM connected: userId={}, sessionId={}", userId, sessionId);
 
-        // 첫 연결 시 친구들에게 온라인 상태 브로드캐스트
+        // 첫 연결 시 DB에 온라인 상태 업데이트 및 친구들에게 브로드캐스트
         if (wasOffline) {
             try {
+                // DB에 온라인 상태 업데이트
+                userRepository.updateOnlineStatus(userId, true, LocalDateTime.now());
+                log.debug("Updated online status in DB for userId={}", userId);
+
+                // 친구들에게 온라인 상태 브로드캐스트
                 friendPresenceService.broadcastPresence(userId, true, null);
                 log.debug("Broadcasted online status for userId={}", userId);
             } catch (Exception e) {
-                log.warn("Failed to broadcast online status: {}", e.getMessage());
+                log.warn("Failed to update/broadcast online status: {}", e.getMessage());
             }
         }
     }

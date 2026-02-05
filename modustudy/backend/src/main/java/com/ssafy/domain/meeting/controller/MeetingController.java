@@ -77,6 +77,21 @@ public class MeetingController {
         return ResponseEntity.ok(PageResponse.of(page));
     }
 
+    /**
+     * 여러 세션의 미팅 업로드 여부 일괄 조회 (모바일에서 세션 목록 필터링용)
+     * @param sessionIds 확인할 세션 ID 목록
+     * @return 이미 미팅이 있는 세션 ID 목록
+     */
+    @GetMapping("/sessions/uploaded")
+    @Operation(summary = "세션 업로드 여부 확인", description = "이미 미팅이 업로드된 세션 ID 목록을 반환합니다.")
+    public ResponseEntity<ApiResponse<List<Long>>> getUploadedSessionIds(
+            @PathVariable Long studyId,
+            @RequestParam List<Long> sessionIds
+    ) {
+        List<Long> uploadedIds = meetingService.getUploadedSessionIds(sessionIds);
+        return ResponseEntity.ok(ApiResponse.success(uploadedIds));
+    }
+
     @GetMapping("/{meetingId}")
     public ResponseEntity<ApiResponse<MeetingDetailResponse>> detail(
             @PathVariable Long studyId,
@@ -97,17 +112,19 @@ public class MeetingController {
     /**
      * 오프라인 녹음 업로드 (회의 생성 + 오디오 업로드 한번에 처리)
      * 기존 회의 생성 API와 달리 IN_PROGRESS 회의 체크 없이 바로 ENDED 상태로 생성
+     * 여러 파일 업로드 시 순서대로 합쳐서 하나의 회의록 생성
      * @param sessionId 연결할 세션 ID (선택사항, 오프라인 미팅이 어느 세션에 해당하는지 지정)
+     * @param audioFiles 오디오 파일들 (여러 개 가능, 순서대로 합쳐짐)
      */
     @PostMapping("/offline/audio")
-    @Operation(summary = "Offline recording upload", description = "Upload offline recording and create meeting automatically. Optionally link to a specific session.")
+    @Operation(summary = "Offline recording upload", description = "Upload offline recording(s) and create meeting automatically. Multiple files will be merged in order.")
     public ResponseEntity<ApiResponse<MeetingResponse>> uploadOfflineRecording(
             @PathVariable Long studyId,
             @RequestParam(value = "sessionId", required = false) Long sessionId,
             @RequestParam(value = "title", required = false) String title,
-            @RequestPart("audio") MultipartFile audio
+            @RequestPart("audio") List<MultipartFile> audioFiles
     ) {
-        MeetingResponse response = meetingService.createOfflineMeetingWithAudio(studyId, sessionId, title, audio);
+        MeetingResponse response = meetingService.createOfflineMeetingWithAudioFiles(studyId, sessionId, title, audioFiles);
         meetingAiScheduler.triggerProcessing(response.id());
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
     }

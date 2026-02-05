@@ -390,6 +390,175 @@ public class MeetingService {
     }
 
     /**
+     * 오프라인 녹음 업로드 - 여러 파일 지원 (회의 생성 + 오디오 병합 + AI 처리 트리거)
+     * 온라인 회의와 달리 IN_PROGRESS 체크 없이 바로 ENDED 상태로 생성
+     * @param sessionId 연결할 세션 ID (선택사항, null이면 세션 없이 생성)
+     * @param audioFiles 오디오 파일 목록 (순서대로 병합됨)
+     */
+    @Transactional
+    public MeetingResponse createOfflineMeetingWithAudioFiles(Long studyId, Long sessionId, String title,
+                                                               List<org.springframework.web.multipart.MultipartFile> audioFiles) {
+        if (audioFiles == null || audioFiles.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "AUDIO_REQUIRED");
+        }
+
+        // 빈 파일 필터링
+        List<org.springframework.web.multipart.MultipartFile> validFiles = audioFiles.stream()
+                .filter(f -> f != null && !f.isEmpty())
+                .toList();
+
+        if (validFiles.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "AUDIO_REQUIRED");
+        }
+
+        // 파일이 하나면 기존 로직 사용
+        if (validFiles.size() == 1) {
+            return createOfflineMeetingWithAudio(studyId, sessionId, title, validFiles.get(0));
+        }
+
+        // sessionId 유효성 검증 (지정된 경우)
+        if (sessionId != null) {
+            boolean validSession = studySessionRepository.findById(sessionId)
+                    .filter(session -> session.getStudyId().equals(studyId))
+                    .isPresent();
+            if (!validSession) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "INVALID_SESSION_ID");
+            }
+        }
+
+        // 일일 오프라인 STT 한도 체크
+        int remainingSeconds = dailyUsageService.getOfflineSttRemainingSeconds(studyId);
+        if (remainingSeconds <= 0) {
+            log.warn("[일일 한도 초과] 오프라인 녹음 업로드 차단 - studyId: {}", studyId);
+            throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "OFFLINE_STT_DAILY_LIMIT_EXCEEDED");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        Meeting meeting = Meeting.createOffline(studyId, sessionId, title, now, null);
+        Meeting saved = meetingRepository.save(meeting);
+
+        // 여러 파일을 임시 저장 후 병합
+        java.nio.file.Path mergedFile = mergeAudioFiles(saved.getId(), validFiles);
+
+        // 병합된 파일을 최종 위치로 이동
+        String filename = "voice.webm";
+        java.nio.file.Path finalPath = helper.getLocalFileStorageService().resolveMeetingVoiceFile(saved.getId(), filename);
+        try {
+            java.nio.file.Files.createDirectories(finalPath.getParent());
+            java.nio.file.Files.move(mergedFile, finalPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        } catch (java.io.IOException e) {
+            log.error("병합 파일 이동 실패", e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "FILE_MOVE_FAILED");
+        }
+
+        // 오디오 길이 추출 및 사용량 기록
+        int durationSeconds = helper.getAudioDurationSeconds(finalPath);
+        if (durationSeconds > 0) {
+            dailyUsageService.addOfflineSttUsage(studyId, durationSeconds);
+            saved.updateDurationSeconds(durationSeconds);
+        }
+
+        // 세션 처리
+        if (sessionId != null) {
+            studySessionRepository.findById(sessionId).ifPresent(session -> {
+                if (session.getStatus() == SessionStatus.IN_PROGRESS ||
+                    session.getStatus() == SessionStatus.SCHEDULED) {
+                    session.complete();
+                }
+                if (durationSeconds > 0) {
+                    int minutes = (int) Math.ceil(durationSeconds / 60.0);
+                    studySessionService.updateDurationFromMeeting(studyId, sessionId, minutes);
+                }
+            });
+        }
+
+        log.info("[오프라인 녹음] 다중 파일 업로드 완료 - studyId: {}, sessionId: {}, meetingId: {}, 파일수: {}, duration: {}초",
+                studyId, sessionId, saved.getId(), validFiles.size(), durationSeconds);
+
+        return new MeetingResponse(saved.getId(), saved.getTitle(), null, saved.getStatus().name(),
+                saved.getMeetingType().name(), saved.getRecordingStatus().name(), saved.getSttStatus().name(),
+                helper.resolveSummaryStatus(saved).name(), remainingSeconds);
+    }
+
+    /**
+     * 여러 오디오 파일을 FFmpeg로 병합
+     */
+    private java.nio.file.Path mergeAudioFiles(Long meetingId, List<org.springframework.web.multipart.MultipartFile> files) {
+        java.nio.file.Path tempDir;
+        try {
+            tempDir = java.nio.file.Files.createTempDirectory("audio-merge-" + meetingId);
+        } catch (java.io.IOException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "TEMP_DIR_CREATE_FAILED");
+        }
+
+        // 파일들을 임시 디렉토리에 저장
+        List<java.nio.file.Path> savedFiles = new java.util.ArrayList<>();
+        for (int i = 0; i < files.size(); i++) {
+            org.springframework.web.multipart.MultipartFile file = files.get(i);
+            java.nio.file.Path tempFile = tempDir.resolve(String.format("%03d.m4a", i));
+            try {
+                file.transferTo(tempFile.toFile());
+                savedFiles.add(tempFile);
+            } catch (java.io.IOException e) {
+                log.error("임시 파일 저장 실패: {}", e.getMessage());
+                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "FILE_SAVE_FAILED");
+            }
+        }
+
+        // concat 목록 파일 생성
+        java.nio.file.Path concatFile = tempDir.resolve("concat.txt");
+        try {
+            String contents = savedFiles.stream()
+                    .map(path -> "file '" + path.toAbsolutePath().toString().replace("\\", "/") + "'")
+                    .reduce((a, b) -> a + "\n" + b)
+                    .orElse("");
+            java.nio.file.Files.writeString(concatFile, contents);
+        } catch (java.io.IOException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "CONCAT_LIST_CREATE_FAILED");
+        }
+
+        // FFmpeg로 병합
+        java.nio.file.Path outputPath = tempDir.resolve("merged.webm");
+        List<String> args = List.of(
+                "ffmpeg",
+                "-y",
+                "-f", "concat",
+                "-safe", "0",
+                "-i", concatFile.toAbsolutePath().toString(),
+                "-c", "copy",
+                outputPath.toAbsolutePath().toString()
+        );
+
+        try {
+            ProcessBuilder builder = new ProcessBuilder(args);
+            builder.redirectErrorStream(true);
+            Process process = builder.start();
+            String output = new String(process.getInputStream().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+            int exit = process.waitFor();
+            if (exit != 0) {
+                log.warn("FFmpeg 병합 실패. meetingId={} exit={} output={}", meetingId, exit, output.trim());
+                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "FFMPEG_MERGE_FAILED");
+            }
+        } catch (java.io.IOException | InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("FFmpeg 실행 오류", e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "FFMPEG_MERGE_FAILED");
+        }
+
+        // 임시 파일 정리 (병합 결과 제외)
+        savedFiles.forEach(path -> {
+            try {
+                java.nio.file.Files.deleteIfExists(path);
+            } catch (java.io.IOException ignored) {}
+        });
+        try {
+            java.nio.file.Files.deleteIfExists(concatFile);
+        } catch (java.io.IOException ignored) {}
+
+        return outputPath;
+    }
+
+    /**
      * 오프라인 녹음 업로드 (회의 생성 + 오디오 업로드 + AI 처리 트리거)
      * 온라인 회의와 달리 IN_PROGRESS 체크 없이 바로 ENDED 상태로 생성
      * @param sessionId 연결할 세션 ID (선택사항, null이면 세션 없이 생성)
@@ -465,6 +634,20 @@ public class MeetingService {
         if (!study.getLeaderId().equals(userId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "LEADER_ONLY");
         }
+    }
+
+    /**
+     * 여러 세션 ID에 대해 이미 미팅이 업로드된 세션 ID 목록 반환
+     * (모바일에서 세션 선택 목록 필터링용)
+     */
+    @Transactional(readOnly = true)
+    public List<Long> getUploadedSessionIds(List<Long> sessionIds) {
+        if (sessionIds == null || sessionIds.isEmpty()) {
+            return List.of();
+        }
+        return sessionIds.stream()
+                .filter(meetingRepository::existsBySessionId)
+                .toList();
     }
 
     private int resolvePlannedDurationSeconds(Long studyId, Long sessionId, Integer requestedSeconds) {

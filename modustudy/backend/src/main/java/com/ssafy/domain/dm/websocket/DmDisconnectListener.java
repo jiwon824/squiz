@@ -1,6 +1,7 @@
 package com.ssafy.domain.dm.websocket;
 
 import com.ssafy.domain.friend.websocket.FriendPresenceService;
+import com.ssafy.domain.user.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
@@ -20,11 +21,14 @@ public class DmDisconnectListener {
 
     private final DmSessionService dmSessionService;
     private final FriendPresenceService friendPresenceService;
+    private final UserRepository userRepository;
 
     public DmDisconnectListener(DmSessionService dmSessionService,
-                                 FriendPresenceService friendPresenceService) {
+                                 FriendPresenceService friendPresenceService,
+                                 UserRepository userRepository) {
         this.dmSessionService = dmSessionService;
         this.friendPresenceService = friendPresenceService;
+        this.userRepository = userRepository;
     }
 
     @EventListener
@@ -35,14 +39,20 @@ public class DmDisconnectListener {
         if (userId != null) {
             log.info("DM disconnected: userId={}, sessionId={}", userId, sessionId);
 
-            // 해당 유저의 모든 세션이 종료되면 오프라인 상태 브로드캐스트
+            // 해당 유저의 모든 세션이 종료되면 오프라인 상태 업데이트 및 브로드캐스트
             if (!dmSessionService.isUserOnline(userId)) {
                 log.debug("User {} is now offline", userId);
                 try {
-                    friendPresenceService.broadcastPresence(userId, false, LocalDateTime.now());
+                    // DB에 오프라인 상태 업데이트
+                    LocalDateTime now = LocalDateTime.now();
+                    userRepository.updateOnlineStatus(userId, false, now);
+                    log.debug("Updated offline status in DB for userId={}", userId);
+
+                    // 친구들에게 오프라인 상태 브로드캐스트
+                    friendPresenceService.broadcastPresence(userId, false, now);
                     log.debug("Broadcasted offline status for userId={}", userId);
                 } catch (Exception e) {
-                    log.warn("Failed to broadcast offline status: {}", e.getMessage());
+                    log.warn("Failed to update/broadcast offline status: {}", e.getMessage());
                 }
             }
         }
