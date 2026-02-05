@@ -36,8 +36,11 @@ import com.ssafy.domain.quiz.entity.enums.QuestionType;
 import com.ssafy.domain.quiz.repository.ContinuousQuizRepository;
 import com.ssafy.domain.quiz.repository.CourseQuestionStatsProjection;
 import com.ssafy.domain.quiz.repository.QuizCourseRepository;
+import com.ssafy.domain.quiz.repository.StudyQuizQuestionRepository;
+import com.ssafy.domain.quiz.dto.response.ReviewStatsResponse;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.within;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
@@ -76,6 +79,9 @@ class FsrsServiceTest {
 
         @Mock
         private QuizCourseRepository quizCourseRepository;
+
+        @Mock
+        private StudyQuizQuestionRepository studyQuizQuestionRepository;
 
         private static final Long TEST_USER_ID = 1L;
         private static final Long TEST_CONTENT_ID = 100L;
@@ -849,6 +855,117 @@ class FsrsServiceTest {
                                         }
                                 };
                         }
+                }
+        }
+
+        // ══════════════════════════════════════════════════════
+        // getStats 테스트
+        // ══════════════════════════════════════════════════════
+
+        @Nested
+        @DisplayName("getStats 메서드는")
+        class GetStats {
+
+                @Test
+                @DisplayName("복습 항목이 없으면 모든 통계를 0으로 반환한다")
+                void shouldReturnZeroStatsWhenNoReviewItems() {
+                        // given
+                        given(reviewItemRepository.findAllByUserId(TEST_USER_ID))
+                                        .willReturn(List.of());
+                        given(reviewItemRepository.countByUserIdAndNextReviewAtBefore(eq(TEST_USER_ID), any(LocalDateTime.class)))
+                                        .willReturn(0L);
+
+                        // when
+                        ReviewStatsResponse result = fsrsService.getStats(TEST_USER_ID);
+
+                        // then
+                        assertThat(result.totalItems()).isEqualTo(0);
+                        assertThat(result.dueItems()).isEqualTo(0);
+                        assertThat(result.averageRetrievability()).isEqualTo(0.0);
+                        assertThat(result.matureCards()).isEqualTo(0);
+                        assertThat(result.dailyMaxCombo()).isEqualTo(0);
+                }
+
+                @Test
+                @DisplayName("scheduledMinutes가 21일(30240분) 이상인 항목을 Mature Cards로 집계한다")
+                void shouldCountMatureCardsCorrectly() {
+                        // given
+                        UserReviewItem matureItem1 = createReviewItemWithScheduledMinutes(1L, 30240); // 정확히 21일
+                        UserReviewItem matureItem2 = createReviewItemWithScheduledMinutes(2L, 50000); // 21일 초과
+                        UserReviewItem immatureItem = createReviewItemWithScheduledMinutes(3L, 10000); // 21일 미만
+
+                        given(reviewItemRepository.findAllByUserId(TEST_USER_ID))
+                                        .willReturn(List.of(matureItem1, matureItem2, immatureItem));
+                        given(reviewItemRepository.countByUserIdAndNextReviewAtBefore(eq(TEST_USER_ID), any(LocalDateTime.class)))
+                                        .willReturn(0L);
+                        given(reviewLogRepository.findAllByReviewItemUserIdAndReviewedAtBetweenOrderByReviewedAtAsc(
+                                        eq(TEST_USER_ID), any(LocalDateTime.class), any(LocalDateTime.class)))
+                                        .willReturn(List.of());
+
+                        // when
+                        ReviewStatsResponse result = fsrsService.getStats(TEST_USER_ID);
+
+                        // then
+                        assertThat(result.matureCards()).isEqualTo(2); // 21일 이상인 항목 2개
+                        assertThat(result.totalItems()).isEqualTo(3);
+                }
+
+                @Test
+                @DisplayName("오늘의 최고 콤보를 정확하게 계산한다")
+                void shouldCalculateDailyMaxComboCorrectly() {
+                        // given
+                        UserReviewItem item = createReviewItemWithScheduledMinutes(1L, 1440);
+                        given(reviewItemRepository.findAllByUserId(TEST_USER_ID))
+                                        .willReturn(List.of(item));
+                        given(reviewItemRepository.countByUserIdAndNextReviewAtBefore(eq(TEST_USER_ID), any(LocalDateTime.class)))
+                                        .willReturn(0L);
+
+                        // 오늘의 복습 로그: 정답-정답-정답-오답-정답-정답 (최고 콤보 = 3)
+                        List<UserReviewLog> todayLogs = List.of(
+                                        createReviewLog(item, true),  // 콤보 1
+                                        createReviewLog(item, true),  // 콤보 2
+                                        createReviewLog(item, true),  // 콤보 3 ← 최고
+                                        createReviewLog(item, false), // 콤보 리셋
+                                        createReviewLog(item, true),  // 콤보 1
+                                        createReviewLog(item, true)   // 콤보 2
+                        );
+
+                        given(reviewLogRepository.findAllByReviewItemUserIdAndReviewedAtBetweenOrderByReviewedAtAsc(
+                                        eq(TEST_USER_ID), any(LocalDateTime.class), any(LocalDateTime.class)))
+                                        .willReturn(todayLogs);
+
+                        // when
+                        ReviewStatsResponse result = fsrsService.getStats(TEST_USER_ID);
+
+                        // then
+                        assertThat(result.dailyMaxCombo()).isEqualTo(3);
+                }
+
+                // ── Helper Methods ──
+
+                private UserReviewItem createReviewItemWithScheduledMinutes(Long id, int scheduledMinutes) {
+                        UserReviewItem item = UserReviewItem.builder()
+                                        .userId(TEST_USER_ID)
+                                        .contentType(ReviewContentType.COURSE_QUESTION)
+                                        .contentId(id)
+                                        .state(FsrsConstants.STATE_REVIEW)
+                                        .stability(10.0)
+                                        .difficulty(5.0)
+                                        .scheduledMinutes(scheduledMinutes)
+                                        .lastReviewedAt(LocalDateTime.now().minusDays(1))
+                                        .build();
+                        ReflectionTestUtils.setField(item, "id", id);
+                        return item;
+                }
+
+                private UserReviewLog createReviewLog(UserReviewItem item, boolean isCorrect) {
+                        return UserReviewLog.builder()
+                                        .reviewItem(item)
+                                        .isCorrect(isCorrect)
+                                        .responseTimeMs(1000L)
+                                        .stability(5.0)
+                                        .difficulty(5.0)
+                                        .build();
                 }
         }
 }

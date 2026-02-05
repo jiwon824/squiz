@@ -7,6 +7,7 @@ import com.ssafy.domain.quiz.dto.request.ReviewSubmitRequest;
 import com.ssafy.domain.quiz.dto.response.ReviewCourseStatsResponse;
 import com.ssafy.domain.quiz.dto.response.ReviewResult;
 import com.ssafy.domain.quiz.dto.response.ReviewSubmitResponse;
+import com.ssafy.domain.quiz.dto.response.ReviewStatsResponse;
 import com.ssafy.domain.quiz.dto.response.TodayReviewResponse;
 import com.ssafy.domain.quiz.entity.ReviewContentType;
 import com.ssafy.domain.quiz.entity.UserReviewItem;
@@ -354,4 +355,31 @@ class ReviewControllerTest {
                                 .andExpect(jsonPath("$.data.courseWeaknessStats[1].totalReps").value(50))
                                 .andExpect(jsonPath("$.data.courseWeaknessStats[1].totalLapses").value(5));
         }
+
+        @Test
+        @DisplayName("복습 통계 조회 API 성공 테스트")
+        void getReviewStats_ShouldReturnSuccess() throws Exception {
+                // given
+                ReviewStatsResponse mockStats = new ReviewStatsResponse(
+                                50, 5, 10, 3, 30, 7,
+                                4.5, 120, 15, 0.6,
+                                0.85, 25, 12); // New fields added
+
+                given(fsrsService.getStats(TEST_USER_ID))
+                                .willReturn(mockStats);
+
+                // when & then
+                mockMvc.perform(get("/api/v1/reviews/stats")
+                                .with(user(userDetails))
+                                .contentType(MediaType.APPLICATION_JSON))
+                                .andDo(print())
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.success").value(true))
+                                .andExpect(jsonPath("$.data.totalItems").value(50))
+                                .andExpect(jsonPath("$.data.averageStability").value(4.5))
+                                .andExpect(jsonPath("$.data.averageRetrievability").value(0.85))
+                                .andExpect(jsonPath("$.data.matureCards").value(25))
+                                .andExpect(jsonPath("$.data.dailyMaxCombo").value(12));
+        }
+
 }
