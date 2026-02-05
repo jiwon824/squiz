@@ -65,7 +65,7 @@ interface MeetingApi {
     ): Response<ApiResponse<AudioUploadResponse>>
 
     /**
-     * 오프라인 녹음 업로드 (회의 자동 생성)
+     * 오프라인 녹음 업로드 (회의 자동 생성) - 단일 파일
      * POST /api/v1/studies/{studyId}/meetings/offline/audio
      * 회의 생성 없이 바로 오디오 업로드 → 회의 자동 생성 + AI 처리 시작
      * @param sessionId 연결할 세션 ID (선택사항, 오프라인 미팅이 어느 세션에 해당하는지 지정)
@@ -78,6 +78,33 @@ interface MeetingApi {
         @Query("sessionId") sessionId: Long? = null,
         @Query("title") title: String? = null
     ): Response<ApiResponse<MeetingDTO>>
+
+    /**
+     * 오프라인 녹음 업로드 (회의 자동 생성) - 여러 파일 병합
+     * POST /api/v1/studies/{studyId}/meetings/offline/audio
+     * 여러 오디오 파일을 순서대로 병합하여 하나의 회의록 생성
+     * @param sessionId 연결할 세션 ID (선택사항)
+     * @param audioFiles 오디오 파일 목록 (순서대로 병합됨)
+     */
+    @Multipart
+    @POST("api/v1/studies/{studyId}/meetings/offline/audio")
+    suspend fun uploadOfflineRecordings(
+        @Path("studyId") studyId: Long,
+        @Part audioFiles: List<MultipartBody.Part>,
+        @Query("sessionId") sessionId: Long? = null,
+        @Query("title") title: String? = null
+    ): Response<ApiResponse<MeetingDTO>>
+
+    /**
+     * 이미 미팅이 업로드된 세션 ID 목록 조회
+     * GET /api/v1/studies/{studyId}/meetings/sessions/uploaded
+     * 모바일에서 세션 선택 목록 필터링용
+     */
+    @GET("api/v1/studies/{studyId}/meetings/sessions/uploaded")
+    suspend fun getUploadedSessionIds(
+        @Path("studyId") studyId: Long,
+        @Query("sessionIds") sessionIds: List<Long>
+    ): Response<ApiResponse<List<Long>>>
 
     /**
      * 회의 요약 조회 (STT Summary)
