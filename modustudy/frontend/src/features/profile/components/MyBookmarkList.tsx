@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { studyApi, StudyBookmarkResponse } from '@/api/endpoints/studyApi';
 import { useUIStore } from '@/store/uiStore';
 import { Bookmark, Users, BookmarkX } from 'lucide-react';
+import { cn, classBuilder } from '@/shared/utils/cn';
 import { useNavigate } from 'react-router-dom';
 
 export const MyBookmarkList: React.FC = () => {
@@ -102,7 +103,7 @@ export const MyBookmarkList: React.FC = () => {
 
             {/* 북마크 목록 */}
             {bookmarks.length === 0 ? (
-                <div className="text-center py-12 rounded-2xl bg-white shadow-[0_4px_15px_rgba(0,0,0,0.05)]">
+                <div className={cn(classBuilder.card('elevated'), 'text-center py-12')}>
                     <BookmarkX size={48} className="mx-auto text-text-muted mb-4" />
                     <p className="text-text-secondary">북마크한 스터디가 없습니다</p>
                     <p className="text-sm text-text-tertiary mt-1">관심있는 스터디를 북마크해보세요!</p>
@@ -112,7 +113,7 @@ export const MyBookmarkList: React.FC = () => {
                     {bookmarks.map((bookmark) => (
                         <div
                             key={bookmark.id}
-                            className="rounded-2xl p-5 bg-white shadow-[0_4px_15px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)] transition-all cursor-pointer group"
+                            className={cn(classBuilder.card('elevated'), 'p-5 transition-all cursor-pointer group')}
                             onClick={() => handleStudyClick(bookmark.studyId)}
                         >
                             <div className="flex items-start justify-between gap-4">

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Plus, Trash2, GripVertical, Target } from 'lucide-react';
-import { cn } from '@/shared/utils/cn';
+import { cn, classBuilder } from '@/shared/utils/cn';
 import { useGoalsStore, Goal } from '../store/goalsStore';
 
 interface GoalsEditModalProps {
@@ -101,7 +101,7 @@ export const GoalsEditModal: React.FC<GoalsEditModalProps> = ({
                         className="fixed inset-0 flex items-center justify-center z-50 p-4"
                     >
                         <div
-                            className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
+                            className={cn(classBuilder.card('modal'), 'w-full max-w-md overflow-hidden')}
                             onClick={(e) => e.stopPropagation()}
                         >
                             {/* 헤더 */}

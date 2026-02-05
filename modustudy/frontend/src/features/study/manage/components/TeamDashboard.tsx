@@ -8,6 +8,7 @@ import {
 import { ButtonSpinner } from '@/shared/components/Spinner';
 import { studyApi } from '@/api/endpoints/studyApi';
 import { useUIStore } from '@/store/uiStore';
+import { cn, classBuilder } from '@/shared/utils/cn';
 
 interface TeamDashboardProps {
     study: Study;
@@ -408,7 +409,7 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ study, onStudyUpdate, onT
 
             {/* 스터디 관리 액션 버튼 */}
             {(canStartStudy || canExtendRecruitment) && (
-                <div className="bg-white rounded-2xl shadow-[0_4px_15px_rgba(0,0,0,0.05)] p-5">
+                <div className={cn(classBuilder.card('elevated'), 'p-5')}>
                     <h3 className="text-sm font-bold text-text-primary mb-3 flex items-center gap-2">
                         <Target size={16} className="text-primary" />
                         스터디 관리
@@ -458,7 +459,7 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ study, onStudyUpdate, onT
                 {statCards.map((stat, idx) => (
                     <div
                         key={idx}
-                        className="bg-white rounded-2xl p-5 shadow-[0_4px_15px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)] transition-shadow"
+                        className={cn(classBuilder.card('elevated'), 'p-5')}
                     >
                         <div className="flex items-center justify-between mb-3">
                             <span className={`w-10 h-10 rounded-xl flex items-center justify-center bg-${stat.color}/10 text-${stat.color}`}>
@@ -473,7 +474,7 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ study, onStudyUpdate, onT
             </div>
 
             {/* 알림 섹션 */}
-            <div className="bg-white rounded-2xl shadow-[0_4px_15px_rgba(0,0,0,0.05)] p-4">
+            <div className={cn(classBuilder.card('elevated'), 'p-4')}>
                 <h3 className="text-sm font-bold text-text-primary mb-3 flex items-center gap-2">
                     <Target size={16} className="text-warning" />
                     처리가 필요한 항목
@@ -502,7 +503,7 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ study, onStudyUpdate, onT
             {/* 최근 활동 & 출석 현황 */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* 출석률 Top 3 */}
-                <div className="bg-white rounded-2xl p-5 shadow-[0_4px_15px_rgba(0,0,0,0.05)]">
+                <div className={cn(classBuilder.card('elevated'), 'p-5')}>
                     <h3 className="text-sm font-bold text-text-primary mb-4 flex items-center gap-2">
                         <Award size={16} className="text-warning" />
                         출석률 TOP 3
@@ -538,7 +539,7 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ study, onStudyUpdate, onT
                 </div>
 
                 {/* 다가오는 일정 */}
-                <div className="bg-white rounded-2xl p-5 shadow-[0_4px_15px_rgba(0,0,0,0.05)]">
+                <div className={cn(classBuilder.card('elevated'), 'p-5')}>
                     <h3 className="text-sm font-bold text-text-primary mb-4 flex items-center gap-2">
                         <Calendar size={16} className="text-info" />
                         다가오는 일정

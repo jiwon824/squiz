@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { studyApi } from '@/api/endpoints/studyApi';
 import { useUIStore } from '@/store/uiStore';
 import { Clock, CheckCircle, XCircle, FileText, Calendar, Filter } from 'lucide-react';
+import { cn, classBuilder } from '@/shared/utils/cn';
 import { useNavigate } from 'react-router-dom';
 
 type ApplicationStatus = 'all' | 'PENDING' | 'REJECTED';
@@ -150,7 +151,7 @@ export const MyApplicationList: React.FC = () => {
 
             {/* 신청 내역 목록 */}
             {applications.length === 0 ? (
-                <div className="text-center py-12 rounded-2xl bg-white shadow-[0_4px_15px_rgba(0,0,0,0.05)]">
+                <div className={cn(classBuilder.card('elevated'), 'text-center py-12')}>
                     <FileText size={48} className="mx-auto text-text-muted mb-4" />
                     <p className="text-text-secondary">
                         {filterStatus === 'all' ? '아직 신청한 스터디가 없습니다' : '해당 상태의 신청 내역이 없습니다'}
@@ -161,7 +162,7 @@ export const MyApplicationList: React.FC = () => {
                     {applications.map((app) => (
                         <div
                             key={app.applicationId}
-                            className="rounded-2xl p-5 bg-white shadow-[0_4px_15px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)] transition-all cursor-pointer"
+                            className={cn(classBuilder.card('elevated'), 'p-5 transition-all cursor-pointer')}
                             onClick={() => handleStudyClick(app.studyId)}
                         >
                             <div className="flex items-start justify-between gap-4">

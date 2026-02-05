@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { cn } from '@/shared/utils/cn';
+import { cn, classBuilder } from '@/shared/utils/cn';
 import { Button } from '@/shared/components/Button';
 
 interface DateRangePickerProps {
@@ -133,7 +133,7 @@ export const DateRangePicker = ({ startDate, endDate, minDate, onRangeChange }: 
     const today = formatDate(new Date());
 
     return (
-        <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
+        <div className={cn(classBuilder.card('default'), 'p-4 border-gray-200')}>
             {/* 헤더 */}
             <div className="flex items-center justify-between mb-4">
                 <Button type="button" variant="ghost" size="sm" onClick={prevMonth}>

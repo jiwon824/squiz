@@ -9,7 +9,7 @@ import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/shared/components/Button';
 import { Input } from '@/shared/components/Input';
 import { Select } from '@/shared/components/Select';
-import { cn } from '@/shared/utils/cn';
+import { cn, classBuilder } from '@/shared/utils/cn';
 import { DateRangePicker } from './DateRangePicker';
 import { DatePicker, TimePicker } from '@/shared/components';
 import {
@@ -2439,7 +2439,7 @@ const StudyCreatePage: React.FC = () => {
             {/* 저장된 템플릿 선택 모달 */}
             {showTemplateModal && savedTemplates.length > 0 && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                    <div className="bg-white rounded-2xl shadow-xl max-w-md w-full mx-4 overflow-hidden">
+                    <div className={cn(classBuilder.card('modal'), 'max-w-md w-full mx-4 overflow-hidden')}>
                         <div className="p-6">
                             <h3 className="text-lg font-bold text-gray-900 mb-2">
                                 저장된 스터디 템플릿이 있습니다
@@ -2479,7 +2479,7 @@ const StudyCreatePage: React.FC = () => {
             {/* 스터디 선호 설정 필요 모달 */}
             {showPreferenceModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                    <div className="bg-white rounded-2xl shadow-xl max-w-xl w-full mx-4 overflow-hidden">
+                    <div className={cn(classBuilder.card('modal'), 'max-w-xl w-full mx-4 overflow-hidden')}>
                         <div className="p-6">
                             <div className="flex items-center gap-3 mb-4">
                                 <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">
@@ -2520,7 +2520,7 @@ const StudyCreatePage: React.FC = () => {
             {/* 입력 필수 항목 에러 모달 */}
             {showErrorModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                    <div className="bg-white rounded-2xl shadow-xl max-w-md w-full mx-4 overflow-hidden">
+                    <div className={cn(classBuilder.card('modal'), 'max-w-md w-full mx-4 overflow-hidden')}>
                         <div className="p-6">
                             <div className="flex items-center gap-3 mb-4">
                                 <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">

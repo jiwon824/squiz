@@ -3,6 +3,7 @@ import { FileWarning, Check, X, MessageSquare, Calendar, ChevronDown, Filter } f
 import { studyApi } from '@/api/endpoints/studyApi';
 import { useUIStore } from '@/store/uiStore';
 import { getProfileImageUrl, DEFAULT_PROFILE_IMAGE } from '@/shared/utils/profileImage';
+import { cn, classBuilder } from '@/shared/utils/cn';
 
 interface ExcuseManagementProps {
     studyId: number;
@@ -243,7 +244,7 @@ const ExcuseManagement: React.FC<ExcuseManagementProps> = ({ studyId }) => {
             </div>
 
             {filteredExcuses.length === 0 ? (
-                <div className="text-center py-12 bg-white rounded-2xl shadow-[0_4px_15px_rgba(0,0,0,0.05)]">
+                <div className={cn(classBuilder.card('elevated'), 'text-center py-12')}>
                     <FileWarning size={48} className="mx-auto text-text-muted mb-4" />
                     <p className="text-text-secondary">처리할 소명 요청이 없습니다</p>
                 </div>
@@ -252,7 +253,7 @@ const ExcuseManagement: React.FC<ExcuseManagementProps> = ({ studyId }) => {
                     {pagedExcuses.map((excuse) => (
                         <div
                             key={excuse.attendanceId}
-                            className="bg-white rounded-2xl shadow-[0_4px_15px_rgba(0,0,0,0.05)] overflow-hidden"
+                            className={cn(classBuilder.card('elevated'), 'overflow-hidden')}
                         >
                             <div
                                 className="p-4 flex items-center gap-4 cursor-pointer hover:bg-surface/50 transition-colors"

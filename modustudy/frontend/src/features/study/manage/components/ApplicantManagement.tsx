@@ -3,6 +3,7 @@ import { studyApi } from '@/api/endpoints/studyApi';
 import { Check, X, MessageSquare, User, Filter, ChevronDown, Calendar } from 'lucide-react';
 import { useUIStore } from '@/store/uiStore';
 import { getProfileImageUrl } from '@/shared/utils/profileImage';
+import { cn, classBuilder } from '@/shared/utils/cn';
 
 interface ApplicantManagementProps {
     studyId: number;
@@ -184,7 +185,7 @@ const ApplicantManagement: React.FC<ApplicantManagementProps> = ({ studyId }) =>
 
             {/* 지원자 목록 */}
             {filteredApplicants.length === 0 ? (
-                <div className="text-center py-12 bg-white rounded-2xl shadow-[0_4px_15px_rgba(0,0,0,0.05)]">
+                <div className={cn(classBuilder.card('elevated'), 'text-center py-12')}>
                     <User size={48} className="mx-auto text-text-muted mb-4" />
                     <p className="text-text-secondary">
                         {filterStatus === 'all' ? '아직 신청자가 없습니다' : '해당 상태의 신청자가 없습니다'}
@@ -195,7 +196,7 @@ const ApplicantManagement: React.FC<ApplicantManagementProps> = ({ studyId }) =>
                     {filteredApplicants.map((app) => (
                         <div
                             key={app.applicationId}
-                            className="bg-white rounded-2xl shadow-[0_4px_15px_rgba(0,0,0,0.05)] overflow-hidden"
+                            className={cn(classBuilder.card('elevated'), 'overflow-hidden')}
                         >
                             {/* 카드 헤더 */}
                             <div

@@ -22,7 +22,7 @@ import StudyLeaderCard from './StudyLeaderCard';
 import StudyCommentSection from './StudyCommentSection';
 import { UserLayoutV2 } from '@/layouts/UserLayoutV2';
 import { Button, Dropdown } from '@/shared/components';
-import { cn } from '@/shared/utils/cn';
+import { cn, classBuilder } from '@/shared/utils/cn';
 import { useDMStore } from '@/features/dm/store/dmStore';
 import { useUIStore } from '@/store/uiStore';
 
@@ -503,7 +503,7 @@ const StudyDetailPageV3: React.FC = () => {
                         {/* 좌측: 스터디 정보 (3열) */}
                         <div className="2xl:col-span-3">
                             {/* 통합 카드 */}
-                            <div className="bg-white rounded-2xl shadow-[0_4px_15px_rgba(0,0,0,0.05)] overflow-hidden transition-shadow hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)]">
+                            <div className={cn(classBuilder.card('elevated'), 'overflow-hidden')}>
                                 {/* 헤더 섹션 */}
                                 <div className="p-6 md:p-8">
                                     {/* 상단: 뱃지 + 액션 버튼 */}
@@ -521,7 +521,7 @@ const StudyDetailPageV3: React.FC = () => {
                                                 마감
                                             </span>
                                         )}
-                                        <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[var(--color-primary-alpha-10)] text-[var(--color-primary)]">
+                                        <span className={classBuilder.badge('primary')}>
                                             # {getMeetingTypeText(study.meetingType)}
                                         </span>
                                         <span className={cn(
@@ -532,11 +532,11 @@ const StudyDetailPageV3: React.FC = () => {
                                         )}>
                                             # {study.difficulty === 'ADVANCED' ? '고급' : study.difficulty === 'INTERMEDIATE' ? '중급' : '입문'}
                                         </span>
-                                        <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[var(--color-background-secondary)] text-[var(--color-text-secondary)]">
+                                        <span className={classBuilder.badge('gray')}>
                                             # {study.topic}
                                         </span>
                                         {isOwner && (
-                                            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[#FEF7E0] text-[#f9ab00] border border-[#FBBC04]">
+                                            <span className={cn(classBuilder.badge('warning'), 'border border-[#FBBC04]')}>
                                                 # 내가 작성한 글
                                             </span>
                                         )}
@@ -874,7 +874,7 @@ const StudyDetailPageV3: React.FC = () => {
 
                             {/* 스터디장 평가 섹션 (완료된 스터디 + 멤버 + 스터디장 아닐 때) */}
                             {study.status === 'COMPLETED' && isMember && !isOwner && (
-                                <div className="mt-6 bg-white rounded-2xl p-6 shadow-[0_4px_15px_rgba(0,0,0,0.05)] transition-shadow hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)]">
+                                <div className={cn(classBuilder.card('elevated'), 'mt-6 p-6')}>
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
                                             <div className="p-2 bg-yellow-50 rounded-xl">
@@ -1010,7 +1010,7 @@ const StudyDetailPageV3: React.FC = () => {
             {/* 스터디 삭제 확인 모달 */}
             {isDeleteConfirmOpen && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-2xl p-6 w-full max-w-md mx-4 shadow-xl">
+                    <div className={cn(classBuilder.card('modal'), 'p-6 w-full max-w-md mx-4')}>
                         <div className="flex items-center gap-3 mb-4">
                             <div className="w-12 h-12 flex-shrink-0 rounded-full bg-[var(--color-error-light)] flex items-center justify-center">
                                 <Trash2 size={24} className="text-[var(--color-error)]" />
@@ -1055,7 +1055,7 @@ const StudyDetailPageV3: React.FC = () => {
             {/* 모집 연장 참가 확인 모달 */}
             {isExtensionModalOpen && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-2xl p-6 w-full max-w-md mx-4 shadow-xl">
+                    <div className={cn(classBuilder.card('modal'), 'p-6 w-full max-w-md mx-4')}>
                         <div className="flex items-center gap-3 mb-4">
                             <div className="w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center">
                                 <CalendarPlus size={24} className="text-amber-500" />
