@@ -188,7 +188,7 @@ const PageHeader: React.FC<PageHeaderProps> = React.memo(
         </h1>
         {isRetrying && selectedReviewItem && (
           <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium">
-            {selectedReviewItem.question.category}
+            {selectedReviewItem.question?.category || '일반'}
           </span>
         )}
       </div>

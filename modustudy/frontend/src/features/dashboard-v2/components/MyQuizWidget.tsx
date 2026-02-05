@@ -313,7 +313,7 @@ const ReviewItemList: React.FC<ReviewItemListProps> = ({ items, onSelect }) => {
                                             {diffLabel}
                                         </span>
                                         <span className="text-xs text-text-tertiary bg-gray-100 px-2 py-0.5 rounded">
-                                            {item.question.category || '일반'}
+                                            {item.question?.category || '일반'}
                                         </span>
                                         <span className="text-xs text-error font-medium flex items-center gap-1 ml-auto sm:ml-2">
                                             <Clock size={12} />
@@ -321,7 +321,7 @@ const ReviewItemList: React.FC<ReviewItemListProps> = ({ items, onSelect }) => {
                                         </span>
                                     </div>
                                     <h4 className="font-medium text-text-primary line-clamp-2 text-sm leading-relaxed">
-                                        {item.question.questionText}
+                                        {item.question?.questionText || '문제를 불러올 수 없습니다'}
                                     </h4>
                                 </div>
                                 <div className="flex-shrink-0 self-center">
