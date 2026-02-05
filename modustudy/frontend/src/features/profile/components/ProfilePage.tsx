@@ -20,7 +20,7 @@ import { studyApi, StudyListResponse } from '@/api/endpoints/studyApi';
 import { LevelProgressBar } from '@/features/gamification/components';
 
 // 프로필 섹션 타입
-type ProfileSection = 'profile' | 'study' | 'bookmark' | 'activity' | 'security';
+type ProfileSection = 'profile' | 'study' | 'bookmark' | 'application' | 'security';
 
 // 사이드바 메뉴 아이템
 const menuItems: Array<SidebarItem & { id: ProfileSection }> = [
@@ -43,9 +43,9 @@ const menuItems: Array<SidebarItem & { id: ProfileSection }> = [
         icon: <Bookmark size={18} />,
     },
     {
-        id: 'activity',
-        label: '활동 기록',
-        description: '활동 잔디 그래프',
+        id: 'application',
+        label: '스터디 신청',
+        description: '신청 내역 확인',
         icon: <Activity size={18} />,
     },
     {
@@ -234,9 +234,20 @@ export const ProfilePage = () => {
                             </div>
                         )}
 
-                        {/* 내 스터디 신청 내역 */}
+                        {/* 활동 기록 */}
                         <div className="setting-section">
-                            <MyApplicationList />
+                            <div className="section-header">
+                                <h2 className="section-title">
+                                    <Activity size={24} className="text-primary" />
+                                    활동 기록
+                                </h2>
+                                <p className="section-description">최근 28일간의 학습 활동을 확인하세요.</p>
+                            </div>
+                            {activityData.length > 0 ? (
+                                <LegoActivityGraph data={activityData} />
+                            ) : (
+                                <LegoActivityGraph data={[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]} />
+                            )}
                         </div>
                     </>
                 );
@@ -259,21 +270,10 @@ export const ProfilePage = () => {
                     </div>
                 );
 
-            case 'activity':
+            case 'application':
                 return (
                     <div className="setting-section">
-                        <div className="section-header">
-                            <h2 className="section-title">
-                                <Activity size={24} className="text-primary" />
-                                활동 기록
-                            </h2>
-                            <p className="section-description">최근 28일간의 학습 활동을 확인하세요.</p>
-                        </div>
-                        {activityData.length > 0 ? (
-                            <LegoActivityGraph data={activityData} />
-                        ) : (
-                            <LegoActivityGraph data={[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]} />
-                        )}
+                        <MyApplicationList />
                     </div>
                 );
 
