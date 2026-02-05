@@ -1,8 +1,8 @@
 package com.ssafy.domain.quiz.dto.response;
 
-import io.swagger.v3.oas.annotations.media.Schema;
-
 import java.util.List;
+
+import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
  * 코스별 정답 통계 응답 DTO.

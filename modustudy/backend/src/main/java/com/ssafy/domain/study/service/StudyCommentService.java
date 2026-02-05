@@ -1,6 +1,8 @@
 package com.ssafy.domain.study.service;
 
 import com.ssafy.common.exception.StudyException;
+import com.ssafy.domain.notification.entity.NotificationType;
+import com.ssafy.domain.notification.service.NotificationService;
 import com.ssafy.domain.study.dto.request.StudyCommentCreateRequest;
 import com.ssafy.domain.study.dto.request.StudyCommentUpdateRequest;
 import com.ssafy.domain.study.dto.response.StudyCommentPageResponse;
@@ -31,6 +33,7 @@ public class StudyCommentService {
     private final StudyCommentRepository commentRepository;
     private final StudyRepository studyRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     // ============================================================
     // 댓글 생성
@@ -74,6 +77,9 @@ public class StudyCommentService {
         StudyComment saved = commentRepository.save(comment);
 
         log.info("댓글 생성 완료 - commentId: {}, isReply: {}", saved.getId(), saved.isReply());
+
+        // 스터디장에게 알림 전송 (본인이 스터디장이 아닌 경우에만)
+        sendCommentNotificationToLeader(study, user, saved);
 
         return StudyCommentResponse.from(saved, user);
     }
@@ -354,5 +360,49 @@ public class StudyCommentService {
             log.warn("대댓글에 대댓글 시도 - parentId: {}", parentId);
             throw new IllegalArgumentException("대댓글에는 답글을 달 수 없습니다");
         }
+    }
+
+    /**
+     * 스터디장에게 댓글 알림 전송
+     */
+    private void sendCommentNotificationToLeader(Study study, User commenter, StudyComment comment) {
+        Long leaderId = study.getLeaderId();
+
+        // 본인이 스터디장인 경우 알림 전송하지 않음
+        if (leaderId.equals(commenter.getId())) {
+            log.debug("스터디장 본인 댓글 - 알림 생략");
+            return;
+        }
+
+        try {
+            String title = "새 댓글이 달렸습니다";
+            String content = String.format("[%s] %s님이 댓글을 남겼습니다: %s",
+                    study.getName(),
+                    commenter.getNickname(),
+                    truncateContent(comment.getContent(), 50));
+
+            notificationService.createNotification(
+                    leaderId,
+                    NotificationType.STUDY_COMMENT,
+                    title,
+                    content,
+                    "STUDY",
+                    study.getId()
+            );
+
+            log.info("스터디장에게 댓글 알림 전송 완료 - leaderId: {}, studyId: {}", leaderId, study.getId());
+        } catch (Exception e) {
+            // 알림 전송 실패해도 댓글 생성은 성공해야 함
+            log.error("댓글 알림 전송 실패 - leaderId: {}, error: {}", leaderId, e.getMessage());
+        }
+    }
+
+    /**
+     * 알림 내용 말줄임 처리
+     */
+    private String truncateContent(String content, int maxLength) {
+        if (content == null) return "";
+        if (content.length() <= maxLength) return content;
+        return content.substring(0, maxLength) + "...";
     }
 }

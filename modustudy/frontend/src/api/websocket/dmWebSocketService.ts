@@ -6,6 +6,7 @@ import {
     DmWebSocketEvent,
     DmWebSocketHandlers,
     ConnectionStatus,
+    FriendPresenceEvent,
 } from './dmWebSocketTypes';
 
 // WebSocket URL 결정: 환경변수 > API URL 기반 > 현재 origin 기반
@@ -99,6 +100,11 @@ class DmWebSocketService {
         this.client.subscribe('/user/queue/dm/events', (message: IMessage) => {
             this.handleEvent(message);
         });
+
+        // 친구 온라인 상태 변경 이벤트
+        this.client.subscribe('/user/queue/friends/presence', (message: IMessage) => {
+            this.handlePresenceEvent(message);
+        });
     }
 
     /**
@@ -127,6 +133,19 @@ class DmWebSocketService {
             }
         } catch (e) {
             console.error('Failed to parse DM event:', e);
+        }
+    }
+
+    /**
+     * 친구 온라인 상태 이벤트 처리
+     */
+    private handlePresenceEvent(message: IMessage): void {
+        try {
+            const event: FriendPresenceEvent = JSON.parse(message.body);
+            console.log('[DM WS] Friend presence event:', event);
+            this.handlers.onPresence?.(event);
+        } catch (e) {
+            console.error('Failed to parse presence event:', e);
         }
     }
 

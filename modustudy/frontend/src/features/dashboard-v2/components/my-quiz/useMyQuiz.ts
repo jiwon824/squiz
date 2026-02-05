@@ -7,9 +7,12 @@ import {
   WrongAnswerSortType,
   getCourseWeaknessStats,
   ReviewCourseWeaknessResponse,
+  getReviewStats,
+  ReviewStatsResponse,
 } from '../../api/reviewApi';
 import { useTimer } from '@/features/quiz/hooks/useTimer';
 import { indexToOptionId } from '@/shared/utils/quizUtils';
+import { getCourseQuizStats, CourseQuizStat } from '@/api/endpoints/continuousQuizApi';
 import { TabType, QuizRetryState, UseMyQuizReturn } from './types';
 import { calculateWeakConcepts, calculateTotalWrongCount, calculateAvgWrongCount } from './utils';
 
@@ -39,6 +42,8 @@ export const useMyQuiz = (): UseMyQuizReturn => {
   const [todayReviews, setTodayReviews] = useState<ReviewItemDto[]>([]);
   const [wrongReviews, setWrongReviews] = useState<ReviewItemDto[]>([]);
   const [courseStats, setCourseStats] = useState<ReviewCourseWeaknessResponse | null>(null);
+  const [courseQuizStats, setCourseQuizStats] = useState<CourseQuizStat[]>([]);
+  const [reviewStats, setReviewStats] = useState<ReviewStatsResponse | null>(null);
   const [loading, setLoading] = useState(false);
 
   // === UI 상태 ===
@@ -55,14 +60,21 @@ export const useMyQuiz = (): UseMyQuizReturn => {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [todayData, wrongData, statsData] = await Promise.all([
+      const [todayData, wrongData, statsData, quizStatsData, reviewStatsData] = await Promise.all([
         getTodayReviews(),
         getWrongAnswers(wrongSortType),
         getCourseWeaknessStats(),
+        getCourseQuizStats(),
+        getReviewStats(),
       ]);
-      setTodayReviews(todayData?.items || []);
-      setWrongReviews(wrongData?.items || []);
+      // question이 null인 항목 필터링 (백엔드 데이터 무결성 방어)
+      const filteredToday = (todayData?.items || []).filter(item => item.question != null) as ReviewItemDto[];
+      const filteredWrong = (wrongData?.items || []).filter(item => item.question != null) as ReviewItemDto[];
+      setTodayReviews(filteredToday);
+      setWrongReviews(filteredWrong);
       setCourseStats(statsData || null);
+      setCourseQuizStats(quizStatsData || []);
+      setReviewStats(reviewStatsData || null);
     } catch (error) {
       console.error('Failed to fetch reviews', error);
       setTodayReviews([]);
@@ -213,6 +225,8 @@ export const useMyQuiz = (): UseMyQuizReturn => {
     todayReviews,
     wrongReviews,
     weakConcepts,
+    courseQuizStats,
+    reviewStats,
     loading,
 
     // 탭 관리

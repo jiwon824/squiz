@@ -220,7 +220,6 @@ const ExcuseManagement: React.FC<ExcuseManagementProps> = ({ studyId }) => {
             </div>
 
             <div className="flex items-center gap-3">
-                <Filter size={18} className="text-text-tertiary" />
                 <div className="flex gap-2">
                     {[
                         { value: 'all', label: '전체' },

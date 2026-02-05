@@ -13,6 +13,7 @@ import {
 } from '@/api/endpoints/dmApi';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
+import { useFriendStore } from '@/features/friend/store/friendStore';
 
 // 새 대화 시작을 위한 사용자 정보
 interface PendingDMUser {
@@ -241,6 +242,11 @@ export const useDMStore = create<DMState>((set, get) => ({
             onRead: (event) => {
                 // 읽음 처리 (필요시 구현)
                 console.log('Read:', event);
+            },
+            onPresence: (event) => {
+                // 친구 온라인 상태 변경 - friendStore 업데이트
+                console.log('Friend presence:', event);
+                useFriendStore.getState().updateFriendOnlineStatus(event.userId, event.isOnline);
             },
             onConnectionChange: (status) => {
                 set({ isWebSocketConnected: status === 'CONNECTED' });

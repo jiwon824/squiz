@@ -198,14 +198,22 @@ public class AttendanceService {
     /**
      * 세션 출석 현황 조회 (스터디장 화면용)
      * 출석 체크된 멤버를 먼저 보여주고, 출석 시간 역순으로 정렬
+     * 스터디장 본인은 출석 대상에서 제외
      */
     @Transactional(readOnly = true)
     public SessionAttendanceInfoResponse getSessionAttendance(Long studyId, Long sessionId, Long requesterId) {
         validateLeader(studyId, requesterId);
         StudySession session = getSessionOrThrow(sessionId, studyId);
 
-        // 스터디 멤버 목록 조회
-        List<StudyMember> members = studyMemberRepository.findByStudyIdAndStatus(studyId, MemberStatus.APPROVED);
+        // 스터디장 ID 조회
+        Study study = getStudyOrThrow(studyId);
+        Long leaderId = study.getLeaderId();
+
+        // 스터디 멤버 목록 조회 (스터디장 제외)
+        List<StudyMember> members = studyMemberRepository.findByStudyIdAndStatus(studyId, MemberStatus.APPROVED)
+                .stream()
+                .filter(m -> !m.getUserId().equals(leaderId))
+                .toList();
 
         // 기존 출석 기록 조회
         List<Attendance> attendances = attendanceRepository.findBySessionId(sessionId);

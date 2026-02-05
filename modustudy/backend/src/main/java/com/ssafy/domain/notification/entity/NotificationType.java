@@ -15,6 +15,7 @@ public enum NotificationType {
     STUDY_RECRUITMENT_COMPLETE("모집 완료 알림"),
     STUDY_EXTENSION("스터디 연장 알림"),
     STUDY_START("스터디 시작 알림"),
+    STUDY_COMMENT("스터디 댓글 알림"),
     QUIZ("퀴즈 알림"),
     FRIEND("친구 알림"),
     REPORT("신고 알림"),

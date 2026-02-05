@@ -97,15 +97,17 @@ public class MeetingController {
     /**
      * 오프라인 녹음 업로드 (회의 생성 + 오디오 업로드 한번에 처리)
      * 기존 회의 생성 API와 달리 IN_PROGRESS 회의 체크 없이 바로 ENDED 상태로 생성
+     * @param sessionId 연결할 세션 ID (선택사항, 오프라인 미팅이 어느 세션에 해당하는지 지정)
      */
     @PostMapping("/offline/audio")
-    @Operation(summary = "Offline recording upload", description = "Upload offline recording and create meeting automatically.")
+    @Operation(summary = "Offline recording upload", description = "Upload offline recording and create meeting automatically. Optionally link to a specific session.")
     public ResponseEntity<ApiResponse<MeetingResponse>> uploadOfflineRecording(
             @PathVariable Long studyId,
+            @RequestParam(value = "sessionId", required = false) Long sessionId,
             @RequestParam(value = "title", required = false) String title,
             @RequestPart("audio") MultipartFile audio
     ) {
-        MeetingResponse response = meetingService.createOfflineMeetingWithAudio(studyId, title, audio);
+        MeetingResponse response = meetingService.createOfflineMeetingWithAudio(studyId, sessionId, title, audio);
         meetingAiScheduler.triggerProcessing(response.id());
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
     }
