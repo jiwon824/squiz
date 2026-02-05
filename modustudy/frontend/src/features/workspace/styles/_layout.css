@@ -1,0 +1,237 @@
+/* ============================================
+   워크스페이스 레이아웃 및 기본 구조
+   ============================================ */
+
+/* 컨테이너 */
+.workspace-container {
+  display: flex;
+  flex-direction: row;
+  height: 100vh;
+  width: 100%;
+  color: var(--ws-text-secondary);
+  overflow: hidden;
+  position: relative;
+  background: var(--ws-bg);
+}
+
+/* 메인 컨텐츠 영역 (헤더 + 본문) - member-list에 의해 밀림 */
+.workspace-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* 본문 영역 (사이드바 + 메인) */
+.workspace-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* 메인 채팅 영역 */
+.workspace-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  background-color: var(--ws-surface);
+  position: relative;
+  z-index: 0;
+}
+
+.workspace-main__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* 다크 모드에서만 blur 효과 */
+[data-theme="dark"] .workspace-main,
+.workspace-container--dark .workspace-main {
+  backdrop-filter: blur(8px);
+}
+
+/* 헤더 */
+.workspace-header {
+  height: 48px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: var(--ws-surface);
+  border-bottom: 1px solid var(--ws-border);
+  flex-shrink: 0;
+}
+
+[data-theme="dark"] .workspace-header,
+.workspace-container--dark .workspace-header {
+  backdrop-filter: blur(8px);
+}
+
+.workspace-header__title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 600;
+  color: var(--ws-text-primary);
+}
+
+.workspace-header__study-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ws-text-primary);
+}
+
+.workspace-header__member-count {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ws-text-tertiary);
+  background-color: var(--ws-surface-hover);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+
+.workspace-header__back-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--ws-text-tertiary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.workspace-header__back-btn:hover {
+  background-color: var(--ws-surface-hover);
+  color: var(--ws-text-primary);
+}
+
+.workspace-header__hash {
+  color: var(--ws-text-tertiary);
+  font-size: 24px;
+}
+
+.workspace-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.workspace-header__action-btn {
+  color: var(--ws-text-tertiary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  transition: color 0.15s ease;
+}
+
+.workspace-header__action-btn:hover {
+  color: var(--ws-text-secondary);
+}
+
+.workspace-header__action-btn--active {
+  color: var(--ws-text-primary);
+}
+
+/* 채팅 영역 */
+.chat-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-area__messages {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: auto;
+}
+
+/* 메시지 아이템 */
+.message-item {
+  display: flex;
+  padding: 4px 0;
+  border-radius: var(--radius-sm);
+}
+
+.message-item:hover {
+  background-color: var(--ws-message-hover);
+}
+
+.message-item--grouped {
+  padding-left: 56px;
+}
+
+.message-item__avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  margin-right: 16px;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, #1a73e8 0%, #4285F4 100%); /* google.blue */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.message-item__avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.message-item__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.message-item__header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.message-item__author {
+  font-weight: 600;
+  color: var(--ws-text-primary);
+  font-size: 15px;
+}
+
+.message-item__timestamp {
+  font-size: 11px;
+  color: var(--ws-text-tertiary);
+}
+
+.message-item__text {
+  color: var(--ws-text-secondary);
+  font-size: 15px;
+  line-height: 1.375;
+  word-wrap: break-word;
+}
+
+/* 시스템 메시지 */
+.message-item--system {
+  padding-left: 16px;
+}
+
+.message-item--system .message-item__text {
+  color: var(--ws-text-tertiary);
+  font-style: italic;
+}

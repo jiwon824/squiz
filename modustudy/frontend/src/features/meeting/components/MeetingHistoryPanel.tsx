@@ -1,7 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Video } from 'lucide-react';
 import { meetingApi } from '../services/meetingApi';
 import { MeetingListItemResponse } from '../types';
+import { DatePicker } from '@/shared/components/DatePicker';
+import { Button } from '@/shared/components/Button';
 import '../styles/MeetingHistory.css';
 import '../styles/MeetingShared.css';
 
@@ -10,11 +13,31 @@ interface MeetingHistoryPanelProps {
   onSelectMeeting?: (meetingId: number) => void;
 }
 
+// 날짜 포맷 함수
+const formatDate = (date: Date): string => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
+
+// 7일 전 날짜 계산
+const getDefaultStartDate = (): string => {
+  const date = new Date();
+  date.setDate(date.getDate() - 7);
+  return formatDate(date);
+};
+
+// 오늘 날짜
+const getDefaultEndDate = (): string => {
+  return formatDate(new Date());
+};
+
 const MeetingHistoryPanel: React.FC<MeetingHistoryPanelProps> = ({ studyId, onSelectMeeting }) => {
   const navigate = useNavigate();
   const [meetings, setMeetings] = useState<MeetingListItemResponse[]>([]);
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [startDate, setStartDate] = useState(getDefaultStartDate());
+  const [endDate, setEndDate] = useState(getDefaultEndDate());
   const [isLoading, setIsLoading] = useState(false);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -43,35 +66,39 @@ const MeetingHistoryPanel: React.FC<MeetingHistoryPanelProps> = ({ studyId, onSe
   }, [fetchMeetings]);
 
   return (
-    <div className="meeting-history">
-      <div className="meeting-history__header">
-        <div className="meeting-history__header-left">
-          <div>
-            <h1>미팅 기록</h1>
-            <p className="meeting-history__subtitle">날짜별로 미팅을 확인해보세요.</p>
+    <div className="meeting-history meeting-history--workspace">
+      <div className="meeting-history__header meeting-history__header--workspace">
+        <div className="meeting-history__title-section">
+          <Video size={22} />
+          <div className="meeting-history__title-stack">
+            <h2 className="meeting-history__workspace-title">미팅 기록</h2>
           </div>
+          <span className="meeting-history__count">{meetings.length}건</span>
         </div>
       </div>
 
-      <div className="meeting-history__filters">
-        <input
-          type="date"
+      <div className="meeting-history__filters meeting-history__filters--workspace">
+        <DatePicker
           value={startDate}
-          onChange={(event) => {
-            setStartDate(event.target.value);
+          onChange={(date) => {
+            setStartDate(date);
             setPage(0);
           }}
+          placeholder="시작 날짜"
+          max={endDate}
         />
-        <input
-          type="date"
+        <DatePicker
           value={endDate}
-          onChange={(event) => {
-            setEndDate(event.target.value);
+          onChange={(date) => {
+            setEndDate(date);
             setPage(0);
           }}
+          placeholder="종료 날짜"
+          min={startDate}
         />
-        <button
-          className="meeting-btn ghost"
+        <Button
+          variant="google-ghost"
+          size="sm"
           onClick={() => {
             if (page !== 0) {
               setPage(0);
@@ -79,10 +106,12 @@ const MeetingHistoryPanel: React.FC<MeetingHistoryPanelProps> = ({ studyId, onSe
             }
             fetchMeetings();
           }}
+          className="!px-0 !py-0 !h-auto !leading-tight"
         >
           필터 적용
-        </button>
+        </Button>
       </div>
+      <div className="meeting-history__divider" />
 
       {isLoading ? (
         <p className="meeting-history__empty">불러오는 중...</p>

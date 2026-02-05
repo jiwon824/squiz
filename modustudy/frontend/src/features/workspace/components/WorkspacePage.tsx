@@ -1,10 +1,10 @@
 ﻿import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { cn } from '@/shared/utils/cn';
-import { Breadcrumb } from '@/shared/components/layouts/Breadcrumb';
+import { PageNavHeader } from '@/shared/components/layouts/PageNavHeader';
 import { Modal } from '@/shared/components/Modal';
 import { Button } from '@/shared/components/Button';
-import { WorkspaceHeader } from './WorkspaceHeader';
+import { Users, Search, Pin } from 'lucide-react';
 import { WorkspaceSidebar } from './WorkspaceSidebar';
 import { ChatArea } from './ChatArea';
 import { MessageInput } from './MessageInput';
@@ -894,26 +894,62 @@ export const WorkspacePage: React.FC = () => {
     )}>
       {/* 메인 콘텐츠 영역 */}
       <div className="workspace-content">
-        {/* 브레드크럼 */}
-        <Breadcrumb
-          items={[
+        {/* 브레드크럼 + 헤더 */}
+        <PageNavHeader
+          title={studyName}
+          breadcrumbs={[
             { label: '스터디', path: `/study/${studyId}` },
             { label: '워크스페이스' },
           ]}
-          className="px-4 pt-2"
-        />
-        {/* 상단 헤더 */}
-        <WorkspaceHeader
-          studyName={studyName}
-          memberCount={members.length}
-          onToggleMembers={handleToggleMembers}
-          isMembersVisible={activeRightSidebar === 'members'}
-          onGoBack={handleGoBack}
-          onToggleSearch={handleToggleSearch}
-          isSearchOpen={isSearchOpen}
-          onTogglePinned={handleTogglePinned}
-          isPinnedOpen={activeRightSidebar === 'pinned'}
-          pinnedCount={pinnedMessages.length}
+          onBack={handleGoBack}
+          className="bg-white -mx-4 -mt-6 px-4 pt-6 pb-4 mb-0"
+          rightActions={
+            <div className="flex items-center gap-3">
+              {/* 멤버 목록 토글 */}
+              <button
+                className={cn(
+                  'p-2.5 rounded-xl transition-all duration-200 text-gray-700',
+                  'hover:bg-gray-50 hover:shadow-sm',
+                  activeRightSidebar === 'members' && 'bg-gray-100 shadow-sm text-primary'
+                )}
+                onClick={handleToggleMembers}
+                title={activeRightSidebar === 'members' ? '멤버 목록 숨기기' : '멤버 목록 보기'}
+              >
+                <Users size={20} />
+              </button>
+
+              {/* 검색 버튼 */}
+              <button
+                className={cn(
+                  'p-2.5 rounded-xl transition-all duration-200 text-gray-700',
+                  'hover:bg-gray-50 hover:shadow-sm',
+                  isSearchOpen && 'bg-gray-100 shadow-sm text-primary'
+                )}
+                onClick={handleToggleSearch}
+                title="검색"
+              >
+                <Search size={20} />
+              </button>
+
+              {/* 고정 메시지 버튼 */}
+              <button
+                className={cn(
+                  'relative p-2.5 rounded-xl transition-all duration-200 text-gray-700',
+                  'hover:bg-gray-50 hover:shadow-sm',
+                  activeRightSidebar === 'pinned' && 'bg-gray-100 shadow-sm text-primary'
+                )}
+                onClick={handleTogglePinned}
+                title="고정된 메시지"
+              >
+                <Pin size={20} />
+                {pinnedMessages.length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-primary text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    {pinnedMessages.length}
+                  </span>
+                )}
+              </button>
+            </div>
+          }
         />
 
         {/* 본문 영역 */}
