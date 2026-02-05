@@ -15,6 +15,7 @@ public class UserDTO {
     private String nickname;
     private String profileImage;
     private String loginProvider;
+    private String role;
 
     // 기존 메서드 (다른 곳에서 사용 중일 수 있으니 유지)
     public static UserDTO from(User user) {
@@ -34,6 +35,7 @@ public class UserDTO {
                 .nickname(user.getNickname())
                 .profileImage(user.getProfileImage())
                 .loginProvider(provider)
+                .role(user.getRole() != null ? user.getRole().name() : "USER")
                 .build();
     }
 
@@ -45,7 +47,8 @@ public class UserDTO {
                 .name(user.getName())
                 .nickname(user.getNickname())
                 .profileImage(user.getProfileImage())
-                .loginProvider(provider != null ? provider.name() : null)  // 👈 Enum이니까 .name() 호출
+                .loginProvider(provider != null ? provider.name() : null)
+                .role(user.getRole() != null ? user.getRole().name() : "USER")
                 .build();
     }
 }
