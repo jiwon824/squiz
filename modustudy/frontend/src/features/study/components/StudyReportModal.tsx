@@ -6,7 +6,7 @@ import { Button, Modal } from '@/shared/components';
 interface StudyReportModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSubmit: (reason: string) => void;
+    onSubmit: (reason: string) => Promise<void> | void;
     targetTitle?: string;
 }
 
@@ -28,12 +28,13 @@ export const StudyReportModal: React.FC<StudyReportModalProps> = ({ isOpen, onCl
         if (!reason) return;
 
         setIsSubmitting(true);
-        // API 요청 시뮬레이션
-        await new Promise(resolve => setTimeout(resolve, 800));
-        onSubmit(reason);
-        setIsSubmitting(false);
-        setReason('');
-        onClose();
+        try {
+            await onSubmit(reason);
+            setReason('');
+            onClose();
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (

@@ -306,9 +306,15 @@ const StudyDetailPageV3: React.FC = () => {
         }
     };
 
-    const handleReportSubmit = (_reason: string) => {
-        // TODO: 신고 API에 reason 전달
-        showToast('신고가 접수되었습니다.', 'success');
+    const handleReportSubmit = async (reason: string) => {
+        if (!studyDetail?.id) return;
+        try {
+            await studyApi.reportStudy(studyDetail.id, reason);
+            showToast('신고가 접수되었습니다.', 'success');
+        } catch (error: any) {
+            const message = error?.response?.data?.message || '신고 처리에 실패했습니다.';
+            showToast(message, 'error');
+        }
     };
 
     // 스터디장에게 문의하기
