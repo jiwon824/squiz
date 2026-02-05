@@ -134,6 +134,41 @@ const DMListMini: React.FC = () => {
         }
     };
 
+    // 날짜 문자열을 Date 객체로 변환 (KST 기준)
+    const parseDate = (dateString: string): Date => {
+        const normalized = dateString.includes('Z') || dateString.includes('+') ? dateString : dateString + '+09:00';
+        return new Date(normalized);
+    };
+
+    // 두 날짜가 다른 날인지 확인
+    const isDifferentDay = (date1: Date, date2: Date): boolean => {
+        return date1.getFullYear() !== date2.getFullYear() ||
+               date1.getMonth() !== date2.getMonth() ||
+               date1.getDate() !== date2.getDate();
+    };
+
+    // 날짜 구분선에 표시할 텍스트 포맷
+    const formatDateSeparator = (dateString: string): string => {
+        const date = parseDate(dateString);
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const targetDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        const diffDays = Math.floor((today.getTime() - targetDay.getTime()) / (1000 * 60 * 60 * 24));
+
+        if (diffDays === 0) {
+            return '오늘';
+        } else if (diffDays === 1) {
+            return '어제';
+        } else {
+            return date.toLocaleDateString('ko-KR', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                weekday: 'short'
+            });
+        }
+    };
+
     // 새 대화 시작 모드
     if (pendingDMUser) {
         return (
@@ -225,18 +260,38 @@ const DMListMini: React.FC = () => {
                                 const isReceiver = msg.senderId === currentConversation?.participantId;
                                 const prevMsg = index > 0 ? messages[index - 1] : null;
                                 const nextMsg = index < messages.length - 1 ? messages[index + 1] : null;
-                                const isSameSenderAsPrev = prevMsg !== null && prevMsg.senderId === msg.senderId;
+
+                                // 날짜 구분선 표시 여부 확인
+                                const currentDate = parseDate(msg.createdAt);
+                                const prevDate = prevMsg ? parseDate(prevMsg.createdAt) : null;
+                                const showDateSeparator = index === 0 || (prevDate && isDifferentDay(currentDate, prevDate));
+
+                                // 날짜가 바뀌면 같은 발신자여도 새 그룹으로 처리
+                                const isSameSenderAsPrev = prevMsg !== null && prevMsg.senderId === msg.senderId && !showDateSeparator;
                                 const isSameSenderAsNext = nextMsg !== null && nextMsg.senderId === msg.senderId;
 
                                 return (
-                                    <div
-                                        key={msg.id}
-                                        className={cn(
-                                            'flex gap-2',
-                                            isReceiver ? 'flex-row' : 'flex-row-reverse',
-                                            isSameSenderAsPrev ? 'mt-1' : index > 0 ? 'mt-4' : ''
+                                    <React.Fragment key={msg.id}>
+                                        {/* 날짜 구분선 */}
+                                        {showDateSeparator && (
+                                            <div className={cn(
+                                                'flex items-center gap-3 my-4',
+                                                index === 0 ? 'mt-0' : ''
+                                            )}>
+                                                <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
+                                                <span className="text-xs text-gray-400 font-medium px-2 py-1 bg-gray-50 rounded-full">
+                                                    {formatDateSeparator(msg.createdAt)}
+                                                </span>
+                                                <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
+                                            </div>
                                         )}
-                                    >
+                                        <div
+                                            className={cn(
+                                                'flex gap-2',
+                                                isReceiver ? 'flex-row' : 'flex-row-reverse',
+                                                isSameSenderAsPrev ? 'mt-1' : index > 0 && !showDateSeparator ? 'mt-4' : ''
+                                            )}
+                                        >
                                         {/* 아바타 - 같은 발신자 연속이면 빈 공간 유지 */}
                                         <div className="flex-shrink-0 w-10">
                                             {!isSameSenderAsPrev && (
@@ -294,6 +349,7 @@ const DMListMini: React.FC = () => {
                                             )}
                                         </div>
                                     </div>
+                                    </React.Fragment>
                                 );
                             })}
                         </div>
