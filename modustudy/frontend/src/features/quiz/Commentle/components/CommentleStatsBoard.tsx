@@ -17,7 +17,7 @@ export const CommentleStatsBoard: React.FC<CommentleStatsBoardProps> = ({ leader
     const { isLoggedIn } = useAuthStore();
 
     return (
-        <div className="bg-white rounded-2xl p-6 shadow-[0_4px_15px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)] transition-shadow overflow-hidden min-h-[600px] lg:min-h-0 lg:max-h-[320px] flex flex-col">
+        <div className="bg-white rounded-2xl p-6 shadow-[0_4px_15px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)] transition-shadow overflow-hidden min-h-[600px] lg:min-h-0 flex flex-col">
             <div className="flex items-center gap-3 mb-6">
                 <div className="bg-warning/10 p-2 rounded-xl text-warning-dark">
                     <Crown size={20} />

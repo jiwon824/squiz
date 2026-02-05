@@ -21,6 +21,13 @@ class Config:
     # CORS 설정
     CORS_ORIGINS = os.getenv('CORS_ORIGINS', 'http://localhost:5173,http://localhost:3000').split(',')
     
+    # MySQL 설정
+    DB_HOST = os.getenv('DB_HOST', 'localhost')
+    DB_PORT = int(os.getenv('DB_PORT', 3306))
+    DB_NAME = os.getenv('DB_NAME', 'squiz')
+    DB_USERNAME = os.getenv('DB_USERNAME', 'root')
+    DB_PASSWORD = os.getenv('DB_PASSWORD', 'dkdlel6')
+
     # 데이터 경로
     DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
     WORDS_FILE = os.path.join(DATA_DIR, 'words.json')
