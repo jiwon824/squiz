@@ -68,6 +68,10 @@ class MeetingViewModel : ViewModel() {
     private val _currentStudyId = MutableStateFlow<Long?>(null)
     val currentStudyId: StateFlow<Long?> = _currentStudyId.asStateFlow()
 
+    // 현재 세션 ID (녹음 시작 시 설정, 오프라인 녹음이 어느 세션에 해당하는지)
+    private val _currentSessionId = MutableStateFlow<Long?>(null)
+    val currentSessionId: StateFlow<Long?> = _currentSessionId.asStateFlow()
+
     // 녹음 상태 (RecordingService에서 가져옴)
     val recordingState = RecordingService.recordingState
 
@@ -184,10 +188,12 @@ class MeetingViewModel : ViewModel() {
     /**
      * 녹음 시작 (오프라인 녹음 - 회의 생성 없이 로컬 녹음만 진행)
      * 녹음 종료 시 서버에 업로드하면 회의가 자동 생성됨
+     * @param sessionId 연결할 세션 ID (세션 상세 화면에서 녹음 시작 시 자동 설정)
      */
     fun startRecording(context: Context, studyId: Long, sessionId: Long? = null, title: String? = null) {
         viewModelScope.launch {
             _currentStudyId.value = studyId
+            _currentSessionId.value = sessionId  // 세션 ID 저장 (업로드 시 사용)
 
             // 로컬 녹음 서비스 시작 (서버 회의 생성 없이)
             try {
@@ -202,21 +208,24 @@ class MeetingViewModel : ViewModel() {
                 } else {
                     context.startService(intent)
                 }
-                Log.d(TAG, "오프라인 녹음 시작: studyId=$studyId")
+                Log.d(TAG, "오프라인 녹음 시작: studyId=$studyId, sessionId=$sessionId")
             } catch (e: Exception) {
                 Log.e(TAG, "녹음 서비스 시작 실패", e)
                 _currentStudyId.value = null
+                _currentSessionId.value = null
             }
         }
     }
 
     /**
      * 녹음 중지 및 업로드 (오프라인 녹음용 - 새 엔드포인트 사용)
+     * 세션 ID가 설정된 경우 해당 세션과 연결된 미팅으로 생성됨
      */
     fun stopRecordingAndUpload(context: Context) {
         viewModelScope.launch {
             try {
                 val studyId = _currentStudyId.value
+                val sessionId = _currentSessionId.value  // 저장된 세션 ID 가져오기
 
                 // 1. 로컬 녹음 중지
                 val intent = Intent(context, RecordingService::class.java).apply {
@@ -229,11 +238,12 @@ class MeetingViewModel : ViewModel() {
 
                 if (studyId != null && audioFilePath != null) {
                     // 2. 오프라인 녹음 업로드 (회의 자동 생성 + AI 처리 트리거)
-                    uploadOfflineRecording(studyId, audioFilePath)
+                    uploadOfflineRecording(studyId, sessionId, audioFilePath)
                 }
 
                 _currentMeetingId.value = null
                 _currentStudyId.value = null
+                _currentSessionId.value = null  // 세션 ID 초기화
 
             } catch (e: Exception) {
                 Log.e(TAG, "녹음 중지 실패", e)
@@ -244,8 +254,9 @@ class MeetingViewModel : ViewModel() {
 
     /**
      * 오프라인 녹음 업로드 (회의 자동 생성)
+     * @param sessionId 연결할 세션 ID (세션에서 녹음 시작한 경우 해당 세션과 연결)
      */
-    private suspend fun uploadOfflineRecording(studyId: Long, filePath: String) {
+    private suspend fun uploadOfflineRecording(studyId: Long, sessionId: Long?, filePath: String) {
         try {
             _uploadState.value = UploadUiState.Uploading(0)
 
@@ -263,13 +274,14 @@ class MeetingViewModel : ViewModel() {
             val response = RetrofitClient.meetingApi.uploadOfflineRecording(
                 studyId = studyId,
                 audio = multipartBody,
+                sessionId = sessionId,  // 세션 ID 전달
                 title = null
             )
 
             if (response.isSuccessful) {
                 val meetingId = response.body()?.data?.id
-                _uploadState.value = UploadUiState.Success("업로드 완료! AI 요약이 곧 생성됩니다.")
-                Log.d(TAG, "오프라인 녹음 업로드 성공: studyId=$studyId, meetingId=$meetingId")
+                _uploadState.value = UploadUiState.Success("업로드 완료! 미팅 리포트가 곧 생성됩니다.\n웹에서 확인하세요.")
+                Log.d(TAG, "오프라인 녹음 업로드 성공: studyId=$studyId, sessionId=$sessionId, meetingId=$meetingId")
 
                 // 업로드 후 파일 삭제 (선택)
                 // file.delete()

@@ -128,10 +128,12 @@ public class Meeting extends BaseEntity {
 
     /**
      * 오프라인 녹음용 회의 생성 (즉시 ENDED 상태로 생성)
+     * @param sessionId 연결할 세션 ID (선택사항)
      */
-    public static Meeting createOffline(Long studyId, String title, java.time.LocalDateTime now, Integer durationSeconds) {
+    public static Meeting createOffline(Long studyId, Long sessionId, String title, java.time.LocalDateTime now, Integer durationSeconds) {
         return Meeting.builder()
                 .studyId(studyId)
+                .sessionId(sessionId)
                 .title(title)
                 .meetingType(MeetingType.OFFLINE)
                 .startedAt(now)

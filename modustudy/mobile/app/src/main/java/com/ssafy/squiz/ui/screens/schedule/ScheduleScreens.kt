@@ -318,6 +318,7 @@ fun ScheduleDetailScreen(
     sessionId: Long,
     onBackClick: () -> Unit,
     onAttendanceClick: (Boolean) -> Unit,
+    onStartRecording: (Long, Long) -> Unit,  // (studyId, sessionId) 녹음 시작 콜백
     viewModel: ScheduleViewModel = viewModel()
 ) {
     val sessionDetailState by viewModel.sessionDetailState.collectAsState()
@@ -394,6 +395,21 @@ fun ScheduleDetailScreen(
                     }
 
                     Spacer(modifier = Modifier.weight(1f))
+
+                    // 오프라인 녹음 버튼 (세션에 연결된 녹음 시작)
+                    if (!detail.isOnline) {
+                        OutlinedButton(
+                            onClick = { onStartRecording(studyId, sessionId) },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Primary)
+                        ) {
+                            Icon(Icons.Default.Mic, contentDescription = null, modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("오프라인 미팅 녹음", fontWeight = FontWeight.SemiBold)
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
 
                     if (detail.attendanceStatus == null || detail.attendanceStatus == "PENDING") {
                         GradientButton(text = "출석체크", onClick = { onAttendanceClick(detail.isLeader == true) })

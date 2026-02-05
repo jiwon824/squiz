@@ -88,8 +88,10 @@ sealed class NavRoutes(val route: String) {
     }
 
     // 회의록 (모바일 전용 - 녹음 기반)
-    object MeetingList : NavRoutes("meeting_list/{studyId}") {
-        fun createRoute(studyId: Long) = "meeting_list/$studyId"
+    object MeetingList : NavRoutes("meeting_list/{studyId}?sessionId={sessionId}") {
+        fun createRoute(studyId: Long, sessionId: Long? = null) =
+            if (sessionId != null) "meeting_list/$studyId?sessionId=$sessionId"
+            else "meeting_list/$studyId"
     }
     object MeetingDetail : NavRoutes("meeting_detail/{studyId}/{meetingId}") {
         fun createRoute(studyId: Long, meetingId: Long) = "meeting_detail/$studyId/$meetingId"
