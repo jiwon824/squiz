@@ -21,6 +21,7 @@ import java.util.Optional;
 @Component
 @RequiredArgsConstructor
 public class GamificationEventListener {
+    private static final int REFERENCE_NAME_MAX_LENGTH = 200;
 
     private final UserStatsRepository userStatsRepository;
     private final DailyContributionRepository dailyContributionRepository;
@@ -339,13 +340,25 @@ public class GamificationEventListener {
             ContributionDetail.ActivityType activityType,
             Long referenceId, String referenceName
     ) {
+        String normalizedReferenceName = normalizeReferenceName(referenceName);
         ContributionDetail detail = ContributionDetail.builder()
                 .user(user)
                 .contributionDate(date)
                 .activityType(activityType)
                 .referenceId(referenceId)
-                .referenceName(referenceName)
+                .referenceName(normalizedReferenceName)
                 .build();
         contributionDetailRepository.save(detail);
+    }
+
+    private String normalizeReferenceName(String referenceName) {
+        if (referenceName == null) {
+            return "";
+        }
+        String trimmed = referenceName.trim();
+        if (trimmed.length() <= REFERENCE_NAME_MAX_LENGTH) {
+            return trimmed;
+        }
+        return trimmed.substring(0, REFERENCE_NAME_MAX_LENGTH);
     }
 }
