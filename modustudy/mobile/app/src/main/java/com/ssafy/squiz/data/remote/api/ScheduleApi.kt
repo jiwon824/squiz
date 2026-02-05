@@ -50,26 +50,26 @@ interface ScheduleApi {
     /**
      * Google 캘린더 동기화 상태 조회
      */
-    @GET("api/v1/schedules/google-sync")
+    @GET("api/v1/calendar/status")
     suspend fun getGoogleSyncStatus(): Response<ApiResponse<GoogleSyncStatus>>
 
     /**
-     * Google 캘린더 연결
+     * Google 캘린더 연결 (Authorization Code로)
      */
-    @POST("api/v1/schedules/google-sync/connect")
+    @POST("api/v1/calendar/connect")
     suspend fun connectGoogleCalendar(
-        @Body token: Map<String, String>
+        @Body request: Map<String, String>
     ): Response<ApiResponse<GoogleSyncStatus>>
 
     /**
      * Google 캘린더 연결 해제
      */
-    @DELETE("api/v1/schedules/google-sync/disconnect")
+    @POST("api/v1/calendar/disconnect")
     suspend fun disconnectGoogleCalendar(): Response<ApiResponse<Unit>>
 
     /**
      * 일정 동기화
      */
-    @POST("api/v1/schedules/google-sync/sync")
+    @POST("api/v1/calendar/sync")
     suspend fun syncSchedules(): Response<ApiResponse<Unit>>
 }
