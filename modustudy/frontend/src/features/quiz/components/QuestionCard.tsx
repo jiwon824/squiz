@@ -113,12 +113,114 @@ const highlightSqlKeywords = (code: string): React.ReactNode[] => {
     });
 };
 
+const formatSqlForDisplay = (sql: string): string => {
+    let formatted = sql.replace(/\s+/g, ' ').trim();
+    const breakKeywords = [
+        'WITH RECURSIVE', 'WITH', 'SELECT', 'FROM', 'WHERE',
+        'INNER JOIN', 'LEFT JOIN', 'RIGHT JOIN', 'FULL JOIN', 'JOIN', 'ON',
+        'UNION ALL', 'UNION', 'GROUP BY', 'ORDER BY', 'HAVING',
+        'LIMIT', 'OFFSET'
+    ];
+    const ordered = [...breakKeywords].sort((a, b) => b.length - a.length);
+    ordered.forEach(keyword => {
+        const pattern = new RegExp(`\\b${keyword.replace(' ', '\\\\s+')}\\b`, 'gi');
+        formatted = formatted.replace(pattern, match => `\\n${match.toUpperCase()}`);
+    });
+    formatted = formatted
+        .replace(/\\nSELECT\\s+/g, '\nSELECT\n  ')
+        .replace(/\\nFROM\\s+/g, '\nFROM\n  ')
+        .replace(/\\nWHERE\\s+/g, '\nWHERE\n  ')
+        .replace(/\\n(INNER JOIN|LEFT JOIN|RIGHT JOIN|FULL JOIN|JOIN)\\s+/g, '\n$1\n  ')
+        .replace(/,\\s+/g, ',\n  ')
+        .replace(/\\nON\\s+/g, '\nON\n  ')
+        .replace(/\\nUNION ALL\\s+/g, '\nUNION ALL\n')
+        .replace(/\\nUNION\\s+/g, '\nUNION\n');
+    return formatted.replace(/^\\n+/, '');
+};
+
 /**
  * 문제 텍스트를 파싱하여 코드 블록을 분리하고 스타일링
  * - 작은따옴표('...')로 감싸진 부분 → 코드 블록
  * - 빈칸(______) → 강조 표시
  */
 const parseQuestionText = (text: string): React.ReactNode => {
+    if (text.includes('______') || text.includes('____')) {
+        const blankParts = text.split(/(_{4,})/g);
+        return (
+            <>
+                {blankParts.map((part, idx) => {
+                    if (/^_{4,}$/.test(part)) {
+                        return (
+                            <span
+                                key={`blank-${idx}`}
+                                style={{
+                                    backgroundColor: 'var(--color-warning-light)',
+                                    color: 'var(--color-warning-dark)',
+                                    padding: '2px 12px',
+                                    borderRadius: '4px',
+                                    fontWeight: 700,
+                                    margin: '0 4px',
+                                }}
+                            >
+                                ?
+                            </span>
+                        );
+                    }
+                    return part;
+                })}
+            </>
+        );
+    }
+
+    const sqlMatch = text.match(/\\b(WITH|SELECT)\\b/i);
+    if (!sqlMatch || sqlMatch.index === undefined) {
+    const sqlMatch = text.match(/\b(WITH|SELECT)\b/i);
+    if (!sqlMatch || sqlMatch.index === undefined) {
+        return text;
+    }
+
+    const sqlStart = sqlMatch.index;
+    const prefix = text.slice(0, sqlStart).trimEnd();
+    const sql = text.slice(sqlStart).trim();
+    const formattedSql = formatSqlForDisplay(sql);
+
+    return (
+        <>
+            {prefix ? <span>{prefix} </span> : null}
+            <pre
+                style={{
+                    margin: '8px 0 0',
+                    whiteSpace: 'pre-wrap',
+                    fontFamily: 'inherit',
+                    color: 'var(--color-text-primary)',
+                }}
+            >
+                {formattedSql}
+            </pre>
+        </>
+    );
+    }
+
+    const sqlStart = sqlMatch.index;
+    const prefix = text.slice(0, sqlStart).trimEnd();
+    const sql = text.slice(sqlStart).trim();
+    const formattedSql = formatSqlForDisplay(sql);
+
+    return (
+        <>
+            {prefix ? <span>{prefix} </span> : null}
+            <pre
+                style={{
+                    margin: '8px 0 0',
+                    whiteSpace: 'pre-wrap',
+                    fontFamily: 'inherit',
+                    color: 'var(--color-text-primary)',
+                }}
+            >
+                {formattedSql}
+            </pre>
+        </>
+    );
     // 작은따옴표로 감싸진 코드 블록 찾기
     const codeBlockPattern = /'([^']+)'/g;
     const parts: React.ReactNode[] = [];
@@ -144,8 +246,8 @@ const parseQuestionText = (text: string): React.ReactNode => {
                 key={`code-${keyIndex++}`}
                 style={{
                     display: 'block',
-                    backgroundColor: 'var(--color-gray-900)',
-                    color: 'var(--color-gray-100)',
+                    backgroundColor: 'var(--color-surface)',
+                    color: 'var(--color-text-primary)',
                     padding: '12px 16px',
                     borderRadius: '8px',
                     fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
@@ -156,6 +258,7 @@ const parseQuestionText = (text: string): React.ReactNode => {
                     overflowX: 'auto',
                     whiteSpace: 'pre-wrap',
                     wordBreak: 'break-word',
+                    border: '1px solid var(--color-border)',
                 }}
             >
                 {highlightSqlKeywords(codeContent)}

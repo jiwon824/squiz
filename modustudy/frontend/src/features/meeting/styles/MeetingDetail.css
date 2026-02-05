@@ -1,8 +1,60 @@
 .meeting-detail {
-    padding: 2rem 1.5rem 3rem;
+    padding: 2.25rem 1.5rem 3rem;
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 1.6rem;
+}
+
+.meeting-detail--workspace {
+    padding: 0;
+    gap: 1.2rem;
+    background-color: var(--ws-main-bg);
+}
+
+.meeting-detail--workspace .meeting-detail__header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--ws-border);
+    background-color: var(--ws-surface);
+    border-radius: var(--radius-lg);
+}
+
+.meeting-detail--workspace .meeting-detail__header h1 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--ws-text-primary);
+}
+
+.meeting-detail--workspace .meeting-detail__header p {
+    margin: 4px 0 0;
+    font-size: 12px;
+    color: var(--ws-text-tertiary);
+}
+
+.meeting-detail--workspace .meeting-detail__exports .meeting-btn {
+    background: var(--ws-surface-hover);
+    border-color: var(--ws-border);
+    color: var(--ws-text-secondary);
+}
+
+.meeting-detail--workspace .meeting-detail__exports .meeting-btn:hover {
+    color: var(--ws-text-primary);
+    border-color: var(--color-primary);
+}
+
+.meeting-detail--workspace .meeting-detail-card {
+    margin: 0 20px;
+    background: var(--ws-surface);
+    border-color: var(--ws-border);
+    box-shadow: var(--shadow-sm);
+}
+
+.meeting-detail--workspace .meeting-detail-card__header {
+    border-bottom-color: var(--ws-border);
+}
+
+.meeting-detail--workspace .meeting-detail-empty {
+    color: var(--ws-text-tertiary);
 }
 
 .meeting-detail__header {
@@ -15,13 +67,15 @@
 .meeting-detail__exports {
     display: flex;
     gap: 0.6rem;
+    flex-wrap: wrap;
 }
 
 .meeting-detail-card {
     background: var(--color-surface);
     border-radius: var(--radius-xl);
-    padding: 1rem 1.2rem;
+    padding: 1.1rem 1.25rem;
     box-shadow: var(--shadow-sm);
+    border: 1px solid var(--color-border);
     display: flex;
     flex-direction: column;
     gap: 0.8rem;
@@ -31,12 +85,22 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.meeting-detail-card__header h3 {
+    margin: 0;
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-primary);
 }
 
 .meeting-photo-actions {
     display: flex;
     align-items: center;
     gap: 0.6rem;
+    flex-wrap: wrap;
 }
 
 .meeting-tooltip-wrapper {
@@ -100,6 +164,9 @@
 
 .meeting-summary-text {
     white-space: pre-wrap;
+    color: var(--color-text-primary);
+    line-height: 1.6;
+    font-size: var(--font-size-base);
 }
 
 .meeting-summary-keywords {
@@ -113,6 +180,9 @@
     padding: 0.2rem 0.6rem;
     border-radius: var(--radius-pill);
     font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-secondary);
+    border: 1px solid var(--color-border);
 }
 
 .meeting-status-chip {
@@ -121,6 +191,9 @@
     background: var(--color-primary-alpha-20);
     font-size: var(--font-size-xs);
     text-transform: uppercase;
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: 0.02em;
+    color: var(--color-text-secondary);
 }
 
 .meeting-detail-empty {
@@ -193,14 +266,29 @@
 }
 
 .meeting-chat-history__item {
-    background: var(--color-background-tertiary);
+    background: var(--color-background-secondary);
     border-radius: var(--radius-lg);
-    padding: 0.6rem 0.8rem;
+    padding: 0.7rem 0.85rem;
+    border: 1px solid var(--color-border);
+    display: grid;
+    gap: 0.35rem;
+}
+
+.meeting-chat-history__item span {
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-primary);
+}
+
+.meeting-chat-history__item p {
+    margin: 0;
+    color: var(--color-text-secondary);
+    line-height: 1.5;
 }
 
 .meeting-chat-history__item time {
     font-size: var(--font-size-xs);
     color: var(--color-text-tertiary);
+    justify-self: end;
 }
 
 .meeting-photo-grid {
@@ -219,6 +307,12 @@
     cursor: pointer;
     transition: var(--transition-fast);
     position: relative;
+}
+
+.meeting-photo-card:hover {
+    border-color: var(--color-primary-alpha-20);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
 }
 
 .meeting-photo-card.selected {

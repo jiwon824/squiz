@@ -1,0 +1,396 @@
+/* 워크스페이스 사이드바 (왼쪽) */
+.workspace-sidebar {
+  width: 240px;
+  background-color: var(--ws-sidebar-bg);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--ws-border);
+  position: relative;
+  z-index: 0;
+}
+
+[data-theme="dark"] .workspace-sidebar,
+.workspace-container--dark .workspace-sidebar {
+  backdrop-filter: blur(8px);
+}
+
+.workspace-sidebar__menu {
+  padding: 8px;
+  flex: 0 0 auto;
+}
+
+	.workspace-sidebar__menu-item {
+	  width: 100%;
+	  display: flex;
+	  align-items: center;
+	  gap: 16px;
+	  padding: 10px 16px;
+  border: none;
+  border-radius: var(--radius-lg);
+  background: none;
+  color: var(--ws-text-tertiary);
+	  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.workspace-sidebar__menu-item:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: var(--ws-text-secondary);
+}
+
+.workspace-sidebar__menu-item--active {
+  background-color: rgba(0, 0, 0, 0.08);
+  color: var(--ws-text-primary);
+  font-weight: 600;
+}
+
+[data-theme="dark"] .workspace-sidebar__menu-item--active,
+.workspace-container--dark .workspace-sidebar__menu-item--active {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--ws-text-primary);
+}
+
+.workspace-sidebar__menu-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.workspace-sidebar__menu-label {
+  flex: 1;
+}
+
+.workspace-sidebar__menu-badge {
+  color: var(--ws-text-tertiary);
+  display: flex;
+  align-items: center;
+}
+
+.workspace-sidebar__divider {
+  height: 1px;
+  margin: 150px 16px 8px 16px;
+  background-color: var(--ws-divider);
+}
+
+.workspace-sidebar__quick-actions {
+  padding: 8px;
+}
+
+	.workspace-sidebar__section-title {
+	  padding: 0 16px;
+	  margin-bottom: 12px;
+	  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--ws-text-tertiary);
+  letter-spacing: 0.02em;
+}
+
+	.workspace-sidebar__action-btn {
+	  width: 100%;
+	  display: flex;
+	  align-items: center;
+	  gap: 16px;
+	  padding: 10px 16px;
+  border: none;
+  border-radius: var(--radius-lg);
+  background: none;
+  color: var(--ws-text-tertiary);
+	  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.workspace-sidebar__action-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: var(--ws-text-secondary);
+}
+
+.workspace-sidebar__action-btn svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* 테마 토글 */
+.workspace-sidebar__theme-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--ws-text-tertiary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.workspace-sidebar__theme-toggle:hover {
+  background-color: var(--ws-surface-hover);
+  color: var(--ws-text-secondary);
+}
+
+.workspace-sidebar__toggle-track {
+  width: 44px;
+  height: 24px;
+  background-color: var(--color-gray-300);
+  border-radius: var(--radius-lg);
+  position: relative;
+  transition: background-color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.workspace-sidebar__toggle-track--dark {
+  background-color: var(--color-primary);
+}
+
+.workspace-sidebar__toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background-color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.workspace-sidebar__toggle-track--dark .workspace-sidebar__toggle-thumb {
+  transform: translateX(20px);
+}
+
+.workspace-sidebar__toggle-thumb svg {
+  color: var(--color-gray-600);
+}
+
+.workspace-sidebar__toggle-track--dark .workspace-sidebar__toggle-thumb svg {
+  color: var(--color-primary);
+}
+
+.workspace-sidebar__footer {
+  padding: 12px;
+  border-top: 1px solid var(--ws-border);
+}
+
+	.workspace-sidebar__meeting-btn {
+	  width: 100%;
+	  display: flex;
+	  align-items: center;
+	  justify-content: center;
+	  gap: 12px;
+	  padding: 14px 18px;
+  border: none;
+  border-radius: 12px;
+  background-color: var(--color-google-green);
+  color: #fff;
+	  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.workspace-sidebar__meeting-btn:hover {
+  background-color: var(--color-secondary-dark);
+}
+
+.workspace-sidebar__meeting-btn svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+/* 진행 중 세션 미팅 버튼 - 애니메이션 효과 */
+.workspace-sidebar__meeting-btn--active {
+  background: linear-gradient(135deg, #EA4335 0%, #FF6B6B 100%);
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.workspace-sidebar__meeting-btn--active:hover {
+  background: linear-gradient(135deg, #D33426 0%, #EA4335 100%);
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(234, 67, 53, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(234, 67, 53, 0);
+  }
+}
+
+/* 세션 정보 표시 */
+	.workspace-sidebar__session-info {
+	  display: flex;
+	  flex-direction: column;
+	  align-items: center;
+	  gap: 6px;
+	  margin-top: 12px;
+	  padding: 12px;
+  background-color: rgb(229, 231, 235);
+  border-radius: var(--radius-lg);
+}
+
+	.workspace-sidebar__session-title {
+	  font-size: 14px;
+  font-weight: 600;
+  color: var(--ws-text-primary);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+	.workspace-sidebar__session-time {
+	  font-size: 13px;
+  color: var(--ws-text-tertiary);
+}
+
+/* 다크모드 세션 정보 */
+[data-theme="dark"] .workspace-sidebar__session-info,
+.workspace-container--dark .workspace-sidebar__session-info {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* 반응형 */
+@media (max-width: 1024px) {
+  .workspace-sidebar {
+    width: 72px;
+  }
+
+  .workspace-sidebar__menu-label,
+  .workspace-sidebar__menu-badge,
+  .workspace-sidebar__section-title,
+  .workspace-sidebar__action-btn > span,
+  .workspace-sidebar__theme-toggle > span {
+    display: none;
+  }
+
+  .workspace-sidebar__menu-item,
+  .workspace-sidebar__action-btn,
+  .workspace-sidebar__theme-toggle {
+    justify-content: center;
+    padding: 12px;
+  }
+
+  .workspace-sidebar__meeting-btn > span {
+    display: none;
+  }
+
+  .workspace-sidebar__meeting-btn {
+    padding: 12px;
+  }
+
+  .workspace-sidebar__session-info {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .member-list {
+    display: none;
+  }
+
+  .workspace-sidebar {
+    display: none;
+  }
+}
+
+/* 플레이스홀더 (준비 중인 기능) */
+.workspace-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--ws-text-tertiary);
+  font-size: 16px;
+}
+
+/* 로딩 상태 */
+.workspace-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  gap: 16px;
+  color: var(--ws-text-tertiary);
+}
+
+.workspace-loading .loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--ws-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 에러 상태 */
+.workspace-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  gap: 16px;
+  text-align: center;
+  padding: 32px;
+}
+
+.workspace-error__icon {
+  font-size: 48px;
+}
+
+.workspace-error h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--ws-text-primary);
+  margin: 0;
+}
+
+.workspace-error p {
+  color: var(--ws-text-tertiary);
+  max-width: 400px;
+  margin: 0;
+}
+
+.workspace-error__btn {
+  margin-top: 8px;
+  padding: 10px 24px;
+  border: none;
+  border-radius: var(--radius-2xl);
+  background-color: var(--color-primary);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.workspace-error__btn:hover {
+  background-color: var(--color-primary-dark);
+}
+
