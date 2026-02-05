@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
-import { Camera, Trash2, X, User, BookOpen, Bookmark, Shield, Activity } from 'lucide-react';
+import { Camera, Trash2, X, User, BookOpen, Bookmark, Shield, Activity, Pointer } from 'lucide-react';
 import '../styles/ProfilePage.css';
 import '@/features/setting/styles/SettingPage.css';
 import { useAuthStore } from '@/store/authStore';
@@ -46,7 +46,7 @@ const menuItems: Array<SidebarItem & { id: ProfileSection }> = [
         id: 'application',
         label: '스터디 신청',
         description: '신청 내역 확인',
-        icon: <Activity size={18} />,
+        icon: <Pointer size={18} />,
     },
     {
         id: 'security',
