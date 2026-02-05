@@ -149,6 +149,13 @@ object RetrofitClient {
     }
 
     /**
+     * Gamification API
+     */
+    val gamificationApi: GamificationApi by lazy {
+        retrofit.create(GamificationApi::class.java)
+    }
+
+    /**
      * Schedule API
      */
     val scheduleApi: ScheduleApi by lazy {

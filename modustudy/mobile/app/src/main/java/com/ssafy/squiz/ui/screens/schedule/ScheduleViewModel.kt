@@ -1,9 +1,16 @@
 package com.ssafy.squiz.ui.screens.schedule
 
+import android.app.Activity
+import android.content.Intent
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.google.android.gms.common.api.ApiException
 import com.ssafy.squiz.data.remote.RetrofitClient
 import com.ssafy.squiz.data.remote.model.*
+import com.ssafy.squiz.data.repository.AuthRepository
 import com.ssafy.squiz.base.SquizApplication
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -38,6 +45,17 @@ sealed class GoogleSyncState {
 
 class ScheduleViewModel : ViewModel() {
 
+    companion object {
+        private const val TAG = "ScheduleViewModel"
+    }
+
+    private val authRepository: AuthRepository by lazy {
+        AuthRepository(
+            SquizApplication.getInstance(),
+            SquizApplication.getInstance().authManager
+        )
+    }
+
     // 일정 목록 상태
     private val _schedulesState = MutableStateFlow<SchedulesState>(SchedulesState.Loading)
     val schedulesState: StateFlow<SchedulesState> = _schedulesState.asStateFlow()
@@ -61,11 +79,17 @@ class ScheduleViewModel : ViewModel() {
     private val _currentMonth = MutableStateFlow(java.util.Calendar.getInstance().get(java.util.Calendar.MONTH) + 1)
     val currentMonth: StateFlow<Int> = _currentMonth.asStateFlow()
 
+    // 스터디 이름 캐시 (studyId -> studyName)
+    private val studyNameCache = mutableMapOf<Long, String>()
+
     // 일정 목록 로드 (실제 API 연동)
     fun loadSchedules() {
         viewModelScope.launch {
             _schedulesState.value = SchedulesState.Loading
             try {
+                // 스터디 목록과 일정을 병렬로 로드
+                val studiesDeferred = async { loadMyStudies() }
+
                 // 오늘부터 30일 이후까지의 일정 조회
                 val today = java.time.LocalDate.now()
                 val endDate = today.plusDays(30)
@@ -73,10 +97,19 @@ class ScheduleViewModel : ViewModel() {
                 val endDateStr = endDate.toString()
 
                 val response = RetrofitClient.scheduleApi.getSchedules(startDateStr, endDateStr)
+                studiesDeferred.await()  // 스터디 목록 로드 완료 대기
 
                 if (response.isSuccessful) {
                     val sessionList = response.body() ?: emptyList()
-                    val schedules = sessionList.map { it.toScheduleDTO() }
+                    val schedules = sessionList.map { session ->
+                        val dto = session.toScheduleDTO()
+                        // 스터디명이 없으면 캐시에서 조회
+                        if (dto.studyName.startsWith("스터디 #")) {
+                            dto.copy(studyName = studyNameCache[dto.studyId] ?: dto.studyName)
+                        } else {
+                            dto
+                        }
+                    }
                     _schedulesState.value = SchedulesState.Success(schedules)
                 } else {
                     _schedulesState.value = SchedulesState.Error("일정을 불러오는데 실패했습니다. (${response.code()})")
@@ -87,11 +120,30 @@ class ScheduleViewModel : ViewModel() {
         }
     }
 
+    // 내 스터디 목록 로드 (이름 캐시용)
+    private suspend fun loadMyStudies() {
+        try {
+            val response = RetrofitClient.studyApi.getMyStudies()
+            if (response.isSuccessful) {
+                response.body()?.content?.forEach { study ->
+                    studyNameCache[study.id] = study.name
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "스터디 목록 로드 실패: ${e.message}")
+        }
+    }
+
     // 캘린더 데이터 로드 (실제 API 연동)
     fun loadCalendarData() {
         viewModelScope.launch {
             _calendarState.value = CalendarState.Loading
             try {
+                // 스터디 캐시가 비어있으면 먼저 로드
+                if (studyNameCache.isEmpty()) {
+                    loadMyStudies()
+                }
+
                 val year = _currentYear.value
                 val month = _currentMonth.value
 
@@ -106,7 +158,15 @@ class ScheduleViewModel : ViewModel() {
 
                 if (response.isSuccessful) {
                     val sessionList = response.body() ?: emptyList()
-                    val schedules = sessionList.map { it.toScheduleDTO() }
+                    val schedules = sessionList.map { session ->
+                        val dto = session.toScheduleDTO()
+                        // 스터디명이 없으면 캐시에서 조회
+                        if (dto.studyName.startsWith("스터디 #")) {
+                            dto.copy(studyName = studyNameCache[dto.studyId] ?: dto.studyName)
+                        } else {
+                            dto
+                        }
+                    }
 
                     // scheduledDays 추출 (일정이 있는 날짜들)
                     val scheduledDays = schedules.mapNotNull { schedule ->
@@ -228,11 +288,81 @@ class ScheduleViewModel : ViewModel() {
         }
     }
 
-    // Google 캘린더 연결
-    fun connectGoogleCalendar() {
+    /**
+     * Google 캘린더 연동을 위한 Sign-In Intent 생성
+     */
+    fun getGoogleCalendarSignInIntent(activity: Activity): Intent {
+        val googleSignInClient = authRepository.getGoogleCalendarSignInClient(activity)
+        return googleSignInClient.signInIntent
+    }
+
+    /**
+     * Google Sign-In 결과 처리 및 백엔드에 연동 요청
+     */
+    fun handleGoogleCalendarSignInResult(data: Intent?, onSuccess: () -> Unit, onError: (String) -> Unit) {
         viewModelScope.launch {
-            // TODO: OAuth 인증 후 연결
-            loadGoogleSyncStatus()
+            try {
+                if (data == null) {
+                    onError("Google 로그인이 취소되었습니다.")
+                    return@launch
+                }
+
+                val task = GoogleSignIn.getSignedInAccountFromIntent(data)
+                val account = task.getResult(ApiException::class.java)
+                val serverAuthCode = account?.serverAuthCode
+
+                if (serverAuthCode != null) {
+                    Log.d(TAG, "Google Calendar 인증 코드 획득, 백엔드 연동 시작")
+                    connectGoogleCalendarWithCode(serverAuthCode, onSuccess, onError)
+                } else {
+                    onError("서버 인증 코드를 받지 못했습니다.")
+                }
+            } catch (e: ApiException) {
+                Log.e(TAG, "Google Sign-In 실패: ${e.statusCode}")
+                onError("Google 로그인에 실패했습니다. (${e.statusCode})")
+            } catch (e: Exception) {
+                Log.e(TAG, "Google Sign-In 처리 오류: ${e.message}")
+                onError(e.message ?: "알 수 없는 오류가 발생했습니다.")
+            }
+        }
+    }
+
+    /**
+     * 백엔드에 Google Calendar 연동 요청
+     */
+    private suspend fun connectGoogleCalendarWithCode(
+        serverAuthCode: String,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        try {
+            _googleSyncState.value = GoogleSyncState.Loading
+
+            val response = RetrofitClient.scheduleApi.connectGoogleCalendar(
+                mapOf("code" to serverAuthCode)
+            )
+
+            if (response.isSuccessful) {
+                val status = response.body()?.data
+                if (status != null) {
+                    _googleSyncState.value = GoogleSyncState.Success(status)
+                    Log.d(TAG, "Google Calendar 연동 성공")
+                    onSuccess()
+                } else {
+                    _googleSyncState.value = GoogleSyncState.Success(
+                        GoogleSyncStatus(isConnected = true, autoSync = false)
+                    )
+                    onSuccess()
+                }
+            } else {
+                val errorMsg = "캘린더 연동에 실패했습니다. (${response.code()})"
+                _googleSyncState.value = GoogleSyncState.Error(errorMsg)
+                onError(errorMsg)
+            }
+        } catch (e: Exception) {
+            val errorMsg = e.message ?: "네트워크 오류가 발생했습니다."
+            _googleSyncState.value = GoogleSyncState.Error(errorMsg)
+            onError(errorMsg)
         }
     }
 

@@ -72,17 +72,36 @@ fun MyPageScreen(
                 }
                 is ProfileState.Success -> {
                     val profile = state.profile
+                    val stats = state.stats
                     Card(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)) {
                         Column(modifier = Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                             ProfileImage(imageUrl = profile.profileImage, size = 80.dp, onClick = onEditProfileClick)
                             Spacer(modifier = Modifier.height(12.dp))
                             Text(profile.nickname, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                             Text(profile.email, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            // 레벨 표시
+                            if (stats != null) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(
+                                        modifier = Modifier
+                                            .background(Primary.copy(alpha = 0.1f), RoundedCornerShape(8.dp))
+                                            .padding(horizontal = 12.dp, vertical = 4.dp)
+                                    ) {
+                                        Text(
+                                            text = "Lv.${stats.level} ${stats.levelName ?: ""}",
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = Primary
+                                        )
+                                    }
+                                }
+                            }
                             Spacer(modifier = Modifier.height(16.dp))
                             Row(horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier.fillMaxWidth()) {
-                                StatItem("스터디", "${profile.studyCount}개")
-                                StatItem("출석률", "${profile.attendanceRate}%")
-                                StatItem("퀴즈점수", "${profile.quizScore}점")
+                                StatItem("스터디", "${stats?.totalStudiesJoined ?: 0}개")
+                                StatItem("출석", "${stats?.totalAttendance ?: 0}회")
+                                StatItem("퀴즈", "${stats?.totalQuizCount ?: 0}개")
                             }
                         }
                     }

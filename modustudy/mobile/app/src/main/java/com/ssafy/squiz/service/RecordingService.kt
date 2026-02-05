@@ -7,6 +7,9 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.media.AudioAttributes
+import android.media.AudioFocusRequest
+import android.media.AudioManager
 import android.media.MediaRecorder
 import android.os.Binder
 import android.os.Build
@@ -61,6 +64,48 @@ class RecordingService : Service() {
     private var timerJob: Job? = null
     private val serviceScope = CoroutineScope(Dispatchers.Main + Job())
 
+    // AudioFocus 관련
+    private lateinit var audioManager: AudioManager
+    private var audioFocusRequest: AudioFocusRequest? = null
+    private var wasRecordingBeforeFocusLoss = false  // 포커스 잃기 전 녹음 중이었는지
+
+    /**
+     * 오디오 포커스 리스너
+     * 전화가 오면 녹음 일시정지, 전화 끝나면 재개
+     */
+    private val audioFocusChangeListener = AudioManager.OnAudioFocusChangeListener { focusChange ->
+        when (focusChange) {
+            AudioManager.AUDIOFOCUS_LOSS -> {
+                // 오디오 포커스 완전히 잃음 (다른 앱이 오래 사용)
+                Log.d(TAG, "AudioFocus LOSS - 녹음 일시정지")
+                if (_recordingState.value.isRecording && !_recordingState.value.isPaused) {
+                    wasRecordingBeforeFocusLoss = true
+                    pauseRecording()
+                }
+            }
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
+                // 일시적 포커스 잃음 (전화 등)
+                Log.d(TAG, "AudioFocus LOSS_TRANSIENT - 녹음 일시정지")
+                if (_recordingState.value.isRecording && !_recordingState.value.isPaused) {
+                    wasRecordingBeforeFocusLoss = true
+                    pauseRecording()
+                }
+            }
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
+                // 볼륨 낮춰도 됨 (알림 등) - 녹음은 계속
+                Log.d(TAG, "AudioFocus LOSS_TRANSIENT_CAN_DUCK - 녹음 계속")
+            }
+            AudioManager.AUDIOFOCUS_GAIN -> {
+                // 오디오 포커스 다시 얻음
+                Log.d(TAG, "AudioFocus GAIN - 녹음 재개 시도")
+                if (wasRecordingBeforeFocusLoss && _recordingState.value.isPaused) {
+                    wasRecordingBeforeFocusLoss = false
+                    resumeRecording()
+                }
+            }
+        }
+    }
+
     inner class RecordingBinder : Binder() {
         fun getService(): RecordingService = this@RecordingService
     }
@@ -69,6 +114,7 @@ class RecordingService : Service() {
         super.onCreate()
         Log.d(TAG, "RecordingService 생성")
         createNotificationChannel()
+        audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
     }
 
     override fun onBind(intent: Intent?): IBinder {
@@ -103,12 +149,60 @@ class RecordingService : Service() {
     }
 
     /**
+     * 오디오 포커스 요청
+     */
+    private fun requestAudioFocus(): Boolean {
+        val result = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            audioFocusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+                .setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                        .build()
+                )
+                .setOnAudioFocusChangeListener(audioFocusChangeListener)
+                .build()
+            audioManager.requestAudioFocus(audioFocusRequest!!)
+        } else {
+            @Suppress("DEPRECATION")
+            audioManager.requestAudioFocus(
+                audioFocusChangeListener,
+                AudioManager.STREAM_MUSIC,
+                AudioManager.AUDIOFOCUS_GAIN
+            )
+        }
+        return result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+    }
+
+    /**
+     * 오디오 포커스 해제
+     */
+    private fun abandonAudioFocus() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            audioFocusRequest?.let {
+                audioManager.abandonAudioFocusRequest(it)
+            }
+        } else {
+            @Suppress("DEPRECATION")
+            audioManager.abandonAudioFocus(audioFocusChangeListener)
+        }
+        audioFocusRequest = null
+        wasRecordingBeforeFocusLoss = false
+    }
+
+    /**
      * 녹음 시작
      */
     private fun startRecording(studyId: Long, sessionId: Long?, meetingId: Long?) {
         if (_recordingState.value.isRecording) {
             Log.w(TAG, "이미 녹음 중입니다.")
             return
+        }
+
+        // 오디오 포커스 요청
+        if (!requestAudioFocus()) {
+            Log.w(TAG, "오디오 포커스를 얻지 못했습니다.")
+            // 포커스 없어도 녹음은 시도
         }
 
         try {
@@ -157,6 +251,7 @@ class RecordingService : Service() {
 
         } catch (e: Exception) {
             Log.e(TAG, "녹음 시작 실패", e)
+            abandonAudioFocus()
             cleanupRecording()
         }
     }
@@ -175,6 +270,9 @@ class RecordingService : Service() {
             mediaRecorder = null
 
             val filePath = currentAudioFilePath
+
+            // 오디오 포커스 해제
+            abandonAudioFocus()
 
             // 상태 초기화
             _recordingState.value = LocalRecordingState()
@@ -334,6 +432,10 @@ class RecordingService : Service() {
             Log.e(TAG, "MediaRecorder 해제 실패", e)
         }
         mediaRecorder = null
+
+        // 오디오 포커스 해제
+        abandonAudioFocus()
+
         _recordingState.value = LocalRecordingState()
         currentAudioFilePath = null
 

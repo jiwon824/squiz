@@ -1,5 +1,8 @@
 package com.ssafy.squiz.ui.screens.schedule
 
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -20,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -28,6 +32,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ssafy.squiz.data.remote.model.*
 import com.ssafy.squiz.ui.components.*
 import com.ssafy.squiz.ui.theme.*
+import java.time.LocalDateTime
 
 // ScheduleListScreen
 @OptIn(ExperimentalMaterial3Api::class)
@@ -161,6 +166,7 @@ private fun formatScheduleDate(dateStr: String): String {
 fun ScheduleCalendarScreen(
     onBackClick: () -> Unit,
     onSessionClick: (Long, Long) -> Unit,  // (studyId, sessionId)
+    onGoogleSyncClick: () -> Unit = {},
     viewModel: ScheduleViewModel = viewModel()
 ) {
     val calendarState by viewModel.calendarState.collectAsState()
@@ -171,7 +177,24 @@ fun ScheduleCalendarScreen(
         viewModel.loadCalendarData()
     }
 
-    Scaffold(topBar = { SquizTopBar(title = "캘린더", onBackClick = onBackClick) }) { padding ->
+    Scaffold(
+        topBar = {
+            SquizTopBar(
+                title = "캘린더",
+                onBackClick = onBackClick,
+                actions = {
+                    // 구글 캘린더 연동 버튼
+                    IconButton(onClick = onGoogleSyncClick) {
+                        Icon(
+                            Icons.Outlined.Sync,
+                            contentDescription = "Google 캘린더 연동",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            )
+        }
+    ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { viewModel.goToPreviousMonth() }) { Icon(Icons.Default.ChevronLeft, contentDescription = "이전 달") }
@@ -346,6 +369,7 @@ fun ScheduleDetailScreen(
                 val detail = state.session
                 val locationText = detail.location ?: if (detail.isOnline) "온라인" else "장소 미정"
                 val timeRange = "${detail.startTime} - ${detail.endTime ?: ""}"
+                val context = LocalContext.current
 
                 Column(modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
                     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Primary)) {
@@ -412,7 +436,33 @@ fun ScheduleDetailScreen(
                     }
 
                     if (detail.attendanceStatus == null || detail.attendanceStatus == "PENDING") {
-                        GradientButton(text = "출석체크", onClick = { onAttendanceClick(detail.isLeader == true) })
+                        GradientButton(
+                            text = "출석체크",
+                            onClick = {
+                                // 세션 시작 30분 전 ~ 세션 종료 시간까지 출석 가능
+                                val isWithinAttendanceWindow = try {
+                                    val scheduledAt = detail.scheduledAt
+                                    if (scheduledAt != null) {
+                                        val sessionStart = LocalDateTime.parse(scheduledAt.take(19))
+                                        val durationMinutes = detail.durationMinutes ?: 60
+                                        val sessionEnd = sessionStart.plusMinutes(durationMinutes.toLong())
+                                        val windowStart = sessionStart.minusMinutes(30)
+                                        val now = LocalDateTime.now()
+                                        now.isAfter(windowStart) && now.isBefore(sessionEnd)
+                                    } else {
+                                        false
+                                    }
+                                } catch (e: Exception) {
+                                    false
+                                }
+
+                                if (isWithinAttendanceWindow) {
+                                    onAttendanceClick(detail.isLeader == true)
+                                } else {
+                                    Toast.makeText(context, "출석체크 가능한 시간이 아닙니다!", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        )
                     }
                 }
             }
@@ -428,6 +478,27 @@ fun GoogleCalendarSyncScreen(
     viewModel: ScheduleViewModel = viewModel()
 ) {
     val googleSyncState by viewModel.googleSyncState.collectAsState()
+    val context = LocalContext.current
+    val activity = context as? android.app.Activity
+
+    // Google Sign-In Launcher
+    val googleSignInLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            viewModel.handleGoogleCalendarSignInResult(
+                data = result.data,
+                onSuccess = {
+                    Toast.makeText(context, "Google 캘린더 연동 완료!", Toast.LENGTH_SHORT).show()
+                },
+                onError = { error ->
+                    Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
+                }
+            )
+        } else {
+            Toast.makeText(context, "Google 로그인이 취소되었습니다.", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.loadGoogleSyncStatus()
@@ -470,13 +541,32 @@ fun GoogleCalendarSyncScreen(
                     }
                     Spacer(modifier = Modifier.height(32.dp))
                     if (status.isConnected) {
-                        OutlinedButton(onClick = { viewModel.disconnectGoogleCalendar() }, shape = RoundedCornerShape(12.dp)) { Text("연동 해제") }
+                        // 동기화 버튼
+                        GradientButton(
+                            text = "지금 동기화",
+                            onClick = { viewModel.syncSchedules() }
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        // 연동 해제 버튼
+                        OutlinedButton(
+                            onClick = { viewModel.disconnectGoogleCalendar() },
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("연동 해제")
+                        }
                     } else {
-                        // 실제로는 Google OAuth 흐름을 시작해야 함
-                        GradientButton(text = "Google 계정 연동", onClick = {
-                            // TODO: Google OAuth 흐름 시작
-                            // 성공 시 viewModel.connectGoogleCalendar(authCode) { } 호출
-                        })
+                        // Google 계정 연동 버튼
+                        GradientButton(
+                            text = "Google 계정 연동",
+                            onClick = {
+                                if (activity != null) {
+                                    val signInIntent = viewModel.getGoogleCalendarSignInIntent(activity)
+                                    googleSignInLauncher.launch(signInIntent)
+                                } else {
+                                    Toast.makeText(context, "Activity를 찾을 수 없습니다.", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        )
                     }
                 }
             }

@@ -107,7 +107,27 @@ fun StudyHomeScreen(
                         onAttendanceClick = {
                             val session = nextSession
                             if (session != null) {
-                                onNavigateToAttendance(studyId, session.id, isLeader)
+                                // 세션 시작 30분 전 ~ 세션 종료 시간까지 출석 가능
+                                val isWithinAttendanceWindow = try {
+                                    val sessionStart = LocalDateTime.parse(session.scheduledAt?.take(19))
+                                    val durationMinutes = session.durationMinutes ?: 60
+                                    val sessionEnd = sessionStart.plusMinutes(durationMinutes.toLong())
+                                    val windowStart = sessionStart.minusMinutes(30)
+                                    val now = LocalDateTime.now()
+                                    android.util.Log.d("AttendanceCheck", "sessionStart=$sessionStart, durationMinutes=$durationMinutes, sessionEnd=$sessionEnd, windowStart=$windowStart, now=$now")
+                                    val result = now.isAfter(windowStart) && now.isBefore(sessionEnd)
+                                    android.util.Log.d("AttendanceCheck", "isWithinWindow=$result")
+                                    result
+                                } catch (e: Exception) {
+                                    android.util.Log.e("AttendanceCheck", "Exception: ${e.message}")
+                                    false
+                                }
+
+                                if (isWithinAttendanceWindow) {
+                                    onNavigateToAttendance(studyId, session.id, isLeader)
+                                } else {
+                                    Toast.makeText(context, "출석체크 가능한 시간이 아닙니다!", Toast.LENGTH_SHORT).show()
+                                }
                             } else {
                                 Toast.makeText(context, "예정된 세션이 없습니다", Toast.LENGTH_SHORT).show()
                             }
