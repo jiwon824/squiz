@@ -8,9 +8,9 @@ interface SortOption {
 }
 
 const SORT_OPTIONS: SortOption[] = [
+  { value: 'LATEST', label: '최신순' },
   { value: 'MOST_WRONG', label: '많이 틀린 순' },
   { value: 'FSRS_RECOMMENDED', label: '복습 우선순위' },
-  { value: 'LATEST', label: '최신순' },
 ];
 
 interface SortToggleProps {
