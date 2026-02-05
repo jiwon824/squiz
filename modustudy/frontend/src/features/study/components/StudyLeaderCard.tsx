@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Star, Shield, Send, Play } from 'lucide-react';
+import { Star, Shield, Play } from 'lucide-react';
 import { Button } from '@/shared/components';
 import { useUIStore } from '@/store/uiStore';
 import { useAuthStore } from '@/store/authStore';
@@ -186,28 +186,18 @@ const StudyLeaderCard: React.FC<StudyLeaderCardProps> = ({
                             fullWidth
                             size="lg"
                             onClick={() => navigate(`/study/manage/${studyId}`)}
-                            className={cn(
-                                'h-12 rounded-xl font-bold text-sm',
-                                'bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500',
-                                'hover:from-blue-600 hover:via-indigo-600 hover:to-violet-600',
-                                'shadow-lg shadow-indigo-500/30'
-                            )}
+                            className="h-12 rounded-xl font-bold text-sm"
                         >
                             스터디 관리하기
                         </Button>
                     ) : (
                         <Button
-                            variant={isApplyDisabled ? 'google-outline' : 'primary'}
+                            variant="primary"
                             fullWidth
                             size="lg"
                             onClick={handleApplyClick}
                             disabled={isApplyDisabled}
-                            className={cn(
-                                'h-12 rounded-xl font-bold text-sm',
-                                isApplyDisabled
-                                    ? ''
-                                    : 'shadow-lg shadow-[var(--color-primary-alpha-30)]'
-                            )}
+                            className="h-12 rounded-xl font-bold text-sm"
                         >
                             {getApplyButtonText()}
                         </Button>
@@ -217,21 +207,8 @@ const StudyLeaderCard: React.FC<StudyLeaderCardProps> = ({
                     궁금한 점이 있다면 아래로 문의해주세요.
                     </p> */}
 
-                    {/* 문의 버튼 또는 워크스페이스 버튼 */}
+                    {/* 워크스페이스 버튼 */}
                     <div className="flex gap-2">
-                        {/* DM 문의 버튼 (스터디장 본인이 아닐 때만 표시) */}
-                        {!isOwner && (
-                            <Button
-                                variant="primary"
-                                fullWidth
-                                onClick={onInquiry}
-                                leftIcon={<Send size={16} />}
-                                className="h-12 rounded-xl font-bold text-sm shadow-lg shadow-blue-500/20"
-                            >
-                                문의하기
-                            </Button>
-                        )}
-
                         {/* 워크스페이스 이동 버튼 (진행중/완료 + 멤버일 때만) */}
                         {canGoWorkspace && (
                             <Button
