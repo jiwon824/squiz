@@ -3,8 +3,10 @@ package com.ssafy.domain.user.repository;
 import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.entity.Role;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 
 import java.util.List;
@@ -46,4 +48,12 @@ public interface UserRepository extends JpaRepository<User, Long> {
     List<User> findByNicknameContainingAndIsSearchableTrueAndIdNot(String nickname, Long excludeId);
 
     List<User> findAllByRole(Role role);
+
+    /**
+     * 사용자 온라인 상태 업데이트
+     */
+    @Modifying
+    @Transactional
+    @Query("UPDATE User u SET u.isOnline = :isOnline, u.lastSeenAt = :lastSeenAt WHERE u.id = :userId")
+    void updateOnlineStatus(@Param("userId") Long userId, @Param("isOnline") Boolean isOnline, @Param("lastSeenAt") LocalDateTime lastSeenAt);
 }

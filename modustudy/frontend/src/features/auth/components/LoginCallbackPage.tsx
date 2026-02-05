@@ -166,7 +166,8 @@ export const LoginCallbackPage = () => {
                         nickname: data.user.nickname || undefined,
                         email: data.user.email,
                         avatar: data.user.profileImage || undefined,
-                        loginProvider: provider.toUpperCase() as 'KAKAO' | 'GOOGLE' | 'NAVER'
+                        loginProvider: provider.toUpperCase() as 'KAKAO' | 'GOOGLE' | 'NAVER',
+                        role: data.user.role as 'USER' | 'ADMIN' || 'USER'
                     });
 
                     console.log('[INFO] 기존 소셜 유저 로그인 성공!');

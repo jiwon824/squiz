@@ -120,7 +120,8 @@ export const SignupPage = () => {
                     name: user.name || formData.name,
                     nickname: user.nickname || formData.nickname,
                     email: user.email,
-                    avatar: user.profileImage || undefined
+                    avatar: user.profileImage || undefined,
+                    role: user.role as 'USER' | 'ADMIN' || 'USER'
                 });
 
                 localStorage.removeItem('oauthTempData');

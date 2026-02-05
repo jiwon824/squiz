@@ -40,13 +40,14 @@ data class ScheduleListResponse(
     @SerializedName("totalCount") val totalCount: Int
 )
 
-// Google 캘린더 동기화 상태
+// Google 캘린더 동기화 상태 (백엔드 CalendarStatusResponse와 매핑)
 data class GoogleSyncStatus(
-    @SerializedName("isConnected") val isConnected: Boolean,
+    @SerializedName("connected") val isConnected: Boolean = false,
     @SerializedName("email") val email: String? = null,
-    @SerializedName("lastSyncTime") val lastSyncTime: String? = null,
-    @SerializedName("autoSync") val autoSync: Boolean = false,
-    @SerializedName("syncedCalendars") val syncedCalendars: List<CalendarInfo>? = null
+    @SerializedName("hasValidToken") val hasValidToken: Boolean = false,
+    @SerializedName("calendarId") val calendarId: String? = null,
+    // 하위 호환성
+    @SerializedName("autoSync") val autoSync: Boolean = false
 )
 
 data class CalendarInfo(

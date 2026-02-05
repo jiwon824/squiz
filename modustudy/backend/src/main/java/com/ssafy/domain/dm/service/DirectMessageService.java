@@ -8,6 +8,8 @@ import com.ssafy.domain.dm.entity.DirectMessage;
 import com.ssafy.domain.dm.entity.DmConversation;
 import com.ssafy.domain.dm.mapper.DirectMessageMapper;
 import com.ssafy.domain.dm.mapper.DmConversationMapper;
+import com.ssafy.domain.dm.websocket.DmRedisPublisher;
+import com.ssafy.domain.dm.websocket.DmWebSocketEvent;
 import com.ssafy.domain.friend.service.FriendService;
 import com.ssafy.domain.gamification.event.FirstFriendChatEvent;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +34,7 @@ public class DirectMessageService {
     private final DmConversationMapper dmConversationMapper;
     private final FriendService friendService;
     private final ApplicationEventPublisher eventPublisher;
+    private final DmRedisPublisher dmRedisPublisher;
 
     /**
      * DM 전송
@@ -89,7 +92,29 @@ public class DirectMessageService {
 
         // 저장된 메시지 조회
         DirectMessage saved = directMessageMapper.findById(message.getId());
-        return DirectMessageResponse.from(saved, senderId);
+        DirectMessageResponse senderResponse = DirectMessageResponse.from(saved, senderId);
+
+        // WebSocket으로 수신자에게 실시간 알림 (REST API 호출 시에도 실시간 전달)
+        try {
+            DirectMessageResponse receiverResponse = new DirectMessageResponse(
+                    senderResponse.messageId(),
+                    senderResponse.conversationId(),
+                    senderResponse.senderId(),
+                    senderResponse.senderNickname(),
+                    senderResponse.senderProfileImage(),
+                    senderResponse.content(),
+                    senderResponse.isDeleted(),
+                    false,  // 수신자 입장에서는 isMine = false
+                    senderResponse.createdAt()
+            );
+            DmWebSocketEvent receiverEvent = DmWebSocketEvent.newMessage(receiverResponse);
+            dmRedisPublisher.publishToUser(receiverId, "/queue/dm", receiverEvent);
+            log.debug("REST API DM 전송 - WebSocket 알림: senderId={}, receiverId={}", senderId, receiverId);
+        } catch (Exception e) {
+            log.warn("WebSocket 알림 전송 실패 (메시지는 저장됨): {}", e.getMessage());
+        }
+
+        return senderResponse;
     }
 
     /**

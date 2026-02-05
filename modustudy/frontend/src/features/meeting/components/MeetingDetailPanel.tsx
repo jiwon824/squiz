@@ -164,7 +164,7 @@ const MeetingDetailPanel: React.FC<MeetingDetailPanelProps> = ({ studyId, meetin
   };
 
   return (
-    <div className="meeting-detail">
+    <div className="meeting-detail meeting-detail--workspace">
       <div className="meeting-detail__header">
         <div>
           <h1>{detail?.title || '미팅 기록'}</h1>

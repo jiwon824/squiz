@@ -1,0 +1,276 @@
+/* =============================================
+   세션 모달 DatePicker 드롭다운 표시 수정
+   Modal의 overflow-hidden을 오버라이드
+   (Modal은 createPortal로 document.body에 렌더링됨)
+   ============================================= */
+
+/* modal-body와 그 부모 요소의 overflow를 visible로 설정 */
+.modal-body {
+  overflow: visible !important;
+}
+
+/* Modal content의 overflow-hidden 오버라이드 */
+.modal-body:has(> div[style*="overflow"]) {
+  overflow: visible !important;
+}
+
+/* 세션 모달 전용 클래스 */
+.session-modal-form {
+  position: relative;
+}
+
+/* ============================================
+   워크스페이스 → 미팅 페이지 전환 애니메이션
+   ============================================ */
+
+/* 퇴장 애니메이션 키프레임 */
+@keyframes workspace-to-meeting {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+    border-radius: 0;
+  }
+  100% {
+    transform: scale(0.85);
+    opacity: 0;
+    border-radius: 24px;
+  }
+}
+
+/* 워크스페이스 퇴장 애니메이션 */
+.workspace-container--exiting {
+  animation: workspace-to-meeting 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  pointer-events: none;
+}
+
+/* 퇴장 시 내부 요소 페이드아웃 */
+.workspace-container--exiting .workspace-header {
+  opacity: 0;
+  transition: opacity 0.2s ease-out;
+}
+
+.workspace-container--exiting .workspace-sidebar {
+  transform: translateX(-100%);
+  opacity: 0;
+  transition: transform 0.3s ease-out, opacity 0.2s ease-out;
+}
+
+.workspace-container--exiting .member-list {
+  transform: translateX(100%);
+  opacity: 0;
+  transition: transform 0.3s ease-out, opacity 0.2s ease-out;
+}
+
+/* 메인 콘텐츠만 남기고 줌아웃 효과 */
+.workspace-container--exiting .workspace-content {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  border-radius: 24px;
+  overflow: hidden;
+}
+
+/* ============================================
+   미팅 페이지 → 워크스페이스 진입 애니메이션
+   ============================================ */
+
+/* 진입 애니메이션 키프레임 */
+@keyframes meeting-to-workspace {
+  0% {
+    transform: scale(0.88);
+    opacity: 0;
+    border-radius: 24px;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+    border-radius: 0;
+  }
+}
+
+@keyframes workspace-header-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes workspace-sidebar-enter {
+  0% {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes workspace-member-list-enter {
+  0% {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes workspace-main-enter {
+  0% {
+    opacity: 0;
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 워크스페이스 진입 애니메이션 */
+.workspace-container--entering {
+  animation: meeting-to-workspace 0.5s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+}
+
+/* 진입 시 내부 요소 순차 애니메이션 */
+.workspace-container--entering .workspace-header {
+  opacity: 0;
+  animation: workspace-header-enter 0.4s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+  animation-delay: 0.15s;
+}
+
+.workspace-container--entering .workspace-sidebar {
+  opacity: 0;
+  animation: workspace-sidebar-enter 0.4s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+  animation-delay: 0.2s;
+}
+
+.workspace-container--entering .member-list {
+  opacity: 0;
+  animation: workspace-member-list-enter 0.4s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+  animation-delay: 0.2s;
+}
+
+.workspace-container--entering .workspace-main {
+  opacity: 0;
+  animation: workspace-main-enter 0.5s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+  animation-delay: 0.1s;
+}
+
+/* ============================================
+   대시보드 → 워크스페이스 진입 애니메이션
+   (퀴즈 페이지 전환과 동일한 스타일)
+   ============================================ */
+
+@keyframes workspace-from-dashboard {
+  0% {
+    transform: scale(1.1);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes workspace-header-from-dashboard {
+  0% {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes workspace-sidebar-from-dashboard {
+  0% {
+    opacity: 0;
+    transform: translateX(-40px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes workspace-member-list-from-dashboard {
+  0% {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes workspace-content-from-dashboard {
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 워크스페이스 - 대시보드에서 진입 애니메이션 */
+.workspace-container--entering-from-dashboard {
+  animation: workspace-from-dashboard 0.5s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+}
+
+/* 진입 시 내부 요소 순차 애니메이션 */
+.workspace-container--entering-from-dashboard .workspace-header {
+  opacity: 0;
+  animation: workspace-header-from-dashboard 0.4s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+  animation-delay: 0.15s;
+}
+
+.workspace-container--entering-from-dashboard .workspace-sidebar {
+  opacity: 0;
+  animation: workspace-sidebar-from-dashboard 0.4s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+  animation-delay: 0.2s;
+}
+
+.workspace-container--entering-from-dashboard .member-list {
+  opacity: 0;
+  animation: workspace-member-list-from-dashboard 0.4s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+  animation-delay: 0.2s;
+}
+
+.workspace-container--entering-from-dashboard .workspace-main {
+  opacity: 0;
+  animation: workspace-content-from-dashboard 0.5s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+  animation-delay: 0.1s;
+}
+
+/* ============================================
+   헤더 배지 스타일
+   ============================================ */
+.workspace-header__action-btn {
+  position: relative;
+}
+
+.workspace-header__badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  background-color: var(--color-google-red);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+

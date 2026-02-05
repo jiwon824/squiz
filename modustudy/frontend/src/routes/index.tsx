@@ -127,7 +127,8 @@ export const AppRouter = () => {
                     name: user.name,
                     nickname: user.nickname || undefined,
                     email: user.email,
-                    avatar: user.profileImage || undefined
+                    avatar: user.profileImage || undefined,
+                    role: user.role as 'USER' | 'ADMIN' || 'USER'
                 });
             } catch (error) {
                 console.error('[AUTH] Session restoration failed:', error);
@@ -191,7 +192,7 @@ export const AppRouter = () => {
                     <Route path="/study/edit/lightning/:studyId" element={<PrivateRoute><LightningStudyEditPage /></PrivateRoute>} />
                     <Route path="/study/:id" element={<StudyDetailPageV3 />} />
                     <Route path="/study/manage/:id" element={<PrivateRoute><StudyManagementPage /></PrivateRoute>} />
-                    <Route path="/study/:studyId/workspace" element={<PrivateRoute><WorkspacePage /></PrivateRoute>} />
+                    <Route path="/study/:studyId/workspace" element={<PrivateRoute><UserLayoutV2><WorkspacePage /></UserLayoutV2></PrivateRoute>} />
 
                     {/* 미팅 (로그인 필수) */}
                     <Route path="/study/:studyId/meetings" element={<PrivateRoute><MeetingHistoryPage /></PrivateRoute>} />

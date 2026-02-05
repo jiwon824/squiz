@@ -6,6 +6,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -195,7 +197,13 @@ fun ScheduleCalendarScreen(
             )
         }
     ) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState())
+        ) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { viewModel.goToPreviousMonth() }) { Icon(Icons.Default.ChevronLeft, contentDescription = "이전 달") }
                 Text("${currentYear}년 ${currentMonth}월", fontSize = 18.sp, fontWeight = FontWeight.Bold)
@@ -232,11 +240,23 @@ fun ScheduleCalendarScreen(
                     val startOffset = firstDayOfMonth.dayOfWeek.value % 7
                     val daysInMonth = firstDayOfMonth.lengthOfMonth()
 
+                    // 캘린더 행 수 계산 (고정 높이 산정용)
+                    val totalCells = startOffset + daysInMonth
+                    val rows = (totalCells + 6) / 7  // 올림 처리
+                    val calendarHeight = (rows * 48).dp  // 각 셀 약 48dp 높이
+
                     // 선택된 날짜의 일정 목록
                     var selectedDaySchedules by remember { mutableStateOf<List<ScheduleDTO>>(emptyList()) }
                     var selectedDay by remember { mutableStateOf<Int?>(null) }
 
-                    LazyVerticalGrid(columns = GridCells.Fixed(7), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    // 캘린더 그리드 (고정 높이로 스크롤 충돌 방지)
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(7),
+                        modifier = Modifier.height(calendarHeight),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        userScrollEnabled = false
+                    ) {
                         // 빈 칸
                         items(startOffset) { Box(modifier = Modifier.aspectRatio(1f)) }
                         // 날짜
@@ -532,10 +552,6 @@ fun GoogleCalendarSyncScreen(
                             Spacer(modifier = Modifier.height(4.dp))
                         }
                         Text("스터디 일정이 자동으로 동기화됩니다.", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
-                        status.lastSyncTime?.let {
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text("마지막 동기화: ${formatSyncTime(it)}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
                     } else {
                         Text("Google 캘린더와 연동하여 일정을 관리하세요.", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
                     }
@@ -572,17 +588,4 @@ fun GoogleCalendarSyncScreen(
             }
         }
     }
-}
-
-private fun formatSyncTime(timestamp: String): String {
-    return try {
-        val parts = timestamp.split("T")
-        if (parts.size >= 2) {
-            val dateParts = parts[0].split("-")
-            val timeParts = parts[1].split(":")
-            if (dateParts.size >= 3 && timeParts.size >= 2) {
-                "${dateParts[1].toInt()}/${dateParts[2].toInt()} ${timeParts[0]}:${timeParts[1]}"
-            } else timestamp
-        } else timestamp
-    } catch (e: Exception) { timestamp }
 }
