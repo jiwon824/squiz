@@ -127,7 +127,8 @@ export const AppRouter = () => {
                     name: user.name,
                     nickname: user.nickname || undefined,
                     email: user.email,
-                    avatar: user.profileImage || undefined
+                    avatar: user.profileImage || undefined,
+                    role: user.role as 'USER' | 'ADMIN' || 'USER'
                 });
             } catch (error) {
                 console.error('[AUTH] Session restoration failed:', error);
