@@ -3,18 +3,20 @@ package com.ssafy.domain.quiz.repository;
 import com.ssafy.domain.quiz.entity.ReviewContentType;
 import com.ssafy.domain.quiz.entity.UserReviewItem;
 import com.ssafy.domain.quiz.entity.UserReviewLog;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DataJpaTest
+@SpringBootTest
+@Transactional
 class UserReviewLogRepositoryTest {
 
     @Autowired
@@ -24,7 +26,7 @@ class UserReviewLogRepositoryTest {
     private UserReviewItemRepository userReviewItemRepository;
 
     @Autowired
-    private TestEntityManager entityManager;
+    private EntityManager entityManager;
 
     @Test
     @DisplayName("특정 기간 동안의 사용자 학습 이력을 오름차순으로 조회한다")
