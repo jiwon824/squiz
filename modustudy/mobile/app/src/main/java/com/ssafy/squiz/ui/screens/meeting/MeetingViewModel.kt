@@ -2,16 +2,20 @@ package com.ssafy.squiz.ui.screens.meeting
 
 import android.content.Context
 import android.content.Intent
+import android.media.MediaMetadataRetriever
 import android.os.Build
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ssafy.squiz.data.local.recording.LocalRecording
+import com.ssafy.squiz.data.local.recording.LocalRecordingRepository
 import com.ssafy.squiz.data.remote.RetrofitClient
 import com.ssafy.squiz.data.remote.model.*
 import com.ssafy.squiz.service.RecordingService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
@@ -46,7 +50,11 @@ class MeetingViewModel : ViewModel() {
 
     companion object {
         private const val TAG = "MeetingViewModel"
+        private const val MAX_DAILY_RECORDING_SECONDS = 2 * 60 * 60  // 2시간
     }
+
+    // 로컬 녹음 Repository
+    private var localRecordingRepository: LocalRecordingRepository? = null
 
     // 회의 목록 상태
     private val _meetingsState = MutableStateFlow<MeetingsUiState>(MeetingsUiState.Loading)
@@ -75,9 +83,108 @@ class MeetingViewModel : ViewModel() {
     // 녹음 상태 (RecordingService에서 가져옴)
     val recordingState = RecordingService.recordingState
 
+    // 로컬 녹음 목록 (미업로드)
+    private val _localRecordings = MutableStateFlow<List<LocalRecording>>(emptyList())
+    val localRecordings: StateFlow<List<LocalRecording>> = _localRecordings.asStateFlow()
+
+    // 선택된 녹음들의 총 시간 (초)
+    private val _selectedTotalSeconds = MutableStateFlow(0)
+    val selectedTotalSeconds: StateFlow<Int> = _selectedTotalSeconds.asStateFlow()
+
+    // 선택된 녹음 개수
+    private val _selectedCount = MutableStateFlow(0)
+    val selectedCount: StateFlow<Int> = _selectedCount.asStateFlow()
+
+    // 오늘 남은 녹음 시간 (초)
+    private val _remainingSeconds = MutableStateFlow(MAX_DAILY_RECORDING_SECONDS)
+    val remainingSeconds: StateFlow<Int> = _remainingSeconds.asStateFlow()
+
+    // 녹음 완료 후 옵션 다이얼로그 표시 여부
+    private val _showRecordingCompleteDialog = MutableStateFlow(false)
+    val showRecordingCompleteDialog: StateFlow<Boolean> = _showRecordingCompleteDialog.asStateFlow()
+
+    // 세션 선택 다이얼로그 표시 여부
+    private val _showSessionSelectDialog = MutableStateFlow(false)
+    val showSessionSelectDialog: StateFlow<Boolean> = _showSessionSelectDialog.asStateFlow()
+
+    // 스터디 세션 목록
+    private val _sessions = MutableStateFlow<List<StudySessionDTO>>(emptyList())
+    val sessions: StateFlow<List<StudySessionDTO>> = _sessions.asStateFlow()
+
+    // 업로드 대기 중인 파일 경로 (레거시 - 단일 파일 업로드 시 사용)
+    private val _pendingUploadFilePath = MutableStateFlow<String?>(null)
+
     // 페이지네이션
     private var currentPage = 0
     private var isLastPage = false
+
+    /**
+     * Repository 초기화 (Context 필요)
+     */
+    fun initRepository(context: Context) {
+        if (localRecordingRepository == null) {
+            localRecordingRepository = LocalRecordingRepository(context)
+        }
+    }
+
+    /**
+     * 로컬 녹음 목록 로드
+     */
+    fun loadLocalRecordings(studyId: Long) {
+        viewModelScope.launch {
+            localRecordingRepository?.getUnuploadedRecordings(studyId)?.collectLatest { recordings ->
+                _localRecordings.value = recordings
+                updateSelectedStats(recordings)
+            }
+        }
+    }
+
+    /**
+     * 선택 통계 업데이트
+     */
+    private fun updateSelectedStats(recordings: List<LocalRecording>) {
+        val selected = recordings.filter { it.selected }
+        _selectedCount.value = selected.size
+        _selectedTotalSeconds.value = selected.sumOf { it.durationSeconds }
+    }
+
+    /**
+     * 오늘 남은 녹음 시간 로드
+     */
+    fun loadRemainingTime(studyId: Long) {
+        viewModelScope.launch {
+            val remaining = localRecordingRepository?.getTodayRemainingSeconds(studyId)
+                ?: MAX_DAILY_RECORDING_SECONDS
+            _remainingSeconds.value = remaining
+        }
+    }
+
+    /**
+     * 녹음 선택 토글 (순서 부여/해제)
+     */
+    fun toggleRecordingSelection(recordingId: String, studyId: Long) {
+        viewModelScope.launch {
+            localRecordingRepository?.toggleSelection(recordingId, studyId)
+        }
+    }
+
+    /**
+     * 모든 선택 해제
+     */
+    fun clearAllSelections(studyId: Long) {
+        viewModelScope.launch {
+            localRecordingRepository?.clearAllSelections(studyId)
+        }
+    }
+
+    /**
+     * 녹음 삭제
+     */
+    fun deleteRecording(recording: LocalRecording) {
+        viewModelScope.launch {
+            localRecordingRepository?.deleteRecording(recording)
+        }
+    }
 
     /**
      * 회의 목록 로드
@@ -218,38 +325,242 @@ class MeetingViewModel : ViewModel() {
     }
 
     /**
-     * 녹음 중지 및 업로드 (오프라인 녹음용 - 새 엔드포인트 사용)
-     * 세션 ID가 설정된 경우 해당 세션과 연결된 미팅으로 생성됨
+     * 녹음 중지 및 로컬 저장
+     * 녹음 완료 후 로컬에 저장하고 옵션 다이얼로그 표시
      */
-    fun stopRecordingAndUpload(context: Context) {
+    fun stopRecordingAndSave(context: Context) {
         viewModelScope.launch {
             try {
                 val studyId = _currentStudyId.value
-                val sessionId = _currentSessionId.value  // 저장된 세션 ID 가져오기
+                val elapsedSeconds = recordingState.value.elapsedSeconds.toInt()
 
-                // 1. 로컬 녹음 중지
+                Log.d(TAG, "녹음 중지 시작: studyId=$studyId, duration=${elapsedSeconds}초")
+
+                // 녹음 파일 경로 가져오기 (중지 전에)
+                val audioFilePath = RecordingService.currentAudioFilePath
+
+                // 로컬 녹음 중지
                 val intent = Intent(context, RecordingService::class.java).apply {
                     action = RecordingService.ACTION_STOP_RECORDING
                 }
                 context.startService(intent)
 
-                // 녹음 파일 경로 가져오기
-                val audioFilePath = RecordingService.currentAudioFilePath
+                Log.d(TAG, "녹음 파일 경로: $audioFilePath")
 
                 if (studyId != null && audioFilePath != null) {
-                    // 2. 오프라인 녹음 업로드 (회의 자동 생성 + AI 처리 트리거)
-                    uploadOfflineRecording(studyId, sessionId, audioFilePath)
+                    // 파일 정보 가져오기
+                    val file = File(audioFilePath)
+                    val fileSize = file.length()
+                    val fileName = file.name
+
+                    // 오디오 길이 가져오기 (MediaMetadataRetriever 사용)
+                    val durationSeconds = getDurationFromFile(audioFilePath) ?: elapsedSeconds
+
+                    // 로컬 DB에 저장
+                    localRecordingRepository?.saveRecording(
+                        filePath = audioFilePath,
+                        fileName = fileName,
+                        durationSeconds = durationSeconds,
+                        fileSizeBytes = fileSize,
+                        studyId = studyId,
+                        sessionId = null  // 아직 세션 미연결
+                    )
+
+                    Log.d(TAG, "로컬 녹음 저장 완료: $fileName, ${durationSeconds}초")
+
+                    // 녹음 완료 다이얼로그 표시
+                    _showRecordingCompleteDialog.value = true
+
+                    // 로컬 녹음 목록 새로고침
+                    loadLocalRecordings(studyId)
+                    loadRemainingTime(studyId)
+                } else {
+                    Log.w(TAG, "studyId 또는 audioFilePath가 null: studyId=$studyId, audioFilePath=$audioFilePath")
                 }
 
+                // 상태 초기화
                 _currentMeetingId.value = null
                 _currentStudyId.value = null
-                _currentSessionId.value = null  // 세션 ID 초기화
+                _currentSessionId.value = null
 
             } catch (e: Exception) {
                 Log.e(TAG, "녹음 중지 실패", e)
                 _uploadState.value = UploadUiState.Error(e.message ?: "녹음 중지 실패")
             }
         }
+    }
+
+    /**
+     * 파일에서 오디오 길이 추출 (초)
+     */
+    private fun getDurationFromFile(filePath: String): Int? {
+        return try {
+            val retriever = MediaMetadataRetriever()
+            retriever.setDataSource(filePath)
+            val durationMs = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull()
+            retriever.release()
+            durationMs?.let { (it / 1000).toInt() }
+        } catch (e: Exception) {
+            Log.e(TAG, "오디오 길이 추출 실패", e)
+            null
+        }
+    }
+
+    /**
+     * 녹음 완료 다이얼로그 닫기
+     */
+    fun dismissRecordingCompleteDialog() {
+        _showRecordingCompleteDialog.value = false
+    }
+
+    /**
+     * 세션 선택 다이얼로그 표시 (업로드용)
+     */
+    fun showSessionSelectForUpload() {
+        _showSessionSelectDialog.value = true
+    }
+
+    /**
+     * 선택된 녹음들 세션에 업로드
+     */
+    fun uploadSelectedRecordings(studyId: Long, sessionId: Long) {
+        viewModelScope.launch {
+            try {
+                _uploadState.value = UploadUiState.Uploading(0)
+
+                val selectedRecordings = localRecordingRepository?.getSelectedRecordings(studyId) ?: emptyList()
+                if (selectedRecordings.isEmpty()) {
+                    _uploadState.value = UploadUiState.Error("선택된 녹음이 없습니다.")
+                    return@launch
+                }
+
+                var successCount = 0
+                var failCount = 0
+
+                selectedRecordings.forEachIndexed { index, recording ->
+                    val progress = ((index + 1) * 100) / selectedRecordings.size
+                    _uploadState.value = UploadUiState.Uploading(progress)
+
+                    val success = uploadSingleRecording(studyId, sessionId, recording.filePath)
+                    if (success) {
+                        successCount++
+                    } else {
+                        failCount++
+                    }
+                }
+
+                // 성공한 녹음들 업로드 완료 처리
+                if (successCount > 0) {
+                    localRecordingRepository?.markSelectedAsUploaded(studyId, sessionId)
+                }
+
+                if (failCount == 0) {
+                    _uploadState.value = UploadUiState.Success("${successCount}개 녹음 업로드 완료!")
+                } else {
+                    _uploadState.value = UploadUiState.Error("${successCount}개 성공, ${failCount}개 실패")
+                }
+
+                // 목록 새로고침
+                loadLocalRecordings(studyId)
+                loadMeetings(studyId, refresh = true)
+
+            } catch (e: Exception) {
+                Log.e(TAG, "녹음 업로드 실패", e)
+                _uploadState.value = UploadUiState.Error(e.message ?: "업로드 중 오류 발생")
+            }
+        }
+    }
+
+    /**
+     * 단일 녹음 업로드
+     */
+    private suspend fun uploadSingleRecording(studyId: Long, sessionId: Long, filePath: String): Boolean {
+        return try {
+            val file = File(filePath)
+            if (!file.exists()) {
+                Log.e(TAG, "파일 없음: $filePath")
+                return false
+            }
+
+            val bytes = file.readBytes()
+            val requestBody = bytes.toRequestBody("audio/mp4".toMediaTypeOrNull())
+            val multipartBody = MultipartBody.Part.createFormData("audio", file.name, requestBody)
+
+            val response = RetrofitClient.meetingApi.uploadOfflineRecording(
+                studyId = studyId,
+                audio = multipartBody,
+                sessionId = sessionId,
+                title = null
+            )
+
+            if (response.isSuccessful) {
+                Log.d(TAG, "녹음 업로드 성공: ${file.name}")
+                true
+            } else {
+                Log.e(TAG, "녹음 업로드 실패: ${response.code()}")
+                false
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "녹음 업로드 예외", e)
+            false
+        }
+    }
+
+    /**
+     * 스터디 세션 목록 로드
+     */
+    fun loadSessions(studyId: Long) {
+        viewModelScope.launch {
+            try {
+                Log.d(TAG, "세션 목록 로드 시작: studyId=$studyId")
+                val response = RetrofitClient.studyApi.getStudySessions(studyId)
+                if (response.isSuccessful) {
+                    // 오프라인 세션만 필터링 (isOnline == false 또는 null)
+                    val allSessions = response.body() ?: emptyList()
+                    Log.d(TAG, "전체 세션 ${allSessions.size}개 로드됨")
+                    val sessionList = allSessions.filter { it.isOnline != true }
+                    _sessions.value = sessionList
+                    Log.d(TAG, "오프라인 세션 목록 로드 완료: ${sessionList.size}개")
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    Log.e(TAG, "세션 목록 로드 실패: ${response.code()}, error=$errorBody")
+                    _sessions.value = emptyList()
+                    // 에러가 발생해도 다이얼로그는 표시 (빈 목록으로)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "세션 목록 로드 실패", e)
+                _sessions.value = emptyList()
+            }
+        }
+    }
+
+    /**
+     * 세션 선택 후 업로드
+     */
+    fun uploadWithSelectedSession(sessionId: Long?) {
+        viewModelScope.launch {
+            val studyId = _currentStudyId.value
+            val filePath = _pendingUploadFilePath.value
+
+            if (studyId != null && filePath != null) {
+                uploadOfflineRecording(studyId, sessionId, filePath)
+            }
+
+            // 상태 초기화
+            _showSessionSelectDialog.value = false
+            _pendingUploadFilePath.value = null
+            _currentMeetingId.value = null
+            _currentStudyId.value = null
+            _currentSessionId.value = null
+        }
+    }
+
+    /**
+     * 세션 선택 다이얼로그 닫기 (업로드 취소)
+     */
+    fun dismissSessionSelectDialog() {
+        _showSessionSelectDialog.value = false
+        // 파일 경로는 유지 (다시 선택할 수 있도록)
     }
 
     /**

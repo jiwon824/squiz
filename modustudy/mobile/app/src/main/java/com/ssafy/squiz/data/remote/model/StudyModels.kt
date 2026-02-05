@@ -261,7 +261,9 @@ data class StudySessionDTO(
             isOnline = isOnline ?: true,
             meetingUrl = null,
             attendanceStatus = null,
-            isLeader = isLeader
+            isLeader = isLeader,
+            scheduledAt = scheduledAt,
+            durationMinutes = durationMinutes
         )
     }
 }

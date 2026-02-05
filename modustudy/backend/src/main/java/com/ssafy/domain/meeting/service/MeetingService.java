@@ -18,6 +18,7 @@ import com.ssafy.domain.meeting.repository.MeetingRepository;
 import com.ssafy.domain.meeting.repository.MeetingSttFileRepository;
 import com.ssafy.domain.meeting.repository.MeetingSttSummaryRepository;
 import com.ssafy.domain.attendance.service.AttendanceService;
+import com.ssafy.domain.study.entity.SessionStatus;
 import com.ssafy.domain.study.entity.Study;
 import com.ssafy.domain.study.repository.StudyRepository;
 import com.ssafy.domain.study.repository.StudySessionRepository;
@@ -435,9 +436,14 @@ public class MeetingService {
         }
 
         // 세션이 있으면 세션 완료 처리 (온라인 미팅 종료와 동일한 처리)
+        // 이미 완료된 세션이면 complete() 호출 스킵 (세션당 여러 녹음 허용)
         if (sessionId != null) {
             studySessionRepository.findById(sessionId).ifPresent(session -> {
-                session.complete();
+                // 아직 완료되지 않은 세션만 완료 처리
+                if (session.getStatus() == SessionStatus.IN_PROGRESS ||
+                    session.getStatus() == SessionStatus.SCHEDULED) {
+                    session.complete();
+                }
                 if (durationSeconds > 0) {
                     int minutes = (int) Math.ceil(durationSeconds / 60.0);
                     studySessionService.updateDurationFromMeeting(studyId, sessionId, minutes);

@@ -17,6 +17,7 @@ import com.ssafy.squiz.data.remote.RetrofitClient
 import com.ssafy.squiz.data.remote.model.FcmTokenRequest
 import com.ssafy.squiz.data.repository.AuthRepository
 import com.ssafy.squiz.service.SquizFirebaseMessagingService
+import com.ssafy.squiz.worker.RecordingCleanupWorker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -81,7 +82,17 @@ class SquizApplication : Application() {
         // FCM 토큰 초기화
         initFcmToken()
 
+        // 녹음 파일 자동 정리 스케줄링 (7일 후 자동 삭제)
+        scheduleRecordingCleanup()
+
         Log.d(TAG, "SquizApplication initialized")
+    }
+
+    /**
+     * 만료된 녹음 파일 자동 정리 스케줄링
+     */
+    private fun scheduleRecordingCleanup() {
+        RecordingCleanupWorker.schedule(applicationContext)
     }
 
     private fun initKakaoSdk() {

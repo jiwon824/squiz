@@ -718,18 +718,38 @@ fun AttendanceCalendarScreen(
     val statsState by viewModel.statsState.collectAsState()
     val historyState by viewModel.historyState.collectAsState()
 
+    // 현재 날짜 기준 연/월 상태
+    var currentYear by remember { mutableIntStateOf(java.time.LocalDate.now().year) }
+    var currentMonth by remember { mutableIntStateOf(java.time.LocalDate.now().monthValue) }
+
     // 데이터 로드
     LaunchedEffect(studyId) {
         viewModel.loadAttendanceStats(studyId)
         viewModel.loadAttendanceHistory(studyId)
     }
 
-    // 출석한 날짜 추출
-    val attendedDays = remember(historyState) {
+    // 현재 월의 첫째 날 요일 (0=일, 1=월, ...)
+    val firstDayOfWeek = remember(currentYear, currentMonth) {
+        val firstDay = java.time.LocalDate.of(currentYear, currentMonth, 1)
+        firstDay.dayOfWeek.value % 7  // 일요일=0 으로 변환
+    }
+
+    // 현재 월의 마지막 날짜
+    val daysInMonth = remember(currentYear, currentMonth) {
+        java.time.YearMonth.of(currentYear, currentMonth).lengthOfMonth()
+    }
+
+    // 현재 선택된 년월 문자열 (yyyy-MM 형식으로 비교용)
+    val currentYearMonth = remember(currentYear, currentMonth) {
+        String.format("%04d-%02d", currentYear, currentMonth)
+    }
+
+    // 출석한 날짜 추출 (현재 월 기준)
+    val attendedDays = remember(historyState, currentYearMonth) {
         when (val state = historyState) {
             is AttendanceHistoryUiState.Success -> {
                 state.history
-                    .filter { it.status == "PRESENT" || it.status == "LATE" }
+                    .filter { (it.status == "PRESENT" || it.status == "LATE") && it.sessionDate.startsWith(currentYearMonth) }
                     .mapNotNull {
                         try {
                             it.sessionDate.substring(8, 10).toInt()
@@ -741,11 +761,11 @@ fun AttendanceCalendarScreen(
         }
     }
 
-    val lateDays = remember(historyState) {
+    val lateDays = remember(historyState, currentYearMonth) {
         when (val state = historyState) {
             is AttendanceHistoryUiState.Success -> {
                 state.history
-                    .filter { it.status == "LATE" }
+                    .filter { it.status == "LATE" && it.sessionDate.startsWith(currentYearMonth) }
                     .mapNotNull {
                         try {
                             it.sessionDate.substring(8, 10).toInt()
@@ -757,7 +777,7 @@ fun AttendanceCalendarScreen(
         }
     }
 
-    val days = (1..31).toList()
+    val days = (1..daysInMonth).toList()
 
     Scaffold(
         topBar = { SquizTopBar(title = "출석 캘린더", onBackClick = onBackClick) }
@@ -774,15 +794,29 @@ fun AttendanceCalendarScreen(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = { }) {
+                IconButton(onClick = {
+                    if (currentMonth == 1) {
+                        currentMonth = 12
+                        currentYear -= 1
+                    } else {
+                        currentMonth -= 1
+                    }
+                }) {
                     Icon(Icons.Default.ChevronLeft, contentDescription = "이전 달")
                 }
                 Text(
-                    text = "2024년 1월",
+                    text = "${currentYear}년 ${currentMonth}월",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
-                IconButton(onClick = { }) {
+                IconButton(onClick = {
+                    if (currentMonth == 12) {
+                        currentMonth = 1
+                        currentYear += 1
+                    } else {
+                        currentMonth += 1
+                    }
+                }) {
                     Icon(Icons.Default.ChevronRight, contentDescription = "다음 달")
                 }
             }
@@ -812,7 +846,7 @@ fun AttendanceCalendarScreen(
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 // 빈 칸 (월의 시작 요일에 맞춤)
-                items(2) {
+                items(firstDayOfWeek) {
                     Box(modifier = Modifier.aspectRatio(1f))
                 }
 

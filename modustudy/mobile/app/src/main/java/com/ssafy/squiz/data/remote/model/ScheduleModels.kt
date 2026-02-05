@@ -28,7 +28,10 @@ data class SessionDTO(
     @SerializedName("isOnline") val isOnline: Boolean = true,
     @SerializedName("meetingUrl") val meetingUrl: String? = null,
     @SerializedName("attendanceStatus") val attendanceStatus: String? = null,  // PRESENT, ABSENT, LATE, PENDING
-    @SerializedName("isLeader") val isLeader: Boolean? = null
+    @SerializedName("isLeader") val isLeader: Boolean? = null,
+    // 출석 시간 체크용 필드
+    @SerializedName("scheduledAt") val scheduledAt: String? = null,
+    @SerializedName("durationMinutes") val durationMinutes: Int? = null
 )
 
 // 일정 목록 응답

@@ -52,24 +52,24 @@ interface UserApi {
     ): Response<ApiResponse<PrivacySettings>>
 
     /**
-     * 활동 통계 조회
+     * 활동 통계 조회 (Gamification API)
      */
-    @GET("api/v1/users/me/activity-stats")
+    @GET("api/v1/gamification/stats")
     suspend fun getActivityStats(): Response<ApiResponse<ActivityStats>>
 
     /**
-     * 잔디 데이터 조회
+     * 잔디 데이터 조회 (Gamification API - contributions)
      */
-    @GET("api/v1/users/me/grass")
+    @GET("api/v1/gamification/contributions")
     suspend fun getGrassData(
         @Query("year") year: Int,
-        @Query("month") month: Int
+        @Query("month") month: Int?
     ): Response<ApiResponse<GrassData>>
 
     /**
-     * 활동 상세 조회
+     * 활동 상세 조회 (Gamification API)
      */
-    @GET("api/v1/users/me/activity/{date}")
+    @GET("api/v1/gamification/contributions/{date}")
     suspend fun getActivityDetail(
         @Path("date") date: String
     ): Response<ApiResponse<ActivityDetail>>

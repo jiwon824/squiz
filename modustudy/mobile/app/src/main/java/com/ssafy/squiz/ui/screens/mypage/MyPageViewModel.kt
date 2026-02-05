@@ -12,7 +12,7 @@ import kotlinx.coroutines.launch
 // UI 상태 클래스들
 sealed class ProfileState {
     object Loading : ProfileState()
-    data class Success(val profile: UserProfileDTO) : ProfileState()
+    data class Success(val profile: UserProfileDTO, val stats: GamificationStats? = null) : ProfileState()
     data class Error(val message: String) : ProfileState()
 }
 
@@ -88,17 +88,24 @@ class MyPageViewModel : ViewModel() {
         viewModelScope.launch {
             _profileState.value = ProfileState.Loading
             try {
-                val response = RetrofitClient.userApi.getMyProfile()
+                // 프로필과 통계를 병렬로 로드
+                val profileResponse = RetrofitClient.userApi.getMyProfile()
+                val statsResponse = try {
+                    RetrofitClient.gamificationApi.getMyStats()
+                } catch (e: Exception) {
+                    null
+                }
 
-                if (response.isSuccessful) {
-                    val profile = response.body()?.data
+                if (profileResponse.isSuccessful) {
+                    val profile = profileResponse.body()?.data
+                    val stats = statsResponse?.body()?.data
                     if (profile != null) {
-                        _profileState.value = ProfileState.Success(profile)
+                        _profileState.value = ProfileState.Success(profile, stats)
                     } else {
                         _profileState.value = ProfileState.Error("프로필 정보를 찾을 수 없습니다.")
                     }
                 } else {
-                    _profileState.value = ProfileState.Error("프로필을 불러오는데 실패했습니다. (${response.code()})")
+                    _profileState.value = ProfileState.Error("프로필을 불러오는데 실패했습니다. (${profileResponse.code()})")
                 }
             } catch (e: Exception) {
                 _profileState.value = ProfileState.Error(e.message ?: "네트워크 오류가 발생했습니다.")
@@ -210,7 +217,7 @@ class MyPageViewModel : ViewModel() {
         }
     }
 
-    // 잔디 데이터 로드 (실제 API 연동)
+    // 잔디 데이터 로드 (실제 API 연동 - Gamification contributions)
     fun loadGrassData(year: Int, month: Int) {
         viewModelScope.launch {
             _grassState.value = GrassState.Loading
@@ -222,16 +229,9 @@ class MyPageViewModel : ViewModel() {
                     if (data != null) {
                         _grassState.value = GrassState.Success(data)
                     } else {
-                        // 빈 데이터 생성
-                        val daysInMonth = java.util.Calendar.getInstance().apply {
-                            set(year, month - 1, 1)
-                        }.getActualMaximum(java.util.Calendar.DAY_OF_MONTH)
-
-                        val emptyDays = (1..daysInMonth).map { day ->
-                            GrassDay(day = day, level = 0, count = 0)
-                        }
+                        // 빈 데이터 생성 (contributions 비어있음)
                         _grassState.value = GrassState.Success(
-                            GrassData(year = year, month = month, days = emptyDays)
+                            GrassData(year = year, month = month, contributions = emptyList())
                         )
                     }
                 } else {
@@ -255,11 +255,10 @@ class MyPageViewModel : ViewModel() {
                     if (detail != null) {
                         _activityDetailState.value = ActivityDetailState.Success(detail)
                     } else {
-                        // 빈 활동
+                        // 빈 활동 (studyTime은 computed property)
                         _activityDetailState.value = ActivityDetailState.Success(
                             ActivityDetail(
                                 date = date,
-                                studyTime = "0분",
                                 activities = emptyList()
                             )
                         )

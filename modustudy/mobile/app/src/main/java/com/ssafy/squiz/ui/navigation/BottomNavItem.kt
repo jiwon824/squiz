@@ -40,7 +40,7 @@ sealed class BottomNavItem(
 
     object MyPage : BottomNavItem(
         route = NavRoutes.MyPage.route,
-        title = "마이",
+        title = "My",
         selectedIcon = Icons.Filled.Person,
         unselectedIcon = Icons.Outlined.Person
     )

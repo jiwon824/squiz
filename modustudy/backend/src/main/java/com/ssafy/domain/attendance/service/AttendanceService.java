@@ -47,11 +47,11 @@ import java.util.stream.Collectors;
 @Transactional
 public class AttendanceService {
     private static final int SELF_ATTENDANCE_DELAY_MINUTES = 15;
-    private static final int LATE_THRESHOLD_MINUTES = 10;
+    private static final int LATE_THRESHOLD_MINUTES = 10;  // 세션 시작 +10분 이후 지각
 
     // 세션 시간 검증용 상수
     private static final int ATTENDANCE_WINDOW_BEFORE_MINUTES = 30;  // 세션 시작 30분 전부터 출석 가능
-    private static final int ATTENDANCE_WINDOW_AFTER_MINUTES = 30;   // 세션 종료 30분 후까지 출석 가능
+    // 세션 종료 이후에는 출석 불가 (결석 처리)
 
     private final AttendanceRepository attendanceRepository;
     private final StudySessionRepository studySessionRepository;
@@ -415,14 +415,32 @@ public class AttendanceService {
         }
     }
 
+    /**
+     * 출석 정보 업데이트
+     * - 세션 시작 -30분 ~ +10분: 정상 출석 (PRESENT)
+     * - 세션 시작 +10분 ~ 세션 종료: 지각 (LATE)
+     * - 세션 종료 이후: 결석 (ABSENT) - validateAttendanceTimeWindow에서 차단됨
+     */
     private void updateCheckInfo(Attendance attendance, AttendanceCheckType checkType, StudySession session) {
         LocalDateTime now = LocalDateTime.now();
+        LocalDateTime sessionStart = session.getScheduledAt();
+        int duration = session.getDurationMinutes() != null ? session.getDurationMinutes() : 60;
+        LocalDateTime sessionEnd = sessionStart.plusMinutes(duration);
+        LocalDateTime lateThreshold = sessionStart.plusMinutes(LATE_THRESHOLD_MINUTES);
+
         attendance.setCheckType(checkType);
         attendance.setCheckedAt(now);
-        LocalDateTime lateThreshold = session.getScheduledAt().plusMinutes(LATE_THRESHOLD_MINUTES);
-        if (now.isAfter(lateThreshold)) {
+
+        // 세션 종료 이후: 결석 (안전장치, validateAttendanceTimeWindow에서 먼저 차단됨)
+        if (now.isAfter(sessionEnd)) {
+            attendance.setStatus(AttendanceStatus.ABSENT);
+        }
+        // 세션 시작 +10분 이후 ~ 세션 종료: 지각
+        else if (now.isAfter(lateThreshold)) {
             attendance.setStatus(AttendanceStatus.LATE);
-        } else {
+        }
+        // 세션 시작 -30분 ~ +10분: 정상 출석
+        else {
             attendance.setStatus(AttendanceStatus.PRESENT);
         }
     }
@@ -460,6 +478,8 @@ public class AttendanceService {
 
     /**
      * 세션 출석 가능 시간 검증
+     * - 세션 시작 30분 전부터 출석 가능
+     * - 세션 종료 이후에는 출석 불가 (결석 처리)
      */
     private void validateAttendanceTimeWindow(StudySession session) {
         LocalDateTime now = LocalDateTime.now();
@@ -468,7 +488,6 @@ public class AttendanceService {
         LocalDateTime sessionEnd = sessionStart.plusMinutes(duration);
 
         LocalDateTime windowStart = sessionStart.minusMinutes(ATTENDANCE_WINDOW_BEFORE_MINUTES);
-        LocalDateTime windowEnd = sessionEnd.plusMinutes(ATTENDANCE_WINDOW_AFTER_MINUTES);
 
         if (now.isBefore(windowStart)) {
             throw new IllegalStateException(
@@ -477,11 +496,9 @@ public class AttendanceService {
             );
         }
 
-        if (now.isAfter(windowEnd)) {
-            throw new IllegalStateException(
-                    String.format("출석 가능 시간이 종료되었습니다. (세션 종료: %s)",
-                            sessionEnd.toLocalTime().toString().substring(0, 5))
-            );
+        // 세션 종료 이후에는 출석 불가 (결석)
+        if (now.isAfter(sessionEnd)) {
+            throw new IllegalStateException("출석 가능 시각이 종료되었습니다.");
         }
     }
 
