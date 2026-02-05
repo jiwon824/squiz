@@ -105,7 +105,8 @@ export const LoginPage = () => {
                 name: data.user.name,
                 nickname: data.user.nickname || undefined,
                 email: data.user.email,
-                avatar: data.user.profileImage || undefined
+                avatar: data.user.profileImage || undefined,
+                role: data.user.role || 'USER'
             });
 
             console.log('[INFO] 로그인 성공!');

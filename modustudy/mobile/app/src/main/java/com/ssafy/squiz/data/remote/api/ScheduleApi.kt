@@ -54,9 +54,10 @@ interface ScheduleApi {
     suspend fun getGoogleSyncStatus(): Response<ApiResponse<GoogleSyncStatus>>
 
     /**
-     * Google 캘린더 연결 (Authorization Code로)
+     * Google 캘린더 연결 (Authorization Code로) - 모바일용
+     * 모바일은 redirect_uri 없이 토큰 교환하므로 별도 엔드포인트 사용
      */
-    @POST("api/v1/calendar/connect")
+    @POST("api/v1/calendar/connect/mobile")
     suspend fun connectGoogleCalendar(
         @Body request: Map<String, String>
     ): Response<ApiResponse<GoogleSyncStatus>>

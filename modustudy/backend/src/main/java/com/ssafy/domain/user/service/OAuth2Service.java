@@ -898,6 +898,109 @@ public class OAuth2Service {
     }
 
     /**
+     * 모바일용 소셜 계정 연동 (redirect_uri 없이)
+     */
+    public SocialAccountResponse linkSocialAccountMobile(Long userId, SocialProvider provider, String code) {
+        log.info("모바일 소셜 계정 연동 시작: userId={}, provider={}", userId, provider);
+
+        if (provider != SocialProvider.GOOGLE) {
+            throw new IllegalArgumentException("모바일 연동은 Google만 지원합니다.");
+        }
+
+        // 1. 현재 사용자 조회
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        // 2. 모바일용 토큰 교환 (redirect_uri 없이)
+        Map<String, Object> googleTokens = getGoogleTokensMobile(code);
+        String accessToken = (String) googleTokens.get("access_token");
+        String refreshToken = (String) googleTokens.get("refresh_token");
+        Integer expiresIn = (Integer) googleTokens.get("expires_in");
+        OAuth2UserInfo userInfo = getGoogleUserInfo(accessToken);
+        log.info("모바일 Google 연동 토큰 획득: accessToken 있음={}, refreshToken 있음={}", accessToken != null, refreshToken != null);
+
+        // 3. 이미 연동되어 있는지 확인
+        Optional<UserSocialAccount> existingSocial = socialAccountRepository
+                .findByProviderAndProviderUserId(provider, userInfo.getProviderId());
+
+        if (existingSocial.isPresent()) {
+            UserSocialAccount social = existingSocial.get();
+
+            // 본인의 계정인 경우 - 토큰만 업데이트
+            if (social.getUser().getId().equals(userId)) {
+                social.updateTokens(
+                        accessToken,
+                        refreshToken,
+                        expiresIn != null ? LocalDateTime.now().plusSeconds(expiresIn) : null
+                );
+                socialAccountRepository.save(social);
+                log.info("모바일: 기존 Google 계정 토큰 업데이트 완료: userId={}", userId);
+                return SocialAccountResponse.from(social);
+            }
+
+            // 다른 사람의 계정인 경우
+            throw new IllegalStateException("해당 소셜 계정은 다른 사용자에게 연동되어 있습니다.");
+        }
+
+        // 4. 새로운 소셜 계정 연동
+        UserSocialAccount newSocialAccount = UserSocialAccount.builder()
+                .user(user)
+                .provider(provider)
+                .providerUserId(userInfo.getProviderId())
+                .email(userInfo.getEmail())
+                .isPrimary(false)
+                .linkedAt(LocalDateTime.now())
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .tokenExpiresAt(expiresIn != null ? LocalDateTime.now().plusSeconds(expiresIn) : null)
+                .calendarId("primary")
+                .build();
+
+        socialAccountRepository.save(newSocialAccount);
+        log.info("모바일 소셜 계정 연동 완료: userId={}, provider={}", userId, provider);
+
+        return SocialAccountResponse.from(newSocialAccount);
+    }
+
+    /**
+     * 모바일용 Google 토큰 교환 (redirect_uri 없이)
+     */
+    private Map<String, Object> getGoogleTokensMobile(String code) {
+        String tokenUrl = "https://oauth2.googleapis.com/token";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+        params.add("grant_type", "authorization_code");
+        params.add("client_id", googleClientId);
+        params.add("client_secret", googleClientSecret);
+        params.add("code", code);
+        // 모바일에서는 redirect_uri 생략 또는 빈 값
+
+        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
+
+        try {
+            ResponseEntity<Map> response = restTemplate.postForEntity(tokenUrl, request, Map.class);
+            Map<String, Object> body = response.getBody();
+
+            if (body != null && body.containsKey("error")) {
+                log.error("모바일 Google 토큰 발급 실패: {}", body.get("error_description"));
+                throw new RuntimeException("Google 토큰 발급 실패: " + body.get("error_description"));
+            }
+
+            log.info("모바일 Google 토큰 발급 성공: access_token 있음={}, refresh_token 있음={}",
+                    body != null && body.containsKey("access_token"),
+                    body != null && body.containsKey("refresh_token"));
+
+            return body;
+        } catch (Exception e) {
+            log.error("모바일 Google 토큰 교환 실패: {}", e.getMessage());
+            throw new RuntimeException("Google 인증 실패: " + e.getMessage());
+        }
+    }
+
+    /**
      * OAuth code로 소셜 사용자 정보 가져오기 (헬퍼 메서드)
      */
     private OAuth2UserInfo getOAuth2UserInfo(SocialProvider provider, String code) {
