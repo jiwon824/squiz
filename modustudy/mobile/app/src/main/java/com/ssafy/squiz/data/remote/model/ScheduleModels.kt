@@ -59,5 +59,47 @@ data class CalendarInfo(
 // 캘린더 데이터
 data class CalendarData(
     @SerializedName("scheduledDays") val scheduledDays: List<Int>,
-    @SerializedName("schedules") val schedules: List<ScheduleDTO>
+    @SerializedName("schedules") val schedules: List<ScheduleDTO>,
+    @SerializedName("googleEvents") val googleEvents: List<GoogleCalendarEvent> = emptyList()
+)
+
+// Google 캘린더 이벤트
+data class GoogleCalendarEvent(
+    @SerializedName("id") val id: String,
+    @SerializedName("title") val title: String?,
+    @SerializedName("description") val description: String? = null,
+    @SerializedName("startTime") val startTime: String?,
+    @SerializedName("endTime") val endTime: String? = null,
+    @SerializedName("location") val location: String? = null
+)
+
+// 모든 일정 통합 응답 (개인 + 스터디 + Google Calendar)
+data class AllSchedulesResponse(
+    @SerializedName("personal") val personal: List<PersonalSchedule> = emptyList(),
+    @SerializedName("studySessions") val studySessions: List<StudySessionCalendar> = emptyList(),
+    @SerializedName("googleEvents") val googleEvents: List<GoogleCalendarEvent> = emptyList()
+)
+
+// 개인 일정
+data class PersonalSchedule(
+    @SerializedName("id") val id: Long,
+    @SerializedName("title") val title: String,
+    @SerializedName("description") val description: String? = null,
+    @SerializedName("startDate") val startDate: String,
+    @SerializedName("endDate") val endDate: String? = null,
+    @SerializedName("isAllDay") val isAllDay: Boolean = false
+)
+
+// 스터디 세션 (캘린더용)
+data class StudySessionCalendar(
+    @SerializedName("id") val id: Long,
+    @SerializedName("studyId") val studyId: Long,
+    @SerializedName("sessionNumber") val sessionNumber: Int? = null,
+    @SerializedName("title") val title: String? = null,
+    @SerializedName("description") val description: String? = null,
+    @SerializedName("scheduledAt") val scheduledAt: String?,
+    @SerializedName("durationMinutes") val durationMinutes: Int? = null,
+    @SerializedName("location") val location: String? = null,
+    @SerializedName("isOnline") val isOnline: Boolean = true,
+    @SerializedName("status") val status: String? = null
 )

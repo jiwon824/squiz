@@ -73,4 +73,14 @@ interface ScheduleApi {
      */
     @POST("api/v1/calendar/sync")
     suspend fun syncSchedules(): Response<ApiResponse<Unit>>
+
+    /**
+     * 모든 일정 통합 조회 (개인 + 스터디 + Google Calendar)
+     * Google 캘린더 연동 시 Google 일정도 포함됨
+     */
+    @GET("api/v1/calendar/all")
+    suspend fun getAllSchedules(
+        @Query("startDate") startDate: String,
+        @Query("endDate") endDate: String
+    ): Response<ApiResponse<AllSchedulesResponse>>
 }

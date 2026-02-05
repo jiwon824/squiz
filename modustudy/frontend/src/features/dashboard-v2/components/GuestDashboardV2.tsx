@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, Brain, Video, TrendingUp, FileText, BarChart3, ArrowUpRight, Calendar, Clock, Users, ChevronRight, Search, CheckCircle2, Circle, BookOpen, Star, ListChecks, Hash } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 import { Button } from '@/shared/components/Button';
+import { LandingHero } from './LandingHero';
 
 import { mockStudies } from '../../study/mockData';
 import StudyCardContentV2 from '../../study/components/StudyCardContentV2';
@@ -62,9 +63,10 @@ export const GuestDashboardV2: React.FC = () => {
     const currentHero = HERO_MESSAGES[currentIndex];
     const Icon = currentHero.icon;
 
-    // 스크롤 진행도 공통 헬퍼
+    // 스크롤 진행도 공통 헬퍼 (useSpring으로 부드러운 보간)
     const useScrollProgress = (ref: React.RefObject<HTMLElement | null>) => {
-        const progress = useMotionValue(0);
+        const rawProgress = useMotionValue(0);
+        const progress = useSpring(rawProgress, { stiffness: 100, damping: 30, restDelta: 0.001 });
         useEffect(() => {
             const container = document.getElementById('guest-content-scroll');
             const target = ref.current;
@@ -74,12 +76,12 @@ export const GuestDashboardV2: React.FC = () => {
                 const tRect = target.getBoundingClientRect();
                 const relTop = tRect.top - cRect.top;
                 const total = cRect.height + tRect.height;
-                progress.set(Math.max(0, Math.min(1, (cRect.height - relTop) / total)));
+                rawProgress.set(Math.max(0, Math.min(1, (cRect.height - relTop) / total)));
             };
             container.addEventListener('scroll', update, { passive: true });
             update();
             return () => container.removeEventListener('scroll', update);
-        }, [ref, progress]);
+        }, [ref, rawProgress]);
         return progress;
     };
 
@@ -97,6 +99,9 @@ export const GuestDashboardV2: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-white">
+            {/* 랜딩 히어로 섹션 */}
+            <LandingHero />
+
             {/* 히어로 섹션 - Apple 스타일 */}
             <section
                 className="relative min-h-[80vh] flex items-center justify-center py-12"

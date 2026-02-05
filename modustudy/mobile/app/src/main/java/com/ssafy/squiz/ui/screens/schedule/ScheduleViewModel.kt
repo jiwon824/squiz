@@ -134,7 +134,7 @@ class ScheduleViewModel : ViewModel() {
         }
     }
 
-    // 캘린더 데이터 로드 (실제 API 연동)
+    // 캘린더 데이터 로드 (통합 API - 스터디 세션 + Google 캘린더)
     fun loadCalendarData() {
         viewModelScope.launch {
             _calendarState.value = CalendarState.Loading
@@ -151,22 +151,62 @@ class ScheduleViewModel : ViewModel() {
                 val startDate = java.time.LocalDate.of(year, month, 1)
                 val endDate = startDate.plusMonths(1).minusDays(1)
 
-                val response = RetrofitClient.scheduleApi.getMonthSchedules(
+                // 통합 API 호출 (스터디 세션 + Google 캘린더 이벤트)
+                val response = RetrofitClient.scheduleApi.getAllSchedules(
                     startDate.toString(),
                     endDate.toString()
                 )
 
                 if (response.isSuccessful) {
-                    val sessionList = response.body() ?: emptyList()
-                    val schedules = sessionList.map { session ->
-                        val dto = session.toScheduleDTO()
-                        // 스터디명이 없으면 캐시에서 조회
-                        if (dto.studyName.startsWith("스터디 #")) {
-                            dto.copy(studyName = studyNameCache[dto.studyId] ?: dto.studyName)
-                        } else {
-                            dto
+                    val allSchedules = response.body()?.data
+
+                    // 스터디 세션을 ScheduleDTO로 변환
+                    val studySchedules = allSchedules?.studySessions?.mapNotNull { session ->
+                        session.scheduledAt?.let { scheduledAt ->
+                            try {
+                                val dateTime = java.time.LocalDateTime.parse(scheduledAt)
+                                val studyName = studyNameCache[session.studyId] ?: "스터디 #${session.studyId}"
+                                ScheduleDTO(
+                                    studyId = session.studyId,
+                                    sessionId = session.id,
+                                    studyName = studyName,
+                                    date = dateTime.toLocalDate().toString(),
+                                    startTime = dateTime.toLocalTime().toString().take(5),
+                                    endTime = session.durationMinutes?.let {
+                                        dateTime.plusMinutes(it.toLong()).toLocalTime().toString().take(5)
+                                    } ?: "",
+                                    location = session.location,
+                                    isOnline = session.isOnline
+                                )
+                            } catch (e: Exception) { null }
                         }
-                    }
+                    } ?: emptyList()
+
+                    // Google 캘린더 이벤트를 ScheduleDTO로 변환
+                    val googleSchedules = allSchedules?.googleEvents?.mapNotNull { event ->
+                        event.startTime?.let { startTime ->
+                            try {
+                                val dateTime = java.time.LocalDateTime.parse(startTime)
+                                ScheduleDTO(
+                                    studyId = -1,  // Google 이벤트 식별용
+                                    sessionId = -1,
+                                    studyName = "[Google] ${event.title ?: "일정"}",
+                                    date = dateTime.toLocalDate().toString(),
+                                    startTime = dateTime.toLocalTime().toString().take(5),
+                                    endTime = event.endTime?.let {
+                                        try {
+                                            java.time.LocalDateTime.parse(it).toLocalTime().toString().take(5)
+                                        } catch (e: Exception) { "" }
+                                    } ?: "",
+                                    location = event.location,
+                                    isOnline = false
+                                )
+                            } catch (e: Exception) { null }
+                        }
+                    } ?: emptyList()
+
+                    // 모든 일정 병합
+                    val schedules = studySchedules + googleSchedules
 
                     // scheduledDays 추출 (일정이 있는 날짜들)
                     val scheduledDays = schedules.mapNotNull { schedule ->
@@ -180,10 +220,12 @@ class ScheduleViewModel : ViewModel() {
                         schedules = schedules
                     )
                     _calendarState.value = CalendarState.Success(calendarData)
+                    Log.d(TAG, "캘린더 로드 완료: 스터디 ${studySchedules.size}개, Google ${googleSchedules.size}개")
                 } else {
                     _calendarState.value = CalendarState.Error("캘린더 데이터를 불러오는데 실패했습니다. (${response.code()})")
                 }
             } catch (e: Exception) {
+                Log.e(TAG, "캘린더 로드 실패", e)
                 _calendarState.value = CalendarState.Error(e.message ?: "네트워크 오류가 발생했습니다.")
             }
         }
