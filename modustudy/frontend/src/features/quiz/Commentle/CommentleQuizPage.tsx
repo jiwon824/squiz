@@ -70,9 +70,13 @@ export const CommentleQuizPage: React.FC = () => {
 
                     {/* 오른쪽: 시각화 영역 (데스크탑만) */}
                     <div className="hidden lg:block flex-1">
-                        <div className="sticky top-6 space-y-6">
-                            <Commentle3DView guesses={guesses} />
-                            <CommentleStatsBoard leaderboard={leaderboard} />
+                        <div className="sticky top-6 flex flex-col gap-6">
+                            <div>
+                                <Commentle3DView guesses={guesses} />
+                            </div>
+                            <div>
+                                <CommentleStatsBoard leaderboard={leaderboard} />
+                            </div>
                         </div>
                     </div>
                 </div>

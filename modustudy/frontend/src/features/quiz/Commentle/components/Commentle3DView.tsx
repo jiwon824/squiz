@@ -17,7 +17,7 @@ export const Commentle3DView: React.FC<Commentle3DViewProps> = ({ guesses }) => 
         importEmbedding3DViewer();
     }, []);
     return (
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-1.5 shadow-2xl h-full min-h-[600px] flex flex-col overflow-hidden group">
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-1.5 shadow-2xl min-h-[600px] lg:min-h-0 flex flex-col overflow-hidden group">
             <div className="flex items-center gap-3 px-6 py-4 border-b border-slate-800/50">
                 <div className="bg-primary/20 p-2 rounded-xl text-primary-light">
                     <Box size={20} />
