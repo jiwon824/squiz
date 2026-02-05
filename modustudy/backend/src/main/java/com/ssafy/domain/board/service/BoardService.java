@@ -85,7 +85,7 @@ public class BoardService {
     @Transactional
     public BoardPostDetailResponse getPostDetail(Long postId) {
         BoardPost post = boardPostRepository.findByIdAndIsDeletedFalse(postId)
-                .orElseThrow(() -> new NotFoundException("BOARD_POST_NOT_FOUND", "紐⑥쭛湲??李얠쓣 ???놁뒿?덈떎."));
+                .orElseThrow(() -> new NotFoundException("BOARD_POST_NOT_FOUND", "모집글을 찾을 수 없습니다."));
         post.increaseViewCount();
         List<BoardCommentResponse> comments = boardCommentRepository
                 .findByPostIdAndIsDeletedFalseOrderByCreatedAtAsc(postId)
@@ -98,9 +98,9 @@ public class BoardService {
     @Transactional
     public BoardPostDetailResponse updatePost(Long userId, Long postId, BoardPostUpdateRequest request) {
         BoardPost post = boardPostRepository.findByIdAndIsDeletedFalse(postId)
-                .orElseThrow(() -> new NotFoundException("BOARD_POST_NOT_FOUND", "紐⑥쭛湲??李얠쓣 ???놁뒿?덈떎."));
+                .orElseThrow(() -> new NotFoundException("BOARD_POST_NOT_FOUND", "모집글을 찾을 수 없습니다."));
         if (!post.getAuthor().getId().equals(userId)) {
-            throw new BusinessException("NO_PERMISSION", "?묒꽦?먮쭔 ?섏젙?????덉뒿?덈떎.");
+            throw new BusinessException("NO_PERMISSION", "작성자만 수정할 수 있습니다.");
         }
         post.update(
                 request.title(),
@@ -120,9 +120,9 @@ public class BoardService {
     @Transactional
     public void deletePost(Long userId, Long postId) {
         BoardPost post = boardPostRepository.findByIdAndIsDeletedFalse(postId)
-                .orElseThrow(() -> new NotFoundException("BOARD_POST_NOT_FOUND", "紐⑥쭛湲??李얠쓣 ???놁뒿?덈떎."));
+                .orElseThrow(() -> new NotFoundException("BOARD_POST_NOT_FOUND", "모집글을 찾을 수 없습니다."));
         if (!post.getAuthor().getId().equals(userId)) {
-            throw new BusinessException("NO_PERMISSION", "?묒꽦?먮쭔 ??젣?????덉뒿?덈떎.");
+            throw new BusinessException("NO_PERMISSION", "작성자만 삭제할 수 있습니다.");
         }
         post.delete();
     }
@@ -130,14 +130,14 @@ public class BoardService {
     @Transactional
     public BoardCommentResponse addComment(Long userId, Long postId, BoardCommentCreateRequest request) {
         BoardPost post = boardPostRepository.findByIdAndIsDeletedFalse(postId)
-                .orElseThrow(() -> new NotFoundException("BOARD_POST_NOT_FOUND", "紐⑥쭛湲??李얠쓣 ???놁뒿?덈떎."));
+                .orElseThrow(() -> new NotFoundException("BOARD_POST_NOT_FOUND", "모집글을 찾을 수 없습니다."));
         User author = userRepository.findById(userId).orElseThrow(NotFoundException::user);
         BoardComment parent = null;
         if (request.parentId() != null) {
             parent = boardCommentRepository.findById(request.parentId())
-                    .orElseThrow(() -> new NotFoundException("BOARD_COMMENT_NOT_FOUND", "?볤???李얠쓣 ???놁뒿?덈떎."));
+                    .orElseThrow(() -> new NotFoundException("BOARD_COMMENT_NOT_FOUND", "댓글을 찾을 수 없습니다."));
             if (!parent.getPost().getId().equals(postId)) {
-                throw new BusinessException("INVALID_PARENT_COMMENT", "?섎せ???볤??낅땲??");
+                throw new BusinessException("INVALID_PARENT_COMMENT", "잘못된 댓글입니다.");
             }
         }
         BoardComment comment = new BoardComment(post, author, parent, request.content());
@@ -147,8 +147,8 @@ public class BoardService {
             notificationService.createNotification(
                     post.getAuthor().getId(),
                     NotificationType.STUDY_UPDATE,
-                    "???紐⑥쭛 ?볤?",
-                    String.format("???紐⑥쭛 %s 湲???볤????묒꽦?섏뿀?듬땲??", post.getTitle()),
+                    "스터디 모집 댓글",
+                    String.format("스터디 모집 %s 글에 댓글이 작성되었습니다.", post.getTitle()),
                     "RECRUITMENT_POST",
                     post.getId()
             );
@@ -159,7 +159,7 @@ public class BoardService {
     @Transactional
     public void reportPost(Long userId, Long postId, BoardReportRequest request) {
         BoardPost post = boardPostRepository.findByIdAndIsDeletedFalse(postId)
-                .orElseThrow(() -> new NotFoundException("BOARD_POST_NOT_FOUND", "筌뤴뫁彛쎿묾???筌≪뼚??????곷뮸??덈뼄."));
+                .orElseThrow(() -> new NotFoundException("BOARD_POST_NOT_FOUND", "모집 게시글을 찾을 수 없습니다."));
         User reporter = userRepository.findById(userId).orElseThrow(NotFoundException::user);
 
         List<User> admins = userRepository.findAllByRole(Role.ADMIN);
@@ -168,10 +168,10 @@ public class BoardService {
         }
 
         String reporterName = reporter.getNickname() != null ? reporter.getNickname() : reporter.getName();
-        String title = "紐⑥쭛 寃뚯떆湲 ?좉퀬";
-        String content = String.format("'%s' 寃뚯떆湲???좉퀬?섏뿀?듬땲?? ?좉퀬?? %s, ?ъ쑀: %s",
+        String title = "모집 게시글 신고";
+        String content = String.format("'%s' 게시글이 신고되었습니다. 신고자: %s, 사유: %s",
                 post.getTitle(),
-                reporterName == null ? "?듬챸" : reporterName,
+                reporterName == null ? "익명" : reporterName,
                 request.reason());
 
         for (User admin : admins) {
@@ -192,14 +192,15 @@ public class BoardService {
     @Transactional
     public void deleteComment(Long userId, Long commentId) {
         BoardComment comment = boardCommentRepository.findById(commentId)
-                .orElseThrow(() -> new NotFoundException("BOARD_COMMENT_NOT_FOUND", "?볤???李얠쓣 ???놁뒿?덈떎."));
+                .orElseThrow(() -> new NotFoundException("BOARD_COMMENT_NOT_FOUND", "댓글을 찾을 수 없습니다."));
         if (!comment.getAuthor().getId().equals(userId)) {
-            throw new BusinessException("NO_PERMISSION", "?묒꽦?먮쭔 ??젣?????덉뒿?덈떎.");
+            throw new BusinessException("NO_PERMISSION", "작성자만 삭제할 수 있습니다.");
         }
         comment.delete();
         comment.getPost().decreaseCommentCount();
     }
 }
+
 
 
 

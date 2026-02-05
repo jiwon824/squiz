@@ -50,6 +50,9 @@ export const MyQuizPage: React.FC = () => {
     avgWrongCount,
     courseQuizStats,
     reviewStats,
+    wrongPage,
+    setWrongPage,
+    wrongTotalCount,
   } = useMyQuiz();
 
   // 퀴즈 재도전 상태에서 개별 값 사용을 위한 로컬 상태
@@ -130,6 +133,9 @@ export const MyQuizPage: React.FC = () => {
             courseQuizStats={courseQuizStats}
             reviewStats={reviewStats}
             onRetry={handleStartRetry}
+            wrongPage={wrongPage}
+            setWrongPage={setWrongPage}
+            wrongTotalCount={wrongTotalCount}
           />
         )}
       </div>
@@ -213,6 +219,9 @@ interface MainContentProps {
   courseQuizStats: ReturnType<typeof useMyQuiz>['courseQuizStats'];
   reviewStats: ReturnType<typeof useMyQuiz>['reviewStats'];
   onRetry: (item: ReturnType<typeof useMyQuiz>['todayReviews'][0]) => void;
+  wrongPage: ReturnType<typeof useMyQuiz>['wrongPage'];
+  setWrongPage: ReturnType<typeof useMyQuiz>['setWrongPage'];
+  wrongTotalCount: number;
 }
 
 const MainContent: React.FC<MainContentProps> = React.memo(
@@ -230,6 +239,9 @@ const MainContent: React.FC<MainContentProps> = React.memo(
     courseQuizStats,
     reviewStats,
     onRetry,
+    wrongPage,
+    setWrongPage,
+    wrongTotalCount,
   }) => (
     <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
       <div className="flex">
@@ -238,7 +250,7 @@ const MainContent: React.FC<MainContentProps> = React.memo(
           activeTab={activeTab}
           onTabChange={setActiveTab}
           todayReviewCount={todayReviews.length}
-          wrongReviewCount={wrongReviews.length}
+          wrongReviewCount={wrongTotalCount}
           weakConceptCount={weakConcepts.length}
         />
 
@@ -268,6 +280,9 @@ const MainContent: React.FC<MainContentProps> = React.memo(
                     items={wrongReviews}
                     onRetry={onRetry}
                     type="wrong"
+                    currentPage={wrongPage}
+                    totalPages={Math.ceil(wrongTotalCount / 5)}
+                    onPageChange={setWrongPage}
                   />
                 </TabContent>
               )}

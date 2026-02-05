@@ -41,6 +41,7 @@ export const useMyQuiz = (): UseMyQuizReturn => {
   // === 데이터 상태 ===
   const [todayReviews, setTodayReviews] = useState<ReviewItemDto[]>([]);
   const [wrongReviews, setWrongReviews] = useState<ReviewItemDto[]>([]);
+  const [wrongTotalCount, setWrongTotalCount] = useState(0);
   const [courseStats, setCourseStats] = useState<ReviewCourseWeaknessResponse | null>(null);
   const [courseQuizStats, setCourseQuizStats] = useState<CourseQuizStat[]>([]);
   const [reviewStats, setReviewStats] = useState<ReviewStatsResponse | null>(null);
@@ -49,6 +50,8 @@ export const useMyQuiz = (): UseMyQuizReturn => {
   // === UI 상태 ===
   const [activeTab, setActiveTab] = useState<TabType>('review');
   const [wrongSortType, setWrongSortType] = useState<WrongAnswerSortType>('LATEST');
+  const [wrongPage, setWrongPage] = useState(1);
+  const PAGE_SIZE = 5;
 
   // === 퀴즈 재도전 상태 ===
   const [retryState, setRetryState] = useState<QuizRetryState>(INITIAL_RETRY_STATE);
@@ -62,7 +65,7 @@ export const useMyQuiz = (): UseMyQuizReturn => {
     try {
       const [todayData, wrongData, statsData, quizStatsData, reviewStatsData] = await Promise.all([
         getTodayReviews(),
-        getWrongAnswers(wrongSortType),
+        getWrongAnswers(wrongSortType, wrongPage - 1, PAGE_SIZE),
         getCourseWeaknessStats(),
         getCourseQuizStats(),
         getReviewStats(),
@@ -72,6 +75,7 @@ export const useMyQuiz = (): UseMyQuizReturn => {
       const filteredWrong = (wrongData?.items || []).filter(item => item.question != null) as ReviewItemDto[];
       setTodayReviews(filteredToday);
       setWrongReviews(filteredWrong);
+      setWrongTotalCount(wrongData?.totalCount || 0);
       setCourseStats(statsData || null);
       setCourseQuizStats(quizStatsData || []);
       setReviewStats(reviewStatsData || null);
@@ -79,15 +83,20 @@ export const useMyQuiz = (): UseMyQuizReturn => {
       console.error('Failed to fetch reviews', error);
       setTodayReviews([]);
       setWrongReviews([]);
+      setWrongTotalCount(0);
     } finally {
       setLoading(false);
     }
+  }, [wrongSortType, wrongPage]);
+
+  // 정렬 타입 변경 시 데이터 재패칭 및 페이지 초기화
+  useEffect(() => {
+    setWrongPage(1);
   }, [wrongSortType]);
 
-  // 정렬 타입 변경 시 데이터 재패칭
   useEffect(() => {
     fetchData();
-  }, [wrongSortType]);
+  }, [fetchData]);
 
   // === Memoized 계산 ===
   const weakConcepts = useMemo(
@@ -233,9 +242,12 @@ export const useMyQuiz = (): UseMyQuizReturn => {
     activeTab,
     setActiveTab,
 
-    // 정렬 관리
+    // 정렬 및 페이지 관리
     wrongSortType,
     setWrongSortType,
+    wrongPage,
+    setWrongPage,
+    wrongTotalCount,
 
     // 퀴즈 재도전 상태 (전체 객체 + 개별 setters)
     retryState: {

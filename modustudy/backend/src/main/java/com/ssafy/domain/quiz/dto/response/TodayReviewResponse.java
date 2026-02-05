@@ -19,8 +19,12 @@ public record TodayReviewResponse(
 
         @Schema(description = "복습 예정 항목 목록") List<ReviewItemDto> items,
 
-        @Schema(description = "총 항목 수", example = "5") int totalCount) {
-    
+        @Schema(description = "총 항목 수", example = "5") int totalCount,
+
+        @Schema(description = "총 페이지 수", example = "1") int totalPages,
+        @Schema(description = "현재 페이지 번호(0부터 시작)", example = "0") int number,
+        @Schema(description = "페이지 크기", example = "5") int size) {
+
     /**
      * UserReviewItem 목록으로부터 응답 DTO를 생성한다 (문제 정보 없음).
      * 
@@ -31,7 +35,7 @@ public record TodayReviewResponse(
         List<ReviewItemDto> dtos = items.stream()
                 .map(item -> ReviewItemDto.from(item, null))
                 .toList();
-        return new TodayReviewResponse(dtos, dtos.size());
+        return new TodayReviewResponse(dtos, dtos.size(), 1, 0, Math.max(1, dtos.size()));
     }
 
     /**
@@ -105,12 +109,9 @@ public record TodayReviewResponse(
 
             @Schema(description = "해설", example = "설명...") String explanation,
 
-
-            @Schema(description = "문제 태그/카테고리", example = "TypeScript")
-            String category, // UI 상단의 카테고리 뱃지용
+            @Schema(description = "문제 태그/카테고리", example = "TypeScript") String category, // UI 상단의 카테고리 뱃지용
 
             // UI의 "마지막 오답" 표시용
-            @Schema(description = "마지막 학습/오답 일자")
-            LocalDateTime lastReviewAt) {
+            @Schema(description = "마지막 학습/오답 일자") LocalDateTime lastReviewAt) {
     }
 }

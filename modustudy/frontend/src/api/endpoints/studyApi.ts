@@ -442,6 +442,15 @@ export const studyApi = {
     return response.data as boolean;
   },
 
+  /**
+   * 스터디 신고
+   * POST /api/v1/study/{studyId}/report
+   */
+  reportStudy: async (studyId: number, reason: string) => {
+    const response = await api.post<any>(`/api/v1/study/${studyId}/report`, { reason });
+    return response.data;
+  },
+
   // ========== 신청자 관리 (Application) ==========
 
   /**

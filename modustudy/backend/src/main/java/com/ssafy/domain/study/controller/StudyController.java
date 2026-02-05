@@ -1,6 +1,8 @@
 package com.ssafy.domain.study.controller;
 
+import com.ssafy.common.response.ApiResponse;
 import com.ssafy.domain.study.dto.request.StudyCreateRequest;
+import com.ssafy.domain.study.dto.request.StudyReportRequest;
 import com.ssafy.domain.study.dto.request.StudyUpdateRequest;
 import com.ssafy.domain.study.dto.response.StudyRecommendDto;
 import com.ssafy.domain.study.dto.response.StudyResponse;
@@ -239,6 +241,20 @@ public class StudyController {
     }
 
     /**
+     * 스터디 신고
+     * POST /api/v1/study/{studyId}/report
+     */
+    @PostMapping("/{studyId}/report")
+    public ResponseEntity<ApiResponse<Void>> reportStudy(
+            @PathVariable Long studyId,
+            @RequestHeader("User-Id") Long userId,
+            @Valid @RequestBody StudyReportRequest request) {
+
+        studyService.reportStudy(userId, studyId, request);
+        return ResponseEntity.ok(ApiResponse.success(null, "신고가 접수되었습니다."));
+    }
+
+    /**
      * 스터디 상태 변경
      * PATCH /api/v1/study/{studyId}/status
      */
@@ -354,3 +370,4 @@ public class StudyController {
         private LocalDate newEndDate;
     }
 }
+

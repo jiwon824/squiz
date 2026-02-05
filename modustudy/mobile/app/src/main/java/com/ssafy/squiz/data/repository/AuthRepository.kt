@@ -152,6 +152,20 @@ class AuthRepository(
     }
 
     /**
+     * 구글 캘린더 연동을 위한 Google Sign-In 클라이언트
+     * Calendar API 스코프 포함
+     */
+    fun getGoogleCalendarSignInClient(activity: Activity): GoogleSignInClient {
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestServerAuthCode(BuildConfig.GOOGLE_CLIENT_ID)
+            .requestEmail()
+            .requestScopes(com.google.android.gms.common.api.Scope("https://www.googleapis.com/auth/calendar.readonly"))
+            .build()
+
+        return GoogleSignIn.getClient(activity, gso)
+    }
+
+    /**
      * 구글 로그인 결과 처리
      */
     suspend fun handleGoogleSignInResult(serverAuthCode: String): Result<AuthResult> = withContext(Dispatchers.IO) {

@@ -566,6 +566,9 @@ fun SquizNavHost(
                 onBackClick = { navController.popBackStack() },
                 onSessionClick = { studyId, sessionId ->
                     navController.navigate(NavRoutes.ScheduleDetail.createRoute(studyId, sessionId))
+                },
+                onGoogleSyncClick = {
+                    navController.navigate(NavRoutes.GoogleCalendarSync.route)
                 }
             )
         }

@@ -2,8 +2,8 @@ package com.ssafy.domain.quiz.repository;
 
 import com.ssafy.domain.quiz.entity.UserReviewItem;
 import com.ssafy.domain.quiz.entity.WrongAnswerSortType;
-
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 /**
  * UserReviewItem 커스텀 레포지토리 인터페이스
@@ -12,11 +12,12 @@ import java.util.List;
 public interface UserReviewItemRepositoryCustom {
 
     /**
-     * 오답 노트 조회 (동적 정렬)
+     * 오답 노트 조회 (동적 정렬 + 페이징)
      *
      * @param userId   사용자 ID
      * @param sortType 정렬 방식
-     * @return 오답 항목 목록 (lapses > 0)
+     * @param pageable 페이징 정보
+     * @return 오답 항목 페이지 (lapses > 0)
      */
-    List<UserReviewItem> findWrongAnswers(Long userId, WrongAnswerSortType sortType);
+    Page<UserReviewItem> findWrongAnswers(Long userId, WrongAnswerSortType sortType, Pageable pageable);
 }

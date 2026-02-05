@@ -89,7 +89,7 @@ const TechCard = React.memo<TechCardProps>(({
             )}
             style={selected ? {
                 borderColor: tech.color,
-                backgroundColor: `${tech.color}15`,
+                backgroundColor: `color-mix(in srgb, ${tech.color}, transparent 85%)`,
             } : undefined}
         >
             {selected && (
@@ -106,7 +106,7 @@ const TechCard = React.memo<TechCardProps>(({
                     'rounded-lg flex items-center justify-center overflow-hidden',
                     compact ? 'w-10 h-10' : 'w-12 h-12'
                 )}
-                style={{ backgroundColor: selected ? `${tech.color}20` : `${tech.color}15` }}
+                style={{ backgroundColor: `color-mix(in srgb, ${tech.color}, transparent ${selected ? '80%' : '85%'})` }}
             >
                 {tech.icon ? (
                     <img

@@ -221,10 +221,18 @@ public class FsrsService {
      * @param userId   사용자 ID
      * @param sortType 정렬 방식 (null이면 MOST_WRONG 기본값 적용)
      */
-    public List<ReviewItemDto> getWrongAnswersWithQuestions(Long userId, WrongAnswerSortType sortType) {
-        // 1. 오답 노트 조회 (동적 정렬)
-        List<UserReviewItem> wrongItems = reviewItemRepository.findWrongAnswers(userId, sortType);
-        return enrichReviewItems(wrongItems);
+    public org.springframework.data.domain.Page<ReviewItemDto> getWrongAnswersWithQuestions(Long userId,
+            WrongAnswerSortType sortType, org.springframework.data.domain.Pageable pageable) {
+        // 1. 오답 노트 조회 (동적 정렬 + 페이징)
+        org.springframework.data.domain.Page<UserReviewItem> wrongItemsPage = reviewItemRepository
+                .findWrongAnswers(userId, sortType, pageable);
+
+        // 2. 문제 정보 Enrichment
+        List<ReviewItemDto> enrichedItems = enrichReviewItems(wrongItemsPage.getContent());
+
+        // 3. Page 객체 재구성
+        return new org.springframework.data.domain.PageImpl<>(enrichedItems, pageable,
+                wrongItemsPage.getTotalElements());
     }
 
     private List<ReviewItemDto> enrichReviewItems(List<UserReviewItem> items) {

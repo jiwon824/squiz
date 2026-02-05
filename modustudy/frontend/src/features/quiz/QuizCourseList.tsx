@@ -40,14 +40,17 @@ import { Spinner } from '@/shared/components/Spinner';
 import { CourseCard } from './components/CourseCard';
 import { fetchCourses, CourseListItem } from '@/api/endpoints/quizCourseApi';
 
-import type { CourseCategory, Course } from './types/QuizCourse.types';
-import { CATEGORY_CONFIG } from './types/QuizCourse.types';
+import type { FilterCategory, Course } from './types/QuizCourse.types';
+import {
+    CODE_TO_FILTER_CATEGORY,
+    FILTER_CATEGORY_CONFIG,
+} from './types/QuizCourse.types';
 
 // =============================================================================
 // TYPE DEFINITIONS - 타입 정의
 // =============================================================================
 
-type FilterOption = 'All' | CourseCategory;
+type FilterOption = 'All' | FilterCategory;
 
 // =============================================================================
 // HELPER FUNCTION - API 데이터를 UI 타입으로 변환
@@ -58,16 +61,9 @@ type FilterOption = 'All' | CourseCategory;
  * 기존 CourseCard 컴포넌트와의 호환성을 유지하기 위함
  */
 const mapApiCourseToUiCourse = (apiCourse: CourseListItem): Course => {
-    // API의 code를 카테고리로 매핑 (예: "OS", "NETWORK" -> "OS", "Network")
-    const categoryMap: Record<string, CourseCategory> = {
-        'OS': 'OS',
-        'NETWORK': 'Network',
-        'DB': 'DB',
-        'DS': 'DataStructure',
-        'DATA_STRUCTURE': 'DataStructure',
-    };
-
-    const category = categoryMap[apiCourse.code?.toUpperCase()] || 'OS';
+    // API의 code를 필터 카테고리로 매핑
+    const codeUpperCase = apiCourse.code?.toUpperCase() || '';
+    const category = CODE_TO_FILTER_CATEGORY[codeUpperCase] || 'CSFundamentals';
 
     // courseId 추출: 'courseId' 필드를 우선 사용하고, 없으면 'id' 필드를 확인
     // 타입 단언을 사용하여 API 응답이 다른 필드명을 사용할 경우도 처리
@@ -113,7 +109,16 @@ export const QuizCourseList = () => {
     // CONSTANTS - 상수 정의
     // =========================================================================
 
-    const filterOptions: FilterOption[] = ['All', 'OS', 'Network', 'DB', 'DataStructure'];
+    // 6개 필터 카테고리 (더미 데이터 기준)
+    const filterOptions: FilterOption[] = [
+        'All',
+        'CSFundamentals',
+        'Backend',
+        'Frontend',
+        'Infrastructure',
+        'Design',
+        'Certification',
+    ];
 
     // =========================================================================
     // DATA FETCHING - API 호출
@@ -207,7 +212,7 @@ export const QuizCourseList = () => {
 
                     {filterOptions.map((option) => {
                         const isActive = activeFilter === option;
-                        const config = option !== 'All' ? CATEGORY_CONFIG[option] : null;
+                        const config = option !== 'All' ? FILTER_CATEGORY_CONFIG[option as FilterCategory] : null;
 
                         return (
                             <button

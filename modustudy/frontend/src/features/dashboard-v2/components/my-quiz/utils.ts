@@ -27,12 +27,13 @@ export const calculateWeakConcepts = (
   });
 
   // 2. 전체 코스 통계를 맵으로 변환 (빠른 조회를 위해)
-  const statsMap = new Map<string, { totalReps: number; totalLapses: number }>();
+  const statsMap = new Map<string, { totalReps: number; totalLapses: number; courseId: number }>();
   if (courseStats?.courseWeaknessStats) {
     courseStats.courseWeaknessStats.forEach(stat => {
       statsMap.set(stat.courseName, {
         totalReps: stat.totalReps,
-        totalLapses: stat.totalLapses
+        totalLapses: stat.totalLapses,
+        courseId: stat.courseId
       });
     });
   }
@@ -45,12 +46,14 @@ export const calculateWeakConcepts = (
     // 3-2. 오답률 계산
     let totalReps = 0;
     let wrongRate = 0;
+    let courseId: number | undefined;
 
     if (stats && stats.totalReps > 0) {
       // 통계 데이터가 있으면 사용 (정확한 계산)
       totalReps = stats.totalReps;
       // totalLapses는 사용하지 않지만 stats에 있음. wrongRate는 lapses/reps
       wrongRate = (stats.totalLapses / stats.totalReps) * 100;
+      courseId = stats.courseId;
     } else {
       // 통계 데이터가 없으면 기존 방식대로 오답 목록 내에서 추산 (fallback)
       const localReps = items.reduce((sum, item) => sum + item.reps, 0);
@@ -84,6 +87,7 @@ export const calculateWeakConcepts = (
       wrongRate,   // 전체 오답률 (통계 기준)
       relatedQuestions,
       lastReviewDate,
+      courseId,
     };
   });
 

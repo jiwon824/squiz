@@ -5,11 +5,13 @@ import com.ssafy.common.exception.StudyException;
 import com.ssafy.domain.notification.entity.NotificationType;
 import com.ssafy.domain.notification.service.NotificationService;
 import com.ssafy.domain.study.dto.request.StudyCreateRequest;
+import com.ssafy.domain.study.dto.request.StudyReportRequest;
 import com.ssafy.domain.study.dto.request.StudyUpdateRequest;
 import com.ssafy.domain.study.dto.response.StudyResponse;
 import com.ssafy.domain.study.entity.*;
 import com.ssafy.domain.study.repository.*;
 import com.ssafy.domain.study.workspace.service.WorkspaceService;
+import com.ssafy.domain.user.entity.Role;
 import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.repository.UserRepository;
 import com.ssafy.domain.gamification.event.StudyCreateEvent;
@@ -460,6 +462,44 @@ public class StudyService {
         int currentMembers = studyMemberRepository.countByStudyIdAndStatus(studyId, MemberStatus.APPROVED);
 
         return StudyResponse.from(study, leader, currentMembers);
+    }
+
+    /**
+     * 스터디 신고
+     */
+    @Transactional
+    public void reportStudy(Long userId, Long studyId, StudyReportRequest request) {
+        Study study = studyRepository.findById(studyId)
+                .orElseThrow(() -> new StudyException.StudyNotFoundException(studyId));
+
+        User reporter = userRepository.findById(userId)
+                .orElseThrow(NotFoundException::user);
+
+        List<User> admins = userRepository.findAllByRole(Role.ADMIN);
+        if (admins.isEmpty()) {
+            return;
+        }
+
+        String reporterName = reporter.getNickname() != null ? reporter.getNickname() : reporter.getName();
+        String title = "스터디 신고";
+        String content = String.format("'%s' 스터디가 신고되었습니다. 신고자: %s, 사유: %s",
+                study.getName(),
+                reporterName == null ? "익명" : reporterName,
+                request.reason());
+
+        for (User admin : admins) {
+            if (admin.getId().equals(userId)) {
+                continue;
+            }
+            notificationService.createNotification(
+                    admin.getId(),
+                    NotificationType.REPORT,
+                    title,
+                    content,
+                    "STUDY",
+                    studyId
+            );
+        }
     }
 
     /**

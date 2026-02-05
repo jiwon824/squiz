@@ -48,19 +48,114 @@ import {
 } from 'lucide-react';
 
 // -----------------------------------------------------------------------------
-// 카테고리 타입 정의 (CATEGORY TYPE DEFINITION)
+// 필터 카테고리 타입 정의 (FILTER CATEGORY TYPE DEFINITION)
 // -----------------------------------------------------------------------------
 /**
- * CourseCategory - 코스 카테고리 타입
- * * 이것은 "유니온 타입(Union Type)"입니다. 즉, CourseCategory는 오직 명시된 
- * 네 가지 문자열 값 중 하나만 가질 수 있습니다. 만약 "Python"과 같은 다른 문자열을
- * 사용하려고 하면 타입스크립트가 에러를 표시합니다.
- * * - 'OS': 운영체제
- * - 'Network': 네트워크 기초
- * - 'DB': 데이터베이스
- * - 'DataStructure': 자료구조 및 알고리즘
+ * FilterCategory - 필터링에 사용되는 카테고리 타입
+ *
+ * 시연용 더미 데이터에 맞춰 6개 그룹으로 분류:
+ * - 'CSFundamentals': CS 기초 (OS, 네트워크, DB, 알고리즘, 컴퓨터구조 등)
+ * - 'Backend': 백엔드 (Java/Spring, Node.js, Python)
+ * - 'Frontend': 프론트엔드/모바일 (React, 웹 기초, 모바일, Kotlin)
+ * - 'Infrastructure': 인프라/DevOps (DevOps, Linux, 시스템설계, Git)
+ * - 'Design': 설계/기타 (디자인패턴, SW공학, 보안, AI/ML, NoSQL)
+ * - 'Certification': 자격증 (정보처리기사, SQLD)
  */
-export type CourseCategory = 'OS' | 'Network' | 'DB' | 'DataStructure';
+export type FilterCategory =
+    | 'CSFundamentals'
+    | 'Backend'
+    | 'Frontend'
+    | 'Infrastructure'
+    | 'Design'
+    | 'Certification';
+
+/**
+ * CourseCategory - 코스 카테고리 타입 (하위 호환성 유지)
+ * @deprecated FilterCategory 사용 권장
+ */
+export type CourseCategory = FilterCategory | 'OS' | 'Network' | 'DB' | 'DataStructure';
+
+// -----------------------------------------------------------------------------
+// API 코드 → 필터 카테고리 매핑 (CODE TO FILTER CATEGORY MAPPING)
+// -----------------------------------------------------------------------------
+/**
+ * API에서 받은 코스 코드를 필터 카테고리로 변환하는 매핑 테이블
+ */
+export const CODE_TO_FILTER_CATEGORY: Record<string, FilterCategory> = {
+    // CS 기초
+    OS: 'CSFundamentals',
+    NETWORK: 'CSFundamentals',
+    DB: 'CSFundamentals',
+    ALGORITHM: 'CSFundamentals',
+    COMPUTER_ARCH: 'CSFundamentals',
+    OS_EXT: 'CSFundamentals',
+    NETWORK_EXT: 'CSFundamentals',
+    // 백엔드
+    JAVA_SPRING: 'Backend',
+    NODEJS: 'Backend',
+    PYTHON: 'Backend',
+    // 프론트엔드/모바일
+    REACT: 'Frontend',
+    WEB_BASIC: 'Frontend',
+    MOBILE: 'Frontend',
+    KOTLIN: 'Frontend',
+    // 인프라/DevOps
+    DEVOPS: 'Infrastructure',
+    LINUX: 'Infrastructure',
+    SYSTEM_DESIGN: 'Infrastructure',
+    GIT: 'Infrastructure',
+    // 설계/기타
+    DESIGN_PATTERN: 'Design',
+    SW_ENG: 'Design',
+    SECURITY: 'Design',
+    AI_ML: 'Design',
+    NOSQL_MQ: 'Design',
+    // 자격증
+    CERT_EIP: 'Certification',
+    CERT_SQLD: 'Certification',
+};
+
+// -----------------------------------------------------------------------------
+// 필터 카테고리 표시 설정 (FILTER CATEGORY DISPLAY CONFIG)
+// -----------------------------------------------------------------------------
+/**
+ * 필터 버튼에 표시될 카테고리별 설정
+ */
+export const FILTER_CATEGORY_CONFIG: Record<
+    FilterCategory,
+    { label: string; color: string; icon: LucideIcon }
+> = {
+    CSFundamentals: {
+        label: 'CS 기초',
+        color: '#6366F1', // Indigo
+        icon: Cpu,
+    },
+    Backend: {
+        label: '백엔드',
+        color: '#6DB33F', // Spring Green
+        icon: Server,
+    },
+    Frontend: {
+        label: '프론트엔드',
+        color: '#61DAFB', // React Blue
+        icon: Layout,
+    },
+    Infrastructure: {
+        label: '인프라',
+        color: '#FF6B35', // Orange
+        icon: Cloud,
+    },
+    Design: {
+        label: '설계/기타',
+        color: '#8B5CF6', // Purple
+        icon: Box,
+    },
+    Certification: {
+        label: '자격증',
+        color: '#F59E0B', // Amber
+        icon: Award,
+    },
+};
 
 // -----------------------------------------------------------------------------
 // 난이도 레벨 타입 정의 (DIFFICULTY LEVEL TYPE DEFINITION)
@@ -317,6 +412,65 @@ export const DEFAULT_CATEGORY_CONFIG: {
     label: '기타',
     color: 'var(--color-gray-500)',
     icon: Code2,
+};
+
+// -----------------------------------------------------------------------------
+// 코스명 → 라벨 매핑 (COURSE NAME TO LABEL MAPPING)
+// -----------------------------------------------------------------------------
+/**
+ * 백엔드 API에서 반환하는 코스명(name)을 짧은 라벨로 변환하는 매핑 테이블
+ *
+ * 사용처: 취약개념 탭의 카테고리 뱃지 등
+ * 형식: { "백엔드 코스명(quiz_course.name)": "표시할 라벨" }
+ *
+ * 주의: 이 매핑의 키는 DB의 quiz_course.name 값과 정확히 일치해야 합니다.
+ * DB 데이터 변경 시 이 매핑도 함께 업데이트해야 합니다.
+ */
+export const COURSE_NAME_TO_LABEL: Record<string, string> = {
+    // CS 기초 (DB quiz_course.name 기준)
+    '데이터베이스': 'DB',
+    '알고리즘과 자료구조': '알고리즘',
+    '컴퓨터 구조': '컴퓨터구조',
+    '운영체제 심화': 'OS심화',
+    '네트워크 심화': '네트워크심화',
+    // 백엔드
+    'Java와 Spring': 'Spring',
+    'Node.js': 'Node.js',
+    'Python': 'Python',
+    // 프론트엔드/모바일
+    '프론트엔드 React': 'React',
+    '웹 기초': '웹 기초',
+    '모바일 개발': '모바일',
+    'Kotlin': 'Kotlin',
+    // 인프라/DevOps
+    '인프라와 DevOps': 'DevOps',
+    'Linux': 'Linux',
+    '시스템 디자인': '시스템설계',
+    'Git과 협업': 'Git',
+    // 설계/기타
+    '디자인 패턴': '디자인패턴',
+    '소프트웨어 공학': 'SW공학',
+    '정보보안 기초': '정보보안',
+    'AI와 머신러닝': 'AI/ML',
+    'NoSQL과 메시지큐': 'NoSQL/MQ',
+    // 자격증
+    '정보처리기사': '정처기',
+    'SQLD': 'SQLD',
+};
+
+/**
+ * 코스명(백엔드 API 응답)을 짧은 라벨로 변환하는 유틸리티 함수
+ *
+ * @param courseName - 백엔드에서 받은 코스명 (예: "알고리즘과 자료구조")
+ * @returns 짧은 라벨 (예: "알고리즘") 또는 매핑이 없으면 원래 이름 반환
+ *
+ * @example
+ * getCategoryLabelByCourseName("알고리즘과 자료구조") // "알고리즘"
+ * getCategoryLabelByCourseName("Java와 Spring코스")  // "Spring"
+ * getCategoryLabelByCourseName("알 수 없는 코스")     // "알 수 없는 코스"
+ */
+export const getCategoryLabelByCourseName = (courseName: string): string => {
+    return COURSE_NAME_TO_LABEL[courseName] ?? courseName;
 };
 
 // -----------------------------------------------------------------------------

@@ -4,6 +4,7 @@ import { CheckCircle2, XCircle, BookOpen, Clock } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 import { WeakConceptListProps, WeakConcept } from './types';
 import { getWeaknessBarColor, getRankBadgeColor } from './utils';
+import { getCategoryLabelByCourseName } from '@/features/quiz/types/QuizCourse.types';
 
 /**
  * 취약 개념 목록을 표시하는 컴포넌트
@@ -86,7 +87,7 @@ const WeakConceptItem: React.FC<WeakConceptItemProps> = React.memo(
             <div className="flex items-center gap-3 mb-3">
               <RankBadge index={index} />
               <span className="px-2.5 py-1 bg-gray-50 rounded-full text-xs font-medium text-gray-600">
-                {concept.category}
+                {getCategoryLabelByCourseName(concept.category)}
               </span>
             </div>
 
