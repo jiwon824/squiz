@@ -192,4 +192,8 @@ public class Meeting extends BaseEntity {
     public void updatePlannedDurationSeconds(Integer plannedDurationSeconds) {
         this.plannedDurationSeconds = plannedDurationSeconds;
     }
+
+    public void updateDurationSeconds(Integer durationSeconds) {
+        this.durationSeconds = durationSeconds;
+    }
 }

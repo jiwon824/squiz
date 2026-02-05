@@ -430,9 +430,23 @@ public class MeetingService {
         int durationSeconds = helper.getAudioDurationSeconds(audioFile);
         if (durationSeconds > 0) {
             dailyUsageService.addOfflineSttUsage(studyId, durationSeconds);
+            // 미팅에 duration 업데이트
+            saved.updateDurationSeconds(durationSeconds);
         }
 
-        log.info("[오프라인 녹음] 업로드 완료 - studyId: {}, meetingId: {}, duration: {}초", studyId, saved.getId(), durationSeconds);
+        // 세션이 있으면 세션 완료 처리 (온라인 미팅 종료와 동일한 처리)
+        if (sessionId != null) {
+            studySessionRepository.findById(sessionId).ifPresent(session -> {
+                session.complete();
+                if (durationSeconds > 0) {
+                    int minutes = (int) Math.ceil(durationSeconds / 60.0);
+                    studySessionService.updateDurationFromMeeting(studyId, sessionId, minutes);
+                }
+            });
+        }
+
+        log.info("[오프라인 녹음] 업로드 완료 - studyId: {}, sessionId: {}, meetingId: {}, duration: {}초",
+                studyId, sessionId, saved.getId(), durationSeconds);
 
         return new MeetingResponse(saved.getId(), saved.getTitle(), null, saved.getStatus().name(),
                 saved.getMeetingType().name(), saved.getRecordingStatus().name(), saved.getSttStatus().name(),

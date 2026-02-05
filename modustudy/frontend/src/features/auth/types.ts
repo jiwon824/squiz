@@ -7,6 +7,7 @@ export interface UserDTO {
     profileImage: string | null;
     levelName: string;
     currentLevel: number;
+    role?: 'USER' | 'ADMIN';
 }
 
 export interface AuthResponse {

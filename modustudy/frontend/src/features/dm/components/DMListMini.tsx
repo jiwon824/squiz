@@ -65,7 +65,7 @@ const DMListMini: React.FC = () => {
         return () => clearTimeout(timer);
     }, [messages.length]);
 
-    // 초기 데이터 로드 + WebSocket 연결 (로그인 상태에서만)
+    // 초기 데이터 로드 + WebSocket 연결 (로그인 상태에서만, 마운트 시 1회만 실행)
     useEffect(() => {
         const authStore = useAuthStore.getState();
         if (!authStore.user) {
@@ -73,14 +73,17 @@ const DMListMini: React.FC = () => {
             return;
         }
 
-        fetchConversations();
-        fetchUnreadCount();
-        connectWebSocket();
+        // store에서 직접 함수 참조 (의존성 문제 방지)
+        const store = useDMStore.getState();
+        store.fetchConversations();
+        store.fetchUnreadCount();
+        store.connectWebSocket();
 
         return () => {
-            disconnectWebSocket();
+            useDMStore.getState().disconnectWebSocket();
         };
-    }, [fetchConversations, fetchUnreadCount, connectWebSocket, disconnectWebSocket]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // 마운트/언마운트 시에만 실행
 
     // 메시지 전송
     const handleSendMessage = async () => {
