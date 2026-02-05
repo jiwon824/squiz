@@ -2,6 +2,8 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { cn } from '@/shared/utils/cn';
 import { Breadcrumb } from '@/shared/components/layouts/Breadcrumb';
+import { Modal } from '@/shared/components/Modal';
+import { Button } from '@/shared/components/Button';
 import { WorkspaceHeader } from './WorkspaceHeader';
 import { WorkspaceSidebar } from './WorkspaceSidebar';
 import { ChatArea } from './ChatArea';
@@ -78,6 +80,7 @@ export const WorkspacePage: React.FC = () => {
   const [activeMeetingId, setActiveMeetingId] = useState<number | null>(null);
   const [activeMeetingEnded, setActiveMeetingEnded] = useState<boolean | null>(null);
   const [selectedMeetingId, setSelectedMeetingId] = useState<number | null>(null);
+  const [isAccessDenied, setIsAccessDenied] = useState(false);
 
   // 검색 패널 상태
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -215,13 +218,21 @@ export const WorkspacePage: React.FC = () => {
         const workspaceMembers = approvedMembers.map(toWorkspaceMember);
         setMembers(workspaceMembers);
 
-        // 현재 사용자가 리더인지 확인
-        if (currentUser?.id) {
-          const currentMember = approvedMembers.find(
-            (m) => String(m.userId) === String(currentUser.id)
-          );
-          setIsLeader(currentMember?.role === 'LEADER');
+        // 스터디 멤버 여부 확인 (승인된 멤버만 접근 가능)
+        const isMember = currentUser?.id
+          ? approvedMembers.some((m) => String(m.userId) === String(currentUser.id))
+          : false;
+        if (!isMember) {
+          setIsAccessDenied(true);
+          setIsLoading(false);
+          return;
         }
+
+        // 현재 사용자가 리더인지 확인
+        const currentMember = approvedMembers.find(
+          (m) => String(m.userId) === String(currentUser?.id)
+        );
+        setIsLeader(currentMember?.role === 'LEADER');
 
         // 2. 워크스페이스 조회 (없으면 생성)
         let workspaceData: WorkspaceResponse;
@@ -269,7 +280,12 @@ export const WorkspacePage: React.FC = () => {
     };
 
     loadInitialData();
-  }, [studyId, navigate, showToast]);
+  }, [studyId, navigate, showToast, currentUser?.id]);
+
+  const handleAccessDeniedClose = useCallback(() => {
+    setIsAccessDenied(false);
+    navigate(`/study/${studyId}`);
+  }, [navigate, studyId]);
 
   // 고정 메시지 로드
   useEffect(() => {
@@ -828,6 +844,26 @@ export const WorkspacePage: React.FC = () => {
           <div className="loading-spinner" />
           <span>워크스페이스 불러오는 중...</span>
         </div>
+      </div>
+    );
+  }
+
+  // 접근 제한 상태
+  if (isAccessDenied) {
+    return (
+      <div className={cn('workspace-container', isDarkMode && 'workspace-container--dark')}>
+        <Modal isOpen={isAccessDenied} onClose={handleAccessDeniedClose} title="접근 제한" maxWidth="sm">
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              스터디 가입자만 워크스페이스에 입장할 수 있습니다.
+            </p>
+            <div className="flex justify-end">
+              <Button variant="primary" size="sm" onClick={handleAccessDeniedClose}>
+                확인
+              </Button>
+            </div>
+          </div>
+        </Modal>
       </div>
     );
   }
