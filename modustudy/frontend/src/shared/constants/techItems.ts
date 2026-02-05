@@ -10,7 +10,13 @@ export interface TechItem {
 const DEVICON_BASE = 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons';
 
 // Hex 색상을 HSL 값으로 변환하는 헬퍼 함수
+// CSS 변수(var(...))가 들어올 경우 기본값 반환
 const hexToHSL = (hex: string): { h: number; s: number; l: number } => {
+    // 방어 코드: 문자열이 아니거나 CSS 변수인 경우 기본값 반환
+    if (typeof hex !== 'string' || hex.startsWith('var')) {
+        return { h: 0, s: 0, l: 50 }; // 중간 명도로 반환
+    }
+
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
     if (!result) return { h: 0, s: 0, l: 0 };
 
@@ -38,7 +44,13 @@ const hexToHSL = (hex: string): { h: number; s: number; l: number } => {
 };
 
 // 검정/회색 계열인지 판단 (채도가 낮거나 명도가 매우 낮은 경우)
+// CSS 변수(var(...))가 들어올 경우 false 반환 (회색으로 취급하지 않음)
 export const isDarkOrGray = (hex: string): boolean => {
+    // 방어 코드: 문자열이 아니거나 CSS 변수인 경우 false 반환
+    if (typeof hex !== 'string' || hex.startsWith('var')) {
+        return false;
+    }
+
     const { s, l } = hexToHSL(hex);
     return s < 0.15 || l < 0.2;
 };

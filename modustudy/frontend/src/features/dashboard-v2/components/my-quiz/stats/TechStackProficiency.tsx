@@ -2,7 +2,50 @@ import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import type { CourseQuizStat } from '@/api/endpoints/continuousQuizApi';
 import { CATEGORY_CONFIG, DEFAULT_CATEGORY_CONFIG } from '@/features/quiz/types/QuizCourse.types';
+import { TECH_ITEMS } from '@/shared/constants/techItems';
 import { LucideIcon } from 'lucide-react';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 통계 전용 색상 매핑: courseCode → TECH_ITEMS id 매핑 테이블
+// 브랜드 기술(React, Java 등)은 유색, CS 과목(OS, Algorithm 등)은 회색(#9CA3AF)
+// ─────────────────────────────────────────────────────────────────────────────
+const COURSE_TO_TECH_ID_MAP: Record<string, string> = {
+    JAVA_SPRING: 'Spring Boot',
+    REACT: 'React',
+    PYTHON: 'Python',
+    NODEJS: 'Node.js',
+    KOTLIN: 'Kotlin',
+    TYPESCRIPT: 'TypeScript',
+    JAVASCRIPT: 'JavaScript',
+    LINUX: 'Linux',
+    GIT: 'Git',
+};
+
+// 통계용 회색 (CS 과목 및 미매핑 항목에 사용)
+const STATS_GRAY_COLOR = '#9CA3AF';
+
+/**
+ * 통계 전용 색상 결정 함수
+ * - TECH_ITEMS에 매핑되는 브랜드 기술: 해당 브랜드 색상 사용
+ * - CS 과목 또는 TECH_ITEMS에 없는 항목: 회색(#9CA3AF) 사용
+ */
+const getStatsColor = (courseCode: string | undefined): string => {
+    if (!courseCode) return STATS_GRAY_COLOR;
+
+    // courseCode를 TECH_ITEMS의 id로 변환
+    const techId = COURSE_TO_TECH_ID_MAP[courseCode];
+
+    if (techId) {
+        // TECH_ITEMS에서 해당 기술 찾기
+        const techItem = TECH_ITEMS.find((item) => item.id === techId);
+        if (techItem && techItem.id !== 'Other') {
+            return techItem.color;
+        }
+    }
+
+    // 매핑 안 되거나 Other인 경우 회색 반환
+    return STATS_GRAY_COLOR;
+};
 
 interface TechStackProficiencyViewProps {
   courseStats?: CourseQuizStat[];
@@ -26,16 +69,22 @@ interface ProcessedTechStack {
 export const TechStackProficiencyView: React.FC<TechStackProficiencyViewProps> = React.memo(
   ({ courseStats = [] }) => {
     // 코스 통계 데이터를 시각화용 데이터로 변환 (useMemo)
+    // 통계 전용 로직: 브랜드 기술은 유색, CS 과목은 회색
     const techStackData = useMemo<ProcessedTechStack[]>(() => {
       if (!courseStats || courseStats.length === 0) return [];
 
       return courseStats.map((stat) => {
-        // 1. Config Lookup
+        // 1. Config Lookup (아이콘, 라벨용)
         // 코드가 있으면 Config에서 찾고, 없으면 fallback 사용
         const config =
           (stat.courseCode && CATEGORY_CONFIG[stat.courseCode]) || DEFAULT_CATEGORY_CONFIG;
 
-        // 2. Calculate Metrics
+        // 2. 통계 전용 색상 결정 (TECH_ITEMS 기반)
+        // - 브랜드 기술(React, Java 등): TECH_ITEMS의 브랜드 색상
+        // - CS 과목(OS, Algorithm 등) 또는 미매핑: 회색(#9CA3AF)
+        const statsColor = getStatsColor(stat.courseCode);
+
+        // 3. Calculate Metrics
         const correctRate =
           stat.attemptedCount > 0
             ? Math.round((stat.correctCount / stat.attemptedCount) * 100)
@@ -49,7 +98,7 @@ export const TechStackProficiencyView: React.FC<TechStackProficiencyViewProps> =
           level,
           quizCount: stat.attemptedCount,
           correctRate,
-          color: config.color,
+          color: statsColor, // 통계 전용 색상 사용
           Icon: config.icon,
         };
       });
