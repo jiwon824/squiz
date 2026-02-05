@@ -49,14 +49,14 @@ export const CourseDetailHeader = ({
             >
                 {/* 상단: 아이콘과 배지 */}
                 <div className="flex items-start justify-between mb-4">
-                    {/* 그라데이션 아이콘 박스 */}
+                    {/* SOLID COLOR ICON BOX */}
                     <div
                         className="flex items-center justify-center"
                         style={{
                             width: '56px',
                             height: '56px',
                             borderRadius: 'var(--radius-lg)',
-                            background: categoryConfig.gradient,
+                            backgroundColor: categoryConfig.color,
                         }}
                     >
                         <BookOpen size={28} color="white" />

@@ -133,188 +133,175 @@ export interface Course {
  */
 export const CATEGORY_CONFIG: Record<
     string,
-    { label: string; color: string; gradient: string; icon: LucideIcon }
+    { label: string; color: string; icon: LucideIcon }
 > = {
-    // 기존 매핑
+    // 기존 매핑 -> Undefined in techItems (Other color)
     OS: {
         label: '운영체제',
-        color: 'var(--color-primary)',
-        gradient: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%)',
+        color: '#9CA3AF',
         icon: Cpu,
     },
     Network: {
         label: '네트워크',
-        color: 'var(--color-secondary)',
-        gradient: 'linear-gradient(135deg, var(--color-secondary) 0%, var(--color-accent) 100%)',
+        color: '#9CA3AF',
         icon: Network,
     },
     DB: {
         label: '데이터베이스',
-        color: 'var(--color-accent)',
-        gradient: 'linear-gradient(135deg, var(--color-accent) 0%, var(--color-primary) 100%)',
+        color: '#9CA3AF',
         icon: Database,
     },
     DataStructure: {
         label: '자료구조',
-        color: 'var(--color-google-blue)',
-        gradient: 'linear-gradient(135deg, var(--color-google-blue) 0%, var(--color-google-green) 100%)',
+        color: '#9CA3AF',
         icon: Binary,
     },
     // 추가된 DB 코드 매핑
     ALGORITHM: {
         label: '알고리즘',
-        color: 'var(--color-warning)', // 노란색 계열
-        gradient: 'linear-gradient(135deg, var(--color-warning) 0%, var(--color-error) 100%)',
+        color: '#9CA3AF',
         icon: Workflow,
     },
+    // Defined in techItems (Spring Boot: #6DB33F)
     JAVA_SPRING: {
         label: 'Spring',
-        color: 'var(--color-success)', // 초록색 계열
-        gradient: 'linear-gradient(135deg, var(--color-success) 0%, var(--color-info) 100%)',
+        color: '#6DB33F',
         icon: Leaf,
     },
+    // Undefined
     WEB: {
         label: 'Web',
-        color: 'var(--color-info)', // 파란색 계열
-        gradient: 'linear-gradient(135deg, var(--color-info) 0%, var(--color-primary) 100%)',
+        color: '#9CA3AF',
         icon: Globe,
     },
     // FrontEnd & Mobile
+    // Defined in techItems (React: #61DAFB)
     REACT: {
         label: 'React',
         color: '#61DAFB',
-        gradient: 'linear-gradient(135deg, #61DAFB 0%, #2188FF 100%)',
         icon: Atom,
     },
+    // Undefined
     MOBILE: {
         label: '모바일',
-        color: '#42A5F5',
-        gradient: 'linear-gradient(135deg, #42A5F5 0%, #1565C0 100%)',
+        color: '#9CA3AF',
         icon: Smartphone,
     },
+    // Undefined
     WEB_BASIC: {
         label: '웹 기초',
-        color: '#E65100',
-        gradient: 'linear-gradient(135deg, #FFA726 0%, #E65100 100%)',
+        color: '#9CA3AF',
         icon: Layout,
     },
     // BackEnd & Languages
+    // Defined in techItems (Python: #3776AB)
     PYTHON: {
         label: 'Python',
-        color: '#FFD54F',
-        gradient: 'linear-gradient(135deg, #FFD54F 0%, #FF6F00 100%)',
+        color: '#3776AB',
         icon: Code2,
     },
+    // Defined in techItems (Node.js: #339933)
     NODEJS: {
         label: 'Node.js',
-        color: '#66BB6A',
-        gradient: 'linear-gradient(135deg, #81C784 0%, #2E7D32 100%)',
+        color: '#339933',
         icon: Server,
     },
+    // Defined in techItems (Kotlin: #7F52FF)
     KOTLIN: {
         label: 'Kotlin',
-        color: '#7E57C2',
-        gradient: 'linear-gradient(135deg, #7E57C2 0%, #512DA8 100%)',
+        color: '#7F52FF',
         icon: FileCode,
     },
+    // Defined in techItems (TypeScript: #3178C6)
     TYPESCRIPT: {
         label: 'TypeScript',
         color: '#3178C6',
-        gradient: 'linear-gradient(135deg, #3178C6 0%, #235A97 100%)',
         icon: Braces,
     },
+    // Defined in techItems (JavaScript: #F7DF1E)
     JAVASCRIPT: {
         label: 'JavaScript',
         color: '#F7DF1E',
-        gradient: 'linear-gradient(135deg, #F7DF1E 0%, #E6C800 100%)',
         icon: Code2,
     },
     // Infrastructure & DevOps
+    // Undefined
     DEVOPS: {
         label: 'DevOps',
-        color: '#26A69A',
-        gradient: 'linear-gradient(135deg, #26A69A 0%, #00695C 100%)',
+        color: '#9CA3AF',
         icon: Layers,
     },
+    // Defined in techItems (Linux: #FCC624)
     LINUX: {
         label: 'Linux',
-        color: '#78909C',
-        gradient: 'linear-gradient(135deg, #B0BEC5 0%, #455A64 100%)',
+        color: '#FCC624',
         icon: Terminal,
     },
+    // Defined in techItems (Git: #F05032)
     GIT: {
         label: 'Git',
-        color: '#F4511E',
-        gradient: 'linear-gradient(135deg, #FF7043 0%, #bf360c 100%)',
+        color: '#F05032',
         icon: GitBranch,
     },
     // CS Fundamentals & Design
+    // All Undefined
     DESIGN_PATTERN: {
         label: '디자인패턴',
-        color: '#AB47BC',
-        gradient: 'linear-gradient(135deg, #AB47BC 0%, #7B1FA2 100%)',
+        color: '#9CA3AF',
         icon: Box,
     },
     SYSTEM_DESIGN: {
         label: '시스템설계',
-        color: '#5C6BC0',
-        gradient: 'linear-gradient(135deg, #7986CB 0%, #3949AB 100%)',
+        color: '#9CA3AF',
         icon: Cloud,
     },
     COMPUTER_ARCH: {
         label: '컴퓨터구조',
-        color: '#8D6E63',
-        gradient: 'linear-gradient(135deg, #A1887F 0%, #5D4037 100%)',
+        color: '#9CA3AF',
         icon: MonitorPlay,
     },
     SW_ENG: {
         label: 'SW공학',
-        color: '#7CB342', // light green
-        gradient: 'linear-gradient(135deg, #AED581 0%, #689F38 100%)',
+        color: '#9CA3AF',
         icon: Code2,
     },
     OS_EXT: {
         label: 'OS심화',
-        color: '#0288D1', // dark blue
-        gradient: 'linear-gradient(135deg, #29B6F6 0%, #01579B 100%)',
+        color: '#9CA3AF',
         icon: Cpu,
     },
     NETWORK_EXT: {
         label: '네트워크심화',
-        color: '#0097A7', // cyan
-        gradient: 'linear-gradient(135deg, #4DD0E1 0%, #006064 100%)',
+        color: '#9CA3AF',
         icon: Network,
     },
     // Advanced Tech
+    // All Undefined
     AI_ML: {
         label: 'AI/ML',
-        color: '#FF4081',
-        gradient: 'linear-gradient(135deg, #FF80AB 0%, #C51162 100%)',
+        color: '#9CA3AF',
         icon: Cpu,
     },
     NOSQL_MQ: {
         label: 'NoSQL/MQ',
-        color: '#D81B60',
-        gradient: 'linear-gradient(135deg, #EC407A 0%, #880E4F 100%)',
+        color: '#9CA3AF',
         icon: Database,
     },
     SECURITY: {
         label: '정보보안',
-        color: '#424242',
-        gradient: 'linear-gradient(135deg, #757575 0%, #212121 100%)',
+        color: '#9CA3AF',
         icon: Shield,
     },
-    // Certification (Special Request)
+    // Certification
+    // Undefined
     CERT_EIP: {
         label: 'CERT',
-        color: '#607D8B', // blue grey
-        gradient: 'linear-gradient(135deg, #90A4AE 0%, #455A64 100%)',
+        color: '#9CA3AF',
         icon: Award,
     },
     CERT_SQLD: {
         label: 'CERT',
-        color: '#FFB74D', // orange
-        gradient: 'linear-gradient(135deg, #FFB74D 0%, #F57C00 100%)',
+        color: '#9CA3AF',
         icon: Award,
     },
 };
@@ -325,12 +312,10 @@ export const CATEGORY_CONFIG: Record<
 export const DEFAULT_CATEGORY_CONFIG: {
     label: string;
     color: string;
-    gradient: string;
     icon: LucideIcon;
 } = {
     label: '기타',
     color: 'var(--color-gray-500)',
-    gradient: 'linear-gradient(135deg, var(--color-gray-500) 0%, var(--color-gray-700) 100%)',
     icon: Code2,
 };
 
