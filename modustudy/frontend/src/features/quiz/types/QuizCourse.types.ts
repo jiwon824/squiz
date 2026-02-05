@@ -415,6 +415,65 @@ export const DEFAULT_CATEGORY_CONFIG: {
 };
 
 // -----------------------------------------------------------------------------
+// 코스명 → 라벨 매핑 (COURSE NAME TO LABEL MAPPING)
+// -----------------------------------------------------------------------------
+/**
+ * 백엔드 API에서 반환하는 코스명(name)을 짧은 라벨로 변환하는 매핑 테이블
+ *
+ * 사용처: 취약개념 탭의 카테고리 뱃지 등
+ * 형식: { "백엔드 코스명(quiz_course.name)": "표시할 라벨" }
+ *
+ * 주의: 이 매핑의 키는 DB의 quiz_course.name 값과 정확히 일치해야 합니다.
+ * DB 데이터 변경 시 이 매핑도 함께 업데이트해야 합니다.
+ */
+export const COURSE_NAME_TO_LABEL: Record<string, string> = {
+    // CS 기초 (DB quiz_course.name 기준)
+    '데이터베이스': 'DB',
+    '알고리즘과 자료구조': '알고리즘',
+    '컴퓨터 구조': '컴퓨터구조',
+    '운영체제 심화': 'OS심화',
+    '네트워크 심화': '네트워크심화',
+    // 백엔드
+    'Java와 Spring': 'Spring',
+    'Node.js': 'Node.js',
+    'Python': 'Python',
+    // 프론트엔드/모바일
+    '프론트엔드 React': 'React',
+    '웹 기초': '웹 기초',
+    '모바일 개발': '모바일',
+    'Kotlin': 'Kotlin',
+    // 인프라/DevOps
+    '인프라와 DevOps': 'DevOps',
+    'Linux': 'Linux',
+    '시스템 디자인': '시스템설계',
+    'Git과 협업': 'Git',
+    // 설계/기타
+    '디자인 패턴': '디자인패턴',
+    '소프트웨어 공학': 'SW공학',
+    '정보보안 기초': '정보보안',
+    'AI와 머신러닝': 'AI/ML',
+    'NoSQL과 메시지큐': 'NoSQL/MQ',
+    // 자격증
+    '정보처리기사': '정처기',
+    'SQLD': 'SQLD',
+};
+
+/**
+ * 코스명(백엔드 API 응답)을 짧은 라벨로 변환하는 유틸리티 함수
+ *
+ * @param courseName - 백엔드에서 받은 코스명 (예: "알고리즘과 자료구조")
+ * @returns 짧은 라벨 (예: "알고리즘") 또는 매핑이 없으면 원래 이름 반환
+ *
+ * @example
+ * getCategoryLabelByCourseName("알고리즘과 자료구조") // "알고리즘"
+ * getCategoryLabelByCourseName("Java와 Spring코스")  // "Spring"
+ * getCategoryLabelByCourseName("알 수 없는 코스")     // "알 수 없는 코스"
+ */
+export const getCategoryLabelByCourseName = (courseName: string): string => {
+    return COURSE_NAME_TO_LABEL[courseName] ?? courseName;
+};
+
+// -----------------------------------------------------------------------------
 // 난이도 표시 설정 (DIFFICULTY CONFIGURATION)
 // -----------------------------------------------------------------------------
 /**
