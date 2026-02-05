@@ -79,7 +79,7 @@ const WeakConceptItem: React.FC<WeakConceptItemProps> = React.memo(
     );
 
     return (
-      <div className="px-5 py-4 rounded-xl border border-gray-100 hover:border-gray-200 transition-all">
+      <div className="px-5 py-4 rounded-xl bg-white shadow-[0_4px_15px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)] hover:bg-gray-50 transition-all">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
             {/* 순위 및 카테고리 */}
