@@ -19,7 +19,7 @@ export const calculateWeakConcepts = (
 
   wrongReviews.forEach((item) => {
     // 코스 이름(category)을 키로 사용
-    const category = item.question.category || '기타';
+    const category = item.question?.category || '기타';
     if (!categoryMap.has(category)) {
       categoryMap.set(category, []);
     }
@@ -98,7 +98,7 @@ export const calculateCategoryStats = (
   wrongReviews: ReviewItemDto[]
 ): Record<string, CategoryStats> => {
   return wrongReviews.reduce((acc, wrong) => {
-    const category = wrong.question.category || '기타';
+    const category = wrong.question?.category || '기타';
     if (!acc[category]) {
       acc[category] = { questionCount: 0, totalWrongCount: 0 };
     }

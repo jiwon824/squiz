@@ -35,6 +35,13 @@ export interface DmWebSocketEvent {
 // WebSocket 연결 상태
 export type ConnectionStatus = 'CONNECTING' | 'CONNECTED' | 'DISCONNECTED' | 'ERROR';
 
+// 친구 온라인 상태 이벤트
+export interface FriendPresenceEvent {
+    userId: number;
+    isOnline: boolean;
+    lastSeenAt: string | null;
+}
+
 // WebSocket 이벤트 핸들러 타입
 export interface DmWebSocketHandlers {
     onMessage?: (event: DmWebSocketEvent) => void;
@@ -42,6 +49,7 @@ export interface DmWebSocketHandlers {
     onRead?: (event: DmWebSocketEvent) => void;
     onOnline?: (event: DmWebSocketEvent) => void;
     onOffline?: (event: DmWebSocketEvent) => void;
+    onPresence?: (event: FriendPresenceEvent) => void;  // 친구 온라인 상태 변경
     onError?: (error: string) => void;
     onConnectionChange?: (status: ConnectionStatus) => void;
 }

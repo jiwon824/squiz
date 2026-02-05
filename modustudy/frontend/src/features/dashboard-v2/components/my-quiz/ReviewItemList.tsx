@@ -126,7 +126,7 @@ const ReviewItem: React.FC<ReviewItemComponentProps> = React.memo(
                 {getDifficultyLabel(item.difficulty)}
               </span>
               <span className="px-2.5 py-1 bg-gray-50 rounded-full text-xs font-medium text-text-secondary">
-                {item.question.category || '일반'}
+                {item.question?.category || '일반'}
               </span>
               {type === 'wrong' && (
                 <span className="px-2.5 py-1 bg-error/5 rounded-full text-xs font-medium text-error flex items-center gap-1">
@@ -144,7 +144,7 @@ const ReviewItem: React.FC<ReviewItemComponentProps> = React.memo(
 
             {/* 문제 */}
             <p className="text-text-primary font-medium line-clamp-2 leading-relaxed">
-              {item.question.questionText}
+              {item.question?.questionText || '문제를 불러올 수 없습니다'}
             </p>
 
             {/* 마지막 날짜 */}

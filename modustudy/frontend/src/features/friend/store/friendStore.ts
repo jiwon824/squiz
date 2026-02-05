@@ -29,6 +29,7 @@ interface FriendState {
     acceptRequest: (requestId: number) => Promise<void>;
     rejectRequest: (requestId: number) => Promise<void>;
     removeFriend: (friendshipId: number) => Promise<void>;
+    updateFriendOnlineStatus: (userId: number, isOnline: boolean) => void;  // 친구 온라인 상태 업데이트
     clearSearch: () => void;
     clearError: () => void;
 }
@@ -132,6 +133,17 @@ export const useFriendStore = create<FriendState>((set, get) => ({
         } catch (error: any) {
             set({ error: error.response?.data?.message || '친구 삭제에 실패했습니다.' });
         }
+    },
+
+    // 친구 온라인 상태 업데이트 (WebSocket 이벤트용)
+    updateFriendOnlineStatus: (userId: number, isOnline: boolean) => {
+        set(state => ({
+            friends: state.friends.map(friend =>
+                friend.friendId === userId
+                    ? { ...friend, status: isOnline ? 'ONLINE' : 'OFFLINE' }
+                    : friend
+            )
+        }));
     },
 
     // 검색 결과 초기화
