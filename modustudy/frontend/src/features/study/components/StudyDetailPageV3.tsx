@@ -465,6 +465,7 @@ const StudyDetailPageV3: React.FC = () => {
 
     const statusConfig = getStatusConfig(study.status);
     const isOwner = user?.id != null && study.leader?.id != null && Number(user.id) === Number(study.leader.id);
+    const isAdmin = user?.role === 'ADMIN';
 
     // 마감 조건: 인원이 다 찼거나 모집 마감일이 지남
     const isFullCapacity = study.currentMembers >= study.maxMembers;
@@ -569,8 +570,8 @@ const StudyDetailPageV3: React.FC = () => {
                                                 )}
                                                 align="right"
                                                 menuClassName="w-48"
-                                                items={isOwner ? [
-                                                    {
+                                                items={(isOwner || isAdmin) ? [
+                                                    ...(isOwner ? [{
                                                         label: '수정하기',
                                                         value: 'edit',
                                                         icon: <Pencil size={16} />,
@@ -582,13 +583,14 @@ const StudyDetailPageV3: React.FC = () => {
                                                                 navigate(`/study/create/planned?studyId=${study.id}&from=detail`);
                                                             }
                                                         },
-                                                    },
+                                                    }] : []),
                                                     {
-                                                        label: '삭제하기',
+                                                        label: isAdmin && !isOwner ? '삭제하기 (관리자)' : '삭제하기',
                                                         value: 'delete',
                                                         icon: <Trash2 size={16} />,
                                                         danger: true,
-                                                        disabled: study.currentMembers > 1,
+                                                        // admin은 멤버 수에 상관없이 삭제 가능
+                                                        disabled: !isAdmin && study.currentMembers > 1,
                                                         onClick: () => setIsDeleteConfirmOpen(true),
                                                     },
                                                 ] : [

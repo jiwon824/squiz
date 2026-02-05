@@ -466,6 +466,31 @@ export const RecruitmentPage = () => {
                                 </>
                             )}
 
+                            {/* 관리자용 삭제 버튼 (작성자가 아닌 경우에만 표시) */}
+                            {currentUser?.role === 'ADMIN' && Number(currentUser?.id) !== selectedPost.authorId && (
+                                <>
+                                    <div className="p-6 md:p-8">
+                                        <div className="p-5 bg-[var(--color-error-light)] rounded-xl border border-[var(--color-error)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                            <div className="flex items-center gap-3">
+                                                <AlertTriangle className="text-[var(--color-error)]" size={22} />
+                                                <span className="font-bold text-[var(--color-error)] text-sm">관리자 권한</span>
+                                            </div>
+                                            <Button
+                                                variant="google-outline"
+                                                size="sm"
+                                                onClick={() => handleDelete(selectedPost.id)}
+                                                className="text-sm text-[var(--color-error)] hover:bg-[var(--color-error-light)] border-[var(--color-error)]"
+                                            >
+                                                삭제 (관리자)
+                                            </Button>
+                                        </div>
+                                    </div>
+
+                                    {/* 구분선*/}
+                                    <div className="mx-6 md:mx-8 border-t-2 border-gray-200" />
+                                </>
+                            )}
+
                             {/* 댓글 섹션 */}
                             <div className="p-6 md:p-8">
                                 <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--color-text-primary)] mb-6">

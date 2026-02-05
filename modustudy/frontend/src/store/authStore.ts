@@ -9,6 +9,7 @@ interface User {
     avatar?: string;
     bio?: string;
     loginProvider?: 'KAKAO' | 'GOOGLE' | 'NAVER';
+    role?: 'USER' | 'ADMIN';
 }
 
 interface AuthState {
