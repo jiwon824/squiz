@@ -322,6 +322,30 @@ public class StudyService {
     }
 
     /**
+     * 관리자용 스터디 삭제 (상태 무관)
+     */
+    @Transactional
+    public void adminDeleteStudy(Long studyId, Long adminUserId) {
+        log.info("관리자 스터디 삭제 시작 - studyId: {}, adminUserId: {}", studyId, adminUserId);
+
+        // 관리자 권한 확인
+        User admin = userRepository.findById(adminUserId)
+                .orElseThrow(NotFoundException::user);
+
+        if (admin.getRole() != Role.ADMIN) {
+            throw new StudyException.NotStudyLeaderException("관리자 권한이 없습니다");
+        }
+
+        Study study = studyRepository.findById(studyId)
+                .orElseThrow(() -> new StudyException.StudyNotFoundException(studyId));
+
+        // 관리자는 상태에 관계없이 삭제 가능
+        studyRepository.delete(study);
+
+        log.info("관리자 스터디 삭제 완료 - studyId: {}, adminUserId: {}", studyId, adminUserId);
+    }
+
+    /**
      * 스터디 상태 변경
      */
     @Transactional

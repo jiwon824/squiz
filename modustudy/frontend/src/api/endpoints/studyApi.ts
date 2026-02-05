@@ -786,6 +786,12 @@ export const deleteStudy = async (studyId: number) => {
   return response.data;
 };
 
+// 관리자용 스터디 삭제 (상태 무관)
+export const adminDeleteStudy = async (studyId: number) => {
+  const response = await api.delete(`/api/v1/study/${studyId}/admin`);
+  return response.data;
+};
+
 // ========== 스터디장 리뷰 (Leader Review) ==========
 
 // 스터디장 정보 응답 타입

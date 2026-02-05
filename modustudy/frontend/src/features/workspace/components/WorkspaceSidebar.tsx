@@ -149,8 +149,8 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
         )}
       </div>
 
-      {/* 하단 미팅 참여 버튼 - 진행 중인 세션이 있을 때만 표시 */}
-      {activeSession && (
+      {/* 하단 미팅 참여 버튼 - 진행 중인 온라인 세션이 있을 때만 표시 */}
+      {activeSession && activeSession.isOnline && (
         <div className="workspace-sidebar__footer">
           <button
             className="workspace-sidebar__meeting-btn workspace-sidebar__meeting-btn--active"

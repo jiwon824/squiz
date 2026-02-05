@@ -11,7 +11,7 @@ import { PageSpinner, ButtonSpinner } from '@/shared/components/Spinner';
 import { CurriculumRoadmap, CurriculumStop } from './CurriculumRoadmap';
 import { useAuthStore } from '@/store/authStore';
 import { Study } from '../services/studyService';
-import { studyApi, getStudySessions, StudySessionItem, deleteStudy, getLeaderReviews, getLeaderInfo, LeaderReviewResponse, LeaderInfoResponse, getProvinces, getDistricts, getMyLeaderReview } from '@/api/endpoints/studyApi';
+import { studyApi, getStudySessions, StudySessionItem, deleteStudy, adminDeleteStudy, getLeaderReviews, getLeaderInfo, LeaderReviewResponse, LeaderInfoResponse, getProvinces, getDistricts, getMyLeaderReview } from '@/api/endpoints/studyApi';
 import { PageNavHeader } from '@/shared/components/layouts/PageNavHeader';
 import StudyApplyModalV2 from './StudyApplyModalV2';
 import { StudyReportModal } from './StudyReportModal';
@@ -357,9 +357,19 @@ const StudyDetailPageV3: React.FC = () => {
     const handleDeleteStudy = async () => {
         if (!studyDetail.id) return;
 
+        // 관리자 여부 확인 (스터디장이 아닌 관리자는 adminDeleteStudy 사용)
+        const isUserAdmin = user?.role === 'ADMIN';
+        const isUserOwner = user?.id != null && studyDetail.leader?.id != null && Number(user.id) === Number(studyDetail.leader.id);
+
         setIsDeleting(true);
         try {
-            await deleteStudy(studyDetail.id);
+            if (isUserAdmin && !isUserOwner) {
+                // 관리자(스터디장 아님)인 경우 관리자용 삭제 API 사용
+                await adminDeleteStudy(studyDetail.id);
+            } else {
+                // 스터디장인 경우 일반 삭제 API 사용
+                await deleteStudy(studyDetail.id);
+            }
             showToast('스터디가 삭제되었습니다.', 'success');
             navigate('/study');
         } catch (error) {
@@ -570,8 +580,9 @@ const StudyDetailPageV3: React.FC = () => {
                                                 )}
                                                 align="right"
                                                 menuClassName="w-48"
-                                                items={(isOwner || isAdmin) ? [
-                                                    ...(isOwner ? [{
+                                                items={isOwner ? [
+                                                    // 스터디장: 수정하기 + 삭제하기
+                                                    {
                                                         label: '수정하기',
                                                         value: 'edit',
                                                         icon: <Pencil size={16} />,
@@ -583,17 +594,33 @@ const StudyDetailPageV3: React.FC = () => {
                                                                 navigate(`/study/create/planned?studyId=${study.id}&from=detail`);
                                                             }
                                                         },
-                                                    }] : []),
+                                                    },
                                                     {
-                                                        label: isAdmin && !isOwner ? '삭제하기 (관리자)' : '삭제하기',
+                                                        label: '삭제하기',
                                                         value: 'delete',
                                                         icon: <Trash2 size={16} />,
                                                         danger: true,
-                                                        // admin은 멤버 수에 상관없이 삭제 가능
-                                                        disabled: !isAdmin && study.currentMembers > 1,
+                                                        disabled: study.currentMembers > 1,
+                                                        onClick: () => setIsDeleteConfirmOpen(true),
+                                                    },
+                                                ] : isAdmin ? [
+                                                    // 관리자 (스터디장 아님): 신고하기 + 삭제하기 (관리자)
+                                                    {
+                                                        label: '신고하기',
+                                                        value: 'report',
+                                                        icon: <AlertTriangle size={16} />,
+                                                        danger: true,
+                                                        onClick: () => setIsReportModalOpen(true),
+                                                    },
+                                                    {
+                                                        label: '삭제하기 (관리자)',
+                                                        value: 'delete',
+                                                        icon: <Trash2 size={16} />,
+                                                        danger: true,
                                                         onClick: () => setIsDeleteConfirmOpen(true),
                                                     },
                                                 ] : [
+                                                    // 일반 사용자: 신고하기만
                                                     {
                                                         label: '신고하기',
                                                         value: 'report',
