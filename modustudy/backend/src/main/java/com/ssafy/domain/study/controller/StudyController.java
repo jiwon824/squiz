@@ -241,6 +241,22 @@ public class StudyController {
     }
 
     /**
+     * 관리자용 스터디 삭제 (상태 무관)
+     * DELETE /api/v1/study/{studyId}/admin
+     */
+    @DeleteMapping("/{studyId}/admin")
+    public ResponseEntity<Void> adminDeleteStudy(
+            @PathVariable Long studyId,
+            @RequestHeader("User-Id") Long userId) {
+
+        log.info("API 호출 - 관리자 스터디 삭제: studyId={}, adminUserId={}", studyId, userId);
+
+        studyService.adminDeleteStudy(studyId, userId);
+
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
      * 스터디 신고
      * POST /api/v1/study/{studyId}/report
      */
