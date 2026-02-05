@@ -308,11 +308,16 @@ fun ScheduleCalendarScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         selectedDaySchedules.forEach { schedule ->
+                            val isGoogleEvent = schedule.studyId == -1L
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(vertical = 4.dp)
-                                    .clickable { onSessionClick(schedule.studyId, schedule.sessionId) },
+                                    .then(
+                                        if (!isGoogleEvent) {
+                                            Modifier.clickable { onSessionClick(schedule.studyId, schedule.sessionId) }
+                                        } else Modifier
+                                    ),
                                 shape = RoundedCornerShape(12.dp),
                                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                             ) {
@@ -320,10 +325,11 @@ fun ScheduleCalendarScreen(
                                     modifier = Modifier.fillMaxWidth().padding(12.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
+                                    // Google 이벤트는 다른 색상으로 표시
                                     Box(
                                         modifier = Modifier
                                             .size(8.dp)
-                                            .background(Primary, CircleShape)
+                                            .background(if (isGoogleEvent) Color(0xFF4285F4) else Primary, CircleShape)
                                     )
                                     Spacer(modifier = Modifier.width(12.dp))
                                     Column(modifier = Modifier.weight(1f)) {
@@ -338,11 +344,14 @@ fun ScheduleCalendarScreen(
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
-                                    Icon(
-                                        Icons.Default.ChevronRight,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                                    // Google 이벤트가 아닌 경우에만 화살표 표시
+                                    if (!isGoogleEvent) {
+                                        Icon(
+                                            Icons.Default.ChevronRight,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
                                 }
                             }
                         }
