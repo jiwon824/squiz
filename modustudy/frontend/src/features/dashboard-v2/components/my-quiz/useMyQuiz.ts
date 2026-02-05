@@ -48,7 +48,7 @@ export const useMyQuiz = (): UseMyQuizReturn => {
 
   // === UI 상태 ===
   const [activeTab, setActiveTab] = useState<TabType>('review');
-  const [wrongSortType, setWrongSortType] = useState<WrongAnswerSortType>('MOST_WRONG');
+  const [wrongSortType, setWrongSortType] = useState<WrongAnswerSortType>('LATEST');
 
   // === 퀴즈 재도전 상태 ===
   const [retryState, setRetryState] = useState<QuizRetryState>(INITIAL_RETRY_STATE);

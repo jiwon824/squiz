@@ -27,7 +27,7 @@ export const CommentleInputSection: React.FC<CommentleInputSectionProps> = ({ on
     };
 
     return (
-        <section className="bg-gradient-to-br from-primary/5 to-secondary/5 border-2 border-primary/20 rounded-3xl p-8">
+        <section className="bg-white rounded-2xl p-8 shadow-[0_4px_15px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)] transition-shadow">
             <div className="flex items-center gap-3 mb-6">
                 <div className="bg-primary/10 p-2 rounded-xl text-primary">
                     <Send size={20} />

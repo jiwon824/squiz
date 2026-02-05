@@ -77,14 +77,14 @@ export const CourseCard = ({ course, onCardClick }: CourseCardProps) => {
             >
                 {/* TOP ROW: Icon and Category Badge */}
                 <div className="flex items-start justify-between mb-4">
-                    {/* GRADIENT ICON BOX */}
+                    {/* SOLID COLOR ICON BOX */}
                     <div
                         className="flex items-center justify-center"
                         style={{
                             width: '48px',
                             height: '48px',
                             borderRadius: 'var(--radius-lg)',
-                            background: categoryConfig.gradient,
+                            backgroundColor: categoryConfig.color,
                         }}
                     >
                         <BookOpen size={24} color="white" />

@@ -14,7 +14,6 @@ interface ProcessedTechStack {
   quizCount: number;
   correctRate: number;
   color: string;
-  gradient: string;
   Icon: LucideIcon;
 }
 
@@ -51,7 +50,6 @@ export const TechStackProficiencyView: React.FC<TechStackProficiencyViewProps> =
           quizCount: stat.attemptedCount,
           correctRate,
           color: config.color,
-          gradient: config.gradient,
           Icon: config.icon,
         };
       });
@@ -140,7 +138,7 @@ const TechStackBar: React.FC<TechStackBarProps> = React.memo(({ tech }) => (
         animate={{ width: `${tech.level}%` }}
         transition={{ duration: 1.2, ease: 'easeOut' }}
         className="h-full rounded-full relative"
-        style={{ background: tech.gradient }}
+        style={{ backgroundColor: tech.color }}
       >
         {/* 광택 효과 (Shine Effect) */}
         <div
