@@ -360,7 +360,7 @@ class ReviewControllerTest {
         @DisplayName("복습 통계 조회 API 성공 테스트")
         void getReviewStats_ShouldReturnSuccess() throws Exception {
                 // given
-                ReviewStatsResponse mockStats = ReviewStatsResponse.of(
+                ReviewStatsResponse mockStats = new ReviewStatsResponse(
                                 50, 5, 10, 3, 30, 7,
                                 4.5, 120, 15, 0.6,
                                 0.85, 25, 12); // New fields added
