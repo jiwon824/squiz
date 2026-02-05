@@ -57,10 +57,13 @@ public interface StudySessionRepository extends JpaRepository<StudySession, Long
     List<StudySession> findByScheduledAtBetween(LocalDateTime startDateTime, LocalDateTime endDateTime);
 
     /**
-     * 특정 스터디의 다음 예정된 세션 조회
+     * 특정 스터디의 다음/현재 진행 중인 세션 조회
+     * 세션 종료 시간(scheduledAt + durationMinutes)이 현재보다 미래인 세션을 반환
+     * 즉, 아직 끝나지 않았거나 미래에 시작되는 세션
      */
     @Query("SELECT s FROM StudySession s WHERE s.studyId = :studyId " +
-            "AND s.status = 'SCHEDULED' AND s.scheduledAt > :now " +
+            "AND s.status = 'SCHEDULED' " +
+            "AND FUNCTION('TIMESTAMPADD', MINUTE, COALESCE(s.durationMinutes, 60), s.scheduledAt) > :now " +
             "ORDER BY s.scheduledAt ASC LIMIT 1")
     Optional<StudySession> findNextScheduledSession(
             @Param("studyId") Long studyId,

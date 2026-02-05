@@ -53,7 +53,7 @@
     <!-- 일별 퀴즈 시도 통계 -->
     <select id="getDailyQuizAttempts" resultType="com.ssafy.domain.admin.dto.QuizStatsDto$DailyQuizAttemptDto">
         SELECT DATE(updated_at) as date, COUNT(*) as count
-        FROM user_review_item
+        FROM user_review_items
         WHERE updated_at >= DATE_SUB(CURDATE(), INTERVAL #{days} DAY)
         GROUP BY DATE(updated_at)
         ORDER BY date ASC
@@ -62,7 +62,7 @@
     <!-- 코스별 참여자 통계 -->
     <select id="getCourseParticipation" resultType="com.ssafy.domain.admin.dto.QuizStatsDto$CourseParticipationDto">
         SELECT qc.name as courseName, COUNT(DISTINCT uri.user_id) as participantCount
-        FROM user_review_item uri
+        FROM user_review_items uri
         JOIN quiz_course_question qcq ON uri.content_id = qcq.id AND uri.content_type = 'COURSE_QUESTION'
         JOIN quiz_course_section qcs ON qcq.section_id = qcs.id
         JOIN quiz_course qc ON qcs.course_id = qc.id
