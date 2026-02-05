@@ -34,7 +34,7 @@ public class ContributionDetail {
     @Column(name = "reference_id", nullable = false)
     private Long referenceId;
 
-    @Column(name = "reference_name", nullable = false, length = 200)
+    @Column(name = "reference_name", nullable = false, length = 500)
     private String referenceName;
 
     @Column(name = "created_at")

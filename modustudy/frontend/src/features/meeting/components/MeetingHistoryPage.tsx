@@ -36,6 +36,18 @@ const MeetingHistoryPage: React.FC = () => {
     const pageSize = 10;
     const pageGroupSize = 5;
 
+    const formatDuration = (start?: string | null, end?: string | null) => {
+        if (!start || !end) return '';
+        const startMs = new Date(start).getTime();
+        const endMs = new Date(end).getTime();
+        if (Number.isNaN(startMs) || Number.isNaN(endMs) || endMs <= startMs) return '';
+        const totalMinutes = Math.round((endMs - startMs) / 60000);
+        if (totalMinutes < 60) return `${totalMinutes}분`;
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+        return minutes > 0 ? `${hours}시간 ${minutes}분` : `${hours}시간`;
+    };
+
     const fetchMeetings = useCallback(async () => {
         if (!numericStudyId) return;
         setIsLoading(true);
@@ -97,12 +109,13 @@ const MeetingHistoryPage: React.FC = () => {
             <div className="meeting-history">
                 <div className="meeting-history__header">
                     <PageNavHeader
-                        title="회의 목록"
+                        title="미팅 기록"
                         breadcrumbs={[
                             { label: '스터디', path: `/study/${numericStudyId}` },
                             { label: '회의 목록' },
                         ]}
                         onBack={handleNavigateToWorkspace}
+                        className="meeting-history__nav"
                     />
                 </div>
 
@@ -143,21 +156,28 @@ const MeetingHistoryPage: React.FC = () => {
                     <div className="meeting-history__list">
                         {meetings.map((meeting) => (
                             <div key={meeting.id} className="meeting-history__card">
-                                <div>
-                                    <h3 className="meeting-history__title">
-                                        {meeting.title || '미팅'}
+                                <div className="meeting-history__info">
+                                    <div className="meeting-history__title-row">
+                                        <h3 className="meeting-history__title">{meeting.title || '미팅'}</h3>
                                         {!meeting.endedAt && (
                                             <span className="meeting-history__badge meeting-history__badge--active">
                                                 진행 중
                                             </span>
                                         )}
-                                    </h3>
-                                    <p>
-                                        {meeting.startedAt
-                                            ? new Date(meeting.startedAt).toLocaleString()
-                                            : '시작 전'}
-                                        {meeting.endedAt && ` ~ ${new Date(meeting.endedAt).toLocaleTimeString()}`}
-                                    </p>
+                                    </div>
+                                    <div className="meeting-history__meta">
+                                        <span className="meeting-history__time">
+                                            {meeting.startedAt
+                                                ? new Date(meeting.startedAt).toLocaleString()
+                                                : '시작 전'}
+                                            {meeting.endedAt && ` ~ ${new Date(meeting.endedAt).toLocaleTimeString()}`}
+                                        </span>
+                                        {meeting.endedAt && (
+                                            <span className="meeting-history__duration">
+                                                {formatDuration(meeting.startedAt, meeting.endedAt)}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                                 <div className="meeting-history__actions">
                                     {meeting.endedAt && (
@@ -178,7 +198,11 @@ const MeetingHistoryPage: React.FC = () => {
                                 </div>
                             </div>
                         ))}
-                        {meetings.length === 0 && <p className="meeting-history__empty">미팅 기록이 없습니다.</p>}
+                        {meetings.length === 0 && (
+                            <div className="meeting-history__empty-card">
+                                <p className="meeting-history__empty">미팅 기록이 없습니다.</p>
+                            </div>
+                        )}
                     </div>
                 )}
                 {totalPages > 1 && (

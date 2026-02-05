@@ -146,7 +146,7 @@ export const QuizGameSelection = () => {
                                 SQUIZ 아일랜드 🏝️
                             </h1>
                             <p className="text-lg font-medium text-gray-600">
-                                세 가지 모드를 정복하며 지식의 물고기를 잡아보세요!
+                                퀴즈를 세 가지 모드로 즐겨보세요!
                             </p>
                         </div>
 
