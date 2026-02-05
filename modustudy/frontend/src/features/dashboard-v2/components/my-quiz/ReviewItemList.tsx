@@ -10,46 +10,85 @@ const ITEMS_PER_PAGE = 5;
  * 복습/오답 문제 리스트를 표시하는 컴포넌트
  *
  * 특징:
- * - 페이지네이션 지원
+ * - 페이지네이션 지원 (Client-side & Server-side)
  * - 난이도별 색상 표시
  * - 다시 풀기 버튼
  */
 export const ReviewItemList: React.FC<ReviewItemListProps> = React.memo(
-  ({ items, onRetry, type }) => {
-    const [currentPage, setCurrentPage] = useState(1);
+  ({ items, onRetry, type, currentPage: serverPage, totalPages: serverTotalPages, onPageChange }) => {
+    // Client-side pagination state (fallback)
+    const [clientPage, setClientPage] = useState(1);
+    const isServerSide = serverPage !== undefined && serverTotalPages !== undefined && onPageChange !== undefined;
 
-    // === Memoized 계산 ===
-    const totalPages = useMemo(
-      () => Math.ceil(items.length / ITEMS_PER_PAGE),
-      [items.length]
-    );
+    // === 상태 결정 ===
+    const currentPage = isServerSide ? serverPage : clientPage;
+    const totalPages = isServerSide
+      ? serverTotalPages
+      : Math.ceil(items.length / ITEMS_PER_PAGE);
 
-    const showPagination = items.length > ITEMS_PER_PAGE;
-
+    // === 아이템 결정 ===
+    // Server-side: items are already paginated
+    // Client-side: slice items
     const currentItems = useMemo(
       () =>
-        items.slice(
-          (currentPage - 1) * ITEMS_PER_PAGE,
-          currentPage * ITEMS_PER_PAGE
-        ),
-      [items, currentPage]
+        isServerSide
+          ? items
+          : items.slice(
+            (clientPage - 1) * ITEMS_PER_PAGE,
+            clientPage * ITEMS_PER_PAGE
+          ),
+      [items, clientPage, isServerSide]
     );
+
+    const showPagination = isServerSide ? (totalPages || 0) > 1 : items.length > ITEMS_PER_PAGE;
 
     // === 페이지네이션 핸들러 ===
     const handlePrevPage = useCallback(() => {
-      setCurrentPage((p) => Math.max(1, p - 1));
-    }, []);
+      if (isServerSide && onPageChange) {
+        onPageChange(Math.max(1, (currentPage || 1) - 1));
+      } else {
+        setClientPage((p) => Math.max(1, p - 1));
+      }
+    }, [isServerSide, onPageChange, currentPage]);
 
     const handleNextPage = useCallback(() => {
-      setCurrentPage((p) => Math.min(totalPages, p + 1));
-    }, [totalPages]);
+      if (isServerSide && onPageChange && totalPages) {
+        onPageChange(Math.min(totalPages, (currentPage || 1) + 1));
+      } else {
+        setClientPage((p) => Math.min(totalPages || 1, p + 1));
+      }
+    }, [isServerSide, onPageChange, currentPage, totalPages]);
 
     const handlePageClick = useCallback((page: number) => {
-      setCurrentPage(page);
-    }, []);
+      if (isServerSide && onPageChange) {
+        onPageChange(page);
+      } else {
+        setClientPage(page);
+      }
+    }, [isServerSide, onPageChange]);
 
     // === 빈 상태 표시 ===
-    if (items.length === 0) {
+    if (items.length === 0 && !isServerSide) { // Server-side might yield empty items on load or error, handle gracefully?
+      // For now keeping original behavior.
+      return (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+            <CheckCircle2 size={32} className="text-gray-400" />
+          </div>
+          <h3 className="text-lg font-bold text-text-primary mb-1">
+            {type === 'review' ? '오늘의 복습 끝!' : '틀린 문제가 없습니다'}
+          </h3>
+          <p className="text-text-tertiary">
+            {type === 'review'
+              ? '오늘은 더 이상 복습할 내용이 없습니다. 훌륭해요!'
+              : '완벽하게 이해하고 계시네요.'}
+          </p>
+        </div>
+      );
+    }
+
+    // Empty state for server side (when page 1 explains no results)
+    if (isServerSide && totalPages === 0) {
       return (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
@@ -82,7 +121,7 @@ export const ReviewItemList: React.FC<ReviewItemListProps> = React.memo(
         </div>
 
         {/* 페이지네이션 */}
-        {showPagination && (
+        {showPagination && totalPages && currentPage && (
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}

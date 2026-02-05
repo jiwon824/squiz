@@ -32,6 +32,9 @@ export interface ReviewItemDto {
 export interface TodayReviewResponse {
     items: ReviewItemDto[];
     totalCount: number;
+    totalPages: number;
+    number: number;
+    size: number;
 }
 
 export interface ApiResponse<T> {
@@ -47,8 +50,16 @@ export const getTodayReviews = async (): Promise<TodayReviewResponse> => {
 
 export type WrongAnswerSortType = 'MOST_WRONG' | 'FSRS_RECOMMENDED' | 'LATEST';
 
-export const getWrongAnswers = async (sortType?: WrongAnswerSortType): Promise<TodayReviewResponse> => {
-    const params = sortType ? { sortType } : {};
+export const getWrongAnswers = async (
+    sortType?: WrongAnswerSortType,
+    page: number = 0,
+    size: number = 5
+): Promise<TodayReviewResponse> => {
+    const params = {
+        sortType,
+        page,
+        size
+    };
     const response = await api.get<ApiResponse<TodayReviewResponse>>('/api/v1/reviews/wrong-answers', { params });
     return response.data.data;
 };

@@ -56,6 +56,10 @@ export interface ReviewItemListProps {
   items: ReviewItemDto[];
   onRetry: (item: ReviewItemDto) => void;
   type: 'review' | 'wrong';
+  // Server-side pagination
+  currentPage?: number;
+  totalPages?: number;
+  onPageChange?: (page: number) => void;
 }
 
 // WeakConceptList 컴포넌트 Props
@@ -104,9 +108,12 @@ export interface UseMyQuizReturn {
   activeTab: TabType;
   setActiveTab: (tab: TabType) => void;
 
-  // 정렬 관리
+  // 정렬 및 페이지 관리
   wrongSortType: WrongAnswerSortType;
   setWrongSortType: (type: WrongAnswerSortType) => void;
+  wrongPage: number;
+  setWrongPage: (page: number) => void;
+  wrongTotalCount: number;
 
   // 퀴즈 재도전 상태
   retryState: QuizRetryState;

@@ -14,6 +14,10 @@ import com.ssafy.domain.quiz.service.FsrsService;
 import com.ssafy.domain.user.entity.Role;
 import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.user.service.UserService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,6 +34,7 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
@@ -136,21 +141,29 @@ class ReviewControllerTest {
                 TodayReviewResponse.ReviewItemDto dto = new TodayReviewResponse.ReviewItemDto(
                                 2L, ReviewContentType.COURSE_QUESTION, 101L, 0.5, 8.0, 3, 5, 2, LocalDateTime.now(),
                                 null);
+                Page<TodayReviewResponse.ReviewItemDto> page = new PageImpl<>(List.of(dto), PageRequest.of(0, 5), 1);
 
-                given(fsrsService.getWrongAnswersWithQuestions(TEST_USER_ID,
-                                com.ssafy.domain.quiz.entity.WrongAnswerSortType.MOST_WRONG))
-                                .willReturn(List.of(dto));
+                given(fsrsService.getWrongAnswersWithQuestions(eq(TEST_USER_ID),
+                                eq(com.ssafy.domain.quiz.entity.WrongAnswerSortType.MOST_WRONG),
+                                any(Pageable.class)))
+                                .willReturn(page);
 
                 // when & then
                 mockMvc.perform(get("/api/v1/reviews/wrong-answers")
                                 .param("sortType", "MOST_WRONG")
+                                .param("page", "0")
+                                .param("size", "5")
                                 .with(user(userDetails))
                                 .contentType(MediaType.APPLICATION_JSON))
                                 .andDo(print())
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.success").value(true))
                                 .andExpect(jsonPath("$.data.items").isArray())
-                                .andExpect(jsonPath("$.data.items[0].reviewItemId").value(2L));
+                                .andExpect(jsonPath("$.data.items[0].reviewItemId").value(2L))
+                                .andExpect(jsonPath("$.data.totalCount").value(1))
+                                .andExpect(jsonPath("$.data.totalPages").value(1))
+                                .andExpect(jsonPath("$.data.number").value(0))
+                                .andExpect(jsonPath("$.data.size").value(5));
         }
 
         @Test
@@ -160,21 +173,26 @@ class ReviewControllerTest {
                 TodayReviewResponse.ReviewItemDto dto = new TodayReviewResponse.ReviewItemDto(
                                 3L, ReviewContentType.COURSE_QUESTION, 102L, 0.3, 7.0, 2, 4, 1, LocalDateTime.now(),
                                 null);
+                Page<TodayReviewResponse.ReviewItemDto> page = new PageImpl<>(List.of(dto), PageRequest.of(0, 5), 1);
 
-                given(fsrsService.getWrongAnswersWithQuestions(TEST_USER_ID,
-                                com.ssafy.domain.quiz.entity.WrongAnswerSortType.FSRS_RECOMMENDED))
-                                .willReturn(List.of(dto));
+                given(fsrsService.getWrongAnswersWithQuestions(eq(TEST_USER_ID),
+                                eq(com.ssafy.domain.quiz.entity.WrongAnswerSortType.FSRS_RECOMMENDED),
+                                any(Pageable.class)))
+                                .willReturn(page);
 
                 // when & then
                 mockMvc.perform(get("/api/v1/reviews/wrong-answers")
                                 .param("sortType", "FSRS_RECOMMENDED")
+                                .param("page", "0")
+                                .param("size", "5")
                                 .with(user(userDetails))
                                 .contentType(MediaType.APPLICATION_JSON))
                                 .andDo(print())
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.success").value(true))
                                 .andExpect(jsonPath("$.data.items").isArray())
-                                .andExpect(jsonPath("$.data.items[0].reviewItemId").value(3L));
+                                .andExpect(jsonPath("$.data.items[0].reviewItemId").value(3L))
+                                .andExpect(jsonPath("$.data.totalCount").value(1));
         }
 
         @Test
@@ -184,21 +202,26 @@ class ReviewControllerTest {
                 TodayReviewResponse.ReviewItemDto dto = new TodayReviewResponse.ReviewItemDto(
                                 4L, ReviewContentType.COURSE_QUESTION, 103L, 0.6, 6.0, 2, 3, 1, LocalDateTime.now(),
                                 null);
+                Page<TodayReviewResponse.ReviewItemDto> page = new PageImpl<>(List.of(dto), PageRequest.of(0, 5), 1);
 
-                given(fsrsService.getWrongAnswersWithQuestions(TEST_USER_ID,
-                                com.ssafy.domain.quiz.entity.WrongAnswerSortType.LATEST))
-                                .willReturn(List.of(dto));
+                given(fsrsService.getWrongAnswersWithQuestions(eq(TEST_USER_ID),
+                                eq(com.ssafy.domain.quiz.entity.WrongAnswerSortType.LATEST),
+                                any(Pageable.class)))
+                                .willReturn(page);
 
                 // when & then
                 mockMvc.perform(get("/api/v1/reviews/wrong-answers")
                                 .param("sortType", "LATEST")
+                                .param("page", "0")
+                                .param("size", "5")
                                 .with(user(userDetails))
                                 .contentType(MediaType.APPLICATION_JSON))
                                 .andDo(print())
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.success").value(true))
                                 .andExpect(jsonPath("$.data.items").isArray())
-                                .andExpect(jsonPath("$.data.items[0].reviewItemId").value(4L));
+                                .andExpect(jsonPath("$.data.items[0].reviewItemId").value(4L))
+                                .andExpect(jsonPath("$.data.totalCount").value(1));
         }
 
         @Test
@@ -208,10 +231,12 @@ class ReviewControllerTest {
                 TodayReviewResponse.ReviewItemDto dto = new TodayReviewResponse.ReviewItemDto(
                                 2L, ReviewContentType.COURSE_QUESTION, 101L, 0.5, 8.0, 3, 5, 2, LocalDateTime.now(),
                                 null);
+                Page<TodayReviewResponse.ReviewItemDto> page = new PageImpl<>(List.of(dto), PageRequest.of(0, 5), 1);
 
-                given(fsrsService.getWrongAnswersWithQuestions(TEST_USER_ID,
-                                com.ssafy.domain.quiz.entity.WrongAnswerSortType.MOST_WRONG))
-                                .willReturn(List.of(dto));
+                given(fsrsService.getWrongAnswersWithQuestions(eq(TEST_USER_ID),
+                                eq(com.ssafy.domain.quiz.entity.WrongAnswerSortType.MOST_WRONG),
+                                any(Pageable.class)))
+                                .willReturn(page);
 
                 // when & then
                 mockMvc.perform(get("/api/v1/reviews/wrong-answers")
@@ -221,7 +246,8 @@ class ReviewControllerTest {
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.success").value(true))
                                 .andExpect(jsonPath("$.data.items").isArray())
-                                .andExpect(jsonPath("$.data.items[0].reviewItemId").value(2L));
+                                .andExpect(jsonPath("$.data.items[0].reviewItemId").value(2L))
+                                .andExpect(jsonPath("$.data.totalCount").value(1));
         }
 
         // ========== 코스별 정답 통계 조회 테스트 ==========
