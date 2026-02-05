@@ -421,43 +421,62 @@ class MeetingViewModel : ViewModel() {
     }
 
     /**
-     * 선택된 녹음들 세션에 업로드
+     * 선택된 녹음들 세션에 업로드 (여러 파일을 한번에 병합하여 업로드)
      */
     fun uploadSelectedRecordings(studyId: Long, sessionId: Long) {
         viewModelScope.launch {
             try {
                 _uploadState.value = UploadUiState.Uploading(0)
 
+                // selectedOrder 순서대로 정렬된 녹음 목록
                 val selectedRecordings = localRecordingRepository?.getSelectedRecordings(studyId) ?: emptyList()
                 if (selectedRecordings.isEmpty()) {
                     _uploadState.value = UploadUiState.Error("선택된 녹음이 없습니다.")
                     return@launch
                 }
 
-                var successCount = 0
-                var failCount = 0
+                Log.d(TAG, "선택된 녹음 ${selectedRecordings.size}개 업로드 시작")
+                _uploadState.value = UploadUiState.Uploading(30)
 
-                selectedRecordings.forEachIndexed { index, recording ->
-                    val progress = ((index + 1) * 100) / selectedRecordings.size
-                    _uploadState.value = UploadUiState.Uploading(progress)
-
-                    val success = uploadSingleRecording(studyId, sessionId, recording.filePath)
-                    if (success) {
-                        successCount++
-                    } else {
-                        failCount++
+                // 여러 파일을 MultipartBody.Part 리스트로 변환
+                val audioParts = mutableListOf<MultipartBody.Part>()
+                for (recording in selectedRecordings) {
+                    val file = File(recording.filePath)
+                    if (!file.exists()) {
+                        Log.e(TAG, "파일 없음: ${recording.filePath}")
+                        continue
                     }
+                    val bytes = file.readBytes()
+                    val requestBody = bytes.toRequestBody("audio/mp4".toMediaTypeOrNull())
+                    // 모든 파트는 'audio' 키로 전송 (백엔드에서 List로 받음)
+                    val part = MultipartBody.Part.createFormData("audio", file.name, requestBody)
+                    audioParts.add(part)
                 }
 
-                // 성공한 녹음들 업로드 완료 처리
-                if (successCount > 0) {
+                if (audioParts.isEmpty()) {
+                    _uploadState.value = UploadUiState.Error("유효한 녹음 파일이 없습니다.")
+                    return@launch
+                }
+
+                _uploadState.value = UploadUiState.Uploading(60)
+
+                // 한 번의 API 호출로 모든 파일 업로드 (백엔드에서 병합)
+                val response = RetrofitClient.meetingApi.uploadOfflineRecordings(
+                    studyId = studyId,
+                    audioFiles = audioParts,
+                    sessionId = sessionId,
+                    title = null
+                )
+
+                _uploadState.value = UploadUiState.Uploading(90)
+
+                if (response.isSuccessful) {
+                    Log.d(TAG, "녹음 ${audioParts.size}개 병합 업로드 성공")
                     localRecordingRepository?.markSelectedAsUploaded(studyId, sessionId)
-                }
-
-                if (failCount == 0) {
-                    _uploadState.value = UploadUiState.Success("${successCount}개 녹음 업로드 완료!")
+                    _uploadState.value = UploadUiState.Success("${audioParts.size}개 녹음이 병합되어 업로드 완료!")
                 } else {
-                    _uploadState.value = UploadUiState.Error("${successCount}개 성공, ${failCount}개 실패")
+                    Log.e(TAG, "녹음 업로드 실패: ${response.code()}")
+                    _uploadState.value = UploadUiState.Error("업로드 실패 (${response.code()})")
                 }
 
                 // 목록 새로고침
@@ -472,42 +491,7 @@ class MeetingViewModel : ViewModel() {
     }
 
     /**
-     * 단일 녹음 업로드
-     */
-    private suspend fun uploadSingleRecording(studyId: Long, sessionId: Long, filePath: String): Boolean {
-        return try {
-            val file = File(filePath)
-            if (!file.exists()) {
-                Log.e(TAG, "파일 없음: $filePath")
-                return false
-            }
-
-            val bytes = file.readBytes()
-            val requestBody = bytes.toRequestBody("audio/mp4".toMediaTypeOrNull())
-            val multipartBody = MultipartBody.Part.createFormData("audio", file.name, requestBody)
-
-            val response = RetrofitClient.meetingApi.uploadOfflineRecording(
-                studyId = studyId,
-                audio = multipartBody,
-                sessionId = sessionId,
-                title = null
-            )
-
-            if (response.isSuccessful) {
-                Log.d(TAG, "녹음 업로드 성공: ${file.name}")
-                true
-            } else {
-                Log.e(TAG, "녹음 업로드 실패: ${response.code()}")
-                false
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "녹음 업로드 예외", e)
-            false
-        }
-    }
-
-    /**
-     * 스터디 세션 목록 로드
+     * 스터디 세션 목록 로드 (이미 업로드된 세션은 제외)
      */
     fun loadSessions(studyId: Long) {
         viewModelScope.launch {
@@ -518,9 +502,32 @@ class MeetingViewModel : ViewModel() {
                     // 오프라인 세션만 필터링 (isOnline == false 또는 null)
                     val allSessions = response.body() ?: emptyList()
                     Log.d(TAG, "전체 세션 ${allSessions.size}개 로드됨")
-                    val sessionList = allSessions.filter { it.isOnline != true }
-                    _sessions.value = sessionList
-                    Log.d(TAG, "오프라인 세션 목록 로드 완료: ${sessionList.size}개")
+                    val offlineSessions = allSessions.filter { it.isOnline != true }
+                    Log.d(TAG, "오프라인 세션: ${offlineSessions.size}개")
+
+                    // 이미 미팅이 업로드된 세션 제외
+                    if (offlineSessions.isNotEmpty()) {
+                        val sessionIds = offlineSessions.map { it.id }
+                        try {
+                            val uploadedResponse = RetrofitClient.meetingApi.getUploadedSessionIds(studyId, sessionIds)
+                            if (uploadedResponse.isSuccessful) {
+                                val uploadedIds = uploadedResponse.body()?.data ?: emptyList()
+                                Log.d(TAG, "이미 업로드된 세션: ${uploadedIds.size}개 - $uploadedIds")
+                                // 업로드된 세션 제외
+                                val availableSessions = offlineSessions.filter { it.id !in uploadedIds }
+                                _sessions.value = availableSessions
+                                Log.d(TAG, "업로드 가능한 세션: ${availableSessions.size}개")
+                            } else {
+                                Log.w(TAG, "업로드된 세션 확인 실패: ${uploadedResponse.code()}, 전체 세션 표시")
+                                _sessions.value = offlineSessions
+                            }
+                        } catch (e: Exception) {
+                            Log.w(TAG, "업로드된 세션 확인 오류, 전체 세션 표시: ${e.message}")
+                            _sessions.value = offlineSessions
+                        }
+                    } else {
+                        _sessions.value = offlineSessions
+                    }
                 } else {
                     val errorBody = response.errorBody()?.string()
                     Log.e(TAG, "세션 목록 로드 실패: ${response.code()}, error=$errorBody")
