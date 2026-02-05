@@ -39,6 +39,10 @@ public class MeetingAutoScheduler {
             if (session.getStatus() != SessionStatus.SCHEDULED) {
                 continue;
             }
+            // 오프라인 세션은 미팅 자동 생성하지 않음 (오프라인 녹음 업로드 시 별도로 생성)
+            if (session.getIsOnline() == null || !session.getIsOnline()) {
+                continue;
+            }
             if (meetingRepository.existsBySessionId(session.getId())) {
                 continue;
             }
@@ -57,7 +61,7 @@ public class MeetingAutoScheduler {
                     plannedDurationSeconds
             );
             meetingRepository.save(meeting);
-            log.info("자동 미팅 생성 완료 - studyId={}, sessionId={}, meetingTitle={}",
+            log.info("온라인 세션 자동 미팅 생성 완료 - studyId={}, sessionId={}, meetingTitle={}",
                     session.getStudyId(), session.getId(), title);
         }
     }

@@ -44,6 +44,7 @@ private const val TAG = "MeetingListScreen"
 @Composable
 fun MeetingListScreen(
     studyId: Long,
+    sessionId: Long? = null,  // 세션과 연결된 경우 전달 (일정 화면에서 진입 시)
     onBackClick: () -> Unit,
     onMeetingClick: (Long) -> Unit,
     viewModel: MeetingViewModel = viewModel()
@@ -70,8 +71,8 @@ fun MeetingListScreen(
     ) { permissions ->
         val allGranted = permissions.values.all { it }
         if (allGranted) {
-            Log.d(TAG, "모든 권한 승인됨, 녹음 시작")
-            viewModel.startRecording(context, studyId)
+            Log.d(TAG, "모든 권한 승인됨, 녹음 시작 (sessionId=$sessionId)")
+            viewModel.startRecording(context, studyId, sessionId)  // sessionId 전달
         } else {
             Log.w(TAG, "권한 거부됨: $permissions")
             Toast.makeText(context, "녹음에는 마이크 권한이 필요합니다", Toast.LENGTH_SHORT).show()
@@ -85,13 +86,16 @@ fun MeetingListScreen(
         }
 
         if (allGranted) {
-            Log.d(TAG, "권한 이미 승인됨, 녹음 시작")
-            viewModel.startRecording(context, studyId)
+            Log.d(TAG, "권한 이미 승인됨, 녹음 시작 (sessionId=$sessionId)")
+            viewModel.startRecording(context, studyId, sessionId)  // sessionId 전달
         } else {
             Log.d(TAG, "권한 요청 필요: ${requiredPermissions.toList()}")
             permissionLauncher.launch(requiredPermissions)
         }
     }
+
+    // 세션에서 진입한 경우 안내 메시지 표시
+    val sessionInfoText = if (sessionId != null) "이 세션의 녹음이 미팅 리포트에 연결됩니다." else null
 
     // 데이터 로드
     LaunchedEffect(studyId) {
@@ -210,6 +214,35 @@ fun MeetingListScreen(
                     elapsedSeconds = recordingState.elapsedSeconds,
                     isPaused = recordingState.isPaused
                 )
+            }
+
+            // 세션 연결 안내 (일정 화면에서 진입한 경우)
+            if (sessionInfoText != null) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = Primary.copy(alpha = 0.08f)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Link,
+                            contentDescription = null,
+                            tint = Primary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = sessionInfoText,
+                            fontSize = 13.sp,
+                            color = Primary,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
             }
 
             // 프리미엄 업로드 중 표시

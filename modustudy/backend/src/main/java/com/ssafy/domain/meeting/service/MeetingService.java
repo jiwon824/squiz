@@ -391,12 +391,23 @@ public class MeetingService {
     /**
      * 오프라인 녹음 업로드 (회의 생성 + 오디오 업로드 + AI 처리 트리거)
      * 온라인 회의와 달리 IN_PROGRESS 체크 없이 바로 ENDED 상태로 생성
+     * @param sessionId 연결할 세션 ID (선택사항, null이면 세션 없이 생성)
      */
     @Transactional
-    public MeetingResponse createOfflineMeetingWithAudio(Long studyId, String title,
+    public MeetingResponse createOfflineMeetingWithAudio(Long studyId, Long sessionId, String title,
                                                           org.springframework.web.multipart.MultipartFile audio) {
         if (audio == null || audio.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "AUDIO_REQUIRED");
+        }
+
+        // sessionId 유효성 검증 (지정된 경우)
+        if (sessionId != null) {
+            boolean validSession = studySessionRepository.findById(sessionId)
+                    .filter(session -> session.getStudyId().equals(studyId))
+                    .isPresent();
+            if (!validSession) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "INVALID_SESSION_ID");
+            }
         }
 
         // 일일 오프라인 STT 한도 체크
@@ -407,7 +418,7 @@ public class MeetingService {
         }
 
         LocalDateTime now = LocalDateTime.now();
-        Meeting meeting = Meeting.createOffline(studyId, title, now, null);
+        Meeting meeting = Meeting.createOffline(studyId, sessionId, title, now, null);
         Meeting saved = meetingRepository.save(meeting);
 
         // 오디오 파일 저장
