@@ -84,7 +84,7 @@ export const CourseDetailProgress = ({
                     style={{
                         height: '100%',
                         width: `${progressPercent}%`,
-                        background: categoryConfig.gradient,
+                        background: categoryConfig.color,
                         borderRadius: 'var(--radius-full)',
                         transition: 'width var(--transition-base)',
                     }}
