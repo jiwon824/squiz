@@ -573,7 +573,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
                             onChange={(e) => handleTextInput(e.target.value)}
                             onKeyDown={handleKeyDown}
                             placeholder="답을 입력하세요..."
-                            className="w-full px-4 py-3 rounded-xl text-base font-medium transition-all duration-200 focus:outline-none focus:ring-2"
+                            className="w-full px-4 py-3 rounded-xl text-base font-medium transition-all duration-200 focus:outline-none focus:ring-2 select-text"
                             style={{
                                 backgroundColor: 'var(--color-background-secondary)',
                                 color: 'var(--color-text-primary)',

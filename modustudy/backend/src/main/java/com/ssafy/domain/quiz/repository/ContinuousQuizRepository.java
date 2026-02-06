@@ -54,6 +54,7 @@ public interface ContinuousQuizRepository extends JpaRepository<QuizCourseQuesti
                 AND uri.user_id = :userId
             WHERE q.quiz_course_id = :courseId
               AND q.section_number = :sectionNumber
+              AND q.question_type != 'SHORT_ANSWER'
             ORDER BY -LN(1 - RAND()) / (1.0 / (COALESCE(uri.reps, 0) + 1))
             LIMIT 1
             """, nativeQuery = true)
@@ -87,6 +88,7 @@ public interface ContinuousQuizRepository extends JpaRepository<QuizCourseQuesti
                 AND uri.user_id = :userId
             WHERE q.quiz_course_id = :courseId
               AND q.section_number = :sectionNumber
+              AND q.question_type != 'SHORT_ANSWER'
             ORDER BY -LN(1 - RAND()) / (1.0 / (COALESCE(uri.reps, 0) + 1))
             """, nativeQuery = true)
     List<QuizCourseQuestion> findQuestionsWeightedRandom(
@@ -111,6 +113,7 @@ public interface ContinuousQuizRepository extends JpaRepository<QuizCourseQuesti
                 AND uri.content_id = q.id
                 AND uri.user_id = :userId
             WHERE q.quiz_course_id = :courseId
+              AND q.question_type != 'SHORT_ANSWER'
             ORDER BY -LN(1 - RAND()) / (1.0 / (COALESCE(uri.reps, 0) + 1))
             LIMIT 1
             """, nativeQuery = true)
@@ -123,26 +126,28 @@ public interface ContinuousQuizRepository extends JpaRepository<QuizCourseQuesti
     // ────────────────────────────────────────────────────────────────────────────
 
     /**
-     * 섹션 내 전체 문제 수
+     * 섹션 내 전체 문제 수 (객관식만)
      */
     @Query(value = """
             SELECT COUNT(*)
             FROM quiz_course_question q
             WHERE q.quiz_course_id = :courseId
               AND q.section_number = :sectionNumber
+              AND q.question_type != 'SHORT_ANSWER'
             """, nativeQuery = true)
     long countTotalQuestions(
             @Param("courseId") Long courseId,
             @Param("sectionNumber") Integer sectionNumber);
 
     /**
-     * 섹션 내 한 번도 풀지 않은 문제 수
+     * 섹션 내 한 번도 풀지 않은 문제 수 (객관식만)
      */
     @Query(value = """
             SELECT COUNT(*)
             FROM quiz_course_question q
             WHERE q.quiz_course_id = :courseId
               AND q.section_number = :sectionNumber
+              AND q.question_type != 'SHORT_ANSWER'
               AND NOT EXISTS (
                   SELECT 1 FROM user_review_items uri
                   WHERE uri.user_id = :userId
@@ -156,7 +161,7 @@ public interface ContinuousQuizRepository extends JpaRepository<QuizCourseQuesti
             @Param("userId") Long userId);
 
     /**
-     * 섹션 내 학습한 문제 수 (1번 이상 푼 문제)
+     * 섹션 내 학습한 문제 수 (1번 이상 푼 객관식 문제)
      */
     @Query(value = """
             SELECT COUNT(*)
@@ -167,6 +172,7 @@ public interface ContinuousQuizRepository extends JpaRepository<QuizCourseQuesti
                 AND uri.user_id = :userId
             WHERE q.quiz_course_id = :courseId
               AND q.section_number = :sectionNumber
+              AND q.question_type != 'SHORT_ANSWER'
             """, nativeQuery = true)
     long countStudiedQuestions(
             @Param("courseId") Long courseId,
@@ -215,6 +221,7 @@ public interface ContinuousQuizRepository extends JpaRepository<QuizCourseQuesti
                 AND uri.user_id = :userId
             WHERE q.quiz_course_id = :courseId
               AND q.section_number = :sectionNumber
+              AND q.question_type != 'SHORT_ANSWER'
               AND (:excludeId IS NULL OR q.id != :excludeId)
             ORDER BY -LN(1 - RAND()) / (
                 CASE
@@ -247,10 +254,11 @@ public interface ContinuousQuizRepository extends JpaRepository<QuizCourseQuesti
     @Query(value = """
             SELECT combined.* FROM (
                 (
-                    -- [1단계] 안 푼 문제 우선 조회: 학습 기록(user_review_items)이 없는 문제 중 랜덤 추출
+                    -- [1단계] 안 푼 문제 우선 조회: 학습 기록(user_review_items)이 없는 객관식 문제 중 랜덤 추출
                     SELECT q.*, 1 AS priority FROM quiz_course_question q
                     WHERE q.quiz_course_id = :courseId
                       AND q.section_number = :sectionNumber
+                      AND q.question_type != 'SHORT_ANSWER'
                       AND NOT EXISTS (
                           SELECT 1 FROM user_review_items uri
                           WHERE uri.content_id = q.id
@@ -267,6 +275,7 @@ public interface ContinuousQuizRepository extends JpaRepository<QuizCourseQuesti
                     JOIN user_review_items uri ON uri.content_id = q.id
                     WHERE q.quiz_course_id = :courseId
                       AND q.section_number = :sectionNumber
+                      AND q.question_type != 'SHORT_ANSWER'
                       AND uri.user_id = :userId
                       AND uri.content_type = 'COURSE_QUESTION'
                     ORDER BY -LN(1 - RAND()) / (
@@ -294,17 +303,18 @@ public interface ContinuousQuizRepository extends JpaRepository<QuizCourseQuesti
     // ────────────────────────────────────────────────────────────────────────────
 
     /**
-     * 모든 코스의 전체 문제 수를 코스별로 집계한다.
+     * 모든 코스의 전체 문제 수를 코스별로 집계한다 (객관식만).
      */
     @Query(value = """
             SELECT q.quiz_course_id AS courseId, COUNT(*) AS questionCount
             FROM quiz_course_question q
+            WHERE q.question_type != 'SHORT_ANSWER'
             GROUP BY q.quiz_course_id
             """, nativeQuery = true)
     List<CourseQuestionStatsProjection> countTotalQuestionsGroupByCourse();
 
   /**
-   * 사용자가 코스별로 1회 이상 정답을 맞힌 고유 문제 수를 집계한다.
+   * 사용자가 코스별로 1회 이상 정답을 맞힌 고유 문제 수를 집계한다 (객관식만).
    * (중복 카운트 방지: 같은 문제를 여러 번 맞혀도 1개로 집계)
    */
   @Query(value = """
@@ -317,12 +327,13 @@ public interface ContinuousQuizRepository extends JpaRepository<QuizCourseQuesti
       JOIN user_review_log url
           ON url.review_item_id = uri.id
           AND url.is_correct = true
+      WHERE q.question_type != 'SHORT_ANSWER'
       GROUP BY q.quiz_course_id
       """, nativeQuery = true)
   List<CourseQuestionStatsProjection> countSolvedQuestionsGroupByCourse(@Param("userId") Long userId);
 
     /**
-     * 코스별 총 복습 횟수(reps)와 오답 횟수(lapses)를 집계한다.
+     * 코스별 총 복습 횟수(reps)와 오답 횟수(lapses)를 집계한다 (객관식만).
      */
     @Query(value = """
             SELECT
@@ -334,12 +345,13 @@ public interface ContinuousQuizRepository extends JpaRepository<QuizCourseQuesti
                 ON uri.content_type = 'COURSE_QUESTION'
                 AND uri.content_id = q.id
                 AND uri.user_id = :userId
+            WHERE q.question_type != 'SHORT_ANSWER'
             GROUP BY q.quiz_course_id
             """, nativeQuery = true)
     List<CourseQuestionStatsProjection> countReviewStatsGroupByCourse(@Param("userId") Long userId);
 
     /**
-     * 사용자가 전체 코스에서 1회 이상 정답을 맞힌 고유 문제 수를 조회한다.
+     * 사용자가 전체 코스에서 1회 이상 정답을 맞힌 고유 문제 수를 조회한다 (객관식만).
      */
     @Query(value = """
             SELECT COUNT(DISTINCT uri.content_id)
@@ -347,8 +359,11 @@ public interface ContinuousQuizRepository extends JpaRepository<QuizCourseQuesti
             JOIN user_review_log url
                 ON url.review_item_id = uri.id
                 AND url.is_correct = true
+            JOIN quiz_course_question q
+                ON uri.content_id = q.id
             WHERE uri.user_id = :userId
                 AND uri.content_type = 'COURSE_QUESTION'
+                AND q.question_type != 'SHORT_ANSWER'
             """, nativeQuery = true)
     long countTotalSolvedQuestions(@Param("userId") Long userId);
 }

@@ -35,11 +35,13 @@ import {
 import type { TabType, TranscriptItem, ExportScope } from '../components/stt-report';
 import { useSttStore } from '@/store/sttStore';
 import { studyApi } from '@/api/endpoints/studyApi';
+import { useAuthStore } from '@/store/authStore';
 import '../styles/DashboardV2.css';
 
 interface StudyOption {
     id: number;
     name: string;
+    leaderId?: number;
 }
 
 // 탭 정의
@@ -68,6 +70,9 @@ const EXPORT_OPTIONS: { scope: ExportScope; label: string; desc: string }[] = [
 
 export const STTReportPage: React.FC = () => {
     const navigate = useNavigate();
+
+    // 현재 로그인 사용자
+    const currentUser = useAuthStore((state) => state.user);
 
     // STT 스토어
     const {
@@ -98,9 +103,10 @@ export const STTReportPage: React.FC = () => {
             try {
                 setStudiesLoading(true);
                 const response = await studyApi.getMyStudies(0, 50);
-                const studyOptions = response.content.map(s => ({
+                const studyOptions = response.content.map((s: any) => ({
                     id: s.id,
                     name: s.name,
+                    leaderId: s.leader?.id || s.leaderId,
                 }));
                 setStudies(studyOptions);
 
@@ -501,7 +507,13 @@ export const STTReportPage: React.FC = () => {
 
                                             {activeTab === 'action' && (
                                                 <motion.div key="action" {...TAB_ANIMATION}>
-                                                    <ActionItemsView report={selectedReport} />
+                                                    <ActionItemsView
+                                                        report={selectedReport}
+                                                        isLeader={(() => {
+                                                            const selectedStudy = studies.find(s => s.id === selectedStudyId);
+                                                            return selectedStudy?.leaderId?.toString() === currentUser?.id;
+                                                        })()}
+                                                    />
                                                 </motion.div>
                                             )}
 

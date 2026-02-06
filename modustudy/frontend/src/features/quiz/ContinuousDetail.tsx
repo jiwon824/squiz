@@ -264,7 +264,6 @@ export const CourseDetail = () => {
         return (
             <div
                 className="min-h-screen flex items-center justify-center"
-                style={{ backgroundColor: 'var(--color-background)' }}
             >
                 <Spinner variant="center" size="xl" label="코스 정보를 불러오는 중..." />
             </div>
@@ -279,7 +278,6 @@ export const CourseDetail = () => {
         return (
             <div
                 className="min-h-screen flex items-center justify-center"
-                style={{ backgroundColor: 'var(--color-background)' }}
             >
                 <div
                     className="text-center max-w-md mx-auto"
@@ -366,7 +364,6 @@ export const CourseDetail = () => {
         <div
             className="min-h-screen"
             style={{
-                backgroundColor: 'var(--color-background)',
                 padding: 'var(--spacing-2xl) var(--spacing-lg)',
             }}
         >

@@ -246,16 +246,25 @@ public class FsrsService {
                 .map(UserReviewItem::getContentId)
                 .toList();
 
-        // 3. 문제 일괄 조회
-        Map<Long, QuizCourseQuestion> questionMap = continuousQuizRepository.findAllById(courseQuestionIds).stream()
+        // 3. STUDY_QUESTION ID 수집
+        List<Long> studyQuestionIds = items.stream()
+                .filter(item -> item.getContentType() == ReviewContentType.STUDY_QUESTION)
+                .map(UserReviewItem::getContentId)
+                .toList();
+
+        // 4. 문제 일괄 조회
+        Map<Long, QuizCourseQuestion> courseQuestionMap = continuousQuizRepository.findAllById(courseQuestionIds).stream()
                 .collect(Collectors.toMap(QuizCourseQuestion::getId, Function.identity()));
 
-        // 4. DTO 조립
+        Map<Long, StudyQuizQuestion> studyQuestionMap = studyQuizQuestionRepository.findAllById(studyQuestionIds).stream()
+                .collect(Collectors.toMap(StudyQuizQuestion::getId, Function.identity()));
+
+        // 5. DTO 조립
         return items.stream().map(item -> {
             QuestionDetail questionDetail = null;
 
             if (item.getContentType() == ReviewContentType.COURSE_QUESTION) {
-                QuizCourseQuestion q = questionMap.get(item.getContentId());
+                QuizCourseQuestion q = courseQuestionMap.get(item.getContentId());
                 if (q != null) {
                     List<OptionItem> options = parseOptions(q.getOptions());
                     String category = q.getSection().getCourse().getName(); // 코스명을 카테고리로 사용
@@ -270,8 +279,25 @@ public class FsrsService {
                             category,
                             item.getLastReviewedAt());
                 }
+            } else if (item.getContentType() == ReviewContentType.STUDY_QUESTION) {
+                // 스터디 퀴즈 문제 처리
+                StudyQuizQuestion q = studyQuestionMap.get(item.getContentId());
+                if (q != null) {
+                    List<OptionItem> options = parseOptions(q.getOptions());
+                    // 스터디 퀴즈 제목을 카테고리로 사용
+                    String category = q.getQuiz() != null ? q.getQuiz().getTitle() : "스터디 퀴즈";
+
+                    questionDetail = new QuestionDetail(
+                            0, // 스터디 퀴즈는 문제 번호가 없음
+                            q.getQuestionText(),
+                            q.getQuestionType(),
+                            options,
+                            q.getCorrectAnswer(),
+                            q.getExplanation(),
+                            category,
+                            item.getLastReviewedAt());
+                }
             }
-            // TODO: STUDY_QUESTION 처리 로직 추가 가능
 
             return ReviewItemDto.from(item, questionDetail);
         }).toList();
