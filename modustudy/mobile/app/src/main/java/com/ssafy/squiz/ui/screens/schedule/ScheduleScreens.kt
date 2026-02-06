@@ -370,7 +370,7 @@ fun ScheduleDetailScreen(
     sessionId: Long,
     onBackClick: () -> Unit,
     onAttendanceClick: (Boolean) -> Unit,
-    onStartRecording: (Long, Long) -> Unit,  // (studyId, sessionId) 녹음 시작 콜백
+    onStartRecording: (Long, Long, Boolean) -> Unit,  // (studyId, sessionId, isLeader) 녹음 시작 콜백
     viewModel: ScheduleViewModel = viewModel()
 ) {
     val sessionDetailState by viewModel.sessionDetailState.collectAsState()
@@ -449,10 +449,10 @@ fun ScheduleDetailScreen(
 
                     Spacer(modifier = Modifier.weight(1f))
 
-                    // 오프라인 녹음 버튼 (세션에 연결된 녹음 시작)
-                    if (!detail.isOnline) {
+                    // 오프라인 녹음 버튼 (세션에 연결된 녹음 시작) - 스터디장만 표시
+                    if (!detail.isOnline && detail.isLeader == true) {
                         OutlinedButton(
-                            onClick = { onStartRecording(studyId, sessionId) },
+                            onClick = { onStartRecording(studyId, sessionId, true) },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = Primary)

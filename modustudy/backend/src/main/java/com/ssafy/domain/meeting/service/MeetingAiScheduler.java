@@ -190,11 +190,24 @@ public class MeetingAiScheduler {
                 .findByMeetingIdAndTrackTypeOrderByCreatedAtAsc(meetingId, MeetingAudioTrackType.MIXED);
 
         if (mixedRecordings.isEmpty()) {
-            // DB에 없으면 디스크에서 voice.webm 파일 확인
-            Path voiceFile = localFileStorageService.resolveMeetingVoiceDir(meetingId).resolve("voice.webm");
+            // DB에 없으면 디스크에서 voice 파일 확인 (webm 또는 m4a)
+            Path voiceDir = localFileStorageService.resolveMeetingVoiceDir(meetingId);
+            Path voiceWebm = voiceDir.resolve("voice.webm");
+            Path voiceM4a = voiceDir.resolve("voice.m4a");
+
+            Path voiceFile = null;
+            String format = null;
+            if (Files.exists(voiceWebm)) {
+                voiceFile = voiceWebm;
+                format = "webm";
+            } else if (Files.exists(voiceM4a)) {
+                voiceFile = voiceM4a;
+                format = "m4a";
+            }
+
             log.info("[AI 처리 준비] meetingId: {} - DB에 오디오 없음, 파일 확인: {}", meetingId, voiceFile);
 
-            if (!Files.exists(voiceFile)) {
+            if (voiceFile == null) {
                 log.info("[AI 처리 준비] meetingId: {} - 음성 파일도 없음. 처리 스킵", meetingId);
                 return;
             }
@@ -202,19 +215,19 @@ public class MeetingAiScheduler {
             // 파일이 있으면 DB에 저장
             try {
                 Long fileSize = Files.size(voiceFile);
-                String recordingUrl = buildMixedVoiceUrl(meetingId);
+                String recordingUrl = buildMixedVoiceUrl(meetingId, format);
 
                 MeetingAudioRecording recording = MeetingAudioRecording.builder()
                         .meetingId(meetingId)
                         .userId(null)
                         .trackType(MeetingAudioTrackType.MIXED)
                         .recordingUrl(recordingUrl)
-                        .format("webm")
+                        .format(format)
                         .fileSize(fileSize)
                         .build();
 
                 meetingAudioRecordingRepository.save(recording);
-                log.info("MIXED 오디오 녹음 저장 - meetingId: {}, fileSize: {}", meetingId, fileSize);
+                log.info("MIXED 오디오 녹음 저장 - meetingId: {}, format: {}, fileSize: {}", meetingId, format, fileSize);
 
             } catch (IOException e) {
                 log.error("음성 파일 크기 확인 실패 - meetingId: {}", meetingId, e);
@@ -269,8 +282,8 @@ public class MeetingAiScheduler {
         }
     }
 
-    private String buildMixedVoiceUrl(Long meetingId) {
-        return "/uploads/meetings/" + meetingId + "/recordings/voice/voice.webm";
+    private String buildMixedVoiceUrl(Long meetingId, String format) {
+        return "/uploads/meetings/" + meetingId + "/recordings/voice/voice." + format;
     }
 
     private void syncGeneratedTextFiles(Long meetingId) {

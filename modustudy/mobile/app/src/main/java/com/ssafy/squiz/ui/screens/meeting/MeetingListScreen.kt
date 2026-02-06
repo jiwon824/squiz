@@ -49,6 +49,7 @@ private const val TAG = "MeetingListScreen"
 fun MeetingListScreen(
     studyId: Long,
     sessionId: Long? = null,  // 세션과 연결된 경우 전달 (일정 화면에서 진입 시)
+    isLeader: Boolean = false,  // 스터디장 여부 (녹음 기능은 스터디장만 사용 가능)
     onBackClick: () -> Unit,
     onMeetingClick: (Long) -> Unit,
     viewModel: MeetingViewModel = viewModel()
@@ -322,26 +323,28 @@ fun MeetingListScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        // 녹음 시작 섹션
-                        item {
-                            RecordingStartSection(
-                                remainingSeconds = remainingSeconds,
-                                onStartRecording = { checkPermissionsAndStartRecording() }
-                            )
-                        }
-
-                        // 미업로드 녹음 목록 섹션
-                        if (localRecordings.isNotEmpty()) {
+                        // 녹음 시작 섹션 (스터디장만 표시)
+                        if (isLeader) {
                             item {
-                                Spacer(modifier = Modifier.height(8.dp))
-                                LocalRecordingsSection(
-                                    recordings = localRecordings,
-                                    selectedCount = selectedCount,
-                                    selectedTotalSeconds = selectedTotalSeconds,
-                                    onToggleSelection = { viewModel.toggleRecordingSelection(it, studyId) },
-                                    onDeleteRecording = { viewModel.deleteRecording(it) },
-                                    onUploadClick = { viewModel.showSessionSelectForUpload() }
+                                RecordingStartSection(
+                                    remainingSeconds = remainingSeconds,
+                                    onStartRecording = { checkPermissionsAndStartRecording() }
                                 )
+                            }
+
+                            // 미업로드 녹음 목록 섹션 (스터디장만 표시)
+                            if (localRecordings.isNotEmpty()) {
+                                item {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    LocalRecordingsSection(
+                                        recordings = localRecordings,
+                                        selectedCount = selectedCount,
+                                        selectedTotalSeconds = selectedTotalSeconds,
+                                        onToggleSelection = { viewModel.toggleRecordingSelection(it, studyId) },
+                                        onDeleteRecording = { viewModel.deleteRecording(it) },
+                                        onUploadClick = { viewModel.showSessionSelectForUpload() }
+                                    )
+                                }
                             }
                         }
 
@@ -384,8 +387,13 @@ fun MeetingListScreen(
                             }
                         }
 
-                        // 빈 상태일 때 안내
-                        if (state.meetings.isEmpty() && localRecordings.isEmpty()) {
+                        // 빈 상태일 때 안내 (스터디장은 녹음도 없을 때, 스터디원은 회의록만 없을 때)
+                        val showEmptyHint = if (isLeader) {
+                            state.meetings.isEmpty() && localRecordings.isEmpty()
+                        } else {
+                            state.meetings.isEmpty()
+                        }
+                        if (showEmptyHint) {
                             item {
                                 Spacer(modifier = Modifier.height(32.dp))
                                 EmptyStateHint()
