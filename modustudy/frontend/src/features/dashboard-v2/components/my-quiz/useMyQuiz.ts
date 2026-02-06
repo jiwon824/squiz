@@ -77,13 +77,14 @@ export const useMyQuiz = (): UseMyQuizReturn => {
       const quizStatsData = results[3].status === 'fulfilled' ? results[3].value : null;
       const reviewStatsData = results[4].status === 'fulfilled' ? results[4].value : null;
 
-      // question이 null인 항목 필터링 + 주관식(SHORT_ANSWER) 임시 제외
-      const filteredToday = (todayData?.items || []).filter(
-        item => item.question != null && item.question.questionType !== 'SHORT_ANSWER'
-      ) as ReviewItemDto[];
-      const filteredWrong = (wrongData?.items || []).filter(
-        item => item.question != null && item.question.questionType !== 'SHORT_ANSWER'
-      ) as ReviewItemDto[];
+      // 퀴즈코스(COURSE_QUESTION)만 표시 + question null 필터링 + 주관식(SHORT_ANSWER) 임시 제외
+      const isCourseQuiz = (item: ReviewItemDto) =>
+        item.contentType === 'COURSE_QUESTION' &&
+        item.question != null &&
+        item.question.questionType !== 'SHORT_ANSWER';
+
+      const filteredToday = (todayData?.items || []).filter(isCourseQuiz) as ReviewItemDto[];
+      const filteredWrong = (wrongData?.items || []).filter(isCourseQuiz) as ReviewItemDto[];
       setTodayReviews(filteredToday);
       setWrongReviews(filteredWrong);
       setWrongTotalCount(filteredWrong.length);
