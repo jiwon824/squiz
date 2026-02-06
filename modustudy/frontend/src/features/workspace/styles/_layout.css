@@ -6,7 +6,7 @@
 .workspace-container {
   display: flex;
   flex-direction: row;
-  height: 100vh;
+  height: 100%;
   width: 100%;
   color: var(--ws-text-secondary);
   overflow: hidden;

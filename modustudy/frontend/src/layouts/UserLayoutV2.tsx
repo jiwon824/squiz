@@ -219,6 +219,7 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEntering
 
     const isCompactMode = windowWidth <= BREAKPOINTS.MOBILE;
     const isMeetingRoom = /^\/study\/\d+\/meetings\/\d+\/room/.test(location.pathname);
+    const isWorkspace = /^\/study\/\d+\/workspace/.test(location.pathname);
     const shouldHideHeader = isMeetingRoom;
 
     return (
@@ -605,7 +606,8 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEntering
                     <section
                         id="main-content-scroll"
                         className={cn(
-                            "bg-white rounded-3xl h-full overflow-auto scrollbar-hide px-4 py-6",
+                            "bg-white rounded-3xl h-full px-4 py-6",
+                            isWorkspace ? "overflow-hidden" : "overflow-auto scrollbar-hide",
                             isEnteringFromWorkspace && "layout-content-enter"
                         )}
                         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}

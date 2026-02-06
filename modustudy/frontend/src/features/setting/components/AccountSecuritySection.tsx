@@ -36,6 +36,9 @@ export const AccountSecuritySection = () => {
     const { isLoggedIn, user } = useAuthStore();
     const showToast = useUIStore((state) => state.showToast);
 
+    // 현재 로그인에 사용한 프로바이더
+    const currentLoginProvider = user?.loginProvider;
+
     // 구글 계정 연동 여부 확인 (socialAccounts에서 GOOGLE이 있는지)
     const hasGoogleAccount = socialAccounts.some((a) => a.provider === 'GOOGLE');
 
