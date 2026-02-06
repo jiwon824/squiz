@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Users, ChevronRight, RefreshCw, Clock, CheckCircle2, Compass, Maximize2, Play, AlertCircle } from 'lucide-react';
 import { Spinner } from '@/shared/components/Spinner';
 import { cn } from '@/shared/utils/cn';
-import { studyApi } from '@/api/endpoints/studyApi';
+import { studyApi, type StudyDetailResponse } from '@/api/endpoints/studyApi';
 
 // 통합 상태 타입: 신청 대기 / 승인됨(스터디 상태로 분기) / 진행중 / 완료
 type CombinedStatus = 'PENDING' | 'APPROVED' | 'IN_PROGRESS' | 'COMPLETED';
@@ -113,7 +113,7 @@ export const MyApplicationsWidget: React.FC = () => {
     setError(false);
     try {
       const response = await studyApi.getMyApplications(undefined, 0, 50);
-      const page = (response as any)?.content ? response : (response as any)?.data || response;
+      const page = (response as Record<string, unknown>)?.content ? response : (response as Record<string, unknown>)?.data || response;
       const content: ApplicationItem[] = page?.content || [];
 
       // REJECTED 제외
@@ -124,12 +124,14 @@ export const MyApplicationsWidget: React.FC = () => {
       const studyDetailsPromises = approvedApps.map(async (app) => {
         try {
           const studyDetail = await studyApi.getStudyDetail(app.studyId);
-          const study = (studyDetail as any)?.data || studyDetail;
+          // 백엔드 응답이 래퍼({ data: ... })를 사용할 수도 있음
+          const wrapped = studyDetail as unknown as { data?: StudyDetailResponse };
+          const study = wrapped?.data || studyDetail;
           return {
             studyId: app.studyId,
             studyStatus: study?.status,
-            topicIcon: study?.topic?.icon,
-            topicName: study?.topic?.name,
+            topicIcon: study?.topic?.icon ?? undefined,
+            topicName: study?.topic?.name ?? undefined,
           };
         } catch {
           return { studyId: app.studyId };

@@ -5,6 +5,7 @@
 
 import { create } from 'zustand';
 import { gamificationApi, UserStatsResponse } from '@/api/endpoints/gamificationApi';
+import { getErrorMessage } from '@/shared/utils/errorUtils';
 
 interface LevelUpInfo {
     previousLevel: number;
@@ -91,9 +92,9 @@ export const useGamificationStore = create<GamificationState>((set, get) => {
                 isLoading: false,
                 previousLevel: stats.level,
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
             set({
-                error: error.message || '통계 조회 실패',
+                error: getErrorMessage(error, '통계 조회 실패'),
                 isLoading: false,
             });
         }

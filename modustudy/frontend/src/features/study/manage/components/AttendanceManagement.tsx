@@ -69,9 +69,9 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ studyId }) 
     const fetchMembers = async () => {
         try {
             const response = await studyApi.getStudyMembers(studyId, 0, 100);
-            const members = response?.data?.content || response?.content || [];
+            const members = response?.content || [];
             const map = new Map<number, { nickname: string; profileImage: string | null }>();
-            members.forEach((member: any) => {
+            members.forEach((member: { userId: number; userNickname?: string; userName?: string; userProfileImage?: string | null; profileImage?: string | null }) => {
                 map.set(member.userId, {
                     nickname: member.userNickname || member.userName || `User ${member.userId}`,
                     // userProfileImage 또는 profileImage 둘 다 체크

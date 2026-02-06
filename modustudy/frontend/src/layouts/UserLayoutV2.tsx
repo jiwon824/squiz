@@ -14,9 +14,10 @@ import { SquizLogoNew } from '@/shared/components/SquizLogoNew';
 import { Bell, User, Settings, LogOut, Check, X } from 'lucide-react';
 import { ButtonSpinner } from '@/shared/components/Spinner';
 import { studyApi } from '@/api/endpoints/studyApi';
-import { cn } from '@/shared/utils/cn';
+import { cn, classBuilder } from '@/shared/utils/cn';
 import { getProfileImageUrl, DEFAULT_PROFILE_IMAGE } from '@/shared/utils/profileImage';
 import { TopProgressBar } from '@/shared/components/loading';
+import { getErrorMessage } from '@/shared/utils/errorUtils';
 
 // 반응형 브레이크포인트 기준값 (CSS 논리 픽셀 기준, 브라우저 확대/축소 자동 반영)
 const BREAKPOINTS = {
@@ -219,6 +220,7 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEntering
 
     const isCompactMode = windowWidth <= BREAKPOINTS.MOBILE;
     const isMeetingRoom = /^\/study\/\d+\/meetings\/\d+\/room/.test(location.pathname);
+    const isWorkspace = /^\/study\/\d+\/workspace/.test(location.pathname);
     const shouldHideHeader = isMeetingRoom;
 
     return (
@@ -284,7 +286,7 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEntering
                                 <div className="relative">
                                     {/* 읽지 않은 알림 표시 */}
                                     {unreadCount > 0 && (
-                                        <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 rounded-full flex items-center justify-center text-[10px] text-white font-bold px-1">
+                                        <span className={classBuilder.notificationBadge('red')}>
                                             {unreadCount > 99 ? '99+' : unreadCount}
                                         </span>
                                     )}
@@ -417,8 +419,8 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEntering
                                                                                 await studyApi.leaveStudy(notification.referenceId!);
                                                                                 markNotificationAsRead(notification.id);
                                                                                 showToast('스터디에서 탈퇴했습니다.', 'success');
-                                                                            } catch (error: any) {
-                                                                                const message = error.response?.data?.message || '스터디 탈퇴에 실패했습니다.';
+                                                                            } catch (error: unknown) {
+                                                                                const message = getErrorMessage(error, '스터디 탈퇴에 실패했습니다.');
                                                                                 showToast(message, 'error');
                                                                             } finally {
                                                                                 setLeavingStudyId(null);
@@ -605,7 +607,8 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEntering
                     <section
                         id="main-content-scroll"
                         className={cn(
-                            "bg-white rounded-3xl h-full overflow-auto scrollbar-hide px-4 py-6",
+                            "bg-white rounded-3xl h-full px-4 py-6",
+                            isWorkspace ? "overflow-hidden" : "overflow-auto scrollbar-hide",
                             isEnteringFromWorkspace && "layout-content-enter"
                         )}
                         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}

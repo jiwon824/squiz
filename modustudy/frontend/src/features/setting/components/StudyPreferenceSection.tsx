@@ -66,11 +66,16 @@ export const StudyPreferenceSection = () => {
             }
 
             try {
-                const pref: any = await getStudyPreference();
+                // 백엔드 필드명 호환을 위한 확장 타입
+                interface ExtendedStudyPreference extends StudyPreference {
+                    techStacks?: string[];
+                    preferredTimeSlots?: (TimeSlot | null)[];
+                }
+                const pref = await getStudyPreference() as ExtendedStudyPreference;
 
                 // 백엔드 필드명 호환 (techStacks/techStack, preferredTimeSlots/preferredTimeSlot)
                 const apiTechStack = pref.techStacks || pref.techStack || [];
-                const apiTimeSlot = pref.preferredTimeSlots?.[0] || pref.preferredTimeSlot || null;
+                const apiTimeSlot = pref.preferredTimeSlots?.[0] ?? pref.preferredTimeSlot ?? null;
                 const apiAvailableDays = pref.availableDays || [];
                 const apiDurationWeeks = pref.preferredDurationWeeks || 4;
 

@@ -9,6 +9,7 @@ import { ButtonSpinner } from '@/shared/components/Spinner';
 import { studyApi } from '@/api/endpoints/studyApi';
 import { useUIStore } from '@/store/uiStore';
 import { cn, classBuilder } from '@/shared/utils/cn';
+import { getErrorMessage } from '@/shared/utils/errorUtils';
 
 interface TeamDashboardProps {
     study: Study;
@@ -226,8 +227,8 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ study, onStudyUpdate, onT
             await studyApi.startStudy(study.id);
             showToast('스터디가 시작되었습니다!', 'success');
             onStudyUpdate?.();
-        } catch (error: any) {
-            const message = error.response?.data?.message || error.response?.data?.error?.message || '스터디 시작에 실패했습니다.';
+        } catch (error: unknown) {
+            const message = getErrorMessage(error, '스터디 시작에 실패했습니다.');
             showToast(message, 'error');
         } finally {
             setActionLoading(null);
@@ -250,8 +251,8 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ study, onStudyUpdate, onT
             await studyApi.extendRecruitment(study.id, newEndDate);
             showToast('모집 기간이 7일 연장되었습니다!', 'success');
             onStudyUpdate?.();
-        } catch (error: any) {
-            const message = error.response?.data?.message || error.response?.data?.error?.message || '모집 연장에 실패했습니다.';
+        } catch (error: unknown) {
+            const message = getErrorMessage(error, '모집 연장에 실패했습니다.');
             showToast(message, 'error');
         } finally {
             setActionLoading(null);

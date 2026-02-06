@@ -23,6 +23,7 @@ import { MaterialDetailModal } from './MaterialDetailModal';
 import { MaterialTreeView } from './MaterialTreeView';
 import { materialApi } from '@/api/endpoints/materialApi';
 import { useUIStore } from '@/store/uiStore';
+import { getErrorMessage } from '@/shared/utils/errorUtils';
 import type { MaterialListResponse, MaterialType, MaterialSortOption } from '../types';
 import '../styles/material.css';
 
@@ -53,9 +54,8 @@ export const MaterialArea: React.FC<MaterialAreaProps> = ({ studyId }) => {
       const data = await materialApi.getMaterials(studyId);
       setMaterials(data || []);
       setFilteredMaterials(data || []);
-    } catch (err: any) {
-      const errorMessage = err?.response?.data?.message || err?.message || '자료를 불러오는데 실패했습니다.';
-      setError(errorMessage);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, '자료를 불러오는데 실패했습니다.'));
       setMaterials([]);
       setFilteredMaterials([]);
     } finally {
@@ -149,7 +149,7 @@ export const MaterialArea: React.FC<MaterialAreaProps> = ({ studyId }) => {
   }, []);
 
   // 실시간 조회수 폴링 (30초마다 갱신)
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     // 자료가 있을 때만 폴링 시작

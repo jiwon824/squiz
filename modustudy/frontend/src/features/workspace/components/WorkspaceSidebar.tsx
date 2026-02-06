@@ -101,31 +101,38 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
         })}
       </div>
 
-      {/* 구분선 */}
-      {/* <div className="workspace-sidebar__divider" /> */}
+      {/* 여백 (메뉴와 하단 요소 사이) */}
+      <div className="flex-1" />
 
-      {/* 테마 토글 */}
-      {/* <div className="workspace-sidebar__quick-actions">
-        <div className="workspace-sidebar__section-title">테마</div>
-
-        <button
-          className="workspace-sidebar__theme-toggle"
-          onClick={onToggleDarkMode}
-          title={isDarkMode ? '라이트 모드로 전환' : '다크 모드로 전환'}
-        >
-          <div className={cn('workspace-sidebar__toggle-track', isDarkMode && 'workspace-sidebar__toggle-track--dark')}>
-            <div className="workspace-sidebar__toggle-thumb">
-              {isDarkMode ? <Moon size={14} /> : <Sun size={14} />}
-            </div>
+      {/* 미팅 참여 버튼 - 진행 중인 온라인 세션이 있을 때만 표시 */}
+      {activeSession && activeSession.isOnline && (
+        <div className="workspace-sidebar__meeting-section">
+          <button
+            className="workspace-sidebar__meeting-btn workspace-sidebar__meeting-btn--active"
+            onClick={() => onNavigateToMeeting ? onNavigateToMeeting() : studyId && navigate(`/study/${studyId}/meetings`)}
+          >
+            <Play size={20} />
+            <span>미팅 참여하기</span>
+          </button>
+          <div className="workspace-sidebar__session-info">
+            <span className="workspace-sidebar__session-title">
+              {activeSession.title || '스터디 세션'}
+            </span>
+            <span className="workspace-sidebar__session-time">
+              {new Date(activeSession.scheduledAt).toLocaleTimeString('ko-KR', {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+              {activeSession.durationMinutes && ` (${activeSession.durationMinutes}분)`}
+            </span>
           </div>
-          <span>{isDarkMode ? '다크 모드' : '라이트 모드'}</span>
-        </button>
-      </div> */}
+        </div>
+      )}
 
       {/* 구분선 */}
       <div className="workspace-sidebar__divider" />
 
-      {/* 빠른 액션 */}
+      {/* 빠른 액션 (하단 고정) */}
       <div className="workspace-sidebar__quick-actions">
         <div className="workspace-sidebar__section-title">빠른 액션</div>
 
@@ -148,31 +155,6 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
           </button>
         )}
       </div>
-
-      {/* 하단 미팅 참여 버튼 - 진행 중인 온라인 세션이 있을 때만 표시 */}
-      {activeSession && activeSession.isOnline && (
-        <div className="workspace-sidebar__footer">
-          <button
-            className="workspace-sidebar__meeting-btn workspace-sidebar__meeting-btn--active"
-            onClick={() => onNavigateToMeeting ? onNavigateToMeeting() : studyId && navigate(`/study/${studyId}/meetings`)}
-          >
-            <Play size={20} />
-            <span>미팅 참여하기</span>
-          </button>
-          <div className="workspace-sidebar__session-info">
-            <span className="workspace-sidebar__session-title">
-              {activeSession.title || '스터디 세션'}
-            </span>
-            <span className="workspace-sidebar__session-time">
-              {new Date(activeSession.scheduledAt).toLocaleTimeString('ko-KR', {
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
-              {activeSession.durationMinutes && ` (${activeSession.durationMinutes}분)`}
-            </span>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

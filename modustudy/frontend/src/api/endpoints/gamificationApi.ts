@@ -4,6 +4,7 @@
  */
 
 import api from '../axios';
+import type { MaybeWrapped } from '../types';
 
 // ========== 타입 정의 ==========
 
@@ -149,7 +150,7 @@ export const gamificationApi = {
      * GET /api/v1/gamification/stats
      */
     getStats: async (): Promise<UserStatsResponse> => {
-        const response = await api.get<any>('/api/v1/gamification/stats');
+        const response = await api.get<MaybeWrapped<UserStatsResponse>>('/api/v1/gamification/stats');
         const data = response.data;
         // 백엔드 응답 구조: { success: true, data: {...} } 또는 직접 객체
         return data.data || data;
@@ -168,7 +169,7 @@ export const gamificationApi = {
             params.set('month', month.toString());
         }
 
-        const response = await api.get<any>(`/api/v1/gamification/contributions?${params.toString()}`);
+        const response = await api.get<MaybeWrapped<ContributionResponse>>(`/api/v1/gamification/contributions?${params.toString()}`);
         const data = response.data;
         return data.data || data;
     },
@@ -178,7 +179,7 @@ export const gamificationApi = {
      * GET /api/v1/gamification/badges
      */
     getBadges: async (): Promise<BadgeListResponse> => {
-        const response = await api.get<any>('/api/v1/gamification/badges');
+        const response = await api.get<MaybeWrapped<BadgeListResponse>>('/api/v1/gamification/badges');
         const data = response.data;
         return data.data || data;
     },
@@ -188,7 +189,7 @@ export const gamificationApi = {
      * GET /api/v1/gamification/penalties
      */
     getPenalties: async (): Promise<PenaltyListResponse> => {
-        const response = await api.get<any>('/api/v1/gamification/penalties');
+        const response = await api.get<MaybeWrapped<PenaltyListResponse>>('/api/v1/gamification/penalties');
         const data = response.data;
         return data.data || data;
     },

@@ -55,7 +55,7 @@ const StudyDetailPageV2: React.FC = () => {
                 const data = await studyApi.getStudyDetail(Number(id));
                 if (data) {
                     setStudy(data as unknown as Study);
-                    setIsBookmarked((data as any).isBookmarked || false);
+                    setIsBookmarked((data as unknown as Record<string, boolean>).isBookmarked || false);
                 }
             } catch (error) {
                 console.error('스터디 상세 조회 실패:', error);
@@ -71,8 +71,8 @@ const StudyDetailPageV2: React.FC = () => {
 
     const handleBookmarkToggle = async () => {
         try {
-            const response = await studyApi.toggleBookmark(study.id);
-            const newBookmarkState = response?.isBookmarked !== undefined ? response.isBookmarked : !isBookmarked;
+            await studyApi.toggleBookmark(study.id);
+            const newBookmarkState = !isBookmarked;
             setIsBookmarked(newBookmarkState);
             showToast(
                 newBookmarkState ? '찜 목록에 추가되었습니다.' : '찜 목록에서 제거되었습니다.',
@@ -414,7 +414,7 @@ const StudyDetailPageV2: React.FC = () => {
                 isOpen={isReviewModalOpen}
                 onClose={() => setIsReviewModalOpen(false)}
                 leaderNickname={study.leader.nickname}
-                reviews={leaderReviews as any}
+                reviews={leaderReviews as unknown as import('@/api/endpoints/studyApi').LeaderReviewResponse[]}
                 averageRating={leaderAvgRating}
             />
         </UserLayoutV2>

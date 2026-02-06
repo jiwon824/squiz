@@ -11,7 +11,7 @@ import {
 import { Spinner } from '@/shared/components/Spinner';
 import { cn } from '@/shared/utils/cn';
 import { PageNavHeader } from '@/shared/components/layouts';
-import { studyApi } from '@/api/endpoints/studyApi';
+import { studyApi, type StudyDetailResponse } from '@/api/endpoints/studyApi';
 
 // 통합 상태 타입 (신청 상태 + 스터디 상태)
 type CombinedStatus = 'PENDING' | 'APPROVED' | 'IN_PROGRESS' | 'COMPLETED' | 'REJECTED';
@@ -102,12 +102,12 @@ export const MyApplicationsPage: React.FC = () => {
     try {
       // 신청 목록 조회
       const response = await studyApi.getMyApplications(undefined, 0, 100);
-      const page = (response as any)?.content ? response : (response as any)?.data || response;
+      const page = (response as Record<string, unknown>)?.content ? response : (response as Record<string, unknown>)?.data || response;
       const applications = page?.content || [];
 
       // 승인된 신청들에 대해 스터디 상태 조회
       const participationItems: ParticipationItem[] = await Promise.all(
-        applications.map(async (app: any) => {
+        applications.map(async (app: { applicationId: number; studyId: number; studyName?: string; status: string; message?: string; createdAt: string; processedAt?: string; rejectedReason?: string }) => {
           let studyStatus: string | undefined;
           let topic: { name: string; icon?: string } | undefined;
           let maxMembers: number | undefined;
@@ -119,13 +119,15 @@ export const MyApplicationsPage: React.FC = () => {
           if (app.status === 'APPROVED') {
             try {
               const studyDetail = await studyApi.getStudyDetail(app.studyId);
-              const study = (studyDetail as any)?.data || studyDetail;
+              // 백엔드 응답이 래퍼({ data: ... })를 사용할 수도 있음
+              const wrapped = studyDetail as unknown as { data?: StudyDetailResponse };
+              const study = wrapped?.data || studyDetail;
               studyStatus = study?.status;
-              topic = study?.topic;
+              topic = study?.topic ? { name: study.topic.name, icon: study.topic.icon ?? undefined } : undefined;
               maxMembers = study?.maxMembers;
               meetingType = study?.meetingType;
-              scheduleTime = study?.scheduleTime;
-              description = study?.description;
+              scheduleTime = study?.scheduleTime ?? undefined;
+              description = study?.description ?? undefined;
             } catch {
               // 스터디 조회 실패 시 무시
             }
@@ -221,7 +223,7 @@ export const MyApplicationsPage: React.FC = () => {
   const pageTransition = {
     initial: { opacity: 0, scale: 0.95 },
     animate: { opacity: 1, scale: 1 },
-    transition: { duration: 0.3, ease: 'easeOut' },
+    transition: { duration: 0.3, ease: 'easeOut' as const },
   };
 
   return (
