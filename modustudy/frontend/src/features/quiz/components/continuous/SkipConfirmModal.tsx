@@ -49,7 +49,11 @@ export const SkipConfirmModal: React.FC<SkipConfirmModalProps> = ({
     return (
         <div
             className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200"
-            style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+            style={{
+                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                backdropFilter: 'blur(16px)',
+                WebkitBackdropFilter: 'blur(16px)',
+            }}
         >
             <div
                 className="w-full max-w-sm rounded-2xl p-6"
