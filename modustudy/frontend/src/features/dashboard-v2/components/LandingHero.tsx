@@ -39,7 +39,7 @@ export const LandingHero: React.FC = () => {
           <p className="text-lg md:text-xl text-slate-500 font-medium max-w-2xl mx-auto leading-relaxed">
             스터디 참여만으로 자동 요약, AI 퀴즈, 학습 관리까지.
             <br className="hidden md:block" />
-            복잡한 학습 관리는 이제 SQuiz에 맡기세요.
+            복잡한 학습 관리는 이제 SQUIZ에 맡기세요.
           </p>
         </motion.div>
 
