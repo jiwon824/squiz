@@ -106,7 +106,7 @@ export const LoginPage = () => {
                 nickname: data.user.nickname || undefined,
                 email: data.user.email,
                 avatar: data.user.profileImage || undefined,
-                loginProvider: data.user.loginProvider || undefined,
+                loginProvider: data.loginProvider || undefined,
                 role: data.user.role || 'USER'
             });
 
