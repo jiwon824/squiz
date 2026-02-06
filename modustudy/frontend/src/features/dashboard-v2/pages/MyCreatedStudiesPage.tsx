@@ -72,8 +72,9 @@ export const MyCreatedStudiesPage: React.FC = () => {
     setError(false);
     try {
       const response = await studyApi.getMyStudies(0, 100);
-      const page = (response as any)?.content ? response : (response as any)?.data || response;
-      const content: StudyItem[] = page?.content || [];
+      // PageResponse 또는 래퍼 응답 처리
+      const pageData = response as { content?: StudyItem[]; data?: { content?: StudyItem[] } };
+      const content: StudyItem[] = pageData?.content || pageData?.data?.content || [];
       const myCreated = user?.id
         ? content.filter((s) => s.leader?.id === Number(user.id))
         : content;
@@ -105,7 +106,7 @@ export const MyCreatedStudiesPage: React.FC = () => {
   const pageTransition = {
     initial: { opacity: 0, scale: 0.95 },
     animate: { opacity: 1, scale: 1 },
-    transition: { duration: 0.3, ease: 'easeOut' },
+    transition: { duration: 0.3, ease: 'easeOut' as const },
   };
 
   return (

@@ -38,12 +38,6 @@ class AIDetectionService {
                 await this.loadModel();
             }
             if (!videoElement || videoElement.readyState < 2) {
-                console.log('[ai] detect skipped: video not ready', {
-                    hasVideo: Boolean(videoElement),
-                    readyState: videoElement?.readyState,
-                    width: videoElement?.videoWidth,
-                    height: videoElement?.videoHeight,
-                });
                 return null;
             }
             const predictions = await this.model!.detect(videoElement);
@@ -59,22 +53,16 @@ class AIDetectionService {
         callback: (isPresent: boolean) => void,
         interval = 2000
     ) {
-        console.log('[ai] startDetection', {
-            interval,
-            hasVideo: Boolean(videoElement),
-        });
         const detectionLoop = async () => {
             const isPresent = await this.detectPerson(videoElement);
             if (isPresent === null) {
                 return;
             }
-            console.log('[ai] detect result', { isPresent });
             callback(isPresent);
         };
         detectionLoop();
         const intervalId = window.setInterval(detectionLoop, interval);
         return () => {
-            console.log('[ai] stopDetection');
             clearInterval(intervalId);
         };
     }

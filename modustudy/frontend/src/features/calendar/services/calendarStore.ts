@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { UnifiedSchedule, ScheduleSource, Goal, Tag } from '../types';
 import { calendarService } from './calendarService';
 import { CreatePersonalScheduleRequest, UpdatePersonalScheduleRequest } from '@/api/endpoints/calendarApi';
+import { getErrorMessage } from '@/shared/utils/errorUtils';
 
 /**
  * 캘린더 스토어 상태
@@ -84,9 +85,9 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
         try {
             const schedules = await calendarService.getAllSchedules(startDate, endDate);
             set({ schedules, loading: false });
-        } catch (error: any) {
+        } catch (error: unknown) {
             set({
-                error: error.message || '일정 조회에 실패했습니다.',
+                error: getErrorMessage(error, '일정 조회에 실패했습니다.'),
                 loading: false
             });
             console.error('일정 조회 실패:', error);
@@ -128,7 +129,7 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
             set(state => ({
                 schedules: state.schedules.map(s => s.id === tempId ? savedSchedule : s)
             }));
-        } catch (error: any) {
+        } catch (error: unknown) {
             // 실패 시 롤백
             set({ schedules: previousSchedules });
             console.error('일정 생성 실패 (롤백됨):', error);
@@ -156,7 +157,7 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
             set(state => ({
                 schedules: state.schedules.map(s => s.id === id ? updatedSchedule : s)
             }));
-        } catch (error: any) {
+        } catch (error: unknown) {
             // 실패 시 롤백
             set({ schedules: previousSchedules });
             console.error('일정 수정 실패 (롤백됨):', error);
@@ -177,7 +178,7 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
 
         try {
             await calendarService.deletePersonalSchedule(id as number);
-        } catch (error: any) {
+        } catch (error: unknown) {
             // 실패 시 롤백
             set({ schedules: previousSchedules });
             console.error('일정 삭제 실패 (롤백됨):', error);
@@ -263,8 +264,8 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
         try {
             const authUrl = await calendarService.connectGoogleCalendar();
             return authUrl;
-        } catch (error: any) {
-            set({ error: error.message || 'Google Calendar 연동에 실패했습니다.' });
+        } catch (error: unknown) {
+            set({ error: getErrorMessage(error, 'Google Calendar 연동에 실패했습니다.') });
             console.error('Google 연동 실패:', error);
             throw error;
         }
@@ -279,8 +280,8 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
                 googleLastSyncAt: null,
                 schedules: get().schedules.filter(s => s.source !== 'google')
             });
-        } catch (error: any) {
-            set({ error: error.message || 'Google Calendar 연동 해제에 실패했습니다.' });
+        } catch (error: unknown) {
+            set({ error: getErrorMessage(error, 'Google Calendar 연동 해제에 실패했습니다.') });
             console.error('Google 연동 해제 실패:', error);
             throw error;
         }
@@ -295,9 +296,9 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
                 googleLastSyncAt: new Date().toISOString(),
                 loading: false
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
             set({
-                error: error.message || 'Google Calendar 동기화에 실패했습니다.',
+                error: getErrorMessage(error, 'Google Calendar 동기화에 실패했습니다.'),
                 loading: false
             });
             console.error('Google 동기화 실패:', error);

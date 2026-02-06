@@ -47,7 +47,7 @@ const StudyLeaderCard: React.FC<StudyLeaderCardProps> = ({
     isOwner,
     isMember = false,
     isApplied = false,
-    onInquiry,
+    onInquiry: _onInquiry,
     onRatingClick,
     onApply,
 }) => {

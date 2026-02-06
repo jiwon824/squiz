@@ -7,7 +7,6 @@ import api from '../axios';
 import type {
   WorkspaceResponse,
   MessageResponse,
-  MessagePageResponse,
   MessageCreateRequest,
   MessageUpdateRequest,
 } from '@/features/workspace/types';
@@ -50,8 +49,8 @@ export const workspaceApi = {
    * GET /api/v1/workspaces/study/{studyId}
    */
   getWorkspaceByStudyId: async (studyId: number) => {
-    const response = await api.get<any>(`/api/v1/workspaces/study/${studyId}`);
-    return response.data as WorkspaceResponse;
+    const response = await api.get<WorkspaceResponse>(`/api/v1/workspaces/study/${studyId}`);
+    return response.data;
   },
 
   /**
@@ -59,8 +58,8 @@ export const workspaceApi = {
    * GET /api/v1/workspaces/{workspaceId}
    */
   getWorkspace: async (workspaceId: number) => {
-    const response = await api.get<any>(`/api/v1/workspaces/${workspaceId}`);
-    return response.data as WorkspaceResponse;
+    const response = await api.get<WorkspaceResponse>(`/api/v1/workspaces/${workspaceId}`);
+    return response.data;
   },
 
   /**
@@ -68,8 +67,8 @@ export const workspaceApi = {
    * GET /api/v1/workspaces/study/{studyId}/exists
    */
   checkWorkspaceExists: async (studyId: number) => {
-    const response = await api.get<any>(`/api/v1/workspaces/study/${studyId}/exists`);
-    return response.data as boolean;
+    const response = await api.get<boolean>(`/api/v1/workspaces/study/${studyId}/exists`);
+    return response.data;
   },
 
   /**
@@ -77,8 +76,8 @@ export const workspaceApi = {
    * GET /api/v1/workspaces/{workspaceId}/presence
    */
   getWorkspacePresence: async (workspaceId: number) => {
-    const response = await api.get<any>(`/api/v1/workspaces/${workspaceId}/presence`);
-    return response.data as number[];
+    const response = await api.get<number[]>(`/api/v1/workspaces/${workspaceId}/presence`);
+    return response.data;
   },
 
   /**
@@ -86,8 +85,8 @@ export const workspaceApi = {
    * POST /api/v1/workspaces/study/{studyId}
    */
   createWorkspace: async (studyId: number) => {
-    const response = await api.post<any>(`/api/v1/workspaces/study/${studyId}`);
-    return response.data as WorkspaceResponse;
+    const response = await api.post<WorkspaceResponse>(`/api/v1/workspaces/study/${studyId}`);
+    return response.data;
   },
 
   // ============ 메시지 API ============
@@ -97,7 +96,7 @@ export const workspaceApi = {
    * GET /api/v1/workspaces/{workspaceId}/messages
    */
   getMessages: async (workspaceId: number, page = 0, size = 50) => {
-    const response = await api.get<any>(`/api/v1/workspaces/${workspaceId}/messages`, {
+    const response = await api.get<{ content: BackendMessageResponse[]; pageNumber?: number; page?: number; pageSize?: number; size?: number; totalElements?: number; totalPages?: number; last?: boolean }>(`/api/v1/workspaces/${workspaceId}/messages`, {
       params: { page, size },
     });
 
@@ -113,7 +112,7 @@ export const workspaceApi = {
       totalPages: data.totalPages ?? 1,
       first: data.pageNumber === 0,
       last: data.last ?? true,
-    } as MessagePageResponse;
+    };
   },
 
   /**
@@ -121,12 +120,12 @@ export const workspaceApi = {
    * GET /api/v1/workspaces/{workspaceId}/messages/recent
    */
   getRecentMessages: async (workspaceId: number, limit = 20) => {
-    const response = await api.get<any>(`/api/v1/workspaces/${workspaceId}/messages/recent`, {
+    const response = await api.get<BackendMessageResponse[] | { data: BackendMessageResponse[] }>(`/api/v1/workspaces/${workspaceId}/messages/recent`, {
       params: { limit },
     });
     const data = response.data;
     const messages = Array.isArray(data) ? data : (data.data || []);
-    return messages.map(transformMessage) as MessageResponse[];
+    return messages.map(transformMessage);
   },
 
   /**
@@ -134,12 +133,12 @@ export const workspaceApi = {
    * GET /api/v1/workspaces/{workspaceId}/messages/after
    */
   getMessagesAfter: async (workspaceId: number, after: string) => {
-    const response = await api.get<any>(`/api/v1/workspaces/${workspaceId}/messages/after`, {
+    const response = await api.get<BackendMessageResponse[] | { data: BackendMessageResponse[] }>(`/api/v1/workspaces/${workspaceId}/messages/after`, {
       params: { after },
     });
     const data = response.data;
     const messages = Array.isArray(data) ? data : (data.data || []);
-    return messages.map(transformMessage) as MessageResponse[];
+    return messages.map(transformMessage);
   },
 
   /**
@@ -147,12 +146,12 @@ export const workspaceApi = {
    * POST /api/v1/workspaces/{workspaceId}/messages
    */
   sendMessage: async (workspaceId: number, data: MessageCreateRequest) => {
-    const response = await api.post<any>(`/api/v1/workspaces/${workspaceId}/messages`, {
+    const response = await api.post<BackendMessageResponse>(`/api/v1/workspaces/${workspaceId}/messages`, {
       workspaceId,
       content: data.content,
       messageType: data.messageType || 'TEXT',
     });
-    return transformMessage(response.data) as MessageResponse;
+    return transformMessage(response.data);
   },
 
   /**
@@ -164,11 +163,11 @@ export const workspaceApi = {
     messageId: number,
     data: MessageUpdateRequest
   ) => {
-    const response = await api.put<any>(
+    const response = await api.put<BackendMessageResponse>(
       `/api/v1/workspaces/${workspaceId}/messages/${messageId}`,
       data
     );
-    return transformMessage(response.data) as MessageResponse;
+    return transformMessage(response.data);
   },
 
   /**
@@ -189,7 +188,7 @@ export const workspaceApi = {
     page = 0,
     size = 20
   ) => {
-    const response = await api.get<any>(
+    const response = await api.get<{ content: BackendMessageResponse[]; pageNumber?: number; pageSize?: number; totalElements?: number; totalPages?: number; last?: boolean }>(
       `/api/v1/workspaces/${workspaceId}/messages/search`,
       { params: { keyword, page, size } }
     );
@@ -205,7 +204,7 @@ export const workspaceApi = {
       totalPages: data.totalPages ?? 1,
       first: data.pageNumber === 0,
       last: data.last ?? true,
-    } as MessagePageResponse;
+    };
   },
 
   /**
@@ -213,8 +212,8 @@ export const workspaceApi = {
    * GET /api/v1/workspaces/{workspaceId}/messages/count
    */
   getMessageCount: async (workspaceId: number) => {
-    const response = await api.get<any>(`/api/v1/workspaces/${workspaceId}/messages/count`);
-    return response.data as number;
+    const response = await api.get<number>(`/api/v1/workspaces/${workspaceId}/messages/count`);
+    return response.data;
   },
 
   // ============ 고정 메시지 API ============
@@ -224,10 +223,10 @@ export const workspaceApi = {
    * GET /api/v1/workspaces/{workspaceId}/messages/pinned
    */
   getPinnedMessages: async (workspaceId: number) => {
-    const response = await api.get<any>(`/api/v1/workspaces/${workspaceId}/messages/pinned`);
+    const response = await api.get<BackendMessageResponse[] | { data: BackendMessageResponse[] }>(`/api/v1/workspaces/${workspaceId}/messages/pinned`);
     const data = response.data;
     const messages = Array.isArray(data) ? data : (data.data || []);
-    return messages.map(transformMessage) as MessageResponse[];
+    return messages.map(transformMessage);
   },
 
   /**
@@ -235,10 +234,10 @@ export const workspaceApi = {
    * PATCH /api/v1/workspaces/{workspaceId}/messages/{messageId}/pin
    */
   togglePinMessage: async (workspaceId: number, messageId: number) => {
-    const response = await api.patch<any>(
+    const response = await api.patch<BackendMessageResponse>(
       `/api/v1/workspaces/${workspaceId}/messages/${messageId}/pin`
     );
-    return transformMessage(response.data) as MessageResponse;
+    return transformMessage(response.data);
   },
 
   /**
@@ -246,7 +245,7 @@ export const workspaceApi = {
    * GET /api/v1/workspaces/{workspaceId}/messages/pinned/count
    */
   getPinnedMessageCount: async (workspaceId: number) => {
-    const response = await api.get<any>(`/api/v1/workspaces/${workspaceId}/messages/pinned/count`);
-    return response.data as number;
+    const response = await api.get<number>(`/api/v1/workspaces/${workspaceId}/messages/pinned/count`);
+    return response.data;
   },
 };

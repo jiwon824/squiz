@@ -5,7 +5,7 @@ import AuthLayout from './AuthLayout';
 import { PasswordResetModal } from './PasswordResetModal';
 import { TermsModal } from './TermsModal';
 import { IconInput } from '@/shared/components';
-import { cn } from '@/shared/utils/cn';
+import { cn, classBuilder } from '@/shared/utils/cn';
 import { authApi } from '@/api/endpoints/authApi';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
@@ -14,6 +14,7 @@ import '../styles/AuthLayout.css';
 // md 파일을 raw text로 import
 import termsText from '../terms-of-use.md?raw';
 import privacyText from '../privacy-policy.md?raw';
+import { getErrorStatus } from '@/shared/utils/errorUtils';
 
 export const LoginPage = () => {
     const navigate = useNavigate();
@@ -85,7 +86,6 @@ export const LoginPage = () => {
         setIsLoading(true);
 
         try {
-            console.log('[INFO] 일반 로그인 시도');
             const data = await authApi.login(formData.email, formData.password);
 
             // 아이디 기억 처리
@@ -110,18 +110,16 @@ export const LoginPage = () => {
                 role: data.user.role || 'USER'
             });
 
-            console.log('[INFO] 로그인 성공!');
-
             // exit 애니메이션 후 페이지 이동
             const redirectUrl = sessionStorage.getItem('redirectAfterLogin');
             if (redirectUrl) sessionStorage.removeItem('redirectAfterLogin');
 
             setIsExiting(true);
             setTimeout(() => navigate(redirectUrl || '/dashboard'), 500);
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Login error:', error);
 
-            if (error.response?.status === 401 || error.response?.status === 500) {
+            if (getErrorStatus(error) === 401 || getErrorStatus(error) === 500) {
                 setErrorMessage('이메일 또는 비밀번호가 올바르지 않습니다.');
             } else {
                 setErrorMessage('로그인 중 오류가 발생했습니다. 다시 시도해주세요.');
@@ -241,7 +239,6 @@ export const LoginPage = () => {
                             className="social-circle-btn google"
                             onClick={async () => {
                                 try {
-                                    console.log('[INFO] 구글 로그인 시도');
                                     sessionStorage.setItem('oauth_provider', 'google');
                                     const { authUrl } = await authApi.getGoogleAuthUrl();
                                     window.location.href = authUrl;
@@ -259,9 +256,7 @@ export const LoginPage = () => {
                                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                             </svg>
                         </button>
-                        <span className="absolute -bottom-9 left-1/2 -translate-x-1/2 px-2.5 py-1 rounded-lg bg-slate-800 text-white text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none shadow-lg">
-                            Google
-                        </span>
+                        <span className={classBuilder.tooltip('bottom')}>Google</span>
                     </div>
 
                     {/* 카카오 */}
@@ -271,7 +266,6 @@ export const LoginPage = () => {
                             className="social-circle-btn kakao"
                             onClick={async () => {
                                 try {
-                                    console.log('[INFO] 카카오 로그인 시도');
                                     sessionStorage.setItem('oauth_provider', 'kakao');
                                     const { authUrl } = await authApi.getKakaoAuthUrl();
                                     window.location.href = authUrl;
@@ -286,9 +280,7 @@ export const LoginPage = () => {
                                 <path d="M12 3C6.48 3 2 6.58 2 11c0 2.8 1.86 5.26 4.64 6.68-.15.56-.52 2.02-.6 2.33-.09.38.14.42.29.31.12-.09 1.94-1.32 2.73-1.86.56.08 1.13.12 1.94.12 5.52 0 10-3.58 10-8 0-4.42-4.48-8-10-8z" />
                             </svg>
                         </button>
-                        <span className="absolute -bottom-9 left-1/2 -translate-x-1/2 px-2.5 py-1 rounded-lg bg-slate-800 text-white text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none shadow-lg">
-                            Kakao
-                        </span>
+                        <span className={classBuilder.tooltip('bottom')}>Kakao</span>
                     </div>
 
                     {/* 네이버 */}
@@ -298,7 +290,6 @@ export const LoginPage = () => {
                             className="social-circle-btn naver"
                             onClick={async () => {
                                 try {
-                                    console.log('[INFO] 네이버 로그인 시도');
                                     sessionStorage.setItem('oauth_provider', 'naver');
                                     const { authUrl } = await authApi.getNaverAuthUrl();
                                     window.location.href = authUrl;
@@ -313,9 +304,7 @@ export const LoginPage = () => {
                                 <path d="M16.273 12.845L7.376 0H0v24h7.727V11.155L16.624 24H24V0h-7.727v12.845z" />
                             </svg>
                         </button>
-                        <span className="absolute -bottom-9 left-1/2 -translate-x-1/2 px-2.5 py-1 rounded-lg bg-slate-800 text-white text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none shadow-lg">
-                            Naver
-                        </span>
+                        <span className={classBuilder.tooltip('bottom')}>Naver</span>
                     </div>
                 </div>
             </form>

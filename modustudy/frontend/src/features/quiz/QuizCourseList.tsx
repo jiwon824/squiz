@@ -131,10 +131,8 @@ export const QuizCourseList = () => {
 
             try {
                 const apiCourses = await fetchCourses();
-                console.log('[QuizCourseList] API Response:', apiCourses);
 
                 const uiCourses = apiCourses.map(mapApiCourseToUiCourse);
-                console.log('[QuizCourseList] Mapped UI Courses:', uiCourses);
 
                 setCourses(uiCourses);
             } catch (err) {

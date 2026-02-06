@@ -447,7 +447,7 @@ const StudyDetailPage: React.FC = () => {
                 isOpen={isReviewModalOpen}
                 onClose={() => setIsReviewModalOpen(false)}
                 leaderNickname={study.leader.nickname}
-                reviews={leaderReviews as any}
+                reviews={leaderReviews as unknown as import('@/api/endpoints/studyApi').LeaderReviewResponse[]}
                 averageRating={leaderAvgRating}
             />
         </UserLayoutV2>

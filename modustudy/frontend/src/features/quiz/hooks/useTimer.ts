@@ -21,7 +21,6 @@ export function useTimer() {
     accumulatedTimeRef.current = 0;
     setElapsedTime(0);
     setIsRunning(true);
-    console.log('[useTimer] 타이머 시작');
   }, []);
 
   // 타이머 정지 및 최종 시간 반환
@@ -40,7 +39,6 @@ export function useTimer() {
     setIsRunning(false);
     startTimeRef.current = null;
 
-    console.log(`[useTimer] 타이머 정지 — 최종: ${capped}ms`);
     return capped;
   }, [isRunning]);
 
@@ -50,7 +48,6 @@ export function useTimer() {
     accumulatedTimeRef.current = 0;
     setElapsedTime(0);
     setIsRunning(false);
-    console.log('[useTimer] 타이머 초기화');
   }, []);
 
   // 탭 전환(Visibility) 감지 로직
@@ -63,12 +60,10 @@ export function useTimer() {
         if (startTimeRef.current !== null) {
           accumulatedTimeRef.current += (performance.now() - startTimeRef.current);
           startTimeRef.current = null;
-          console.log(`[useTimer] 탭 전환 - 일시정지 (누적: ${Math.round(accumulatedTimeRef.current)}ms)`);
         }
       } else {
         // 2. 탭으로 돌아옴: 새로운 시작점 기록 (재개)
         startTimeRef.current = performance.now();
-        console.log('[useTimer] 탭 전환 - 타이머 재개');
       }
     };
 
@@ -85,7 +80,6 @@ export function useTimer() {
     accumulatedTimeRef.current += performance.now() - startTimeRef.current;
     startTimeRef.current = null;
     setIsRunning(false);
-    console.log(`[useTimer] 일시정지 (누적: ${Math.round(accumulatedTimeRef.current)}ms)`);
   }, [isRunning]);
 
   // 타이머 재개
@@ -94,7 +88,6 @@ export function useTimer() {
 
     startTimeRef.current = performance.now();
     setIsRunning(true);
-    console.log('[useTimer] 재개');
   }, [isRunning]);
 
   return { elapsedTime, isRunning, start, stop, reset, pause, resume };

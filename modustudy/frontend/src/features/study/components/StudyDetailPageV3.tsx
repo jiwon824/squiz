@@ -25,6 +25,7 @@ import { Button, Dropdown } from '@/shared/components';
 import { cn, classBuilder } from '@/shared/utils/cn';
 import { useDMStore } from '@/features/dm/store/dmStore';
 import { useUIStore } from '@/store/uiStore';
+import { getErrorMessage } from '@/shared/utils/errorUtils';
 
 // API 응답 타입 (StudyResponse 구조)
 interface StudyDetail {
@@ -119,9 +120,8 @@ const StudyDetailPageV3: React.FC = () => {
                 try {
                     const sessionData = await getStudySessions(Number(id));
                     setSessions(Array.isArray(sessionData) ? sessionData : []);
-                } catch (sessionError: any) {
-                    console.error('세션 목록 조회 실패:', sessionError);
-                    console.error('세션 에러 상세:', sessionError?.response?.data || sessionError?.message);
+                } catch (sessionError: unknown) {
+                    console.error('세션 목록 조회 실패:', getErrorMessage(sessionError));
                     setSessions([]);
                 }
 
@@ -227,8 +227,8 @@ const StudyDetailPageV3: React.FC = () => {
             showToast('스터디에서 탈퇴했습니다.', 'success');
             setIsExtensionModalOpen(false);
             navigate('/study');
-        } catch (error: any) {
-            const message = error.response?.data?.message || error.response?.data?.error?.message || '스터디 탈퇴에 실패했습니다.';
+        } catch (error: unknown) {
+            const message = getErrorMessage(error, '스터디 탈퇴에 실패했습니다.');
             showToast(message, 'error');
         } finally {
             setIsLeavingStudy(false);
@@ -311,8 +311,8 @@ const StudyDetailPageV3: React.FC = () => {
         try {
             await studyApi.reportStudy(studyDetail.id, reason);
             showToast('신고가 접수되었습니다.', 'success');
-        } catch (error: any) {
-            const message = error?.response?.data?.message || '신고 처리에 실패했습니다.';
+        } catch (error: unknown) {
+            const message = getErrorMessage(error, '신고 처리에 실패했습니다.');
             showToast(message, 'error');
         }
     };

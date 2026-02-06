@@ -21,7 +21,7 @@ export interface WeakConcept {
 export interface TabConfig {
   id: TabType;
   label: string;
-  icon: React.ComponentType<{ size?: number }>;
+  icon: React.ComponentType<Record<string, unknown>>;
   count?: number;
 }
 

@@ -186,7 +186,6 @@ export const CourseDetail = () => {
                 // 조건부 API 호출: 로그인 상태에 따라 다른 엔드포인트 사용
                 if (isLoggedIn) {
                     // 로그인 사용자: 진행률 포함 API 호출
-                    console.log('[CourseDetail] 로그인 상태 - fetchSectionsWithProgress 호출');
                     try {
                         const data = await fetchSectionsWithProgress(numericCourseId);
                         setCourseData(mapAuthenticatedResponseToUnified(data));
@@ -198,7 +197,6 @@ export const CourseDetail = () => {
                     }
                 } else {
                     // 비로그인 사용자: 공개 API 호출
-                    console.log('[CourseDetail] 비로그인 상태 - fetchCourseDetail 호출');
                     const data = await fetchCourseDetail(numericCourseId);
                     setCourseData(mapPublicResponseToUnified(data));
                 }
@@ -235,7 +233,6 @@ export const CourseDetail = () => {
     const handleSectionClick = (sectionNumber: number) => {
         if (!courseData?.isAuthenticated) {
             // 비로그인 사용자: 로그인 페이지로 리다이렉트
-            console.log('[CourseDetail] 비로그인 사용자 - 로그인 유도');
             navigate('/login', {
                 state: {
                     returnUrl: `/continuous-quiz/${courseId}/section/${sectionNumber}`,
@@ -253,7 +250,6 @@ export const CourseDetail = () => {
     const handleStartQuiz = () => {
         if (selectedSectionNumber === null) return;
 
-        console.log(`[CourseDetail] 연속 학습 시작: 코스 ${courseId}, 섹션 ${selectedSectionNumber}, 문제 수 ${questionLimit}`);
         navigate(`/continuous-quiz/${courseId}/section/${selectedSectionNumber}`, {
             state: { limit: questionLimit }
         });

@@ -120,7 +120,7 @@ export const MeetingTestWidget: React.FC = () => {
                             try {
                                 const meetingsPage = await meetingApi.listMeetings(study.id, { size: 5 });
                                 const meetings = meetingsPage?.content || [];
-                                if (meetings.some((m: any) => m.status === 'ENDED')) {
+                                if (meetings.some((m) => m.endedAt !== null)) {
                                     foundEndedMeeting = true;
                                 }
                             } catch {
