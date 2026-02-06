@@ -51,22 +51,19 @@ export const CourseCard = ({ course, onCardClick }: CourseCardProps) => {
     return (
         <div
             style={{
-                backgroundColor: 'var(--color-surface)',
-                borderRadius: 'var(--radius-xl)',
-                border: '2px solid var(--color-border)',
+                backgroundColor: 'white',
+                borderRadius: '24px',
                 transition: 'all var(--transition-base)',
-                boxShadow: 'var(--shadow-sm)',
+                boxShadow: '0 4px 15px rgba(0,0,0,0.05)',
                 overflow: 'hidden',
             }}
             onMouseEnter={(e) => {
                 e.currentTarget.style.transform = 'translateY(-4px)';
-                e.currentTarget.style.boxShadow = 'var(--shadow-lg)';
-                e.currentTarget.style.borderColor = categoryConfig.color;
+                e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.1)';
             }}
             onMouseLeave={(e) => {
                 e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
-                e.currentTarget.style.borderColor = 'var(--color-border)';
+                e.currentTarget.style.boxShadow = '0 4px 15px rgba(0,0,0,0.05)';
             }}
         >
             {/* CARD HEADER */}
