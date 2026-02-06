@@ -190,20 +190,20 @@ export const createSfuClient = (baseUrl: string) => {
                 // ignore and recreate
             }
         }
-        // 비디오일 경우 Simulcast 인코딩 설정
+        // 비디오일 경우 인코딩 설정
         let producer;
         if (mediasoupKind === 'video') {
             const isScreenShare = appData?.source === 'screen' || appData?.source === 'mixed';
-            // 화면 공유: 고품질 단일 레이어 / 카메라: 낮은 프레임레이트 + Simulcast 3레이어
+            // 화면 공유: 고품질 단일 레이어 (5Mbps) / 카메라: Simulcast 2레이어
             const encodings = isScreenShare
-                ? [{ maxBitrate: 2500000 }]
+                ? [{ maxBitrate: 5000000 }]
                 : [
-                    { maxBitrate: 500000, scaleResolutionDownBy: 2, maxFramerate: 24 },
-                    { maxBitrate: 1500000, maxFramerate: 30 },
+                    { maxBitrate: 1000000, scaleResolutionDownBy: 1.5, maxFramerate: 30 },
+                    { maxBitrate: 2500000, maxFramerate: 30 },
                 ];
             const codecOptions = isScreenShare
-                ? { videoGoogleStartBitrate: 1500 }
-                : { videoGoogleStartBitrate: 800 };
+                ? { videoGoogleStartBitrate: 2500 }
+                : { videoGoogleStartBitrate: 1000 };
             producer = await transport.produce({
                 track,
                 appData,
