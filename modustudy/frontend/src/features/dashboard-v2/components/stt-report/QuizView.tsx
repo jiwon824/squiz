@@ -113,7 +113,12 @@ export const QuizView: React.FC<QuizViewProps> = ({
             );
             if (meetingQuiz) {
                 const detail = await studyQuizApi.getQuizDetail(studyId, meetingQuiz.id);
-                setQuiz(detail);
+                // 객관식 문제만 필터링 (주관식 제외)
+                const filteredDetail = {
+                    ...detail,
+                    questions: detail.questions.filter(q => q.questionType === 'MULTIPLE_CHOICE'),
+                };
+                setQuiz(filteredDetail.questions.length > 0 ? filteredDetail : null);
             } else {
                 setQuiz(null);
             }
@@ -382,7 +387,7 @@ export const QuizView: React.FC<QuizViewProps> = ({
                                     Q{currentIndex + 1}
                                 </span>
                                 <span className="text-xs text-text-tertiary">
-                                    {currentQuestion.questionType === 'MULTIPLE_CHOICE' ? '객관식' : '단답형'}
+                                    객관식
                                 </span>
                             </div>
 
@@ -391,8 +396,8 @@ export const QuizView: React.FC<QuizViewProps> = ({
                                 {currentQuestion.questionText}
                             </p>
 
-                            {/* 선택지 또는 입력 */}
-                            {currentQuestion.questionType === 'MULTIPLE_CHOICE' && options.length > 0 ? (
+                            {/* 선택지 (객관식 전용) */}
+                            {options.length > 0 && (
                                 <div className="space-y-2.5">
                                     {options.map(opt => {
                                         const isSelected = userAnswer === opt.id;
@@ -446,21 +451,6 @@ export const QuizView: React.FC<QuizViewProps> = ({
                                         );
                                     })}
                                 </div>
-                            ) : (
-                                <input
-                                    type="text"
-                                    value={userAnswer}
-                                    onChange={e => !submitted && setUserAnswer(e.target.value)}
-                                    onKeyDown={e => e.key === 'Enter' && !submitted && userAnswer.trim() && handleSubmit()}
-                                    disabled={submitted}
-                                    placeholder="답을 입력하세요..."
-                                    className={cn(
-                                        'w-full px-4 py-3 text-sm rounded-xl transition-all',
-                                        'border-2 border-border bg-background',
-                                        'focus:border-primary focus:outline-none',
-                                        submitted && 'cursor-default opacity-80'
-                                    )}
-                                />
                             )}
 
                             {/* 피드백 영역 */}

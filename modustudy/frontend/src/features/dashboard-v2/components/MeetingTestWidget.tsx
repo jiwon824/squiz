@@ -307,9 +307,9 @@ export const MeetingTestWidget: React.FC = () => {
                                             key={item.quiz.id}
                                             onClick={() => handleSelect(item)}
                                             className={cn(
-                                                'w-full p-4 rounded-xl border text-left transition-colors',
-                                                'hover:border-accent/30 hover:bg-gray-50/50',
-                                                'border-gray-100'
+                                                'w-full p-4 rounded-xl bg-white text-left transition-all',
+                                                'shadow-[0_4px_15px_rgba(0,0,0,0.05)]',
+                                                'hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)] hover:bg-gray-50'
                                             )}
                                         >
                                             <div className="flex items-start justify-between gap-3">

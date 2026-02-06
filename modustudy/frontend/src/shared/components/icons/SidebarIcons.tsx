@@ -17,8 +17,9 @@ export const QuizIcon: React.FC<IconProps> = ({ className = "w-6 h-6" }) => (
 
 export const StudyIcon: React.FC<IconProps> = ({ className = "w-6 h-6" }) => (
     <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M2 3H8C9.06087 3 10.0783 3.42143 10.8284 4.17157C11.5786 4.92172 12 5.93913 12 7V21C12 20.2044 11.6839 19.4413 11.1213 18.8787C10.5587 18.3161 9.79565 18 9 18H2V3Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M22 3H16C14.9391 3 13.9217 3.42143 13.1716 4.17157C12.4214 4.92172 12 5.93913 12 7V21C12 20.2044 12.3161 19.4413 12.8787 18.8787C13.4413 18.3161 14.2044 18 15 18H22V3Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        {/* 나침반 (탐색/검색) 아이콘 */}
+        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
+        <path d="M16.24 7.76L14.12 14.12L7.76 16.24L9.88 9.88L16.24 7.76Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
 );
 
@@ -40,18 +41,12 @@ export const CalendarIcon: React.FC<IconProps> = ({ className = "w-6 h-6" }) => 
 
 export const RecruitmentIcon: React.FC<IconProps> = ({ className = "w-6 h-6" }) => (
     <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        {/* 왼손 */}
-        <path d="M2 14L7 9.5C7.5 9 8.5 9 9 9.5L10.5 11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        {/* 오른손 */}
-        <path d="M22 14L17 9.5C16.5 9 15.5 9 15 9.5L13.5 11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        {/* 악수 (손이 맞잡는 부분) */}
-        <path d="M10.5 11L12 12.5L13.5 11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        {/* 왼쪽 팔뚝 */}
-        <path d="M2 14L2 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        {/* 오른쪽 팔뚝 */}
-        <path d="M22 14L22 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        {/* 하단 악수 그립 */}
-        <path d="M7 16.5C8 17.5 10 18 12 16.5C14 18 16 17.5 17 16.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        {/* 게시판 (클립보드 리스트) 아이콘 */}
+        <path d="M16 4H18C18.5304 4 19.0391 4.21071 19.4142 4.58579C19.7893 4.96086 20 5.46957 20 6V20C20 20.5304 19.7893 21.0391 19.4142 21.4142C19.0391 21.7893 18.5304 22 18 22H6C5.46957 22 4.96086 21.7893 4.58579 21.4142C4.21071 21.0391 4 20.5304 4 20V6C4 5.46957 4.21071 4.96086 4.58579 4.58579C4.96086 4.21071 5.46957 4 6 4H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M15 2H9C8.44772 2 8 2.44772 8 3V5C8 5.55228 8.44772 6 9 6H15C15.5523 6 16 5.55228 16 5V3C16 2.44772 15.5523 2 15 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M8 10H16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <path d="M8 14H16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <path d="M8 18H12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
 );
 
