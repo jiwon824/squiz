@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Check, X, ChevronRight, CheckSquare, Square, Circle, CheckCircle2 } from 'lucide-react';
+import { Check, X, ChevronRight, CheckSquare, Square, Circle, CheckCircle2, AlertCircle } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 import { normalizeCorrectAnswer } from '@/shared/utils/quizUtils';
 
@@ -214,6 +214,12 @@ export const QuizMultipleChoice: React.FC<QuizMultipleChoiceProps> = ({
     // 정답 배열 파싱 - normalizeCorrectAnswer 유틸리티 사용 (항상 number[] 반환)
     const correctAnswers: number[] = normalizeCorrectAnswer(quiz.correctAnswer);
 
+    // 전체 정답 여부 판정: 선택한 답과 정답이 정확히 일치하는지 확인
+    const isAllCorrect = showResult && (
+        selectedAnswers.length === correctAnswers.length &&
+        correctAnswers.every(a => selectedAnswers.includes(a))
+    );
+
     return (
         <div className={cn('space-y-4', className)}>
             {/* 퀴즈 메타정보 */}
@@ -246,11 +252,28 @@ export const QuizMultipleChoice: React.FC<QuizMultipleChoiceProps> = ({
                 {quiz.question}
             </h4>
 
+            {/* 전체 정답/오답 판정 배너 */}
+            {showResult && (
+                <motion.div
+                    initial={{ opacity: 0, y: -5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={cn(
+                        'p-3 rounded-xl text-sm font-medium flex items-center gap-2',
+                        isAllCorrect ? 'bg-secondary/10 text-secondary-dark' : 'bg-error/10 text-error'
+                    )}
+                >
+                    {isAllCorrect ? <Check size={16} /> : <AlertCircle size={16} />}
+                    {isAllCorrect ? '정답입니다!' : '오답입니다. 모든 정답을 선택해야 합니다.'}
+                </motion.div>
+            )}
+
             {/* 선택지 */}
             <div className="space-y-3">
                 {quiz.options?.map((option, index) => {
                     const isSelected = selectedAnswers.includes(index);
                     const isCorrect = correctAnswers.includes(index);
+                    // 선택하지 않은 정답 (놓친 항목)
+                    const isMissed = showResult && isCorrect && !isSelected;
 
                     return (
                         <button
@@ -263,8 +286,10 @@ export const QuizMultipleChoice: React.FC<QuizMultipleChoiceProps> = ({
                                 // 결과 보기 전: 선택된 항목 강조
                                 !showResult && isSelected && 'border-primary bg-primary/5',
                                 !showResult && !isSelected && 'border-gray-200 hover:border-gray-300',
-                                // 결과 보기: 정답인 항목 (선택 여부 상관없이 정답 표시)
-                                showResult && isCorrect && 'border-secondary bg-secondary/10',
+                                // 결과 보기: 선택한 정답 (맞춘 항목)
+                                showResult && isCorrect && isSelected && 'border-secondary bg-secondary/10',
+                                // 결과 보기: 선택하지 않은 정답 (놓친 항목 - 경고 스타일)
+                                showResult && isCorrect && !isSelected && 'border-amber-400 bg-amber-50',
                                 // 결과 보기: 내가 잘못 선택한 오답
                                 showResult && isSelected && !isCorrect && 'border-error bg-error/10',
                                 // 결과 보기: 선택 안 했고 정답도 아닌 나머지
@@ -276,7 +301,8 @@ export const QuizMultipleChoice: React.FC<QuizMultipleChoiceProps> = ({
                                     <div className={cn(
                                         "transition-colors",
                                         !showResult && isSelected ? "text-primary" : "text-gray-400",
-                                        showResult && isCorrect ? "text-secondary" : "",
+                                        showResult && isCorrect && isSelected ? "text-secondary" : "",
+                                        showResult && isCorrect && !isSelected ? "text-amber-500" : "",
                                         showResult && isSelected && !isCorrect ? "text-error" : ""
                                     )}>
                                         {isSelected ? <CheckSquare size={20} /> : <Square size={20} />}
@@ -284,9 +310,18 @@ export const QuizMultipleChoice: React.FC<QuizMultipleChoiceProps> = ({
                                     <span className="text-text-primary">{option}</span>
                                 </div>
 
-                                {showResult && isCorrect && (
+                                {/* 선택한 정답 */}
+                                {showResult && isCorrect && isSelected && (
                                     <Check className="text-secondary" size={20} />
                                 )}
+                                {/* 놓친 정답 */}
+                                {showResult && isMissed && (
+                                    <span className="text-xs font-medium text-amber-600 flex items-center gap-1">
+                                        <AlertCircle size={14} />
+                                        미선택
+                                    </span>
+                                )}
+                                {/* 잘못 선택한 오답 */}
                                 {showResult && isSelected && !isCorrect && (
                                     <X className="text-error" size={20} />
                                 )}
