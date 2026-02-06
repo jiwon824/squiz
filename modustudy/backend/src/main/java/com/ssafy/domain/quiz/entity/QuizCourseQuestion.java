@@ -17,13 +17,13 @@ import org.hibernate.type.SqlTypes;
  * 
  * DDL: docs/sql/ERD.sql - quiz_course_question
  */
-@Entity
-@Table(name = "quiz_course_question")
-@Getter
-@Builder
-@AllArgsConstructor
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class QuizCourseQuestion extends BaseEntity {
+ @Entity
+ @Table(name = "quiz_course_question")
+ @Getter
+ @Builder
+ @AllArgsConstructor
+ @NoArgsConstructor(access = AccessLevel.PROTECTED)
+ public class QuizCourseQuestion extends BaseEntity {
 
     /**
      * 소속 섹션 (복합 FK: quiz_course_id + section_number).

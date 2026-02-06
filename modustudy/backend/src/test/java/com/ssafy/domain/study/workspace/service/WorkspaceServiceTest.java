@@ -25,9 +25,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 /**
  * WorkspaceService 통합 테스트
  */
-@SpringBootTest
-@Transactional
-class WorkspaceServiceTest {
+ @SpringBootTest
+ @Transactional
+ class WorkspaceServiceTest {
 
     @Autowired
     private WorkspaceService workspaceService;

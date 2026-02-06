@@ -14,7 +14,7 @@ import java.security.Principal;
  * WebSocket 메시지에서 userId를 Principal로 설정하는 Interceptor
  * convertAndSendToUser()가 정상 작동하도록 함
  */
-public class WebSocketUserInterceptor implements ChannelInterceptor {
+ public class WebSocketUserInterceptor implements ChannelInterceptor {
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {

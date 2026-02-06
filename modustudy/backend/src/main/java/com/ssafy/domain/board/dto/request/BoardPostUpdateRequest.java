@@ -12,5 +12,5 @@ public record BoardPostUpdateRequest(
         @NotNull MeetingType meetingType,
         @NotNull Integer targetMembers,
         @NotNull RecruitmentStatus recruitmentStatus
-) {
+        ) {
 }

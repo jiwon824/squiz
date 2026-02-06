@@ -121,7 +121,6 @@ const StudyDetailPageV3: React.FC = () => {
                     const sessionData = await getStudySessions(Number(id));
                     setSessions(Array.isArray(sessionData) ? sessionData : []);
                 } catch (sessionError: unknown) {
-                    console.error('세션 목록 조회 실패:', getErrorMessage(sessionError));
                     setSessions([]);
                 }
 
@@ -132,7 +131,6 @@ const StudyDetailPageV3: React.FC = () => {
                     setLeaderAvgRating(leaderData.leaderRating);
                     setLeaderReviewCount(leaderData.leaderReviewCount || 0);
                 } catch (leaderError) {
-                    console.error('스터디장 정보 조회 실패:', leaderError);
                 }
 
                 // 북마크 상태 조회
@@ -140,7 +138,6 @@ const StudyDetailPageV3: React.FC = () => {
                     const bookmarked = await studyApi.checkBookmark(Number(id));
                     setIsBookmarked(bookmarked);
                 } catch (bookmarkError) {
-                    console.error('북마크 상태 조회 실패:', bookmarkError);
                 }
 
                 // 멤버 여부 확인 및 내 리뷰 조회 (로그인 상태일 때만)
@@ -161,11 +158,9 @@ const StudyDetailPageV3: React.FC = () => {
                             setIsApplied(applicationCheck.hasApplied);
                         }
                     } catch (memberError) {
-                        console.error('멤버 확인 실패:', memberError);
                     }
                 }
             } catch (error) {
-                console.error('스터디 상세 조회 실패:', error);
                 showToast('스터디 정보를 불러올 수 없습니다.', 'error');
             } finally {
                 setIsLoading(false);
@@ -197,7 +192,6 @@ const StudyDetailPageV3: React.FC = () => {
                 // 못 찾으면 미지정
                 setRegionName(null);
             } catch (error) {
-                console.error('지역 정보 조회 실패:', error);
                 setRegionName(null);
             }
         };
@@ -301,7 +295,6 @@ const StudyDetailPageV3: React.FC = () => {
             setIsBookmarked(!isBookmarked);
             showToast(isBookmarked ? '찜 목록에서 제거되었습니다.' : '찜 목록에 추가되었습니다.', 'success');
         } catch (error) {
-            console.error('북마크 토글 실패:', error);
             showToast('북마크 처리 중 오류가 발생했습니다.', 'error');
         }
     };
@@ -348,7 +341,6 @@ const StudyDetailPageV3: React.FC = () => {
             setLeaderReviewCount(reviewData.totalElements || 0);
             setIsReviewModalOpen(true);
         } catch (error) {
-            console.error('리뷰 조회 실패:', error);
             showToast('리뷰를 불러오는데 실패했습니다.', 'error');
         }
     };
@@ -373,7 +365,6 @@ const StudyDetailPageV3: React.FC = () => {
             showToast('스터디가 삭제되었습니다.', 'success');
             navigate('/study');
         } catch (error) {
-            console.error('스터디 삭제 실패:', error);
             showToast('스터디 삭제에 실패했습니다.', 'error');
         } finally {
             setIsDeleting(false);
@@ -1002,7 +993,6 @@ const StudyDetailPageV3: React.FC = () => {
                         setLeaderAvgRating(leaderData.leaderRating);
                         setLeaderReviewCount(leaderData.leaderReviewCount || 0);
                     } catch (error) {
-                        console.error('리뷰 데이터 새로고침 실패:', error);
                     }
                 }}
             />

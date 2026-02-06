@@ -43,7 +43,6 @@ const StudyManagementPage: React.FC = () => {
                     navigate('/study');
                 }
             } catch (error) {
-                console.error('스터디 정보 조회 실패:', error);
                 showToast('스터디 정보를 불러오는데 실패했습니다.', 'error');
                 navigate('/study');
             }
@@ -62,7 +61,6 @@ const StudyManagementPage: React.FC = () => {
             const excuseCount = await studyApi.getPendingExcuseCount(studyId);
             setPendingExcuseCount(excuseCount);
         } catch (error) {
-            console.error('대기 중 인원수 조회 실패:', error);
         }
     };
 
@@ -77,7 +75,6 @@ const StudyManagementPage: React.FC = () => {
                 setStudy(data as unknown as Study);
             }
         } catch (error) {
-            console.error('스터디 정보 새로고침 실패:', error);
         }
     };
 

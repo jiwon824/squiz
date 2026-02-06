@@ -17,10 +17,10 @@ import java.util.List;
  * - @Async 메서드를 별도 서비스로 분리하여 프록시 문제 해결
  * - 세션 생성/수정/삭제 시 멤버들의 캘린더에 이벤트 동기화
  */
-@Slf4j
-@Service
-@RequiredArgsConstructor
-public class CalendarSyncService {
+ @Slf4j
+ @Service
+ @RequiredArgsConstructor
+ public class CalendarSyncService {
 
     private final StudySessionRepository studySessionRepository;
     private final StudyMemberRepository studyMemberRepository;
@@ -31,7 +31,6 @@ public class CalendarSyncService {
      */
     @Async
     public void syncSessionsToMemberCalendarsAsync(List<Long> sessionIds, Long studyId, String studyTitle) {
-        log.info("캘린더 비동기 동기화 시작 - studyId: {}, sessionCount: {}", studyId, sessionIds.size());
         for (Long sessionId : sessionIds) {
             try {
                 StudySession session = studySessionRepository.findById(sessionId).orElse(null);
@@ -39,11 +38,9 @@ public class CalendarSyncService {
                     syncSessionToMemberCalendars(session, studyTitle);
                 }
             } catch (Exception e) {
-                log.warn("세션 캘린더 동기화 실패 - sessionId: {}, error: {}", sessionId, e.getMessage());
-            }
+}
         }
-        log.info("캘린더 비동기 동기화 완료 - studyId: {}", studyId);
-    }
+}
 
     /**
      * 단일 세션을 멤버 캘린더에 동기화
@@ -65,19 +62,13 @@ public class CalendarSyncService {
                         googleCalendarService.saveEventMapping(
                                 session.getId(), member.getUserId(), eventId);
 
-                        log.debug("캘린더 이벤트 생성 - userId: {}, sessionId: {}",
-                                member.getUserId(), session.getId());
-                    }
+}
                 } catch (Exception e) {
                     // 개별 멤버 캘린더 동기화 실패 시 로그만 남기고 계속 진행
-                    log.warn("캘린더 이벤트 생성 실패 - userId: {}, error: {}",
-                            member.getUserId(), e.getMessage());
-                }
+}
             }
         } catch (Exception e) {
-            log.error("캘린더 동기화 중 오류 발생 - sessionId: {}, error: {}",
-                    session.getId(), e.getMessage());
-        }
+}
     }
 
     /**
@@ -85,17 +76,14 @@ public class CalendarSyncService {
      */
     @Async
     public void updateSessionInMemberCalendarsAsync(Long sessionId, Long studyId, String studyTitle) {
-        log.info("캘린더 이벤트 업데이트 시작 - sessionId: {}", sessionId);
         try {
             StudySession session = studySessionRepository.findById(sessionId).orElse(null);
             if (session != null) {
                 updateSessionInMemberCalendars(session, studyTitle);
             }
         } catch (Exception e) {
-            log.warn("캘린더 이벤트 업데이트 실패 - sessionId: {}, error: {}", sessionId, e.getMessage());
-        }
-        log.info("캘린더 이벤트 업데이트 완료 - sessionId: {}", sessionId);
-    }
+}
+}
 
     /**
      * 단일 세션 캘린더 이벤트 업데이트
@@ -114,14 +102,10 @@ public class CalendarSyncService {
                                         mapping.getGoogleEventId(), studyTitle);
                             });
                 } catch (Exception e) {
-                    log.warn("캘린더 이벤트 수정 실패 - userId: {}, error: {}",
-                            member.getUserId(), e.getMessage());
-                }
+}
             }
         } catch (Exception e) {
-            log.error("캘린더 이벤트 업데이트 중 오류 - sessionId: {}, error: {}",
-                    session.getId(), e.getMessage());
-        }
+}
     }
 
     /**
@@ -129,7 +113,6 @@ public class CalendarSyncService {
      */
     @Async
     public void deleteSessionFromMemberCalendarsAsync(Long sessionId, Long studyId) {
-        log.info("캘린더 이벤트 삭제 시작 - sessionId: {}", sessionId);
         try {
             List<StudyMember> activeMembers = studyMemberRepository
                     .findByStudyIdAndStatus(studyId, MemberStatus.APPROVED);
@@ -144,14 +127,10 @@ public class CalendarSyncService {
                                         sessionId, member.getUserId());
                             });
                 } catch (Exception e) {
-                    log.warn("캘린더 이벤트 삭제 실패 - userId: {}, error: {}",
-                            member.getUserId(), e.getMessage());
-                }
+}
             }
         } catch (Exception e) {
-            log.error("캘린더 이벤트 삭제 중 오류 - sessionId: {}, error: {}",
-                    sessionId, e.getMessage());
-        }
-        log.info("캘린더 이벤트 삭제 완료 - sessionId: {}", sessionId);
-    }
 }
+}
+}
+

@@ -15,14 +15,12 @@ import org.springframework.web.server.ResponseStatusException;
 /**
  * 글로벌 예외 처리 핸들러.
  */
-@Slf4j
-@RestControllerAdvice
-public class GlobalExceptionHandler {
+ @Slf4j
+ @RestControllerAdvice
+ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ErrorResponse> handleBusinessException(BusinessException e) {
-        log.warn("BusinessException: {} - {}", e.getCode(), e.getMessage());
-
         ErrorResponse response = ErrorResponse.of(
                 e.getStatus().value(),
                 e.getCode(),
@@ -38,8 +36,6 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ErrorResponse> handleIllegalStateException(IllegalStateException e) {
-        log.warn("IllegalStateException: {}", e.getMessage());
-
         ErrorResponse response = ErrorResponse.of(
                 HttpStatus.BAD_REQUEST.value(),
                 "BAD_REQUEST",
@@ -55,8 +51,6 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException e) {
-        log.warn("IllegalArgumentException: {}", e.getMessage());
-
         ErrorResponse response = ErrorResponse.of(
                 HttpStatus.BAD_REQUEST.value(),
                 "INVALID_ARGUMENT",
@@ -72,8 +66,6 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
-        log.warn("Validation error: {}", e.getBindingResult().getAllErrors().get(0).getDefaultMessage());
-
         String message = e.getBindingResult().getAllErrors().get(0).getDefaultMessage();
 
         ErrorResponse response = ErrorResponse.of(
@@ -114,8 +106,6 @@ public class GlobalExceptionHandler {
             OptimisticLockingFailureException.class
     })
     public ResponseEntity<ErrorResponse> handleOptimisticLockingFailure(Exception e) {
-        log.warn("Optimistic locking conflict: {}", e.getMessage());
-
         ErrorResponse response = ErrorResponse.of(
                 HttpStatus.CONFLICT.value(),
                 "CONCURRENT_MODIFICATION",
@@ -127,8 +117,6 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleException(Exception e) {
-        log.error("Unexpected error occurred", e);
-
         ErrorResponse response = ErrorResponse.of(
                 500,
                 "INTERNAL_SERVER_ERROR",
@@ -138,3 +126,4 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(500).body(response);
     }
 }
+

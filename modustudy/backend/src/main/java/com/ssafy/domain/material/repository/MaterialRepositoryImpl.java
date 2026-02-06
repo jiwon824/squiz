@@ -18,9 +18,9 @@ import java.util.List;
 /**
  * Material QueryDSL 구현체
  */
-@Repository
-@RequiredArgsConstructor
-public class MaterialRepositoryImpl implements MaterialRepositoryCustom {
+ @Repository
+ @RequiredArgsConstructor
+ public class MaterialRepositoryImpl implements MaterialRepositoryCustom {
 
     private final JPAQueryFactory queryFactory;
 

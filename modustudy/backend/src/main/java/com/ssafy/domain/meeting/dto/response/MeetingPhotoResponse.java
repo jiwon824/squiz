@@ -7,5 +7,5 @@ public record MeetingPhotoResponse(
         String imageUrl,
         LocalDateTime capturedAt,
         Boolean isSelected
-) {
+        ) {
 }

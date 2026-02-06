@@ -6,5 +6,5 @@ public record MeetingActionItemRequest(
         String content,
         Long assigneeId,
         ActionItemStatus status
-) {
+        ) {
 }

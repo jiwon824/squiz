@@ -6,5 +6,5 @@ public record MeetingChatMessagePageResponse(
         List<MeetingChatMessageResponse> content,
         long totalElements,
         boolean hasMore
-) {
+        ) {
 }

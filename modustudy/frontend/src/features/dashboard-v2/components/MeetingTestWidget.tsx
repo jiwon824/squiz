@@ -136,7 +136,6 @@ export const MeetingTestWidget: React.FC = () => {
                             items.push({ quiz, studyId: study.id, studyName: study.name });
                         }
                     } catch (err) {
-                        console.warn(`[MeetingTestWidget] 스터디 ${study.id} 퀴즈 조회 실패:`, err);
                     }
                 }
 
@@ -148,7 +147,6 @@ export const MeetingTestWidget: React.FC = () => {
                 );
                 setQuizItems(items);
             } catch (err) {
-                console.error('[MeetingTestWidget] 데이터 로딩 실패:', err);
             } finally {
                 setIsLoading(false);
             }
@@ -172,7 +170,6 @@ export const MeetingTestWidget: React.FC = () => {
             setIsComplete(false);
             setStartTime(Date.now());
         } catch (err) {
-            console.error('[MeetingTestWidget] 퀴즈 상세 로딩 실패:', err);
         } finally {
             setIsLoading(false);
         }

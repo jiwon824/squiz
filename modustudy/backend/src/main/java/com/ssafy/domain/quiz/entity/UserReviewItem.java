@@ -10,12 +10,12 @@ import java.time.LocalDateTime;
                 "user_id", "content_type", "content_id" }), indexes = {
                                 @Index(name = "idx_user_next_review", columnList = "user_id, next_review_at")
                 })
-@Getter
-@Setter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
-@Builder
-public class UserReviewItem {
+                @Getter
+                @Setter
+                @NoArgsConstructor(access = AccessLevel.PROTECTED)
+                @AllArgsConstructor
+                @Builder
+                public class UserReviewItem {
 
         @Id
         @GeneratedValue(strategy = GenerationType.IDENTITY)

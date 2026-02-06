@@ -1,4 +1,4 @@
-# 모듈화 평가 및 폴더명 변경 완료 보고서
+﻿# 모듈화 평가 및 폴더명 변경 완료 보고서
 
 ## ✅ 작업 완료 사항
 
@@ -102,7 +102,6 @@ print(f"❌ 오류 발생: {str(e)}")
 ```python
 import logging
 logger = logging.getLogger(__name__)
-logger.error(f"오류 발생: {e}", exc_info=True)
 ```
 
 ### 2. API 버전 관리 (우선순위: 중간)
@@ -192,3 +191,4 @@ class ProductionConfig(Config):
 
 **작성일**: 2026-01-15  
 **작성자**: Antigravity AI Assistant
+

@@ -10,5 +10,5 @@ public record MeetingTranscriptRequest(
         Integer startMs,
         Integer endMs,
         Boolean isFinal
-) {
+        ) {
 }

@@ -16,10 +16,10 @@ import java.time.LocalDate;
  * - 온라인 미팅: 3시간 한도
  * - 오프라인 STT: 2시간 한도
  */
-@Slf4j
-@Service
-@RequiredArgsConstructor
-public class StudyDailyUsageService {
+ @Slf4j
+ @Service
+ @RequiredArgsConstructor
+ public class StudyDailyUsageService {
 
     private final StudyDailyUsageRepository usageRepository;
     private final StudyRepository studyRepository;
@@ -101,10 +101,7 @@ public class StudyDailyUsageService {
         usage.addOnlineMeetingTime(durationSeconds);
         usageRepository.save(usage);
 
-        log.info("[일일 사용량] 온라인 미팅 추가 - studyId: {}, 추가: {}초, 총: {}초, 남은: {}초",
-                studyId, durationSeconds, usage.getOnlineMeetingSeconds(),
-                usage.getOnlineMeetingRemainingSeconds());
-    }
+}
 
     /**
      * 오프라인 STT 시간 사용량 추가
@@ -115,10 +112,7 @@ public class StudyDailyUsageService {
         usage.addOfflineSttTime(durationSeconds);
         usageRepository.save(usage);
 
-        log.info("[일일 사용량] 오프라인 STT 추가 - studyId: {}, 추가: {}초, 총: {}초, 남은: {}초",
-                studyId, durationSeconds, usage.getOfflineSttSeconds(),
-                usage.getOfflineSttRemainingSeconds());
-    }
+}
 
     /**
      * 사용량 현황 조회 (DTO 반환용)
@@ -161,3 +155,4 @@ public class StudyDailyUsageService {
         }
     }
 }
+

@@ -7,13 +7,13 @@ import java.time.LocalDateTime;
 /**
  * 차단된 사용자 응답 DTO
  */
-public record BlockedUserResponse(
+ public record BlockedUserResponse(
         Long blockId,
         Long userId,
         String nickname,
         String profileImage,
         LocalDateTime blockedAt
-) {
+        ) {
     public static BlockedUserResponse from(UserBlock block) {
         return new BlockedUserResponse(
                 block.getId(),

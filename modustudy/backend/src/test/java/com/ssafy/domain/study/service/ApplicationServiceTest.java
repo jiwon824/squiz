@@ -46,8 +46,8 @@ import com.ssafy.domain.notification.entity.NotificationType;
  * 5. 신청 승인 (approveApplication)
  * 6. 신청 거절 (rejectApplication)
  */
-@ExtendWith(MockitoExtension.class)
-class ApplicationServiceTest {
+ @ExtendWith(MockitoExtension.class)
+ class ApplicationServiceTest {
 
     @Mock
     private StudyApplicationRepository applicationRepository;

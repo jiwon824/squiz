@@ -117,7 +117,6 @@ export const LoginPage = () => {
             setIsExiting(true);
             setTimeout(() => navigate(redirectUrl || '/dashboard'), 500);
         } catch (error: unknown) {
-            console.error('Login error:', error);
 
             if (getErrorStatus(error) === 401 || getErrorStatus(error) === 500) {
                 setErrorMessage('이메일 또는 비밀번호가 올바르지 않습니다.');
@@ -243,7 +242,6 @@ export const LoginPage = () => {
                                     const { authUrl } = await authApi.getGoogleAuthUrl();
                                     window.location.href = authUrl;
                                 } catch (error) {
-                                    console.error('Failed to get Google Auth URL:', error);
                                     showToast('구글 로그인 페이지를 불러오는데 실패했습니다.', 'error');
                                 }
                             }}
@@ -270,7 +268,6 @@ export const LoginPage = () => {
                                     const { authUrl } = await authApi.getKakaoAuthUrl();
                                     window.location.href = authUrl;
                                 } catch (error) {
-                                    console.error('Failed to get Kakao Auth URL:', error);
                                     showToast('카카오 로그인 페이지를 불러오는데 실패했습니다.', 'error');
                                 }
                             }}
@@ -294,7 +291,6 @@ export const LoginPage = () => {
                                     const { authUrl } = await authApi.getNaverAuthUrl();
                                     window.location.href = authUrl;
                                 } catch (error) {
-                                    console.error('Failed to get Naver Auth URL:', error);
                                     showToast('네이버 로그인 페이지를 불러오는데 실패했습니다.', 'error');
                                 }
                             }}

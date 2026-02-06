@@ -9,12 +9,12 @@ import java.time.LocalDateTime;
  * - blocker가 blocked를 차단
  * - 차단된 사용자는 친구 요청, DM을 보낼 수 없음
  */
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class UserBlock {
+ @Getter
+ @Setter
+ @NoArgsConstructor
+ @AllArgsConstructor
+ @Builder
+ public class UserBlock {
     private Long id;
     private Long blockerId;
     private Long blockedId;

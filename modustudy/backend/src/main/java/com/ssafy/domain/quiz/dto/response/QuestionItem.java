@@ -13,8 +13,8 @@ import java.util.List;
  * @param questionType 문제 유형 (MULTIPLE_CHOICE, SHORT_ANSWER)
  * @param options 객관식 보기 목록 (단답형인 경우 null)
  */
-@Schema(description = "퀴즈 문제 항목")
-public record QuestionItem(
+ @Schema(description = "퀴즈 문제 항목")
+ public record QuestionItem(
         @Schema(description = "문제 순서 번호", example = "1")
         Integer questionNumber,
 
@@ -26,5 +26,5 @@ public record QuestionItem(
 
         @Schema(description = "객관식 보기 목록")
         List<OptionItem> options
-) {
+        ) {
 }

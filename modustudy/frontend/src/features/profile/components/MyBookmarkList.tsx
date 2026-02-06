@@ -22,7 +22,6 @@ export const MyBookmarkList: React.FC = () => {
             const content = response?.content || [];
             setBookmarks(content);
         } catch (error) {
-            console.error('[MyBookmarkList] 북마크 목록 조회 실패:', error);
             showToast('북마크 목록을 불러오는데 실패했습니다.', 'error');
         } finally {
             setLoading(false);
@@ -40,7 +39,6 @@ export const MyBookmarkList: React.FC = () => {
             setBookmarks(prev => prev.filter(b => b.studyId !== studyId));
             showToast('북마크가 해제되었습니다.', 'success');
         } catch (error) {
-            console.error('[MyBookmarkList] 북마크 해제 실패:', error);
             showToast('북마크 해제에 실패했습니다.', 'error');
         }
     };

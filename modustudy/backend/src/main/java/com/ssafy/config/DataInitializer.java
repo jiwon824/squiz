@@ -39,12 +39,9 @@ public class DataInitializer implements ApplicationRunner {
     // ========== Topic 초기 데이터 ==========
     private void initTopics() {
         if (topicRepository.count() > 0) {
-            log.info("[DataInitializer] Topic 데이터 이미 존재 - 스킵");
             return;
         }
-        log.info("[DataInitializer] Topic 초기 데이터 생성 시작");
-
-        // 대분류 → 세부주제 (프론트 TOPIC_SUBTOPICS와 1:1 매칭)
+// 대분류 → 세부주제 (프론트 TOPIC_SUBTOPICS와 1:1 매칭)
         Map<String, List<String>> topicMap = new LinkedHashMap<>();
         topicMap.put("알고리즘/코딩테스트", List.of("백준", "프로그래머스", "SWEA", "LeetCode", "코딩테스트 대비"));
         topicMap.put("CS 기초", List.of("자료구조", "알고리즘 이론", "운영체제", "네트워크", "데이터베이스", "컴퓨터구조", "디자인패턴", "시스템 설계"));
@@ -73,17 +70,13 @@ public class DataInitializer implements ApplicationRunner {
                         .build());
             }
         }
-        log.info("[DataInitializer] Topic 초기 데이터 생성 완료");
-    }
+}
 
     // ========== Format 초기 데이터 ==========
     private void initFormats() {
         if (formatRepository.count() > 0) {
-            log.info("[DataInitializer] Format 데이터 이미 존재 - 스킵");
             return;
         }
-        log.info("[DataInitializer] Format 초기 데이터 생성 시작");
-
         String[] formats = {"문제 풀이", "독서/책 스터디", "강의 수강", "프로젝트", "모의 면접", "코드 리뷰", "발표/세미나", "토론"};
         for (int i = 0; i < formats.length; i++) {
             formatRepository.save(Format.builder()
@@ -91,18 +84,14 @@ public class DataInitializer implements ApplicationRunner {
                     .sortOrder(i)
                     .build());
         }
-        log.info("[DataInitializer] Format 초기 데이터 생성 완료");
-    }
+}
 
     // ========== Region 초기 데이터 ==========
     private void initRegions() {
         if (regionRepository.count() > 0) {
-            log.info("[DataInitializer] Region 데이터 이미 존재 - 스킵");
             return;
         }
-        log.info("[DataInitializer] Region 초기 데이터 생성 시작");
-
-        // 시/도 데이터 (코드, 이름)
+// 시/도 데이터 (코드, 이름)
         String[][] provinces = {
                 {"SEOUL", "서울특별시"},
                 {"BUSAN", "부산광역시"},
@@ -172,8 +161,7 @@ public class DataInitializer implements ApplicationRunner {
                 }
             }
         }
-        log.info("[DataInitializer] Region 초기 데이터 생성 완료");
-    }
+}
 
     // 한글 시/군/구명 → 영문 코드 변환
     private String toEnglishCode(String name) {
@@ -407,3 +395,4 @@ public class DataInitializer implements ApplicationRunner {
         return code != null ? code : name.toUpperCase().replace(" ", "_");
     }
 }
+

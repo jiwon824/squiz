@@ -11,5 +11,5 @@ public record MeetingSummaryResponse(
         List<String> highlights,
         String status,
         LocalDateTime createdAt
-) {
+        ) {
 }

@@ -8,12 +8,12 @@ import java.time.format.DateTimeFormatter;
 /**
  * 개인 일정 응답 DTO
  */
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class PersonalScheduleResponse {
+ @Getter
+ @Setter
+ @NoArgsConstructor
+ @AllArgsConstructor
+ @Builder
+ public class PersonalScheduleResponse {
     private Long id;
     private Long userId;
     private String title;

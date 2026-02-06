@@ -3,7 +3,7 @@ package com.ssafy.domain.quiz.entity.enums;
 /**
  * 퀴즈 문제 유형.
  */
-public enum QuestionType {
+ public enum QuestionType {
     /**
      * 객관식 (단일 선택).
      */

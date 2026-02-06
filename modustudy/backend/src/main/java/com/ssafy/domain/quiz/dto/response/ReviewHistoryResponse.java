@@ -25,8 +25,8 @@ import java.util.List;
  * @param nextReviewAt 다음 복습 예정일
  * @param logs         복습 이력 목록 (최신순)
  */
-@Schema(description = "복습 항목 이력 응답")
-public record ReviewHistoryResponse(
+ @Schema(description = "복습 항목 이력 응답")
+ public record ReviewHistoryResponse(
 
         @Schema(description = "복습 항목 ID", example = "1")
         Long reviewItemId,
@@ -57,7 +57,7 @@ public record ReviewHistoryResponse(
 
         @Schema(description = "복습 이력 목록 (최신순)")
         List<ReviewLogDto> logs
-) {
+        ) {
     /**
      * UserReviewItem과 UserReviewLog 목록으로부터 응답 DTO를 생성한다.
      */

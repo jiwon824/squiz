@@ -28,7 +28,7 @@ public record AttendanceResponse(
         String excuseReason,
         @Schema(description = "소명 처리 상태", example = "PENDING")
         AttendanceExcuseStatus excuseStatus
-) {
+        ) {
     public static AttendanceResponse from(Attendance attendance) {
         return new AttendanceResponse(
                 attendance.getId(),

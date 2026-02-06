@@ -4,5 +4,5 @@ public record MeetingIceServerResponse(
         String urls,
         String username,
         String credential
-) {
+        ) {
 }

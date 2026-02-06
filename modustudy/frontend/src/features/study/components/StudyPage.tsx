@@ -162,12 +162,10 @@ const StudyPageV2: React.FC = () => {
                         newRegionMap.set(district.id, `${province.name} ${district.name}`);
                     });
                 } catch (err) {
-                    console.warn(`${province.name} 구군 목록 로드 실패:`, err);
                 }
             }));
             setRegionMap(newRegionMap);
         } catch (error) {
-            console.error('지역 데이터 로드 실패:', error);
         }
         return newRegionMap;
     };
@@ -239,7 +237,6 @@ const StudyPageV2: React.FC = () => {
                     const leaderInfo = await getLeaderInfo(item.id);
                     leaderInfoMap.set(item.id, leaderInfo);
                 } catch (err) {
-                    console.warn(`스터디 ${item.id} 리더 정보 조회 실패:`, err);
                 }
                 // 북마크 상태 조회
                 try {
@@ -264,7 +261,6 @@ const StudyPageV2: React.FC = () => {
             setTotalPages(response?.totalPages || 0);
             setTotalElements(response?.totalElements || 0);
         } catch (error) {
-            console.error('스터디 목록 로드 실패:', error);
             setStudies([]);
         } finally {
             setIsLoading(false);
@@ -342,7 +338,6 @@ const StudyPageV2: React.FC = () => {
                 )
             );
         } catch (error) {
-            console.error('북마크 토글 실패:', error);
         }
     };
 

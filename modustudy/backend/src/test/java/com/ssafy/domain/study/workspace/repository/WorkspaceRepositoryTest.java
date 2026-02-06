@@ -24,9 +24,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * WorkspaceRepository 통합 테스트
  */
-@SpringBootTest
-@Transactional
-class WorkspaceRepositoryTest {
+ @SpringBootTest
+ @Transactional
+ class WorkspaceRepositoryTest {
 
     @Autowired
     private WorkspaceRepository workspaceRepository;

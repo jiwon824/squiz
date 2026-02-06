@@ -173,7 +173,6 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ study, onStudyUpdate, onT
                             }
                         });
                     } catch (error) {
-                        console.warn(`세션 ${session.id} 출석 정보 조회 실패:`, error);
                     }
                 }
 
@@ -212,7 +211,6 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({ study, onStudyUpdate, onT
                 studyDays,
             });
         } catch (error) {
-            console.error('대시보드 데이터 조회 실패:', error);
         } finally {
             setLoading(false);
         }

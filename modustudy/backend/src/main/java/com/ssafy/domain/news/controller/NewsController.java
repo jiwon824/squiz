@@ -26,8 +26,6 @@ public class NewsController {
      */
     @GetMapping
     public ResponseEntity<List<NewsResponse>> getLatestNews() {
-        log.info("최신 뉴스 목록 조회");
-
         List<ItNews> newsList = itNewsRepository.findTop20ByIsActiveTrueOrderByPublishedAtDesc();
 
         List<NewsResponse> response = newsList.stream()
@@ -42,8 +40,6 @@ public class NewsController {
      */
     @GetMapping("/{newsId}")
     public ResponseEntity<NewsResponse> getNewsDetail(@PathVariable Long newsId) {
-        log.info("뉴스 상세 조회: {}", newsId);
-
         ItNews news = itNewsRepository.findById(newsId)
                 .orElseThrow(() -> new IllegalArgumentException("뉴스를 찾을 수 없습니다."));
 
@@ -59,8 +55,6 @@ public class NewsController {
      */
     @GetMapping("/category/{category}")
     public ResponseEntity<List<NewsResponse>> getNewsByCategory(@PathVariable String category) {
-        log.info("카테고리별 뉴스 조회: {}", category);
-
         List<ItNews> newsList = itNewsRepository
                 .findByCategoryAndIsActiveTrueOrderByPublishedAtDesc(category);
 
@@ -76,8 +70,6 @@ public class NewsController {
      */
     @GetMapping("/popular")
     public ResponseEntity<List<NewsResponse>> getPopularNews() {
-        log.info("인기 뉴스 조회");
-
         PageRequest pageRequest = PageRequest.of(0, 10,
                 Sort.by(Sort.Direction.DESC, "viewCount"));
 
@@ -95,8 +87,6 @@ public class NewsController {
      */
     @GetMapping("/search")
     public ResponseEntity<List<NewsResponse>> searchNews(@RequestParam String keyword) {
-        log.info("뉴스 검색: {}", keyword);
-
         List<ItNews> newsList = itNewsRepository
                 .findByTitleContainingAndIsActiveTrueOrderByPublishedAtDesc(keyword);
 

@@ -46,11 +46,11 @@ import java.util.stream.Collectors;
  * MalBoka 방식: 사용자가 난이도 버튼을 직접 선택하지 않고,
  * 정답 여부(is_correct)와 응답 시간(response_time_ms)으로 Rating을 자동 산출한다.
  */
-@Slf4j
-@Service
-@RequiredArgsConstructor
-@Transactional(readOnly = true)
-public class FsrsService {
+ @Slf4j
+ @Service
+ @RequiredArgsConstructor
+ @Transactional(readOnly = true)
+ public class FsrsService {
 
     private final UserReviewItemRepository reviewItemRepository;
     private final UserReviewLogRepository reviewLogRepository;
@@ -193,12 +193,6 @@ public class FsrsService {
                 .build();
         reviewLogRepository.save(reviewLog);
 
-        log.info("복습 처리 완료 - userId: {}, contentType: {}, contentId: {}, rating: {}, " +
-                "stability: {}, scheduledMinutes: {}, nextReview: {}",
-                userId, contentType, contentId, rating,
-                String.format("%.4f", item.getStability()), item.getScheduledMinutes(),
-                item.getNextReviewAt());
-
         return item;
     }
 
@@ -211,7 +205,6 @@ public class FsrsService {
 
         // (테스트용) 내일 이 시간까지 포함해서 조회
         // List<UserReviewItem> dueItems = reviewItemRepository.findDueItems(userId,
-        // LocalDateTime.now().plusDays(1));
         return enrichReviewItems(dueItems);
     }
 
@@ -317,7 +310,6 @@ public class FsrsService {
             return objectMapper.readValue(json, new TypeReference<List<OptionItem>>() {
             });
         } catch (JsonProcessingException e) {
-            log.warn("옵션 파싱 실패: {}", json, e);
             return List.of();
         }
     }
@@ -659,3 +651,4 @@ public class FsrsService {
         return Math.max(1.0, Math.min(10.0, d));
     }
 }
+

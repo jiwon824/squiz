@@ -5,7 +5,7 @@ import org.springframework.http.HttpStatus;
 /**
  * 알림 관련 예외 클래스
  */
-public class NotificationException {
+ public class NotificationException {
 
     /**
      * 알림을 찾을 수 없음 (404)

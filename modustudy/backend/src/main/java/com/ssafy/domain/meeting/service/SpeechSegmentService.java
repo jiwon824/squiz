@@ -17,10 +17,10 @@ import java.util.List;
  * AI 서버에서 STT 처리된 발화 세그먼트를 DB에 저장
  * 미팅 종료 시 timestamp 순으로 정렬하여 전체 transcript 제공
  */
-@Slf4j
-@Service
-@RequiredArgsConstructor
-public class SpeechSegmentService {
+ @Slf4j
+ @Service
+ @RequiredArgsConstructor
+ public class SpeechSegmentService {
 
     private final MeetingSpeechSegmentRepository speechSegmentRepository;
     private final UserRepository userRepository;
@@ -33,10 +33,7 @@ public class SpeechSegmentService {
      */
     @Transactional
     public SpeechSegmentResponse processSpeechSegment(Long meetingId, SpeechSegmentRequest request) {
-        log.info("[SpeechSegment] 수신: meetingId={}, userId={}, timestamp={}, text='{}'",
-                meetingId, request.getUserId(), request.getTimestamp(), truncateText(request.getText(), 50));
-
-        // userId로 닉네임 조회 (조회 실패 시 userId 그대로 사용)
+// userId로 닉네임 조회 (조회 실패 시 userId 그대로 사용)
         String speakerName = resolveSpeakerName(request.getUserId());
 
         // 길이 제한 검증
@@ -54,10 +51,7 @@ public class SpeechSegmentService {
         );
         speechSegmentRepository.save(segment);
 
-        log.info("[SpeechSegment] DB 저장 완료: meetingId={}, segmentId={}, speaker={}",
-                meetingId, segment.getId(), speakerName);
-
-        // 응답 객체 생성 (DB에 저장된 값과 동일하게)
+// 응답 객체 생성 (DB에 저장된 값과 동일하게)
         return SpeechSegmentResponse.builder()
                 .meetingId(meetingId)
                 .speakerId(speakerId)
@@ -93,7 +87,6 @@ public class SpeechSegmentService {
     @Transactional(readOnly = true)
     public List<String> getTranscriptByMeetingId(Long meetingId) {
         List<String> transcripts = speechSegmentRepository.findAllTextByMeetingIdOrderByTimestamp(meetingId);
-        log.info("[SpeechSegment] Transcript 조회: meetingId={}, count={}", meetingId, transcripts.size());
         return transcripts;
     }
 
@@ -128,7 +121,7 @@ public class SpeechSegmentService {
     private String truncateIfNeeded(String text, int maxLength) {
         if (text == null) return null;
         if (text.length() <= maxLength) return text;
-        log.warn("[SpeechSegment] 텍스트 길이 초과로 잘림: original={}, max={}", text.length(), maxLength);
         return text.substring(0, maxLength);
     }
 }
+

@@ -5,12 +5,12 @@ import lombok.*;
 /**
  * 스터디 세션 응답 DTO (캘린더용)
  */
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class StudySessionResponse {
+ @Getter
+ @Setter
+ @NoArgsConstructor
+ @AllArgsConstructor
+ @Builder
+ public class StudySessionResponse {
     private Long id;
     private Long studyId;
     private Integer sessionNumber;

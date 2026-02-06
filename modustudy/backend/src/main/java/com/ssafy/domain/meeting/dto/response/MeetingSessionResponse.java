@@ -4,5 +4,5 @@ public record MeetingSessionResponse(
         Long id,
         Integer sessionNumber,
         String title
-) {
+        ) {
 }

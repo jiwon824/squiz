@@ -54,7 +54,6 @@ export const MyApplicationList: React.FC = () => {
 
             setApplications(mappedApplications);
         } catch (error) {
-            console.error('[MyApplicationList] 신청 내역 조회 실패:', error);
             showToast('신청 내역을 불러오는데 실패했습니다.', 'error');
         } finally {
             setLoading(false);

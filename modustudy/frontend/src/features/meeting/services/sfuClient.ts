@@ -96,7 +96,6 @@ export const createSfuClient = (baseUrl: string) => {
             );
             const failed = results.filter((r) => r.status === 'rejected');
             if (failed.length > 0) {
-                console.warn('[sfu] some consumers failed', failed.length, '/', producers.length);
             }
         }
     };
@@ -179,7 +178,6 @@ export const createSfuClient = (baseUrl: string) => {
                     return existing;
                 }
             } catch (err) {
-                console.warn('[sfu] produceTrack: replaceTrack failed, will recreate', err);
                 // fallback to recreate
             }
             try {
@@ -266,7 +264,6 @@ export const createSfuClient = (baseUrl: string) => {
             const stream = new MediaStream([consumer.track]);
             return { consumerId: consumer.id, producerId, stream, kind: consumer.kind as 'audio' | 'video' };
         } catch (err) {
-            console.error('[sfu] consume failed', { producerId, error: (err as Error).message });
             return null;
         }
     };

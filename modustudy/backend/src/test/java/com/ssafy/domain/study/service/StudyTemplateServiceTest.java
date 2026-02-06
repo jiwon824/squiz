@@ -28,8 +28,8 @@ import static org.mockito.BDDMockito.*;
 /**
  * StudyTemplateService 테스트
  */
-@ExtendWith(MockitoExtension.class)
-class StudyTemplateServiceTest {
+ @ExtendWith(MockitoExtension.class)
+ class StudyTemplateServiceTest {
 
     @Mock
     private StudyTemplateRepository studyTemplateRepository;

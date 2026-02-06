@@ -14,11 +14,11 @@ import java.io.Serializable;
  * PK: (userId, courseId)
  * Maps to: user_course_progress(user_id, course_id)
  */
-@Getter
-@NoArgsConstructor
-@AllArgsConstructor
-@EqualsAndHashCode
-public class UserCourseProgressId implements Serializable {
+ @Getter
+ @NoArgsConstructor
+ @AllArgsConstructor
+ @EqualsAndHashCode
+ public class UserCourseProgressId implements Serializable {
 
     private Long userId;
     private Long courseId;

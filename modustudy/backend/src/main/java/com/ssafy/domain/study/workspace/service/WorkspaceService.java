@@ -23,16 +23,11 @@ public class WorkspaceService {
      */
     @Transactional
     public WorkspaceResponse createWorkspace(Long studyId) {
-        log.info("워크스페이스 생성 요청 - studyId: {}", studyId);
-
         if (workspaceRepository.existsByStudyId(studyId)) {
-            log.warn("이미 워크스페이스가 존재합니다 - studyId: {}", studyId);
             throw new IllegalStateException("이미 해당 스터디의 워크스페이스가 존재합니다.");
         }
 
         Workspace workspace = workspaceRepository.save(Workspace.create(studyId));
-        log.info("워크스페이스 생성 완료 - workspaceId: {}, studyId: {}", workspace.getId(), studyId);
-
         return WorkspaceResponse.from(workspace);
     }
 
@@ -40,11 +35,8 @@ public class WorkspaceService {
      * 워크스페이스 ID로 조회
      */
     public WorkspaceResponse getWorkspace(Long workspaceId) {
-        log.info("워크스페이스 조회 요청 - workspaceId: {}", workspaceId);
-
         Workspace workspace = workspaceRepository.findById(workspaceId)
                 .orElseThrow(() -> {
-                    log.warn("워크스페이스를 찾을 수 없습니다 - workspaceId: {}", workspaceId);
                     return new IllegalArgumentException("워크스페이스를 찾을 수 없습니다.");
                 });
 
@@ -55,11 +47,8 @@ public class WorkspaceService {
      * 스터디 ID로 워크스페이스 조회
      */
     public WorkspaceResponse getWorkspaceByStudyId(Long studyId) {
-        log.info("스터디 ID로 워크스페이스 조회 요청 - studyId: {}", studyId);
-
         Workspace workspace = workspaceRepository.findByStudyId(studyId)
                 .orElseThrow(() -> {
-                    log.warn("워크스페이스를 찾을 수 없습니다 - studyId: {}", studyId);
                     return new IllegalArgumentException("해당 스터디의 워크스페이스를 찾을 수 없습니다.");
                 });
 
@@ -78,38 +67,26 @@ public class WorkspaceService {
      */
     @Transactional
     public void deleteWorkspace(Long workspaceId) {
-        log.info("워크스페이스 삭제 요청 - workspaceId: {}", workspaceId);
-
         Workspace workspace = workspaceRepository.findById(workspaceId)
                 .orElseThrow(() -> {
-                    log.warn("워크스페이스를 찾을 수 없습니다 - workspaceId: {}", workspaceId);
                     return new IllegalArgumentException("워크스페이스를 찾을 수 없습니다.");
                 });
 
         messageRepository.deleteAllByWorkspaceId(workspaceId);
-        log.info("워크스페이스 내 메시지 삭제 완료 - workspaceId: {}", workspaceId);
-
         workspaceRepository.delete(workspace);
-        log.info("워크스페이스 삭제 완료 - workspaceId: {}", workspaceId);
-    }
+}
 
     /**
      * 스터디 ID로 워크스페이스 삭제
      */
     @Transactional
     public void deleteWorkspaceByStudyId(Long studyId) {
-        log.info("스터디 ID로 워크스페이스 삭제 요청 - studyId: {}", studyId);
-
         Workspace workspace = workspaceRepository.findByStudyId(studyId)
                 .orElseThrow(() -> {
-                    log.warn("워크스페이스를 찾을 수 없습니다 - studyId: {}", studyId);
                     return new IllegalArgumentException("해당 스터디의 워크스페이스를 찾을 수 없습니다.");
                 });
 
         messageRepository.deleteAllByWorkspaceId(workspace.getId());
-        log.info("워크스페이스 내 메시지 삭제 완료 - workspaceId: {}", workspace.getId());
-
         workspaceRepository.delete(workspace);
-        log.info("워크스페이스 삭제 완료 - studyId: {}", studyId);
-    }
+}
 }

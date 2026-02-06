@@ -112,7 +112,6 @@ export const MyCreatedStudiesWidget: React.FC = () => {
       // 정렬된 상위 3개만 표시
       setStudies(sorted.slice(0, MAX_DISPLAY_COUNT));
     } catch (err) {
-      console.error('[MyCreatedStudiesWidget] 조회 실패:', err);
       setError(true);
     } finally {
       setLoading(false);

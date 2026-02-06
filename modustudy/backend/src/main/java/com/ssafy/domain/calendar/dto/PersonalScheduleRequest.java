@@ -5,12 +5,12 @@ import lombok.*;
 /**
  * 개인 일정 생성/수정 요청 DTO
  */
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class PersonalScheduleRequest {
+ @Getter
+ @Setter
+ @NoArgsConstructor
+ @AllArgsConstructor
+ @Builder
+ public class PersonalScheduleRequest {
     private String title;
     private String description;
     private String startDate;    // YYYY-MM-DD

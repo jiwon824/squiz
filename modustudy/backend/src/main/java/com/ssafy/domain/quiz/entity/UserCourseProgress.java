@@ -17,15 +17,15 @@ import java.time.LocalDateTime;
  * 
  * DDL: docs/sql/ERD.sql - user_course_progress
  */
-@Entity
-@Table(name = "user_course_progress")
-@IdClass(UserCourseProgressId.class)
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class UserCourseProgress {
+ @Entity
+ @Table(name = "user_course_progress")
+ @IdClass(UserCourseProgressId.class)
+ @Getter
+ @Setter
+ @NoArgsConstructor
+ @AllArgsConstructor
+ @Builder
+ public class UserCourseProgress {
 
     /**
      * 사용자 ID (복합 PK).

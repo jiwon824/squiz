@@ -126,7 +126,6 @@ const MeetingDetailPage: React.FC = () => {
             setPhotos(updated);
             showToast('보고서에 이미지가 첨부되었습니다.', 'success');
         } catch (error) {
-            console.error('Failed to save report photo selection', error);
             showToast('이미지 첨부에 실패했습니다.', 'error');
         } finally {
             setIsSavingSelection(false);
@@ -160,7 +159,6 @@ const MeetingDetailPage: React.FC = () => {
                     URL.revokeObjectURL(linkUrl);
                 } catch (error) {
                     window.open(url, '_blank', 'noopener,noreferrer');
-                    console.error('Failed to download meeting photo', error);
                 }
             }
         } finally {

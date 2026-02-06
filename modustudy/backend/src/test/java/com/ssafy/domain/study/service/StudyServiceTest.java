@@ -45,8 +45,8 @@ import static org.mockito.BDDMockito.*;
 /**
  * StudyService 단위 테스트
  */
-@ExtendWith(MockitoExtension.class)
-class StudyServiceTest {
+ @ExtendWith(MockitoExtension.class)
+ class StudyServiceTest {
 
     @Mock
     private StudyRepository studyRepository;

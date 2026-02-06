@@ -19,14 +19,14 @@ import org.springframework.data.annotation.CreatedDate;
  * 
  * DDL 참조: docs/sql/ERD.sql - quiz_course_section
  */
-@Entity
-@Table(name = "quiz_course_section")
-@IdClass(QuizCourseSectionId.class)
-@Getter
-@Builder
-@AllArgsConstructor
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class QuizCourseSection {
+ @Entity
+ @Table(name = "quiz_course_section")
+ @IdClass(QuizCourseSectionId.class)
+ @Getter
+ @Builder
+ @AllArgsConstructor
+ @NoArgsConstructor(access = AccessLevel.PROTECTED)
+ public class QuizCourseSection {
 
     /**
      * Part of composite PK - Course ID.

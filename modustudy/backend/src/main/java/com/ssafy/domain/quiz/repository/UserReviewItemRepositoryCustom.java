@@ -9,7 +9,7 @@ import org.springframework.data.domain.Pageable;
  * UserReviewItem 커스텀 레포지토리 인터페이스
  * QueryDSL을 이용한 동적 쿼리를 지원합니다.
  */
-public interface UserReviewItemRepositoryCustom {
+ public interface UserReviewItemRepositoryCustom {
 
     /**
      * 오답 노트 조회 (동적 정렬 + 페이징)

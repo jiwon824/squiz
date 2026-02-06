@@ -20,10 +20,10 @@ import java.time.LocalDateTime;
                 name = "idx_user_badge_type",
                 columnList = "user_id, badge_type, reference_type"
         )
-)
-@Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class UserBadge {
+        )
+        @Getter
+        @NoArgsConstructor(access = AccessLevel.PROTECTED)
+        public class UserBadge {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

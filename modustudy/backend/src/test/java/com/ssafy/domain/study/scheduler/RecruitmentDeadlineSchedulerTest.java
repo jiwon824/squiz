@@ -29,8 +29,8 @@ import static org.mockito.Mockito.*;
 /**
  * RecruitmentDeadlineScheduler 단위 테스트
  */
-@ExtendWith(MockitoExtension.class)
-class RecruitmentDeadlineSchedulerTest {
+ @ExtendWith(MockitoExtension.class)
+ class RecruitmentDeadlineSchedulerTest {
 
     @Mock
     private StudyRepository studyRepository;

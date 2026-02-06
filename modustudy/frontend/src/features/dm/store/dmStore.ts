@@ -86,7 +86,6 @@ export const useDMStore = create<DMState>((set, get) => ({
             // 읽음 처리
             get().markConversationAsRead(conversationId);
         } catch (error: unknown) {
-            console.error('[DM] fetchMessages error:', error);
             set({
                 error: getErrorMessage(error, '메시지를 불러오지 못했습니다.'),
                 isLoading: false
@@ -125,7 +124,6 @@ export const useDMStore = create<DMState>((set, get) => ({
             const unreadCount = await getUnreadCount();
             set({ unreadCount });
         } catch (error: unknown) {
-            console.error('안읽은 메시지 개수 조회 실패:', error);
         }
     },
 
@@ -142,7 +140,6 @@ export const useDMStore = create<DMState>((set, get) => ({
             // 전체 안읽은 개수 새로고침
             get().fetchUnreadCount();
         } catch (error: unknown) {
-            console.error('읽음 처리 실패:', error);
         }
     },
 
@@ -201,12 +198,10 @@ export const useDMStore = create<DMState>((set, get) => ({
         const user = authStore.user;
 
         if (!user) {
-            console.warn('Cannot connect DM WebSocket: user not logged in');
             return;
         }
 
         if (dmWebSocket.isConnected()) {
-            console.warn('DM WebSocket already connected');
             return;
         }
 
@@ -245,7 +240,6 @@ export const useDMStore = create<DMState>((set, get) => ({
                 set({ isWebSocketConnected: status === 'CONNECTED' });
             },
             onError: (error) => {
-                console.error('DM WebSocket error:', error);
             }
         });
     },

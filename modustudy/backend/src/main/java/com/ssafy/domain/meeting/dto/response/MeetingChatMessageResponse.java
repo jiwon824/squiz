@@ -8,5 +8,5 @@ public record MeetingChatMessageResponse(
         String senderName,
         String content,
         LocalDateTime sentAt
-) {
+        ) {
 }

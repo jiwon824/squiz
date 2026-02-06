@@ -8,8 +8,8 @@ import java.time.format.DateTimeFormatter;
 /**
  * 세션 출석 멤버 정보 응답 DTO (스터디장 화면용)
  */
-@Schema(description = "세션 출석 멤버 응답")
-public record SessionAttendanceMemberResponse(
+ @Schema(description = "세션 출석 멤버 응답")
+ public record SessionAttendanceMemberResponse(
         @Schema(description = "사용자 ID", example = "100")
         Long userId,
         @Schema(description = "닉네임", example = "홍길동")
@@ -20,7 +20,7 @@ public record SessionAttendanceMemberResponse(
         String status,
         @Schema(description = "출석 체크 시각", example = "2024-01-15T14:30:00")
         String checkedAt
-) {
+        ) {
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
 
     /**

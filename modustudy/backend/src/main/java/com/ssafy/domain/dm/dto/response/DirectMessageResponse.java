@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 /**
  * DM 메시지 응답 DTO
  */
-public record DirectMessageResponse(
+ public record DirectMessageResponse(
         Long messageId,
         Long conversationId,
         Long senderId,
@@ -17,7 +17,7 @@ public record DirectMessageResponse(
         Boolean isDeleted,
         Boolean isMine,
         LocalDateTime createdAt
-) {
+        ) {
     public static DirectMessageResponse from(DirectMessage message, Long myId) {
         return new DirectMessageResponse(
                 message.getId(),

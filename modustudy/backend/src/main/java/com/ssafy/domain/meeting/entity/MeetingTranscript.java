@@ -7,11 +7,11 @@ import lombok.*;
 /**
  * 미팅 실시간 STT 결과 (화자별 발언 단위)
  */
-@Entity
-@Table(name = "meeting_transcript")
-@Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class MeetingTranscript extends BaseEntity {
+ @Entity
+ @Table(name = "meeting_transcript")
+ @Getter
+ @NoArgsConstructor(access = AccessLevel.PROTECTED)
+ public class MeetingTranscript extends BaseEntity {
 
     @Column(name = "meeting_id", nullable = false)
     private Long meetingId;

@@ -21,9 +21,9 @@ import static org.assertj.core.api.Assertions.*;
 /**
  * StudyApplicationRepository 테스트
  */
-@SpringBootTest
-@Transactional
-class StudyApplicationRepositoryTest {
+ @SpringBootTest
+ @Transactional
+ class StudyApplicationRepositoryTest {
 
     @Autowired
     private StudyApplicationRepository applicationRepository;

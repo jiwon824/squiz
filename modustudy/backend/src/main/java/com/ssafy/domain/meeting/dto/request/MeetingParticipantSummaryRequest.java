@@ -6,5 +6,5 @@ import jakarta.validation.constraints.NotNull;
 public record MeetingParticipantSummaryRequest(
         @NotNull Long userId,
         @NotBlank String summary
-) {
+        ) {
 }
