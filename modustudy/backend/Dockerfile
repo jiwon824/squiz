@@ -23,8 +23,8 @@ FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
-# 타임존 설정 (KST) + 한글 폰트 설치 (PDF 생성용)
-RUN apk add --no-cache tzdata font-noto-cjk \
+# 타임존 설정 (KST) + 한글 폰트 설치 (PDF 생성용) + ffmpeg (오디오 병합용)
+RUN apk add --no-cache tzdata font-noto-cjk ffmpeg \
     && cp /usr/share/zoneinfo/Asia/Seoul /etc/localtime \
     && echo "Asia/Seoul" > /etc/timezone \
     && apk del tzdata

@@ -60,6 +60,8 @@ fun MeetingListScreen(
     val showSessionSelectDialog by viewModel.showSessionSelectDialog.collectAsState()
     val showRecordingCompleteDialog by viewModel.showRecordingCompleteDialog.collectAsState()
     val sessions by viewModel.sessions.collectAsState()
+    val recordingStartError by viewModel.recordingStartError.collectAsState()
+    val uploadedSessionIds by viewModel.uploadedSessionIds.collectAsState()
 
     // 로컬 녹음 관련 상태
     val localRecordings by viewModel.localRecordings.collectAsState()
@@ -122,9 +124,24 @@ fun MeetingListScreen(
     LaunchedEffect(studyId) {
         viewModel.initRepository(context)
         viewModel.loadMeetings(studyId, refresh = true)
-        viewModel.loadLocalRecordings(studyId)
+        viewModel.loadSessions(studyId)  // 업로드된 세션 ID 먼저 로드
+        viewModel.loadLocalRecordings(studyId)  // 세션 로드 후 녹음 목록 로드
         viewModel.loadRemainingTime(studyId)
-        viewModel.loadSessions(studyId)
+    }
+
+    // 녹음 시작 에러 처리
+    LaunchedEffect(recordingStartError) {
+        recordingStartError?.let { error ->
+            Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
+            viewModel.clearRecordingStartError()
+        }
+    }
+
+    // 업로드된 세션 ID가 변경되면 녹음 목록 새로고침 (필터링 적용)
+    LaunchedEffect(uploadedSessionIds) {
+        if (uploadedSessionIds.isNotEmpty()) {
+            viewModel.loadLocalRecordings(studyId)
+        }
     }
 
     // 업로드 상태 처리

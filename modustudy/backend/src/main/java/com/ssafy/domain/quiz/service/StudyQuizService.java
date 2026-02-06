@@ -83,15 +83,29 @@ public class StudyQuizService {
                     .status(StudyQuiz.StudyQuizStatus.ACTIVE)
                     .build();
 
-            // 문제 추가
+            // 문제 추가 (객관식만)
+            int addedCount = 0;
             for (Map<String, Object> q : questions) {
+                String type = (String) q.getOrDefault("type", "객관식");
+                // 주관식/단답형 제외 - 객관식만 저장
+                if ("단답형".equals(type) || "SHORT_ANSWER".equalsIgnoreCase(type) || "서술형".equals(type)) {
+                    log.debug("주관식 문제 스킵 - type: {}", type);
+                    continue;
+                }
                 StudyQuizQuestion question = createQuestionFromMap(q);
                 quiz.addQuestion(question);
+                addedCount++;
+            }
+
+            // 객관식 문제가 없으면 null 반환
+            if (addedCount == 0) {
+                log.warn("저장할 객관식 문제가 없음 - meetingId: {}", meetingId);
+                return null;
             }
 
             StudyQuiz saved = studyQuizRepository.save(quiz);
-            log.info("미팅 기반 퀴즈 저장 완료 - quizId: {}, meetingId: {}, questions: {}",
-                    saved.getId(), meetingId, questions.size());
+            log.info("미팅 기반 퀴즈 저장 완료 - quizId: {}, meetingId: {}, questions: {} (객관식만)",
+                    saved.getId(), meetingId, addedCount);
 
             return saved;
 
