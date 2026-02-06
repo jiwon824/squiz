@@ -144,6 +144,117 @@ export const classBuilder = {
 
     return cn(baseClasses, variants[variant], sizes[size]);
   },
+
+  /**
+   * 툴팁 클래스 빌더 — group-hover로 표시되는 툴팁
+   */
+  tooltip: (position: 'top' | 'bottom' | 'left' | 'right' = 'bottom') => {
+    const baseClasses = 'absolute px-2.5 py-1 rounded-lg bg-slate-800 text-white text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none shadow-lg z-50';
+
+    const positions = {
+      top: '-top-9 left-1/2 -translate-x-1/2',
+      bottom: '-bottom-9 left-1/2 -translate-x-1/2',
+      left: 'top-1/2 -translate-y-1/2 right-full mr-2',
+      right: 'top-1/2 -translate-y-1/2 left-full ml-2',
+    };
+
+    return cn(baseClasses, positions[position]);
+  },
+
+  /**
+   * 아이콘 버튼 클래스 빌더 — 작은 액션 버튼
+   */
+  iconButton: (variant: 'default' | 'primary' | 'success' | 'danger' | 'ghost' = 'default', size: 'xs' | 'sm' | 'md' = 'sm') => {
+    const baseClasses = 'inline-flex items-center justify-center gap-1 font-medium rounded-lg transition-colors disabled:opacity-50';
+
+    const variants = {
+      default: 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50',
+      primary: 'bg-study-blue text-white hover:bg-study-blue/90',
+      success: 'bg-study-green text-white hover:bg-study-green/90',
+      danger: 'bg-red-500 text-white hover:bg-red-600',
+      ghost: 'text-gray-500 hover:bg-gray-100 hover:text-gray-700',
+    };
+
+    const sizes = {
+      xs: 'px-2 py-1 text-[10px]',
+      sm: 'px-3 py-1.5 text-xs',
+      md: 'px-4 py-2 text-sm',
+    };
+
+    return cn(baseClasses, variants[variant], sizes[size]);
+  },
+
+  /**
+   * 드롭다운/팝오버 컨테이너 클래스 빌더
+   */
+  dropdown: (size: 'sm' | 'md' | 'lg' = 'md') => {
+    const baseClasses = 'absolute z-50 bg-white border border-gray-200 shadow-lg animate-in fade-in zoom-in-95 duration-200 origin-top overflow-hidden';
+
+    const sizes = {
+      sm: 'rounded-xl',
+      md: 'rounded-2xl',
+      lg: 'rounded-[32px]',
+    };
+
+    return cn(baseClasses, sizes[size]);
+  },
+
+  /**
+   * 알림 배지 클래스 빌더 — 숫자 표시용 작은 원형 배지
+   */
+  notificationBadge: (variant: 'red' | 'blue' | 'green' = 'red') => {
+    const baseClasses = 'absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full flex items-center justify-center text-[10px] text-white font-bold px-1';
+
+    const variants = {
+      red: 'bg-red-500',
+      blue: 'bg-study-blue',
+      green: 'bg-study-green',
+    };
+
+    return cn(baseClasses, variants[variant]);
+  },
+
+  /**
+   * 아바타 클래스 빌더 — 프로필 이미지/이니셜 표시
+   */
+  avatar: (size: 'xs' | 'sm' | 'md' | 'lg' = 'md', variant: 'default' | 'gradient' = 'default') => {
+    const baseClasses = 'rounded-full flex items-center justify-center font-bold overflow-hidden';
+
+    const variants = {
+      default: 'bg-study-blue/10 text-study-blue',
+      gradient: 'bg-gradient-to-br from-study-blue to-study-blue-dark text-white',
+    };
+
+    const sizes = {
+      xs: 'w-6 h-6 text-[10px]',
+      sm: 'w-7 h-7 text-xs',
+      md: 'w-8 h-8 text-sm',
+      lg: 'w-10 h-10 text-sm',
+    };
+
+    return cn(baseClasses, variants[variant], sizes[size]);
+  },
+
+  /**
+   * 입력 필드 클래스 빌더 — 폼 입력 필드
+   */
+  input: (variant: 'default' | 'filled' | 'outlined' = 'default', size: 'sm' | 'md' | 'lg' = 'md') => {
+    const baseClasses = 'w-full outline-none transition-all';
+
+    const variants = {
+      default: 'bg-white border border-gray-200 focus:border-primary/50 focus:ring-2 focus:ring-primary/10',
+      filled: 'bg-background-secondary/50 border border-transparent focus:border-primary/30 focus:bg-white',
+      outlined: 'bg-transparent border-2 border-gray-200 focus:border-primary',
+    };
+
+    const sizes = {
+      sm: 'px-3 py-2 text-sm rounded-lg',
+      md: 'px-4 py-3 text-sm rounded-xl',
+      lg: 'px-4 py-3.5 text-base rounded-2xl',
+    };
+
+    return cn(baseClasses, variants[variant], sizes[size]);
+  },
 };
 
 /**

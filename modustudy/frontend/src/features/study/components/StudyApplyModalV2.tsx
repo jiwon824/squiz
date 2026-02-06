@@ -4,6 +4,7 @@ import { Spinner } from '@/shared/components/Spinner';
 import { Study } from '../services/studyService';
 import { studyApi } from '@/api/endpoints/studyApi';
 import { Modal, Button, FormField } from '@/shared/components';
+import { getErrorMessage } from '@/shared/utils/errorUtils';
 
 interface StudyApplyModalV2Props {
     study: Study;
@@ -48,11 +49,9 @@ const StudyApplyModalV2: React.FC<StudyApplyModalV2Props> = ({ study, isOpen, on
             await studyApi.applyToStudy(study.id, message);
             setStatus('success');
             setStatusMessage('스터디 신청이 완료되었습니다! 스터디장의 승인을 기다려주세요.');
-        } catch (error: any) {
-            console.error('[StudyApplyModalV2] 신청 실패:', error);
+        } catch (error: unknown) {
             setStatus('error');
-            const errorMessage = error?.response?.data?.message || error?.message || '신청 처리 중 예상치 못한 오류가 발생했습니다.';
-            setStatusMessage(errorMessage);
+            setStatusMessage(getErrorMessage(error, '신청 처리 중 예상치 못한 오류가 발생했습니다.'));
         }
     };
 

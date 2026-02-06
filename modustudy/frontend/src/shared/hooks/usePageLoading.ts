@@ -45,7 +45,7 @@ export const usePageLoading = (options: UsePageLoadingOptions = {}) => {
         globalLoading,
     } = useUIStore();
 
-    const progressTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const currentProgressRef = useRef(0);
 
     // 자동 진행률 시뮬레이션 중지

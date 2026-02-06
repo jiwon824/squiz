@@ -33,7 +33,6 @@ interface ApiResponse<T> {
     };
 }
 
-
 // -----------------------------------------------------------------------------
 // 백엔드 DTO 타입 (실제 API 응답 구조)
 // -----------------------------------------------------------------------------
@@ -119,7 +118,6 @@ export interface CourseQuizStat {
     correctCount: number;
 }
 
-
 /**
  * 백엔드 문제 응답을 프론트엔드 형식으로 변환
  */
@@ -152,7 +150,6 @@ export const fetchNextQuestion = async (
     courseId: number,
     sectionNumber: number
 ): Promise<NextQuestionResponse> => {
-    console.log(`[continuousQuizApi] 다음 문제 요청: courseId=${courseId}, sectionNumber=${sectionNumber}`);
 
     const response = await api.get<ApiResponse<BackendQuestionResponse>>(
         `/api/v1/continuous-quiz/courses/${courseId}/sections/${sectionNumber}/next`
@@ -163,12 +160,9 @@ export const fetchNextQuestion = async (
     }
 
     const backendData = response.data.data;
-    console.log('[continuousQuizApi] 백엔드 응답:', backendData);
 
     // 백엔드 응답을 프론트엔드 형식으로 변환
     const question = transformQuestion(backendData);
-
-    console.log('[continuousQuizApi] 변환된 문제:', question);
 
     return {
         question,
@@ -201,14 +195,6 @@ export const submitAnswer = async (
         responseTimeMs,
     };
 
-    console.log('[continuousQuizApi] 답안 제출 요청:', {
-        questionId,
-        originalAnswer: userAnswer,
-        serializedAnswer,
-        responseTimeMs,
-        requestBody: request,
-    });
-
     const response = await api.post<ApiResponse<BackendSubmitResponse>>(
         `/api/v1/continuous-quiz/questions/${questionId}/submit`,
         request
@@ -219,7 +205,6 @@ export const submitAnswer = async (
     }
 
     const backendData = response.data.data;
-    console.log('[continuousQuizApi] 백엔드 제출 응답:', backendData);
 
     // 백엔드 응답을 프론트엔드 형식으로 변환
     const result: SubmitAnswerResponse = {
@@ -230,8 +215,6 @@ export const submitAnswer = async (
         explanation: backendData.explanation || undefined,
     };
 
-    console.log(`[continuousQuizApi] 답안 제출 성공: correct=${backendData.correct}, isCorrect=${result.isCorrect}, nextQuestionId=${result.nextQuestion?.questionId}`);
-
     return result;
 };
 
@@ -241,7 +224,6 @@ export const submitAnswer = async (
  * 인증: 필요
  */
 export const getCourseQuizStats = async (): Promise<CourseQuizStat[]> => {
-    console.log('[continuousQuizApi] 코스별 통계 요청');
     const response = await api.get<ApiResponse<CourseQuizStat[]>>(
         '/api/v1/continuous-quiz/course-stats'
     );

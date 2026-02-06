@@ -20,6 +20,7 @@ import { sessionApi, type StudySessionResponse } from '@/api/endpoints/sessionAp
 import { meetingApi } from '@/features/meeting/services/meetingApi';
 import { useUIStore } from '@/store/uiStore';
 import { useAuthStore } from '@/store/authStore';
+import { getErrorMessage, getErrorStatus } from '@/shared/utils/errorUtils';
 import { workspaceWebSocket } from '@/api/websocket/workspaceWebSocketService';
 import type { WorkspaceWebSocketEvent } from '@/api/websocket/workspaceWebSocketTypes';
 import type { MessageResponse, WorkspaceResponse } from '../types';
@@ -238,15 +239,15 @@ export const WorkspacePage: React.FC = () => {
         let workspaceData: WorkspaceResponse;
         try {
           workspaceData = await workspaceApi.getWorkspaceByStudyId(studyId);
-        } catch (wsError: any) {
-          const status = wsError?.response?.status;
+        } catch (wsError: unknown) {
+          const status = getErrorStatus(wsError);
           // 워크스페이스가 없으면 생성
           if (status === 400 || status === 404) {
             try {
               workspaceData = await workspaceApi.createWorkspace(studyId);
-            } catch (createError: any) {
-              const createStatus = createError?.response?.status;
-              const createMessage = createError?.response?.data?.message || createError?.message || '';
+            } catch (createError: unknown) {
+              const createStatus = getErrorStatus(createError);
+              const createMessage = getErrorMessage(createError, '');
               if (createStatus === 409 || createMessage.includes('이미') || createMessage.toLowerCase().includes('exist')) {
                 workspaceData = await workspaceApi.getWorkspaceByStudyId(studyId);
               } else {
@@ -267,13 +268,8 @@ export const WorkspacePage: React.FC = () => {
         setMessages(messagesData.content.reverse());
         setHasMoreMessages(!messagesData.last);
         setCurrentPage(0);
-      } catch (err: any) {
-        const errorMessage =
-          err?.response?.data?.message ||
-          err?.response?.data?.error ||
-          err?.message ||
-          '워크스페이스를 불러오는 데 실패했습니다.';
-        setError(errorMessage);
+      } catch (err: unknown) {
+        setError(getErrorMessage(err, '워크스페이스를 불러오는 데 실패했습니다.'));
       } finally {
         setIsLoading(false);
       }
@@ -389,14 +385,11 @@ export const WorkspacePage: React.FC = () => {
       },
       onPin: (event: WorkspaceWebSocketEvent) => {
         // 메시지 고정/해제 시
-        console.log('[Workspace] PIN 이벤트 수신:', event);
         if (event.message && event.messageId) {
           // isPinned 또는 pinned 필드 확인 (Jackson 직렬화 대응)
-          const msg = event.message as any;
-          const isPinned = msg.isPinned ?? msg.pinned ?? false;
+          const msg = event.message as unknown as { isPinned?: boolean; pinned?: boolean };
+          const isPinned = Boolean(msg.isPinned ?? msg.pinned ?? false);
           const messageId = event.messageId;
-
-          console.log('[Workspace] PIN 처리:', { messageId, isPinned });
 
           // 메시지 목록의 isPinned 상태 업데이트
           setMessages((prev) =>
@@ -436,7 +429,6 @@ export const WorkspacePage: React.FC = () => {
       onConnectionChange: (status) => {
         setIsWebSocketConnected(status === 'CONNECTED');
         if (status === 'CONNECTED') {
-          console.log('[Workspace] WebSocket 연결 완료');
           workspaceApi
             .getWorkspacePresence(workspace.id)
             .then((onlineIds) => {
@@ -1040,10 +1032,3 @@ export const WorkspacePage: React.FC = () => {
     </div>
   );
 };
-
-
-
-
-
-
-

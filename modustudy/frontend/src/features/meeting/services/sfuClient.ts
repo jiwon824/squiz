@@ -54,7 +54,6 @@ export const createSfuClient = (baseUrl: string) => {
         socket = io(baseUrl, { transports: ['websocket'] });
 
         socket.on('newProducer', async ({ producerId, producerPeerId, kind, displayName }) => {
-            console.log('[sfu] newProducer event', { producerId, producerPeerId, kind });
             const consumerData = await consume(producerId);
             if (consumerData && onNewConsumer) {
                 onNewConsumer({ ...consumerData, peerId: producerPeerId, kind, displayName });
@@ -84,7 +83,6 @@ export const createSfuClient = (baseUrl: string) => {
         sendTransport = await createSendTransport();
         recvTransport = await createRecvTransport();
 
-        console.log('[sfu] existingProducers', joinData.existingProducers);
         if (joinData.existingProducers) {
             const producers = joinData.existingProducers as Array<{ producerId: string; peerId: string; kind: string; displayName?: string }>;
             // 기존 producer를 병렬로 consume하여 초기 로딩 시간 단축
@@ -105,15 +103,13 @@ export const createSfuClient = (baseUrl: string) => {
 
     const createSendTransport = async () => {
         const { params } = await request('createWebRtcTransport', { roomId });
-        console.log('[sfu] send transport params', { iceServers: params.iceServers, iceCandidates: params.iceCandidates?.length });
         const transport = device.createSendTransport(params);
         transport.on('connect', ({ dtlsParameters }: { dtlsParameters: any }, callback: () => void, errback: (err: Error) => void) => {
             request('connectWebRtcTransport', { roomId, transportId: transport.id, dtlsParameters })
                 .then(() => callback())
                 .catch(errback);
         });
-        transport.on('connectionstatechange', (state: string) => {
-            console.log('[sfu] send transport state', state);
+        transport.on('connectionstatechange', () => {
         });
         transport.on('produce', ({ kind, rtpParameters, appData }: { kind: any; rtpParameters: any; appData: any }, callback: (arg: { id: string }) => void, errback: (err: Error) => void) => {
             request('produce', { roomId, transportId: transport.id, kind, rtpParameters, appData })
@@ -144,15 +140,13 @@ export const createSfuClient = (baseUrl: string) => {
 
     const createRecvTransport = async () => {
         const { params } = await request('createWebRtcTransport', { roomId });
-        console.log('[sfu] recv transport params', { iceServers: params.iceServers, iceCandidates: params.iceCandidates?.length });
         const transport = device.createRecvTransport(params);
         transport.on('connect', ({ dtlsParameters }: { dtlsParameters: any }, callback: () => void, errback: (err: Error) => void) => {
             request('connectWebRtcTransport', { roomId, transportId: transport.id, dtlsParameters })
                 .then(() => callback())
                 .catch(errback);
         });
-        transport.on('connectionstatechange', (state: string) => {
-            console.log('[sfu] recv transport state', state);
+        transport.on('connectionstatechange', () => {
         });
         return transport;
     };
@@ -164,40 +158,24 @@ export const createSfuClient = (baseUrl: string) => {
     ) => {
         // screen-audio는 mediasoup에서 'audio' 타입으로 전송
         const mediasoupKind = kind === 'screen-audio' ? 'audio' : kind;
-        console.log('[sfu] produceTrack called', {
-            kind,
-            mediasoupKind,
-            hasTrack: !!track,
-            trackId: track?.id,
-            trackReadyState: track?.readyState,
-            trackEnabled: track?.enabled,
-            trackMuted: track?.muted,
-            hasExistingProducer: producers.has(kind),
-        });
         if (!track) {
-            console.log('[sfu] produceTrack: no track provided');
             return null;
         }
         if (track.readyState === 'ended') {
-            console.log('[sfu] produceTrack: track already ended');
             return null;
         }
         const transport = await ensureSendTransport();
         if (!transport) {
-            console.log('[sfu] produceTrack: no transport');
             return null;
         }
         if (producers.has(kind)) {
             const existing = producers.get(kind);
             if (existing.track && existing.track.id === track.id) {
-                console.log('[sfu] produceTrack: same track already producing');
                 return existing;
             }
-            console.log('[sfu] produceTrack: replacing existing producer', { existingTrackId: existing.track?.id, newTrackId: track.id });
             try {
                 if (typeof existing.replaceTrack === 'function') {
                     await existing.replaceTrack({ track });
-                    console.log('[sfu] produceTrack: track replaced successfully');
                     return existing;
                 }
             } catch (err) {
@@ -233,16 +211,9 @@ export const createSfuClient = (baseUrl: string) => {
                 codecOptions,
             });
         } else {
-            console.log('[sfu] produceTrack: creating audio producer');
             producer = await transport.produce({ track, appData });
         }
         producers.set(kind, producer);
-        console.log('[sfu] produceTrack: producer created successfully', {
-            kind,
-            producerId: producer.id,
-            producerPaused: producer.paused,
-            producerClosed: producer.closed,
-        });
         return producer;
     };
 
@@ -256,7 +227,6 @@ export const createSfuClient = (baseUrl: string) => {
     };
 
     const consume = async (producerId: string) => {
-        console.log('[sfu] consume called', { producerId, hasRecvTransport: !!recvTransport, hasDevice: !!device });
         if (!recvTransport || !device || !device.rtpCapabilities) return null;
         try {
             const { params } = await request('consume', {
@@ -265,7 +235,6 @@ export const createSfuClient = (baseUrl: string) => {
                 producerId,
                 rtpCapabilities: device.rtpCapabilities,
             });
-            console.log('[sfu] consume server response', { id: params.id, kind: params.kind, producerId: params.producerId });
             const consumer = await recvTransport.consume({
                 id: params.id,
                 producerId: params.producerId,
@@ -273,7 +242,6 @@ export const createSfuClient = (baseUrl: string) => {
                 rtpParameters: params.rtpParameters,
             });
             consumers.set(consumer.id, consumer);
-            console.log('[sfu] consumer created', { consumerId: consumer.id, kind: consumer.kind, trackState: consumer.track?.readyState, trackEnabled: consumer.track?.enabled });
             await request('resume', { roomId, consumerId: consumer.id });
             try {
                 await consumer.resume();
@@ -296,7 +264,6 @@ export const createSfuClient = (baseUrl: string) => {
                 consumer.on('close', () => clearInterval(keyFrameInterval));
             }
             const stream = new MediaStream([consumer.track]);
-            console.log('[sfu] consume success', { consumerId: consumer.id, kind: consumer.kind, streamActive: stream.active, trackCount: stream.getTracks().length });
             return { consumerId: consumer.id, producerId, stream, kind: consumer.kind as 'audio' | 'video' };
         } catch (err) {
             console.error('[sfu] consume failed', { producerId, error: (err as Error).message });

@@ -145,7 +145,7 @@ export const MaterialDetailModal: React.FC<MaterialDetailModalProps> = ({
             fileName: null,
           } as MaterialDetailResponse);
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         // 상세 조회 실패시 목록 데이터로 대체
         setDetail({
           ...material,

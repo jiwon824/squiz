@@ -133,8 +133,8 @@ class StudyService {
         const sorted = [...studies];
 
         sorted.sort((a: Study, b: Study) => {
-            let aValue: any;
-            let bValue: any;
+            let aValue: number;
+            let bValue: number;
 
             switch (sortOption.field) {
                 case 'createdAt':
@@ -190,7 +190,7 @@ class StudyService {
 
     // 사용자 정보 조회
     getUserById(userId: number) {
-        return mockUsers.find((user: any) => user.id === userId);
+        return mockUsers.find((user) => user.id === userId);
     }
 
     // 페이지네이션

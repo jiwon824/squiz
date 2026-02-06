@@ -24,6 +24,7 @@ import {
     type RegionItem
 } from '@/api/endpoints/studyApi';
 import { useUIStore } from '@/store/uiStore';
+import { getErrorMessage } from '@/shared/utils/errorUtils';
 
 
 // 대분류 → 세부주제 매핑
@@ -410,9 +411,8 @@ const LightningStudyEditPage: React.FC = () => {
             } else {
                 navigate(`/study/manage/${studyId}`);
             }
-        } catch (error: any) {
-            console.error('번개 스터디 수정 실패:', error);
-            const message = error?.response?.data?.error?.message || error?.response?.data?.message || '번개 스터디 수정에 실패했습니다.';
+        } catch (error: unknown) {
+            const message = getErrorMessage(error, '번개 스터디 수정에 실패했습니다.');
             showToast(message, 'error');
         } finally {
             setIsSubmitting(false);

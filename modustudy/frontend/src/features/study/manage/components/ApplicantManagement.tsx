@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { studyApi } from '@/api/endpoints/studyApi';
-import { Check, X, MessageSquare, User, Filter, ChevronDown, Calendar } from 'lucide-react';
+import { Check, X, MessageSquare, User, ChevronDown, Calendar } from 'lucide-react';
 import { useUIStore } from '@/store/uiStore';
 import { getProfileImageUrl } from '@/shared/utils/profileImage';
 import { cn, classBuilder } from '@/shared/utils/cn';
@@ -46,7 +46,7 @@ const ApplicantManagement: React.FC<ApplicantManagementProps> = ({ studyId }) =>
             // 응답 구조 확인 및 변환
             const content = response?.data?.content || response?.content || [];
 
-            const mappedApplicants: Applicant[] = content.map((app: any) => ({
+            const mappedApplicants: Applicant[] = content.map((app: { applicationId: number; userId: number; userNickname?: string; nickname?: string; userName?: string; profileImage?: string | null; userProfileImage?: string | null; message?: string; applicationMessage?: string; status: 'PENDING' | 'APPROVED' | 'REJECTED'; createdAt?: string; appliedAt?: string }) => ({
                 applicationId: app.applicationId,
                 userId: app.userId,
                 nickname: app.userNickname || app.nickname || app.userName || '익명',
@@ -89,12 +89,13 @@ const ApplicantManagement: React.FC<ApplicantManagementProps> = ({ studyId }) =>
 
             // 목록 새로고침
             await fetchApplicants();
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('신청 처리 실패:', error);
 
             // 정원 초과 에러 체크
-            const errorMessage = error?.response?.data?.message || error?.response?.data?.error?.message || '';
-            const errorCode = error?.response?.data?.code || error?.response?.data?.error?.code || '';
+            const axiosErr = error as { response?: { data?: { message?: string; code?: string; error?: { message?: string; code?: string } } } };
+            const errorMessage = axiosErr?.response?.data?.message || axiosErr?.response?.data?.error?.message || '';
+            const errorCode = axiosErr?.response?.data?.code || axiosErr?.response?.data?.error?.code || '';
 
             if (
                 errorMessage.includes('정원') ||

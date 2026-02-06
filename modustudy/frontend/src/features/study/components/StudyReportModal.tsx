@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AlertTriangle, ShieldCheck } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 import { Button, Modal } from '@/shared/components';
 

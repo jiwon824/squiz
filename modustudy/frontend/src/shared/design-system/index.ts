@@ -83,8 +83,8 @@ export interface InteractiveProps extends BaseComponentProps {
 
 export interface FormComponentProps extends BaseComponentProps {
   name?: string;
-  value?: any;
-  onChange?: (value: any) => void;
+  value?: unknown;
+  onChange?: (value: unknown) => void;
   error?: string;
   required?: boolean;
   placeholder?: string;

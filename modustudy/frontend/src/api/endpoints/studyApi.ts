@@ -4,6 +4,8 @@
  */
 
 import api from '../axios';
+import type { MaybeWrapped } from '../types';
+import { getErrorStatus } from '@/shared/utils/errorUtils';
 
 // ========== 공통 타입 정의 ==========
 
@@ -370,24 +372,24 @@ export const studyApi = {
    * GET /api/v1/study/{studyId}
    */
   getStudyDetail: async (studyId: number) => {
-    const response = await api.get<any>(`/api/v1/study/${studyId}`);
-    let data = response.data;
+    const response = await api.get(`/api/v1/study/${studyId}`);
+    const raw = response.data;
 
     // 기존 백엔드 응답이 문자열인 경우 간단 파싱
-    if (typeof data === 'string') {
-      const nameMatch = data.match(/"name"\s*:\s*"([^"]+)"/);
-      const idMatch = data.match(/"id"\s*:\s*(\d+)/);
-      const leaderMatch = data.match(/"leaderId"\s*:\s*(\d+)/);
-      const statusMatch = data.match(/"status"\s*:\s*"([^"]+)"/);
-      data = {
+    if (typeof raw === 'string') {
+      const nameMatch = raw.match(/"name"\s*:\s*"([^"]+)"/);
+      const idMatch = raw.match(/"id"\s*:\s*(\d+)/);
+      const leaderMatch = raw.match(/"leaderId"\s*:\s*(\d+)/);
+      const statusMatch = raw.match(/"status"\s*:\s*"([^"]+)"/);
+      return {
         id: idMatch ? parseInt(idMatch[1]) : 0,
-        leaderId: leaderMatch ? parseInt(leaderMatch[1]) : undefined,
+        leaderId: leaderMatch ? parseInt(leaderMatch[1]) : 0,
         name: nameMatch ? nameMatch[1] : 'Study',
-        status: statusMatch ? statusMatch[1] : undefined,
-      };
+        status: statusMatch ? statusMatch[1] : 'DRAFT',
+      } as StudyDetailResponse;
     }
 
-    return data as StudyDetailResponse;
+    return raw as StudyDetailResponse;
   },
 
   /**
@@ -395,8 +397,8 @@ export const studyApi = {
    * GET /api/v1/study/{studyId}/exists
    */
   checkStudyExists: async (studyId: number) => {
-    const response = await api.get<any>(`/api/v1/study/${studyId}/exists`);
-    return response.data as boolean;
+    const response = await api.get<boolean>(`/api/v1/study/${studyId}/exists`);
+    return response.data;
   },
 
   /**
@@ -407,10 +409,10 @@ export const studyApi = {
    * @param status 스터디 상태 필터 (COMPLETED, IN_PROGRESS 등)
    */
   getMyStudies: async (page = 0, size = 20, status?: string) => {
-    const response = await api.get<any>('/api/v1/study/my', {
+    const response = await api.get<PageResponse<StudyListResponse>>('/api/v1/study/my', {
       params: { page, size, status },
     });
-    return response.data as PageResponse<StudyListResponse>;
+    return response.data;
   },
 
   /**
@@ -418,10 +420,10 @@ export const studyApi = {
    * GET /api/v1/study/{studyId}/members
    */
   getStudyMembers: async (studyId: number, page = 0, size = 50) => {
-    const response = await api.get<any>(`/api/v1/study/${studyId}/members`, {
+    const response = await api.get<PageResponse<StudyMemberResponse>>(`/api/v1/study/${studyId}/members`, {
       params: { page, size },
     });
-    return response.data as PageResponse<StudyMemberResponse>;
+    return response.data;
   },
 
   /**
@@ -429,8 +431,8 @@ export const studyApi = {
    * GET /api/v1/study/{studyId}/members/count
    */
   getMemberCount: async (studyId: number) => {
-    const response = await api.get<any>(`/api/v1/study/${studyId}/members/count`);
-    return response.data as number;
+    const response = await api.get<number>(`/api/v1/study/${studyId}/members/count`);
+    return response.data;
   },
 
   /**
@@ -438,8 +440,8 @@ export const studyApi = {
    * GET /api/v1/study/{studyId}/members/{userId}/check
    */
   checkMembership: async (studyId: number, userId: number) => {
-    const response = await api.get<any>(`/api/v1/study/${studyId}/members/${userId}/check`);
-    return response.data as boolean;
+    const response = await api.get<boolean>(`/api/v1/study/${studyId}/members/${userId}/check`);
+    return response.data;
   },
 
   /**
@@ -447,7 +449,7 @@ export const studyApi = {
    * POST /api/v1/study/{studyId}/report
    */
   reportStudy: async (studyId: number, reason: string) => {
-    const response = await api.post<any>(`/api/v1/study/${studyId}/report`, { reason });
+    const response = await api.post<void>(`/api/v1/study/${studyId}/report`, { reason });
     return response.data;
   },
 
@@ -458,7 +460,7 @@ export const studyApi = {
    * POST /api/v1/study/{studyId}/applications
    */
   applyToStudy: async (studyId: number, message: string) => {
-    const response = await api.post<any>(`/api/v1/study/${studyId}/applications`, { message });
+    const response = await api.post<void>(`/api/v1/study/${studyId}/applications`, { message });
     return response.data;
   },
 
@@ -474,7 +476,7 @@ export const studyApi = {
       params.set('status', status);
     }
 
-    const response = await api.get<any>(`/api/v1/study/${studyId}/applications?${params.toString()}`);
+    const response = await api.get(`/api/v1/study/${studyId}/applications?${params.toString()}`);
     return response.data;
   },
 
@@ -483,7 +485,7 @@ export const studyApi = {
    * PATCH /api/v1/study/{studyId}/applications/{applicationId}/approve
    */
   approveApplication: async (studyId: number, applicationId: number) => {
-    const response = await api.patch<any>(`/api/v1/study/${studyId}/applications/${applicationId}/approve`);
+    const response = await api.patch<void>(`/api/v1/study/${studyId}/applications/${applicationId}/approve`);
     return response.data;
   },
 
@@ -492,7 +494,7 @@ export const studyApi = {
    * PATCH /api/v1/study/{studyId}/applications/{applicationId}/reject
    */
   rejectApplication: async (studyId: number, applicationId: number, rejectedReason?: string) => {
-    const response = await api.patch<any>(
+    const response = await api.patch<void>(
       `/api/v1/study/${studyId}/applications/${applicationId}/reject`,
       { rejectedReason }
     );
@@ -505,7 +507,7 @@ export const studyApi = {
    */
   getPendingApplicationCount: async (studyId: number): Promise<number> => {
     try {
-      const response = await api.get<any>(`/api/v1/study/${studyId}/applications?status=PENDING&page=0&size=1`);
+      const response = await api.get<{ data?: { totalElements?: number }; totalElements?: number }>(`/api/v1/study/${studyId}/applications?status=PENDING&page=0&size=1`);
       const data = response.data;
       // 응답 구조: { data: { totalElements: N } } 또는 { totalElements: N }
       return data?.data?.totalElements || data?.totalElements || 0;
@@ -527,7 +529,7 @@ export const studyApi = {
       params.set('status', status);
     }
 
-    const response = await api.get<any>(`/api/v1/my/applications?${params.toString()}`);
+    const response = await api.get(`/api/v1/my/applications?${params.toString()}`);
     return response.data;
   },
 
@@ -538,9 +540,9 @@ export const studyApi = {
   checkMyApplication: async (studyId: number): Promise<{ hasApplied: boolean; status?: string }> => {
     try {
       // PENDING 상태의 신청 내역에서 확인
-      const response = await api.get<any>(`/api/v1/my/applications?status=PENDING&size=100`);
+      const response = await api.get<{ content?: Array<{ studyId?: number; study?: { id: number }; status?: string }> }>(`/api/v1/my/applications?status=PENDING&size=100`);
       const applications = response.data?.content || [];
-      const found = applications.find((app: any) => app.studyId === studyId || app.study?.id === studyId);
+      const found = applications.find((app: { studyId?: number; study?: { id: number }; status?: string }) => app.studyId === studyId || app.study?.id === studyId);
       if (found) {
         return { hasApplied: true, status: found.status || 'PENDING' };
       }
@@ -558,7 +560,7 @@ export const studyApi = {
    * GET /api/v1/studies/{studyId}/sessions
    */
   getStudySessions: async (studyId: number) => {
-    const response = await api.get<any>(`/api/v1/studies/${studyId}/sessions`);
+    const response = await api.get(`/api/v1/studies/${studyId}/sessions`);
     return response.data;
   },
 
@@ -567,7 +569,7 @@ export const studyApi = {
    * GET /api/v1/studies/{studyId}/sessions/{sessionId}/attendance
    */
   getSessionAttendance: async (studyId: number, sessionId: number) => {
-    const response = await api.get<any>(`/api/v1/studies/${studyId}/sessions/${sessionId}/attendance`);
+    const response = await api.get(`/api/v1/studies/${studyId}/sessions/${sessionId}/attendance`);
     return response.data;
   },
 
@@ -576,7 +578,7 @@ export const studyApi = {
    * GET /api/v1/studies/{studyId}/attendance/calendar?year=&month=
    */
   getAttendanceCalendar: async (studyId: number, year: number, month: number) => {
-    const response = await api.get<any>(
+    const response = await api.get(
       `/api/v1/studies/${studyId}/attendance/calendar?year=${year}&month=${month}`
     );
     return response.data;
@@ -587,7 +589,7 @@ export const studyApi = {
    * POST /api/v1/studies/{studyId}/sessions/{sessionId}/attendance/excuse
    */
   submitExcuse: async (studyId: number, sessionId: number, reason: string) => {
-    const response = await api.post<any>(
+    const response = await api.post<void>(
       `/api/v1/studies/${studyId}/sessions/${sessionId}/attendance/excuse`,
       { reason }
     );
@@ -605,7 +607,7 @@ export const studyApi = {
     decision: 'APPROVED' | 'REJECTED',
     decisionReason?: string
   ) => {
-    const response = await api.patch<any>(
+    const response = await api.patch<void>(
       `/api/v1/studies/${studyId}/sessions/${sessionId}/attendance/${targetUserId}/excuse`,
       {
         status: decision,
@@ -622,7 +624,7 @@ export const studyApi = {
   getPendingExcuseCount: async (studyId: number): Promise<number> => {
     try {
       // 1. 세션 목록 조회
-      const sessionsResponse = await api.get<any>(`/api/v1/studies/${studyId}/sessions`);
+      const sessionsResponse = await api.get<Array<{ id: number }>>(`/api/v1/studies/${studyId}/sessions`);
       const sessions = sessionsResponse.data || [];
 
       // 2. 각 세션의 출석 정보 조회 및 PENDING 소명 카운트
@@ -630,7 +632,7 @@ export const studyApi = {
 
       for (const session of sessions) {
         try {
-          const attendanceResponse = await api.get<any>(
+          const attendanceResponse = await api.get<{ data?: { members?: Array<{ excuseStatus?: string; excuseReason?: string }> }; members?: Array<{ excuseStatus?: string; excuseReason?: string }> }>(
             `/api/v1/studies/${studyId}/sessions/${session.id}/attendance`
           );
           // API 응답 구조: { sessionId, sessionTitle, totalMembers, presentCount, members: [...] }
@@ -639,7 +641,7 @@ export const studyApi = {
 
           // PENDING 상태의 소명 카운트
           const pending = attendances.filter(
-            (att: any) => att.excuseStatus === 'PENDING' && att.excuseReason
+            (att: { excuseStatus?: string; excuseReason?: string }) => att.excuseStatus === 'PENDING' && att.excuseReason
           ).length;
 
           pendingCount += pending;
@@ -663,7 +665,7 @@ export const studyApi = {
    * POST /api/v1/study/{studyId}/bookmark
    */
   toggleBookmark: async (studyId: number) => {
-    const response = await api.post<any>(`/api/v1/study/${studyId}/bookmark`);
+    const response = await api.post<void>(`/api/v1/study/${studyId}/bookmark`);
     return response.data;
   },
 
@@ -673,7 +675,7 @@ export const studyApi = {
    */
   checkBookmark: async (studyId: number): Promise<boolean> => {
     try {
-      const response = await api.get<any>(`/api/v1/study/${studyId}/bookmark/check`);
+      const response = await api.get<boolean>(`/api/v1/study/${studyId}/bookmark/check`);
       return response.data;
     } catch (error) {
       console.error('북마크 여부 확인 실패:', error);
@@ -686,7 +688,7 @@ export const studyApi = {
    * GET /api/v1/my/bookmarks
    */
   getMyBookmarks: async (page = 0, size = 20): Promise<PageResponse<StudyBookmarkResponse>> => {
-    const response = await api.get<any>('/api/v1/my/bookmarks', {
+    const response = await api.get<PageResponse<StudyBookmarkResponse>>('/api/v1/my/bookmarks', {
       params: { page, size },
     });
     return response.data;
@@ -699,7 +701,7 @@ export const studyApi = {
    * POST /api/v1/study/{studyId}/start
    */
   startStudy: async (studyId: number): Promise<StudyDetailResponse> => {
-    const response = await api.post<any>(`/api/v1/study/${studyId}/start`);
+    const response = await api.post<MaybeWrapped<StudyDetailResponse>>(`/api/v1/study/${studyId}/start`);
     const data = response.data;
     if (data.data) {
       return data.data;
@@ -714,7 +716,7 @@ export const studyApi = {
    * @param newEndDate 새로운 모집 종료일 (YYYY-MM-DD 형식)
    */
   extendRecruitment: async (studyId: number, newEndDate: string): Promise<StudyDetailResponse> => {
-    const response = await api.patch<any>(`/api/v1/study/${studyId}/extend-recruitment`, {
+    const response = await api.patch<MaybeWrapped<StudyDetailResponse>>(`/api/v1/study/${studyId}/extend-recruitment`, {
       newEndDate,
     });
     const data = response.data;
@@ -729,8 +731,8 @@ export const studyApi = {
    * GET /api/v1/study/{studyId}/members/count
    */
   getStudyMemberCount: async (studyId: number) => {
-    const response = await api.get<any>(`/api/v1/study/${studyId}/members/count`);
-    return response.data as number;
+    const response = await api.get<number>(`/api/v1/study/${studyId}/members/count`);
+    return response.data;
   },
 
   /**
@@ -934,9 +936,9 @@ export const getMyLeaderReview = async (
       return data.data;
     }
     return data;
-  } catch (error: any) {
+  } catch (error: unknown) {
     // 404나 204는 리뷰가 없는 것으로 처리
-    if (error.response?.status === 404 || error.response?.status === 204) {
+    if (getErrorStatus(error) === 404 || getErrorStatus(error) === 204) {
       return null;
     }
     throw error;

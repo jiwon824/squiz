@@ -9,6 +9,7 @@ import { useUIStore } from '@/store/uiStore';
 import { Button, Modal } from '@/shared/components';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, X, Trash2 } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
+import { getErrorMessage } from '@/shared/utils/errorUtils';
 
 interface WorkspaceCalendarAreaProps {
   studyId: number;
@@ -134,7 +135,7 @@ export const WorkspaceCalendarArea: React.FC<WorkspaceCalendarAreaProps> = ({
       const payload = response?.data || response;
       const items = payload?.items || [];
       const nextMap: Record<number, { status: string; excuseStatus?: string }> = {};
-      items.forEach((item: any) => {
+      items.forEach((item: { sessionId?: number; status: string; excuseStatus?: string }) => {
         if (item?.sessionId) {
           nextMap[item.sessionId] = {
             status: item.status,
@@ -305,8 +306,8 @@ export const WorkspaceCalendarArea: React.FC<WorkspaceCalendarAreaProps> = ({
       loadSessions();
       loadAttendanceCalendar();
       onSessionChange?.(); // 부모에게 세션 변경 알림
-    } catch (err: any) {
-      const errorMessage = err?.response?.data?.message || '세션 삭제에 실패했습니다.';
+    } catch (err: unknown) {
+      const errorMessage = getErrorMessage(err, '세션 삭제에 실패했습니다.');
       showToast?.(errorMessage, 'error');
     } finally {
       setDeletingSessionId(null);
