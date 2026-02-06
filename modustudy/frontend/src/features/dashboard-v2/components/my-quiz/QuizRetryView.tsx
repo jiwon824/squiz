@@ -5,7 +5,6 @@ import { cn } from '@/shared/utils/cn';
 import {
   QuizSingleChoice,
   QuizMultipleChoice,
-  QuizShortAnswer,
 } from '@/shared/components';
 import { transformToQuizQuestion } from '@/shared/utils/quizUtils';
 import { QuizRetryViewProps } from './types';
@@ -14,7 +13,7 @@ import { QuizRetryViewProps } from './types';
  * 퀴즈 재도전 화면 컴포넌트
  *
  * 특징:
- * - 문제 유형별 다른 UI (단일선택, 다중선택, 주관식)
+ * - 문제 유형별 다른 UI (단일선택, 다중선택)
  * - 오답 횟수 표시
  * - 채점 결과 애니메이션
  */
@@ -23,14 +22,11 @@ export const QuizRetryView: React.FC<QuizRetryViewProps> = React.memo(
     selectedReviewItem,
     selectedAnswer,
     selectedAnswers,
-    shortAnswer,
     showResult,
     isCorrectAnswer,
     onSelectAnswer,
     onToggleAnswer,
-    onChangeShortAnswer,
     onSubmitMultiple,
-    onSubmitShort,
     onFinishRetry,
   }) => {
     const questionType = selectedReviewItem.question.questionType;
@@ -70,15 +66,7 @@ export const QuizRetryView: React.FC<QuizRetryViewProps> = React.memo(
                 />
               )}
 
-              {questionType === 'SHORT_ANSWER' && (
-                <QuizShortAnswer
-                  quiz={quizData}
-                  userAnswer={shortAnswer}
-                  showResult={showResult}
-                  onChangeAnswer={onChangeShortAnswer}
-                  onSubmit={onSubmitShort}
-                />
-              )}
+              {/* 주관식 문제는 더 이상 지원하지 않음 - 객관식 전용 시스템 */}
 
               {/* 결과 표시 */}
               {showResult && (

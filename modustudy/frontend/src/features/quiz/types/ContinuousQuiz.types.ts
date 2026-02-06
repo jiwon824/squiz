@@ -111,10 +111,10 @@ export const isValidAnswer = (answer: string | string[] | null | undefined): ans
  * @returns UI 컴포넌트용 문제 데이터
  */
 export const mapApiQuestionToUiQuestion = (apiQuestion: ContinuousQuizQuestion): QuizQuestionType => {
+    // 객관식 전용 시스템 - SHORT_ANSWER는 백엔드에서 필터링됨
     const typeMap: Record<string, QuestionType> = {
         'MULTIPLE_CHOICE': 'single-choice',
         'MULTIPLE_CHOICE_MULTIPLE': 'multiple-choice',
-        'SHORT_ANSWER': 'short-answer',
     };
 
     return {

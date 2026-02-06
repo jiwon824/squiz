@@ -60,11 +60,10 @@ const isValidAnswer = (answer: string | string[] | null | undefined): answer is 
  * API 문제 데이터를 UI 컴포넌트가 기대하는 형식으로 변환
  */
 const mapApiQuestionToUiQuestion = (apiQuestion: AttemptQuestion): QuizQuestionType => {
-    // API 타입을 UI 타입으로 매핑
+    // API 타입을 UI 타입으로 매핑 (객관식 전용 시스템)
     const typeMap: Record<string, QuestionType> = {
         'MULTIPLE_CHOICE': 'single-choice',
         'MULTIPLE_CHOICE_MULTIPLE': 'multiple-choice',
-        'SHORT_ANSWER': 'short-answer',
     };
 
     return {
