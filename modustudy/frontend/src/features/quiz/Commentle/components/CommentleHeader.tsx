@@ -12,22 +12,22 @@ export const CommentleHeader: React.FC<CommentleHeaderProps> = ({ onInfoClick })
     const navigate = useNavigate();
 
     return (
-        <div className="flex items-center justify-between mb-10">
-            <div className="flex items-center gap-5">
+        <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
                 <ArrowButton
                     direction="left"
                     onClick={() => navigate('/quiz')}
-                    size="lg"
+                    size="md"
                 />
-                <h1 className="text-3xl lg:text-4xl font-black text-text-primary tracking-tight">Commentle Quiz</h1>
+                <h1 className="text-2xl lg:text-3xl font-black text-text-primary tracking-tight">Commentle Quiz</h1>
             </div>
 
             <div className="relative group/info">
                 <button
                     onClick={onInfoClick}
-                    className="flex items-center justify-center w-10 h-10 rounded-full bg-transparent text-text-secondary hover:bg-primary hover:text-white transition-all"
+                    className="flex items-center justify-center w-8 h-8 rounded-full bg-transparent text-text-secondary hover:bg-primary hover:text-white transition-all"
                 >
-                    <Info size={20} />
+                    <Info size={18} />
                 </button>
 
                 {/* 엔진 정보 및 점수 산정 툴팁 */}

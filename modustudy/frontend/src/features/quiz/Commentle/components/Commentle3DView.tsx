@@ -17,19 +17,19 @@ export const Commentle3DView: React.FC<Commentle3DViewProps> = ({ guesses }) => 
         importEmbedding3DViewer();
     }, []);
     return (
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-1.5 shadow-2xl min-h-[600px] lg:min-h-0 flex flex-col overflow-hidden group">
-            <div className="flex items-center gap-3 px-6 py-4 border-b border-slate-800/50">
-                <div className="bg-primary/20 p-2 rounded-xl text-primary-light">
-                    <Box size={20} />
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-1 shadow-2xl min-h-[300px] lg:min-h-0 flex flex-col overflow-hidden group">
+            <div className="flex items-center gap-2.5 px-4 py-2.5 border-b border-slate-800/50">
+                <div className="bg-primary/20 p-1.5 rounded-lg text-primary-light">
+                    <Box size={16} />
                 </div>
-                <h3 className="font-bold text-slate-100 uppercase tracking-wider text-sm">3D Semantic Space</h3>
-                <div className="ml-auto flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter">Live Visualization</span>
+                <h3 className="font-bold text-slate-100 uppercase tracking-wider text-xs">3D Semantic Space</h3>
+                <div className="ml-auto flex items-center gap-1.5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-tighter">Live</span>
                 </div>
             </div>
 
-            <div className="flex-1 relative bg-slate-950/50 rounded-3xl m-1 overflow-hidden">
+            <div className="flex-1 relative bg-slate-950/50 rounded-2xl m-0.5 overflow-hidden">
                 <Suspense fallback={
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/80 backdrop-blur-sm z-10">
                         <div className="relative">
@@ -44,18 +44,18 @@ export const Commentle3DView: React.FC<Commentle3DViewProps> = ({ guesses }) => 
             </div>
 
             {/* Legend/Info Area */}
-            <div className="px-6 py-4 bg-slate-900/50 flex items-center justify-between">
-                <div className="flex gap-4">
-                    <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-[#22c55e]" />
-                        <span className="text-[10px] font-bold text-slate-400 uppercase">Correct</span>
+            <div className="px-4 py-2 bg-slate-900/50 flex items-center justify-between">
+                <div className="flex gap-3">
+                    <div className="flex items-center gap-1.5">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#22c55e]" />
+                        <span className="text-[9px] font-bold text-slate-400 uppercase">Correct</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-primary" />
-                        <span className="text-[10px] font-bold text-slate-400 uppercase">Near</span>
+                    <div className="flex items-center gap-1.5">
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                        <span className="text-[9px] font-bold text-slate-400 uppercase">Near</span>
                     </div>
                 </div>
-                <span className="text-[10px] font-medium text-slate-600">DRAG TO ROTATE • SCROLL TO ZOOM</span>
+                <span className="text-[9px] font-medium text-slate-600">DRAG TO ROTATE • SCROLL TO ZOOM</span>
             </div>
         </div>
     );
