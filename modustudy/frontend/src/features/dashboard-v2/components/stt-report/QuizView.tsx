@@ -12,6 +12,7 @@ import {
 import { Spinner } from '@/shared/components/Spinner';
 import { cn } from '@/shared/utils/cn';
 import { QuizSingleChoice, QuizShortAnswer } from '@/shared/components';
+import { FeedbackModal } from '@/features/quiz/components/continuous/FeedbackModal';
 import {
     studyQuizApi,
     type StudyQuizDetail,
@@ -45,6 +46,14 @@ export const QuizView: React.FC<QuizViewProps> = ({
     const [showResult, setShowResult] = useState(false);
     const [correctCount, setCorrectCount] = useState(0);
     const [isComplete, setIsComplete] = useState(false);
+
+    // 피드백 모달 상태
+    const [showFeedback, setShowFeedback] = useState(false);
+    const [feedbackData, setFeedbackData] = useState<{
+        isCorrect: boolean;
+        correctAnswer: string;
+        explanation?: string;
+    } | null>(null);
 
     // 응답 시간 측정
     const startTimeRef = useRef<number>(Date.now());
@@ -96,23 +105,34 @@ export const QuizView: React.FC<QuizViewProps> = ({
         const optionId = options[selectedAnswer]?.id || indexToOptionId(selectedAnswer);
         const responseTimeMs = Date.now() - startTimeRef.current;
 
+        let isCorrect = false;
         setSubmitting(true);
         try {
             const res = await studyQuizApi.submitAnswer(
                 studyId, quiz.id, question.id,
                 { userAnswer: optionId, responseTimeMs }
             );
-            if (res.isCorrect) setCorrectCount(prev => prev + 1);
+            isCorrect = res.isCorrect;
         } catch (err) {
             console.error('답안 제출 실패:', err);
-            // API 실패 시 로컬 채점 폴백
-            if (optionId.toUpperCase() === question.correctAnswer.trim().toUpperCase()) {
-                setCorrectCount(prev => prev + 1);
-            }
+            isCorrect = optionId.toUpperCase() === question.correctAnswer.trim().toUpperCase();
         } finally {
             setSubmitting(false);
-            setShowResult(true);
         }
+
+        if (isCorrect) setCorrectCount(prev => prev + 1);
+        setShowResult(true);
+
+        // 정답 텍스트 결정 (모달 표시용)
+        const correctOption = options.find(o => o.id === question.correctAnswer);
+        const correctAnswerText = correctOption?.text || question.correctAnswer;
+
+        setFeedbackData({
+            isCorrect,
+            correctAnswer: correctAnswerText,
+            explanation: question.explanation || undefined,
+        });
+        setShowFeedback(true);
     }, [quiz, currentIndex, selectedAnswer, submitting, studyId]);
 
     // 주관식 답안 제출
@@ -122,26 +142,36 @@ export const QuizView: React.FC<QuizViewProps> = ({
         const question = quiz.questions[currentIndex];
         const responseTimeMs = Date.now() - startTimeRef.current;
 
+        let isCorrect = false;
         setSubmitting(true);
         try {
             const res = await studyQuizApi.submitAnswer(
                 studyId, quiz.id, question.id,
                 { userAnswer: shortAnswer.trim(), responseTimeMs }
             );
-            if (res.isCorrect) setCorrectCount(prev => prev + 1);
+            isCorrect = res.isCorrect;
         } catch (err) {
             console.error('답안 제출 실패:', err);
-            if (shortAnswer.trim().toLowerCase() === question.correctAnswer.trim().toLowerCase()) {
-                setCorrectCount(prev => prev + 1);
-            }
+            isCorrect = shortAnswer.trim().toLowerCase() === question.correctAnswer.trim().toLowerCase();
         } finally {
             setSubmitting(false);
-            setShowResult(true);
         }
+
+        if (isCorrect) setCorrectCount(prev => prev + 1);
+        setShowResult(true);
+
+        setFeedbackData({
+            isCorrect,
+            correctAnswer: question.correctAnswer,
+            explanation: question.explanation || undefined,
+        });
+        setShowFeedback(true);
     }, [quiz, currentIndex, shortAnswer, submitting, studyId]);
 
-    // 다음 문제
-    const handleNext = useCallback(() => {
+    // 피드백 모달에서 다음 문제로 이동
+    const handleFeedbackContinue = useCallback(() => {
+        setShowFeedback(false);
+        setFeedbackData(null);
         if (!quiz) return;
         if (currentIndex + 1 >= quiz.questions.length) {
             setIsComplete(true);
@@ -161,6 +191,8 @@ export const QuizView: React.FC<QuizViewProps> = ({
         setShowResult(false);
         setCorrectCount(0);
         setIsComplete(false);
+        setShowFeedback(false);
+        setFeedbackData(null);
     }, []);
 
     // 로딩 상태
@@ -298,7 +330,6 @@ export const QuizView: React.FC<QuizViewProps> = ({
     const currentQuestion = quiz.questions[currentIndex];
     const currentQuiz = transformStudyQuizQuestion(currentQuestion);
     const progress = ((currentIndex + 1) / quiz.questions.length) * 100;
-    const isLastQuestion = currentIndex + 1 >= quiz.questions.length;
 
     return (
         <div className={cn('space-y-4', className)}>
@@ -333,7 +364,7 @@ export const QuizView: React.FC<QuizViewProps> = ({
                     />
                 </div>
 
-                {/* 문제 영역 - shared QuizForm 컴포넌트 활용 */}
+                {/* 문제 영역 - shared QuizForm 컴포넌트 활용 (해설은 모달에서 표시) */}
                 <div className="p-6">
                     <AnimatePresence mode="wait">
                         <motion.div
@@ -345,31 +376,38 @@ export const QuizView: React.FC<QuizViewProps> = ({
                         >
                             {currentQuestion.questionType === 'MULTIPLE_CHOICE' ? (
                                 <QuizSingleChoice
-                                    quiz={currentQuiz}
+                                    quiz={{ ...currentQuiz, explanation: '' }}
                                     questionNumber={currentIndex + 1}
                                     selectedAnswer={selectedAnswer}
                                     showResult={showResult}
                                     onSelectAnswer={setSelectedAnswer}
                                     onSubmit={handleSubmitSingle}
-                                    onNext={handleNext}
-                                    isLastQuestion={isLastQuestion}
                                 />
                             ) : (
                                 <QuizShortAnswer
-                                    quiz={currentQuiz}
+                                    quiz={{ ...currentQuiz, explanation: '' }}
                                     questionNumber={currentIndex + 1}
                                     userAnswer={shortAnswer}
                                     showResult={showResult}
                                     onChangeAnswer={(val) => setShortAnswer(val || '')}
                                     onSubmit={handleSubmitShort}
-                                    onNext={handleNext}
-                                    isLastQuestion={isLastQuestion}
                                 />
                             )}
                         </motion.div>
                     </AnimatePresence>
                 </div>
             </div>
+
+            {/* 피드백 모달 */}
+            {feedbackData && (
+                <FeedbackModal
+                    isOpen={showFeedback}
+                    isCorrect={feedbackData.isCorrect}
+                    correctAnswer={feedbackData.correctAnswer}
+                    explanation={feedbackData.explanation}
+                    onContinue={handleFeedbackContinue}
+                />
+            )}
         </div>
     );
 };
