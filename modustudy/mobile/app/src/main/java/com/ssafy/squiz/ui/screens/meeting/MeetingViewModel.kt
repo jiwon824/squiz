@@ -511,7 +511,8 @@ class MeetingViewModel : ViewModel() {
                     localRecordingRepository?.markSelectedAsUploaded(studyId, sessionId)
                     _uploadState.value = UploadUiState.Success("${audioParts.size}개 녹음이 병합되어 업로드 완료!")
                 } else {
-                    Log.e(TAG, "녹음 업로드 실패: ${response.code()}")
+                    val errorBody = response.errorBody()?.string()
+                    Log.e(TAG, "녹음 업로드 실패: ${response.code()}, body: $errorBody")
                     _uploadState.value = UploadUiState.Error("업로드 실패 (${response.code()})")
                 }
 
@@ -648,6 +649,8 @@ class MeetingViewModel : ViewModel() {
                 // 업로드 후 파일 삭제 (선택)
                 // file.delete()
             } else {
+                val errorBody = response.errorBody()?.string()
+                Log.e(TAG, "녹음 업로드 실패: ${response.code()}, body: $errorBody")
                 _uploadState.value = UploadUiState.Error("업로드 실패: ${response.code()}")
             }
         } catch (e: Exception) {
