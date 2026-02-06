@@ -632,9 +632,10 @@ class MeetingViewModel : ViewModel() {
             val requestBody = bytes.toRequestBody("audio/mp4".toMediaTypeOrNull())
             val multipartBody = MultipartBody.Part.createFormData("audio", file.name, requestBody)
 
-            val response = RetrofitClient.meetingApi.uploadOfflineRecording(
+            // 백엔드가 List<MultipartFile>을 기대하므로 단일 파일도 List로 전송
+            val response = RetrofitClient.meetingApi.uploadOfflineRecordings(
                 studyId = studyId,
-                audio = multipartBody,
+                audioFiles = listOf(multipartBody),
                 sessionId = sessionId,  // 세션 ID 전달
                 title = null
             )
