@@ -260,8 +260,8 @@ fun SquizNavHost(
                 onNavigateToConvertToOfficial = {
                     navController.navigate(NavRoutes.ConvertToOfficial.createRoute(studyId))
                 },
-                onNavigateToMeetingList = {
-                    navController.navigate(NavRoutes.MeetingList.createRoute(studyId))
+                onNavigateToMeetingList = { isLeader ->
+                    navController.navigate(NavRoutes.MeetingList.createRoute(studyId, isLeader = isLeader))
                 },
                 onNavigateToAttendance = { sId, sessionId, isLeader ->
                     if (isLeader) {
@@ -514,14 +514,20 @@ fun SquizNavHost(
                 navArgument("sessionId") {
                     type = NavType.LongType
                     defaultValue = -1L  // 기본값 -1은 세션 미지정
+                },
+                navArgument("isLeader") {
+                    type = NavType.BoolType
+                    defaultValue = false
                 }
             )
         ) { backStackEntry ->
             val studyId = backStackEntry.arguments?.getLong("studyId") ?: 0L
             val sessionId = backStackEntry.arguments?.getLong("sessionId") ?: -1L
+            val isLeader = backStackEntry.arguments?.getBoolean("isLeader") ?: false
             MeetingListScreen(
                 studyId = studyId,
                 sessionId = if (sessionId > 0) sessionId else null,  // -1이면 null로 전달
+                isLeader = isLeader,
                 onBackClick = { navController.popBackStack() },
                 onMeetingClick = { meetingId ->
                     navController.navigate(NavRoutes.MeetingDetail.createRoute(studyId, meetingId))
@@ -593,9 +599,9 @@ fun SquizNavHost(
                         navController.navigate(NavRoutes.AttendanceMember.createRoute(studyId, sessionId))
                     }
                 },
-                onStartRecording = { sId, sessId ->
-                    // 오프라인 녹음: 세션과 연결된 상태로 미팅 녹음 화면으로 이동
-                    navController.navigate(NavRoutes.MeetingList.createRoute(sId, sessId))
+                onStartRecording = { sId, sessId, isLeader ->
+                    // 오프라인 녹음: 세션과 연결된 상태로 미팅 녹음 화면으로 이동 (스터디장만)
+                    navController.navigate(NavRoutes.MeetingList.createRoute(sId, sessId, isLeader))
                 }
             )
         }

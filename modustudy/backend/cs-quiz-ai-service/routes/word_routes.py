@@ -165,27 +165,47 @@ def get_difficulties():
     
 @word_bp.route('/words/daily', methods=['GET'])
 def get_daily_word():
-    """오늘의 문제 조회 (00시 기준 변경)"""
+    """오늘의 문제 조회 (00시 기준 변경) - comendle_daily 테이블에 자동 등록"""
     try:
         words = word_service.get_all_words()
-        
+
         if not words:
             return jsonify({"error": "단어 데이터가 없습니다"}), 404
-        
+
         # 오늘 날짜를 seed로 사용
         today = datetime.date.today()
         seed = int(today.strftime("%Y%m%d"))  # 예: 20260122
-        
+
         # seed 기반 랜덤 선택 (같은 날 = 같은 문제)
         random.seed(seed)
         daily_word = random.choice(words)
-        
+
+        # comendle_daily 테이블에 오늘의 문제 등록 (없으면 INSERT)
+        try:
+            conn = get_db_connection()
+            with conn.cursor() as cursor:
+                # 오늘 문제가 이미 있는지 확인
+                cursor.execute("SELECT id FROM comendle_daily WHERE game_date = %s", (today.isoformat(),))
+                existing = cursor.fetchone()
+
+                if not existing:
+                    # 없으면 새로 등록
+                    cursor.execute("""
+                        INSERT INTO comendle_daily (game_date, word_id, created_at)
+                        VALUES (%s, %s, NOW())
+                    """, (today.isoformat(), daily_word.id))
+                    conn.commit()
+                    print(f"✅ 오늘의 문제 등록: {today.isoformat()}, word_id={daily_word.id}")
+            conn.close()
+        except Exception as db_error:
+            print(f"⚠️ comendle_daily 등록 실패 (게임은 계속 진행 가능): {str(db_error)}")
+
         # 응답 생성
         response = daily_word.to_dict(include_answer=False)
         response["date"] = today.isoformat()
-        
+
         return jsonify(response)
-        
+
     except Exception as e:
         print(f"❌ 오류 발생: {str(e)}")
         return jsonify({"error": str(e)}), 500
