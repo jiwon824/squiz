@@ -70,7 +70,6 @@ export const Sidebar = () => {
                     label="퀴즈"
                     path="/quiz"
                     isActive={location.pathname === '/quiz'}
-                    badge={5}
                 />
 
                 <SidebarItem
