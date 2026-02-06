@@ -14,6 +14,7 @@
  */
 
 import type { ReviewItemDto } from '@/features/dashboard-v2/api/reviewApi';
+import type { StudyQuizQuestion } from '@/api/endpoints/studyQuizApi';
 import type { QuizQuestion } from '@/shared/components/QuizForm';
 
 // =============================================================================
@@ -225,4 +226,40 @@ export const transformToQuizQuestion = (item: ReviewItemDto): QuizQuestion => {
         difficulty: item.difficulty < 3 ? 'easy' : item.difficulty < 7 ? 'medium' : 'hard',
         category: q.category || '',
     } as QuizQuestion;
+};
+
+// =============================================================================
+// StudyQuizQuestion → QuizQuestion 변환
+// =============================================================================
+
+/**
+ * StudyQuizQuestion(STT 미팅 퀴즈 API)을 QuizQuestion 형식으로 변환합니다.
+ * STT 리포트의 미팅 퀴즈 데이터를 shared QuizForm 컴포넌트에서 사용할 수 있도록 변환합니다.
+ *
+ * @param question - 스터디 퀴즈 API에서 받은 문제 데이터
+ * @returns QuizForm 컴포넌트에서 사용 가능한 QuizQuestion
+ */
+export const transformStudyQuizQuestion = (question: StudyQuizQuestion): QuizQuestion => {
+    const isMultipleChoice = question.questionType === 'MULTIPLE_CHOICE';
+    const options = parseOptions(question.options);
+
+    if (isMultipleChoice && options.length > 0) {
+        return {
+            id: question.id,
+            type: 'multiple',
+            question: question.questionText,
+            options: options.map(opt => opt.text),
+            correctAnswer: optionIdToIndex(question.correctAnswer),
+            explanation: question.explanation || undefined,
+        };
+    }
+
+    // 주관식
+    return {
+        id: question.id,
+        type: 'short',
+        question: question.questionText,
+        correctAnswer: question.correctAnswer,
+        explanation: question.explanation || undefined,
+    };
 };
