@@ -18,7 +18,6 @@
 
 import { useEffect } from 'react';
 import { Spinner } from '@/shared/components/Spinner';
-import { cn } from '@/shared/utils/cn';
 import { QuestionCard } from './components/QuestionCard';
 import { ContinuousQuizNavigation } from './components/ContinuousQuizNavigation';
 
@@ -57,19 +56,22 @@ export const ContinuousQuizSession = () => {
     } = useContinuousQuiz();
 
     // ─────────────────────────────────────────────────────────────────────────
-    // 건너뛰기 모달 활성화 시 콘텐츠 복사/선택/드래그 방지
+    // 퀴즈 콘텐츠 복사/선택/드래그 방지 (FSRS 데이터 정확도 보호)
+    // 단답형 input/textarea는 예외 처리하여 답변 입력에 영향 없음
     // ─────────────────────────────────────────────────────────────────────────
     useEffect(() => {
-        if (!modal.showSkipConfirm) return;
-
-        const prevent = (e: Event) => e.preventDefault();
+        const prevent = (e: Event) => {
+            const tag = (e.target as HTMLElement).tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+            e.preventDefault();
+        };
         const events: string[] = ['copy', 'selectstart', 'contextmenu', 'dragstart'];
 
         events.forEach((evt) => document.addEventListener(evt, prevent));
         return () => {
             events.forEach((evt) => document.removeEventListener(evt, prevent));
         };
-    }, [modal.showSkipConfirm]);
+    }, []);
 
     // ─────────────────────────────────────────────────────────────────────────
     // 로딩 상태
@@ -116,7 +118,7 @@ export const ContinuousQuizSession = () => {
     // ─────────────────────────────────────────────────────────────────────────
     return (
         <div
-            className={cn('min-h-screen', { 'select-none': modal.showSkipConfirm })}
+            className="min-h-screen select-none"
             style={{ backgroundColor: 'var(--color-background)' }}
         >
             {/* 헤더 */}
