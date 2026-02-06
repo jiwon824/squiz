@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Brain, ChevronLeft, ChevronRight, Clock, CheckCircle2, Play } from 'lucide-react';
+import { Brain, ChevronLeft, ChevronRight, Clock, CheckCircle2, Play, Trophy, RotateCcw } from 'lucide-react';
 import { Spinner } from '@/shared/components/Spinner';
 import { cn } from '@/shared/utils/cn';
 import {
     QuizSingleChoice,
     QuizMultipleChoice,
     QuizShortAnswer,
+    QuizProgress,
     WidgetHeader,
     WidgetContainer
 } from '@/shared/components';
@@ -14,19 +15,19 @@ import { getTodayReviews, submitReview, ReviewItemDto } from '@/features/dashboa
 import { useTimer } from '@/features/quiz/hooks/useTimer';
 import { transformToQuizQuestion, indexToOptionId } from '@/shared/utils/quizUtils';
 
-// transformToQuizQuestion과 indexToOptionId는 quizUtils.ts에서 import됨
-
 type ViewMode = 'list' | 'quiz';
 
 export const MyQuizWidget: React.FC = () => {
     const [viewMode, setViewMode] = useState<ViewMode>('list');
-    const [selectedReviewItem, setSelectedReviewItem] = useState<ReviewItemDto | null>(null);
-    const [, setCurrentIndex] = useState(0); // 단일 문제 풀이이므로 0 고정
+    // 퀴즈 세션 상태 (MeetingTestWidget 패턴)
+    const [quizSessionItems, setQuizSessionItems] = useState<ReviewItemDto[]>([]);
+    const [currentIndex, setCurrentIndex] = useState(0);
     const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
     const [selectedAnswers, setSelectedAnswers] = useState<number[]>([]);
     const [shortAnswer, setShortAnswer] = useState('');
     const [showResult, setShowResult] = useState(false);
-    const [, setScore] = useState({ correct: 0, total: 0 });
+    const [correctCount, setCorrectCount] = useState(0);
+    const [isComplete, setIsComplete] = useState(false);
 
     // 데이터 로딩 상태
     const [reviewItems, setReviewItems] = useState<ReviewItemDto[]>([]);
@@ -54,65 +55,85 @@ export const MyQuizWidget: React.FC = () => {
         loadData();
     }, []);
 
-    // 퀴즈 문제 선택
-    const handleSelectReviewItem = useCallback((item: ReviewItemDto) => {
-        setSelectedReviewItem(item);
+    // 퀴즈 세션 시작 (클릭한 아이템부터 순차 진행)
+    const handleStartQuiz = useCallback((startIndex: number = 0) => {
+        const sessionItems = reviewItems.slice(startIndex);
+        setQuizSessionItems(sessionItems);
         setViewMode('quiz');
         setCurrentIndex(0);
         setSelectedAnswer(null);
         setSelectedAnswers([]);
         setShortAnswer('');
         setShowResult(false);
-        // Note: score for this session? Maybe just track current item correctness locally
-        setScore({ correct: 0, total: 0 });
-    }, []);
+        setCorrectCount(0);
+        setIsComplete(false);
+    }, [reviewItems]);
 
     const handleBackToList = () => {
         setViewMode('list');
-        setSelectedReviewItem(null);
+        setQuizSessionItems([]);
     };
 
-    const currentQuiz = selectedReviewItem ? transformToQuizQuestion(selectedReviewItem) : undefined;
-
+    // 현재 풀이 중인 아이템
+    const currentReviewItem = quizSessionItems[currentIndex] || null;
+    const currentQuiz = currentReviewItem ? transformToQuizQuestion(currentReviewItem) : undefined;
+    const isLastQuestion = currentIndex + 1 >= quizSessionItems.length;
 
     // 타이머 훅 사용
     const { start: startTimer, stop: stopTimer } = useTimer();
 
     // 퀴즈/문제 변경 시 타이머 시작
     useEffect(() => {
-        if (viewMode === 'quiz' && currentQuiz) {
+        if (viewMode === 'quiz' && !isComplete && quizSessionItems[currentIndex]) {
             startTimer();
         }
-    }, [viewMode, currentQuiz, startTimer]);
+    }, [viewMode, currentIndex, isComplete, startTimer]);
+
+    // 다음 문제로 이동
+    const handleNext = useCallback(() => {
+        if (currentIndex + 1 >= quizSessionItems.length) {
+            setIsComplete(true);
+        } else {
+            setCurrentIndex(prev => prev + 1);
+            setSelectedAnswer(null);
+            setSelectedAnswers([]);
+            setShortAnswer('');
+            setShowResult(false);
+        }
+    }, [quizSessionItems, currentIndex]);
+
+    // 다시 풀기
+    const handleRetry = useCallback(() => {
+        setCurrentIndex(0);
+        setSelectedAnswer(null);
+        setSelectedAnswers([]);
+        setShortAnswer('');
+        setShowResult(false);
+        setCorrectCount(0);
+        setIsComplete(false);
+    }, []);
 
     const handleSubmission = async (userAnswer: string) => {
-        if (!selectedReviewItem || !currentQuiz) return;
+        if (!currentReviewItem || !currentQuiz) return;
 
         try {
             const responseTimeMs = stopTimer();
 
-            // API 호출
             const result = await submitReview({
-                contentType: selectedReviewItem.contentType,
-                contentId: selectedReviewItem.contentId,
+                contentType: currentReviewItem.contentType,
+                contentId: currentReviewItem.contentId,
                 userAnswer: userAnswer,
                 responseTimeMs
             });
 
-            // 백엔드 채점 결과 사용 (프론트엔드에서는 채점하지 않음)
-            const isCorrect = result.isCorrect;
-
-            setScore((prev) => ({
-                correct: prev.correct + (isCorrect ? 1 : 0),
-                total: prev.total + 1,
-            }));
+            if (result.isCorrect) {
+                setCorrectCount(prev => prev + 1);
+            }
 
             setShowResult(true);
 
-            // 완료된 아이템 리스트에서 제거 
-            // UX: Show result modal/feedback, then user clicks "Back" or "Next".
-            // Here we remove it from the list so it doesn't show up again immediately.
-            setReviewItems(prev => prev.filter(item => item.reviewItemId !== selectedReviewItem.reviewItemId));
+            // 완료된 아이템 원본 리스트에서 제거 (목록으로 돌아갔을 때 반영)
+            setReviewItems(prev => prev.filter(item => item.reviewItemId !== currentReviewItem.reviewItemId));
 
         } catch (err) {
             console.error('[MyQuizWidget] 답안 제출 실패:', err);
@@ -130,16 +151,15 @@ export const MyQuizWidget: React.FC = () => {
     };
 
     const handleSubmitMultiple = () => {
-        if (!selectedReviewItem) return;
+        if (!currentReviewItem) return;
 
-        const isSingle = selectedReviewItem.question.questionType === 'MULTIPLE_CHOICE';
+        const isSingle = currentReviewItem.question.questionType === 'MULTIPLE_CHOICE';
         const hasAnswer = isSingle ? selectedAnswer !== null : selectedAnswers.length > 0;
 
         if (!hasAnswer) return;
 
-        // 정답 문자열 생성 (Index -> Option ID 변환)
         const getOptionId = (idx: number) => {
-            const option = selectedReviewItem.question.options[idx];
+            const option = currentReviewItem.question.options[idx];
             return option?.id || indexToOptionId(idx);
         };
 
@@ -179,11 +199,18 @@ export const MyQuizWidget: React.FC = () => {
             <WidgetHeader
                 icon={Brain}
                 iconColor="neutral"
-                title={viewMode === 'list' ? '오늘의 복습' : (selectedReviewItem?.question.category || '복습 퀴즈')}
+                title={viewMode === 'list' ? '오늘의 복습' : (currentReviewItem?.question.category || '복습 퀴즈')}
                 subtitle={viewMode === 'list' ? `${reviewItems.length}개의 복습 대기 중` : 'AI 맞춤형 복습'}
                 showBackButton={viewMode === 'quiz'}
                 onBack={handleBackToList}
                 maximizePath="/quiz/my-quiz"
+                rightActions={
+                    viewMode === 'quiz' && !isComplete && correctCount > 0 ? (
+                        <div className="text-sm font-bold text-text-primary">
+                            {correctCount} / {currentIndex + (showResult ? 1 : 0)}
+                        </div>
+                    ) : undefined
+                }
             />
 
             <div className="p-6">
@@ -197,55 +224,114 @@ export const MyQuizWidget: React.FC = () => {
                         >
                             <ReviewItemList
                                 items={reviewItems}
-                                onSelect={handleSelectReviewItem}
+                                onSelect={(item) => {
+                                    const idx = reviewItems.findIndex(i => i.reviewItemId === item.reviewItemId);
+                                    handleStartQuiz(idx >= 0 ? idx : 0);
+                                }}
                             />
                         </motion.div>
-                    ) : currentQuiz && selectedReviewItem ? (
+                    ) : currentQuiz && currentReviewItem && !isComplete ? (
                         <motion.div
-                            key="quiz"
+                            key={`quiz-${currentIndex}`}
                             initial={{ opacity: 0, x: 20 }}
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: -20 }}
                             transition={{ duration: 0.3 }}
                         >
+                            {/* 진행률 */}
+                            <QuizProgress
+                                current={currentIndex + 1}
+                                total={quizSessionItems.length}
+                                className="pt-0 border-t-0 mb-4"
+                            />
+
                             {/* 문제 풀이 화면 */}
-                            {selectedReviewItem.question.questionType === 'MULTIPLE_CHOICE' ? (
+                            {currentReviewItem.question.questionType === 'MULTIPLE_CHOICE' ? (
                                 <QuizSingleChoice
                                     quiz={currentQuiz}
-                                    questionNumber={1}
+                                    questionNumber={currentIndex + 1}
                                     selectedAnswer={selectedAnswer}
                                     showResult={showResult}
                                     onSelectAnswer={setSelectedAnswer}
                                     onSubmit={handleSubmitMultiple}
-                                    onNext={handleBackToList}
-                                    isLastQuestion={true}
+                                    onNext={handleNext}
+                                    isLastQuestion={isLastQuestion}
                                 />
-                            ) : selectedReviewItem.question.questionType === 'MULTIPLE_CHOICE_MULTIPLE' ? (
+                            ) : currentReviewItem.question.questionType === 'MULTIPLE_CHOICE_MULTIPLE' ? (
                                 <QuizMultipleChoice
                                     quiz={currentQuiz}
-                                    questionNumber={1}
+                                    questionNumber={currentIndex + 1}
                                     selectedAnswers={selectedAnswers}
                                     showResult={showResult}
                                     onToggleAnswer={handleToggleAnswer}
                                     onSubmit={handleSubmitMultiple}
-                                    onNext={handleBackToList}
-                                    isLastQuestion={true}
+                                    onNext={handleNext}
+                                    isLastQuestion={isLastQuestion}
                                 />
                             ) : (
                                 <QuizShortAnswer
                                     quiz={currentQuiz}
-                                    questionNumber={1}
+                                    questionNumber={currentIndex + 1}
                                     userAnswer={shortAnswer}
                                     showResult={showResult}
                                     onChangeAnswer={(val) => setShortAnswer(val || '')}
                                     onSubmit={handleSubmitShort}
-                                    onNext={handleBackToList}
-                                    isLastQuestion={true}
+                                    onNext={handleNext}
+                                    isLastQuestion={isLastQuestion}
                                 />
                             )}
-                            {/* 단건 풀이 시 QuizProgress는 굳이 필요 없을 수도 있지만, 남은 개수 보여주기용으로 활용 가능 */}
-                            <div className="mt-4 text-center text-sm text-text-tertiary">
-                                오늘 남은 복습: {reviewItems.length}개 (현재 문제 포함)
+                        </motion.div>
+                    ) : isComplete ? (
+                        /* 완료 화면 */
+                        <motion.div
+                            key="complete"
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="text-center py-8"
+                        >
+                            <div className="w-16 h-16 rounded-full bg-accent/10 flex items-center justify-center mx-auto mb-4">
+                                <Trophy size={28} className="text-accent" />
+                            </div>
+                            <h3 className="text-lg font-bold text-text-primary mb-1">복습 완료!</h3>
+                            <p className="text-sm text-text-secondary mb-4">오늘의 복습을 모두 마쳤습니다</p>
+
+                            <div className="flex justify-center gap-4 mb-6">
+                                <div className="text-center px-4 py-3 rounded-xl bg-gray-50 border border-gray-100">
+                                    <div className="text-xl font-bold text-text-primary">{quizSessionItems.length}</div>
+                                    <div className="text-xs text-text-tertiary">총 문제</div>
+                                </div>
+                                <div className="text-center px-4 py-3 rounded-xl bg-gray-50 border border-gray-100">
+                                    <div className="text-xl font-bold text-secondary">{correctCount}</div>
+                                    <div className="text-xs text-text-tertiary">정답</div>
+                                </div>
+                                <div className="text-center px-4 py-3 rounded-xl bg-gray-50 border border-gray-100">
+                                    <div className="text-xl font-bold text-accent">
+                                        {quizSessionItems.length > 0 ? Math.round((correctCount / quizSessionItems.length) * 100) : 0}%
+                                    </div>
+                                    <div className="text-xs text-text-tertiary">정답률</div>
+                                </div>
+                            </div>
+
+                            <div className="flex justify-center gap-3">
+                                <button
+                                    onClick={handleRetry}
+                                    className={cn(
+                                        'inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-colors',
+                                        'border border-accent/30 text-accent hover:bg-accent/5'
+                                    )}
+                                >
+                                    <RotateCcw size={14} />
+                                    다시 풀기
+                                </button>
+                                <button
+                                    onClick={handleBackToList}
+                                    className={cn(
+                                        'inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-colors',
+                                        'bg-accent text-white hover:bg-accent/90'
+                                    )}
+                                >
+                                    목록으로
+                                </button>
                             </div>
                         </motion.div>
                     ) : null}
