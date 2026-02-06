@@ -125,7 +125,7 @@ export const STTReportWidget: React.FC = () => {
                 </div>
 
                 {/* 우측: 리포트 상세 */}
-                <div className="flex-1 p-6">
+                <div className="flex-1 p-6 max-h-[400px] overflow-y-auto">
                     {selectedReport ? (
                         <motion.div
                             key={selectedReport.id}
