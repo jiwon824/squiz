@@ -1,4 +1,4 @@
-﻿// UserCourseProgressId.java
+// UserCourseProgressId.java
 package com.ssafy.domain.quiz.entity;
 
 import lombok.AllArgsConstructor;

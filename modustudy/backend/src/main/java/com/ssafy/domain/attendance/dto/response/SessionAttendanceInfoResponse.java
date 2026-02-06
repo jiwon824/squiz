@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.attendance.dto.response;
+package com.ssafy.domain.attendance.dto.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 

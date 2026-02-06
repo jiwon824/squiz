@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.retrospect.dto.response;
+package com.ssafy.domain.retrospect.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.ssafy.domain.retrospect.entity.Category;

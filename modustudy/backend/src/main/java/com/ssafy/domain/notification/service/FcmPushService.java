@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.notification.service;
+package com.ssafy.domain.notification.service;
 
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.messaging.*;

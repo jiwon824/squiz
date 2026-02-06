@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.user.dto.response;
+package com.ssafy.domain.user.dto.response;
 
 import com.ssafy.domain.user.entity.SocialProvider;
 import com.ssafy.domain.user.entity.User;

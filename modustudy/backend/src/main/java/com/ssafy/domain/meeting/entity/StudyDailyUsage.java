@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.meeting.entity;
+package com.ssafy.domain.meeting.entity;
 
 import com.ssafy.domain.study.entity.Study;
 import jakarta.persistence.*;

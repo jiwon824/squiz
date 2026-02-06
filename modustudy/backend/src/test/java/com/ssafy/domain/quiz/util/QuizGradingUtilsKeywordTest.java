@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.quiz.util;
+package com.ssafy.domain.quiz.util;
 
 import com.ssafy.domain.quiz.entity.enums.QuestionType;
 import org.junit.jupiter.api.DisplayName;

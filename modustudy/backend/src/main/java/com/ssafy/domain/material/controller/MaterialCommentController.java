@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.material.controller;
+package com.ssafy.domain.material.controller;
 
 import com.ssafy.domain.material.dto.request.MaterialCommentCreateRequest;
 import com.ssafy.domain.material.dto.response.MaterialCommentCreateResponse;

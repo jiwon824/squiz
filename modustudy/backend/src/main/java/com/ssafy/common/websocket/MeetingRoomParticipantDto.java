@@ -1,4 +1,4 @@
-﻿package com.ssafy.common.websocket;
+package com.ssafy.common.websocket;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 

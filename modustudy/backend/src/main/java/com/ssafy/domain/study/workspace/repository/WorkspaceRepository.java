@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.study.workspace.repository;
+package com.ssafy.domain.study.workspace.repository;
 
 import com.ssafy.domain.study.workspace.entity.Workspace;
 import org.springframework.data.jpa.repository.JpaRepository;

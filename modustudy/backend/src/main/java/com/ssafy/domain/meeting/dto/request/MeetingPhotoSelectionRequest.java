@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.meeting.dto.request;
+package com.ssafy.domain.meeting.dto.request;
 
 import java.util.List;
 

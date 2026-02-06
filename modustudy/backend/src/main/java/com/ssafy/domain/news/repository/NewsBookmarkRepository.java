@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.news.repository;
+package com.ssafy.domain.news.repository;
 
 import com.ssafy.domain.news.entity.NewsBookmark;
 import org.springframework.data.jpa.repository.JpaRepository;

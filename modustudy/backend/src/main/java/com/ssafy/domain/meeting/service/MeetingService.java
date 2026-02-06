@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.meeting.service;
+package com.ssafy.domain.meeting.service;
 
 import com.ssafy.config.SfuProperties;
 import com.ssafy.domain.meeting.dto.request.MeetingRequest;

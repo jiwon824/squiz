@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.material.controller;
+package com.ssafy.domain.material.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.domain.material.dto.request.MaterialCommentCreateRequest;

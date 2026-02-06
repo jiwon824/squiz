@@ -1,4 +1,4 @@
-﻿package com.ssafy.config;
+package com.ssafy.config;
 
 import com.ssafy.domain.study.entity.Format;
 import com.ssafy.domain.study.entity.Region;

@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.study.scheduler;
+package com.ssafy.domain.study.scheduler;
 
 import com.ssafy.domain.notification.entity.NotificationType;
 import com.ssafy.domain.notification.service.NotificationService;

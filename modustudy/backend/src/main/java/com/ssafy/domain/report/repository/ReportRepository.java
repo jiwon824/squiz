@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.report.repository;
+package com.ssafy.domain.report.repository;
 
 import com.ssafy.domain.report.entity.Report;
 import org.springframework.data.jpa.repository.JpaRepository;

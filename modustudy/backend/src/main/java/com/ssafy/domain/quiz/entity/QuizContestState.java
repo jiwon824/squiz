@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.quiz.entity;
+package com.ssafy.domain.quiz.entity;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;

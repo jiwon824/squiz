@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.recruitment.service;
+package com.ssafy.domain.recruitment.service;
 
 import org.springframework.stereotype.Service;
 

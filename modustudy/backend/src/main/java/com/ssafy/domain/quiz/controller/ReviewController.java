@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.quiz.controller;
+package com.ssafy.domain.quiz.controller;
 
 import com.ssafy.common.auth.SsafyUserDetails;
 import com.ssafy.common.response.ApiResponse;

@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.quiz.dto.response;
+package com.ssafy.domain.quiz.dto.response;
 
 /**
  * 섹션 요약 정보 DTO.

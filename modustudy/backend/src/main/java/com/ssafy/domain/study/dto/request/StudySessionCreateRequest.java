@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.study.dto.request;
+package com.ssafy.domain.study.dto.request;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;

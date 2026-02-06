@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.meeting.scheduler;
+package com.ssafy.domain.meeting.scheduler;
 
 import com.ssafy.domain.meeting.entity.Meeting;
 import com.ssafy.domain.meeting.entity.MeetingType;

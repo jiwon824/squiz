@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.user.service;
+package com.ssafy.domain.user.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

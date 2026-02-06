@@ -1,4 +1,4 @@
-﻿package com.ssafy.config;
+package com.ssafy.config;
 
 import com.ssafy.common.auth.CurrentUserIdArgumentResolver;
 import lombok.RequiredArgsConstructor;

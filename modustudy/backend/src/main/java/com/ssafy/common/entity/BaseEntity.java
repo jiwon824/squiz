@@ -1,4 +1,4 @@
-﻿package com.ssafy.common.entity;
+package com.ssafy.common.entity;
 
 import jakarta.persistence.*;
 import lombok.Getter;

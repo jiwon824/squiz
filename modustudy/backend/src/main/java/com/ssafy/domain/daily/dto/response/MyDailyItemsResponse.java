@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.daily.dto.response;
+package com.ssafy.domain.daily.dto.response;
 
 import com.ssafy.domain.daily.entity.DailyCategory;
 import com.ssafy.domain.daily.entity.DailyItem;

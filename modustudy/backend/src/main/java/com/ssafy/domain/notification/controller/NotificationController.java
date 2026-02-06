@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.notification.controller;
+package com.ssafy.domain.notification.controller;
 
 import com.ssafy.common.response.ApiResponse;
 import com.ssafy.domain.notification.dto.request.FcmTokenDeleteRequest;

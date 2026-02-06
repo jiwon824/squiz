@@ -1,4 +1,4 @@
-﻿package com.ssafy.config;
+package com.ssafy.config;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;

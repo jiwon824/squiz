@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.gamification.entity;
+package com.ssafy.domain.gamification.entity;
 
 /**
  * 배지 카테고리.

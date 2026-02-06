@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.study.converter;
+package com.ssafy.domain.study.converter;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;

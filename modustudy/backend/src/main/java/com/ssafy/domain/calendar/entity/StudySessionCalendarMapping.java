@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.calendar.entity;
+package com.ssafy.domain.calendar.entity;
 
 import com.ssafy.common.entity.BaseEntity;
 import jakarta.persistence.*;

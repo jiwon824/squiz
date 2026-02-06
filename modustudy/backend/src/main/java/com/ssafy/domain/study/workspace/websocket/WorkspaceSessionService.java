@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.study.workspace.websocket;
+package com.ssafy.domain.study.workspace.websocket;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

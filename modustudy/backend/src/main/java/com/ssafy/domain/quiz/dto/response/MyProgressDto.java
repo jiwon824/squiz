@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.quiz.dto.response;
+package com.ssafy.domain.quiz.dto.response;
 
 /**
  * 사용자 진행 상황 DTO.

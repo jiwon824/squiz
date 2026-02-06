@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.calendar.service;
+package com.ssafy.domain.calendar.service;
 
 import com.ssafy.domain.study.entity.MemberStatus;
 import com.ssafy.domain.study.entity.StudyMember;

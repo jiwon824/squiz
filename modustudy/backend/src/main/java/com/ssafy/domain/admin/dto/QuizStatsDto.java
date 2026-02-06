@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.admin.dto;
+package com.ssafy.domain.admin.dto;
 
 import lombok.Builder;
 import lombok.Getter;

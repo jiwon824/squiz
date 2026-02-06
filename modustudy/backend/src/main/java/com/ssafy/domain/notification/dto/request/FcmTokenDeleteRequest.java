@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.notification.dto.request;
+package com.ssafy.domain.notification.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;

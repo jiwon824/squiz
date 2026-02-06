@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.study.workspace.websocket;
+package com.ssafy.domain.study.workspace.websocket;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

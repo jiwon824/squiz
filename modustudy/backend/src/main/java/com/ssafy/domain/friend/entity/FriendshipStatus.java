@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.friend.entity;
+package com.ssafy.domain.friend.entity;
 
 /**
  * 친구 관계 상태

@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.dm.websocket;
+package com.ssafy.domain.dm.websocket;
 
 import com.ssafy.domain.dm.dto.response.DirectMessageResponse;
 

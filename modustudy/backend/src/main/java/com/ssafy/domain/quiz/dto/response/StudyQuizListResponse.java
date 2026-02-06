@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.quiz.dto.response;
+package com.ssafy.domain.quiz.dto.response;
 
 import com.ssafy.domain.quiz.entity.StudyQuiz;
 import lombok.Builder;

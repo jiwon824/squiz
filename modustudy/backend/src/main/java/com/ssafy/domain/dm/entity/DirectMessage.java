@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.dm.entity;
+package com.ssafy.domain.dm.entity;
 
 import lombok.*;
 

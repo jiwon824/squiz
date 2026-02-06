@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.friend.dto.request;
+package com.ssafy.domain.friend.dto.request;
 
 import jakarta.validation.constraints.NotNull;
 

@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.attendance.entity;
+package com.ssafy.domain.attendance.entity;
 
 import com.ssafy.common.entity.BaseEntity;
 import com.ssafy.domain.study.entity.StudySession;

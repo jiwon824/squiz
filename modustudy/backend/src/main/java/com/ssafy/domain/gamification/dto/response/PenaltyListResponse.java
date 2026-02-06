@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.gamification.dto.response;
+package com.ssafy.domain.gamification.dto.response;
 
 import com.ssafy.domain.gamification.entity.Penalty;
 import com.ssafy.domain.gamification.entity.UserPenalty;

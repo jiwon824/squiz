@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.study.dto.request;
+package com.ssafy.domain.study.dto.request;
 
 import com.ssafy.domain.study.entity.Difficulty;
 import com.ssafy.domain.study.entity.MeetingType;

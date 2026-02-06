@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.report.dto.request;
+package com.ssafy.domain.report.dto.request;
 
 public record ReportRequest() {
 }

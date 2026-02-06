@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.material.dto.response;
+package com.ssafy.domain.material.dto.response;
 
 import com.ssafy.domain.material.entity.MaterialComment;
 import lombok.Builder;

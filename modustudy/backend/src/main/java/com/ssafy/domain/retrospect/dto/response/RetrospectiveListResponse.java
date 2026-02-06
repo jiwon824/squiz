@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.retrospect.dto.response;
+package com.ssafy.domain.retrospect.dto.response;
 
 import com.ssafy.domain.retrospect.entity.Retrospective;
 import com.ssafy.domain.retrospect.entity.RetrospectiveType;

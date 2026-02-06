@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.friend.dto.response;
+package com.ssafy.domain.friend.dto.response;
 
 import com.ssafy.domain.friend.entity.UserBlock;
 

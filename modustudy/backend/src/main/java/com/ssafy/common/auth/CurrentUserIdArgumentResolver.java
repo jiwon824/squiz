@@ -1,4 +1,4 @@
-﻿package com.ssafy.common.auth;
+package com.ssafy.common.auth;
 
 import org.springframework.core.MethodParameter;
 import org.springframework.security.core.Authentication;

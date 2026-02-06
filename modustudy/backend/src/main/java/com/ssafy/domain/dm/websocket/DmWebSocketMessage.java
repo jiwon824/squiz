@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.dm.websocket;
+package com.ssafy.domain.dm.websocket;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

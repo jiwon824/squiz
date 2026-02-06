@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.gamification.dto.response;
+package com.ssafy.domain.gamification.dto.response;
 
 import lombok.Builder;
 import lombok.Getter;

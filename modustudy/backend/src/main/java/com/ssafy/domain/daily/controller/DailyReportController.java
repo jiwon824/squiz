@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.daily.controller;
+package com.ssafy.domain.daily.controller;
 
 import com.ssafy.domain.daily.dto.response.DailyReportResponse;
 import com.ssafy.domain.daily.service.DailyReportService;

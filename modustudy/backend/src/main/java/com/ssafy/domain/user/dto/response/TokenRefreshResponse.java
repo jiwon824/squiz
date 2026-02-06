@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.user.dto.response;
+package com.ssafy.domain.user.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

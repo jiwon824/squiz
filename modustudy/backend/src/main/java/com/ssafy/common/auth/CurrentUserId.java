@@ -1,4 +1,4 @@
-﻿package com.ssafy.common.auth;
+package com.ssafy.common.auth;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

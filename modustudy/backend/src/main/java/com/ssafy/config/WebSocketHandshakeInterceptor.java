@@ -1,4 +1,4 @@
-﻿package com.ssafy.config;
+package com.ssafy.config;
 
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;

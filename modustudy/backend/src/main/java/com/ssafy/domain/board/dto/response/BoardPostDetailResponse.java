@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.board.dto.response;
+package com.ssafy.domain.board.dto.response;
 
 import com.ssafy.domain.board.entity.BoardPost;
 import com.ssafy.domain.board.entity.RecruitmentStatus;

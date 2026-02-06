@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.quiz.entity;
+package com.ssafy.domain.quiz.entity;
 
 /**
  * 오답 노트 정렬 방식

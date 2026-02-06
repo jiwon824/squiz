@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.quiz.repository;
+package com.ssafy.domain.quiz.repository;
 
 /**
  * 코스별 문제 통계 조회용 Projection 인터페이스.

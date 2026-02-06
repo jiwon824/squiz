@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.gamification.controller;
+package com.ssafy.domain.gamification.controller;
 
 import com.ssafy.domain.gamification.event.QuizSolvedEvent;
 import com.ssafy.domain.gamification.event.StudyAttendanceEvent;

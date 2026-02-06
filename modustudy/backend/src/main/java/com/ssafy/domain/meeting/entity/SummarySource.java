@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.meeting.entity;
+package com.ssafy.domain.meeting.entity;
 
 /**
  * 미팅 요약 생성 시 사용된 소스

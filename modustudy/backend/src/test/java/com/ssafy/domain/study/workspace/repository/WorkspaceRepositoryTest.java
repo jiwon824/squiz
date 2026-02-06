@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.study.workspace.repository;
+package com.ssafy.domain.study.workspace.repository;
 
 import com.ssafy.domain.study.entity.*;
 import com.ssafy.domain.study.repository.FormatRepository;

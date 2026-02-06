@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.daily.repository;
+package com.ssafy.domain.daily.repository;
 
 import com.ssafy.domain.daily.entity.DailyCategory;
 import com.ssafy.domain.daily.entity.DailyItem;

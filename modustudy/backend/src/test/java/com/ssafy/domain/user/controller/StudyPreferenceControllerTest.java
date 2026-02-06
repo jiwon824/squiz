@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.user.controller;
+package com.ssafy.domain.user.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.common.auth.SsafyUserDetails;

@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.friend.controller;
+package com.ssafy.domain.friend.controller;
 
 import com.ssafy.common.auth.SsafyUserDetails;
 import com.ssafy.common.response.ApiResponse;

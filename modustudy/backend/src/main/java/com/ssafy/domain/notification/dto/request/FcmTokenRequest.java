@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.notification.dto.request;
+package com.ssafy.domain.notification.dto.request;
 
 import com.ssafy.domain.notification.entity.DeviceType;
 import com.ssafy.domain.notification.entity.FcmToken;

@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.study.repository;
+package com.ssafy.domain.study.repository;
 
 import com.ssafy.domain.study.entity.*;
 import com.ssafy.domain.user.entity.Role;

@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.quiz.dto.response;
+package com.ssafy.domain.quiz.dto.response;
 
 /**
  * 코스 목록의 단일 아이템 응답 DTO.

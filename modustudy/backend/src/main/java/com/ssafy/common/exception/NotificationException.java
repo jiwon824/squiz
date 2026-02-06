@@ -1,4 +1,4 @@
-﻿package com.ssafy.common.exception;
+package com.ssafy.common.exception;
 
 import org.springframework.http.HttpStatus;
 

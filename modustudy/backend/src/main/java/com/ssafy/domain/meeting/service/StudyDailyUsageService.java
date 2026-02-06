@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.meeting.service;
+package com.ssafy.domain.meeting.service;
 
 import com.ssafy.domain.meeting.entity.StudyDailyUsage;
 import com.ssafy.domain.meeting.repository.StudyDailyUsageRepository;

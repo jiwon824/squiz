@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.meeting.service;
+package com.ssafy.domain.meeting.service;
 
 import com.ssafy.domain.gamification.event.ChatMessageEvent;
 import com.ssafy.domain.meeting.dto.response.MeetingChatMessagePageResponse;

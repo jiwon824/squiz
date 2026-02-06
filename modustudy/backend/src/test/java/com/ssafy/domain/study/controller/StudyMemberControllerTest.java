@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.study.controller;
+package com.ssafy.domain.study.controller;
 
 import com.ssafy.domain.study.dto.response.StudyMemberResponse;
 import com.ssafy.domain.study.entity.MemberRole;

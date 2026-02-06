@@ -1,4 +1,4 @@
-﻿package com.ssafy.config;
+package com.ssafy.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;

@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.board.dto.request;
+package com.ssafy.domain.board.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 

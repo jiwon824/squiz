@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.material.dto.response;
+package com.ssafy.domain.material.dto.response;
 
 import lombok.Builder;
 import lombok.Getter;

@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.calendar.service;
+package com.ssafy.domain.calendar.service;
 
 import com.ssafy.domain.calendar.dto.PersonalScheduleRequest;
 import com.ssafy.domain.calendar.dto.PersonalScheduleResponse;

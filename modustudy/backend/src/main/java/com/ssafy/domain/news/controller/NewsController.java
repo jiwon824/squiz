@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.news.controller;
+package com.ssafy.domain.news.controller;
 
 import com.ssafy.domain.news.dto.response.NewsResponse;
 import com.ssafy.domain.news.entity.ItNews;

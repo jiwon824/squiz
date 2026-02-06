@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.websocket;
+package com.ssafy.domain.websocket;
 
 import com.ssafy.common.websocket.MeetingRoomChatMessage;
 import com.ssafy.common.websocket.MeetingRoomParticipantDto;

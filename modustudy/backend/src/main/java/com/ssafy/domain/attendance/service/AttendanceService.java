@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.attendance.service;
+package com.ssafy.domain.attendance.service;
 
 import com.ssafy.common.exception.NotFoundException;
 import com.ssafy.common.response.MessageResponse;

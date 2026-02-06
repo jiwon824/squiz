@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.notification.entity;
+package com.ssafy.domain.notification.entity;
 
 import jakarta.persistence.*;
 import lombok.*;

@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.ai.service;
+package com.ssafy.domain.ai.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;

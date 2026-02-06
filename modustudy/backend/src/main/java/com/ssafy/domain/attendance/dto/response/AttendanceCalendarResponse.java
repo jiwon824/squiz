@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.attendance.dto.response;
+package com.ssafy.domain.attendance.dto.response;
 
 import com.ssafy.domain.attendance.entity.AttendanceCheckType;
 import com.ssafy.domain.attendance.entity.AttendanceExcuseStatus;

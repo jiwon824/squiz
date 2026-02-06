@@ -1,4 +1,4 @@
-﻿package com.ssafy.common.exception.handler;
+package com.ssafy.common.exception.handler;
 
 import com.ssafy.common.exception.BusinessException;
 import com.ssafy.common.response.ErrorResponse;

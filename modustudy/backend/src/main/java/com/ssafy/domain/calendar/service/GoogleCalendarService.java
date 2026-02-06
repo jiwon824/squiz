@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.calendar.service;
+package com.ssafy.domain.calendar.service;
 
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.http.HttpTransport;

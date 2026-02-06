@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.user.dto.request;
+package com.ssafy.domain.user.dto.request;
 
 import lombok.Getter;
 import lombok.Setter;

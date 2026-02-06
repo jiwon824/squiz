@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.gamification.event;
+package com.ssafy.domain.gamification.event;
 
 import com.ssafy.domain.gamification.config.ExperienceConfig;
 import com.ssafy.domain.gamification.entity.*;

@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.ai.repository;
+package com.ssafy.domain.ai.repository;
 
 import com.ssafy.domain.ai.entity.AiFeedback;
 import org.springframework.data.jpa.repository.JpaRepository;

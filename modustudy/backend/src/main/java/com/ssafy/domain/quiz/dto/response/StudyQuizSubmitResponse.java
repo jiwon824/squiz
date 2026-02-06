@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.quiz.dto.response;
+package com.ssafy.domain.quiz.dto.response;
 
 import com.ssafy.domain.quiz.entity.UserReviewItem;
 import io.swagger.v3.oas.annotations.media.Schema;

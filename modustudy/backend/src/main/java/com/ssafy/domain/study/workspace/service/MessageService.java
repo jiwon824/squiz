@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.study.workspace.service;
+package com.ssafy.domain.study.workspace.service;
 
 import com.ssafy.domain.study.workspace.dto.request.MessageCreateRequest;
 import com.ssafy.domain.study.workspace.dto.request.MessageUpdateRequest;

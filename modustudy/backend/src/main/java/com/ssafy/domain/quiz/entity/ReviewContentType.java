@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.quiz.entity;
+package com.ssafy.domain.quiz.entity;
 
 public enum ReviewContentType {
     COURSE_QUESTION,

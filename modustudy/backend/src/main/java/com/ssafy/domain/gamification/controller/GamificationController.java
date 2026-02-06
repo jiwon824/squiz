@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.gamification.controller;
+package com.ssafy.domain.gamification.controller;
 
 import com.ssafy.common.auth.SsafyUserDetails;
 import com.ssafy.domain.gamification.dto.response.*;

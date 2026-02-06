@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.meeting.repository;
+package com.ssafy.domain.meeting.repository;
 
 import com.ssafy.domain.meeting.entity.MeetingSpeechSegment;
 import org.springframework.data.jpa.repository.JpaRepository;

@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.calendar.repository;
+package com.ssafy.domain.calendar.repository;
 
 import com.ssafy.domain.calendar.entity.PersonalSchedule;
 import org.springframework.data.jpa.repository.JpaRepository;

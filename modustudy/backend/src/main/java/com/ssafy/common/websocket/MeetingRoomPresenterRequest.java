@@ -1,4 +1,4 @@
-﻿package com.ssafy.common.websocket;
+package com.ssafy.common.websocket;
 
 import jakarta.validation.constraints.NotBlank;
 

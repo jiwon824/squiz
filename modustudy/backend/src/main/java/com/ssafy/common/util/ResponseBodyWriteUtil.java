@@ -1,4 +1,4 @@
-﻿package com.ssafy.common.util;
+package com.ssafy.common.util;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.common.model.response.BaseResponseBody;

@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.gamification.entity;
+package com.ssafy.domain.gamification.entity;
 
 import com.ssafy.common.entity.BaseEntity;
 import jakarta.persistence.Entity;

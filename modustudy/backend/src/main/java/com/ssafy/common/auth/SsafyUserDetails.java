@@ -1,4 +1,4 @@
-﻿package com.ssafy.common.auth;
+package com.ssafy.common.auth;
 
 import com.ssafy.domain.user.entity.User;
 import lombok.Getter;

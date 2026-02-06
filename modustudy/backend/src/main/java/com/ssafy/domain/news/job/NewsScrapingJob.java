@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.news.job;
+package com.ssafy.domain.news.job;
 
 import com.ssafy.domain.news.service.NewsScraperService;
 import lombok.RequiredArgsConstructor;

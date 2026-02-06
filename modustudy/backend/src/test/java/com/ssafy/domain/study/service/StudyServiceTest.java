@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.study.service;
+package com.ssafy.domain.study.service;
 
 import com.ssafy.common.exception.NotFoundException;
 import com.ssafy.common.exception.StudyException;

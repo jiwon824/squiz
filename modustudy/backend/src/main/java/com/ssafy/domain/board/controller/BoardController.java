@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.board.controller;
+package com.ssafy.domain.board.controller;
 
 import com.ssafy.common.auth.SsafyUserDetails;
 import com.ssafy.common.exception.BusinessException;

@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.study.dto.response;
+package com.ssafy.domain.study.dto.response;
 
 import com.ssafy.domain.study.entity.ApplicationStatus;
 import com.ssafy.domain.study.entity.StudyApplication;

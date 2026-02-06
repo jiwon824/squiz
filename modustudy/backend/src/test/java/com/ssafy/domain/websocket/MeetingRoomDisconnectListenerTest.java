@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.websocket;
+package com.ssafy.domain.websocket;
 
 import com.ssafy.common.websocket.MeetingRoomDisconnectListener;
 import com.ssafy.common.websocket.MeetingRoomEvent;

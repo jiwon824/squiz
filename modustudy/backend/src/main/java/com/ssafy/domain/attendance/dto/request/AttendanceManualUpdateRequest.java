@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.attendance.dto.request;
+package com.ssafy.domain.attendance.dto.request;
 
 import com.ssafy.domain.attendance.entity.AttendanceStatus;
 import io.swagger.v3.oas.annotations.media.Schema;

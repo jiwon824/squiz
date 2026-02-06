@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.news.controller;
+package com.ssafy.domain.news.controller;
 
 import com.ssafy.common.auth.SsafyUserDetails;  // ← 추가
 import com.ssafy.domain.news.dto.response.NewsResponse;

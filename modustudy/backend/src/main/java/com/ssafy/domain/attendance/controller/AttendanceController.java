@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.attendance.controller;
+package com.ssafy.domain.attendance.controller;
 
 import com.ssafy.common.auth.SsafyUserDetails;
 import com.ssafy.common.response.ApiResponse;

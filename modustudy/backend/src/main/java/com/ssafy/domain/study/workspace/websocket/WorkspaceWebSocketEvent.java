@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.study.workspace.websocket;
+package com.ssafy.domain.study.workspace.websocket;
 
 import com.ssafy.domain.study.workspace.dto.response.MessageResponse;
 

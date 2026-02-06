@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.news.entity;
+package com.ssafy.domain.news.entity;
 
 import com.ssafy.domain.user.entity.User;
 import jakarta.persistence.*;

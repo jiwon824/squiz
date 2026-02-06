@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.meeting.service;
+package com.ssafy.domain.meeting.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;

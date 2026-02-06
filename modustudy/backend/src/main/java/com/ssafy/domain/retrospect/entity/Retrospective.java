@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.retrospect.entity;
+package com.ssafy.domain.retrospect.entity;
 
 import jakarta.persistence.*;
 import lombok.*;

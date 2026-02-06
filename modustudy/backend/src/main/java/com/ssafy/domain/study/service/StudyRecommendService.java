@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.study.service;
+package com.ssafy.domain.study.service;
 
 import com.ssafy.domain.study.dto.response.StudyRecommendDto;
 import com.ssafy.domain.study.entity.StudyRecommendAction;

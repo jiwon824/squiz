@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.quiz.dto.response;
+package com.ssafy.domain.quiz.dto.response;
 
 /**
  * 진행 상황이 포함된 섹션 정보 DTO.

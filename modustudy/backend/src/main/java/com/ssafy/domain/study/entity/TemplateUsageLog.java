@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.study.entity;
+package com.ssafy.domain.study.entity;
 
 import com.ssafy.domain.study.converter.JsonConverter;
 import jakarta.persistence.*;

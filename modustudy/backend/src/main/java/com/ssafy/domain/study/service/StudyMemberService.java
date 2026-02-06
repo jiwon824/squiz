@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.study.service;
+package com.ssafy.domain.study.service;
 
 import com.ssafy.common.exception.StudyException;
 import com.ssafy.domain.study.dto.response.StudyMemberResponse;

@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.study.controller;
+package com.ssafy.domain.study.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.domain.study.dto.request.StudyCreateRequest;

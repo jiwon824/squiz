@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.board.dto.request;
+package com.ssafy.domain.board.dto.request;
 
 public record BoardRequest() {
 }

@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.friend.mapper;
+package com.ssafy.domain.friend.mapper;
 
 import com.ssafy.domain.friend.entity.UserBlock;
 import com.ssafy.domain.user.entity.Role;

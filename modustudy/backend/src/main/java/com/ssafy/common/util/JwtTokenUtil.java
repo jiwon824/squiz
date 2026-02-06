@@ -1,4 +1,4 @@
-﻿package com.ssafy.common.util;
+package com.ssafy.common.util;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;

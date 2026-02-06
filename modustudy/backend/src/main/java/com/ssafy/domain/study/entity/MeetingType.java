@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.study.entity;
+package com.ssafy.domain.study.entity;
 
 public enum MeetingType {
     ONLINE("온라인"),

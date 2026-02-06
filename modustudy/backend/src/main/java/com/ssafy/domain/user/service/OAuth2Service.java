@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.user.service;
+package com.ssafy.domain.user.service;
 
 import com.ssafy.common.util.JwtTokenUtil;
 import com.ssafy.domain.user.dto.OAuth2UserInfo;

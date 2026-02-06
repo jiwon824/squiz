@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.study.entity;
+package com.ssafy.domain.study.entity;
 
 public enum StudyType {
     PLANNED("계획 스터디"),

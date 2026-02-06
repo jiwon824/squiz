@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.ai.entity;
+package com.ssafy.domain.ai.entity;
 
 import com.ssafy.common.entity.BaseEntity;
 import jakarta.persistence.Entity;

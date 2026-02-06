@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.study.workspace.dto.response;
+package com.ssafy.domain.study.workspace.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.ssafy.domain.study.workspace.entity.Message;

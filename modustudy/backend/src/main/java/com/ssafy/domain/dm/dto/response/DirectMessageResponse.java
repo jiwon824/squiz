@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.dm.dto.response;
+package com.ssafy.domain.dm.dto.response;
 
 import com.ssafy.domain.dm.entity.DirectMessage;
 

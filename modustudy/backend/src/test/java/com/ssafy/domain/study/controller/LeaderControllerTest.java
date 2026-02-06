@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.study.controller;
+package com.ssafy.domain.study.controller;
 
 import com.ssafy.domain.study.entity.*;
 import com.ssafy.domain.study.repository.FormatRepository;

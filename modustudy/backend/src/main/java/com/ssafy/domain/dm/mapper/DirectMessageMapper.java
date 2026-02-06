@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.dm.mapper;
+package com.ssafy.domain.dm.mapper;
 
 import com.ssafy.domain.dm.entity.DirectMessage;
 import org.apache.ibatis.annotations.Mapper;

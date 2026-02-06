@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.material.repository;
+package com.ssafy.domain.material.repository;
 
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQuery;

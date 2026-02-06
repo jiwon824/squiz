@@ -1,4 +1,4 @@
-﻿package com.ssafy.infra.ai.dto;
+package com.ssafy.infra.ai.dto;
 
 public record AiRequest() {
 }

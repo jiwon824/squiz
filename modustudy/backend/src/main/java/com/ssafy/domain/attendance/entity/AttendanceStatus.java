@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.attendance.entity;
+package com.ssafy.domain.attendance.entity;
 
 public enum AttendanceStatus {
     PRESENT,

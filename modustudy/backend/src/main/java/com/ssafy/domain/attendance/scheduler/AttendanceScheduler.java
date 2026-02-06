@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.attendance.scheduler;
+package com.ssafy.domain.attendance.scheduler;
 
 import com.ssafy.domain.attendance.service.AttendanceService;
 import com.ssafy.domain.study.entity.StudySession;

@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.material.dto.request;
+package com.ssafy.domain.material.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;

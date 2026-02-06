@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.user.dto;
+package com.ssafy.domain.user.dto;
 
 import com.ssafy.domain.user.entity.SocialProvider;
 import lombok.Builder;

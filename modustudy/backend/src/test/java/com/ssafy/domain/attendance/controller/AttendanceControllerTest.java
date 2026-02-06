@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.attendance.controller;
+package com.ssafy.domain.attendance.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.common.auth.SsafyUserDetails;

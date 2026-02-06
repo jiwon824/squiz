@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.dm.dto.request;
+package com.ssafy.domain.dm.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

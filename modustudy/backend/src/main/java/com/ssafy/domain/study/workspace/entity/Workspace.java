@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.study.workspace.entity;
+package com.ssafy.domain.study.workspace.entity;
 
 import jakarta.persistence.*;
 import lombok.*;

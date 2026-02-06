@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.quiz.repository;
+package com.ssafy.domain.quiz.repository;
 
 import com.ssafy.domain.quiz.entity.UserReviewItem;
 import com.ssafy.domain.quiz.entity.WrongAnswerSortType;

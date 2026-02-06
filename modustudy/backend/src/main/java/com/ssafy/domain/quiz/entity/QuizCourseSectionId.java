@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.quiz.entity;
+package com.ssafy.domain.quiz.entity;
 
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;

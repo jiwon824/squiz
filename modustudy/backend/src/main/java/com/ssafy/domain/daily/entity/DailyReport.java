@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.daily.entity;
+package com.ssafy.domain.daily.entity;
 
 import jakarta.persistence.*;
 import lombok.*;

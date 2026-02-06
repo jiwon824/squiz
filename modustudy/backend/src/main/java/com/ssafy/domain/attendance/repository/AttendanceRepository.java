@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.attendance.repository;
+package com.ssafy.domain.attendance.repository;
 
 import com.ssafy.domain.attendance.entity.Attendance;
 import org.springframework.data.jpa.repository.JpaRepository;

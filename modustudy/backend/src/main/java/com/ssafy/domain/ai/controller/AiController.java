@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.ai.controller;
+package com.ssafy.domain.ai.controller;
 
 import com.ssafy.common.response.ApiResponse;
 import com.ssafy.domain.ai.dto.request.AiQuizRequest;

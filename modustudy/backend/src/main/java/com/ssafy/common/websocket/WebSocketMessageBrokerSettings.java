@@ -1,4 +1,4 @@
-﻿package com.ssafy.common.websocket;
+package com.ssafy.common.websocket;
 
 public class WebSocketMessageBrokerSettings {
     public static final String APP_PREFIX = "/app";

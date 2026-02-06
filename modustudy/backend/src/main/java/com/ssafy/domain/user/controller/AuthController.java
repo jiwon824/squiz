@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.user.controller;
+package com.ssafy.domain.user.controller;
 
 import com.ssafy.common.response.ApiResponse;
 import com.ssafy.domain.user.dto.request.OAuth2CallbackRequest;

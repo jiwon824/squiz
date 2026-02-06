@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.meeting.controller;
+package com.ssafy.domain.meeting.controller;
 
 import com.ssafy.config.SfuProperties;
 import com.ssafy.domain.meeting.dto.response.MeetingIceServerResponse;

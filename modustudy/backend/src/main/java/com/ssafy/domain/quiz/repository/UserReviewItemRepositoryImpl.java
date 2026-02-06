@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.quiz.repository;
+package com.ssafy.domain.quiz.repository;
 
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.jpa.impl.JPAQuery;

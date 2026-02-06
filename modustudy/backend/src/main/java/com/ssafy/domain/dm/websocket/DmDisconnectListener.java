@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.dm.websocket;
+package com.ssafy.domain.dm.websocket;
 
 import com.ssafy.domain.friend.websocket.FriendPresenceService;
 import com.ssafy.domain.user.repository.UserRepository;

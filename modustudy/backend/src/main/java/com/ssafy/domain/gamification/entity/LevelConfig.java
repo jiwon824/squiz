@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.gamification.entity;
+package com.ssafy.domain.gamification.entity;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;

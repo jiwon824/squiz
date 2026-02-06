@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.gamification.config;
+package com.ssafy.domain.gamification.config;
 
 import java.util.Map;
 

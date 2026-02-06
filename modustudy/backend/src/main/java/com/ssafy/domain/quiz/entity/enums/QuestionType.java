@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.quiz.entity.enums;
+package com.ssafy.domain.quiz.entity.enums;
 
 /**
  * 퀴즈 문제 유형.

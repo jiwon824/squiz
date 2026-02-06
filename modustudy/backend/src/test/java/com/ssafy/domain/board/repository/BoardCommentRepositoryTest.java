@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.board.repository;
+package com.ssafy.domain.board.repository;
 
 import com.ssafy.domain.board.entity.BoardCategory;
 import com.ssafy.domain.board.entity.BoardComment;

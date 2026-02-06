@@ -1,4 +1,4 @@
-﻿package com.ssafy.domain.material.entity;
+package com.ssafy.domain.material.entity;
 
 public enum MaterialType {
     LINK,
