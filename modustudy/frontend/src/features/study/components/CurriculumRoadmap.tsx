@@ -215,11 +215,11 @@ export const CurriculumRoadmap: React.FC<CurriculumRoadmapProps> = ({
     };
 
     return (
-        <div className="relative w-full overflow-x-auto">
+        <div className="relative w-full">
             <svg
-                width={svgWidth}
-                height={svgHeight}
+                width="100%"
                 viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+                preserveAspectRatio="xMidYMin meet"
                 className="mx-auto"
             >
                 {/* 배경 나무들 - 도로 양쪽에 배치 */}

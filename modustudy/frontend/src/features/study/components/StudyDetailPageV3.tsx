@@ -1143,7 +1143,10 @@ const CurriculumRoadmapSection: React.FC<{ sessions: StudySessionItem[] }> = ({ 
     }, [sessions]);
 
     return (
-        <div className="rounded-2xl p-4 overflow-x-auto">
+        <div
+            className="rounded-2xl p-4 overflow-y-auto"
+            style={{ maxHeight: '490px' }}
+        >
             <CurriculumRoadmap
                 curriculum={curriculum}
                 currentSession={currentSession}
