@@ -49,7 +49,7 @@ fun StudyHomeScreen(
     onNavigateToExtendRecruitment: () -> Unit,
     onNavigateToTempChannel: () -> Unit,
     onNavigateToConvertToOfficial: () -> Unit,
-    onNavigateToMeetingList: () -> Unit,
+    onNavigateToMeetingList: (isLeader: Boolean) -> Unit,
     onNavigateToAttendance: (studyId: Long, sessionId: Long, isLeader: Boolean) -> Unit = { _, _, _ -> }
 ) {
     val context = LocalContext.current
@@ -143,7 +143,7 @@ fun StudyHomeScreen(
                 item {
                     ActivityMenus(
                         onAttendanceCalendarClick = onNavigateToAttendanceCalendar,
-                        onRecordingClick = onNavigateToMeetingList
+                        onRecordingClick = { onNavigateToMeetingList(isLeader) }
                     )
                 }
             }
