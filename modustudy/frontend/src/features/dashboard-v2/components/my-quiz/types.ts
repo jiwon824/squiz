@@ -126,6 +126,8 @@ export interface UseMyQuizReturn {
   handleSubmitShort: () => Promise<void>;
   handleFinishRetry: () => void;
   resetRetryState: () => void;
+  setSelectedAnswer: (index: number | null) => void;
+  setShortAnswer: (answer: string | null) => void;
 
   // 통계
   totalWrongCount: number;
