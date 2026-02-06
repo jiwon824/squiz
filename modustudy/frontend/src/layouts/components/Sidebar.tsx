@@ -60,7 +60,7 @@ export const Sidebar = () => {
             >
                 <SidebarItem
                     icon={<DashboardIcon className="w-6 h-6" />}
-                    label="대시보드"
+                    label="마이홈"
                     path="/dashboard"
                     isActive={location.pathname === '/dashboard'}
                 />
@@ -81,7 +81,7 @@ export const Sidebar = () => {
 
                 <SidebarItem
                     icon={<RecruitmentIcon className="w-6 h-6" />}
-                    label="팀원 모집"
+                    label="게시판"
                     path="/recruitment"
                     isActive={location.pathname === '/recruitment'}
                 />

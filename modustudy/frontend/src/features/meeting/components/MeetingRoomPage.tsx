@@ -1427,7 +1427,14 @@ const MeetingRoomPage: React.FC = () => {
             return;
         }
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: needsAudio });
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 },
+                    frameRate: { ideal: 30 }
+                },
+                audio: needsAudio
+            });
             localCameraStreamRef.current = stream;
             const shouldPublish = publishCamera ?? (isPresenter && cameraEnabled);
             if (isPresenter && shouldPublish) {
@@ -1497,17 +1504,23 @@ const MeetingRoomPage: React.FC = () => {
                 }
             }
             try {
-                const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: needsAudio });
+                const stream = await navigator.mediaDevices.getDisplayMedia({
+                    video: {
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 },
+                        frameRate: { ideal: 30 }
+                    },
+                    audio: needsAudio
+                });
                 localScreenStreamRef.current = stream;
                 setScreenSharing(true);
                 screenSharingRef.current = true;
                 updateVoiceRecordingSource();
 
-                // 화면 공유 비디오 트랙에 contentHint 설정 (화면 공유 최적화)
+                // 화면 공유 비디오 트랙에 contentHint 설정 (텍스트/코드 선명도 우선)
                 const screenVideoTrack = stream.getVideoTracks()[0];
                 if (screenVideoTrack && 'contentHint' in screenVideoTrack) {
-                    // 'motion': 영상 콘텐츠에 적합, 'detail': 텍스트/정적 화면에 적합
-                    (screenVideoTrack as any).contentHint = 'motion';
+                    (screenVideoTrack as any).contentHint = 'detail';
                 }
 
                 // 화면 공유 오디오 트랙이 있으면 SFU로 전송

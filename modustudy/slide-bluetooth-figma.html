@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SQUIZ - Bluetooth Attendance Feature</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet"/>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+        font-family: 'Noto Sans KR', sans-serif;
+        background-color: #F3F4F6;
+    }
+
+    .slide-container {
+        width: 1280px;
+        height: 720px;
+        background-color: #FFFFFF;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        flex-direction: row;
+    }
+
+    /* ─── 왼쪽 패널 ─── */
+    .left-panel {
+        width: 512px;
+        min-width: 512px;
+        padding: 80px 60px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        position: relative;
+        z-index: 10;
+        background-color: #FFFFFF;
+        box-shadow: 10px 0 30px rgba(0,0,0,0.04);
+    }
+
+    .tag-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 14px;
+        background-color: #DBEAFE;
+        color: #2563EB;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: 700;
+        margin-bottom: 24px;
+    }
+    .tag-pill svg {
+        width: 16px;
+        height: 16px;
+    }
+
+    .main-title {
+        font-size: 44px;
+        font-weight: 800;
+        color: #111827;
+        line-height: 1.25;
+        margin-bottom: 20px;
+        letter-spacing: -1px;
+    }
+    .highlight-text {
+        color: #3B82F6;
+    }
+
+    .description {
+        font-size: 18px;
+        color: #4B5563;
+        line-height: 1.6;
+        margin-bottom: 40px;
+    }
+
+    .feature-list {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+    .feature-item {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 16px;
+        background-color: #F9FAFB;
+        border-radius: 12px;
+        border: 1px solid #E5E7EB;
+    }
+    .feature-icon-box {
+        width: 48px;
+        height: 48px;
+        min-width: 48px;
+        background-color: #FFFFFF;
+        border-radius: 10px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .feature-icon-box svg {
+        width: 22px;
+        height: 22px;
+    }
+    .feature-text h4 {
+        font-size: 16px;
+        font-weight: 700;
+        color: #1F2937;
+        margin-bottom: 4px;
+    }
+    .feature-text p {
+        font-size: 14px;
+        color: #6B7280;
+    }
+
+    /* ─── 오른쪽 패널 ─── */
+    .right-panel {
+        flex: 1;
+        background-color: #EFF6FF;
+        position: relative;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+    }
+
+    /* 배경 블루투스 로고 */
+    .ble-logo-bg {
+        position: absolute;
+        top: 40px;
+        right: 40px;
+        width: 120px;
+        height: 120px;
+        opacity: 0.05;
+        z-index: 0;
+    }
+
+    /* 스캔 라인 - gradient 제거, 단색 바 */
+    .scan-line {
+        position: absolute;
+        top: 30%;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background-color: #3B82F6;
+        opacity: 0.15;
+        z-index: 5;
+    }
+
+    /* 레이더 웨이브 */
+    .radar-wave {
+        position: absolute;
+        border: 2px solid #3B82F6;
+        border-radius: 50%;
+    }
+    .wave-1 {
+        width: 150px;
+        height: 150px;
+        top: 285px;
+        left: 309px;
+        opacity: 0.12;
+    }
+    .wave-2 {
+        width: 300px;
+        height: 300px;
+        top: 210px;
+        left: 234px;
+        opacity: 0.08;
+        border-style: dashed;
+    }
+    .wave-3 {
+        width: 450px;
+        height: 450px;
+        top: 135px;
+        left: 159px;
+        opacity: 0.05;
+    }
+    .wave-4 {
+        width: 600px;
+        height: 600px;
+        top: 60px;
+        left: 84px;
+        opacity: 0.04;
+        border-style: dashed;
+    }
+
+    /* ─── 호스트 디바이스 (중앙 폰) ─── */
+    .host-device {
+        position: relative;
+        z-index: 20;
+        width: 140px;
+        height: 280px;
+        background-color: #111827;
+        border-radius: 24px;
+        padding: 8px;
+        box-shadow: 0 20px 40px rgba(37, 99, 235, 0.25);
+        border: 4px solid #E5E7EB;
+    }
+    .screen {
+        background-color: #FFFFFF;
+        width: 100%;
+        height: 100%;
+        border-radius: 18px;
+        overflow: hidden;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+    }
+    .notch {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        margin-left: -30px;
+        width: 60px;
+        height: 18px;
+        background-color: #111827;
+        border-bottom-left-radius: 10px;
+        border-bottom-right-radius: 10px;
+        z-index: 30;
+    }
+    .app-header {
+        background-color: #3B82F6;
+        height: 60px;
+        display: flex;
+        align-items: flex-end;
+        padding: 0 12px 10px;
+        color: #FFFFFF;
+        font-size: 14px;
+        font-weight: 700;
+    }
+    .app-content {
+        flex: 1;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background-color: #F3F4F6;
+    }
+
+    /* BLE 아이콘 (폰 화면 내부) */
+    .ble-icon-large {
+        width: 60px;
+        height: 60px;
+        background-color: #FFFFFF;
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        margin-bottom: 12px;
+        position: relative;
+    }
+    .ble-icon-large svg {
+        width: 28px;
+        height: 28px;
+    }
+    .pulse-ring {
+        position: absolute;
+        top: -12px;
+        left: -12px;
+        width: 84px;
+        height: 84px;
+        border-radius: 50%;
+        border: 2px solid #3B82F6;
+        opacity: 0.4;
+    }
+
+    .status-text {
+        font-size: 12px;
+        font-weight: 700;
+        color: #1F2937;
+        margin-bottom: 4px;
+    }
+    .sub-status {
+        font-size: 10px;
+        color: #6B7280;
+    }
+
+    /* 참석 현황 바 */
+    .progress-section {
+        width: 100%;
+        margin-top: 20px;
+    }
+    .progress-header {
+        display: flex;
+        justify-content: space-between;
+        font-size: 10px;
+        color: #6B7280;
+        margin-bottom: 4px;
+    }
+    .progress-track {
+        width: 100%;
+        height: 6px;
+        background-color: #E5E7EB;
+        border-radius: 3px;
+        overflow: hidden;
+    }
+    .progress-fill {
+        width: 75%;
+        height: 100%;
+        background-color: #3B82F6;
+        border-radius: 3px;
+    }
+
+    /* 호스트 뱃지 */
+    .host-badge {
+        position: absolute;
+        bottom: 10px;
+        left: 0;
+        width: 100%;
+        text-align: center;
+        z-index: 31;
+    }
+    .host-badge-label {
+        display: inline-block;
+        background-color: #1F2937;
+        color: #FFFFFF;
+        font-size: 10px;
+        padding: 4px 8px;
+        border-radius: 10px;
+    }
+
+    /* ─── 게스트 디바이스 ─── */
+    .guest-device {
+        position: absolute;
+        width: 90px;
+        height: 180px;
+        background-color: #1F2937;
+        border-radius: 16px;
+        padding: 4px;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+        z-index: 10;
+        border: 2px solid #D1D5DB;
+    }
+    .guest-screen {
+        background-color: #FFFFFF;
+        width: 100%;
+        height: 100%;
+        border-radius: 12px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .guest-1 { top: 100px; left: 100px; transform: rotate(-15deg); }
+    .guest-2 { bottom: 120px; right: 120px; transform: rotate(10deg); }
+    .guest-3 {
+        top: 150px;
+        right: 80px;
+        transform: rotate(5deg);
+        width: 81px;
+        height: 162px;
+        opacity: 0.9;
+    }
+
+    .check-circle {
+        width: 40px;
+        height: 40px;
+        background-color: #10B981;
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 8px;
+        box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3);
+    }
+    .check-circle svg {
+        width: 22px;
+        height: 22px;
+    }
+
+    .guest-msg {
+        font-size: 10px;
+        font-weight: 700;
+        color: #1F2937;
+    }
+    .guest-name {
+        font-size: 8px;
+        color: #9CA3AF;
+        margin-top: 2px;
+    }
+
+    /* 게스트3 - 연결 중 (정적 스피너) */
+    .guest-screen-loading {
+        background-color: #F3F4F6;
+        width: 100%;
+        height: 100%;
+        border-radius: 12px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+    .spinner-static {
+        width: 30px;
+        height: 30px;
+        margin-bottom: 8px;
+    }
+    .guest-msg-loading {
+        font-size: 10px;
+        font-weight: 700;
+        color: #6B7280;
+    }
+
+    /* ─── 플로팅 뱃지 ─── */
+    .floating-badge {
+        position: absolute;
+        background-color: #FFFFFF;
+        padding: 8px 16px;
+        border-radius: 20px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+        font-size: 12px;
+        font-weight: 700;
+        color: #10B981;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        z-index: 30;
+        top: 220px;
+        left: 180px;
+    }
+    .floating-badge svg {
+        width: 16px;
+        height: 16px;
+    }
+</style>
+</head>
+<body>
+<div class="slide-container">
+
+    <!-- ─── 왼쪽 패널 ─── -->
+    <div class="left-panel">
+
+        <div class="tag-pill">
+            <svg viewBox="0 0 24 24" fill="#2563EB">
+                <path d="M17.71 7.71L12 2h-1v7.59L6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 11 14.41V22h1l5.71-5.71-4.3-4.29 4.3-4.29zM13 5.83l1.88 1.88L13 9.59V5.83zm1.88 10.46L13 18.17v-3.76l1.88 1.88z"/>
+            </svg>
+            <span>앱 전용 기능</span>
+        </div>
+
+        <h1 class="main-title">
+            스터디장 근처에 가면,<br/>
+            <span class="highlight-text">출석 끝</span>
+        </h1>
+
+        <p class="description">
+            명단 돌리지 마세요. 폰이 알아서 합니다.<br/>
+            SQUIZ 앱을 켜고 자리에 앉으면 자동으로 출석이 완료됩니다.
+        </p>
+
+        <div class="feature-list">
+            <!-- 완전 자동화 -->
+            <div class="feature-item">
+                <div class="feature-icon-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                    </svg>
+                </div>
+                <div class="feature-text">
+                    <h4>완전 자동화</h4>
+                    <p>이름을 부를 필요 없이, 1초 만에 다수 인원 체크</p>
+                </div>
+            </div>
+            <!-- 실내에서도 정확하게 -->
+            <div class="feature-item">
+                <div class="feature-icon-box">
+                    <svg viewBox="0 0 24 24" fill="#3B82F6">
+                        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5z"/>
+                    </svg>
+                </div>
+                <div class="feature-text">
+                    <h4>실내에서도 정확하게</h4>
+                    <p>GPS 오차 없는 BLE 기술로 현장 참석 여부 확인</p>
+                </div>
+            </div>
+            <!-- 배터리 걱정 NO -->
+            <div class="feature-item">
+                <div class="feature-icon-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="7" width="16" height="10" rx="2"/>
+                        <path d="M22 11v2"/>
+                        <rect x="4" y="9" width="12" height="6" rx="1" fill="#3B82F6" opacity="0.3"/>
+                    </svg>
+                </div>
+                <div class="feature-text">
+                    <h4>배터리 걱정 NO</h4>
+                    <p>저전력 블루투스(BLE) 기술로 배터리 소모 최소화</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── 오른쪽 패널 ─── -->
+    <div class="right-panel">
+
+        <!-- 배경 블루투스 로고 -->
+        <svg class="ble-logo-bg" viewBox="0 0 24 24" fill="#3B82F6">
+            <path d="M17.71 7.71L12 2h-1v7.59L6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 11 14.41V22h1l5.71-5.71-4.3-4.29 4.3-4.29zM13 5.83l1.88 1.88L13 9.59V5.83zm1.88 10.46L13 18.17v-3.76l1.88 1.88z"/>
+        </svg>
+
+        <!-- 스캔 라인 -->
+        <div class="scan-line"></div>
+
+        <!-- 레이더 웨이브 -->
+        <div class="radar-wave wave-1"></div>
+        <div class="radar-wave wave-2"></div>
+        <div class="radar-wave wave-3"></div>
+        <div class="radar-wave wave-4"></div>
+
+        <!-- 호스트 디바이스 (스터디장) -->
+        <div class="host-device">
+            <div class="notch"></div>
+            <div class="screen">
+                <div class="app-header">
+                    <span>출석 관리</span>
+                </div>
+                <div class="app-content">
+                    <div class="ble-icon-large">
+                        <svg viewBox="0 0 24 24" fill="#2563EB">
+                            <path d="M17.71 7.71L12 2h-1v7.59L6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 11 14.41V22h1l5.71-5.71-4.3-4.29 4.3-4.29zM13 5.83l1.88 1.88L13 9.59V5.83zm1.88 10.46L13 18.17v-3.76l1.88 1.88z"/>
+                        </svg>
+                        <div class="pulse-ring"></div>
+                    </div>
+                    <div class="status-text">신호 송출 중...</div>
+                    <div class="sub-status">스터디원 검색 중</div>
+                    <div class="progress-section">
+                        <div class="progress-header">
+                            <span>참석 현황</span>
+                            <span>3/4</span>
+                        </div>
+                        <div class="progress-track">
+                            <div class="progress-fill"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="host-badge">
+                    <span class="host-badge-label">스터디장 (Host)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 게스트 디바이스 1 - 민지 (출석 완료) -->
+        <div class="guest-device guest-1">
+            <div class="guest-screen">
+                <div class="check-circle">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 6L9 17l-5-5"/>
+                    </svg>
+                </div>
+                <div class="guest-msg">출석 완료</div>
+                <div class="guest-name">민지님</div>
+            </div>
+        </div>
+
+        <!-- 게스트 디바이스 2 - 수현 (출석 완료) -->
+        <div class="guest-device guest-2">
+            <div class="guest-screen">
+                <div class="check-circle">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 6L9 17l-5-5"/>
+                    </svg>
+                </div>
+                <div class="guest-msg">출석 완료</div>
+                <div class="guest-name">수현님</div>
+            </div>
+        </div>
+
+        <!-- 게스트 디바이스 3 - 정훈 (연결 중) -->
+        <div class="guest-device guest-3">
+            <div class="guest-screen-loading">
+                <svg class="spinner-static" viewBox="0 0 30 30">
+                    <circle cx="15" cy="15" r="12" fill="none" stroke="#D1D5DB" stroke-width="3"/>
+                    <circle cx="15" cy="15" r="12" fill="none" stroke="#3B82F6" stroke-width="3" stroke-dasharray="19 57" stroke-linecap="round"/>
+                </svg>
+                <div class="guest-msg-loading">연결 중...</div>
+                <div class="guest-name">정훈님</div>
+            </div>
+        </div>
+
+        <!-- 플로팅 뱃지 -->
+        <div class="floating-badge">
+            <svg viewBox="0 0 24 24" fill="#10B981">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+            </svg>
+            <span>자동 인식 성공</span>
+        </div>
+
+    </div>
+</div>
+</body>
+</html>
