@@ -68,6 +68,10 @@ class ScheduleViewModel : ViewModel() {
     private val _sessionDetailState = MutableStateFlow<SessionDetailState>(SessionDetailState.Loading)
     val sessionDetailState: StateFlow<SessionDetailState> = _sessionDetailState.asStateFlow()
 
+    // 현재 세션에 녹음이 업로드되었는지 여부
+    private val _isRecordingUploaded = MutableStateFlow(false)
+    val isRecordingUploaded: StateFlow<Boolean> = _isRecordingUploaded.asStateFlow()
+
     // Google 동기화 상태
     private val _googleSyncState = MutableStateFlow<GoogleSyncState>(GoogleSyncState.Loading)
     val googleSyncState: StateFlow<GoogleSyncState> = _googleSyncState.asStateFlow()
@@ -257,8 +261,9 @@ class ScheduleViewModel : ViewModel() {
     fun loadSessionDetail(studyId: Long, sessionId: Long) {
         viewModelScope.launch {
             _sessionDetailState.value = SessionDetailState.Loading
+            _isRecordingUploaded.value = false  // 초기화
             try {
-                // 세션 정보와 스터디 정보를 병렬로 조회
+                // 세션 정보, 스터디 정보, 녹음 업로드 여부를 병렬로 조회
                 val sessionDeferred = async {
                     RetrofitClient.scheduleApi.getSessionDetail(studyId, sessionId)
                 }
@@ -267,9 +272,20 @@ class ScheduleViewModel : ViewModel() {
                         RetrofitClient.studyApi.getStudyDetail(studyId)
                     } catch (e: Exception) { null }
                 }
+                // 해당 세션에 녹음이 이미 업로드됐는지 확인
+                val uploadedDeferred = async {
+                    try {
+                        RetrofitClient.meetingApi.getUploadedSessionIds(studyId, listOf(sessionId))
+                    } catch (e: Exception) { null }
+                }
 
                 val sessionResponse = sessionDeferred.await()
                 val studyResponse = studyDeferred.await()
+                val uploadedResponse = uploadedDeferred.await()
+
+                // 녹음 업로드 여부 설정
+                val uploadedIds = uploadedResponse?.body()?.data ?: emptyList()
+                _isRecordingUploaded.value = sessionId in uploadedIds
 
                 if (sessionResponse.isSuccessful) {
                     // 백엔드는 StudySessionDTO를 직접 반환 (ApiResponse 래핑 없음)
