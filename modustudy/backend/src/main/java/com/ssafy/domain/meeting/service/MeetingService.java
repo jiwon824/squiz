@@ -440,8 +440,8 @@ public class MeetingService {
         // 여러 파일을 임시 저장 후 병합
         java.nio.file.Path mergedFile = mergeAudioFiles(saved.getId(), validFiles);
 
-        // 병합된 파일을 최종 위치로 이동
-        String filename = "voice.webm";
+        // 병합된 파일을 최종 위치로 이동 (M4A 형식)
+        String filename = "voice.m4a";
         java.nio.file.Path finalPath = helper.getLocalFileStorageService().resolveMeetingVoiceFile(saved.getId(), filename);
         try {
             java.nio.file.Files.createDirectories(finalPath.getParent());
@@ -517,8 +517,8 @@ public class MeetingService {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "CONCAT_LIST_CREATE_FAILED");
         }
 
-        // FFmpeg로 병합
-        java.nio.file.Path outputPath = tempDir.resolve("merged.webm");
+        // FFmpeg로 병합 (AAC 오디오는 WebM 지원 안함, M4A로 병합)
+        java.nio.file.Path outputPath = tempDir.resolve("merged.m4a");
         List<String> args = List.of(
                 "ffmpeg",
                 "-y",
