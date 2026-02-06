@@ -20,7 +20,6 @@ import {
     QuizProgress,
 } from '@/shared/components';
 import type { QuizQuestion } from '@/shared/components/QuizForm';
-import { FeedbackModal } from '@/features/quiz/components/continuous/FeedbackModal';
 import { studyApi } from '@/api/endpoints/studyApi';
 import { meetingApi } from '@/features/meeting/services/meetingApi';
 import {
@@ -81,14 +80,6 @@ export const MeetingTestWidget: React.FC = () => {
     const [correctCount, setCorrectCount] = useState(0);
     const [isComplete, setIsComplete] = useState(false);
     const [startTime, setStartTime] = useState(Date.now());
-
-    // 피드백 모달 상태
-    const [showFeedback, setShowFeedback] = useState(false);
-    const [feedbackData, setFeedbackData] = useState<{
-        isCorrect: boolean;
-        correctAnswer: string;
-        explanation?: string;
-    } | null>(null);
 
     // 마운트 시 미팅 퀴즈 목록 로드
     useEffect(() => {
@@ -195,17 +186,6 @@ export const MeetingTestWidget: React.FC = () => {
 
         if (isCorrect) setCorrectCount(prev => prev + 1);
         setShowResult(true);
-
-        // 정답 텍스트 결정 (모달 표시용)
-        const correctOption = options.find(o => o.id === question.correctAnswer);
-        const correctAnswerText = correctOption?.text || question.correctAnswer;
-
-        setFeedbackData({
-            isCorrect,
-            correctAnswer: correctAnswerText,
-            explanation: question.explanation || undefined,
-        });
-        setShowFeedback(true);
     }, [quizDetail, selectedItem, currentIndex, selectedAnswer, startTime]);
 
     // 주관식 답안 제출
@@ -227,20 +207,10 @@ export const MeetingTestWidget: React.FC = () => {
 
         if (isCorrect) setCorrectCount(prev => prev + 1);
         setShowResult(true);
-
-        setFeedbackData({
-            isCorrect,
-            correctAnswer: question.correctAnswer,
-            explanation: question.explanation || undefined,
-        });
-        setShowFeedback(true);
     }, [quizDetail, selectedItem, currentIndex, shortAnswer, startTime]);
 
-    // 피드백 모달에서 다음 문제로 이동
-    const handleFeedbackContinue = useCallback(() => {
-        setShowFeedback(false);
-        setFeedbackData(null);
-        // handleNext 로직 인라인 (순환 의존 방지)
+    // 다음 문제로 이동
+    const handleNext = useCallback(() => {
         if (!quizDetail) return;
         if (currentIndex + 1 >= quizDetail.questions.length) {
             setIsComplete(true);
@@ -262,8 +232,6 @@ export const MeetingTestWidget: React.FC = () => {
         setCorrectCount(0);
         setIsComplete(false);
         setStartTime(Date.now());
-        setShowFeedback(false);
-        setFeedbackData(null);
     }, []);
 
     // 로딩
@@ -395,35 +363,28 @@ export const MeetingTestWidget: React.FC = () => {
                                             className="pt-0 border-t-0 mb-4"
                                         />
 
-                                        {/* 문제 풀이 - QuizForm 공유 컴포넌트 사용 (해설은 모달에서 표시) */}
+                                        {/* 문제 풀이 - QuizForm 공유 컴포넌트 사용 (인라인 해설) */}
                                         {question.questionType === 'MULTIPLE_CHOICE' ? (
                                             <QuizSingleChoice
-                                                quiz={{ ...currentQuiz, explanation: '' }}
+                                                quiz={currentQuiz}
                                                 questionNumber={currentIndex + 1}
                                                 selectedAnswer={selectedAnswer}
                                                 showResult={showResult}
                                                 onSelectAnswer={setSelectedAnswer}
                                                 onSubmit={handleSubmitMultiple}
+                                                onNext={handleNext}
+                                                isLastQuestion={currentIndex + 1 >= quizDetail.questions.length}
                                             />
                                         ) : (
                                             <QuizShortAnswer
-                                                quiz={{ ...currentQuiz, explanation: '' }}
+                                                quiz={currentQuiz}
                                                 questionNumber={currentIndex + 1}
                                                 userAnswer={shortAnswer}
                                                 showResult={showResult}
                                                 onChangeAnswer={(val) => setShortAnswer(val || '')}
                                                 onSubmit={handleSubmitShort}
-                                            />
-                                        )}
-
-                                        {/* 피드백 모달 */}
-                                        {feedbackData && (
-                                            <FeedbackModal
-                                                isOpen={showFeedback}
-                                                isCorrect={feedbackData.isCorrect}
-                                                correctAnswer={feedbackData.correctAnswer}
-                                                explanation={feedbackData.explanation}
-                                                onContinue={handleFeedbackContinue}
+                                                onNext={handleNext}
+                                                isLastQuestion={currentIndex + 1 >= quizDetail.questions.length}
                                             />
                                         )}
                                     </>
