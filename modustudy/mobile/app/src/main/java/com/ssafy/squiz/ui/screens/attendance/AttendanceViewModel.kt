@@ -333,6 +333,64 @@ class AttendanceViewModel(application: Application) : AndroidViewModel(applicati
         bleScanner.clearFoundBeacon()
     }
 
+    // ==================== 수동 출석 (스터디장) ====================
+
+    // 수동 출석 결과 상태
+    private val _manualAttendanceResult = MutableStateFlow<String?>(null)
+    val manualAttendanceResult: StateFlow<String?> = _manualAttendanceResult.asStateFlow()
+
+    /**
+     * 수동 출석 처리 (스터디장)
+     * BLE 기능이 안되거나 핸드폰 미소지자를 위해 스터디장이 수동으로 출석 처리
+     */
+    fun updateAttendanceManually(
+        studyId: Long,
+        sessionId: Long,
+        targetUserId: Long,
+        status: String = "PRESENT",
+        reason: String? = "수동 출석 처리"
+    ) {
+        viewModelScope.launch {
+            try {
+                val request = AttendanceManualUpdateRequest(
+                    status = status,
+                    reason = reason
+                )
+                val response = RetrofitClient.attendanceApi.updateAttendanceManually(
+                    studyId, sessionId, targetUserId, request
+                )
+
+                if (response.isSuccessful && response.body()?.success == true) {
+                    val updatedStatus = response.body()?.data?.status ?: status
+                    val statusText = when (updatedStatus) {
+                        "PRESENT" -> "출석"
+                        "LATE" -> "지각"
+                        "ABSENT" -> "결석"
+                        else -> updatedStatus
+                    }
+                    _manualAttendanceResult.value = "${statusText} 처리되었습니다."
+                    Log.d(TAG, "수동 출석 처리 성공: userId=$targetUserId, status=$status")
+
+                    // 출석 현황 새로고침
+                    loadSessionAttendance(studyId, sessionId)
+                } else {
+                    _manualAttendanceResult.value = "출석 처리 실패: ${response.code()}"
+                    Log.e(TAG, "수동 출석 처리 실패: ${response.code()}")
+                }
+            } catch (e: Exception) {
+                _manualAttendanceResult.value = "오류: ${e.message}"
+                Log.e(TAG, "수동 출석 처리 실패", e)
+            }
+        }
+    }
+
+    /**
+     * 수동 출석 결과 메시지 초기화
+     */
+    fun clearManualAttendanceResult() {
+        _manualAttendanceResult.value = null
+    }
+
     /**
      * 폴링 중지
      */

@@ -116,13 +116,14 @@ class ContinuousQuizRepositoryTest {
                 quizCourseSectionRepository.save(testSection);
                 quizCourseSectionRepository.flush();
 
-                // 4. 문제 생성 (3개)
+                // 4. 문제 생성 (3개) - 객관식만 조회되므로 MULTIPLE_CHOICE로 생성
                 question1 = continuousQuizRepository.save(QuizCourseQuestion.builder()
                                 .section(testSection)
                                 .questionNumber(1)
                                 .questionText("테스트 문제 1")
-                                .questionType(QuestionType.SHORT_ANSWER)
-                                .correctAnswer("정답1")
+                                .questionType(QuestionType.MULTIPLE_CHOICE)
+                                .options("[{\"id\":\"A\",\"text\":\"보기1\"},{\"id\":\"B\",\"text\":\"보기2\"}]")
+                                .correctAnswer("A")
                                 .explanation("해설1")
                                 .build());
 
@@ -130,8 +131,9 @@ class ContinuousQuizRepositoryTest {
                                 .section(testSection)
                                 .questionNumber(2)
                                 .questionText("테스트 문제 2")
-                                .questionType(QuestionType.SHORT_ANSWER)
-                                .correctAnswer("정답2")
+                                .questionType(QuestionType.MULTIPLE_CHOICE)
+                                .options("[{\"id\":\"A\",\"text\":\"보기1\"},{\"id\":\"B\",\"text\":\"보기2\"}]")
+                                .correctAnswer("B")
                                 .explanation("해설2")
                                 .build());
 
@@ -139,8 +141,9 @@ class ContinuousQuizRepositoryTest {
                                 .section(testSection)
                                 .questionNumber(3)
                                 .questionText("테스트 문제 3")
-                                .questionType(QuestionType.SHORT_ANSWER)
-                                .correctAnswer("정답3")
+                                .questionType(QuestionType.MULTIPLE_CHOICE)
+                                .options("[{\"id\":\"A\",\"text\":\"보기1\"},{\"id\":\"B\",\"text\":\"보기2\"}]")
+                                .correctAnswer("A")
                                 .explanation("해설3")
                                 .build());
 

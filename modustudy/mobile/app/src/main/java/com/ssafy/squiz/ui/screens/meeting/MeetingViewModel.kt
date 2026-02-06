@@ -111,6 +111,10 @@ class MeetingViewModel : ViewModel() {
     private val _sessions = MutableStateFlow<List<StudySessionDTO>>(emptyList())
     val sessions: StateFlow<List<StudySessionDTO>> = _sessions.asStateFlow()
 
+    // 이미 업로드된 세션 ID 목록 (이 세션들은 녹음 불가)
+    private val _uploadedSessionIds = MutableStateFlow<Set<Long>>(emptySet())
+    val uploadedSessionIds: StateFlow<Set<Long>> = _uploadedSessionIds.asStateFlow()
+
     // 업로드 대기 중인 파일 경로 (레거시 - 단일 파일 업로드 시 사용)
     private val _pendingUploadFilePath = MutableStateFlow<String?>(null)
 
@@ -129,12 +133,23 @@ class MeetingViewModel : ViewModel() {
 
     /**
      * 로컬 녹음 목록 로드
+     * 이미 업로드된 세션의 녹음들은 목록에서 제외
      */
     fun loadLocalRecordings(studyId: Long) {
         viewModelScope.launch {
             localRecordingRepository?.getUnuploadedRecordings(studyId)?.collectLatest { recordings ->
-                _localRecordings.value = recordings
-                updateSelectedStats(recordings)
+                // 이미 업로드된 세션의 녹음들 제외
+                val uploadedIds = _uploadedSessionIds.value
+                val filteredRecordings = if (uploadedIds.isEmpty()) {
+                    recordings
+                } else {
+                    recordings.filter { recording ->
+                        // sessionId가 null이거나, 업로드된 세션 ID에 포함되지 않는 것만 표시
+                        recording.sessionId == null || recording.sessionId !in uploadedIds
+                    }
+                }
+                _localRecordings.value = filteredRecordings
+                updateSelectedStats(filteredRecordings)
             }
         }
     }
@@ -292,6 +307,17 @@ class MeetingViewModel : ViewModel() {
         }
     }
 
+    // 녹음 시작 실패 메시지 (UI에서 토스트 표시용)
+    private val _recordingStartError = MutableStateFlow<String?>(null)
+    val recordingStartError: StateFlow<String?> = _recordingStartError.asStateFlow()
+
+    /**
+     * 녹음 시작 에러 메시지 초기화
+     */
+    fun clearRecordingStartError() {
+        _recordingStartError.value = null
+    }
+
     /**
      * 녹음 시작 (오프라인 녹음 - 회의 생성 없이 로컬 녹음만 진행)
      * 녹음 종료 시 서버에 업로드하면 회의가 자동 생성됨
@@ -299,6 +325,13 @@ class MeetingViewModel : ViewModel() {
      */
     fun startRecording(context: Context, studyId: Long, sessionId: Long? = null, title: String? = null) {
         viewModelScope.launch {
+            // 이미 업로드된 세션인지 체크
+            if (sessionId != null && sessionId in _uploadedSessionIds.value) {
+                Log.w(TAG, "이미 업로드된 세션입니다: sessionId=$sessionId")
+                _recordingStartError.value = "이미 녹음이 업로드된 세션입니다."
+                return@launch
+            }
+
             _currentStudyId.value = studyId
             _currentSessionId.value = sessionId  // 세션 ID 저장 (업로드 시 사용)
 
@@ -339,13 +372,16 @@ class MeetingViewModel : ViewModel() {
                 // 녹음 파일 경로 가져오기 (중지 전에)
                 val audioFilePath = RecordingService.currentAudioFilePath
 
+                // 세션 ID 가져오기 (녹음 중지 전에 - 중지 후 초기화됨)
+                val sessionId = recordingState.value.sessionId
+
                 // 로컬 녹음 중지
                 val intent = Intent(context, RecordingService::class.java).apply {
                     action = RecordingService.ACTION_STOP_RECORDING
                 }
                 context.startService(intent)
 
-                Log.d(TAG, "녹음 파일 경로: $audioFilePath")
+                Log.d(TAG, "녹음 파일 경로: $audioFilePath, sessionId: $sessionId")
 
                 if (studyId != null && audioFilePath != null) {
                     // 파일 정보 가져오기
@@ -356,14 +392,14 @@ class MeetingViewModel : ViewModel() {
                     // 오디오 길이 가져오기 (MediaMetadataRetriever 사용)
                     val durationSeconds = getDurationFromFile(audioFilePath) ?: elapsedSeconds
 
-                    // 로컬 DB에 저장
+                    // 로컬 DB에 저장 (세션 ID 포함)
                     localRecordingRepository?.saveRecording(
                         filePath = audioFilePath,
                         fileName = fileName,
                         durationSeconds = durationSeconds,
                         fileSizeBytes = fileSize,
                         studyId = studyId,
-                        sessionId = null  // 아직 세션 미연결
+                        sessionId = sessionId  // 녹음 시작 시 선택한 세션 ID
                     )
 
                     Log.d(TAG, "로컬 녹음 저장 완료: $fileName, ${durationSeconds}초")
@@ -513,19 +549,26 @@ class MeetingViewModel : ViewModel() {
                             if (uploadedResponse.isSuccessful) {
                                 val uploadedIds = uploadedResponse.body()?.data ?: emptyList()
                                 Log.d(TAG, "이미 업로드된 세션: ${uploadedIds.size}개 - $uploadedIds")
+
+                                // 업로드된 세션 ID 저장 (녹음 시작 시 체크 및 녹음 목록 필터링에 사용)
+                                _uploadedSessionIds.value = uploadedIds.toSet()
+
                                 // 업로드된 세션 제외
                                 val availableSessions = offlineSessions.filter { it.id !in uploadedIds }
                                 _sessions.value = availableSessions
                                 Log.d(TAG, "업로드 가능한 세션: ${availableSessions.size}개")
                             } else {
                                 Log.w(TAG, "업로드된 세션 확인 실패: ${uploadedResponse.code()}, 전체 세션 표시")
+                                _uploadedSessionIds.value = emptySet()
                                 _sessions.value = offlineSessions
                             }
                         } catch (e: Exception) {
                             Log.w(TAG, "업로드된 세션 확인 오류, 전체 세션 표시: ${e.message}")
+                            _uploadedSessionIds.value = emptySet()
                             _sessions.value = offlineSessions
                         }
                     } else {
+                        _uploadedSessionIds.value = emptySet()
                         _sessions.value = offlineSessions
                     }
                 } else {

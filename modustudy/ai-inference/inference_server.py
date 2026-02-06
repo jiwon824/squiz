@@ -539,9 +539,9 @@ async def generate_quiz(request: QuizRequest):
 
     prompt = f"""<|im_start|>system
 당신은 IT 스터디 내용을 바탕으로 복습 퀴즈를 생성하는 전문가입니다.
-객관식, OX, 단답형을 적절히 혼합하여 출제합니다.<|im_end|>
+객관식(4지선다)만 출제합니다. 주관식/서술형은 출제하지 마세요.<|im_end|>
 <|im_start|>user
-다음 스터디 요약 내용을 바탕으로 복습 퀴즈 {request.num_questions}문제를 생성해주세요.
+다음 스터디 요약 내용을 바탕으로 객관식(4지선다) 복습 퀴즈 {request.num_questions}문제를 생성해주세요.
 
 스터디 요약:
 {request.summary}<|im_end|>
@@ -1458,9 +1458,9 @@ def process_meeting_full_job(job_id: str, mixed_path: str, individual_paths: lis
         quiz_instruction = ""
         if generate_quiz:
             quiz_instruction = """
-6. **퀴즈**: 스터디 내용 복습을 위한 퀴즈를 5문제 이상 생성해주세요.
-   - MULTIPLE_CHOICE(객관식)와 SHORT_ANSWER(서술형) 혼합
-   - SHORT_ANSWER 문제는 반드시 answer_keywords 배열 포함 (채점용 핵심 키워드 3-5개)
+6. **퀴즈**: 스터디 내용 복습을 위한 객관식 퀴즈를 5문제 이상 생성해주세요.
+   - 반드시 MULTIPLE_CHOICE(객관식 4지선다)만 출제
+   - 주관식/서술형(SHORT_ANSWER)은 출제하지 마세요
    - 난이도: EASY, MEDIUM, HARD 섞어서
    - 각 문제에 정답과 해설 포함"""
 
@@ -1516,13 +1516,6 @@ def process_meeting_full_job(job_id: str, mixed_path: str, individual_paths: lis
       "type": "MULTIPLE_CHOICE",
       "options": ["A. 보기1", "B. 보기2", "C. 보기3", "D. 보기4"],
       "answer": "A",
-      "explanation": "해설"
-    }},
-    {{
-      "question": "서술형 문제 내용",
-      "type": "SHORT_ANSWER",
-      "answer": "모범 답안",
-      "answer_keywords": ["필수키워드1", "필수키워드2", "선택키워드3"],
       "explanation": "해설"
     }}
   ]
@@ -2091,9 +2084,9 @@ def process_transcript_summary(job_id: str, transcript: str, speaker_ids: List[i
         quiz_instruction = ""
         if generate_quiz:
             quiz_instruction = """
-4. **퀴즈**: 스터디 내용 복습을 위한 퀴즈를 5문제 이상 생성해주세요.
-   - MULTIPLE_CHOICE(객관식)와 SHORT_ANSWER(서술형) 혼합
-   - SHORT_ANSWER 문제는 반드시 answer_keywords 배열 포함 (채점용 핵심 키워드 3-5개)
+4. **퀴즈**: 스터디 내용 복습을 위한 객관식 퀴즈를 5문제 이상 생성해주세요.
+   - 반드시 MULTIPLE_CHOICE(객관식 4지선다)만 출제
+   - 주관식/서술형(SHORT_ANSWER)은 출제하지 마세요
    - 난이도: EASY, MEDIUM, HARD 섞어서
    - 각 문제에 정답과 해설 포함"""
 
@@ -2147,13 +2140,6 @@ def process_transcript_summary(job_id: str, transcript: str, speaker_ids: List[i
       "type": "MULTIPLE_CHOICE",
       "options": ["A. 보기1", "B. 보기2", "C. 보기3", "D. 보기4"],
       "answer": "A",
-      "explanation": "해설"
-    }},
-    {{
-      "question": "서술형 문제 내용",
-      "type": "SHORT_ANSWER",
-      "answer": "모범 답안",
-      "answer_keywords": ["필수키워드1", "필수키워드2", "선택키워드3"],
       "explanation": "해설"
     }}
   ]
