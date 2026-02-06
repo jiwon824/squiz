@@ -3,13 +3,12 @@
  * ContinuousQuizSession.tsx - 연속 학습 모드 세션 컴포넌트
  * =============================================================================
  *
- * 목적 (PURPOSE):
  * 말해보카 스타일의 연속 학습 플로우를 구현하는 메인 컴포넌트입니다.
  *
  * 핵심 특징:
  * - Atomic Interaction: 매 제출마다 다음 문제를 직접 반환
  * - Forward-only: 뒤로가기 없는 전진 전용 플로우
- * - FSRS Timing: useRef로 문제 렌더링 시점부터 제출까지의 시간 측정
+ * - FSRS Timing: useContinuousQuiz 훅에서 문제 렌더링 시점부터 제출까지의 시간 측정
  * - Instant Feedback: 제출 즉시 정답/오답 피드백 표시
  *
  * URL: /continuous-quiz/:courseId/section/:sectionNumber
@@ -17,648 +16,48 @@
  * =============================================================================
  */
 
-import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, AlertCircle, RefreshCw, CheckCircle, XCircle, Trophy } from 'lucide-react';
-import { Breadcrumb } from '@/shared/components/layouts/Breadcrumb';
 import { Spinner } from '@/shared/components/Spinner';
-
 import { QuestionCard } from './components/QuestionCard';
 import { ContinuousQuizNavigation } from './components/ContinuousQuizNavigation';
-import { Button } from '@/shared/components/Button';
-import { useUIStore } from '@/store/uiStore';
 
-import {
-    fetchNextQuestion,
-    submitAnswer,
-    ContinuousQuizQuestion,
-} from '@/api/endpoints/continuousQuizApi';
-
-import { useTimer } from './hooks/useTimer';
-import type { QuizQuestion as QuizQuestionType, QuestionType } from './types/QuizQuestion.types';
+import { useContinuousQuiz } from './hooks/useContinuousQuiz';
+import { FeedbackModal } from './components/continuous/FeedbackModal';
+import { SessionComplete } from './components/continuous/SessionComplete';
+import { SessionHeader } from './components/continuous/SessionHeader';
+import { SkipConfirmModal } from './components/continuous/SkipConfirmModal';
+import { ErrorScreen } from './components/continuous/ErrorScreen';
 
 // =============================================================================
-// HELPER FUNCTIONS
+// 컴포넌트
 // =============================================================================
 
-/**
- * 답변이 유효한지(null이나 비어있지 않은지) 확인하는 헬퍼 함수
- */
-const isValidAnswer = (answer: string | string[] | null | undefined): answer is string | string[] => {
-    if (answer === null || answer === undefined) return false;
-    if (typeof answer === 'string') return answer.trim() !== '';
-    if (Array.isArray(answer)) return answer.length > 0 && answer.some(a => a.trim() !== '');
-    return false;
-};
-
-/**
- * API 문제 데이터를 UI 컴포넌트가 기대하는 형식으로 변환
- */
-const mapApiQuestionToUiQuestion = (apiQuestion: ContinuousQuizQuestion): QuizQuestionType => {
-    const typeMap: Record<string, QuestionType> = {
-        'MULTIPLE_CHOICE': 'single-choice',
-        'MULTIPLE_CHOICE_MULTIPLE': 'multiple-choice',
-        'SHORT_ANSWER': 'short-answer',
-    };
-
-    return {
-        id: String(apiQuestion.questionId),
-        type: typeMap[apiQuestion.questionType] || 'single-choice',
-        question: apiQuestion.questionText,
-        options: apiQuestion.options?.map(opt => ({
-            id: opt.id,
-            text: opt.text,
-        })),
-        correctAnswer: '',
-        difficulty: 'Medium',
-        category: 'CS',
-    };
-};
-
-// =============================================================================
-// 피드백 모달 컴포넌트
-// =============================================================================
-interface FeedbackModalProps {
-    isOpen: boolean;
-    isCorrect: boolean;
-    correctAnswer: string;
-    explanation?: string;
-    onContinue: () => void;
-}
-
-const FeedbackModal: React.FC<FeedbackModalProps> = ({
-    isOpen,
-    isCorrect,
-    correctAnswer,
-    explanation,
-    onContinue,
-}) => {
-    // 엔터 키로 다음 문제로 넘어가기
-    // 제출 시 Enter 키 이벤트가 모달에 전파되지 않도록 지연 등록
-    useEffect(() => {
-        if (!isOpen) return;
-
-        const handleKeyDown = (e: KeyboardEvent) => {
-            // IME 조합 중일 때는 무시
-            if ((e as any).isComposing) return;
-            if (e.key !== 'Enter') return;
-
-            e.preventDefault();
-            e.stopPropagation();
-            onContinue();
-        };
-
-        // 100ms 지연으로 제출 Enter 키가 모달에 전파되는 것을 방지
-        const timeoutId = setTimeout(() => {
-            window.addEventListener('keydown', handleKeyDown);
-        }, 100);
-
-        return () => {
-            clearTimeout(timeoutId);
-            window.removeEventListener('keydown', handleKeyDown);
-        };
-    }, [isOpen, onContinue]);
-
-    if (!isOpen) return null;
-
-    return (
-        <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
-            style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
-        >
-            <div
-                className="w-full max-w-md rounded-2xl p-6 animate-in fade-in zoom-in duration-200"
-                style={{
-                    backgroundColor: 'var(--color-surface)',
-                    boxShadow: 'var(--shadow-xl)',
-                }}
-            >
-                {/* 정답/오답 아이콘 */}
-                <div className="flex justify-center mb-4">
-                    {isCorrect ? (
-                        <div
-                            className="w-16 h-16 rounded-full flex items-center justify-center"
-                            style={{ backgroundColor: 'var(--color-success-light)' }}
-                        >
-                            <CheckCircle size={40} style={{ color: 'var(--color-success)' }} />
-                        </div>
-                    ) : (
-                        <div
-                            className="w-16 h-16 rounded-full flex items-center justify-center"
-                            style={{ backgroundColor: 'var(--color-error-light)' }}
-                        >
-                            <XCircle size={40} style={{ color: 'var(--color-error)' }} />
-                        </div>
-                    )}
-                </div>
-
-                {/* 결과 텍스트 */}
-                <h3
-                    className="text-xl font-bold text-center mb-2"
-                    style={{ color: isCorrect ? 'var(--color-success)' : 'var(--color-error)' }}
-                >
-                    {isCorrect ? '정답입니다!' : '오답입니다'}
-                </h3>
-
-                {/* 정답 표시 (오답일 경우) */}
-                {!isCorrect && (
-                    <div
-                        className="text-center mb-4 p-3 rounded-lg"
-                        style={{ backgroundColor: 'var(--color-background)' }}
-                    >
-                        <span
-                            className="text-sm"
-                            style={{ color: 'var(--color-text-secondary)' }}
-                        >
-                            정답:
-                        </span>
-                        <p
-                            className="font-medium mt-1"
-                            style={{ color: 'var(--color-text-primary)' }}
-                        >
-                            {correctAnswer}
-                        </p>
-                    </div>
-                )}
-
-                {/* 해설 (있을 경우) */}
-                {explanation && (
-                    <div
-                        className="text-sm mb-4 p-3 rounded-lg"
-                        style={{
-                            backgroundColor: 'var(--color-info-light)',
-                            color: 'var(--color-text-secondary)',
-                        }}
-                    >
-                        {explanation}
-                    </div>
-                )}
-
-                {/* 계속하기 버튼 */}
-                <Button
-                    variant="google-primary"
-                    size="lg"
-                    onClick={onContinue}
-                    className="w-full"
-                >
-                    다음 문제
-                </Button>
-            </div>
-        </div>
-    );
-};
-
-// =============================================================================
-// 세션 완료 화면 컴포넌트
-// =============================================================================
-interface SessionCompleteProps {
-    summary: {
-        totalQuestions: number;
-        correctCount: number;
-        incorrectCount: number;
-        averageResponseTimeMs: number;
-    };
-    onReturnToCourse: () => void;
-    onRetry: () => void;
-}
-
-const SessionComplete: React.FC<SessionCompleteProps> = ({
-    summary,
-    onReturnToCourse,
-    onRetry,
-}) => {
-    const accuracy = Math.round((summary.correctCount / summary.totalQuestions) * 100);
-    const avgTime = (summary.averageResponseTimeMs / 1000).toFixed(1);
-
-    return (
-        <div
-            className="min-h-screen flex items-center justify-center p-4"
-            style={{ backgroundColor: 'var(--color-background)' }}
-        >
-            <div
-                className="w-full max-w-md rounded-2xl p-8 text-center"
-                style={{
-                    backgroundColor: 'var(--color-surface)',
-                    boxShadow: 'var(--shadow-xl)',
-                }}
-            >
-                {/* 트로피 아이콘 */}
-                <div className="flex justify-center mb-6">
-                    <div
-                        className="w-20 h-20 rounded-full flex items-center justify-center"
-                        style={{ backgroundColor: 'var(--color-warning-light)' }}
-                    >
-                        <Trophy size={48} style={{ color: 'var(--color-warning)' }} />
-                    </div>
-                </div>
-
-                <h2
-                    className="text-2xl font-bold mb-2"
-                    style={{ color: 'var(--color-text-primary)' }}
-                >
-                    학습 완료!
-                </h2>
-
-                <p
-                    className="text-sm mb-6"
-                    style={{ color: 'var(--color-text-secondary)' }}
-                >
-                    오늘의 연속 학습을 완료했습니다.
-                </p>
-
-                {/* 통계 */}
-                <div
-                    className="grid grid-cols-3 gap-4 mb-8 p-4 rounded-xl"
-                    style={{ backgroundColor: 'var(--color-background)' }}
-                >
-                    <div>
-                        <p
-                            className="text-2xl font-bold"
-                            style={{ color: 'var(--color-primary)' }}
-                        >
-                            {summary.totalQuestions}
-                        </p>
-                        <p
-                            className="text-xs"
-                            style={{ color: 'var(--color-text-tertiary)' }}
-                        >
-                            총 문제
-                        </p>
-                    </div>
-                    <div>
-                        <p
-                            className="text-2xl font-bold"
-                            style={{ color: 'var(--color-success)' }}
-                        >
-                            {accuracy}%
-                        </p>
-                        <p
-                            className="text-xs"
-                            style={{ color: 'var(--color-text-tertiary)' }}
-                        >
-                            정답률
-                        </p>
-                    </div>
-                    <div>
-                        <p
-                            className="text-2xl font-bold"
-                            style={{ color: 'var(--color-info)' }}
-                        >
-                            {avgTime}s
-                        </p>
-                        <p
-                            className="text-xs"
-                            style={{ color: 'var(--color-text-tertiary)' }}
-                        >
-                            평균 시간
-                        </p>
-                    </div>
-                </div>
-
-                {/* 상세 결과 */}
-                <div
-                    className="flex justify-center gap-8 mb-8"
-                    style={{ color: 'var(--color-text-secondary)' }}
-                >
-                    <div className="flex items-center gap-2">
-                        <CheckCircle size={18} style={{ color: 'var(--color-success)' }} />
-                        <span>{summary.correctCount} 정답</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <XCircle size={18} style={{ color: 'var(--color-error)' }} />
-                        <span>{summary.incorrectCount} 오답</span>
-                    </div>
-                </div>
-
-                {/* 버튼들 */}
-                <div className="flex flex-col gap-3">
-                    <Button
-                        variant="google-outline"
-                        size="md"
-                        onClick={onRetry}
-                        leftIcon={<RefreshCw size={18} />}
-                        className="w-full"
-                    >
-                        다시 학습하기
-                    </Button>
-                    <Button
-                        variant="google-primary"
-                        size="lg"
-                        onClick={onReturnToCourse}
-                        className="w-full"
-                    >
-                        코스로 돌아가기
-                    </Button>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-// =============================================================================
-// 메인 컴포넌트
-// =============================================================================
 export const ContinuousQuizSession = () => {
-    const { courseId, sectionNumber } = useParams<{
-        courseId: string;
-        sectionNumber: string;
-    }>();
-    const navigate = useNavigate();
-    const location = useLocation();
-    const showToast = useUIStore((state) => state.showToast);
+    const {
+        // 상태 그룹
+        question,
+        progress,
+        modal,
+        session,
+        ui,
+        // 액션
+        handleAnswerChange,
+        handleSubmit,
+        handleSkipClick,
+        handleSkipCancel,
+        handleSkipConfirm,
+        handleNextQuestion,
+        handleReturnToCourse,
+        handleRetry,
+        handleBackClick,
+        // 유틸리티
+        isAnswerValid,
+        questionLimit,
+    } = useContinuousQuiz();
 
-    // 문제 제한 설정 (없으면 무제한)
-    const questionLimit = (location.state as { limit?: number })?.limit;
-
-    // 현재 문제 상태
-    const [currentQuestion, setCurrentQuestion] = useState<QuizQuestionType | null>(null);
-    const [currentApiQuestion, setCurrentApiQuestion] = useState<ContinuousQuizQuestion | null>(null);
-    const [currentAnswer, setCurrentAnswer] = useState<string | string[] | undefined>(undefined);
-
-    // 진행 상태 (로컬 통계 추적)
-    const [solvedCount, setSolvedCount] = useState(0);
-    const [correctCount, setCorrectCount] = useState(0);
-    const [totalResponseTimeMs, setTotalResponseTimeMs] = useState(0);
-
-    // UI 상태
-    const [isLoading, setIsLoading] = useState(true);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-
-    // 건너뛰기 확인 모달 상태
-    const [showSkipConfirm, setShowSkipConfirm] = useState(false);
-
-    // 피드백 모달 상태
-    const [showFeedback, setShowFeedback] = useState(false);
-    const [feedbackData, setFeedbackData] = useState<{
-        isCorrect: boolean;
-        correctAnswer: string;
-        explanation?: string;
-    } | null>(null);
-
-    // 세션 완료 상태
-    const [isSessionComplete, setIsSessionComplete] = useState(false);
-    const [sessionSummary, setSessionSummary] = useState<{
-        totalQuestions: number;
-        correctCount: number;
-        incorrectCount: number;
-        averageResponseTimeMs: number;
-    } | null>(null);
-
-    // FSRS 응답 시간 측정 (useTimer - 탭 전환 감지 포함)
-    const { start: startTimer, stop: stopTimer, pause: pauseTimer, resume: resumeTimer } = useTimer();
-
-    // 다음 문제 데이터 (제출 응답에서 받아 "다음 문제" 클릭 시 적용)
-    const [nextQuestionData, setNextQuestionData] = useState<ContinuousQuizQuestion | null>(null);
-
-    // 브라우저 뒤로가기/새로고침 시 경고
-    useEffect(() => {
-        if (isSessionComplete) return;
-
-        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-            e.preventDefault();
-            e.returnValue = '';
-            return '';
-        };
-
-        window.addEventListener('beforeunload', handleBeforeUnload);
-        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-    }, [isSessionComplete]);
-
-    // 새 문제 렌더 시 타이머 시작
-    useEffect(() => {
-        if (currentQuestion && !showFeedback && !showSkipConfirm) {
-            startTimer();
-        }
-    }, [currentQuestion, showFeedback, showSkipConfirm, startTimer]);
-
-    // 초기 문제 로드
-    useEffect(() => {
-        const loadFirstQuestion = async () => {
-            if (!courseId || !sectionNumber) {
-                setError('코스 ID 또는 섹션 번호가 없습니다.');
-                setIsLoading(false);
-                return;
-            }
-
-            setIsLoading(true);
-            setError(null);
-
-            try {
-                const numericCourseId = parseInt(courseId, 10);
-                const numericSectionNumber = parseInt(sectionNumber, 10);
-
-                if (isNaN(numericCourseId) || isNaN(numericSectionNumber)) {
-                    throw new Error('잘못된 코스 ID 또는 섹션 번호입니다.');
-                }
-
-                const response = await fetchNextQuestion(numericCourseId, numericSectionNumber);
-
-                // 무한 루프 모드: 문제가 없으면 에러 처리 (완료 화면 아님)
-                if (!response.question) {
-                    throw new Error('해당 섹션에 문제가 없습니다.');
-                }
-
-                const uiQuestion = mapApiQuestionToUiQuestion(response.question);
-                setCurrentQuestion(uiQuestion);
-                setCurrentApiQuestion(response.question);
-
-                console.log('[ContinuousQuizSession] 첫 번째 문제 로드 완료:', {
-                    questionId: response.question.questionId,
-                });
-
-                setIsLoading(false);
-            } catch (err) {
-                console.error('[ContinuousQuizSession] 초기화 실패:', err);
-                setError(err instanceof Error ? err.message : '퀴즈를 시작하는데 실패했습니다.');
-                setIsLoading(false);
-            }
-        };
-
-        loadFirstQuestion();
-    }, [courseId, sectionNumber]);
-
-    // 답안 변경 핸들러
-    const handleAnswerChange = useCallback((answer: string | string[]) => {
-        setCurrentAnswer(answer);
-    }, []);
-
-    // 피드백 확인 후 다음 문제로 전환 (사용자 클릭 필수)
-    const handleNextQuestion = useCallback(() => {
-        // 목표 문제 수 달성 시 세션 종료
-        if (questionLimit && solvedCount >= questionLimit) {
-            const avgResponseTime = solvedCount > 0 ? Math.round(totalResponseTimeMs / solvedCount) : 0;
-            setSessionSummary({
-                totalQuestions: solvedCount,
-                correctCount: correctCount,
-                incorrectCount: solvedCount - correctCount,
-                averageResponseTimeMs: avgResponseTime,
-            });
-            setIsSessionComplete(true);
-            return;
-        }
-
-        if (nextQuestionData) {
-            const nextUiQuestion = mapApiQuestionToUiQuestion(nextQuestionData);
-            setCurrentQuestion(nextUiQuestion);
-            setCurrentApiQuestion(nextQuestionData);
-            setNextQuestionData(null);
-        }
-        setShowFeedback(false);
-        setFeedbackData(null);
-        setCurrentAnswer(undefined);
-    }, [nextQuestionData, questionLimit, solvedCount, totalResponseTimeMs, correctCount]);
-
-    // 답안 제출 핸들러 - useTimer로 시간 측정, 백엔드 isCorrect 기반 피드백
-    const handleSubmit = useCallback(async () => {
-        // 피드백 모달이 열려있을 때는 제출 방지 (Enter 연타 버그 수정)
-        if (showFeedback) return;
-
-        if (!currentApiQuestion) return;
-
-        // 일반 제출인 경우 답안 확인
-        if (!isValidAnswer(currentAnswer)) {
-            showToast('답변을 선택해주세요.', 'info');
-            return;
-        }
-
-        const responseTimeMs = stopTimer();
-        setIsSubmitting(true);
-
-        try {
-            const response = await submitAnswer(
-                currentApiQuestion.questionId,
-                currentAnswer, // isValidAnswer 체크 통과했으므로 string | string[]
-                responseTimeMs
-            );
-
-            // 백엔드 isCorrect를 그대로 사용하여 피드백 표시
-            setFeedbackData({
-                isCorrect: response.isCorrect,
-                correctAnswer: response.correctAnswer,
-                explanation: response.explanation,
-            });
-            setShowFeedback(true);
-
-            // 로컬 통계 업데이트
-            setSolvedCount(prev => prev + 1);
-            if (response.isCorrect) {
-                setCorrectCount(prev => prev + 1);
-            }
-            setTotalResponseTimeMs(prev => prev + responseTimeMs);
-
-            // 다음 문제 데이터 저장 ("다음 문제" 클릭 시 적용)
-            if (response.nextQuestion) {
-                setNextQuestionData(response.nextQuestion);
-            } else {
-                console.error('[ContinuousQuizSession] 다음 문제가 없습니다');
-                showToast('다음 문제를 불러오는데 실패했습니다.', 'error');
-            }
-        } catch (err) {
-            console.error('[ContinuousQuizSession] 제출 실패:', err);
-            showToast(err instanceof Error ? err.message : '제출에 실패했습니다.', 'error');
-        } finally {
-            setIsSubmitting(false);
-        }
-    }, [currentApiQuestion, currentAnswer, showToast, stopTimer, showFeedback]);
-
-    // 건너뛰기 버튼 클릭
-    const handleSkipClick = useCallback(() => {
-        pauseTimer();
-        setShowSkipConfirm(true);
-    }, [pauseTimer]);
-
-    // 건너뛰기 취소 (타이머 재개)
-    const handleSkipCancel = useCallback(() => {
-        setShowSkipConfirm(false);
-        resumeTimer();
-    }, [resumeTimer]);
-
-    // 건너뛰기 확인 (오답 처리 제출)
-    const handleSkipConfirm = useCallback(async () => {
-        setShowSkipConfirm(false);
-
-        if (!currentApiQuestion) return;
-
-        // stopTimer()는 일시정지 상태에서도 누적 시간을 반환하도록 수정된 useTimer 사용
-        const responseTimeMs = stopTimer();
-        setIsSubmitting(true);
-
-        try {
-            // 빈 문자열 제출 -> 오답 처리
-            const response = await submitAnswer(
-                currentApiQuestion.questionId,
-                "",
-                responseTimeMs
-            );
-
-            setFeedbackData({
-                isCorrect: false, // 건너뛰기는 항상 오답
-                correctAnswer: response.correctAnswer,
-                explanation: response.explanation,
-            });
-            setShowFeedback(true);
-
-            setSolvedCount(prev => prev + 1);
-            // 오답이므로 correctCount는 증가시키지 않음
-            setTotalResponseTimeMs(prev => prev + responseTimeMs);
-
-            if (response.nextQuestion) {
-                setNextQuestionData(response.nextQuestion);
-            } else {
-                showToast('다음 문제를 불러오는데 실패했습니다.', 'error');
-            }
-
-        } catch (err) {
-            console.error('[ContinuousQuizSession] 건너뛰기 제출 실패:', err);
-            showToast('제출에 실패했습니다.', 'error');
-        } finally {
-            setIsSubmitting(false);
-        }
-
-    }, [currentApiQuestion, stopTimer, showToast]);
-
-    // 코스로 돌아가기
-    const handleReturnToCourse = useCallback(() => {
-        navigate(`/quiz-practice/${courseId}`);
-    }, [courseId, navigate]);
-
-    // 다시 학습하기
-    const handleRetry = useCallback(() => {
-        window.location.reload();
-    }, []);
-
-    // 세션 종료 및 결과 표시
-    const handleEndSession = useCallback(() => {
-        if (solvedCount === 0) {
-            // 문제를 풀지 않은 경우 바로 나가기
-            navigate(`/quiz-practice/${courseId}`);
-            return;
-        }
-
-        if (confirm('학습을 종료하고 결과를 확인하시겠습니까?')) {
-            const avgResponseTime = solvedCount > 0 ? Math.round(totalResponseTimeMs / solvedCount) : 0;
-            setSessionSummary({
-                totalQuestions: solvedCount,
-                correctCount: correctCount,
-                incorrectCount: solvedCount - correctCount,
-                averageResponseTimeMs: avgResponseTime,
-            });
-            setIsSessionComplete(true);
-        }
-    }, [solvedCount, correctCount, totalResponseTimeMs, courseId, navigate]);
-
-    // 뒤로가기 버튼 (확인 없이 바로 나가기)
-    const handleBackClick = () => {
-        if (solvedCount > 0) {
-            handleEndSession();
-        } else {
-            navigate(`/quiz-practice/${courseId}`);
-        }
-    };
-
+    // ─────────────────────────────────────────────────────────────────────────
     // 로딩 상태
-    if (isLoading) {
+    // ─────────────────────────────────────────────────────────────────────────
+    if (ui.isLoading) {
         return (
             <div
                 className="min-h-screen flex items-center justify-center"
@@ -669,215 +68,90 @@ export const ContinuousQuizSession = () => {
         );
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
     // 에러 상태
-    if (error || (!currentQuestion && !isSessionComplete)) {
+    // ─────────────────────────────────────────────────────────────────────────
+    if (ui.error || (!question.current && !session.isComplete)) {
         return (
-            <div
-                className="min-h-screen flex items-center justify-center"
-                style={{ backgroundColor: 'var(--color-background)' }}
-            >
-                <div
-                    className="text-center max-w-md mx-auto p-8 rounded-2xl"
-                    style={{
-                        backgroundColor: 'var(--color-surface)',
-                        boxShadow: 'var(--shadow-lg)',
-                    }}
-                >
-                    <AlertCircle
-                        size={48}
-                        className="mx-auto mb-4"
-                        style={{ color: 'var(--color-error)' }}
-                    />
-                    <h2
-                        className="text-xl font-bold mb-2"
-                        style={{ color: 'var(--color-text-primary)' }}
-                    >
-                        문제를 불러올 수 없습니다
-                    </h2>
-                    <p
-                        className="text-sm mb-6"
-                        style={{ color: 'var(--color-text-secondary)' }}
-                    >
-                        {error || '문제 데이터를 찾을 수 없습니다.'}
-                    </p>
-                    <div className="flex gap-3 justify-center">
-                        <Button
-                            variant="google-primary"
-                            size="md"
-                            onClick={handleRetry}
-                            leftIcon={<RefreshCw size={18} />}
-                        >
-                            다시 시도
-                        </Button>
-                        <Button
-                            variant="google-ghost"
-                            size="md"
-                            onClick={() => navigate(`/quiz-practice/${courseId || ''}`)}
-                        >
-                            코스로 돌아가기
-                        </Button>
-                    </div>
-                </div>
-            </div>
+            <ErrorScreen
+                error={ui.error}
+                onRetry={handleRetry}
+                onReturnToCourse={handleReturnToCourse}
+            />
         );
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
     // 세션 완료 화면
-    if (isSessionComplete && sessionSummary) {
+    // ─────────────────────────────────────────────────────────────────────────
+    if (session.isComplete && session.summary) {
         return (
             <SessionComplete
-                summary={sessionSummary}
+                summary={session.summary}
                 onReturnToCourse={handleReturnToCourse}
                 onRetry={handleRetry}
             />
         );
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
     // 메인 퀴즈 화면
+    // ─────────────────────────────────────────────────────────────────────────
     return (
         <div
             className="min-h-screen"
             style={{ backgroundColor: 'var(--color-background)' }}
         >
             {/* 헤더 */}
-            <header
-                className="sticky top-0 z-10 backdrop-blur-md"
-                style={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                    borderBottom: '1px solid var(--color-border)',
-                }}
-            >
-                <div className="max-w-3xl mx-auto px-4 py-4">
-                    <Breadcrumb
-                        items={[
-                            { label: '퀴즈', path: '/quiz' },
-                            { label: '연속 학습' },
-                        ]}
-                        className="mb-2"
-                    />
-                    <div className="flex items-center justify-between mb-3">
-                        <Button
-                            variant="google-ghost"
-                            size="sm"
-                            onClick={handleBackClick}
-                            leftIcon={<ArrowLeft size={18} />}
-                        >
-                            나가기
-                        </Button>
-
-                        <span
-                            className="text-sm font-medium px-3 py-1 rounded-full"
-                            style={{
-                                backgroundColor: 'var(--color-primary-light)',
-                                color: 'var(--color-primary)',
-                            }}
-                        >
-                            연속 학습
-                        </span>
-                    </div>
-
-                    {/* 진행 상황 카운터 */}
-                    <div
-                        className="flex items-center justify-between text-sm"
-                        style={{ color: 'var(--color-text-secondary)' }}
-                    >
-                        <span>
-                            진행: <strong style={{ color: 'var(--color-primary)' }}>{solvedCount}</strong>
-                            {questionLimit ? ` / ${questionLimit}` : ' 문제'}
-                        </span>
-                        <span>정답률: <strong style={{ color: 'var(--color-success)' }}>
-                            {solvedCount > 0 ? Math.round((correctCount / solvedCount) * 100) : 0}%
-                        </strong></span>
-                    </div>
-                </div>
-            </header>
+            <SessionHeader
+                solvedCount={progress.solvedCount}
+                correctCount={progress.correctCount}
+                questionLimit={questionLimit}
+                onBackClick={handleBackClick}
+            />
 
             {/* 메인 컨텐츠 */}
             <main className="max-w-3xl mx-auto px-4 py-8">
-                {currentQuestion && (
+                {question.current && (
                     <>
                         {/* 문제 카드 */}
                         <QuestionCard
-                            question={currentQuestion}
-                            questionNumber={solvedCount + 1}
-                            currentAnswer={currentAnswer}
+                            question={question.current}
+                            questionNumber={progress.solvedCount + 1}
+                            currentAnswer={question.answer}
                             onAnswerChange={handleAnswerChange}
-                            onSubmit={showFeedback ? undefined : handleSubmit}
+                            onSubmit={modal.showFeedback ? undefined : handleSubmit}
                             className="mb-8"
                         />
 
-                        {/* 제출 버튼 */}
+                        {/* 제출/건너뛰기 버튼 */}
                         <ContinuousQuizNavigation
                             onSubmit={handleSubmit}
                             onSkip={handleSkipClick}
-                            isLoading={isSubmitting}
-                            isSubmitDisabled={!isValidAnswer(currentAnswer)}
+                            isLoading={ui.isSubmitting}
+                            isSubmitDisabled={!isAnswerValid}
                         />
                     </>
                 )}
             </main>
 
             {/* 피드백 모달 */}
-            {feedbackData && (
+            {modal.feedbackData && (
                 <FeedbackModal
-                    isOpen={showFeedback}
-                    isCorrect={feedbackData.isCorrect}
-                    correctAnswer={feedbackData.correctAnswer}
-                    explanation={feedbackData.explanation}
+                    isOpen={modal.showFeedback}
+                    isCorrect={modal.feedbackData.isCorrect}
+                    correctAnswer={modal.feedbackData.correctAnswer}
+                    explanation={modal.feedbackData.explanation}
                     onContinue={handleNextQuestion}
                 />
             )}
 
             {/* 건너뛰기 확인 모달 */}
-            {showSkipConfirm && (
-                <div
-                    className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200"
-                    style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
-                >
-                    <div
-                        className="w-full max-w-sm rounded-2xl p-6"
-                        style={{
-                            backgroundColor: 'var(--color-surface)',
-                            boxShadow: 'var(--shadow-xl)',
-                        }}
-                    >
-                        <div className="text-center mb-6">
-                            <div
-                                className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4"
-                                style={{ backgroundColor: 'var(--color-warning-light)' }}
-                            >
-                                <AlertCircle size={24} style={{ color: 'var(--color-warning-dark)' }} />
-                            </div>
-                            <h3 className="text-lg font-bold mb-2 text-text-primary">
-                                문제를 건너뛰시겠습니까?
-                            </h3>
-                            <p className="text-sm text-text-secondary leading-relaxed">
-                                건너뛰기를 할 시 <strong className="text-error">오답 처리</strong>됩니다.<br />
-                                <span className="text-xs text-text-tertiary">(타이머가 일시 정지되었습니다)</span>
-                            </p>
-                        </div>
-
-                        <div className="flex gap-3">
-                            <Button
-                                variant="google-ghost"
-                                size="md"
-                                onClick={handleSkipCancel}
-                                className="flex-1"
-                            >
-                                취소
-                            </Button>
-                            <Button
-                                variant="google-primary"
-                                size="md"
-                                onClick={handleSkipConfirm}
-                                className="flex-1 bg-error hover:bg-error-dark border-transparent text-white"
-                            >
-                                확인
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <SkipConfirmModal
+                isOpen={modal.showSkipConfirm}
+                onCancel={handleSkipCancel}
+                onConfirm={handleSkipConfirm}
+            />
         </div>
     );
 };
