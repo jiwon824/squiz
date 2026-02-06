@@ -69,7 +69,14 @@ export const getStudyQuizzes = async (studyId: number): Promise<StudyQuizListIte
  */
 export const getQuizDetail = async (studyId: number, quizId: number): Promise<StudyQuizDetail> => {
     const response = await api.get(`/api/v1/studies/${studyId}/quizzes/${quizId}`);
-    return response.data;
+    const detail = response.data;
+    // 주관식(SHORT_ANSWER) 임시 제외
+    return {
+        ...detail,
+        questions: detail.questions.filter(
+            (q: StudyQuizQuestion) => q.questionType !== 'SHORT_ANSWER'
+        ),
+    };
 };
 
 /**

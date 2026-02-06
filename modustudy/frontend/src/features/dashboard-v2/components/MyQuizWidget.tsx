@@ -38,7 +38,11 @@ export const MyQuizWidget: React.FC = () => {
             try {
                 setIsLoading(true);
                 const response = await getTodayReviews();
-                setReviewItems(response.items || []);
+                // question이 null이거나 주관식(SHORT_ANSWER)인 항목 임시 제외
+                const filtered = (response.items || []).filter(
+                    item => item.question != null && item.question.questionType !== 'SHORT_ANSWER'
+                );
+                setReviewItems(filtered);
             } catch (err) {
                 console.error('[MyQuizWidget] 데이터 로딩 실패:', err);
                 setReviewItems([]);

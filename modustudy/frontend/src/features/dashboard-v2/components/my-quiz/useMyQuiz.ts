@@ -77,9 +77,13 @@ export const useMyQuiz = (): UseMyQuizReturn => {
       const quizStatsData = results[3].status === 'fulfilled' ? results[3].value : null;
       const reviewStatsData = results[4].status === 'fulfilled' ? results[4].value : null;
 
-      // question이 null인 항목 필터링 (백엔드 데이터 무결성 방어)
-      const filteredToday = (todayData?.items || []).filter(item => item.question != null) as ReviewItemDto[];
-      const filteredWrong = (wrongData?.items || []).filter(item => item.question != null) as ReviewItemDto[];
+      // question이 null인 항목 필터링 + 주관식(SHORT_ANSWER) 임시 제외
+      const filteredToday = (todayData?.items || []).filter(
+        item => item.question != null && item.question.questionType !== 'SHORT_ANSWER'
+      ) as ReviewItemDto[];
+      const filteredWrong = (wrongData?.items || []).filter(
+        item => item.question != null && item.question.questionType !== 'SHORT_ANSWER'
+      ) as ReviewItemDto[];
       setTodayReviews(filteredToday);
       setWrongReviews(filteredWrong);
       setWrongTotalCount(wrongData?.totalCount || 0);
