@@ -72,12 +72,13 @@
 
 .workspace-sidebar__divider {
   height: 1px;
-  margin: 150px 16px 8px 16px;
+  margin: 8px 16px;
   background-color: var(--ws-divider);
 }
 
 .workspace-sidebar__quick-actions {
   padding: 8px;
+  flex-shrink: 0;
 }
 
 	.workspace-sidebar__section-title {
@@ -180,6 +181,13 @@
   color: var(--color-primary);
 }
 
+/* 미팅 섹션 (빠른 액션 위에 배치) */
+.workspace-sidebar__meeting-section {
+  padding: 12px;
+  flex-shrink: 0;
+}
+
+/* 하단 고정용 - 레거시 지원 */
 .workspace-sidebar__footer {
   padding: 12px;
   border-top: 1px solid var(--ws-border);
