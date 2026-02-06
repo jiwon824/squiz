@@ -1,5 +1,6 @@
 // Friend Store - 친구 관련 상태 관리 (Zustand)
 import { create } from 'zustand';
+import { getErrorMessage } from '@/shared/utils/errorUtils';
 import {
     getFriends,
     getReceivedRequests,
@@ -48,9 +49,9 @@ export const useFriendStore = create<FriendState>((set, get) => ({
         try {
             const friends = await getFriends();
             set({ friends, isLoading: false });
-        } catch (error: any) {
+        } catch (error: unknown) {
             set({
-                error: error.response?.data?.message || '친구 목록을 불러오지 못했습니다.',
+                error: getErrorMessage(error, '친구 목록을 불러오지 못했습니다.'),
                 isLoading: false
             });
         }
@@ -61,7 +62,7 @@ export const useFriendStore = create<FriendState>((set, get) => ({
         try {
             const receivedRequests = await getReceivedRequests();
             set({ receivedRequests });
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('친구 요청 목록 조회 실패:', error);
         }
     },
@@ -76,7 +77,7 @@ export const useFriendStore = create<FriendState>((set, get) => ({
         try {
             const results = await searchUsers(query);
             set({ searchResults: results, isLoading: false });
-        } catch (error: any) {
+        } catch (error: unknown) {
             set({ isLoading: false });
             console.error('사용자 검색 실패:', error);
         }
@@ -92,8 +93,8 @@ export const useFriendStore = create<FriendState>((set, get) => ({
                     user.id === userId ? { ...user, isPending: true } : user
                 )
             }));
-        } catch (error: any) {
-            set({ error: error.response?.data?.message || '친구 요청에 실패했습니다.' });
+        } catch (error: unknown) {
+            set({ error: getErrorMessage(error, '친구 요청에 실패했습니다.') });
         }
     },
 
@@ -106,8 +107,8 @@ export const useFriendStore = create<FriendState>((set, get) => ({
                 receivedRequests: state.receivedRequests.filter(req => req.id !== requestId)
             }));
             get().fetchFriends();
-        } catch (error: any) {
-            set({ error: error.response?.data?.message || '요청 수락에 실패했습니다.' });
+        } catch (error: unknown) {
+            set({ error: getErrorMessage(error, '요청 수락에 실패했습니다.') });
         }
     },
 
@@ -118,8 +119,8 @@ export const useFriendStore = create<FriendState>((set, get) => ({
             set(state => ({
                 receivedRequests: state.receivedRequests.filter(req => req.id !== requestId)
             }));
-        } catch (error: any) {
-            set({ error: error.response?.data?.message || '요청 거절에 실패했습니다.' });
+        } catch (error: unknown) {
+            set({ error: getErrorMessage(error, '요청 거절에 실패했습니다.') });
         }
     },
 
@@ -130,8 +131,8 @@ export const useFriendStore = create<FriendState>((set, get) => ({
             set(state => ({
                 friends: state.friends.filter(friend => friend.id !== friendshipId)
             }));
-        } catch (error: any) {
-            set({ error: error.response?.data?.message || '친구 삭제에 실패했습니다.' });
+        } catch (error: unknown) {
+            set({ error: getErrorMessage(error, '친구 삭제에 실패했습니다.') });
         }
     },
 

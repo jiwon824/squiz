@@ -375,8 +375,6 @@ export const saveAnswer = async (
         },
     };
 
-    console.log(`[quizCourseApi] 답안 저장 요청: questionId=${questionId}, responseTimeMs=${responseTimeMs}ms`);
-
     const response = await api.patch<ApiResponse<null>>(
         `/api/v1/quiz-courses/${courseId}/sections/${sectionNumber}/attempts/${attemptId}/answers`,
         request
@@ -385,7 +383,6 @@ export const saveAnswer = async (
         throw new Error(response.data.error?.message || '답안 저장에 실패했습니다.');
     }
 
-    console.log(`[quizCourseApi] 답안 저장 성공: questionId=${questionId}`);
 };
 
 /**

@@ -53,4 +53,16 @@ interface AttendanceApi {
         @Path("studyId") studyId: Long,
         @Path("sessionId") sessionId: Long
     ): Response<ApiResponse<SessionAttendanceInfoDTO>>
+
+    /**
+     * 출석 상태 수동 변경 (스터디장)
+     * BLE 기능이 안되거나 핸드폰 미소지자를 위해 스터디장이 수동으로 출석 처리
+     */
+    @PATCH("api/v1/studies/{studyId}/sessions/{sessionId}/attendance/{targetUserId}")
+    suspend fun updateAttendanceManually(
+        @Path("studyId") studyId: Long,
+        @Path("sessionId") sessionId: Long,
+        @Path("targetUserId") targetUserId: Long,
+        @Body request: AttendanceManualUpdateRequest
+    ): Response<ApiResponse<AttendanceResponse>>
 }

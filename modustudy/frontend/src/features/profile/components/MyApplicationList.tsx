@@ -37,10 +37,7 @@ export const MyApplicationList: React.FC = () => {
                 50
             );
 
-            console.log('[MyApplicationList] API 응답:', response);
-
             const content = response?.data?.content || response?.content || [];
-            console.log('[MyApplicationList] 신청 내역 수:', content.length);
 
             const mappedApplications: Application[] = content
                 // 승인된 신청은 "내 스터디 활동"에 표시되므로 여기서는 제외

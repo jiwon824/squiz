@@ -98,8 +98,7 @@ export const useRecruitmentStore = create<RecruitmentStore>((set) => ({
         comments: state.comments.filter((c) => c.id !== commentId)
     })),
 
-    report: (request) => {
-        console.log('Report submitted:', request);
+    report: (_request) => {
         useUIStore.getState().showToast('신고가 접수되었습니다.', 'success');
     },
 

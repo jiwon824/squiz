@@ -11,6 +11,7 @@ import { DatePicker } from './DatePicker';
 import { TimePicker } from './TimePicker';
 import { getTopics, getFormats, createStudy, getProvinces, getDistricts, type TopicParent, type FormatItem, type StudyCreatePayload, type RegionItem } from '@/api/endpoints/studyApi';
 import { useUIStore } from '@/store/uiStore';
+import { getErrorMessage } from '@/shared/utils/errorUtils';
 
 
 // 대분류 → 세부주제 매핑
@@ -310,11 +311,8 @@ const LightningStudyCreatePage: React.FC = () => {
 
             showToast('번개 스터디가 개설되었습니다!', 'success');
             navigate('/study');
-        } catch (error: any) {
-            console.error('번개 스터디 생성 실패:', error);
-            console.error('에러 응답:', error?.response);
-            console.error('에러 데이터:', error?.response?.data);
-            const message = error?.response?.data?.error?.message || error?.response?.data?.message || '번개 스터디 개설에 실패했습니다.';
+        } catch (error: unknown) {
+            const message = getErrorMessage(error, '번개 스터디 개설에 실패했습니다.');
             showToast(message, 'error');
         } finally {
             setIsSubmitting(false);

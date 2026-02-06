@@ -46,8 +46,8 @@ export const CourseQuizStatsChart: React.FC<Props> = React.memo(({ data }) => {
                         <Tooltip
                             content={({ active, payload, label }) => {
                                 if (active && payload && payload.length) {
-                                    const attempted = payload.find((p: any) => p.dataKey === 'attemptedCount');
-                                    const correct = payload.find((p: any) => p.dataKey === 'correctCount');
+                                    const attempted = payload.find((p) => p.dataKey === 'attemptedCount');
+                                    const correct = payload.find((p) => p.dataKey === 'correctCount');
                                     const attemptedVal = (attempted?.value as number) || 0;
                                     const correctVal = (correct?.value as number) || 0;
 

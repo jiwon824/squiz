@@ -60,11 +60,7 @@ class WorkspaceWebSocketService {
         userId: userId.toString(),
         nickname: nickname,
       },
-      debug: (str) => {
-        if (import.meta.env.DEV) {
-          console.log('[Workspace WS]', str);
-        }
-      },
+      debug: () => {},
       reconnectDelay: 5000,
       heartbeatIncoming: 4000,
       heartbeatOutgoing: 4000,
@@ -80,7 +76,6 @@ class WorkspaceWebSocketService {
    * 연결 성공 시
    */
   private onConnected(): void {
-    console.log('[Workspace WS] 연결됨');
     this.setConnectionStatus('CONNECTED');
 
     // 워크스페이스 입장 메시지 전송
@@ -107,7 +102,6 @@ class WorkspaceWebSocketService {
       this.handleEvent(message);
     });
 
-    console.log(`[Workspace WS] 구독 시작: /topic/workspace/${this.workspaceId}`);
   }
 
   /**
@@ -146,11 +140,9 @@ class WorkspaceWebSocketService {
           this.handlers.onPresence?.(event);
           break;
         case 'PIN':
-          console.log('[Workspace WS] PIN 이벤트 수신:', event);
           this.handlers.onPin?.(event);
           break;
         default:
-          console.log('[Workspace WS] 알 수 없는 이벤트 타입:', event.type, event);
       }
     } catch (e) {
       console.error('[Workspace WS] 이벤트 파싱 실패:', e);
@@ -161,7 +153,6 @@ class WorkspaceWebSocketService {
    * 연결 해제 시
    */
   private onDisconnected(): void {
-    console.log('[Workspace WS] 연결 해제됨');
     this.setConnectionStatus('DISCONNECTED');
   }
 

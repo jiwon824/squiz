@@ -34,9 +34,9 @@ interface LocalRecordingDao {
     suspend fun getSelectedRecordings(studyId: Long): List<LocalRecording>
 
     /**
-     * 현재 최대 선택 순서 조회
+     * 현재 최대 선택 순서 조회 (미업로드 + 현재 선택된 녹음만)
      */
-    @Query("SELECT COALESCE(MAX(selectedOrder), 0) FROM local_recordings WHERE studyId = :studyId")
+    @Query("SELECT COALESCE(MAX(selectedOrder), 0) FROM local_recordings WHERE studyId = :studyId AND uploaded = 0 AND selected = 1")
     suspend fun getMaxSelectedOrder(studyId: Long): Int
 
     /**

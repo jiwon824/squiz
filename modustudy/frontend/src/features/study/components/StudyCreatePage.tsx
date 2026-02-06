@@ -17,6 +17,9 @@ import {
     type TopicParent, type FormatItem, type RegionItem, type StudyCreatePayload, type AiStudyPlanResponse, type StudyTemplateItem
 } from '@/api/endpoints/studyApi';
 import { getStudyPreference } from '@/features/setting/api/settingApi';
+import type { StudyPreference } from '@/features/setting/types';
+import { getErrorMessage } from '@/shared/utils/errorUtils';
+import axios from 'axios';
 
 interface CurriculumItem {
     session: number;
@@ -143,7 +146,7 @@ const StudyCreatePage: React.FC = () => {
                 let topicParentId: number | null = null;
                 if (study.topic?.id) {
                     for (const parent of topics) {
-                        const found = parent.children.find((c: any) => c.id === study.topic.id);
+                        const found = parent.children.find((c: { id: number }) => c.id === study.topic.id);
                         if (found) {
                             topicParentId = parent.id;
                             break;
@@ -334,7 +337,7 @@ const StudyCreatePage: React.FC = () => {
 
             try {
                 // API에서 선호 설정 가져오기
-                const pref: any = await getStudyPreference();
+                const pref = await getStudyPreference() as StudyPreference & { techStacks?: string[]; preferredTimeSlots?: string[] };
                 const apiTechStacks = pref.techStacks || pref.techStack || [];
                 const apiTimeSlots = pref.preferredTimeSlots || [];
                 const apiAvailableDays = pref.availableDays || [];
@@ -1022,7 +1025,7 @@ const StudyCreatePage: React.FC = () => {
             } catch { /* 무시 */ }
 
             try {
-                const pref: any = await getStudyPreference();
+                const pref = await getStudyPreference() as StudyPreference & { techStacks?: string[]; preferredTimeSlots?: string[] };
                 // 백엔드 필드명: techStacks, preferredTimeSlots (복수형)
                 const apiStacks = pref.techStacks || pref.techStack || [];
                 const apiAvailableDays = pref.availableDays || [];
@@ -1432,9 +1435,9 @@ const StudyCreatePage: React.FC = () => {
 
             // 스트리밍이 완료될 때까지 기다리므로 여기서 return
             return;
-        } catch (err: any) {
+        } catch (err: unknown) {
             if (stepInterval) clearInterval(stepInterval);
-            const message = err?.response?.data?.error?.message || 'AI 생성에 실패했습니다. 다시 시도해주세요.';
+            const message = getErrorMessage(err, 'AI 생성에 실패했습니다. 다시 시도해주세요.');
             showToast(message, 'error');
             console.error('AI 스터디 계획 생성 실패:', err);
             setGenerationStep('');
@@ -1474,8 +1477,8 @@ const StudyCreatePage: React.FC = () => {
             });
 
             showToast('임시저장되었습니다.', 'success');
-        } catch (err: any) {
-            const message = err?.response?.data?.error?.message || '임시저장에 실패했습니다.';
+        } catch (err: unknown) {
+            const message = getErrorMessage(err, '임시저장에 실패했습니다.');
             showToast(message, 'error');
             console.error('임시저장 실패:', err);
         } finally {
@@ -1563,49 +1566,35 @@ const StudyCreatePage: React.FC = () => {
                 showToast('스터디가 생성되었습니다!', 'success');
                 navigate('/study');
             }
-        } catch (err: any) {
-            console.error(isEditMode ? '스터디 수정 실패:' : '스터디 생성 실패:', err);
-
+        } catch (err: unknown) {
             // validation 에러 추출
-            const errorData = err?.response?.data;
             const errors: string[] = [];
 
-            // 1. 백엔드 validation 에러 메시지 확인 (Spring Validation)
-            // 형식: { error: { message: "시작일은 필수입니다" } } 또는 { message: "..." }
-            const errorMsg = errorData?.error?.message || errorData?.message || '';
+            if (axios.isAxiosError(err)) {
+                const errorData = err.response?.data;
+                // 1. 백엔드 validation 에러 메시지 확인 (Spring Validation)
+                const errorMsg = errorData?.error?.message || errorData?.message || '';
 
-            // 2. 백엔드 BindingResult 형태의 에러 (필드별 에러)
-            const fieldErrors = errorData?.error?.fieldErrors || errorData?.fieldErrors || errorData?.errors;
+                // 2. 백엔드 BindingResult 형태의 에러 (필드별 에러)
+                const fieldErrors = errorData?.error?.fieldErrors || errorData?.fieldErrors || errorData?.errors;
 
-            if (Array.isArray(fieldErrors) && fieldErrors.length > 0) {
-                // 필드별 에러 메시지 추출
-                fieldErrors.forEach((fe: any) => {
-                    const msg = fe.defaultMessage || fe.message || fe;
-                    if (typeof msg === 'string' && !errors.includes(msg)) {
-                        errors.push(msg);
-                    }
-                });
-            }
-
-            // 3. 에러 메시지 키워드 파싱 (백엔드에서 구체적 메시지를 제공한 경우)
-            if (errorMsg) {
-                // "시작일은 필수입니다", "종료일은 필수입니다" 등의 메시지가 있으면 추출
-                if (errorMsg.includes('시작일')) {
-                    errors.push('모집기간 시작일을 설정해주세요.');
-                }
-                if (errorMsg.includes('종료일')) {
-                    errors.push('모집기간 종료일을 설정해주세요.');
-                }
-                if (errorMsg.includes('주제')) {
-                    errors.push('스터디 주제를 선택해주세요.');
-                }
-                if (errorMsg.includes('스터디명')) {
-                    errors.push('스터디 이름을 입력해주세요.');
+                if (Array.isArray(fieldErrors) && fieldErrors.length > 0) {
+                    // 필드별 에러 메시지 추출
+                    fieldErrors.forEach((fe: { defaultMessage?: string; message?: string } | string) => {
+                        const msg = typeof fe === 'string' ? fe : (fe.defaultMessage || fe.message || '');
+                        if (msg && !errors.includes(msg)) {
+                            errors.push(msg);
+                        }
+                    });
                 }
 
-                // 위 키워드에 해당하지 않는 에러 메시지면 원본 추가
-                if (errors.length === 0) {
-                    errors.push(errorMsg);
+                // 3. 에러 메시지 키워드 파싱
+                if (errorMsg && errors.length === 0) {
+                    if (errorMsg.includes('시작일')) errors.push('모집기간 시작일을 설정해주세요.');
+                    if (errorMsg.includes('종료일')) errors.push('모집기간 종료일을 설정해주세요.');
+                    if (errorMsg.includes('주제')) errors.push('스터디 주제를 선택해주세요.');
+                    if (errorMsg.includes('스터디명')) errors.push('스터디 이름을 입력해주세요.');
+                    if (errors.length === 0) errors.push(errorMsg);
                 }
             }
 

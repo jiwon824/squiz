@@ -82,8 +82,9 @@ export const MyCreatedStudiesWidget: React.FC = () => {
     try {
       const response = await studyApi.getMyStudies(0, 20);
       // studyApi.getMyStudies는 response.data를 반환 (Spring Page 객체)
-      const page = (response as any)?.content ? response : (response as any)?.data || response;
-      const content: StudyItem[] = page?.content || [];
+      // PageResponse 또는 래퍼 응답 처리
+      const pageData = response as { content?: StudyItem[]; data?: { content?: StudyItem[] } };
+      const content: StudyItem[] = pageData?.content || pageData?.data?.content || [];
 
       // 내가 리더인 스터디만 필터 (타입 안전 비교)
       const myCreated = content.filter((s) => {

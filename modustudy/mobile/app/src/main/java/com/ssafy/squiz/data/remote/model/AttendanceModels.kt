@@ -60,3 +60,9 @@ data class SessionAttendanceInfoDTO(
     @SerializedName("presentCount") val presentCount: Int,
     @SerializedName("members") val members: List<SessionAttendanceDTO>
 )
+
+// 수동 출석 상태 변경 요청 (스터디장용)
+data class AttendanceManualUpdateRequest(
+    @SerializedName("status") val status: String,  // PRESENT, ABSENT, LATE
+    @SerializedName("reason") val reason: String? = null  // 사유 (선택)
+)

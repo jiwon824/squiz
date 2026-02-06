@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileWarning, Check, X, MessageSquare, Calendar, ChevronDown, Filter } from 'lucide-react';
+import { FileWarning, Check, X, MessageSquare, Calendar, ChevronDown } from 'lucide-react';
 import { studyApi } from '@/api/endpoints/studyApi';
 import { useUIStore } from '@/store/uiStore';
 import { getProfileImageUrl, DEFAULT_PROFILE_IMAGE } from '@/shared/utils/profileImage';
@@ -46,13 +46,10 @@ const ExcuseManagement: React.FC<ExcuseManagementProps> = ({ studyId }) => {
         setLoading(true);
         try {
             const membersResponse = await studyApi.getStudyMembers(studyId, 0, 200);
-            const membersPayload = (membersResponse as any)?.data ?? membersResponse;
-            const members = Array.isArray(membersPayload?.content)
-                ? membersPayload.content
-                : membersPayload?.data?.content || [];
+            const members = membersResponse?.content || [];
             // userId -> { nickname, profileImage } 매핑
             const memberInfoById = new Map<number, { nickname: string; profileImage: string | null }>();
-            members.forEach((member: any) => {
+            members.forEach((member: { userId?: number; userNickname?: string; userName?: string; userProfileImage?: string | null; profileImage?: string | null }) => {
                 if (member?.userId) {
                     memberInfoById.set(member.userId, {
                         nickname: member.userNickname || member.userName || '이름 없음',
@@ -62,7 +59,7 @@ const ExcuseManagement: React.FC<ExcuseManagementProps> = ({ studyId }) => {
             });
 
             const sessionsResponse = await studyApi.getStudySessions(studyId);
-            const sessionsPayload = (sessionsResponse as any)?.data ?? sessionsResponse;
+            const sessionsPayload = (sessionsResponse as { data?: Array<{ id: number; title: string; sessionNumber: number; scheduledAt: string }> })?.data ?? sessionsResponse;
             const sessions = Array.isArray(sessionsPayload?.data) ? sessionsPayload.data : sessionsPayload || [];
 
             const allExcuses: Excuse[] = [];
@@ -70,12 +67,12 @@ const ExcuseManagement: React.FC<ExcuseManagementProps> = ({ studyId }) => {
                 try {
                     const attendanceResponse = await studyApi.getSessionAttendance(studyId, session.id);
                     // API 응답 구조: { sessionId, sessionTitle, totalMembers, presentCount, members: [...] }
-                    const attendancePayload = (attendanceResponse as any)?.data ?? attendanceResponse;
+                    const attendancePayload = (attendanceResponse as { data?: { members?: Array<Record<string, unknown>> }; members?: Array<Record<string, unknown>> })?.data ?? attendanceResponse;
                     const attendances = attendancePayload?.members || [];
 
                     const sessionExcuses = attendances
-                        .filter((att: any) => att.excuseReason && att.excuseStatus)
-                        .map((att: any) => {
+                        .filter((att: { excuseReason?: string; excuseStatus?: string; userId?: number; id?: number; checkedAt?: string }) => att.excuseReason && att.excuseStatus)
+                        .map((att: { excuseReason?: string; excuseStatus?: ExcuseStatus; userId: number; id: number; checkedAt?: string }) => {
                             const memberInfo = memberInfoById.get(att.userId);
                             return {
                                 attendanceId: att.id,
@@ -230,7 +227,7 @@ const ExcuseManagement: React.FC<ExcuseManagementProps> = ({ studyId }) => {
                     ].map((filter) => (
                         <button
                             key={filter.value}
-                            onClick={() => setFilterStatus(filter.value as any)}
+                            onClick={() => setFilterStatus(filter.value as ExcuseStatus | 'all')}
                             className={`px-4 py-2 rounded-xl text-sm font-medium transition-all
                                 ${filterStatus === filter.value
                                     ? 'bg-primary text-white'

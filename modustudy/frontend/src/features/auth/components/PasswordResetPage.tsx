@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import AuthLayout from './AuthLayout';
 import { authApi } from '@/api/endpoints/authApi';
 import { PasswordInput } from './PasswordInput';
+import { getErrorMessage } from '@/shared/utils/errorUtils';
 
 export const PasswordResetPage = () => {
     const navigate = useNavigate();
@@ -46,11 +47,11 @@ export const PasswordResetPage = () => {
             setTimeout(() => {
                 navigate('/login');
             }, 3000);
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Password reset error:', error);
             setMessage({
                 type: 'error',
-                text: error.response?.data?.message || '비밀번호 변경에 실패했습니다. 링크가 만료되었을 수 있습니다.'
+                text: getErrorMessage(error, '비밀번호 변경에 실패했습니다. 링크가 만료되었을 수 있습니다.')
             });
         } finally {
             setIsLoading(false);

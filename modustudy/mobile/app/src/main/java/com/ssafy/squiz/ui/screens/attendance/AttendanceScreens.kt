@@ -305,6 +305,19 @@ fun AttendanceLeaderScreen(
     val attendanceState by viewModel.attendanceState.collectAsState()
     val sessionAttendanceState by viewModel.sessionAttendanceState.collectAsState()
     val isAdvertising by viewModel.isAdvertising.collectAsState()
+    val manualAttendanceResult by viewModel.manualAttendanceResult.collectAsState()
+
+    // 수동 출석 다이얼로그 상태
+    var showManualAttendanceDialog by remember { mutableStateOf(false) }
+    var selectedMember by remember { mutableStateOf<com.ssafy.squiz.data.remote.model.SessionAttendanceDTO?>(null) }
+
+    // 수동 출석 결과 처리
+    LaunchedEffect(manualAttendanceResult) {
+        manualAttendanceResult?.let { message ->
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+            viewModel.clearManualAttendanceResult()
+        }
+    }
 
     // BLE 권한 목록 (Android 12+ 새로운 권한)
     val blePermissions = remember {
@@ -495,9 +508,20 @@ fun AttendanceLeaderScreen(
                         items(state.info.members) { member ->
                             val isPresent = member.status == "PRESENT"
                             val isLate = member.status == "LATE"
+                            val isPending = member.status == "PENDING" || member.status == "ABSENT"
 
                             Card(
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .then(
+                                        // 대기중인 멤버만 클릭 가능 (수동 출석)
+                                        if (isPending) {
+                                            Modifier.clickable {
+                                                selectedMember = member
+                                                showManualAttendanceDialog = true
+                                            }
+                                        } else Modifier
+                                    ),
                                 shape = RoundedCornerShape(12.dp),
                                 colors = CardDefaults.cardColors(
                                     containerColor = when {
@@ -527,6 +551,12 @@ fun AttendanceLeaderScreen(
                                                 fontSize = 12.sp,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
+                                        } else if (isPending) {
+                                            Text(
+                                                text = "탭하여 수동 출석",
+                                                fontSize = 12.sp,
+                                                color = Primary
+                                            )
                                         }
                                     }
                                     when (member.status) {
@@ -552,10 +582,10 @@ fun AttendanceLeaderScreen(
                                             }
                                         }
                                         else -> {
-                                            Text(
-                                                text = "대기중",
-                                                fontSize = 13.sp,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            Icon(
+                                                imageVector = Icons.Outlined.TouchApp,
+                                                contentDescription = "수동 출석",
+                                                tint = Primary
                                             )
                                         }
                                     }
@@ -593,6 +623,105 @@ fun AttendanceLeaderScreen(
                 }
             }
         }
+    }
+
+    // 수동 출석 다이얼로그
+    if (showManualAttendanceDialog && selectedMember != null) {
+        AlertDialog(
+            onDismissRequest = {
+                showManualAttendanceDialog = false
+                selectedMember = null
+            },
+            icon = {
+                Icon(
+                    imageVector = Icons.Filled.PersonAdd,
+                    contentDescription = null,
+                    tint = Primary,
+                    modifier = Modifier.size(32.dp)
+                )
+            },
+            title = {
+                Text(
+                    text = "수동 출석 처리",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    ProfileImage(imageUrl = selectedMember?.profileImage, size = 64.dp)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = selectedMember?.nickname ?: "",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "출석 처리하시겠습니까?",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        selectedMember?.let { member ->
+                            viewModel.updateAttendanceManually(
+                                studyId = studyId,
+                                sessionId = sessionId,
+                                targetUserId = member.userId,
+                                status = "PRESENT",
+                                reason = "스터디장 수동 출석 처리"
+                            )
+                        }
+                        showManualAttendanceDialog = false
+                        selectedMember = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Success)
+                ) {
+                    Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("출석")
+                }
+            },
+            dismissButton = {
+                Row {
+                    // 지각 처리 버튼
+                    OutlinedButton(
+                        onClick = {
+                            selectedMember?.let { member ->
+                                viewModel.updateAttendanceManually(
+                                    studyId = studyId,
+                                    sessionId = sessionId,
+                                    targetUserId = member.userId,
+                                    status = "LATE",
+                                    reason = "스터디장 수동 지각 처리"
+                                )
+                            }
+                            showManualAttendanceDialog = false
+                            selectedMember = null
+                        },
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Warning)
+                    ) {
+                        Text("지각")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    // 취소 버튼
+                    TextButton(
+                        onClick = {
+                            showManualAttendanceDialog = false
+                            selectedMember = null
+                        }
+                    ) {
+                        Text("취소")
+                    }
+                }
+            }
+        )
     }
 }
 

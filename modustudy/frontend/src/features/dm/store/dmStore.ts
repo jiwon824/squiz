@@ -14,6 +14,7 @@ import {
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import { useFriendStore } from '@/features/friend/store/friendStore';
+import { getErrorMessage, getErrorStatus } from '@/shared/utils/errorUtils';
 
 // 새 대화 시작을 위한 사용자 정보
 interface PendingDMUser {
@@ -68,9 +69,9 @@ export const useDMStore = create<DMState>((set, get) => ({
         try {
             const conversations = await getConversations();
             set({ conversations, isLoadingConversations: false });
-        } catch (error: any) {
+        } catch (error: unknown) {
             set({
-                error: error.response?.data?.message || '대화 목록을 불러오지 못했습니다.',
+                error: getErrorMessage(error, '대화 목록을 불러오지 못했습니다.'),
                 isLoadingConversations: false
             });
         }
@@ -78,18 +79,16 @@ export const useDMStore = create<DMState>((set, get) => ({
 
     // 메시지 목록 조회
     fetchMessages: async (conversationId: number) => {
-        console.log('[DM] fetchMessages started for:', conversationId);
         set({ isLoading: true, currentConversationId: conversationId });
         try {
             const messages = await getMessages(conversationId);
-            console.log('[DM] fetchMessages result:', messages?.length, 'messages');
             set({ messages, isLoading: false });
             // 읽음 처리
             get().markConversationAsRead(conversationId);
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('[DM] fetchMessages error:', error);
             set({
-                error: error.response?.data?.message || '메시지를 불러오지 못했습니다.',
+                error: getErrorMessage(error, '메시지를 불러오지 못했습니다.'),
                 isLoading: false
             });
         }
@@ -108,15 +107,14 @@ export const useDMStore = create<DMState>((set, get) => ({
             });
             // 대화방 목록 새로고침
             get().fetchConversations();
-        } catch (error: any) {
-            const status = error.response?.status;
-            const serverMessage = error.response?.data?.message || error.response?.data?.error?.message;
+        } catch (error: unknown) {
+            const status = getErrorStatus(error);
+            const serverMessage = getErrorMessage(error, '메시지 전송에 실패했습니다.');
             // 403: 친구 관계 필요 등 비즈니스 에러 → 토스트로 안내
             if (status === 403) {
-                const friendMessage = serverMessage || '친구 추가 후 DM을 보낼 수 있습니다.';
-                useUIStore.getState().showToast(friendMessage, 'warning');
+                useUIStore.getState().showToast(serverMessage, 'warning');
             } else {
-                set({ error: serverMessage || '메시지 전송에 실패했습니다.' });
+                set({ error: serverMessage });
             }
         }
     },
@@ -126,7 +124,7 @@ export const useDMStore = create<DMState>((set, get) => ({
         try {
             const unreadCount = await getUnreadCount();
             set({ unreadCount });
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('안읽은 메시지 개수 조회 실패:', error);
         }
     },
@@ -143,7 +141,7 @@ export const useDMStore = create<DMState>((set, get) => ({
             }));
             // 전체 안읽은 개수 새로고침
             get().fetchUnreadCount();
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('읽음 처리 실패:', error);
         }
     },
@@ -157,17 +155,15 @@ export const useDMStore = create<DMState>((set, get) => ({
                 currentConversationId: state.currentConversationId === conversationId ? null : state.currentConversationId,
                 messages: state.currentConversationId === conversationId ? [] : state.messages
             }));
-        } catch (error: any) {
-            set({ error: error.response?.data?.message || '대화방 삭제에 실패했습니다.' });
+        } catch (error: unknown) {
+            set({ error: getErrorMessage(error, '대화방 삭제에 실패했습니다.') });
         }
     },
 
     // 현재 대화방 설정
     setCurrentConversation: (conversationId: number | null) => {
-        console.log('[DM] setCurrentConversation:', conversationId);
         set({ currentConversationId: conversationId });
         if (conversationId) {
-            console.log('[DM] Calling fetchMessages for:', conversationId);
             get().fetchMessages(conversationId);
         } else {
             set({ messages: [] });
@@ -235,22 +231,18 @@ export const useDMStore = create<DMState>((set, get) => ({
                     get().fetchUnreadCount();
                 }
             },
-            onTyping: (event) => {
+            onTyping: (_event) => {
                 // 입력 중 표시 (필요시 구현)
-                console.log('Typing:', event);
             },
-            onRead: (event) => {
+            onRead: (_event) => {
                 // 읽음 처리 (필요시 구현)
-                console.log('Read:', event);
             },
             onPresence: (event) => {
                 // 친구 온라인 상태 변경 - friendStore 업데이트
-                console.log('Friend presence:', event);
                 useFriendStore.getState().updateFriendOnlineStatus(event.userId, event.isOnline);
             },
             onConnectionChange: (status) => {
                 set({ isWebSocketConnected: status === 'CONNECTED' });
-                console.log('DM WebSocket status:', status);
             },
             onError: (error) => {
                 console.error('DM WebSocket error:', error);

@@ -104,7 +104,6 @@ export const SignupPage = () => {
 
         try {
             if (isOAuthMode && oauthData) {
-                console.log('[INFO] OAuth 회원가입 완료 요청');
 
                 localStorage.setItem('accessToken', oauthData?.accessToken || '');
                 localStorage.setItem('refreshToken', oauthData?.refreshToken || '');
@@ -126,13 +125,11 @@ export const SignupPage = () => {
 
                 localStorage.removeItem('oauthTempData');
 
-                console.log('[INFO] 회원가입 완료!');
                 showToast('회원가입이 완료되었습니다. 스터디 선호 설정을 완료해주세요.', 'success');
 
                 // 스터디 선호 설정 페이지로 강제 이동
                 window.location.href = '/setting?section=study';
             } else {
-                console.log('[INFO] 일반 회원가입', formData);
                 showToast('회원가입이 완료되었습니다.', 'success');
                 navigate('/login');
             }

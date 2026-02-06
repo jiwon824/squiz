@@ -153,8 +153,8 @@ export const calendarApi = {
             '/api/v1/users/me/study-sessions',
             { params: { startDate, endDate } }
         );
-        const data = response.data as any;
-        return Array.isArray(data) ? data : (data?.data ?? []);
+        const data = response.data as { success?: boolean; data?: StudySessionDTO[] } | StudySessionDTO[];
+        return Array.isArray(data) ? data : ((data as { data?: StudySessionDTO[] })?.data ?? []);
     },
 
     /**
@@ -166,8 +166,8 @@ export const calendarApi = {
             `/api/v1/studies/${studyId}/sessions`,
             { params: { startDate, endDate } }
         );
-        const data = response.data as any;
-        return Array.isArray(data) ? data : (data?.data ?? []);
+        const data = response.data as { success?: boolean; data?: StudySessionDTO[] } | StudySessionDTO[];
+        return Array.isArray(data) ? data : ((data as { data?: StudySessionDTO[] })?.data ?? []);
     },
 
     // ==================== Google Calendar ====================

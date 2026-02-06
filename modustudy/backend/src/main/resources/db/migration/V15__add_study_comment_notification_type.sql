@@ -1,0 +1,17 @@
+-- STUDY_COMMENT 알림 타입 추가
+ALTER TABLE notification
+MODIFY COLUMN type ENUM(
+    'CHAT',
+    'SCHEDULE',
+    'ATTENDANCE',
+    'STUDY_UPDATE',
+    'STUDY_APPLICATION',
+    'STUDY_RECRUITMENT_COMPLETE',
+    'STUDY_EXTENSION',
+    'STUDY_START',
+    'QUIZ',
+    'REPORT',
+    'SYSTEM',
+    'FRIEND',
+    'STUDY_COMMENT'
+) NOT NULL;
