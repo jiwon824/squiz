@@ -374,6 +374,7 @@ fun ScheduleDetailScreen(
     viewModel: ScheduleViewModel = viewModel()
 ) {
     val sessionDetailState by viewModel.sessionDetailState.collectAsState()
+    val isRecordingUploaded by viewModel.isRecordingUploaded.collectAsState()
 
     LaunchedEffect(studyId, sessionId) {
         viewModel.loadSessionDetail(studyId, sessionId)
@@ -449,19 +450,47 @@ fun ScheduleDetailScreen(
 
                     Spacer(modifier = Modifier.weight(1f))
 
-                    // 오프라인 녹음 버튼 (세션에 연결된 녹음 시작) - 스터디장만 표시
+                    // 오프라인 녹음 버튼 (세션에 연결된 녹음 시작) - 스터디장만, 아직 녹음 미업로드 시에만 표시
                     if (!detail.isOnline && detail.isLeader == true) {
-                        OutlinedButton(
-                            onClick = { onStartRecording(studyId, sessionId, true) },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Primary)
-                        ) {
-                            Icon(Icons.Default.Mic, contentDescription = null, modifier = Modifier.size(20.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("오프라인 미팅 녹음", fontWeight = FontWeight.SemiBold)
+                        if (isRecordingUploaded) {
+                            // 이미 녹음이 업로드된 경우 안내 표시
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        Icons.Default.CheckCircle,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        "녹음파일이 이미 업로드되었습니다",
+                                        fontSize = 14.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+                        } else {
+                            OutlinedButton(
+                                onClick = { onStartRecording(studyId, sessionId, true) },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = Primary)
+                            ) {
+                                Icon(Icons.Default.Mic, contentDescription = null, modifier = Modifier.size(20.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("오프라인 미팅 녹음", fontWeight = FontWeight.SemiBold)
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
                         }
-                        Spacer(modifier = Modifier.height(12.dp))
                     }
 
                     if (detail.attendanceStatus == null || detail.attendanceStatus == "PENDING") {

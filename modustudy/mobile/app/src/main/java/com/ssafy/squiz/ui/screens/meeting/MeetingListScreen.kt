@@ -70,9 +70,15 @@ fun MeetingListScreen(
     val selectedTotalSeconds by viewModel.selectedTotalSeconds.collectAsState()
     val remainingSeconds by viewModel.remainingSeconds.collectAsState()
 
+    // 전체 세션 목록 (세션명 조회용)
+    val allSessions by viewModel.allSessions.collectAsState()
+
     // 세션 연결 안내 텍스트 (일정 화면에서 진입한 경우)
-    val sessionInfoText = remember(sessionId) {
-        if (sessionId != null) "세션 #$sessionId 과 연결됩니다" else null
+    val sessionInfoText = remember(sessionId, allSessions) {
+        if (sessionId != null) {
+            val sessionName = allSessions.find { it.id == sessionId }?.title ?: "세션 #$sessionId"
+            "'$sessionName' 세션과 연결됩니다"
+        } else null
     }
 
     // 필요한 권한 목록
