@@ -216,13 +216,16 @@ export const LearningArchiveWidget: React.FC = () => {
                     )}
                 </div>
 
-                {/* 아카이브 리스트 */}
+                {/* 아카이브 리스트 - 5줄 이상 시 스크롤 */}
                 {filteredArchives.length > 0 ? (
                     <div
-                        className={cn(
-                            viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : 'space-y-3'
-                        )}
+                        className="max-h-[540px] overflow-y-auto pr-1 dashboard-v2-scroll"
                     >
+                        <div
+                            className={cn(
+                                viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : 'space-y-3'
+                            )}
+                        >
                         {filteredArchives.map((archive) => (
                             <div
                                 key={`${archive.studyId}-${archive.meetingId}`}
@@ -268,6 +271,7 @@ export const LearningArchiveWidget: React.FC = () => {
                                 </div>
                             </div>
                         ))}
+                        </div>
                     </div>
                 ) : (
                     <div className="text-center py-12">
