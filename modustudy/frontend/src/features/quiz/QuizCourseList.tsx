@@ -184,7 +184,6 @@ export const QuizCourseList = () => {
         <div
             className="min-h-screen"
             style={{
-                backgroundColor: 'var(--color-background)',
                 padding: 'var(--spacing-2xl) var(--spacing-lg)',
             }}
         >
