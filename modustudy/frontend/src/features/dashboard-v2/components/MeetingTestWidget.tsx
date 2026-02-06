@@ -7,7 +7,6 @@ import {
     ClipboardCheck,
     Calendar,
     Play,
-    Circle,
     RotateCcw,
     Trophy,
 } from 'lucide-react';
@@ -314,27 +313,24 @@ export const MeetingTestWidget: React.FC = () => {
                                         >
                                             <div className="flex items-start justify-between gap-3">
                                                 <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-2 mb-1">
-                                                        <Circle className="text-gray-300 flex-shrink-0" size={18} />
-                                                        <h4 className="font-bold text-text-primary truncate mb-0">
-                                                            {item.quiz.title}
-                                                        </h4>
-                                                    </div>
-                                                    <p className="text-sm text-text-secondary ml-6 truncate">
-                                                        {item.studyName}
-                                                    </p>
-                                                    <div className="flex items-center gap-3 mt-2 ml-6">
-                                                        <span className="text-xs text-text-tertiary flex items-center gap-1">
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <span className="px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700">
+                                                            {item.quiz.questionCount}문제
+                                                        </span>
+                                                        <span className="text-xs text-text-tertiary bg-gray-100 px-2 py-0.5 rounded flex items-center gap-1">
                                                             <Calendar size={12} />
                                                             {item.quiz.createdAt.split('T')[0]}
                                                         </span>
-                                                        <span className="text-xs text-text-tertiary">
-                                                            {item.quiz.questionCount}문제
-                                                        </span>
                                                     </div>
+                                                    <h4 className="font-medium text-text-primary line-clamp-2 text-sm leading-relaxed mb-1">
+                                                        {item.quiz.title}
+                                                    </h4>
+                                                    <p className="text-xs text-text-secondary truncate">
+                                                        {item.studyName}
+                                                    </p>
                                                 </div>
-                                                <div className="flex-shrink-0 p-2 rounded-lg bg-accent/10">
-                                                    <Play size={16} className="text-accent" />
+                                                <div className="flex-shrink-0 self-center">
+                                                    <Play size={18} className="text-primary/70" />
                                                 </div>
                                             </div>
                                         </button>
