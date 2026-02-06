@@ -1,4 +1,4 @@
-package com.ssafy.domain.gamification.entity;
+﻿package com.ssafy.domain.gamification.entity;
 
 import com.ssafy.domain.user.entity.User;
 import com.ssafy.domain.study.entity.Study;

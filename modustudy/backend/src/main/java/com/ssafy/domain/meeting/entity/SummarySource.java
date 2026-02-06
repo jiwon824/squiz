@@ -1,9 +1,9 @@
-package com.ssafy.domain.meeting.entity;
+﻿package com.ssafy.domain.meeting.entity;
 
 /**
  * 미팅 요약 생성 시 사용된 소스
  */
-public enum SummarySource {
+ public enum SummarySource {
     /** 실시간 STT 데이터 기반 (미팅 중 수집된 speech_segment) */
     REALTIME_STT,
 

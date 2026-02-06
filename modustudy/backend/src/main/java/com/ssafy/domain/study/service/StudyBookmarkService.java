@@ -1,4 +1,4 @@
-package com.ssafy.domain.study.service;
+﻿package com.ssafy.domain.study.service;
 
 import com.ssafy.common.exception.StudyException;
 import com.ssafy.domain.study.dto.response.StudyBookmarkResponse;
@@ -39,18 +39,14 @@ public class StudyBookmarkService {
      */
     @Transactional
     public StudyBookmarkResponse toggleBookmark(Long studyId, Long userId) {
-        log.info("북마크 토글 - studyId: {}, userId: {}", studyId, userId);
-
-        // 1. 스터디 존재 확인
+// 1. 스터디 존재 확인
         Study study = studyRepository.findById(studyId)
                 .orElseThrow(() -> {
-                    log.error("존재하지 않는 스터디 - studyId: {}", studyId);
                     return new StudyException.StudyNotFoundException(studyId);
                 });
 
         // 2. 사용자 존재 확인
         if (!userRepository.existsById(userId)) {
-            log.error("존재하지 않는 사용자 - userId: {}", userId);
             throw new IllegalArgumentException("존재하지 않는 사용자입니다: " + userId);
         }
 
@@ -59,15 +55,13 @@ public class StudyBookmarkService {
                 .map(existing -> {
                     // 이미 존재하면 삭제
                     bookmarkRepository.delete(existing);
-                    log.info("북마크 삭제 완료 - studyId: {}, userId: {}", studyId, userId);
                     return StudyBookmarkResponse.unbookmarked(studyId);
                 })
                 .orElseGet(() -> {
                     // 존재하지 않으면 추가
                     StudyBookmark bookmark = StudyBookmark.create(userId, studyId);
                     StudyBookmark saved = bookmarkRepository.save(bookmark);
-                    log.info("북마크 추가 완료 - studyId: {}, userId: {}", studyId, userId);
-                    // 추천 반응 자동 기록
+// 추천 반응 자동 기록
                     studyRecommendService.tryLogAction(userId, studyId, StudyRecommendAction.ActionType.BOOKMARK);
                     return StudyBookmarkResponse.from(saved);
                 });
@@ -81,10 +75,7 @@ public class StudyBookmarkService {
      * 내 북마크 목록 조회 (스터디 정보 포함)
      */
     public Page<StudyBookmarkResponse> getMyBookmarks(Long userId, Pageable pageable) {
-        log.info("내 북마크 목록 조회 - userId: {}, page: {}, size: {}",
-                userId, pageable.getPageNumber(), pageable.getPageSize());
-
-        // 1. 북마크 목록 조회
+// 1. 북마크 목록 조회
         Page<StudyBookmark> bookmarks = bookmarkRepository.findByUserId(userId, pageable);
 
         // 2. 스터디 ID 목록 추출
@@ -106,9 +97,6 @@ public class StudyBookmarkService {
             return StudyBookmarkResponse.from(bookmark, study, count);
         });
 
-        log.info("내 북마크 목록 조회 완료 - userId: {}, totalElements: {}",
-                userId, response.getTotalElements());
-
         return response;
     }
 
@@ -116,11 +104,7 @@ public class StudyBookmarkService {
      * 특정 스터디 북마크 여부 확인
      */
     public boolean isBookmarked(Long studyId, Long userId) {
-        log.info("북마크 여부 확인 - studyId: {}, userId: {}", studyId, userId);
-
         boolean result = bookmarkRepository.existsByUserIdAndStudyId(userId, studyId);
-
-        log.info("북마크 여부: {}", result);
 
         return result;
     }
@@ -133,11 +117,7 @@ public class StudyBookmarkService {
      * 특정 스터디의 북마크 개수 조회
      */
     public Long getBookmarkCount(Long studyId) {
-        log.info("스터디 북마크 개수 조회 - studyId: {}", studyId);
-
         Long count = bookmarkRepository.countByStudyId(studyId);
-
-        log.info("북마크 개수: {}", count);
 
         return count;
     }
@@ -146,11 +126,7 @@ public class StudyBookmarkService {
      * 내 북마크 개수 조회
      */
     public Long getMyBookmarkCount(Long userId) {
-        log.info("내 북마크 개수 조회 - userId: {}", userId);
-
         Long count = bookmarkRepository.countByUserId(userId);
-
-        log.info("내 북마크 개수: {}", count);
 
         return count;
     }

@@ -1,4 +1,4 @@
-package com.ssafy.domain.news.controller;
+﻿package com.ssafy.domain.news.controller;
 
 import com.ssafy.domain.news.entity.ItNews;
 import com.ssafy.domain.news.repository.ItNewsRepository;

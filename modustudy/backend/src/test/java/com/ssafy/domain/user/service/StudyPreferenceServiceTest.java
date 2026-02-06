@@ -1,4 +1,4 @@
-package com.ssafy.domain.user.service;
+﻿package com.ssafy.domain.user.service;
 
 import com.ssafy.domain.user.dto.request.StudyPreferenceRequest;
 import com.ssafy.domain.user.dto.response.StudyPreferenceResponse;
@@ -26,8 +26,8 @@ import static org.mockito.Mockito.verify;
 /**
  * 스터디 선호 설정 서비스 단위 테스트
  */
-@ExtendWith(MockitoExtension.class)
-class StudyPreferenceServiceTest {
+ @ExtendWith(MockitoExtension.class)
+ class StudyPreferenceServiceTest {
 
     @InjectMocks
     private UserServiceImpl userService;

@@ -1,4 +1,4 @@
-package com.ssafy.domain.board.dto.request;
+﻿package com.ssafy.domain.board.dto.request;
 
 import com.ssafy.domain.board.entity.RecruitmentStatus;
 import com.ssafy.domain.study.entity.MeetingType;
@@ -12,5 +12,5 @@ public record BoardPostUpdateRequest(
         @NotNull MeetingType meetingType,
         @NotNull Integer targetMembers,
         @NotNull RecruitmentStatus recruitmentStatus
-) {
+        ) {
 }

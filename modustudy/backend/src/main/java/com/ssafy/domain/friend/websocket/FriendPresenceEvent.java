@@ -1,4 +1,4 @@
-package com.ssafy.domain.friend.websocket;
+﻿package com.ssafy.domain.friend.websocket;
 
 import java.time.LocalDateTime;
 import lombok.Getter;

@@ -1,4 +1,4 @@
-package com.ssafy.domain.gamification.event;
+﻿package com.ssafy.domain.gamification.event;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -8,9 +8,9 @@ import java.time.LocalDate;
 /**
  * 스터디 생성 이벤트
  */
-@Getter
-@AllArgsConstructor
-public class StudyCreateEvent {
+ @Getter
+ @AllArgsConstructor
+ public class StudyCreateEvent {
     private final Long userId;
     private final Long studyId;
     private final String studyName;

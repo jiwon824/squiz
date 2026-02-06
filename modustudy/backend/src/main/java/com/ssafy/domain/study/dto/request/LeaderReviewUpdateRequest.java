@@ -1,4 +1,4 @@
-package com.ssafy.domain.study.dto.request;
+﻿package com.ssafy.domain.study.dto.request;
 
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
@@ -11,11 +11,11 @@ import java.math.BigDecimal;
 /**
  * 스터디장 리뷰 수정 요청 DTO
  */
-@Getter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class LeaderReviewUpdateRequest {
+ @Getter
+ @NoArgsConstructor
+ @AllArgsConstructor
+ @Builder
+ public class LeaderReviewUpdateRequest {
 
     /**
      * 평점 (0.5 ~ 5.0, 0.5 단위)

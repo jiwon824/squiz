@@ -1,4 +1,4 @@
-package com.ssafy.domain.study.service;
+﻿package com.ssafy.domain.study.service;
 
 import com.ssafy.common.exception.StudyException;
 import com.ssafy.domain.study.dto.request.ApplicationCreateRequest;
@@ -46,8 +46,8 @@ import com.ssafy.domain.notification.entity.NotificationType;
  * 5. 신청 승인 (approveApplication)
  * 6. 신청 거절 (rejectApplication)
  */
-@ExtendWith(MockitoExtension.class)
-class ApplicationServiceTest {
+ @ExtendWith(MockitoExtension.class)
+ class ApplicationServiceTest {
 
     @Mock
     private StudyApplicationRepository applicationRepository;

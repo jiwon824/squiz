@@ -1,4 +1,4 @@
-package com.ssafy.domain.meeting.dto.request;
+﻿package com.ssafy.domain.meeting.dto.request;
 
 import com.ssafy.domain.meeting.entity.RecordingStatus;
 
@@ -12,5 +12,5 @@ public record MeetingRecordingRequest(
         LocalDateTime endedAt,
         Long fileSize,
         RecordingStatus status
-) {
+        ) {
 }

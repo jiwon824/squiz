@@ -1,4 +1,4 @@
-package com.ssafy.domain.meeting.dto.response;
+﻿package com.ssafy.domain.meeting.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,11 +9,11 @@ import lombok.NoArgsConstructor;
  * 실시간 발화 세그먼트 응답 DTO
  * WebSocket 브로드캐스트 시에도 사용
  */
-@Getter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class SpeechSegmentResponse {
+ @Getter
+ @NoArgsConstructor
+ @AllArgsConstructor
+ @Builder
+ public class SpeechSegmentResponse {
     private Long meetingId;     // 미팅 ID
     private String speakerId;   // 발화자 ID
     private String speakerName; // 발화자 이름 (매핑 가능 시)

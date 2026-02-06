@@ -1,4 +1,4 @@
-package com.ssafy.domain.study.workspace.websocket;
+﻿package com.ssafy.domain.study.workspace.websocket;
 
 import com.ssafy.domain.study.workspace.dto.response.MessageResponse;
 
@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 /**
  * 워크스페이스 WebSocket 이벤트 DTO
  */
-public class WorkspaceWebSocketEvent {
+ public class WorkspaceWebSocketEvent {
 
     public enum Type {
         MESSAGE,        // 새 메시지

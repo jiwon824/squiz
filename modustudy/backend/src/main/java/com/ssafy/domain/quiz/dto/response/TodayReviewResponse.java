@@ -1,4 +1,4 @@
-package com.ssafy.domain.quiz.dto.response;
+﻿package com.ssafy.domain.quiz.dto.response;
 
 import com.ssafy.domain.quiz.entity.ReviewContentType;
 import com.ssafy.domain.quiz.entity.UserReviewItem;
@@ -14,8 +14,8 @@ import java.util.List;
  * @param items      복습 예정 항목 목록
  * @param totalCount 총 항목 수
  */
-@Schema(description = "오늘 복습 예정 항목 응답")
-public record TodayReviewResponse(
+ @Schema(description = "오늘 복습 예정 항목 응답")
+ public record TodayReviewResponse(
 
         @Schema(description = "복습 예정 항목 목록") List<ReviewItemDto> items,
 

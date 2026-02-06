@@ -1,4 +1,4 @@
-package com.ssafy.domain.study.service;
+﻿package com.ssafy.domain.study.service;
 
 import com.ssafy.common.exception.StudyException;
 import com.ssafy.domain.study.dto.response.LeaderInfoResponse;
@@ -30,8 +30,8 @@ import static org.mockito.BDDMockito.*;
 /**
  * LeaderService 단위 테스트
  */
-@ExtendWith(MockitoExtension.class)
-class LeaderServiceTest {
+ @ExtendWith(MockitoExtension.class)
+ class LeaderServiceTest {
 
     @Mock
     private StudyRepository studyRepository;

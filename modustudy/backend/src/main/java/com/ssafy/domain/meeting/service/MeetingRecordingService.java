@@ -1,4 +1,4 @@
-package com.ssafy.domain.meeting.service;
+﻿package com.ssafy.domain.meeting.service;
 
 import com.ssafy.common.storage.LocalFileStorageService;
 import com.ssafy.config.SfuProperties;
@@ -103,12 +103,10 @@ public class MeetingRecordingService {
                     .fileSize(fileSize)
                     .build();
             meetingAudioRecordingRepository.save(audioRecording);
-            log.info("MIXED 오디오 녹음 저장 - meetingId: {}, url: {}", meetingId, recordingUrl);
-        } else {
+} else {
             audioRecording = existingAudio.get(0);
             audioRecording.updateRecording(recordingUrl, format, fileSize);
-            log.info("MIXED 오디오 녹음 업데이트 - meetingId: {}, url: {}", meetingId, recordingUrl);
-        }
+}
 
         meeting.updateRecordingStatus(RecordingStatus.READY);
 
@@ -166,42 +164,32 @@ public class MeetingRecordingService {
     @Async
     public CompletableFuture<Void> triggerSfuRecordingStart(Long meetingId) {
         String controlUrl = sfuProperties.getControlUrl();
-        log.info("triggerSfuRecordingStart called. meetingId={} controlUrl={}", meetingId, controlUrl);
         if (controlUrl == null || controlUrl.isBlank()) {
-            log.warn("SFU control URL is not configured. Skipping recording start.");
             return CompletableFuture.completedFuture(null);
         }
         String roomId = "meeting-" + meetingId;
         try {
             var payload = Map.of("roomId", roomId, "meetingId", meetingId);
             String url = controlUrl + "/recordings/start";
-            log.info("Calling SFU recording start. url={} payload={}", url, payload);
             var response = restTemplate.postForEntity(url, payload, String.class);
-            log.info("SFU recording start response. meetingId={} status={} body={}", meetingId, response.getStatusCode(), response.getBody());
-        } catch (Exception e) {
-            log.error("SFU recording start failed. meetingId={} error={}", meetingId, e.toString(), e);
-        }
+} catch (Exception e) {
+}
         return CompletableFuture.completedFuture(null);
     }
 
     @Async
     public CompletableFuture<Void> triggerSfuRecordingStop(Long meetingId) {
         String controlUrl = sfuProperties.getControlUrl();
-        log.info("triggerSfuRecordingStop called. meetingId={} controlUrl={}", meetingId, controlUrl);
         if (controlUrl == null || controlUrl.isBlank()) {
-            log.warn("SFU control URL is not configured. Skipping recording stop.");
             return CompletableFuture.completedFuture(null);
         }
         String roomId = "meeting-" + meetingId;
         try {
             var payload = Map.of("roomId", roomId);
             String url = controlUrl + "/recordings/stop";
-            log.info("Calling SFU recording stop. url={} payload={}", url, payload);
             var response = restTemplate.postForEntity(url, payload, String.class);
-            log.info("SFU recording stop response. meetingId={} status={} body={}", meetingId, response.getStatusCode(), response.getBody());
-        } catch (Exception e) {
-            log.error("SFU recording stop failed. meetingId={} error={}", meetingId, e.toString(), e);
-        }
+} catch (Exception e) {
+}
         return CompletableFuture.completedFuture(null);
     }
 
@@ -219,3 +207,4 @@ public class MeetingRecordingService {
         );
     }
 }
+

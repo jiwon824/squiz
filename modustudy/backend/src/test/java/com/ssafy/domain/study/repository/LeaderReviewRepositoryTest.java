@@ -1,4 +1,4 @@
-package com.ssafy.domain.study.repository;
+﻿package com.ssafy.domain.study.repository;
 
 import com.ssafy.domain.study.entity.LeaderReview;
 import com.ssafy.domain.user.entity.Role;
@@ -22,9 +22,9 @@ import static org.assertj.core.api.Assertions.*;
 /**
  * LeaderReviewRepository 테스트
  */
-@SpringBootTest
-@Transactional
-class LeaderReviewRepositoryTest {
+ @SpringBootTest
+ @Transactional
+ class LeaderReviewRepositoryTest {
 
     @Autowired
     private LeaderReviewRepository leaderReviewRepository;

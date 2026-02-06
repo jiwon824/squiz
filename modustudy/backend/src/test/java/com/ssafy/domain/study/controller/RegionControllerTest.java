@@ -1,4 +1,4 @@
-package com.ssafy.domain.study.controller;
+﻿package com.ssafy.domain.study.controller;
 
 import com.ssafy.domain.study.dto.response.RegionResponse;
 import com.ssafy.domain.study.service.RegionService;
@@ -26,11 +26,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * RegionController 통합 테스트
  */
-@SpringBootTest
-@AutoConfigureMockMvc
-@Transactional
-@WithMockUser(username = "testuser", roles = {"USER"})
-class RegionControllerTest {
+ @SpringBootTest
+ @AutoConfigureMockMvc
+ @Transactional
+ @WithMockUser(username = "testuser", roles = {"USER"})
+ class RegionControllerTest {
 
     @Autowired
     private MockMvc mockMvc;

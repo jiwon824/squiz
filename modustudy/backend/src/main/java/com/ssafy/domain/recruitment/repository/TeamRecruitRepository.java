@@ -1,4 +1,4 @@
-package com.ssafy.domain.recruitment.repository;
+﻿package com.ssafy.domain.recruitment.repository;
 
 import com.ssafy.domain.recruitment.entity.TeamRecruit;
 import org.springframework.data.domain.Page;

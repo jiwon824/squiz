@@ -1,4 +1,4 @@
-package com.ssafy.domain.admin.mapper;
+﻿package com.ssafy.domain.admin.mapper;
 
 import com.ssafy.domain.admin.dto.*;
 import org.apache.ibatis.annotations.Mapper;

@@ -1,4 +1,4 @@
-package com.ssafy.domain.meeting.dto.request;
+﻿package com.ssafy.domain.meeting.dto.request;
 
 import com.ssafy.domain.meeting.entity.SummaryStatus;
 
@@ -9,5 +9,5 @@ public record MeetingSummaryUpdateRequest(
         List<MeetingActionItemRequest> actionItems,
         List<String> keywords,
         SummaryStatus status
-) {
+        ) {
 }

@@ -1,4 +1,4 @@
-package com.ssafy.domain.study.scheduler;
+﻿package com.ssafy.domain.study.scheduler;
 
 import com.ssafy.domain.notification.entity.NotificationType;
 import com.ssafy.domain.notification.service.NotificationService;
@@ -29,8 +29,8 @@ import static org.mockito.Mockito.*;
 /**
  * RecruitmentDeadlineScheduler 단위 테스트
  */
-@ExtendWith(MockitoExtension.class)
-class RecruitmentDeadlineSchedulerTest {
+ @ExtendWith(MockitoExtension.class)
+ class RecruitmentDeadlineSchedulerTest {
 
     @Mock
     private StudyRepository studyRepository;

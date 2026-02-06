@@ -1,4 +1,4 @@
-package com.ssafy.domain.study.service;
+﻿package com.ssafy.domain.study.service;
 
 import com.ssafy.common.exception.StudyException;
 import com.ssafy.domain.study.dto.request.StudyCommentCreateRequest;
@@ -36,8 +36,8 @@ import static org.mockito.BDDMockito.*;
 /**
  * StudyCommentService 단위 테스트
  */
-@ExtendWith(MockitoExtension.class)
-class StudyCommentServiceTest {
+ @ExtendWith(MockitoExtension.class)
+ class StudyCommentServiceTest {
 
     @Mock
     private StudyCommentRepository commentRepository;

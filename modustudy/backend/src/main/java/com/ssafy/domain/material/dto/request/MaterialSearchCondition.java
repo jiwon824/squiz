@@ -1,4 +1,4 @@
-package com.ssafy.domain.material.dto.request;
+﻿package com.ssafy.domain.material.dto.request;
 
 import com.ssafy.domain.material.entity.MaterialType;
 import lombok.Builder;
@@ -9,11 +9,11 @@ import lombok.AllArgsConstructor;
 /**
  * 자료 검색 조건 DTO
  */
-@Getter
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class MaterialSearchCondition {
+ @Getter
+ @Builder
+ @NoArgsConstructor
+ @AllArgsConstructor
+ public class MaterialSearchCondition {
 
     /**
      * 주차 필터

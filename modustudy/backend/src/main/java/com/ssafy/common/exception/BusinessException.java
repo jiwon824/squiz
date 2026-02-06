@@ -1,4 +1,4 @@
-package com.ssafy.common.exception;
+﻿package com.ssafy.common.exception;
 
 import lombok.Getter;
 import org.springframework.http.HttpStatus;
@@ -6,8 +6,8 @@ import org.springframework.http.HttpStatus;
 /**
  * 비즈니스 로직 예외 기본 클래스.
  */
-@Getter
-public class BusinessException extends RuntimeException {
+ @Getter
+ public class BusinessException extends RuntimeException {
 
     private final HttpStatus status;
     private final String code;

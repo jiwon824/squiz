@@ -1,4 +1,4 @@
-package com.ssafy.domain.study.controller;
+﻿package com.ssafy.domain.study.controller;
 
 import com.ssafy.domain.study.dto.request.ApplicationCreateRequest;
 import com.ssafy.domain.study.dto.request.ApplicationProcessRequest;
@@ -37,13 +37,9 @@ public class ApplicationController {
             @Valid @RequestBody ApplicationCreateRequest request,
             @RequestHeader("user-id") Long userId) {
 
-        log.info("API 호출 - 스터디 신청 생성: studyId={}, userId={}", studyId, userId);
+                ApplicationResponse response = applicationService.createApplication(studyId, request, userId);
 
-        ApplicationResponse response = applicationService.createApplication(studyId, request, userId);
-
-        log.info("API 응답 - 신청 생성 완료: applicationId={}", response.getApplicationId());
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+                return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     // ============================================================
@@ -59,15 +55,9 @@ public class ApplicationController {
             @RequestParam(required = false) ApplicationStatus status,
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
 
-        log.info("API 호출 - 스터디별 신청 목록 조회: studyId={}, status={}, page={}, size={}",
-                studyId, status, pageable.getPageNumber(), pageable.getPageSize());
+                Page<ApplicationResponse> response = applicationService.getApplicationByStudy(studyId, status, pageable);
 
-        Page<ApplicationResponse> response = applicationService.getApplicationByStudy(studyId, status, pageable);
-
-        log.info("API 응답 - 신청 목록: totalElements={}, totalPages={}",
-                response.getTotalElements(), response.getTotalPages());
-
-        return ResponseEntity.ok(response);
+                return ResponseEntity.ok(response);
     }
 
     /**
@@ -79,15 +69,9 @@ public class ApplicationController {
             @RequestParam(required = false) ApplicationStatus status,
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
 
-        log.info("API 호출 - 사용자별 신청 내역 조회: userId={}, status={}, page={}, size={}",
-                userId, status, pageable.getPageNumber(), pageable.getPageSize());
+                Page<ApplicationResponse> response = applicationService.getApplicationByUser(userId, status, pageable);
 
-        Page<ApplicationResponse> response = applicationService.getApplicationByUser(userId, status, pageable);
-
-        log.info("API 응답 - 신청 내역: totalElements={}, totalPages={}",
-                response.getTotalElements(), response.getTotalPages());
-
-        return ResponseEntity.ok(response);
+                return ResponseEntity.ok(response);
     }
 
     /**
@@ -97,14 +81,9 @@ public class ApplicationController {
     public ResponseEntity<ApplicationResponse> getApplication(
             @PathVariable Long applicationId) {
 
-        log.info("API 호출 - 신청 상세 조회: applicationId={}", applicationId);
+                ApplicationResponse response = applicationService.getApplication(applicationId);
 
-        ApplicationResponse response = applicationService.getApplication(applicationId);
-
-        log.info("API 응답 - 신청 상세: applicationId={}, status={}",
-                response.getApplicationId(), response.getStatus());
-
-        return ResponseEntity.ok(response);
+                return ResponseEntity.ok(response);
     }
 
     // ============================================================
@@ -120,15 +99,9 @@ public class ApplicationController {
             @PathVariable Long applicationId,
             @RequestHeader("user-id") Long leaderId) {
 
-        log.info("API 호출 - 신청 승인: studyId={}, applicationId={}, leaderId={}",
-                studyId, applicationId, leaderId);
+                ApplicationResponse response = applicationService.approveApplication(studyId, applicationId, leaderId);
 
-        ApplicationResponse response = applicationService.approveApplication(studyId, applicationId, leaderId);
-
-        log.info("API 응답 - 승인 완료: applicationId={}, status={}",
-                response.getApplicationId(), response.getStatus());
-
-        return ResponseEntity.ok(response);
+                return ResponseEntity.ok(response);
     }
 
     /**
@@ -141,16 +114,10 @@ public class ApplicationController {
             @RequestBody ApplicationProcessRequest request,
             @RequestHeader("user-id") Long leaderId) {
 
-        log.info("API 호출 - 신청 거절: studyId={}, applicationId={}, leaderId={}, reason={}",
+                ApplicationResponse response = applicationService.rejectApplication(
                 studyId, applicationId, leaderId, request.getRejectedReason());
 
-        ApplicationResponse response = applicationService.rejectApplication(
-                studyId, applicationId, leaderId, request.getRejectedReason());
-
-        log.info("API 응답 - 거절 완료: applicationId={}, status={}",
-                response.getApplicationId(), response.getStatus());
-
-        return ResponseEntity.ok(response);
+                return ResponseEntity.ok(response);
     }
 
     // ============================================================
@@ -166,12 +133,8 @@ public class ApplicationController {
             @RequestParam(required = false) ApplicationStatus status,
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
 
-        log.info("API 호출 - 내 신청 내역 조회: userId={}, status={}", userId, status);
+                Page<ApplicationResponse> response = applicationService.getApplicationByUser(userId, status, pageable);
 
-        Page<ApplicationResponse> response = applicationService.getApplicationByUser(userId, status, pageable);
-
-        log.info("API 응답 - 내 신청 내역: totalElements={}", response.getTotalElements());
-
-        return ResponseEntity.ok(response);
+                return ResponseEntity.ok(response);
     }
 }

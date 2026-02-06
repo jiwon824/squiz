@@ -1,4 +1,4 @@
-package com.ssafy.domain.quiz.dto.response;
+﻿package com.ssafy.domain.quiz.dto.response;
 
 import com.ssafy.domain.quiz.entity.StudyQuiz;
 import lombok.Builder;
@@ -9,9 +9,9 @@ import java.time.LocalDateTime;
 /**
  * 스터디 퀴즈 목록 응답 DTO
  */
-@Getter
-@Builder
-public class StudyQuizListResponse {
+ @Getter
+ @Builder
+ public class StudyQuizListResponse {
 
     private Long id;
     private String title;

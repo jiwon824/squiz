@@ -1,4 +1,4 @@
-package com.ssafy.domain.study.workspace.controller;
+﻿package com.ssafy.domain.study.workspace.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.domain.study.entity.*;
@@ -38,11 +38,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * MessageController 통합 테스트
  */
-@SpringBootTest
-@AutoConfigureMockMvc
-@Transactional
-@WithMockUser(username = "testuser", roles = {"USER"})
-class MessageControllerTest {
+ @SpringBootTest
+ @AutoConfigureMockMvc
+ @Transactional
+ @WithMockUser(username = "testuser", roles = {"USER"})
+ class MessageControllerTest {
 
     @Autowired
     private MockMvc mockMvc;

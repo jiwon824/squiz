@@ -1,4 +1,4 @@
-package com.ssafy.domain.quiz.repository;
+﻿package com.ssafy.domain.quiz.repository;
 
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.jpa.impl.JPAQuery;
@@ -17,9 +17,9 @@ import java.util.List;
 /**
  * QueryDSL을 이용한 동적 쿼리 구현
  */
-@Repository
-@RequiredArgsConstructor
-public class UserReviewItemRepositoryImpl implements UserReviewItemRepositoryCustom {
+ @Repository
+ @RequiredArgsConstructor
+ public class UserReviewItemRepositoryImpl implements UserReviewItemRepositoryCustom {
 
     private final JPAQueryFactory queryFactory;
 

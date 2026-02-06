@@ -1,4 +1,4 @@
-package com.ssafy.domain.calendar.service;
+﻿package com.ssafy.domain.calendar.service;
 
 import com.ssafy.domain.calendar.dto.PersonalScheduleRequest;
 import com.ssafy.domain.calendar.dto.PersonalScheduleResponse;
@@ -18,11 +18,11 @@ import java.util.stream.Collectors;
 /**
  * 개인 일정 서비스
  */
-@Slf4j
-@Service
-@RequiredArgsConstructor
-@Transactional
-public class PersonalScheduleService {
+ @Slf4j
+ @Service
+ @RequiredArgsConstructor
+ @Transactional
+ public class PersonalScheduleService {
 
     private final PersonalScheduleRepository personalScheduleRepository;
 
@@ -36,8 +36,6 @@ public class PersonalScheduleService {
     public List<PersonalScheduleResponse> getSchedules(Long userId, String startDateStr, String endDateStr) {
         LocalDate startDate = LocalDate.parse(startDateStr, DATE_FORMATTER);
         LocalDate endDate = LocalDate.parse(endDateStr, DATE_FORMATTER);
-
-        log.info("개인 일정 조회: userId={}, startDate={}, endDate={}", userId, startDate, endDate);
 
         List<PersonalSchedule> schedules = personalScheduleRepository.findByUserIdAndDateRange(userId, startDate, endDate);
 
@@ -61,8 +59,6 @@ public class PersonalScheduleService {
      * 개인 일정 생성
      */
     public PersonalScheduleResponse createSchedule(Long userId, PersonalScheduleRequest request) {
-        log.info("개인 일정 생성: userId={}, title={}", userId, request.getTitle());
-
         PersonalSchedule schedule = PersonalSchedule.builder()
                 .userId(userId)
                 .title(request.getTitle())
@@ -77,8 +73,6 @@ public class PersonalScheduleService {
                 .build();
 
         schedule = personalScheduleRepository.save(schedule);
-        log.info("개인 일정 생성 완료: id={}", schedule.getId());
-
         return PersonalScheduleResponse.from(schedule);
     }
 
@@ -89,9 +83,7 @@ public class PersonalScheduleService {
         PersonalSchedule schedule = personalScheduleRepository.findByIdAndUserId(scheduleId, userId)
                 .orElseThrow(() -> new IllegalArgumentException("일정을 찾을 수 없습니다. id=" + scheduleId));
 
-        log.info("개인 일정 수정: id={}, userId={}", scheduleId, userId);
-
-        if (request.getTitle() != null) {
+                if (request.getTitle() != null) {
             schedule.setTitle(request.getTitle());
         }
         if (request.getDescription() != null) {
@@ -131,8 +123,7 @@ public class PersonalScheduleService {
         PersonalSchedule schedule = personalScheduleRepository.findByIdAndUserId(scheduleId, userId)
                 .orElseThrow(() -> new IllegalArgumentException("일정을 찾을 수 없습니다. id=" + scheduleId));
 
-        log.info("개인 일정 삭제: id={}, userId={}", scheduleId, userId);
-
-        personalScheduleRepository.delete(schedule);
+                personalScheduleRepository.delete(schedule);
     }
 }
+

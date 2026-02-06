@@ -1,4 +1,4 @@
-package com.ssafy.domain.study.entity;
+﻿package com.ssafy.domain.study.entity;
 
 import com.ssafy.common.entity.BaseEntity;
 import jakarta.persistence.*;
@@ -12,12 +12,12 @@ import java.math.BigDecimal;
                 name = "uk_study_reviewer",
                 columnNames = {"study_id", "reviewer_id"}
         ))
-@Getter
-@Setter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
-@Builder
-public class LeaderReview extends BaseEntity {
+        @Getter
+        @Setter
+        @NoArgsConstructor(access = AccessLevel.PROTECTED)
+        @AllArgsConstructor
+        @Builder
+        public class LeaderReview extends BaseEntity {
 
     @Column(name = "study_id", nullable = false)
     private Long studyId;

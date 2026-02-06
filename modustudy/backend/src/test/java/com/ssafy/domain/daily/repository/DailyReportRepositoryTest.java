@@ -1,4 +1,4 @@
-package com.ssafy.domain.daily.repository;
+﻿package com.ssafy.domain.daily.repository;
 
 import com.ssafy.domain.daily.entity.DailyReport;
 import jakarta.persistence.EntityManager;

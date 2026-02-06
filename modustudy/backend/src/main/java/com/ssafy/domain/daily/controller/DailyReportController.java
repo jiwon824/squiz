@@ -1,4 +1,4 @@
-package com.ssafy.domain.daily.controller;
+﻿package com.ssafy.domain.daily.controller;
 
 import com.ssafy.domain.daily.dto.response.DailyReportResponse;
 import com.ssafy.domain.daily.service.DailyReportService;
@@ -28,18 +28,13 @@ public class DailyReportController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
 
-        log.info("API 호출 - 데일리 리포트 목록 조회: studyId={}, startDate={}, endDate={}",
-                studyId, startDate, endDate);
-
-        List<DailyReportResponse> response;
+                List<DailyReportResponse> response;
 
         if (startDate != null && endDate != null) {
             response = dailyReportService.getReportsByStudyIdAndDateRange(studyId, startDate, endDate);
         } else {
             response = dailyReportService.getReportsByStudyId(studyId);
         }
-
-        log.info("API 응답 - 데일리 리포트 목록: count={}", response.size());
 
         return ResponseEntity.ok(response);
     }
@@ -52,13 +47,9 @@ public class DailyReportController {
             @PathVariable Long studyId,
             @PathVariable Long reportId) {
 
-        log.info("API 호출 - 데일리 리포트 단건 조회: studyId={}, reportId={}", studyId, reportId);
+                DailyReportResponse response = dailyReportService.getReportById(reportId);
 
-        DailyReportResponse response = dailyReportService.getReportById(reportId);
-
-        log.info("API 응답 - 데일리 리포트: reportId={}, reportDate={}", response.getId(), response.getReportDate());
-
-        return ResponseEntity.ok(response);
+                return ResponseEntity.ok(response);
     }
 
     /**
@@ -69,13 +60,9 @@ public class DailyReportController {
             @PathVariable Long studyId,
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate reportDate) {
 
-        log.info("API 호출 - 특정 날짜 리포트 조회: studyId={}, reportDate={}", studyId, reportDate);
+                DailyReportResponse response = dailyReportService.getReportByStudyIdAndDate(studyId, reportDate);
 
-        DailyReportResponse response = dailyReportService.getReportByStudyIdAndDate(studyId, reportDate);
-
-        log.info("API 응답 - 데일리 리포트: reportId={}", response.getId());
-
-        return ResponseEntity.ok(response);
+                return ResponseEntity.ok(response);
     }
 
     /**
@@ -87,13 +74,9 @@ public class DailyReportController {
             @PathVariable Long reportId,
             @RequestHeader("User-Id") Long userId) {
 
-        log.info("API 호출 - 데일리 리포트 삭제: studyId={}, reportId={}, userId={}", studyId, reportId, userId);
+                dailyReportService.deleteReport(studyId, reportId, userId);
 
-        dailyReportService.deleteReport(studyId, reportId, userId);
-
-        log.info("API 응답 - 데일리 리포트 삭제 완료: reportId={}", reportId);
-
-        return ResponseEntity.noContent().build();
+                return ResponseEntity.noContent().build();
     }
 
     /**
@@ -104,12 +87,8 @@ public class DailyReportController {
             @PathVariable Long studyId,
             @RequestHeader("User-Id") Long userId) {
 
-        log.info("API 호출 - 데일리 리포트 전체 삭제: studyId={}, userId={}", studyId, userId);
+                dailyReportService.deleteReportsByStudyId(studyId, userId);
 
-        dailyReportService.deleteReportsByStudyId(studyId, userId);
-
-        log.info("API 응답 - 데일리 리포트 전체 삭제 완료: studyId={}", studyId);
-
-        return ResponseEntity.noContent().build();
+                return ResponseEntity.noContent().build();
     }
 }

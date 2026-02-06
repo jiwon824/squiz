@@ -63,7 +63,6 @@ const StudyCommentSection: React.FC<StudyCommentSectionProps> = ({
             setHasMore(response.hasNext);
             setCurrentPage(page);
         } catch (error) {
-            console.error('댓글 조회 실패:', error);
             showToast('댓글을 불러오는데 실패했습니다.', 'error');
         } finally {
             setIsLoading(false);
@@ -76,7 +75,6 @@ const StudyCommentSection: React.FC<StudyCommentSectionProps> = ({
             const count = await getStudyCommentCount(studyId);
             setCommentCount(count);
         } catch (error) {
-            console.error('댓글 개수 조회 실패:', error);
         }
     }, [studyId]);
 
@@ -114,7 +112,6 @@ const StudyCommentSection: React.FC<StudyCommentSectionProps> = ({
             await fetchCommentCount();
             showToast('댓글이 등록되었습니다.', 'success');
         } catch (error) {
-            console.error('댓글 작성 실패:', error);
             showToast('댓글 작성에 실패했습니다.', 'error');
         } finally {
             setIsSubmitting(false);
@@ -141,7 +138,6 @@ const StudyCommentSection: React.FC<StudyCommentSectionProps> = ({
             await fetchCommentCount();
             showToast('답글이 등록되었습니다.', 'success');
         } catch (error) {
-            console.error('답글 작성 실패:', error);
             showToast('답글 작성에 실패했습니다.', 'error');
         } finally {
             setIsSubmitting(false);
@@ -163,7 +159,6 @@ const StudyCommentSection: React.FC<StudyCommentSectionProps> = ({
             await fetchComments();
             showToast('댓글이 수정되었습니다.', 'success');
         } catch (error) {
-            console.error('댓글 수정 실패:', error);
             showToast('댓글 수정에 실패했습니다.', 'error');
         } finally {
             setIsSubmitting(false);
@@ -180,7 +175,6 @@ const StudyCommentSection: React.FC<StudyCommentSectionProps> = ({
             await fetchCommentCount();
             showToast('댓글이 삭제되었습니다.', 'success');
         } catch (error) {
-            console.error('댓글 삭제 실패:', error);
             showToast('댓글 삭제에 실패했습니다.', 'error');
         }
     };

@@ -1,4 +1,4 @@
-package com.ssafy.domain.quiz.controller;
+﻿package com.ssafy.domain.quiz.controller;
 
 import com.ssafy.common.auth.SsafyUserDetails;
 import com.ssafy.common.response.ApiResponse;
@@ -32,12 +32,12 @@ import org.springframework.web.bind.annotation.*;
  * <li>POST /questions/{questionId}/submit — 답변 제출 + 다음 문제 (AUTH)</li>
  * </ul>
  */
-@Slf4j
-@Tag(name = "Continuous Quiz", description = "연속 학습 모드 API (코스 조회 + 문제 풀이)")
-@RestController
-@RequestMapping("/api/v1/continuous-quiz")
-@RequiredArgsConstructor
-public class ContinuousQuizController {
+ @Slf4j
+ @Tag(name = "Continuous Quiz", description = "연속 학습 모드 API (코스 조회 + 문제 풀이)")
+ @RestController
+ @RequestMapping("/api/v1/continuous-quiz")
+ @RequiredArgsConstructor
+ public class ContinuousQuizController {
 
     private final ContinuousQuizService continuousQuizService;
 
@@ -50,7 +50,6 @@ public class ContinuousQuizController {
     @GetMapping("/courses")
     public ApiResponse<QuizCourseListResponse> getCourseList() {
         QuizCourseListResponse response = continuousQuizService.getCourseList();
-        log.info("[ContinuousQuiz] Fetched {} courses", response.courses().size());
         return ApiResponse.success(response);
     }
 
@@ -102,9 +101,7 @@ public class ContinuousQuizController {
             @Valid @RequestBody ContinuousAnswerRequest request,
             @AuthenticationPrincipal SsafyUserDetails userDetails) {
 
-        log.info("[ContinuousQuiz] User {} submitted question {}", userDetails.getUser().getId(), questionId);
-
-        return ApiResponse.success(
+                return ApiResponse.success(
                 continuousQuizService.processAnswerAndGetNext(userDetails.getUser().getId(), questionId, request));
     }
 
@@ -132,3 +129,4 @@ public class ContinuousQuizController {
         return ApiResponse.success(continuousQuizService.getCourseStats(userDetails.getUser().getId()));
     }
 }
+

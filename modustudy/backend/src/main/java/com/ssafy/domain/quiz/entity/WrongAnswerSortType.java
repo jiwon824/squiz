@@ -1,9 +1,9 @@
-package com.ssafy.domain.quiz.entity;
+﻿package com.ssafy.domain.quiz.entity;
 
 /**
  * 오답 노트 정렬 방식
  */
-public enum WrongAnswerSortType {
+ public enum WrongAnswerSortType {
     /**
      * 많이 틀린 순 (기본값)
      * - lapses DESC, nextReviewAt ASC

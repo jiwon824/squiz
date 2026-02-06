@@ -1,11 +1,11 @@
-package com.ssafy.common.exception;
+﻿package com.ssafy.common.exception;
 
 import org.springframework.http.HttpStatus;
 
 /**
  * 스터디 관련 예외 클래스
  */
-public class StudyException {
+ public class StudyException {
 
     /**
      * 스터디를 찾을 수 없음 (404)

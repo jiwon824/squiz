@@ -1,4 +1,4 @@
-package com.ssafy.domain.meeting.dto.request;
+﻿package com.ssafy.domain.meeting.dto.request;
 
 import com.ssafy.domain.meeting.entity.MeetingType;
 import jakarta.validation.constraints.Size;
@@ -11,5 +11,5 @@ public record MeetingRequest(
         Boolean autoShareSummary,
         Long shareWorkspaceId,
         Integer plannedDurationSeconds
-) {
+        ) {
 }

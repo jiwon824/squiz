@@ -1,4 +1,4 @@
-package com.ssafy.domain.study.workspace.websocket;
+﻿package com.ssafy.domain.study.workspace.websocket;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,8 +12,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * 워크스페이스 WebSocket 세션 관리 서비스
  * workspaceId -> 접속 중인 사용자 목록 관리
  */
-@Service
-public class WorkspaceSessionService {
+ @Service
+ public class WorkspaceSessionService {
 
     private static final Logger log = LoggerFactory.getLogger(WorkspaceSessionService.class);
 
@@ -45,9 +45,7 @@ public class WorkspaceSessionService {
         sessionUsers.put(sessionId, userId);
         sessionWorkspaces.put(sessionId, workspaceId);
 
-        log.info("사용자가 워크스페이스에 입장했습니다 - workspaceId: {}, userId: {}, sessionId: {}",
-                workspaceId, userId, sessionId);
-    }
+}
 
     /**
      * 워크스페이스에서 사용자 세션 해제
@@ -75,9 +73,7 @@ public class WorkspaceSessionService {
                 }
             }
 
-            log.info("사용자가 워크스페이스에서 퇴장했습니다 - workspaceId: {}, userId: {}, sessionId: {}",
-                    workspaceId, userId, sessionId);
-        }
+}
     }
 
     /**
@@ -131,3 +127,4 @@ public class WorkspaceSessionService {
         return workspaceUsers.size();
     }
 }
+

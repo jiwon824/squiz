@@ -1,4 +1,4 @@
-package com.ssafy.domain.recruitment.entity;
+﻿package com.ssafy.domain.recruitment.entity;
 
 import com.ssafy.common.entity.BaseEntity;
 import jakarta.persistence.*;
@@ -11,13 +11,13 @@ import java.time.LocalDate;
 /**
  * 팀원 모집 글 엔티티
  */
-@Entity
-@Table(name = "team_recruit")
-@Getter
-@Builder
-@AllArgsConstructor
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class TeamRecruit extends BaseEntity {
+ @Entity
+ @Table(name = "team_recruit")
+ @Getter
+ @Builder
+ @AllArgsConstructor
+ @NoArgsConstructor(access = AccessLevel.PROTECTED)
+ public class TeamRecruit extends BaseEntity {
 
     @Column(name = "user_id", nullable = false)
     private Long userId;

@@ -1,4 +1,4 @@
-package com.ssafy.domain.dm.websocket;
+﻿package com.ssafy.domain.dm.websocket;
 
 import com.ssafy.domain.dm.dto.request.DirectMessageRequest;
 import com.ssafy.domain.dm.dto.response.DirectMessageResponse;
@@ -30,8 +30,8 @@ import org.springframework.stereotype.Controller;
  * - /user/queue/dm         : 개인 DM 메시지 수신
  * - /user/queue/dm/events  : DM 이벤트 (typing, read 등)
  */
-@Controller
-public class DmWebSocketController {
+ @Controller
+ public class DmWebSocketController {
 
     private static final Logger log = LoggerFactory.getLogger(DmWebSocketController.class);
 
@@ -65,21 +65,15 @@ public class DmWebSocketController {
         String sessionId = headerAccessor.getSessionId();
         boolean wasOffline = !dmSessionService.isUserOnline(userId);
         dmSessionService.registerSession(userId, sessionId);
-        log.info("DM connected: userId={}, sessionId={}", userId, sessionId);
-
-        // 첫 연결 시 DB에 온라인 상태 업데이트 및 친구들에게 브로드캐스트
+// 첫 연결 시 DB에 온라인 상태 업데이트 및 친구들에게 브로드캐스트
         if (wasOffline) {
             try {
                 // DB에 온라인 상태 업데이트
                 userRepository.updateOnlineStatus(userId, true, LocalDateTime.now());
-                log.debug("Updated online status in DB for userId={}", userId);
-
-                // 친구들에게 온라인 상태 브로드캐스트
+// 친구들에게 온라인 상태 브로드캐스트
                 friendPresenceService.broadcastPresence(userId, true, null);
-                log.debug("Broadcasted online status for userId={}", userId);
-            } catch (Exception e) {
-                log.warn("Failed to update/broadcast online status: {}", e.getMessage());
-            }
+} catch (Exception e) {
+}
         }
     }
 
@@ -116,11 +110,8 @@ public class DmWebSocketController {
             DmWebSocketEvent receiverEvent = DmWebSocketEvent.newMessage(receiverResponse);
             sendToUser(message.getReceiverId(), "/queue/dm", receiverEvent);
 
-            log.debug("DM sent: from={} to={} messageId={}", senderId, message.getReceiverId(), response.messageId());
-
-        } catch (Exception e) {
-            log.error("Failed to send DM: from={} to={}", senderId, message.getReceiverId(), e);
-            // 에러 이벤트를 발신자에게 전송
+} catch (Exception e) {
+// 에러 이벤트를 발신자에게 전송
             sendErrorToUser(senderId, e.getMessage());
         }
     }
@@ -140,8 +131,7 @@ public class DmWebSocketController {
                 sendToUser(otherUserId, "/queue/dm/events", typingEvent);
             }
         } catch (Exception e) {
-            log.warn("Failed to send typing indicator: userId={}, conversationId={}", userId, conversationId);
-        }
+}
     }
 
     /**
@@ -161,10 +151,8 @@ public class DmWebSocketController {
                 sendToUser(otherUserId, "/queue/dm/events", readEvent);
             }
 
-            log.debug("DM read: userId={}, conversationId={}", userId, conversationId);
-        } catch (Exception e) {
-            log.warn("Failed to mark as read: userId={}, conversationId={}", userId, conversationId);
-        }
+} catch (Exception e) {
+}
     }
 
     /**
@@ -173,8 +161,7 @@ public class DmWebSocketController {
     private void sendToUser(Long userId, String destination, Object payload) {
         // Redis를 통해 발행 - 모든 서버의 해당 사용자 세션에 전달됨
         dmRedisPublisher.publishToUser(userId, destination, payload);
-        log.debug("Published DM to Redis for userId={}, destination={}", userId, destination);
-    }
+}
 
     /**
      * 에러 메시지 전송
@@ -185,3 +172,4 @@ public class DmWebSocketController {
         sendToUser(userId, "/queue/dm/errors", errorMessage);
     }
 }
+

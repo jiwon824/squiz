@@ -1,4 +1,4 @@
-package com.ssafy.config;
+﻿package com.ssafy.config;
 
 import com.ssafy.domain.news.job.NewsScrapingJob;
 import org.quartz.*;

@@ -1,4 +1,4 @@
-package com.ssafy.domain.gamification.controller;
+﻿package com.ssafy.domain.gamification.controller;
 
 import com.ssafy.common.auth.SsafyUserDetails;
 import com.ssafy.domain.gamification.dto.response.*;
@@ -55,13 +55,10 @@ public class GamificationController {
             @AuthenticationPrincipal SsafyUserDetails userDetails
     ) {
         Long userId = userDetails.getUser().getId();
-        log.info("[Gamification] 통계 조회 요청 - userId: {}", userId);
         try {
             UserStatsResponse response = gamificationService.getMyStats(userId);
-            log.info("[Gamification] 통계 조회 성공 - userId: {}", userId);
             return ApiResponse.success(response);
         } catch (Exception e) {
-            log.error("[Gamification] 통계 조회 실패 - userId: {}, error: {}", userId, e.getMessage(), e);
             throw e;
         }
     }
@@ -103,3 +100,4 @@ public class GamificationController {
         return ApiResponse.success(response);
     }
 }
+

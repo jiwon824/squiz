@@ -1,4 +1,4 @@
-package com.ssafy.domain.study.controller;
+﻿package com.ssafy.domain.study.controller;
 
 import com.ssafy.domain.study.dto.response.TopicResponse;
 import com.ssafy.domain.study.service.TopicService;
@@ -13,11 +13,11 @@ import java.util.List;
 /**
  * 스터디 주제(Topic) 조회 API
  */
-@Tag(name = "Topic", description = "스터디 주제 조회 API")
-@RestController
-@RequestMapping("/api/v1/topics")
-@RequiredArgsConstructor
-public class TopicController {
+ @Tag(name = "Topic", description = "스터디 주제 조회 API")
+ @RestController
+ @RequestMapping("/api/v1/topics")
+ @RequiredArgsConstructor
+ public class TopicController {
 
     private final TopicService topicService;
 

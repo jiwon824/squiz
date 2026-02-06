@@ -1,4 +1,4 @@
-package com.ssafy.common.exception.handler;
+﻿package com.ssafy.common.exception.handler;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -25,8 +25,8 @@ import org.springframework.web.servlet.NoHandlerFoundException;
  *
  */
 
-@ControllerAdvice
-public class NotFoundHandler {
+ @ControllerAdvice
+ public class NotFoundHandler {
 	@Value("${spa.default-file}")
 	String defaultFile;
 

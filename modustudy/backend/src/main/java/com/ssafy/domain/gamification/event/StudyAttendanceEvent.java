@@ -1,4 +1,4 @@
-package com.ssafy.domain.gamification.event;
+﻿package com.ssafy.domain.gamification.event;
 
 import lombok.Getter;
 import org.springframework.context.ApplicationEvent;

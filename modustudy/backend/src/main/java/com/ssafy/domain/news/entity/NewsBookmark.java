@@ -1,4 +1,4 @@
-package com.ssafy.domain.news.entity;
+﻿package com.ssafy.domain.news.entity;
 
 import com.ssafy.domain.user.entity.User;
 import jakarta.persistence.*;
@@ -16,10 +16,10 @@ import java.time.LocalDateTime;
         uniqueConstraints = {
                 @UniqueConstraint(name = "uk_user_news", columnNames = {"user_id", "news_id"})
         })
-@Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-@EntityListeners(AuditingEntityListener.class)
-public class NewsBookmark {
+        @Getter
+        @NoArgsConstructor(access = AccessLevel.PROTECTED)
+        @EntityListeners(AuditingEntityListener.class)
+        public class NewsBookmark {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

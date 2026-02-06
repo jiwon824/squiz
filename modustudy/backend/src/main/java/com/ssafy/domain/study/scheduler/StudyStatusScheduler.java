@@ -1,4 +1,4 @@
-package com.ssafy.domain.study.scheduler;
+﻿package com.ssafy.domain.study.scheduler;
 
 import com.ssafy.domain.notification.entity.NotificationType;
 import com.ssafy.domain.notification.service.NotificationService;
@@ -21,10 +21,10 @@ import java.util.List;
  * 스터디 모집 상태 자동 관리 스케줄러
  * 10분마다 실행되어 날짜/정원 기반으로 스터디 상태를 자동 전이
  */
-@Slf4j
-@Component
-@RequiredArgsConstructor
-public class StudyStatusScheduler {
+ @Slf4j
+ @Component
+ @RequiredArgsConstructor
+ public class StudyStatusScheduler {
 
     private final StudyRepository studyRepository;
     private final StudyMemberRepository studyMemberRepository;
@@ -64,15 +64,10 @@ public class StudyStatusScheduler {
         for (Study study : studies) {
             try {
                 study.updateStatus(Status.RECRUITING);
-                log.info("상태 자동 전이 SCHEDULED → RECRUITING - studyId: {}, name: {}",
-                        study.getId(), study.getName());
-
                 notifyLeader(study, "스터디 모집이 시작되었습니다",
                         String.format("'%s' 스터디의 모집이 자동으로 시작되었습니다.", study.getName()));
             } catch (Exception e) {
-                log.error("SCHEDULED → RECRUITING 전이 실패 - studyId: {}, error: {}",
-                        study.getId(), e.getMessage());
-            }
+}
         }
     }
 
@@ -86,15 +81,10 @@ public class StudyStatusScheduler {
         for (Study study : studies) {
             try {
                 study.updateStatus(Status.RECRUIT_CLOSED);
-                log.info("상태 자동 전이 RECRUITING → RECRUIT_CLOSED (기간 만료) - studyId: {}, name: {}",
-                        study.getId(), study.getName());
-
                 notifyLeader(study, "스터디 모집이 마감되었습니다",
                         String.format("'%s' 스터디의 모집 기간이 종료되어 자동 마감되었습니다.", study.getName()));
             } catch (Exception e) {
-                log.error("RECRUITING → RECRUIT_CLOSED (기간 만료) 전이 실패 - studyId: {}, error: {}",
-                        study.getId(), e.getMessage());
-            }
+}
         }
     }
 
@@ -111,17 +101,12 @@ public class StudyStatusScheduler {
 
                 if (study.getMaxMembers() != null && approvedCount >= study.getMaxMembers()) {
                     study.updateStatus(Status.RECRUIT_CLOSED);
-                    log.info("상태 자동 전이 RECRUITING → RECRUIT_CLOSED (정원 도달) - studyId: {}, members: {}/{}",
-                            study.getId(), approvedCount, study.getMaxMembers());
-
                     notifyLeader(study, "스터디 정원이 찼습니다",
                             String.format("'%s' 스터디의 정원(%d명)이 모두 차서 모집이 자동 마감되었습니다.",
                                     study.getName(), study.getMaxMembers()));
                 }
             } catch (Exception e) {
-                log.error("정원 도달 체크 실패 - studyId: {}, error: {}",
-                        study.getId(), e.getMessage());
-            }
+}
         }
     }
 
@@ -135,15 +120,10 @@ public class StudyStatusScheduler {
         for (Study study : studies) {
             try {
                 study.updateStatus(Status.IN_PROGRESS);
-                log.info("상태 자동 전이 RECRUIT_CLOSED → IN_PROGRESS - studyId: {}, name: {}",
-                        study.getId(), study.getName());
-
                 notifyAllMembers(study, "스터디가 시작되었습니다",
                         String.format("'%s' 스터디가 시작되었습니다. 첫 세션을 확인해주세요!", study.getName()));
             } catch (Exception e) {
-                log.error("RECRUIT_CLOSED → IN_PROGRESS 전이 실패 - studyId: {}, error: {}",
-                        study.getId(), e.getMessage());
-            }
+}
         }
     }
 
@@ -157,15 +137,10 @@ public class StudyStatusScheduler {
         for (Study study : studies) {
             try {
                 study.updateStatus(Status.COMPLETED);
-                log.info("상태 자동 전이 IN_PROGRESS → COMPLETED - studyId: {}, name: {}",
-                        study.getId(), study.getName());
-
                 notifyAllMembers(study, "스터디가 완료되었습니다",
                         String.format("'%s' 스터디가 완료되었습니다. 수고하셨습니다!", study.getName()));
             } catch (Exception e) {
-                log.error("IN_PROGRESS → COMPLETED 전이 실패 - studyId: {}, error: {}",
-                        study.getId(), e.getMessage());
-            }
+}
         }
     }
 
@@ -183,9 +158,7 @@ public class StudyStatusScheduler {
                     study.getId()
             );
         } catch (Exception e) {
-            log.warn("리더 알림 전송 실패 - studyId: {}, leaderId: {}, error: {}",
-                    study.getId(), study.getLeaderId(), e.getMessage());
-        }
+}
     }
 
     /**
@@ -207,16 +180,13 @@ public class StudyStatusScheduler {
                             study.getId()
                     );
                 } catch (Exception e) {
-                    log.warn("멤버 알림 전송 실패 - userId: {}, error: {}",
-                            member.getUserId(), e.getMessage());
-                }
+}
             }
 
             // 리더에게도 알림
             notifyLeader(study, title, content);
         } catch (Exception e) {
-            log.warn("전체 멤버 알림 전송 실패 - studyId: {}, error: {}",
-                    study.getId(), e.getMessage());
-        }
+}
     }
 }
+

@@ -1,4 +1,4 @@
-package com.ssafy.domain.user.entity;
+﻿package com.ssafy.domain.user.entity;
 
 import com.ssafy.common.entity.BaseEntity;
 import com.ssafy.domain.quiz.entity.UserCourseProgress;

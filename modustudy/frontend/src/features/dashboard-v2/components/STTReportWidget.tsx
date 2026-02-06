@@ -37,7 +37,6 @@ export const STTReportWidget: React.FC = () => {
                     await fetchMeetings();
                 }
             } catch (err) {
-                console.error('[STTReportWidget] 스터디 로딩 실패:', err);
             } finally {
                 setStudiesLoading(false);
                 setInitialized(true);

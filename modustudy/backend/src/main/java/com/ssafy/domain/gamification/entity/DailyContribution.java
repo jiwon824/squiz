@@ -1,4 +1,4 @@
-package com.ssafy.domain.gamification.entity;
+﻿package com.ssafy.domain.gamification.entity;
 
 import com.ssafy.domain.user.entity.User;
 import jakarta.persistence.*;
@@ -17,10 +17,10 @@ import java.time.LocalDateTime;
                 name = "uk_user_date",
                 columnNames = {"user_id", "contribution_date"}
         )
-)
-@Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class DailyContribution {
+        )
+        @Getter
+        @NoArgsConstructor(access = AccessLevel.PROTECTED)
+        public class DailyContribution {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

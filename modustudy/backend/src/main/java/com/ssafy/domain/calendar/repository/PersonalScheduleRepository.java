@@ -1,4 +1,4 @@
-package com.ssafy.domain.calendar.repository;
+﻿package com.ssafy.domain.calendar.repository;
 
 import com.ssafy.domain.calendar.entity.PersonalSchedule;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,8 +13,8 @@ import java.util.Optional;
 /**
  * 개인 일정 Repository
  */
-@Repository
-public interface PersonalScheduleRepository extends JpaRepository<PersonalSchedule, Long> {
+ @Repository
+ public interface PersonalScheduleRepository extends JpaRepository<PersonalSchedule, Long> {
 
     /**
      * 특정 사용자의 날짜 범위 내 일정 조회

@@ -1,4 +1,4 @@
-package com.ssafy.infra.external.dto;
+﻿package com.ssafy.infra.external.dto;
 
 public record ExternalResponse() {
 }

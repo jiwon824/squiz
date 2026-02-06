@@ -1,4 +1,4 @@
-package com.ssafy.config;
+﻿package com.ssafy.config;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -16,9 +16,9 @@ import org.springframework.web.bind.annotation.GetMapping;
  * 루트 경로(/)를 처리하여 index.html을 반환하는 컨트롤러.
  * @Order(Ordered.LOWEST_PRECEDENCE)로 설정하여 리소스 핸들러보다 낮은 우선순위를 가진다.
  */
-@Controller
-@Order(Ordered.LOWEST_PRECEDENCE)
-public class IndexController {
+ @Controller
+ @Order(Ordered.LOWEST_PRECEDENCE)
+ public class IndexController {
 
     private static final String INDEX_PATH = "/dist/index.html";
     

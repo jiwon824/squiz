@@ -1,4 +1,4 @@
-package com.ssafy.domain.study.service;
+﻿package com.ssafy.domain.study.service;
 
 import com.ssafy.domain.study.dto.request.CreateTemplateRequest;
 import com.ssafy.domain.study.dto.response.StudyTemplateResponse;
@@ -28,8 +28,8 @@ import static org.mockito.BDDMockito.*;
 /**
  * StudyTemplateService 테스트
  */
-@ExtendWith(MockitoExtension.class)
-class StudyTemplateServiceTest {
+ @ExtendWith(MockitoExtension.class)
+ class StudyTemplateServiceTest {
 
     @Mock
     private StudyTemplateRepository studyTemplateRepository;

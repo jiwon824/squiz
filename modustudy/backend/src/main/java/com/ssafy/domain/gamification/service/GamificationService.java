@@ -1,4 +1,4 @@
-package com.ssafy.domain.gamification.service;
+﻿package com.ssafy.domain.gamification.service;
 
 import com.ssafy.domain.gamification.config.ExperienceConfig;
 import com.ssafy.domain.gamification.entity.BadgeCategory;

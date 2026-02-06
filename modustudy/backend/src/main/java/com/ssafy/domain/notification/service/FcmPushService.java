@@ -1,4 +1,4 @@
-package com.ssafy.domain.notification.service;
+﻿package com.ssafy.domain.notification.service;
 
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.messaging.*;
@@ -17,10 +17,10 @@ import java.util.Map;
  * FCM 푸시 알림 전송 서비스
  * Data 메시지 방식으로 전송하여 포그라운드/백그라운드 모두 앱에서 처리
  */
-@Service
-@RequiredArgsConstructor
-@Slf4j
-public class FcmPushService {
+ @Service
+ @RequiredArgsConstructor
+ @Slf4j
+ public class FcmPushService {
 
     private final FcmTokenService fcmTokenService;
 
@@ -39,22 +39,19 @@ public class FcmPushService {
     public void sendToUser(Long userId, String title, String body, NotificationType type,
                            Long notificationId, Map<String, String> extraData) {
         if (!isFirebaseInitialized()) {
-            log.warn("Firebase가 초기화되지 않아 푸시 알림을 전송할 수 없습니다.");
             return;
         }
 
         List<FcmToken> tokens = fcmTokenService.getActiveTokens(userId);
 
         if (tokens.isEmpty()) {
-            log.debug("사용자 {}의 활성 FCM 토큰이 없습니다.", userId);
             return;
         }
 
         for (FcmToken fcmToken : tokens) {
             try {
                 sendDataMessage(fcmToken.getToken(), title, body, type.name(), notificationId, extraData);
-                log.info("FCM 푸시 전송 성공 - userId: {}, type: {}", userId, type);
-            } catch (FirebaseMessagingException e) {
+} catch (FirebaseMessagingException e) {
                 handleMessagingException(fcmToken, e);
             }
         }
@@ -113,8 +110,7 @@ public class FcmPushService {
                 .build();
 
         String response = FirebaseMessaging.getInstance().send(message);
-        log.debug("FCM 메시지 전송 완료 - response: {}", response);
-    }
+}
 
     /**
      * Firebase 초기화 여부 확인
@@ -132,10 +128,9 @@ public class FcmPushService {
         if (errorCode == MessagingErrorCode.UNREGISTERED ||
             errorCode == MessagingErrorCode.INVALID_ARGUMENT) {
             // 유효하지 않은 토큰 - 비활성화
-            log.warn("유효하지 않은 FCM 토큰 비활성화 - tokenId: {}, error: {}", fcmToken.getId(), errorCode);
             fcmToken.deactivate();
         } else {
-            log.error("FCM 푸시 전송 실패 - tokenId: {}, error: {}", fcmToken.getId(), e.getMessage());
-        }
+}
     }
 }
+

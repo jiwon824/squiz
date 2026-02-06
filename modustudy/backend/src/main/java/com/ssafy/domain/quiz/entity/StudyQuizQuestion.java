@@ -1,4 +1,4 @@
-package com.ssafy.domain.quiz.entity;
+﻿package com.ssafy.domain.quiz.entity;
 
 import com.ssafy.common.entity.BaseEntity;
 import com.ssafy.domain.quiz.entity.enums.QuestionType;
@@ -10,13 +10,13 @@ import org.hibernate.type.SqlTypes;
 /**
  * 스터디 퀴즈 문제 엔티티
  */
-@Entity
-@Table(name = "study_quiz_question")
-@Getter
-@Builder
-@AllArgsConstructor
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class StudyQuizQuestion extends BaseEntity {
+ @Entity
+ @Table(name = "study_quiz_question")
+ @Getter
+ @Builder
+ @AllArgsConstructor
+ @NoArgsConstructor(access = AccessLevel.PROTECTED)
+ public class StudyQuizQuestion extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "quiz_id", nullable = false)

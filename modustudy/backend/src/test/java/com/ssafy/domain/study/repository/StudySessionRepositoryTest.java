@@ -1,4 +1,4 @@
-package com.ssafy.domain.study.repository;
+﻿package com.ssafy.domain.study.repository;
 
 import com.ssafy.domain.study.entity.*;
 import com.ssafy.domain.user.entity.Role;
@@ -21,9 +21,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * StudySessionRepository 통합 테스트
  */
-@SpringBootTest
-@Transactional
-class StudySessionRepositoryTest {
+ @SpringBootTest
+ @Transactional
+ class StudySessionRepositoryTest {
 
     @Autowired
     private StudySessionRepository studySessionRepository;

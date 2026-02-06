@@ -1,4 +1,4 @@
-package com.ssafy.domain.study.repository;
+﻿package com.ssafy.domain.study.repository;
 
 import com.ssafy.domain.study.entity.ApplicationStatus;
 import com.ssafy.domain.study.entity.StudyApplication;
@@ -21,9 +21,9 @@ import static org.assertj.core.api.Assertions.*;
 /**
  * StudyApplicationRepository 테스트
  */
-@SpringBootTest
-@Transactional
-class StudyApplicationRepositoryTest {
+ @SpringBootTest
+ @Transactional
+ class StudyApplicationRepositoryTest {
 
     @Autowired
     private StudyApplicationRepository applicationRepository;

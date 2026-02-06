@@ -191,7 +191,6 @@ export const CourseDetail = () => {
                         setCourseData(mapAuthenticatedResponseToUnified(data));
                     } catch (authError) {
                         // 인증 API 실패 시 공개 API로 폴백
-                        console.warn('[CourseDetail] 인증 API 실패, 공개 API로 폴백:', authError);
                         const data = await fetchCourseDetail(numericCourseId);
                         setCourseData(mapPublicResponseToUnified(data));
                     }
@@ -201,7 +200,6 @@ export const CourseDetail = () => {
                     setCourseData(mapPublicResponseToUnified(data));
                 }
             } catch (err) {
-                console.error('[CourseDetail] 코스 로딩 실패:', err);
                 setError(err instanceof Error ? err.message : '코스 정보를 불러오는데 실패했습니다.');
             } finally {
                 setIsLoading(false);

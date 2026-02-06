@@ -1,4 +1,4 @@
-package com.ssafy.domain.quiz.repository;
+﻿package com.ssafy.domain.quiz.repository;
 
 import com.ssafy.domain.quiz.entity.UserCourseProgress;
 import com.ssafy.domain.quiz.entity.UserCourseProgressId;
@@ -14,7 +14,7 @@ import java.util.Optional;
  *
  * 호출자: {@link com.ssafy.domain.quiz.service.QuizCourseService}
  */
-public interface UserCourseProgressRepository extends JpaRepository<UserCourseProgress, UserCourseProgressId> {
+ public interface UserCourseProgressRepository extends JpaRepository<UserCourseProgress, UserCourseProgressId> {
 
     /**
      * 사용자 ID와 코스 ID로 진행 상황을 조회한다.

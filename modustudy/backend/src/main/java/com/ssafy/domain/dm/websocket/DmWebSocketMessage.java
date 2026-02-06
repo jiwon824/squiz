@@ -1,4 +1,4 @@
-package com.ssafy.domain.dm.websocket;
+﻿package com.ssafy.domain.dm.websocket;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotNull;
 /**
  * DM WebSocket 메시지 전송용 DTO
  */
-public class DmWebSocketMessage {
+ public class DmWebSocketMessage {
 
     @NotNull
     private Long receiverId;

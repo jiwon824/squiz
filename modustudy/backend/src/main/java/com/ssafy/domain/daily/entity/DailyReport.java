@@ -1,4 +1,4 @@
-package com.ssafy.domain.daily.entity;
+﻿package com.ssafy.domain.daily.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -10,11 +10,11 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "daily_report",
         uniqueConstraints = @UniqueConstraint(columnNames = {"study_id", "report_date"}))
-@Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
-@Builder
-public class DailyReport {
+        @Getter
+        @NoArgsConstructor(access = AccessLevel.PROTECTED)
+        @AllArgsConstructor
+        @Builder
+        public class DailyReport {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -1,4 +1,4 @@
-package com.ssafy.domain.meeting.service;
+﻿package com.ssafy.domain.meeting.service;
 
 import com.ssafy.config.SfuProperties;
 import com.ssafy.domain.meeting.dto.request.MeetingRequest;
@@ -196,16 +196,13 @@ public class MeetingService {
         // 남은 시간보다 계획 시간이 길면 남은 시간으로 제한
         if (plannedDurationSeconds > remainingSeconds) {
             plannedDurationSeconds = remainingSeconds;
-            log.info("[일일 한도] 계획 시간을 남은 한도로 제한 - studyId: {}, 남은: {}초", studyId, remainingSeconds);
-        }
+}
 
         Meeting meeting = Meeting.start(studyId, request.sessionId(), request.workspaceId(),
                 request.title(), meetingType, autoShareSummary, request.shareWorkspaceId(), LocalDateTime.now(),
                 plannedDurationSeconds);
         Meeting saved = meetingRepository.save(meeting);
         meetingRecordingService.triggerSfuRecordingStart(saved.getId());
-
-        log.info("[미팅 시작] studyId: {}, meetingId: {}, 남은 일일 한도: {}초", studyId, saved.getId(), remainingSeconds);
 
         return new MeetingResponse(saved.getId(), saved.getTitle(), helper.buildRoomToken(saved), saved.getStatus().name(),
                 saved.getMeetingType().name(), saved.getRecordingStatus().name(), saved.getSttStatus().name(),
@@ -269,9 +266,7 @@ public class MeetingService {
             try {
                 attendanceService.markAbsentForNonParticipants(studyId, meeting.getSessionId(), participantUserIds);
             } catch (Exception ex) {
-                log.warn("Failed to mark absent for non-participants. studyId={}, sessionId={}, error={}",
-                        studyId, meeting.getSessionId(), ex.getMessage());
-            }
+}
         }
 
         // 일일 사용량 기록 (온라인 미팅)
@@ -299,12 +294,9 @@ public class MeetingService {
     public MeetingEndResponse forceEndMeeting(Long studyId, Long meetingId, String reason) {
         Meeting meeting = helper.getMeetingOrThrow(studyId, meetingId);
         if (meeting.getStatus() == MeetingStatus.ENDED) {
-            log.warn("[강제 종료] 이미 종료된 미팅 - meetingId: {}", meetingId);
             return new MeetingEndResponse(meeting.getDurationSeconds(), meeting.getParticipantCount(),
                     meeting.getSummaryStatus().name());
         }
-
-        log.info("[강제 종료] 미팅 강제 종료 - studyId: {}, meetingId: {}, 사유: {}", studyId, meetingId, reason);
 
         List<MeetingParticipant> participants = meetingParticipantRepository.findByMeetingId(meetingId);
         LocalDateTime endedAt = LocalDateTime.now();
@@ -330,7 +322,6 @@ public class MeetingService {
 
     @Transactional
     public MeetingJoinResponse joinMeeting(Long studyId, Long meetingId, Long userId) {
-        log.info("joinMeeting called. studyId={} meetingId={} userId={}", studyId, meetingId, userId);
         Meeting meeting = helper.getMeetingOrThrow(studyId, meetingId);
         if (meeting.getStatus() == MeetingStatus.ENDED) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "MEETING_ALREADY_ENDED");
@@ -351,9 +342,7 @@ public class MeetingService {
                     try {
                         attendanceService.checkAttendanceAutoOnline(studyId, session.getId(), userId);
                     } catch (Exception ex) {
-                        log.warn("Auto attendance check failed. studyId={}, sessionId={}, userId={}, error={}",
-                                studyId, session.getId(), userId, ex.getMessage());
-                    }
+}
                 }
             });
         }
@@ -429,7 +418,6 @@ public class MeetingService {
         // 일일 오프라인 STT 한도 체크
         int remainingSeconds = dailyUsageService.getOfflineSttRemainingSeconds(studyId);
         if (remainingSeconds <= 0) {
-            log.warn("[일일 한도 초과] 오프라인 녹음 업로드 차단 - studyId: {}", studyId);
             throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "OFFLINE_STT_DAILY_LIMIT_EXCEEDED");
         }
 
@@ -447,7 +435,6 @@ public class MeetingService {
             java.nio.file.Files.createDirectories(finalPath.getParent());
             java.nio.file.Files.move(mergedFile, finalPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
         } catch (java.io.IOException e) {
-            log.error("병합 파일 이동 실패", e);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "FILE_MOVE_FAILED");
         }
 
@@ -471,9 +458,6 @@ public class MeetingService {
                 }
             });
         }
-
-        log.info("[오프라인 녹음] 다중 파일 업로드 완료 - studyId: {}, sessionId: {}, meetingId: {}, 파일수: {}, duration: {}초",
-                studyId, sessionId, saved.getId(), validFiles.size(), durationSeconds);
 
         return new MeetingResponse(saved.getId(), saved.getTitle(), null, saved.getStatus().name(),
                 saved.getMeetingType().name(), saved.getRecordingStatus().name(), saved.getSttStatus().name(),
@@ -500,7 +484,6 @@ public class MeetingService {
                 file.transferTo(tempFile.toFile());
                 savedFiles.add(tempFile);
             } catch (java.io.IOException e) {
-                log.error("임시 파일 저장 실패: {}", e.getMessage());
                 throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "FILE_SAVE_FAILED");
             }
         }
@@ -536,12 +519,10 @@ public class MeetingService {
             String output = new String(process.getInputStream().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
             int exit = process.waitFor();
             if (exit != 0) {
-                log.warn("FFmpeg 병합 실패. meetingId={} exit={} output={}", meetingId, exit, output.trim());
                 throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "FFMPEG_MERGE_FAILED");
             }
         } catch (java.io.IOException | InterruptedException e) {
             Thread.currentThread().interrupt();
-            log.error("FFmpeg 실행 오류", e);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "FFMPEG_MERGE_FAILED");
         }
 
@@ -583,7 +564,6 @@ public class MeetingService {
         // 일일 오프라인 STT 한도 체크
         int remainingSeconds = dailyUsageService.getOfflineSttRemainingSeconds(studyId);
         if (remainingSeconds <= 0) {
-            log.warn("[일일 한도 초과] 오프라인 녹음 업로드 차단 - studyId: {}", studyId);
             throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "OFFLINE_STT_DAILY_LIMIT_EXCEEDED");
         }
 
@@ -619,9 +599,6 @@ public class MeetingService {
                 }
             });
         }
-
-        log.info("[오프라인 녹음] 업로드 완료 - studyId: {}, sessionId: {}, meetingId: {}, duration: {}초",
-                studyId, sessionId, saved.getId(), durationSeconds);
 
         return new MeetingResponse(saved.getId(), saved.getTitle(), null, saved.getStatus().name(),
                 saved.getMeetingType().name(), saved.getRecordingStatus().name(), saved.getSttStatus().name(),
@@ -670,3 +647,4 @@ public class MeetingService {
         return planned;
     }
 }
+

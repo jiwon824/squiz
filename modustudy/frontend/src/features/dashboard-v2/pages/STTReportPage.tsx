@@ -109,7 +109,6 @@ export const STTReportPage: React.FC = () => {
                     setSelectedStudyId(studyOptions[0].id);
                 }
             } catch (err) {
-                console.error('스터디 목록 조회 실패:', err);
             } finally {
                 setStudiesLoading(false);
             }

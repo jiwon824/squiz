@@ -1,4 +1,4 @@
-package com.ssafy.domain.meeting.dto.response;
+﻿package com.ssafy.domain.meeting.dto.response;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -22,5 +22,5 @@ public record MeetingDetailResponse(
         List<MeetingParticipantResponse> participants,
         List<String> keywords,
         MeetingSummaryResponse summary
-) {
+        ) {
 }

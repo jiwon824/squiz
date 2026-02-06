@@ -1,4 +1,4 @@
-package com.ssafy.domain.notification.dto.response;
+﻿package com.ssafy.domain.notification.dto.response;
 
 import com.ssafy.domain.notification.entity.NotificationSetting;
 import com.ssafy.domain.notification.entity.NotificationType;

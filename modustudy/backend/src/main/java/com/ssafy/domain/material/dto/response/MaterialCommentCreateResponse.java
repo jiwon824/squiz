@@ -1,4 +1,4 @@
-package com.ssafy.domain.material.dto.response;
+﻿package com.ssafy.domain.material.dto.response;
 
 import com.ssafy.domain.material.entity.MaterialComment;
 import lombok.Builder;
@@ -9,9 +9,9 @@ import java.time.LocalDateTime;
 /**
  * 자료 댓글 생성 응답 DTO
  */
-@Getter
-@Builder
-public class MaterialCommentCreateResponse {
+ @Getter
+ @Builder
+ public class MaterialCommentCreateResponse {
 
     private Long id;
     private String content;

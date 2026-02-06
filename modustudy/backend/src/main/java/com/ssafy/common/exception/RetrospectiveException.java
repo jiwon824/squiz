@@ -1,11 +1,11 @@
-package com.ssafy.common.exception;
+﻿package com.ssafy.common.exception;
 
 import org.springframework.http.HttpStatus;
 
 /**
  * 회고 관련 예외 클래스
  */
-public class RetrospectiveException {
+ public class RetrospectiveException {
 
     /**
      * 회고를 찾을 수 없음 (404)

@@ -1,4 +1,4 @@
-package com.ssafy.domain.meeting.dto.response;
+﻿package com.ssafy.domain.meeting.dto.response;
 
 public record MeetingSttDataResponse(
         Long userId,
@@ -8,5 +8,5 @@ public record MeetingSttDataResponse(
         Integer timestampSeconds,
         Integer startMs,
         Integer endMs
-) {
+        ) {
 }

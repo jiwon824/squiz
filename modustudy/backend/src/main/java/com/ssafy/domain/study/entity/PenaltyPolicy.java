@@ -1,4 +1,4 @@
-package com.ssafy.domain.study.entity;
+﻿package com.ssafy.domain.study.entity;
 
 public enum PenaltyPolicy {
     STRICT("엄격"), // 한 번이라도 결석 시 퇴출

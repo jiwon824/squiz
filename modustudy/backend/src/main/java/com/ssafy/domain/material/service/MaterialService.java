@@ -1,4 +1,4 @@
-package com.ssafy.domain.material.service;
+﻿package com.ssafy.domain.material.service;
 
 import com.ssafy.common.exception.MaterialException;
 import com.ssafy.domain.material.dto.request.MaterialCreateRequest;
@@ -30,11 +30,11 @@ import java.time.LocalDate;
 /**
  * 자료 서비스
  */
-@Slf4j
-@Service
-@RequiredArgsConstructor
-@Transactional(readOnly = true)
-public class MaterialService {
+ @Slf4j
+ @Service
+ @RequiredArgsConstructor
+ @Transactional(readOnly = true)
+ public class MaterialService {
 
     private final MaterialRepository materialRepository;
     private final MaterialCommentRepository commentRepository;
@@ -46,8 +46,6 @@ public class MaterialService {
      * 자료 목록 조회 (동적 검색)
      */
     public Page<MaterialListResponse> getMaterials(Long studyId, MaterialSearchCondition condition, Pageable pageable) {
-        log.info("자료 목록 조회 - studyId: {}, condition: {}", studyId, condition);
-
         Page<Material> materials = materialRepository.searchMaterials(
                 studyId,
                 condition.getWeekNumber(),
@@ -68,8 +66,6 @@ public class MaterialService {
      */
     @Transactional
     public MaterialDetailResponse getMaterialDetail(Long studyId, Long materialId) {
-        log.info("자료 상세 조회 - studyId: {}, materialId: {}", studyId, materialId);
-
         Material material = materialRepository.findByIdAndStudyId(materialId, studyId)
                 .orElseThrow(() -> new MaterialException.MaterialNotFoundException(materialId));
 
@@ -85,9 +81,7 @@ public class MaterialService {
      */
     @Transactional
     public MaterialCreateResponse createLinkMaterial(Long studyId, Long userId, MaterialCreateRequest request) {
-        log.info("링크 자료 생성 - studyId: {}, userId: {}, title: {}", studyId, userId, request.getTitle());
-
-        // 링크 타입 검증
+// 링크 타입 검증
         if (request.getMaterialType() != MaterialType.LINK) {
             throw new MaterialException.InvalidFileTypeException("링크 자료만 생성 가능합니다");
         }
@@ -102,9 +96,7 @@ public class MaterialService {
         );
 
         Material saved = materialRepository.save(material);
-        log.info("링크 자료 생성 완료 - materialId: {}", saved.getId());
-
-        // 게이미피케이션 이벤트 발행 - 자료 업로드
+// 게이미피케이션 이벤트 발행 - 자료 업로드
         Study study = studyRepository.findById(studyId).orElse(null);
         String studyName = study != null ? study.getName() : "";
         eventPublisher.publishEvent(new MaterialUploadEvent(
@@ -126,9 +118,7 @@ public class MaterialService {
     public MaterialCreateResponse createFileMaterial(Long studyId, Long userId, String title, String description,
                                                      MaterialType materialType, String filePath, String fileName,
                                                      Long fileSize, Integer weekNumber) {
-        log.info("파일 자료 생성 - studyId: {}, userId: {}, fileName: {}", studyId, userId, fileName);
-
-        Material material = Material.createFileMaterial(
+                                                         Material material = Material.createFileMaterial(
                 studyId,
                 userId,
                 title,
@@ -141,9 +131,7 @@ public class MaterialService {
         );
 
         Material saved = materialRepository.save(material);
-        log.info("파일 자료 생성 완료 - materialId: {}", saved.getId());
-
-        // 게이미피케이션 이벤트 발행 - 자료 업로드
+// 게이미피케이션 이벤트 발행 - 자료 업로드
         Study study = studyRepository.findById(studyId).orElse(null);
         String studyName = study != null ? study.getName() : "";
         eventPublisher.publishEvent(new MaterialUploadEvent(
@@ -163,8 +151,6 @@ public class MaterialService {
      */
     @Transactional
     public void updateMaterial(Long studyId, Long materialId, Long userId, MaterialUpdateRequest request) {
-        log.info("자료 수정 - studyId: {}, materialId: {}, userId: {}", studyId, materialId, userId);
-
         Material material = materialRepository.findByIdAndStudyId(materialId, studyId)
                 .orElseThrow(() -> new MaterialException.MaterialNotFoundException(materialId));
 
@@ -174,16 +160,13 @@ public class MaterialService {
         }
 
         material.update(request.getTitle(), request.getDescription(), request.getWeekNumber());
-        log.info("자료 수정 완료 - materialId: {}", materialId);
-    }
+}
 
     /**
      * 자료 삭제
      */
     @Transactional
     public void deleteMaterial(Long studyId, Long materialId, Long userId, boolean isLeader) {
-        log.info("자료 삭제 - studyId: {}, materialId: {}, userId: {}, isLeader: {}", studyId, materialId, userId, isLeader);
-
         Material material = materialRepository.findByIdAndStudyId(materialId, studyId)
                 .orElseThrow(() -> new MaterialException.MaterialNotFoundException(materialId));
 
@@ -197,8 +180,7 @@ public class MaterialService {
 
         // 자료 삭제
         materialRepository.delete(material);
-        log.info("자료 삭제 완료 - materialId: {}", materialId);
-    }
+}
 
     /**
      * 업로더 정보 조회

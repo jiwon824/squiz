@@ -1,4 +1,4 @@
-package com.ssafy.config;
+﻿package com.ssafy.config;
 
 import org.apache.ibatis.type.BaseTypeHandler;
 import org.apache.ibatis.type.JdbcType;
@@ -12,8 +12,8 @@ import java.time.ZoneId;
  * MyBatis TypeHandler for OffsetDateTime
  * MySQL DATETIME/TIMESTAMP <-> Java OffsetDateTime (KST)
  */
-@MappedTypes(OffsetDateTime.class)
-public class OffsetDateTimeTypeHandler extends BaseTypeHandler<OffsetDateTime> {
+ @MappedTypes(OffsetDateTime.class)
+ public class OffsetDateTimeTypeHandler extends BaseTypeHandler<OffsetDateTime> {
 
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 

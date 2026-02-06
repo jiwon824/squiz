@@ -1,4 +1,4 @@
-package com.ssafy.domain.study.repository;
+﻿package com.ssafy.domain.study.repository;
 
 import com.ssafy.domain.study.entity.StudyTemplate;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -10,8 +10,8 @@ import java.util.Optional;
 /**
  * 스터디 템플릿 Repository
  */
-@Repository
-public interface StudyTemplateRepository extends JpaRepository<StudyTemplate, Long> {
+ @Repository
+ public interface StudyTemplateRepository extends JpaRepository<StudyTemplate, Long> {
 
     /**
      * 특정 사용자의 템플릿 목록 조회

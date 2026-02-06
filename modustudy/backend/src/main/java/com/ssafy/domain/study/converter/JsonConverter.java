@@ -1,4 +1,4 @@
-package com.ssafy.domain.study.converter;
+﻿package com.ssafy.domain.study.converter;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -13,9 +13,9 @@ import java.util.Map;
  * JSON 타입 컬럼을 Map으로 변환하는 Converter
  * target_org_criteria 컬럼에 사용
  */
-@Converter
-@Slf4j
-public class JsonConverter implements AttributeConverter<Map<String, Object>, String> {
+ @Converter
+ @Slf4j
+ public class JsonConverter implements AttributeConverter<Map<String, Object>, String> {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -31,7 +31,6 @@ public class JsonConverter implements AttributeConverter<Map<String, Object>, St
         try {
             return objectMapper.writeValueAsString(attribute);
         } catch (JsonProcessingException e) {
-            log.error("JSON 변환 실패: {}", attribute, e);
             throw new IllegalArgumentException("JSON 변환 실패", e);
         }
     }
@@ -49,7 +48,6 @@ public class JsonConverter implements AttributeConverter<Map<String, Object>, St
         try {
             return objectMapper.readValue(dbData, Map.class);
         } catch (IOException e) {
-            log.error("JSON 파싱 실패: {}", dbData, e);
             throw new IllegalArgumentException("JSON 파싱 실패", e);
         }
     }

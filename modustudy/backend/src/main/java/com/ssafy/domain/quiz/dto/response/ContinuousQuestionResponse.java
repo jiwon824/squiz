@@ -1,4 +1,4 @@
-package com.ssafy.domain.quiz.dto.response;
+﻿package com.ssafy.domain.quiz.dto.response;
 
 import com.ssafy.domain.quiz.entity.QuizCourseQuestion;
 import com.ssafy.domain.quiz.entity.enums.QuestionType;
@@ -8,9 +8,9 @@ import lombok.Getter;
 /**
  * Continuous Learning 모드 문제 응답 DTO.
  */
-@Getter
-@Builder
-public class ContinuousQuestionResponse {
+ @Getter
+ @Builder
+ public class ContinuousQuestionResponse {
 
     private Long questionId;
     private Integer questionNumber;

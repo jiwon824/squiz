@@ -1,4 +1,4 @@
-package com.ssafy.domain.study.scheduler;
+﻿package com.ssafy.domain.study.scheduler;
 
 import com.ssafy.domain.notification.entity.NotificationType;
 import com.ssafy.domain.notification.service.NotificationService;
@@ -23,10 +23,10 @@ import java.util.List;
  *   - 인원 충족 시: RECRUITING → RECRUIT_CLOSED
  *   - 인원 미충족 시: RECRUITING → PENDING (확정대기)
  */
-@Component
-@RequiredArgsConstructor
-@Slf4j
-public class RecruitmentDeadlineScheduler {
+ @Component
+ @RequiredArgsConstructor
+ @Slf4j
+ public class RecruitmentDeadlineScheduler {
 
     private final StudyRepository studyRepository;
     private final StudyMemberRepository studyMemberRepository;
@@ -38,22 +38,17 @@ public class RecruitmentDeadlineScheduler {
     @Scheduled(cron = "0 0 0 * * *")
     @Transactional
     public void checkRecruitmentDeadlines() {
-        log.info("모집 기간 종료 스케줄러 실행 시작");
-
         LocalDate today = LocalDate.now();
 
         // 모집중인 스터디 중 모집 종료일이 오늘 이전인 스터디 조회
         List<Study> expiredStudies = studyRepository.findByStatusAndRecruitEndDateBefore(
                 Status.RECRUITING, today);
 
-        log.info("모집 기간 종료 스터디 수: {}", expiredStudies.size());
-
-        for (Study study : expiredStudies) {
+                for (Study study : expiredStudies) {
             processExpiredStudy(study);
         }
 
-        log.info("모집 기간 종료 스케줄러 실행 완료");
-    }
+}
 
     /**
      * 모집 기간이 종료된 스터디 처리
@@ -64,10 +59,7 @@ public class RecruitmentDeadlineScheduler {
                     study.getId(), MemberStatus.APPROVED);
             Integer maxMembers = study.getMaxMembers();
 
-            log.info("스터디 모집 기간 종료 처리 - studyId: {}, 현재 인원: {}, 최대 인원: {}",
-                    study.getId(), currentMembers, maxMembers);
-
-            // 최소 인원 기준 (스터디장 포함 2명 이상이면 인원 충족으로 판단)
+// 최소 인원 기준 (스터디장 포함 2명 이상이면 인원 충족으로 판단)
             // 또는 maxMembers에 도달했으면 충족
             boolean isRecruitmentComplete = (maxMembers != null && currentMembers >= maxMembers)
                     || currentMembers >= 2;
@@ -86,8 +78,7 @@ public class RecruitmentDeadlineScheduler {
                         study.getId()
                 );
 
-                log.info("스터디 상태 변경: RECRUITING → RECRUIT_CLOSED - studyId: {}", study.getId());
-            } else {
+} else {
                 // 인원 미충족 → 확정대기
                 study.updateStatus(Status.PENDING);
 
@@ -102,10 +93,9 @@ public class RecruitmentDeadlineScheduler {
                         study.getId()
                 );
 
-                log.info("스터디 상태 변경: RECRUITING → PENDING - studyId: {}", study.getId());
-            }
+}
         } catch (Exception e) {
-            log.error("스터디 모집 기간 종료 처리 실패 - studyId: {}, error: {}", study.getId(), e.getMessage(), e);
-        }
+}
     }
 }
+

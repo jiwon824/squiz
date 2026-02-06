@@ -141,7 +141,6 @@ export const useAdminStore = create<AdminState>((set) => ({
             const summary = await getDashboardSummary();
             set({ summary });
         } catch (error) {
-            console.error('Failed to fetch summary:', error);
         }
     },
 
@@ -150,7 +149,6 @@ export const useAdminStore = create<AdminState>((set) => ({
             const userSignupStats = await getUserSignupStats(days);
             set({ userSignupStats });
         } catch (error) {
-            console.error('Failed to fetch user signup stats:', error);
         }
     },
 
@@ -159,7 +157,6 @@ export const useAdminStore = create<AdminState>((set) => ({
             const studyStatusStats = await getStudyStatusStats();
             set({ studyStatusStats });
         } catch (error) {
-            console.error('Failed to fetch study status stats:', error);
         }
     },
 
@@ -168,7 +165,6 @@ export const useAdminStore = create<AdminState>((set) => ({
             const loginMethodStats = await getLoginMethodStats();
             set({ loginMethodStats });
         } catch (error) {
-            console.error('Failed to fetch login method stats:', error);
         }
     },
 
@@ -177,7 +173,6 @@ export const useAdminStore = create<AdminState>((set) => ({
             const quizStats = await getQuizStats(days);
             set({ quizStats });
         } catch (error) {
-            console.error('Failed to fetch quiz stats:', error);
         }
     },
 
@@ -186,7 +181,6 @@ export const useAdminStore = create<AdminState>((set) => ({
             const recentUsers = await getRecentUsers(limit);
             set({ recentUsers });
         } catch (error) {
-            console.error('Failed to fetch recent users:', error);
         }
     },
 
@@ -195,7 +189,6 @@ export const useAdminStore = create<AdminState>((set) => ({
             const popularStudies = await getPopularStudies(limit);
             set({ popularStudies });
         } catch (error) {
-            console.error('Failed to fetch popular studies:', error);
         }
     },
 
@@ -206,7 +199,6 @@ export const useAdminStore = create<AdminState>((set) => ({
             const dailyMeetingStats = await getDailyMeetingStats(days);
             set({ dailyMeetingStats });
         } catch (error) {
-            console.error('Failed to fetch daily meeting stats:', error);
         }
     },
 
@@ -215,7 +207,6 @@ export const useAdminStore = create<AdminState>((set) => ({
             const dailyAttendanceStats = await getDailyAttendanceStats(days);
             set({ dailyAttendanceStats });
         } catch (error) {
-            console.error('Failed to fetch daily attendance stats:', error);
         }
     },
 
@@ -224,7 +215,6 @@ export const useAdminStore = create<AdminState>((set) => ({
             const dailyActivityStats = await getDailyActivityStats(days);
             set({ dailyActivityStats });
         } catch (error) {
-            console.error('Failed to fetch daily activity stats:', error);
         }
     },
 
@@ -233,7 +223,6 @@ export const useAdminStore = create<AdminState>((set) => ({
             const userLevelStats = await getUserLevelStats();
             set({ userLevelStats });
         } catch (error) {
-            console.error('Failed to fetch user level stats:', error);
         }
     },
 
@@ -242,7 +231,6 @@ export const useAdminStore = create<AdminState>((set) => ({
             const studyTopicStats = await getStudyTopicStats();
             set({ studyTopicStats });
         } catch (error) {
-            console.error('Failed to fetch study topic stats:', error);
         }
     }
 }));

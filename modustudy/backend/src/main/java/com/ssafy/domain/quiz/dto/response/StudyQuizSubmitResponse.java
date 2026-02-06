@@ -1,4 +1,4 @@
-package com.ssafy.domain.quiz.dto.response;
+﻿package com.ssafy.domain.quiz.dto.response;
 
 import com.ssafy.domain.quiz.entity.UserReviewItem;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -10,8 +10,8 @@ import java.time.LocalDateTime;
  *
  * FSRS 복습 스케줄 + 채점 결과를 프론트엔드에 반환한다.
  */
-@Schema(description = "스터디 퀴즈 답안 제출 응답")
-public record StudyQuizSubmitResponse(
+ @Schema(description = "스터디 퀴즈 답안 제출 응답")
+ public record StudyQuizSubmitResponse(
 
         @Schema(description = "정답 여부", example = "true")
         boolean isCorrect,

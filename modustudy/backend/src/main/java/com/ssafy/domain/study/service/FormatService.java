@@ -1,4 +1,4 @@
-package com.ssafy.domain.study.service;
+﻿package com.ssafy.domain.study.service;
 
 import com.ssafy.domain.study.dto.response.FormatResponse;
 import com.ssafy.domain.study.entity.Format;
@@ -13,10 +13,10 @@ import java.util.stream.Collectors;
 /**
  * Format 서비스
  */
-@Service
-@RequiredArgsConstructor
-@Transactional(readOnly = true)
-public class FormatService {
+ @Service
+ @RequiredArgsConstructor
+ @Transactional(readOnly = true)
+ public class FormatService {
 
     private final FormatRepository formatRepository;
 

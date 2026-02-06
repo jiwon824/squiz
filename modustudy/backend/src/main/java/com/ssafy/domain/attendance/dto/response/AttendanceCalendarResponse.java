@@ -1,4 +1,4 @@
-package com.ssafy.domain.attendance.dto.response;
+﻿package com.ssafy.domain.attendance.dto.response;
 
 import com.ssafy.domain.attendance.entity.AttendanceCheckType;
 import com.ssafy.domain.attendance.entity.AttendanceExcuseStatus;
@@ -17,7 +17,7 @@ public record AttendanceCalendarResponse(
         int month,
         @Schema(description = "출석 기록 목록")
         List<AttendanceCalendarItem> items
-) {
+        ) {
     @Schema(description = "캘린더 출석 항목")
     public record AttendanceCalendarItem(
             @Schema(description = "날짜", example = "2026-01-29")

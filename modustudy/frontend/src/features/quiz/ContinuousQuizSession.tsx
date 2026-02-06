@@ -465,7 +465,6 @@ export const ContinuousQuizSession = () => {
 
                 setIsLoading(false);
             } catch (err) {
-                console.error('[ContinuousQuizSession] 초기화 실패:', err);
                 setError(err instanceof Error ? err.message : '퀴즈를 시작하는데 실패했습니다.');
                 setIsLoading(false);
             }
@@ -547,11 +546,9 @@ export const ContinuousQuizSession = () => {
             if (response.nextQuestion) {
                 setNextQuestionData(response.nextQuestion);
             } else {
-                console.error('[ContinuousQuizSession] 다음 문제가 없습니다');
                 showToast('다음 문제를 불러오는데 실패했습니다.', 'error');
             }
         } catch (err) {
-            console.error('[ContinuousQuizSession] 제출 실패:', err);
             showToast(err instanceof Error ? err.message : '제출에 실패했습니다.', 'error');
         } finally {
             setIsSubmitting(false);
@@ -606,7 +603,6 @@ export const ContinuousQuizSession = () => {
             }
 
         } catch (err) {
-            console.error('[ContinuousQuizSession] 건너뛰기 제출 실패:', err);
             showToast('제출에 실패했습니다.', 'error');
         } finally {
             setIsSubmitting(false);

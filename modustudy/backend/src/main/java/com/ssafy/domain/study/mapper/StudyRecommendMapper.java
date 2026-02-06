@@ -1,4 +1,4 @@
-package com.ssafy.domain.study.mapper;
+﻿package com.ssafy.domain.study.mapper;
 
 import com.ssafy.domain.study.dto.response.StudyRecommendDto;
 import org.apache.ibatis.annotations.Mapper;

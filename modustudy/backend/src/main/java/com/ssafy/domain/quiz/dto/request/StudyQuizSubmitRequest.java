@@ -1,4 +1,4 @@
-package com.ssafy.domain.quiz.dto.request;
+﻿package com.ssafy.domain.quiz.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
@@ -11,8 +11,8 @@ import jakarta.validation.constraints.Positive;
  * @param userAnswer     사용자 답안
  * @param responseTimeMs 응답 시간 (밀리초)
  */
-@Schema(description = "스터디 퀴즈 답안 제출 요청")
-public record StudyQuizSubmitRequest(
+ @Schema(description = "스터디 퀴즈 답안 제출 요청")
+ public record StudyQuizSubmitRequest(
 
         @Schema(description = "사용자 답안", example = "B")
         @NotBlank(message = "답안은 필수입니다")

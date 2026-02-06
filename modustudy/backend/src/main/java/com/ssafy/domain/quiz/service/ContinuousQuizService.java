@@ -1,4 +1,4 @@
-package com.ssafy.domain.quiz.service;
+﻿package com.ssafy.domain.quiz.service;
 
 import com.ssafy.common.exception.BusinessException;
 import com.ssafy.common.exception.NotFoundException;
@@ -77,11 +77,11 @@ import java.util.stream.Collectors;
  * <li>학습 완료: 가중치 1/(reps+1) (반복할수록 감소)</li>
  * </ul>
  */
-@Slf4j
-@Service
-@RequiredArgsConstructor
-@Transactional(readOnly = true)
-public class ContinuousQuizService {
+ @Slf4j
+ @Service
+ @RequiredArgsConstructor
+ @Transactional(readOnly = true)
+ public class ContinuousQuizService {
 
         private final ContinuousQuizRepository learningRepository;
         private final FsrsService fsrsService;
@@ -350,12 +350,7 @@ public class ContinuousQuizService {
                 // 4. 정규화된 정답 (프론트엔드 표시용)
                 String normalizedCorrectAnswer = QuizGradingUtils.normalizeCorrectAnswer(question.getCorrectAnswer());
 
-                log.info("Continuous Learning 답변 처리 - userId: {}, questionId: {}, isCorrect: {}, " +
-                                "stability: {:.2f}, nextReview: {}",
-                                userId, questionId, isCorrect,
-                                reviewItem.getStability(), reviewItem.getNextReviewAt());
-
-                // 5. 게이미피케이션 이벤트 발행
+// 5. 게이미피케이션 이벤트 발행
                 publishQuizSolvedEvent(userId, questionId, question.getQuestionText(), isCorrect);
 
                 // 6. 결과 반환
@@ -482,12 +477,6 @@ public class ContinuousQuizService {
                 // 7. 게이미피케이션 이벤트 발행
                 publishQuizSolvedEvent(userId, questionId, currentQuestion.getQuestionText(), isCorrect);
 
-                log.info("Atomic Submit & Next - userId: {}, questionId: {}, isCorrect: {}, " +
-                                "nextQuestionId: {}, stability: {:.2f}",
-                                userId, questionId, isCorrect,
-                                nextQuestionOpt.map(QuizCourseQuestion::getId).orElse(null),
-                                reviewItem.getStability());
-
                 return builder.build();
         }
 
@@ -500,12 +489,8 @@ public class ContinuousQuizService {
                 try {
                         eventPublisher.publishEvent(new QuizSolvedEvent(
                                         this, userId, questionId, questionText, isCorrect, LocalDate.now()));
-                        log.debug("QuizSolvedEvent 발행 - userId: {}, questionId: {}, isCorrect: {}",
-                                        userId, questionId, isCorrect);
-                } catch (Exception e) {
-                        log.warn("QuizSolvedEvent 발행 실패 - userId: {}, questionId: {}, error: {}",
-                                        userId, questionId, e.getMessage());
-                }
+} catch (Exception e) {
+}
         }
 
         private SectionSummary toSectionSummary(QuizCourseSection section) {
@@ -533,3 +518,4 @@ public class ContinuousQuizService {
                 return new MyProgressDto(currentSection, completedSections, isCompleted);
         }
 }
+

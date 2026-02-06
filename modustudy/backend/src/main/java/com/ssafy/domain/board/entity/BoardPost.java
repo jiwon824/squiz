@@ -1,4 +1,4 @@
-package com.ssafy.domain.board.entity;
+﻿package com.ssafy.domain.board.entity;
 
 import com.ssafy.common.entity.BaseEntity;
 import com.ssafy.domain.study.entity.MeetingType;

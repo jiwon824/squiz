@@ -1,4 +1,4 @@
-package com.ssafy.domain.study.workspace.dto.response;
+﻿package com.ssafy.domain.study.workspace.dto.response;
 
 import lombok.Builder;
 import lombok.Getter;

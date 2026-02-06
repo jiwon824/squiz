@@ -1,4 +1,4 @@
-package com.ssafy.domain.ai.service;
+﻿package com.ssafy.domain.ai.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -46,8 +46,6 @@ public class AiService {
      * 회의록 요약 (로컬 AI 서버)
      */
     public AiSummarizeResponse summarize(AiSummarizeRequest request) {
-        log.info("AI 요약 요청 - transcript length: {}", request.getTranscript().length());
-
         Map<String, Object> body = new HashMap<>();
         body.put("transcript", request.getTranscript());
         body.put("max_tokens", request.getMaxTokens());
@@ -64,11 +62,9 @@ public class AiService {
                             ? ((Number) result.get("tokens_used")).intValue() : 0)
                     .build();
 
-            log.info("AI 요약 완료 - summary length: {}", response.getSummary().length());
-            return response;
+                    return response;
 
         } catch (Exception e) {
-            log.error("AI 요약 실패: {}", e.getMessage());
             throw new RuntimeException("AI 요약 서비스를 일시적으로 사용할 수 없습니다.", e);
         }
     }
@@ -77,10 +73,6 @@ public class AiService {
      * 퀴즈 생성 (AI 서버 → Gemini Flash)
      */
     public AiQuizResponse generateQuiz(AiQuizRequest request) {
-        log.info("AI 퀴즈 생성 요청 - questions: {}, weakPoints: {}",
-                request.getNumQuestions(),
-                request.getUserWeakPoints() != null ? request.getUserWeakPoints().size() : 0);
-
         Map<String, Object> body = new HashMap<>();
         body.put("summary", request.getSummary());
         body.put("num_questions", request.getNumQuestions());
@@ -118,11 +110,9 @@ public class AiService {
                     .rawResponse(questions.isEmpty() ? quizRaw : null)
                     .build();
 
-            log.info("AI 퀴즈 생성 완료 - questions: {}, source: {}", questions.size(), source);
-            return response;
+                    return response;
 
         } catch (Exception e) {
-            log.error("AI 퀴즈 생성 실패: {}", e.getMessage());
             throw new RuntimeException("AI 퀴즈 생성 서비스를 일시적으로 사용할 수 없습니다.", e);
         }
     }
@@ -131,8 +121,6 @@ public class AiService {
      * 콘텐츠 사실 검증 (AI 서버 → Gemini Flash)
      */
     public AiVerifyResponse verifyContent(AiVerifyRequest request) {
-        log.info("AI 콘텐츠 검증 요청 - topic: {}", request.getOriginalTopic());
-
         Map<String, Object> body = new HashMap<>();
         body.put("summary", request.getSummary());
         if (request.getOriginalTopic() != null) {
@@ -170,11 +158,9 @@ public class AiService {
                     .source(source)
                     .build();
 
-            log.info("AI 콘텐츠 검증 완료 - hasErrors: {}, errorCount: {}", hasErrors, errorItems.size());
-            return response;
+                    return response;
 
         } catch (Exception e) {
-            log.error("AI 콘텐츠 검증 실패: {}", e.getMessage());
             throw new RuntimeException("AI 검증 서비스를 일시적으로 사용할 수 없습니다.", e);
         }
     }
@@ -188,7 +174,6 @@ public class AiService {
                     aiServerBaseUrl + "/health", String.class);
             return objectMapper.readValue(response.getBody(), new TypeReference<>() {});
         } catch (Exception e) {
-            log.error("AI 서버 헬스체크 실패: {}", e.getMessage());
             Map<String, Object> errorResult = new HashMap<>();
             errorResult.put("status", "error");
             errorResult.put("message", e.getMessage());
@@ -210,8 +195,6 @@ public class AiService {
      * @return job_id (비동기 작업 ID)
      */
     public String processMeetingAsync(Path mixedAudioPath, Map<Long, Path> individualAudioPaths, boolean generateQuiz) {
-        log.info("미팅 처리 요청 - mixedAudio: {}, individualCount: {}", mixedAudioPath, individualAudioPaths.size());
-
         try {
             MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
 
@@ -239,11 +222,9 @@ public class AiService {
             Map<String, Object> result = objectMapper.readValue(response.getBody(), Map.class);
             String jobId = (String) result.get("job_id");
 
-            log.info("미팅 처리 작업 등록 완료 - jobId: {}", jobId);
             return jobId;
 
         } catch (Exception e) {
-            log.error("미팅 처리 작업 등록 실패: {}", e.getMessage());
             throw new RuntimeException("미팅 처리 서비스를 일시적으로 사용할 수 없습니다.", e);
         }
     }
@@ -259,35 +240,25 @@ public class AiService {
      * @return job_id (비동기 작업 ID)
      */
     public String summarizeTranscriptAsync(String transcript, List<Long> speakerIds, boolean generateQuiz) {
-        log.info("[AI 요약 요청] transcript 길이: {}, 화자 수: {}, 퀴즈생성: {}", transcript.length(), speakerIds.size(), generateQuiz);
-        log.info("[AI 요약 요청] transcript 미리보기: {}", transcript.length() > 200 ? transcript.substring(0, 200) + "..." : transcript);
-
         try {
             Map<String, Object> body = new HashMap<>();
             body.put("transcript", transcript);
             body.put("speaker_ids", speakerIds);
             body.put("generate_quiz", generateQuiz);
 
-            log.info("[AI 요약 요청] AI 서버 호출 시작 - url: {}/api/summarize-transcript", aiServerBaseUrl);
             String responseBody = callAiServer("/api/summarize-transcript", body);
-            log.info("[AI 요약 요청] AI 서버 응답 수신 - 길이: {}", responseBody != null ? responseBody.length() : 0);
-
             @SuppressWarnings("unchecked")
             Map<String, Object> result = objectMapper.readValue(responseBody, Map.class);
             String status = (String) result.get("status");
-            log.info("[AI 요약 요청] 응답 상태: {}, 전체 응답: {}", status, result);
-
             if ("error".equals(status)) {
                 String message = (String) result.get("message");
                 throw new RuntimeException("Transcript 요약 실패: " + message);
             }
 
             String jobId = (String) result.get("job_id");
-            log.info("[AI 요약 요청] 작업 등록 완료 - jobId: {}", jobId);
             return jobId;
 
         } catch (Exception e) {
-            log.error("[AI 요약 요청] 실패: {}", e.getMessage(), e);
             throw new RuntimeException("Transcript 요약 서비스를 일시적으로 사용할 수 없습니다.", e);
         }
     }
@@ -296,20 +267,13 @@ public class AiService {
      * 미팅 처리 작업 상태 조회
      */
     public MeetingProcessResult getMeetingProcessResult(String jobId) {
-        log.info("[AI 결과 조회] jobId: {}, aiServerUrl: {}", jobId, aiServerBaseUrl);
-
         try {
             ResponseEntity<String> response = restTemplate.getForEntity(
                     aiServerBaseUrl + "/api/jobs/" + jobId, String.class);
 
-            log.info("[AI 결과 조회] 응답 수신 - statusCode: {}, bodyLength: {}",
-                    response.getStatusCode(), response.getBody() != null ? response.getBody().length() : 0);
-
-            @SuppressWarnings("unchecked")
+                    @SuppressWarnings("unchecked")
             Map<String, Object> result = objectMapper.readValue(response.getBody(), Map.class);
             String status = (String) result.get("status");
-            log.info("[AI 결과 조회] 작업 상태: {}", status);
-
             MeetingProcessResult processResult = new MeetingProcessResult();
             processResult.setStatus(status);
 
@@ -356,7 +320,6 @@ public class AiService {
             return processResult;
 
         } catch (Exception e) {
-            log.error("미팅 처리 결과 조회 실패: {}", e.getMessage());
             throw new RuntimeException("미팅 처리 결과 조회에 실패했습니다.", e);
         }
     }
@@ -424,9 +387,10 @@ public class AiService {
                         .build());
             }
         } catch (Exception e) {
-            log.warn("퀴즈 JSON 파싱 실패, rawResponse로 반환: {}", e.getMessage());
-        }
+}
 
         return questions;
     }
 }
+
+

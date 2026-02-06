@@ -1,4 +1,4 @@
-package com.ssafy.common.auth;
+﻿package com.ssafy.common.auth;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -13,7 +13,7 @@ import java.lang.annotation.Target;
  * @GetMapping("/me")
  * public ResponseEntity<?> getMe(@CurrentUserId Long userId) { ... }
  */
-@Target(ElementType.PARAMETER)
-@Retention(RetentionPolicy.RUNTIME)
-public @interface CurrentUserId {
+ @Target(ElementType.PARAMETER)
+ @Retention(RetentionPolicy.RUNTIME)
+ public @interface CurrentUserId {
 }

@@ -1,4 +1,4 @@
-package com.ssafy.domain.study.entity;
+﻿package com.ssafy.domain.study.entity;
 
 import com.ssafy.domain.study.converter.JsonConverter;
 import jakarta.persistence.*;
@@ -12,14 +12,14 @@ import java.util.Map;
  * 템플릿 사용 로그 엔티티
  * 사용자의 템플릿 사용 패턴을 수집하여 AI 파인튜닝에 활용
  */
-@Entity
-@Table(name = "template_usage_log")
-@Getter
-@Setter
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class TemplateUsageLog {
+ @Entity
+ @Table(name = "template_usage_log")
+ @Getter
+ @Setter
+ @Builder
+ @NoArgsConstructor
+ @AllArgsConstructor
+ public class TemplateUsageLog {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

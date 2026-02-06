@@ -136,7 +136,6 @@ export const ProfilePage = () => {
                     setActivityData(levels.length > 0 ? levels.slice(0, 28) : []);
                 }
             } catch (error) {
-                console.error('[ProfilePage] 데이터 로드 실패:', error);
             } finally {
                 setIsLoading(false);
             }
@@ -165,7 +164,6 @@ export const ProfilePage = () => {
             updateUser({ avatar: updatedUser.profileImage || undefined });
             showToast('프로필 이미지가 삭제되었습니다.', 'success');
         } catch (error) {
-            console.error('Image delete error:', error);
             showToast('이미지 삭제 중 오류가 발생했습니다.', 'error');
         } finally {
             setIsImageUploading(false);
@@ -187,7 +185,6 @@ export const ProfilePage = () => {
             updateUser({ avatar: updatedUser.profileImage || undefined });
             showToast('프로필 이미지가 변경되었습니다.', 'success');
         } catch (error) {
-            console.error('Image upload error:', error);
             showToast('이미지 업로드 중 오류가 발생했습니다.', 'error');
         } finally {
             setIsImageUploading(false);

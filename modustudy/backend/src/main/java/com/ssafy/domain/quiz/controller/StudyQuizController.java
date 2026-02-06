@@ -1,4 +1,4 @@
-package com.ssafy.domain.quiz.controller;
+﻿package com.ssafy.domain.quiz.controller;
 
 import com.ssafy.common.auth.SsafyUserDetails;
 import com.ssafy.common.response.ApiResponse;
@@ -22,11 +22,11 @@ import java.util.List;
  * 스터디 퀴즈 API
  * AI 미팅 기반 자동 생성 퀴즈 조회
  */
-@Tag(name = "StudyQuiz", description = "스터디 퀴즈 API")
-@RestController
-@RequestMapping("/api/v1/studies/{studyId}/quizzes")
-@RequiredArgsConstructor
-public class StudyQuizController {
+ @Tag(name = "StudyQuiz", description = "스터디 퀴즈 API")
+ @RestController
+ @RequestMapping("/api/v1/studies/{studyId}/quizzes")
+ @RequiredArgsConstructor
+ public class StudyQuizController {
 
     private final StudyQuizService studyQuizService;
 

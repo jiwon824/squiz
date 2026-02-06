@@ -1,4 +1,4 @@
-package com.ssafy.domain.gamification.service;
+﻿package com.ssafy.domain.gamification.service;
 
 import com.ssafy.domain.gamification.config.ExperienceConfig;
 import com.ssafy.domain.gamification.entity.*;
@@ -19,10 +19,10 @@ import java.util.Optional;
  * 게이미피케이션 비동기 처리 서비스
  * - @Async 메서드를 별도 서비스로 분리하여 프록시 문제 해결
  */
-@Slf4j
-@Service
-@RequiredArgsConstructor
-public class GamificationAsyncService {
+ @Slf4j
+ @Service
+ @RequiredArgsConstructor
+ public class GamificationAsyncService {
 
     private final UserStatsRepository userStatsRepository;
     private final DailyContributionRepository dailyContributionRepository;
@@ -35,9 +35,6 @@ public class GamificationAsyncService {
     @Async
     @Transactional
     public void processStudyCreateAsync(StudyCreateEvent event) {
-        log.info("[Gamification] 스터디 생성 비동기 처리 시작: userId={}, studyId={}, isFirst={}",
-                event.getUserId(), event.getStudyId(), event.isFirstStudy());
-
         User user = findUser(event.getUserId());
         UserStats stats = getOrCreateUserStats(user);
 
@@ -61,11 +58,8 @@ public class GamificationAsyncService {
             int totalExp = ExperienceConfig.FIRST_STUDY_CREATE_BONUS + streakBonus;
             boolean leveledUp = stats.addExperience(totalExp);
 
-            log.info("[Gamification] 첫 스터디 생성 완료: +{}XP (첫생성 {}XP + 연속 {}XP), 레벨업={}",
-                    totalExp, ExperienceConfig.FIRST_STUDY_CREATE_BONUS, streakBonus, leveledUp);
-        } else {
-            log.info("[Gamification] 스터디 생성 (경험치 없음 - 첫 생성 아님)");
-        }
+} else {
+}
 
         userStatsRepository.save(stats);
     }
@@ -120,3 +114,4 @@ public class GamificationAsyncService {
         contributionDetailRepository.save(detail);
     }
 }
+

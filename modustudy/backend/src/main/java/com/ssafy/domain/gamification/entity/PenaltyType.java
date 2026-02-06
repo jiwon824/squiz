@@ -1,4 +1,4 @@
-package com.ssafy.domain.gamification.entity;
+﻿package com.ssafy.domain.gamification.entity;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

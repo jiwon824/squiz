@@ -1,4 +1,4 @@
-package com.ssafy.domain.user.repository;
+﻿package com.ssafy.domain.user.repository;
 
 import com.ssafy.domain.user.entity.UserSchedule;
 import org.springframework.data.jpa.repository.JpaRepository;

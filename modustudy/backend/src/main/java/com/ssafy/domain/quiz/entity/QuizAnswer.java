@@ -1,4 +1,4 @@
-package com.ssafy.domain.quiz.entity;
+﻿package com.ssafy.domain.quiz.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -9,12 +9,12 @@ import java.time.LocalDateTime;
 /**
  * 퀴즈 대회 답안
  */
-@Entity
-@Table(name = "quiz_answer")
-@Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-@IdClass(QuizAnswer.QuizAnswerId.class)
-public class QuizAnswer {
+ @Entity
+ @Table(name = "quiz_answer")
+ @Getter
+ @NoArgsConstructor(access = AccessLevel.PROTECTED)
+ @IdClass(QuizAnswer.QuizAnswerId.class)
+ public class QuizAnswer {
 
     @Id
     @Column(name = "participant_id")

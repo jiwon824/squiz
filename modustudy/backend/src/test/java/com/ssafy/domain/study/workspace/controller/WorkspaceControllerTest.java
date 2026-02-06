@@ -1,4 +1,4 @@
-package com.ssafy.domain.study.workspace.controller;
+﻿package com.ssafy.domain.study.workspace.controller;
 
 import com.ssafy.domain.study.entity.*;
 import com.ssafy.domain.study.repository.FormatRepository;
@@ -29,11 +29,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * WorkspaceController 통합 테스트
  */
-@SpringBootTest
-@AutoConfigureMockMvc
-@Transactional
-@WithMockUser(username = "testuser", roles = {"USER"})
-class WorkspaceControllerTest {
+ @SpringBootTest
+ @AutoConfigureMockMvc
+ @Transactional
+ @WithMockUser(username = "testuser", roles = {"USER"})
+ class WorkspaceControllerTest {
 
     @Autowired
     private MockMvc mockMvc;

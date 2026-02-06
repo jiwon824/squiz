@@ -1,4 +1,4 @@
-package com.ssafy.domain.user.entity;
+﻿package com.ssafy.domain.user.entity;
 
 public enum SocialProvider {
     GOOGLE,

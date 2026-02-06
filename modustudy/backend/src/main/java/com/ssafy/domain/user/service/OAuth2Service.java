@@ -1,4 +1,4 @@
-package com.ssafy.domain.user.service;
+﻿package com.ssafy.domain.user.service;
 
 import com.ssafy.common.util.JwtTokenUtil;
 import com.ssafy.domain.user.dto.OAuth2UserInfo;
@@ -77,9 +77,7 @@ public class OAuth2Service {
      * 카카오 로그인 콜백 처리
      */
     public AuthResponse processKakaoCallback(String code) {
-        log.info("카카오 로그인 콜백 처리 시작");
-
-        // 1. Authorization Code로 Access Token 받기
+// 1. Authorization Code로 Access Token 받기
         String kakaoAccessToken = getKakaoAccessToken(code);
 
         // 2. Access Token으로 사용자 정보 받기
@@ -177,9 +175,7 @@ public class OAuth2Service {
      * 네이버 로그인 콜백 처리
      */
     public AuthResponse processNaverCallback(String code, String state) {
-        log.info("네이버 로그인 콜백 처리 시작");
-
-        // 1. Authorization Code로 Access Token 받기
+// 1. Authorization Code로 Access Token 받기
         String naverAccessToken = getNaverAccessToken(code, state);
 
         // 2. Access Token으로 사용자 정보 받기
@@ -285,9 +281,7 @@ public class OAuth2Service {
      * 구글 로그인 콜백 처리
      */
     public AuthResponse processGoogleCallback(String code) {
-        log.info("구글 로그인 콜백 처리 시작");
-
-        // 1. Authorization Code로 Token 정보 받기 (access_token + refresh_token)
+// 1. Authorization Code로 Token 정보 받기 (access_token + refresh_token)
         Map<String, Object> googleTokens = getGoogleTokens(code);
         String googleAccessToken = (String) googleTokens.get("access_token");
         String googleRefreshToken = (String) googleTokens.get("refresh_token");
@@ -350,9 +344,6 @@ public class OAuth2Service {
             throw new RuntimeException("구글 토큰 발급 실패: " + body.get("error_description"));
         }
 
-        log.info("구글 토큰 발급 성공: access_token 있음={}, refresh_token 있음={}",
-                body.containsKey("access_token"), body.containsKey("refresh_token"));
-
         return body;
     }
 
@@ -397,9 +388,7 @@ public class OAuth2Service {
         if (existingSocial.isPresent()) {
             // ===== 이미 연동된 소셜 계정이 있음 → 해당 User로 로그인 =====
             user = existingSocial.get().getUser();
-            log.info("기존 소셜 계정으로 로그인: userId={}, provider={}", user.getId(), provider);
-
-        } else {
+} else {
             // 2. 소셜 계정이 없으면 이메일로 User 검색
             Optional<User> existingUser = userRepository.findByEmail(userInfo.getEmail());
 
@@ -407,10 +396,7 @@ public class OAuth2Service {
                 // ===== 이메일로 기존 User 발견 → 소셜 계정 추가 연동 =====
                 user = existingUser.get();
 
-                log.info("기존 회원에 소셜 계정 추가: userId={}, email={}, provider={}",
-                        user.getId(), user.getEmail(), provider);
-
-                // 새로운 소셜 계정 추가
+// 새로운 소셜 계정 추가
                 UserSocialAccount newSocial = UserSocialAccount.builder()
                         .user(user)
                         .provider(provider)
@@ -421,9 +407,7 @@ public class OAuth2Service {
                         .build();
 
                 socialAccountRepository.save(newSocial);
-                log.info("소셜 계정 추가 연동 완료: userId={}, provider={}", user.getId(), provider);
-
-            } else {
+} else {
                 // ===== 신규 User 생성 =====
                 user = User.builder()
                         .email(userInfo.getEmail())
@@ -454,8 +438,7 @@ public class OAuth2Service {
                         .build();
 
                 socialAccountRepository.save(socialAccount);
-                log.info("신규 회원 가입: userId={}, provider={}", user.getId(), provider);
-            }
+}
         }
 
         // 로그인 상태 업데이트
@@ -494,9 +477,7 @@ public class OAuth2Service {
             socialAccount = existingSocial.get();
             user = socialAccount.getUser();
 
-            log.info("기존 소셜 계정으로 로그인: userId={}, provider={}", user.getId(), provider);
-
-            // 토큰 업데이트
+// 토큰 업데이트
             socialAccount.updateTokens(
                     providerAccessToken,
                     providerRefreshToken,
@@ -505,9 +486,7 @@ public class OAuth2Service {
                             : null
             );
             socialAccountRepository.save(socialAccount);
-            log.info("소셜 계정 토큰 갱신: userId={}, provider={}", user.getId(), provider);
-
-        } else {
+} else {
             // 2. 소셜 계정이 없으면 이메일로 User 검색
             Optional<User> existingUser = userRepository.findByEmail(userInfo.getEmail());
 
@@ -515,10 +494,7 @@ public class OAuth2Service {
                 // ===== 이메일로 기존 User 발견 → 소셜 계정 추가 연동 =====
                 user = existingUser.get();
 
-                log.info("기존 회원에 소셜 계정 추가: userId={}, email={}, provider={}",
-                        user.getId(), user.getEmail(), provider);
-
-                // 새로운 소셜 계정 추가
+// 새로운 소셜 계정 추가
                 socialAccount = UserSocialAccount.builder()
                         .user(user)
                         .provider(provider)
@@ -535,9 +511,7 @@ public class OAuth2Service {
                         .build();
 
                 socialAccountRepository.save(socialAccount);
-                log.info("소셜 계정 추가 연동 완료 (토큰 포함): userId={}, provider={}", user.getId(), provider);
-
-            } else {
+} else {
                 // ===== 신규 User 생성 =====
                 user = User.builder()
                         .email(userInfo.getEmail())
@@ -574,8 +548,7 @@ public class OAuth2Service {
                         .build();
 
                 socialAccountRepository.save(socialAccount);
-                log.info("신규 회원 가입 (토큰 포함): userId={}, provider={}", user.getId(), provider);
-            }
+}
         }
 
         // 로그인 상태 업데이트
@@ -628,8 +601,6 @@ public class OAuth2Service {
                 expiresIn != null ? LocalDateTime.now().plusSeconds(expiresIn) : null
         );
         socialAccountRepository.save(socialAccount);
-
-        log.info("Google access token 갱신 완료: userId={}", userId);
 
         return newAccessToken;
     }
@@ -825,9 +796,7 @@ public class OAuth2Service {
      * 소셜 계정 연동 추가
      */
     public SocialAccountResponse linkSocialAccount(Long userId, SocialProvider provider, String code) {
-        log.info("소셜 계정 연동 시작: userId={}, provider={}", userId, provider);
-
-        // 1. 현재 사용자 조회
+// 1. 현재 사용자 조회
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
@@ -843,8 +812,7 @@ public class OAuth2Service {
             refreshToken = (String) googleTokens.get("refresh_token");
             expiresIn = (Integer) googleTokens.get("expires_in");
             userInfo = getGoogleUserInfo(accessToken);
-            log.info("Google 연동 토큰 획득: accessToken 있음={}, refreshToken 있음={}", accessToken != null, refreshToken != null);
-        } else {
+} else {
             userInfo = getOAuth2UserInfo(provider, code);
         }
 
@@ -864,7 +832,6 @@ public class OAuth2Service {
                             expiresIn != null ? LocalDateTime.now().plusSeconds(expiresIn) : null
                     );
                     socialAccountRepository.save(social);
-                    log.info("기존 Google 계정 토큰 업데이트 완료: userId={}", userId);
                     return SocialAccountResponse.from(social);
                 }
                 throw new IllegalStateException("이미 연동된 소셜 계정입니다.");
@@ -892,8 +859,6 @@ public class OAuth2Service {
 
         UserSocialAccount newSocialAccount = builder.build();
         socialAccountRepository.save(newSocialAccount);
-        log.info("소셜 계정 연동 완료: userId={}, provider={}, refreshToken존재={}", userId, provider, refreshToken != null);
-
         return SocialAccountResponse.from(newSocialAccount);
     }
 
@@ -901,8 +866,6 @@ public class OAuth2Service {
      * 모바일용 소셜 계정 연동 (redirect_uri 없이)
      */
     public SocialAccountResponse linkSocialAccountMobile(Long userId, SocialProvider provider, String code) {
-        log.info("모바일 소셜 계정 연동 시작: userId={}, provider={}", userId, provider);
-
         if (provider != SocialProvider.GOOGLE) {
             throw new IllegalArgumentException("모바일 연동은 Google만 지원합니다.");
         }
@@ -917,9 +880,7 @@ public class OAuth2Service {
         String refreshToken = (String) googleTokens.get("refresh_token");
         Integer expiresIn = (Integer) googleTokens.get("expires_in");
         OAuth2UserInfo userInfo = getGoogleUserInfo(accessToken);
-        log.info("모바일 Google 연동 토큰 획득: accessToken 있음={}, refreshToken 있음={}", accessToken != null, refreshToken != null);
-
-        // 3. 이미 연동되어 있는지 확인
+// 3. 이미 연동되어 있는지 확인
         Optional<UserSocialAccount> existingSocial = socialAccountRepository
                 .findByProviderAndProviderUserId(provider, userInfo.getProviderId());
 
@@ -934,7 +895,6 @@ public class OAuth2Service {
                         expiresIn != null ? LocalDateTime.now().plusSeconds(expiresIn) : null
                 );
                 socialAccountRepository.save(social);
-                log.info("모바일: 기존 Google 계정 토큰 업데이트 완료: userId={}", userId);
                 return SocialAccountResponse.from(social);
             }
 
@@ -957,8 +917,6 @@ public class OAuth2Service {
                 .build();
 
         socialAccountRepository.save(newSocialAccount);
-        log.info("모바일 소셜 계정 연동 완료: userId={}, provider={}", userId, provider);
-
         return SocialAccountResponse.from(newSocialAccount);
     }
 
@@ -985,17 +943,11 @@ public class OAuth2Service {
             Map<String, Object> body = response.getBody();
 
             if (body != null && body.containsKey("error")) {
-                log.error("모바일 Google 토큰 발급 실패: {}", body.get("error_description"));
                 throw new RuntimeException("Google 토큰 발급 실패: " + body.get("error_description"));
             }
 
-            log.info("모바일 Google 토큰 발급 성공: access_token 있음={}, refresh_token 있음={}",
-                    body != null && body.containsKey("access_token"),
-                    body != null && body.containsKey("refresh_token"));
-
             return body;
         } catch (Exception e) {
-            log.error("모바일 Google 토큰 교환 실패: {}", e.getMessage());
             throw new RuntimeException("Google 인증 실패: " + e.getMessage());
         }
     }
@@ -1026,9 +978,7 @@ public class OAuth2Service {
      * 소셜 계정 연동 해제
      */
     public void unlinkSocialAccount(Long userId, SocialProvider provider) {
-        log.info("소셜 계정 연동 해제 시작: userId={}, provider={}", userId, provider);
-
-        // 1. 사용자 조회
+// 1. 사용자 조회
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
@@ -1050,6 +1000,5 @@ public class OAuth2Service {
 
         // 4. 연동 해제
         socialAccountRepository.delete(socialAccount);
-        log.info("소셜 계정 연동 해제 완료: userId={}, provider={}", userId, provider);
-    }
+}
 }

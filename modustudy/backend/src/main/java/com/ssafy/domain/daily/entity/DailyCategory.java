@@ -1,4 +1,4 @@
-package com.ssafy.domain.daily.entity;
+﻿package com.ssafy.domain.daily.entity;
 
 public enum DailyCategory {
     YESTERDAY,

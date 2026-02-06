@@ -1,4 +1,4 @@
-package com.ssafy.domain.quiz.service;
+﻿package com.ssafy.domain.quiz.service;
 
 import com.ssafy.domain.quiz.entity.ReviewContentType;
 import com.ssafy.domain.quiz.entity.UserReviewItem;
@@ -59,8 +59,8 @@ import static org.mockito.Mockito.verify;
  * <li>processReview: 복습 처리 (Upsert + Log)</li>
  * </ul>
  */
-@ExtendWith(MockitoExtension.class)
-class FsrsServiceTest {
+ @ExtendWith(MockitoExtension.class)
+ class FsrsServiceTest {
 
         @InjectMocks
         private FsrsService fsrsService;

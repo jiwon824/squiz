@@ -1,4 +1,4 @@
-package com.ssafy.domain.study.entity;
+﻿package com.ssafy.domain.study.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -11,14 +11,14 @@ import java.time.LocalDateTime;
  * 스터디 템플릿 엔티티
  * 사용자가 자주 사용하는 스터디 설정을 템플릿으로 저장
  */
-@Entity
-@Table(name = "study_template")
-@Getter
-@Setter
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class StudyTemplate {
+ @Entity
+ @Table(name = "study_template")
+ @Getter
+ @Setter
+ @Builder
+ @NoArgsConstructor
+ @AllArgsConstructor
+ public class StudyTemplate {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -1,4 +1,4 @@
-package com.ssafy.config;
+﻿package com.ssafy.config;
 
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
@@ -16,9 +16,9 @@ import java.io.InputStream;
 /**
  * Firebase Admin SDK 초기화 설정
  */
-@Configuration
-@Slf4j
-public class FirebaseConfig {
+ @Configuration
+ @Slf4j
+ public class FirebaseConfig {
 
     @Value("${firebase.credentials.path:}")
     private String credentialsPath;
@@ -35,14 +35,11 @@ public class FirebaseConfig {
                             .build();
 
                     FirebaseApp.initializeApp(options);
-                    log.info("Firebase Admin SDK 초기화 완료");
-                } else {
-                    log.warn("Firebase 서비스 계정 파일을 찾을 수 없습니다. FCM 푸시 알림이 비활성화됩니다.");
-                }
+} else {
+}
             }
         } catch (IOException e) {
-            log.error("Firebase 초기화 실패: {}", e.getMessage());
-        }
+}
     }
 
     /**
@@ -54,21 +51,19 @@ public class FirebaseConfig {
         try {
             // 1. 환경변수로 지정된 경로 확인
             if (credentialsPath != null && !credentialsPath.isEmpty()) {
-                log.info("Firebase 서비스 계정 파일 로드: {}", credentialsPath);
                 return new FileInputStream(credentialsPath);
             }
 
             // 2. classpath에서 찾기
             ClassPathResource resource = new ClassPathResource("firebase-service-account.json");
             if (resource.exists()) {
-                log.info("Firebase 서비스 계정 파일 로드: classpath:firebase-service-account.json");
                 return resource.getInputStream();
             }
 
             return null;
         } catch (IOException e) {
-            log.error("Firebase 서비스 계정 파일 로드 실패: {}", e.getMessage());
             return null;
         }
     }
 }
+

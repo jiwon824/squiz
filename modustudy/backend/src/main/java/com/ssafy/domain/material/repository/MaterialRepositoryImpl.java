@@ -1,4 +1,4 @@
-package com.ssafy.domain.material.repository;
+﻿package com.ssafy.domain.material.repository;
 
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQuery;
@@ -18,9 +18,9 @@ import java.util.List;
 /**
  * Material QueryDSL 구현체
  */
-@Repository
-@RequiredArgsConstructor
-public class MaterialRepositoryImpl implements MaterialRepositoryCustom {
+ @Repository
+ @RequiredArgsConstructor
+ public class MaterialRepositoryImpl implements MaterialRepositoryCustom {
 
     private final JPAQueryFactory queryFactory;
 

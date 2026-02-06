@@ -1,4 +1,4 @@
-package com.ssafy.domain.material.repository;
+﻿package com.ssafy.domain.material.repository;
 
 import com.ssafy.domain.material.entity.Progress;
 import org.springframework.data.jpa.repository.JpaRepository;

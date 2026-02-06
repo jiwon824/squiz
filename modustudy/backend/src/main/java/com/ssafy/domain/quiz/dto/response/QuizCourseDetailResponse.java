@@ -1,4 +1,4 @@
-package com.ssafy.domain.quiz.dto.response;
+﻿package com.ssafy.domain.quiz.dto.response;
 
 import java.util.List;
 
@@ -7,7 +7,7 @@ import java.util.List;
  *
  * GET /api/v1/quiz-courses/{courseId} 응답의 data 영역에 매핑된다.
  */
-public record QuizCourseDetailResponse(
+ public record QuizCourseDetailResponse(
         Long id,
         String code,
         String name,
@@ -15,5 +15,5 @@ public record QuizCourseDetailResponse(
         Integer totalSections,
         BadgeInfo badge,
         List<SectionSummary> sections
-) {
+        ) {
 }

@@ -1,4 +1,4 @@
-package com.ssafy.domain.study.controller;
+﻿package com.ssafy.domain.study.controller;
 
 import com.ssafy.domain.study.dto.request.LeaderReviewCreateRequest;
 import com.ssafy.domain.study.dto.request.LeaderReviewUpdateRequest;
@@ -31,14 +31,9 @@ public class LeaderController {
     public ResponseEntity<LeaderInfoResponse> getLeaderInfo(
             @PathVariable Long studyId) {
 
-        log.info("API 호출 - 스터디장 정보 조회: studyId={}", studyId);
+                LeaderInfoResponse response = leaderService.getLeaderInfo(studyId);
 
-        LeaderInfoResponse response = leaderService.getLeaderInfo(studyId);
-
-        log.info("API 응답 - 스터디장 정보: userId={}, name={}, rating={}",
-                response.getUserId(), response.getName(), response.getLeaderRating());
-
-        return ResponseEntity.ok(response);
+                return ResponseEntity.ok(response);
     }
 
     /**
@@ -49,16 +44,9 @@ public class LeaderController {
             @PathVariable Long studyId,
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
 
-        log.info("API 호출 - 스터디장 리뷰 목록 조회: studyId={}, page={}, size={}",
-                studyId, pageable.getPageNumber(), pageable.getPageSize());
+                Page<LeaderReviewResponse> response = leaderService.getLeaderReviews(studyId, pageable);
 
-
-        Page<LeaderReviewResponse> response = leaderService.getLeaderReviews(studyId, pageable);
-
-        log.info("API 응답 - 리뷰 목록: totalElements={}, totalPages={}",
-                response.getTotalElements(), response.getTotalPages());
-
-        return ResponseEntity.ok(response);
+                return ResponseEntity.ok(response);
     }
 
     /**
@@ -70,13 +58,9 @@ public class LeaderController {
             @RequestHeader("user-id") Long userId,
             @Valid @RequestBody LeaderReviewCreateRequest request) {
 
-        log.info("API 호출 - 스터디장 리뷰 작성: studyId={}, userId={}", studyId, userId);
+                LeaderReviewResponse response = leaderService.createReview(studyId, userId, request);
 
-        LeaderReviewResponse response = leaderService.createReview(studyId, userId, request);
-
-        log.info("API 응답 - 리뷰 작성 완료: reviewId={}", response.getReviewId());
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+                return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     /**
@@ -87,16 +71,12 @@ public class LeaderController {
             @PathVariable Long studyId,
             @RequestHeader("user-id") Long userId) {
 
-        log.info("API 호출 - 내 리뷰 조회: studyId={}, userId={}", studyId, userId);
-
-        LeaderReviewResponse response = leaderService.getMyReview(studyId, userId);
+                LeaderReviewResponse response = leaderService.getMyReview(studyId, userId);
 
         if (response == null) {
-            log.info("API 응답 - 내 리뷰 없음: studyId={}, userId={}", studyId, userId);
             return ResponseEntity.noContent().build();
         }
 
-        log.info("API 응답 - 내 리뷰 조회 완료: reviewId={}", response.getReviewId());
         return ResponseEntity.ok(response);
     }
 
@@ -110,13 +90,9 @@ public class LeaderController {
             @RequestHeader("user-id") Long userId,
             @Valid @RequestBody LeaderReviewUpdateRequest request) {
 
-        log.info("API 호출 - 스터디장 리뷰 수정: studyId={}, reviewId={}, userId={}", studyId, reviewId, userId);
+                LeaderReviewResponse response = leaderService.updateReview(studyId, reviewId, userId, request);
 
-        LeaderReviewResponse response = leaderService.updateReview(studyId, reviewId, userId, request);
-
-        log.info("API 응답 - 리뷰 수정 완료: reviewId={}", response.getReviewId());
-
-        return ResponseEntity.ok(response);
+                return ResponseEntity.ok(response);
     }
 
     /**
@@ -128,12 +104,9 @@ public class LeaderController {
             @PathVariable Long reviewId,
             @RequestHeader("user-id") Long userId) {
 
-        log.info("API 호출 - 스터디장 리뷰 삭제: studyId={}, reviewId={}, userId={}", studyId, reviewId, userId);
+                leaderService.deleteReview(studyId, reviewId, userId);
 
-        leaderService.deleteReview(studyId, reviewId, userId);
-
-        log.info("API 응답 - 리뷰 삭제 완료: reviewId={}", reviewId);
-
-        return ResponseEntity.noContent().build();
+                return ResponseEntity.noContent().build();
     }
 }
+

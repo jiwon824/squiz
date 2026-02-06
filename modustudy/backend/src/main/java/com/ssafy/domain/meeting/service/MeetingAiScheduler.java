@@ -1,4 +1,4 @@
-package com.ssafy.domain.meeting.service;
+﻿package com.ssafy.domain.meeting.service;
 
 import com.ssafy.common.storage.LocalFileStorageService;
 import com.ssafy.domain.meeting.entity.Meeting;
@@ -28,9 +28,9 @@ import org.springframework.scheduling.annotation.Async;
  * - 종료된 미팅의 음성 파일을 감지하여 AI 처리 시작
  * - AI 처리 결과를 폴링하여 저장
  */
-@Service
-@RequiredArgsConstructor
-public class MeetingAiScheduler {
+ @Service
+ @RequiredArgsConstructor
+ public class MeetingAiScheduler {
 
     private static final Logger log = LoggerFactory.getLogger(MeetingAiScheduler.class);
 
@@ -72,8 +72,7 @@ public class MeetingAiScheduler {
         try {
             processMeetingIfReady(meeting);
         } catch (Exception e) {
-            log.error("AI 처리 트리거 실패 - meetingId: {}, error: {}", meetingId, e.getMessage());
-        }
+}
     }
 
     /**
@@ -81,27 +80,19 @@ public class MeetingAiScheduler {
      */
     @Scheduled(fixedDelay = 30000)
     public void processEndedMeetings() {
-        log.info("[AI 스케줄러] 폴링 시작 - 현재 진행중인 작업: {}", processingJobs.size());
-
-        // 효율적인 쿼리로 AI 처리 대기 중인 미팅만 조회
+// 효율적인 쿼리로 AI 처리 대기 중인 미팅만 조회
         List<Meeting> allProcessingMeetings = meetingRepository
                 .findByStatusAndSummaryStatus(MeetingStatus.ENDED, SummaryStatus.PROCESSING);
 
-        log.info("[AI 스케줄러] PROCESSING 상태 미팅 수: {}", allProcessingMeetings.size());
-
-        List<Meeting> meetings = allProcessingMeetings.stream()
+                List<Meeting> meetings = allProcessingMeetings.stream()
                 .filter(m -> !processingJobs.containsKey(m.getId()))
                 .toList();
 
-        log.info("[AI 스케줄러] 처리 대상 미팅 수: {} (이미 진행중 제외)", meetings.size());
-
-        for (Meeting meeting : meetings) {
+                for (Meeting meeting : meetings) {
             try {
-                log.info("[AI 스케줄러] 미팅 처리 시도 - meetingId: {}, studyId: {}", meeting.getId(), meeting.getStudyId());
                 processMeetingIfReady(meeting);
             } catch (Exception e) {
-                log.error("미팅 AI 처리 시작 실패 - meetingId: {}, error: {}", meeting.getId(), e.getMessage());
-            }
+}
         }
     }
 
@@ -111,11 +102,9 @@ public class MeetingAiScheduler {
     @Scheduled(fixedDelay = 15000)
     public void checkProcessingJobs() {
         if (processingJobs.isEmpty()) {
-            log.debug("[AI 스케줄러] 진행 중인 작업 없음");
             return;
         }
 
-        log.info("[AI 스케줄러] 작업 결과 확인 시작 - 진행중인 작업: {}", processingJobs);
         long now = System.currentTimeMillis();
 
         for (Map.Entry<Long, String> entry : processingJobs.entrySet()) {
@@ -125,7 +114,6 @@ public class MeetingAiScheduler {
             // 타임아웃 체크 (10분 초과 시 중단)
             Long startTime = jobStartTimes.get(meetingId);
             if (startTime != null && (now - startTime) > AI_PROCESSING_TIMEOUT_MS) {
-                log.warn("AI 처리 타임아웃 (10분 초과) - meetingId: {}, jobId: {}", meetingId, jobId);
                 processingJobs.remove(meetingId);
                 jobStartTimes.remove(meetingId);
                 try {
@@ -135,8 +123,7 @@ public class MeetingAiScheduler {
                         meetingRepository.save(meeting);
                     }
                 } catch (Exception e) {
-                    log.error("타임아웃 후 상태 업데이트 실패 - meetingId: {}", meetingId, e);
-                }
+}
                 continue;
             }
 
@@ -155,11 +142,9 @@ public class MeetingAiScheduler {
                 if ("completed".equals(status) || "failed".equals(status)) {
                     processingJobs.remove(meetingId);
                     jobStartTimes.remove(meetingId);
-                    log.info("AI 처리 완료 - meetingId: {}, status: {}", meetingId, status);
-                }
+}
             } catch (Exception e) {
-                log.error("AI 결과 확인 실패 - meetingId: {}, jobId: {}, error: {}", meetingId, jobId, e.getMessage());
-            }
+}
         }
     }
 
@@ -172,30 +157,21 @@ public class MeetingAiScheduler {
     public void processMeetingIfReady(Meeting meeting) {
         Long meetingId = meeting.getId();
         Long studyId = meeting.getStudyId();
-        log.info("[AI 처리 준비] meetingId: {}, studyId: {} - 처리 조건 확인 시작", meetingId, studyId);
-
-        // 1. 실시간 STT segments 확인 (우선 처리)
+// 1. 실시간 STT segments 확인 (우선 처리)
         long segmentCount = speechSegmentService.countByMeetingId(meetingId);
-        log.info("[AI 처리 준비] meetingId: {} - speech segment 수: {}", meetingId, segmentCount);
-
         if (segmentCount > 0) {
-            log.info("[AI 처리 준비] meetingId: {} - 실시간 STT 세그먼트 발견, AI 처리 시작", meetingId);
             startAiProcessingJob(studyId, meetingId, meeting);
             return;
         }
 
         // 2. 실시간 STT 없으면 오디오 파일 확인
-        log.info("[AI 처리 준비] meetingId: {} - speech segment 없음, 오디오 파일 확인", meetingId);
         List<MeetingAudioRecording> mixedRecordings = meetingAudioRecordingRepository
                 .findByMeetingIdAndTrackTypeOrderByCreatedAtAsc(meetingId, MeetingAudioTrackType.MIXED);
 
         if (mixedRecordings.isEmpty()) {
             // DB에 없으면 디스크에서 voice.webm 파일 확인
             Path voiceFile = localFileStorageService.resolveMeetingVoiceDir(meetingId).resolve("voice.webm");
-            log.info("[AI 처리 준비] meetingId: {} - DB에 오디오 없음, 파일 확인: {}", meetingId, voiceFile);
-
             if (!Files.exists(voiceFile)) {
-                log.info("[AI 처리 준비] meetingId: {} - 음성 파일도 없음. 처리 스킵", meetingId);
                 return;
             }
 
@@ -214,11 +190,8 @@ public class MeetingAiScheduler {
                         .build();
 
                 meetingAudioRecordingRepository.save(recording);
-                log.info("MIXED 오디오 녹음 저장 - meetingId: {}, fileSize: {}", meetingId, fileSize);
-
-            } catch (IOException e) {
-                log.error("음성 파일 크기 확인 실패 - meetingId: {}", meetingId, e);
-                return;
+} catch (IOException e) {
+    return;
             }
         }
 
@@ -234,7 +207,6 @@ public class MeetingAiScheduler {
         // atomic하게 "처리 시작" 표시 - 이미 있으면 기존값 반환, 없으면 null 반환
         String existing = processingJobs.putIfAbsent(meetingId, "STARTING");
         if (existing != null) {
-            log.info("이미 다른 스레드에서 처리 중 - meetingId: {}, existingJob: {}", meetingId, existing);
             return;
         }
 
@@ -242,11 +214,9 @@ public class MeetingAiScheduler {
             String jobId = meetingAiProcessingService.startAiProcessing(studyId, meetingId);
             processingJobs.put(meetingId, jobId);  // 실제 jobId로 업데이트
             jobStartTimes.put(meetingId, System.currentTimeMillis());
-            log.info("AI 처리 시작 - meetingId: {}, jobId: {}", meetingId, jobId);
-        } catch (Exception e) {
+} catch (Exception e) {
             processingJobs.remove(meetingId);  // 실패 시 제거하여 재시도 가능하게
-            log.error("AI 처리 시작 실패 - meetingId: {}, error: {}", meetingId, e.getMessage());
-            // 오디오 없음 등의 예외 시 PENDING으로 롤백
+// 오디오 없음 등의 예외 시 PENDING으로 롤백
             if (e.getMessage() != null && e.getMessage().contains("NO_MIXED_AUDIO")) {
                 meeting.updateSummaryStatus(SummaryStatus.PENDING);
             }
@@ -297,7 +267,7 @@ public class MeetingAiScheduler {
                 meetingSttService.upsertSummaryFileInternal(meetingId, null);
             }
         } catch (Exception e) {
-            log.error("생성된 텍스트 파일 동기화 실패 - meetingId: {}, error: {}", meetingId, e.getMessage());
-        }
+}
     }
 }
+

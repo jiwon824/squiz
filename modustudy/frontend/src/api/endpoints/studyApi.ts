@@ -338,7 +338,6 @@ export const getStudyList = async (params: StudyListParams = {}): Promise<StudyL
     return data;
   } else {
     // 예외 응답 처리
-    console.warn('[getStudyList] 예상하지 못한 응답 구조:', data);
     return {
       content: [],
       pageable: { pageNumber: 0, pageSize: 12 },
@@ -512,7 +511,6 @@ export const studyApi = {
       // 응답 구조: { data: { totalElements: N } } 또는 { totalElements: N }
       return data?.data?.totalElements || data?.totalElements || 0;
     } catch (error) {
-      console.error('대기중 신청자 수 조회 실패:', error);
       return 0;
     }
   },
@@ -548,7 +546,6 @@ export const studyApi = {
       }
       return { hasApplied: false };
     } catch (error) {
-      console.error('신청 여부 확인 실패:', error);
       return { hasApplied: false };
     }
   },
@@ -647,13 +644,11 @@ export const studyApi = {
           pendingCount += pending;
         } catch (error) {
           // 개별 세션 조회 실패는 무시하고 계속 진행
-          console.warn(`세션 ${session.id} 출석 정보 조회 실패:`, error);
         }
       }
 
       return pendingCount;
     } catch (error) {
-      console.error('대기중 소명 수 조회 실패:', error);
       return 0;
     }
   },
@@ -678,7 +673,6 @@ export const studyApi = {
       const response = await api.get<boolean>(`/api/v1/study/${studyId}/bookmark/check`);
       return response.data;
     } catch (error) {
-      console.error('북마크 여부 확인 실패:', error);
       return false;
     }
   },
@@ -1365,7 +1359,6 @@ export const generateStudyPlanStream = async (
       userId = authData?.state?.user?.id?.toString() || '';
     }
   } catch (e) {
-    console.warn('userId 가져오기 실패:', e);
   }
 
   const baseUrl = import.meta.env.VITE_API_URL || '';
@@ -1439,13 +1432,11 @@ export const generateStudyPlanStream = async (
               callbacks.onComplete(result);
               return;
             } else if (currentEvent === 'error') {
-              console.error('[SSE 에러 이벤트]', parsed);
               callbacks.onError(new Error(parsed.error || 'Unknown error'));
               return;
             }
           } catch (parseError) {
             // JSON 파싱 실패 시 무시 (부분 데이터일 수 있음)
-            console.warn('[SSE 파싱 실패]', data);
           }
 
           currentEvent = ''; // 이벤트 리셋
@@ -1480,10 +1471,8 @@ export const generateStudyPlanStream = async (
           return;
         }
       } catch (e) {
-        console.warn('[SSE 버퍼 파싱 실패]', e);
       }
     }
-    console.warn('[SSE 스트림 종료] complete 이벤트 없이 종료됨');
     callbacks.onError(new Error('스트림이 완료 이벤트 없이 종료되었습니다.'));
   } catch (error) {
     callbacks.onError(error instanceof Error ? error : new Error(String(error)));

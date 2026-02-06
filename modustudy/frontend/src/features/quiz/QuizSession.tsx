@@ -211,14 +211,12 @@ export const QuizSession = () => {
                 if (getErrorStatus(err) === 409 && retryCount < 2) {
                     const delay = Math.pow(2, retryCount) * 500; // 500ms, 1000ms 순으로 대기
 
-                    console.warn(`[QuizSession] Conflict(409) 감지. ${delay}ms 후 재시도합니다. (${retryCount + 1}/2)`);
 
                     await new Promise(resolve => setTimeout(resolve, delay));
                     return initializeSession(retryCount + 1); // 재귀 호출로 재시도
                 }
 
                 // 재시도 횟수를 초과했거나 다른 에러인 경우
-                console.error('[QuizSession] 세션 초기화 실패:', err);
                 setError(err instanceof Error ? err.message : '퀴즈를 시작하는데 실패했습니다.');
                 setIsLoading(false);
             }
@@ -271,7 +269,6 @@ export const QuizSession = () => {
                 responseTimeMs
             );
         } catch (err) {
-            console.error('[QuizSession] 답안 저장 실패:', err);
             // 실패해도 로컬 상태는 유지 (다음 저장 시 재시도)
         } finally {
             setIsSaving(false);
@@ -326,7 +323,6 @@ export const QuizSession = () => {
             setHasChanges(false);
             navigate(`/quiz-practice/${courseId}`, { replace: true });
         } catch (err) {
-            console.error('[QuizSession] 제출 실패:', err);
             showToast(err instanceof Error ? err.message : '제출에 실패했습니다.', 'error');
         } finally {
             setIsSubmitting(false);
@@ -360,7 +356,6 @@ export const QuizSession = () => {
                 attemptData.attemptId
             );
         } catch (err) {
-            console.error('[QuizSession] 시도 포기 실패:', err);
         }
 
         setHasChanges(false);

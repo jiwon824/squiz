@@ -1,4 +1,4 @@
-package com.ssafy.domain.meeting.scheduler;
+﻿package com.ssafy.domain.meeting.scheduler;
 
 import com.ssafy.domain.meeting.entity.Meeting;
 import com.ssafy.domain.meeting.entity.MeetingType;
@@ -61,9 +61,7 @@ public class MeetingAutoScheduler {
                     plannedDurationSeconds
             );
             meetingRepository.save(meeting);
-            log.info("온라인 세션 자동 미팅 생성 완료 - studyId={}, sessionId={}, meetingTitle={}",
-                    session.getStudyId(), session.getId(), title);
-        }
+}
     }
 
     private String buildMeetingTitle(StudySession session) {
@@ -86,3 +84,4 @@ public class MeetingAutoScheduler {
         return Math.min(planned, MAX_PLANNED_DURATION_SECONDS);
     }
 }
+

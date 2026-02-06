@@ -1,4 +1,4 @@
-package com.ssafy.domain.notification.entity;
+﻿package com.ssafy.domain.notification.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -9,13 +9,13 @@ import java.time.LocalDateTime;
 /**
  * 알림 엔티티
  */
-@Entity
-@Table(name = "notification")
-@Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
-@Builder
-public class Notification {
+ @Entity
+ @Table(name = "notification")
+ @Getter
+ @NoArgsConstructor(access = AccessLevel.PROTECTED)
+ @AllArgsConstructor
+ @Builder
+ public class Notification {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

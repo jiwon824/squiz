@@ -1,4 +1,4 @@
-package com.ssafy.domain.quiz.entity;
+﻿package com.ssafy.domain.quiz.entity;
 
 import com.ssafy.common.entity.BaseEntity;
 import jakarta.persistence.*;
@@ -11,13 +11,13 @@ import java.util.List;
  * 스터디 퀴즈 엔티티
  * 미팅/자료/수동 생성 퀴즈를 관리
  */
-@Entity
-@Table(name = "study_quiz")
-@Getter
-@Builder
-@AllArgsConstructor
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class StudyQuiz extends BaseEntity {
+ @Entity
+ @Table(name = "study_quiz")
+ @Getter
+ @Builder
+ @AllArgsConstructor
+ @NoArgsConstructor(access = AccessLevel.PROTECTED)
+ public class StudyQuiz extends BaseEntity {
 
     @Column(name = "study_id", nullable = false)
     private Long studyId;

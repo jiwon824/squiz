@@ -1,4 +1,4 @@
-package com.ssafy.domain.study.service;
+﻿package com.ssafy.domain.study.service;
 
 import com.ssafy.common.exception.StudyException;
 import com.ssafy.domain.study.dto.request.ApplicationCreateRequest;
@@ -48,39 +48,31 @@ public class ApplicationService {
      */
     @Transactional
     public ApplicationResponse createApplication(Long studyId, ApplicationCreateRequest request, Long userId) {
-        log.info("스터디 신청 생성 시작 - studyId: {}, userId: {}", studyId, userId);
-
-        // 1. 스터디 존재 확인
+// 1. 스터디 존재 확인
         Study study = studyRepository.findById(studyId)
                 .orElseThrow(() -> {
-                    log.error("존재하지 않는 스터디 - studyId: {}", studyId);
                     return new StudyException.StudyNotFoundException(studyId);
                 });
 
         // 2. 사용자 존재 확인
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> {
-                    log.error("존재하지 않는 사용자 - userId: {}" , userId);
                     return new IllegalArgumentException("존재하지 않는 사용자입니다: " + userId);
                 });
 
         // 3. 중복 신청 확인
         if (applicationRepository.existsByStudyIdAndUserId(studyId, userId)) {
-            log.warn("이미 신청한 스터디 - studyId: {}, userId: {}", studyId, userId);
             throw new IllegalStateException("이미 신청한 스터디입니다");
         }
 
         // 4. 본인 스터디 신청 방지
         if (study.getLeaderId().equals(userId)) {
-            log.warn("본인 스터디 신청 시도 - studyId: {}, userId: {}", studyId, userId);
             throw new IllegalStateException("본인이 만든 스터디에는 신청할 수 없습니다");
         }
 
         // 5. 정원 초과 검증 (스터디장도 StudyMember 테이블에 포함되어 있음)
         int currentMembers = studyMemberRepository.countByStudyIdAndStatus(studyId, MemberStatus.APPROVED);
         if (study.getMaxMembers() != null && currentMembers >= study.getMaxMembers()) {
-            log.warn("스터디 정원 초과 - studyId: {}, currentMembers: {}, maxMembers: {}",
-                    studyId, currentMembers, study.getMaxMembers());
             throw new IllegalStateException("스터디 정원이 가득 찼습니다");
         }
 
@@ -94,9 +86,7 @@ public class ApplicationService {
 
         StudyApplication saved = applicationRepository.save(application);
 
-        log.info("스터디 신청 생성 완료 - applicationId: {}", saved.getId());
-
-        // 7. 추천 반응 자동 기록 (추천에서 온 지원인지 감지)
+// 7. 추천 반응 자동 기록 (추천에서 온 지원인지 감지)
         studyRecommendService.tryLogAction(userId, studyId, StudyRecommendAction.ActionType.APPLY);
 
         // 8. 스터디장에게 알림 전송
@@ -113,9 +103,7 @@ public class ApplicationService {
                 "STUDY_APPLICATION",
                 studyId
         );
-        log.info("스터디장에게 알림 전송 완료 - leaderId: {}", study.getLeaderId());
-
-        // 9. DTO 변환 및 추가 정보 설정
+// 9. DTO 변환 및 추가 정보 설정
         ApplicationResponse response = ApplicationResponse.from(saved);
         response.setStudyName(study.getName());
         response.setUserInfo(user.getName(), user.getNickname(), user.getEmail(), user.getProfileImage());
@@ -131,13 +119,9 @@ public class ApplicationService {
      * 스터디별 신청 목록 조회
      */
     public Page<ApplicationResponse> getApplicationByStudy(Long studyId, ApplicationStatus status, Pageable pageable) {
-        log.info("스터디별 신청 목록 조회 - studyId: {}, status: {}, page: {}, size: {}",
-                studyId, status, pageable.getPageNumber(), pageable.getPageSize());
-
-        // 1. 스터디 존재 확인
+// 1. 스터디 존재 확인
         Study study = studyRepository.findById(studyId)
                 .orElseThrow(() -> {
-                    log.error("존재하지 않는 스터디 - studyId: {}", studyId);
                     return new StudyException.StudyNotFoundException(studyId);
                 });
 
@@ -146,9 +130,7 @@ public class ApplicationService {
                 ? applicationRepository.findByStudyIdAndStatus(studyId, status, pageable)
                 : applicationRepository.findByStudyId(studyId, pageable);
 
-        log.info("신청 목록 조회 완료 - totalElements: {}", applications.getTotalElements());
-
-        // 3. DTO 변환 및 추가 정보 설정
+// 3. DTO 변환 및 추가 정보 설정
         return applications.map(app -> {
             ApplicationResponse response = ApplicationResponse.from(app);
             response.setStudyName(study.getName());
@@ -166,13 +148,9 @@ public class ApplicationService {
      * 사용자별 신청 내역 조회
      */
     public Page<ApplicationResponse> getApplicationByUser(Long userId, ApplicationStatus status, Pageable pageable) {
-        log.info("사용자별 신청 내역 조회 - userId: {}, status: {}, page: {}, size: {}",
-                userId, status, pageable.getPageNumber(), pageable.getPageSize());
-
-        // 1. 사용자 존재 확인
+// 1. 사용자 존재 확인
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> {
-                    log.error("존재하지 않는 사용자 - userId: {}", userId);
                     return new IllegalArgumentException("존재하지 않는 사용자입니다: " + userId);
                 });
 
@@ -181,9 +159,7 @@ public class ApplicationService {
                 ? applicationRepository.findByUserIdAndStatus(userId, status, pageable)
                 : applicationRepository.findByUserId(userId, pageable);
 
-        log.info("신청 내역 조회 완료 - totalElements: {}", applications.getTotalElements());
-
-        // 3. DTO 변환 및 추가 정보 설정
+// 3. DTO 변환 및 추가 정보 설정
         return applications.map(app -> {
             ApplicationResponse response =  ApplicationResponse.from(app);
             response.setUserInfo(user.getName(), user.getNickname(), user.getEmail(), user.getProfileImage());
@@ -201,11 +177,8 @@ public class ApplicationService {
      * 신청 상세 조회
      */
     public ApplicationResponse getApplication(Long applicationId) {
-        log.info("신청 상세 조회 - applicationId: {}", applicationId);
-
         StudyApplication application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> {
-                    log.error("존재하지 않는 신청 - applicationId: {}", applicationId);
                     return new IllegalArgumentException("존재하지 않는 신청입니다: " + applicationId);
                 });
 
@@ -220,8 +193,6 @@ public class ApplicationService {
                 response.setUserInfo(user.getName(), user.getNickname(), user.getEmail(), user.getProfileImage())
         );
 
-        log.info("신청 상세 조회 완료 - applicationId: {}", applicationId);
-
         return response;
     }
 
@@ -234,41 +205,33 @@ public class ApplicationService {
      */
     @Transactional
     public ApplicationResponse approveApplication(Long studyId, Long applicationId, Long leaderId) {
-        log.info("신청 승인 시작 - studyId: {}, applicationId: {}, leaderId: {}", studyId, applicationId, leaderId);
-
-        // 1. 스터디 존재 및 권한 확인
+// 1. 스터디 존재 및 권한 확인
         Study study = studyRepository.findById(studyId)
                 .orElseThrow(() -> new StudyException.StudyNotFoundException(studyId));
 
         if (!study.getLeaderId().equals(leaderId)) {
-            log.warn("권한 없음 - studyId: {}, leaderId: {}", studyId, leaderId);
             throw new StudyException.NotStudyLeaderException("스터디장만 신청을 승인할 수 있습니다");
         }
 
         // 2. 신청 조회
         StudyApplication application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> {
-                    log.error("존재하지 않은 신청 - applicationId: {}", applicationId);
                     return new IllegalArgumentException("존재하지 않는 신청입니다: " + applicationId);
                 });
 
         // 3. 신청이 해당 스터디의 것인지 확인
         if (!application.getStudyId().equals(studyId)) {
-            log.warn("잘못된 신청 - applicationId: {}, studyId: {}", applicationId, studyId);
             throw new IllegalArgumentException("해당 스터디의 신청이 아닙니다");
         }
 
         // 4. 이미 처리된 신청인지 확인
         if (!application.isPending()) {
-            log.warn("이미 처리된 신청 - applicationId: {}, status: {}", applicationId, application.getStatus());
             throw new IllegalStateException("이미 처리된 신청입니다");
         }
 
         // 5. 정원 초과 검증 (승인 시점 double-check, 스터디장도 StudyMember에 포함됨)
         int currentMembers = studyMemberRepository.countByStudyIdAndStatus(studyId, MemberStatus.APPROVED);
         if (study.getMaxMembers() != null && currentMembers >= study.getMaxMembers()) {
-            log.warn("스터디 정원 초과로 승인 불가 - studyId: {}, currentMembers: {}, maxMembers: {}",
-                    studyId, currentMembers, study.getMaxMembers());
             throw new IllegalStateException("스터디 정원이 가득 차서 승인할 수 없습니다");
         }
 
@@ -288,10 +251,7 @@ public class ApplicationService {
 
         studyMemberRepository.save(member);
 
-        log.info("신청 승인 완료 - applicationId: {}, userId: {} 스터디 멤버로 추가됨",
-                applicationId, application.getUserId());
-
-        // 8. 신청자에게 승인 알림 전송
+// 8. 신청자에게 승인 알림 전송
         String approvalTitle = "스터디 신청 승인";
         String approvalContent = String.format("'%s' 스터디 참가 신청이 승인되었습니다! 이제 스터디에 참여할 수 있습니다.", study.getName());
         notificationService.createNotification(
@@ -302,9 +262,7 @@ public class ApplicationService {
                 "STUDY",
                 studyId
         );
-        log.info("신청자에게 승인 알림 전송 완료 - userId: {}", application.getUserId());
-
-        // 9. 게이미피케이션 이벤트 발행 - 스터디 가입
+// 9. 게이미피케이션 이벤트 발행 - 스터디 가입
         // 첫 스터디 여부 확인 (현재 가입한 스터디 제외하고 다른 승인된 멤버십이 있는지)
         int otherMemberships = studyMemberRepository.findByUserIdAndStatus(application.getUserId(), MemberStatus.APPROVED).size();
         boolean isFirstStudy = otherMemberships <= 1; // 방금 가입한 것만 있으면 첫 스터디
@@ -346,33 +304,27 @@ public class ApplicationService {
      */
     @Transactional
     public ApplicationResponse rejectApplication(Long studyId, Long applicationId, Long leaderId, String rejectedReason) {
-        log.info("신청 거절 시작 - studyId: {}, applicationId: {}, leaderId: {}", studyId, applicationId, leaderId);
-
-        // 1. 스터디 존재 및 권한 확인
+// 1. 스터디 존재 및 권한 확인
         Study study = studyRepository.findById(studyId)
                 .orElseThrow(() -> new StudyException.StudyNotFoundException(studyId));
 
         if (!study.getLeaderId().equals(leaderId)) {
-            log.warn("권한 없음 - studyId: {}, leaderId: {}", studyId, leaderId);
             throw new StudyException.NotStudyLeaderException("스터디장만 신청을 거절할 수 있습니다");
         }
 
         // 2. 신청 조회
         StudyApplication application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> {
-                    log.error("존재하지 않는 신청 - applicationId: {}", applicationId);
                     return new IllegalArgumentException("존재하지 않는 신청입니다: " + applicationId);
                 });
 
         // 3. 신청이 해당 스터디의 것인지 확인
         if (!application.getStudyId().equals(studyId)) {
-            log.warn("잘못된 신청 - applicationId: {}, studyId: {}", applicationId, studyId);
             throw new IllegalArgumentException("해당 스터디의 신청이 아닙니다");
         }
 
         // 4. 이미 처리된 신청인지 확인
         if (!application.isPending()) {
-            log.warn("이미 처리된 신청 - applicationId: {}, status: {}", applicationId, application.getStatus());
             throw new IllegalStateException("이미 처리된 신청입니다");
         }
 
@@ -380,9 +332,7 @@ public class ApplicationService {
         application.reject(rejectedReason);
         StudyApplication updated = applicationRepository.save(application);
 
-        log.info("신청 거절 완료 - applicationId: {}, reason: {}", applicationId, rejectedReason);
-
-        // 6. 신청자에게 거절 알림 전송
+// 6. 신청자에게 거절 알림 전송
         String rejectionTitle = "스터디 신청 결과";
         String rejectionContent = String.format("'%s' 스터디 참가 신청이 거절되었습니다.", study.getName());
         if (rejectedReason != null && !rejectedReason.isBlank()) {
@@ -396,9 +346,7 @@ public class ApplicationService {
                 "STUDY",
                 studyId
         );
-        log.info("신청자에게 거절 알림 전송 완료 - userId: {}", application.getUserId());
-
-        // 7. DTO 변환
+// 7. DTO 변환
         ApplicationResponse response = ApplicationResponse.from(updated);
         response.setStudyName(study.getName());
 
@@ -419,3 +367,4 @@ public class ApplicationService {
         return response;
     }
 }
+

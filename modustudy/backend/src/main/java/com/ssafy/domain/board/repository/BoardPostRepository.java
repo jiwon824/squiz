@@ -1,4 +1,4 @@
-package com.ssafy.domain.board.repository;
+﻿package com.ssafy.domain.board.repository;
 
 import com.ssafy.domain.board.entity.BoardPost;
 import org.springframework.data.domain.Page;

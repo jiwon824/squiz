@@ -1,4 +1,4 @@
-package com.ssafy.domain.quiz.dto.response;
+﻿package com.ssafy.domain.quiz.dto.response;
 
 import com.ssafy.domain.quiz.entity.UserReviewItem;
 import com.ssafy.domain.quiz.service.FsrsConstants;
@@ -25,8 +25,8 @@ import java.util.List;
  * @param matureCards           장기 기억 전환 문제 수
  * @param dailyMaxCombo         오늘의 최고 콤보
  */
-@Schema(description = "복습 통계 응답")
-public record ReviewStatsResponse(
+ @Schema(description = "복습 통계 응답")
+ public record ReviewStatsResponse(
 
         @Schema(description = "전체 복습 항목 수", example = "50") int totalItems,
 

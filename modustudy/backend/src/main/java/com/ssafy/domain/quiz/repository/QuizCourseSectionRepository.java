@@ -1,4 +1,4 @@
-package com.ssafy.domain.quiz.repository;
+﻿package com.ssafy.domain.quiz.repository;
 
 import com.ssafy.domain.quiz.entity.QuizCourseSection;
 import com.ssafy.domain.quiz.entity.QuizCourseSectionId;
@@ -14,7 +14,7 @@ import java.util.Optional;
  *
  * Uses composite PK: (quizCourseId, sectionNumber)
  */
-public interface QuizCourseSectionRepository extends JpaRepository<QuizCourseSection, QuizCourseSectionId> {
+ public interface QuizCourseSectionRepository extends JpaRepository<QuizCourseSection, QuizCourseSectionId> {
 
         /**
          * Find section by course ID and section number with course and questions.

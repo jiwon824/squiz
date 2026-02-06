@@ -1,4 +1,4 @@
-package com.ssafy.domain.study.repository;
+﻿package com.ssafy.domain.study.repository;
 
 import com.ssafy.domain.study.entity.*;
 import com.ssafy.domain.user.entity.Role;
@@ -24,9 +24,9 @@ import static org.assertj.core.api.Assertions.*;
 /**
  * StudyBookmarkRepository 테스트
  */
-@SpringBootTest
-@Transactional
-class StudyBookmarkRepositoryTest {
+ @SpringBootTest
+ @Transactional
+ class StudyBookmarkRepositoryTest {
 
     @Autowired
     private StudyBookmarkRepository bookmarkRepository;

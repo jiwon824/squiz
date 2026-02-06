@@ -1,4 +1,4 @@
-package com.ssafy.domain.study.service;
+﻿package com.ssafy.domain.study.service;
 
 import com.ssafy.domain.study.dto.request.TemplateUsageLogRequest;
 import com.ssafy.domain.study.dto.response.TemplateUsageLogResponse;
@@ -30,10 +30,7 @@ public class TemplateUsageLogService {
     public TemplateUsageLogResponse logUsage(TemplateUsageLogRequest request, Long userId,
                                               Map<String, Object> userTechStack,
                                               Map<String, Object> userSchedule) {
-        log.info("템플릿 사용 로그 저장 - userId: {}, templateId: {}, usedAsIs: {}",
-                userId, request.getTemplateId(), request.isUsedAsIs());
-
-        // 템플릿 존재 확인
+// 템플릿 존재 확인
         if (!studyTemplateRepository.existsById(request.getTemplateId())) {
             throw new IllegalArgumentException("존재하지 않는 템플릿입니다.");
         }
@@ -49,8 +46,6 @@ public class TemplateUsageLogService {
                 .build();
 
         TemplateUsageLog saved = templateUsageLogRepository.save(usageLog);
-        log.info("템플릿 사용 로그 저장 완료 - logId: {}", saved.getId());
-
         return TemplateUsageLogResponse.from(saved);
     }
 
@@ -79,3 +74,4 @@ public class TemplateUsageLogService {
                 .collect(Collectors.toList());
     }
 }
+

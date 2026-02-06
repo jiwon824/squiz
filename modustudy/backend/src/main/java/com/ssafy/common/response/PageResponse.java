@@ -1,4 +1,4 @@
-package com.ssafy.common.response;
+﻿package com.ssafy.common.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;

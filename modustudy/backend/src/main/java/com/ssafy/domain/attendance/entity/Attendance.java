@@ -1,4 +1,4 @@
-package com.ssafy.domain.attendance.entity;
+﻿package com.ssafy.domain.attendance.entity;
 
 import com.ssafy.common.entity.BaseEntity;
 import com.ssafy.domain.study.entity.StudySession;
@@ -17,13 +17,13 @@ import java.time.LocalDateTime;
                         columnNames = {"session_id", "user_id"}
                 )
         }
-)
-@Getter
-@Setter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
-@Builder
-public class Attendance extends BaseEntity {
+        )
+        @Getter
+        @Setter
+        @NoArgsConstructor(access = AccessLevel.PROTECTED)
+        @AllArgsConstructor
+        @Builder
+        public class Attendance extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "session_id", nullable = false)

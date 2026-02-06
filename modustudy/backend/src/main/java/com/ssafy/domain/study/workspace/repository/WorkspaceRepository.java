@@ -1,4 +1,4 @@
-package com.ssafy.domain.study.workspace.repository;
+﻿package com.ssafy.domain.study.workspace.repository;
 
 import com.ssafy.domain.study.workspace.entity.Workspace;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -12,8 +12,8 @@ import java.util.Optional;
 /**
  * 워크스페이스 Repository
  */
-@Repository
-public interface WorkspaceRepository extends JpaRepository<Workspace, Long> {
+ @Repository
+ public interface WorkspaceRepository extends JpaRepository<Workspace, Long> {
 
     /**
      * 스터디 ID로 워크스페이스 조회

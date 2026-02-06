@@ -1,4 +1,4 @@
-package com.ssafy.domain.report.controller;
+﻿package com.ssafy.domain.report.controller;
 
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;

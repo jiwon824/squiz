@@ -1,4 +1,4 @@
-package com.ssafy.domain.quiz.repository;
+﻿package com.ssafy.domain.quiz.repository;
 
 import com.ssafy.domain.quiz.entity.QuizCourse;
 import com.ssafy.domain.quiz.entity.QuizCourseQuestion;
@@ -47,9 +47,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  * 테스트 DB(ddl-auto=create)에서는 스키마 불일치로 실패할 수 있습니다.
  * </p>
  */
-@SpringBootTest
-@Transactional
-class ContinuousQuizRepositoryTest {
+ @SpringBootTest
+ @Transactional
+ class ContinuousQuizRepositoryTest {
 
         @Autowired
         private ContinuousQuizRepository continuousQuizRepository;
@@ -322,9 +322,7 @@ class ContinuousQuizRepositoryTest {
                                         .as("학습 완료 문제는 안 푼 문제가 있으면 선택되지 않아야 함")
                                         .isZero();
 
-                        System.out.printf("[1단계 우선 검증] 50회 선택 결과 - 안 푼(Q1): %d, 학습완료(Q2): %d, 학습완료(Q3): %d%n",
-                                        unseenCount, seenCount2, seenCount3);
-                }
+}
 
                 @Test
                 @DisplayName("모든 문제를 풀었을 때, 복습 예정(Due) 문제가 학습 완료 문제보다 높은 빈도로 선택된다 (2단계)")
@@ -371,9 +369,7 @@ class ContinuousQuizRepositoryTest {
                                         .as("Due 문제(weight=5.0)가 Not Due 문제(weight≈0.17)보다 많이 선택되어야 함")
                                         .isGreaterThan(notDueCount);
 
-                        System.out.printf("[2단계 가중치 검증] 100회 선택 결과 - Due(Q1): %d, NotDue(Q2): %d, NotDue(Q3): %d%n",
-                                        dueCount, notDueCount, notDueCount2);
-                }
+}
         }
 
         @Nested
@@ -478,3 +474,4 @@ class ContinuousQuizRepositoryTest {
                 return userReviewItemRepository.save(item);
         }
 }
+

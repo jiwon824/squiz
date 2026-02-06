@@ -1,4 +1,4 @@
-package com.ssafy.domain.notification.dto.response;
+﻿package com.ssafy.domain.notification.dto.response;
 
 import lombok.Builder;
 import lombok.Getter;

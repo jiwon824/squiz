@@ -43,7 +43,6 @@ class AIDetectionService {
             const predictions = await this.model!.detect(videoElement);
             return predictions.some((prediction) => prediction.class === 'person' && prediction.score > 0.5);
         } catch (error) {
-            console.warn('[ai] detect error', error);
             return null;
         }
     }

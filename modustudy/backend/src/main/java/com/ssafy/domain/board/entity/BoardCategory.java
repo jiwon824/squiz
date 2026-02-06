@@ -1,4 +1,4 @@
-package com.ssafy.domain.board.entity;
+﻿package com.ssafy.domain.board.entity;
 
 public enum BoardCategory {
     PROJECT,

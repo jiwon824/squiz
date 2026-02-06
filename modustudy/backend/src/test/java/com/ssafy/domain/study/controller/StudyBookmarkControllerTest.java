@@ -1,4 +1,4 @@
-package com.ssafy.domain.study.controller;
+﻿package com.ssafy.domain.study.controller;
 
 import com.ssafy.domain.study.entity.*;
 import com.ssafy.domain.study.repository.FormatRepository;
@@ -28,11 +28,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * StudyBookmarkController 통합 테스트
  */
-@SpringBootTest
-@AutoConfigureMockMvc
-@Transactional
-@WithMockUser(username = "testuser", roles = {"USER"})
-class StudyBookmarkControllerTest {
+ @SpringBootTest
+ @AutoConfigureMockMvc
+ @Transactional
+ @WithMockUser(username = "testuser", roles = {"USER"})
+ class StudyBookmarkControllerTest {
 
     @Autowired
     private MockMvc mockMvc;

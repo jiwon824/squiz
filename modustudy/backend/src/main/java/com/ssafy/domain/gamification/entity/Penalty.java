@@ -1,4 +1,4 @@
-package com.ssafy.domain.gamification.entity;
+﻿package com.ssafy.domain.gamification.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -9,13 +9,13 @@ import java.time.LocalDateTime;
 /**
  * 패널티 마스터 데이터 (정의)
  */
-@Entity
-@Table(name = "penalty")
-@Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
-@Builder
-public class Penalty {
+ @Entity
+ @Table(name = "penalty")
+ @Getter
+ @NoArgsConstructor(access = AccessLevel.PROTECTED)
+ @AllArgsConstructor
+ @Builder
+ public class Penalty {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

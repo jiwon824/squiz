@@ -1,4 +1,4 @@
-package com.ssafy.domain.dm.entity;
+﻿package com.ssafy.domain.dm.entity;
 
 import lombok.*;
 
@@ -8,12 +8,12 @@ import java.time.LocalDateTime;
  * DM 대화방 엔티티
  * - 두 사용자 간의 대화를 그룹화
  */
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class DmConversation {
+ @Getter
+ @Setter
+ @NoArgsConstructor
+ @AllArgsConstructor
+ @Builder
+ public class DmConversation {
 
     private Long id;
 

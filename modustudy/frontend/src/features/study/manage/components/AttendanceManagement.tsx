@@ -58,7 +58,6 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ studyId }) 
                 setSelectedSession(sessionList[0]);
             }
         } catch (error) {
-            console.error('세션 목록 조회 실패:', error);
             showToast('세션 목록을 불러오는데 실패했습니다.', 'error');
         } finally {
             setLoading(false);
@@ -80,7 +79,6 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ studyId }) 
             });
             setMemberMap(map);
         } catch (error) {
-            console.error('멤버 목록 조회 실패:', error);
         }
     };
 
@@ -92,7 +90,6 @@ const AttendanceManagement: React.FC<AttendanceManagementProps> = ({ studyId }) 
             const records = sessionData.members || [];
             setAttendanceRecords(records);
         } catch (error) {
-            console.error('출석 정보 조회 실패:', error);
             showToast('출석 정보를 불러오는데 실패했습니다.', 'error');
         }
     };

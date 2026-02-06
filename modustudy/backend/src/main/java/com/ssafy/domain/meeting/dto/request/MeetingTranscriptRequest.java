@@ -1,4 +1,4 @@
-package com.ssafy.domain.meeting.dto.request;
+﻿package com.ssafy.domain.meeting.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -10,5 +10,5 @@ public record MeetingTranscriptRequest(
         Integer startMs,
         Integer endMs,
         Boolean isFinal
-) {
+        ) {
 }

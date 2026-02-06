@@ -1,4 +1,4 @@
-package com.ssafy.domain.study.service;
+﻿package com.ssafy.domain.study.service;
 
 import com.ssafy.domain.study.dto.response.RegionResponse;
 import com.ssafy.domain.study.entity.Region;
@@ -26,8 +26,8 @@ import static org.mockito.Mockito.verify;
 /**
  * RegionService 단위 테스트
  */
-@ExtendWith(MockitoExtension.class)
-class RegionServiceTest {
+ @ExtendWith(MockitoExtension.class)
+ class RegionServiceTest {
 
     @Mock
     private RegionRepository regionRepository;

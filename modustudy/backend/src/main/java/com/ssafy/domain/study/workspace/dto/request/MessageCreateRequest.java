@@ -1,4 +1,4 @@
-package com.ssafy.domain.study.workspace.dto.request;
+﻿package com.ssafy.domain.study.workspace.dto.request;
 
 import com.ssafy.domain.study.workspace.entity.Message;
 import com.ssafy.domain.study.workspace.entity.MessageType;

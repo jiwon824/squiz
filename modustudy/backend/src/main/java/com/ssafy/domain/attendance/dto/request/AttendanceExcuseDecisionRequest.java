@@ -1,4 +1,4 @@
-package com.ssafy.domain.attendance.dto.request;
+﻿package com.ssafy.domain.attendance.dto.request;
 
 import com.ssafy.domain.attendance.entity.AttendanceExcuseStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -7,5 +7,5 @@ import io.swagger.v3.oas.annotations.media.Schema;
 public record AttendanceExcuseDecisionRequest(
         @Schema(description = "소명 처리 상태 (APPROVED/REJECTED)", example = "APPROVED")
         AttendanceExcuseStatus status
-) {
+        ) {
 }

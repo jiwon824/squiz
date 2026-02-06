@@ -1,4 +1,4 @@
-package com.ssafy.config;
+﻿package com.ssafy.config;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -24,16 +24,10 @@ import java.time.format.DateTimeFormatter;
 /**
  * Spring Data JPA 관련 추가 설정 정의.
  */
-@Configuration
-public class JpaConfig {
+ @Configuration
+ public class JpaConfig {
     @PersistenceContext
     EntityManager entityManager;
-
-//    @Bean
-//    public JPAQueryFactory jpaQueryFactory() {
-//        return new JPAQueryFactory(entityManager);
-//    }
-
     @Bean
     @Primary
     public ObjectMapper objectMapper() {
@@ -63,3 +57,4 @@ public class JpaConfig {
                 .registerModule(new Jdk8Module());
     }
 }
+

@@ -1,4 +1,4 @@
-package com.ssafy.common.auth;
+﻿package com.ssafy.common.auth;
 
 import org.springframework.core.MethodParameter;
 import org.springframework.security.core.Authentication;
@@ -13,8 +13,8 @@ import org.springframework.web.method.support.ModelAndViewContainer;
  * @CurrentUserId Long userId 파라미터를 처리하는 ArgumentResolver
  * SsafyUserDetails에서 userId를 추출하여 Long 타입으로 반환
  */
-@Component
-public class CurrentUserIdArgumentResolver implements HandlerMethodArgumentResolver {
+ @Component
+ public class CurrentUserIdArgumentResolver implements HandlerMethodArgumentResolver {
 
     @Override
     public boolean supportsParameter(MethodParameter parameter) {

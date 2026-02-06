@@ -1,4 +1,4 @@
-package com.ssafy.domain.study.controller;
+﻿package com.ssafy.domain.study.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.domain.study.dto.request.StudyCommentCreateRequest;
@@ -31,11 +31,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * StudyCommentController 통합 테스트
  */
-@SpringBootTest
-@AutoConfigureMockMvc
-@Transactional
-@WithMockUser(username = "testuser", roles = {"USER"})
-class StudyCommentControllerTest {
+ @SpringBootTest
+ @AutoConfigureMockMvc
+ @Transactional
+ @WithMockUser(username = "testuser", roles = {"USER"})
+ class StudyCommentControllerTest {
 
     @Autowired
     private MockMvc mockMvc;

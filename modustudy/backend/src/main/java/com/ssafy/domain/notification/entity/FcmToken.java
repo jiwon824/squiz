@@ -1,4 +1,4 @@
-package com.ssafy.domain.notification.entity;
+﻿package com.ssafy.domain.notification.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -10,13 +10,13 @@ import java.time.LocalDateTime;
 /**
  * FCM 토큰 엔티티
  */
-@Entity
-@Table(name = "fcm_token")
-@Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
-@Builder
-public class FcmToken {
+ @Entity
+ @Table(name = "fcm_token")
+ @Getter
+ @NoArgsConstructor(access = AccessLevel.PROTECTED)
+ @AllArgsConstructor
+ @Builder
+ public class FcmToken {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

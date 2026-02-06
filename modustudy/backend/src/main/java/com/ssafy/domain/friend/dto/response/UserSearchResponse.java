@@ -1,17 +1,17 @@
-package com.ssafy.domain.friend.dto.response;
+﻿package com.ssafy.domain.friend.dto.response;
 
 import com.ssafy.domain.user.entity.User;
 
 /**
  * 사용자 검색 결과 응답 DTO
  */
-public record UserSearchResponse(
+ public record UserSearchResponse(
         Long userId,
         String nickname,
         String profileImage,
         Boolean isOnline,
         FriendStatus friendStatus
-) {
+        ) {
     public enum FriendStatus {
         NONE,            // 관계 없음
         PENDING_SENT,    // 내가 요청 보냄

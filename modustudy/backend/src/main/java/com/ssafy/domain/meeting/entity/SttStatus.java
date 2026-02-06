@@ -1,4 +1,4 @@
-package com.ssafy.domain.meeting.entity;
+﻿package com.ssafy.domain.meeting.entity;
 
 public enum SttStatus {
     PENDING,

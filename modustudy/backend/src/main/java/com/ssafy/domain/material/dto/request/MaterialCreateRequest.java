@@ -1,4 +1,4 @@
-package com.ssafy.domain.material.dto.request;
+﻿package com.ssafy.domain.material.dto.request;
 
 import com.ssafy.domain.material.entity.MaterialType;
 import jakarta.validation.constraints.NotBlank;
@@ -12,11 +12,11 @@ import lombok.AllArgsConstructor;
 /**
  * 링크 자료 생성 요청 DTO
  */
-@Getter
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class MaterialCreateRequest {
+ @Getter
+ @Builder
+ @NoArgsConstructor
+ @AllArgsConstructor
+ public class MaterialCreateRequest {
 
     @NotBlank(message = "제목은 필수입니다")
     @Size(max = 200, message = "제목은 200자 이내여야 합니다")

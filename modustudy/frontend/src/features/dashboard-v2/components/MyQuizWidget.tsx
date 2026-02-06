@@ -40,7 +40,6 @@ export const MyQuizWidget: React.FC = () => {
                 const response = await getTodayReviews();
                 setReviewItems(response.items || []);
             } catch (err) {
-                console.error('[MyQuizWidget] 데이터 로딩 실패:', err);
                 setReviewItems([]);
             } finally {
                 setIsLoading(false);
@@ -111,7 +110,6 @@ export const MyQuizWidget: React.FC = () => {
             setReviewItems(prev => prev.filter(item => item.reviewItemId !== selectedReviewItem.reviewItemId));
 
         } catch (err) {
-            console.error('[MyQuizWidget] 답안 제출 실패:', err);
             setShowResult(true);
         }
     };

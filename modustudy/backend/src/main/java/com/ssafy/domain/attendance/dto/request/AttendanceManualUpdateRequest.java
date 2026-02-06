@@ -1,4 +1,4 @@
-package com.ssafy.domain.attendance.dto.request;
+﻿package com.ssafy.domain.attendance.dto.request;
 
 import com.ssafy.domain.attendance.entity.AttendanceStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -9,5 +9,5 @@ public record AttendanceManualUpdateRequest(
         AttendanceStatus status,
         @Schema(description = "사유 (선택)", example = "BLE 인식 오류")
         String reason
-) {
+        ) {
 }

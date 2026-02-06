@@ -1,4 +1,4 @@
-package com.ssafy.domain.meeting.dto.response;
+﻿package com.ssafy.domain.meeting.dto.response;
 
 import com.ssafy.domain.meeting.entity.ActionItemStatus;
 
@@ -7,5 +7,5 @@ public record MeetingActionItemResponse(
         String content,
         Long assigneeId,
         ActionItemStatus status
-) {
+        ) {
 }

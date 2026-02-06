@@ -1,4 +1,4 @@
-package com.ssafy.domain.notification.dto.request;
+﻿package com.ssafy.domain.notification.dto.request;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;

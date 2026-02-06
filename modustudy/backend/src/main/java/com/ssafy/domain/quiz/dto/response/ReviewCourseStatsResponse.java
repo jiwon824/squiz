@@ -1,4 +1,4 @@
-package com.ssafy.domain.quiz.dto.response;
+﻿package com.ssafy.domain.quiz.dto.response;
 
 import java.util.List;
 
@@ -10,8 +10,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * @param totalSolvedCount 전체 맞춘 문제 수 (중복 제외)
  * @param courseStats      코스별 상세 통계 리스트
  */
-@Schema(description = "코스별 정답 통계 응답")
-public record ReviewCourseStatsResponse(
+ @Schema(description = "코스별 정답 통계 응답")
+ public record ReviewCourseStatsResponse(
 
         @Schema(description = "전체 맞춘 문제 수 (중복 제외)", example = "45") long totalSolvedCount,
 

@@ -1,4 +1,4 @@
-package com.ssafy.domain.study.workspace.websocket;
+﻿package com.ssafy.domain.study.workspace.websocket;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotNull;
 /**
  * 워크스페이스 상태 전송용 DTO
  */
-public class WorkspacePresenceMessage {
+ public class WorkspacePresenceMessage {
 
     @NotNull
     private Long workspaceId;

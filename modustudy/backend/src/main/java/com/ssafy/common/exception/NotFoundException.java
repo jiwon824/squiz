@@ -1,11 +1,11 @@
-package com.ssafy.common.exception;
+﻿package com.ssafy.common.exception;
 
 import org.springframework.http.HttpStatus;
 
 /**
  * 리소스를 찾을 수 없을 때 발생하는 예외.
  */
-public class NotFoundException extends BusinessException {
+ public class NotFoundException extends BusinessException {
 
     public NotFoundException(String code, String message) {
         super(HttpStatus.NOT_FOUND, code, message);

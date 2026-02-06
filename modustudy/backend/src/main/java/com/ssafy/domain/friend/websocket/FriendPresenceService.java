@@ -1,4 +1,4 @@
-package com.ssafy.domain.friend.websocket;
+﻿package com.ssafy.domain.friend.websocket;
 
 import com.ssafy.domain.friend.entity.Friendship;
 import com.ssafy.domain.friend.mapper.FriendshipMapper;

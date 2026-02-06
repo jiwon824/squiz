@@ -1,4 +1,4 @@
-package com.ssafy.domain.recruitment.entity;
+﻿package com.ssafy.domain.recruitment.entity;
 
 import com.ssafy.common.entity.BaseEntity;
 import jakarta.persistence.Entity;

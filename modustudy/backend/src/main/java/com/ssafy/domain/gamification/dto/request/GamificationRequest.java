@@ -1,4 +1,4 @@
-package com.ssafy.domain.gamification.dto.request;
+﻿package com.ssafy.domain.gamification.dto.request;
 
 public record GamificationRequest() {
 }

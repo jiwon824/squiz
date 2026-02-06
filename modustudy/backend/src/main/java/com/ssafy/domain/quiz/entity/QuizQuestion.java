@@ -1,4 +1,4 @@
-package com.ssafy.domain.quiz.entity;
+﻿package com.ssafy.domain.quiz.entity;
 
 import com.ssafy.common.entity.BaseEntity;
 import jakarta.persistence.*;

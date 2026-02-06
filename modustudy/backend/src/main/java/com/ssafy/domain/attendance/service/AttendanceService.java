@@ -1,4 +1,4 @@
-package com.ssafy.domain.attendance.service;
+﻿package com.ssafy.domain.attendance.service;
 
 import com.ssafy.common.exception.NotFoundException;
 import com.ssafy.common.response.MessageResponse;
@@ -132,11 +132,8 @@ public class AttendanceService {
                     study.getName(),
                     LocalDate.now()
                 ));
-                log.info("[Attendance] 게이미피케이션 이벤트 발행: userId={}, studyId={}",
-                    attendance.getUser().getId(), studyId);
-            } catch (Exception e) {
-                log.warn("[Attendance] 게이미피케이션 이벤트 발행 실패: {}", e.getMessage());
-            }
+} catch (Exception e) {
+}
         }
     }
 
@@ -545,3 +542,4 @@ public class AttendanceService {
         return getUserOrThrow(study.getLeaderId());
     }
 }
+

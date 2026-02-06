@@ -1,4 +1,4 @@
-package com.ssafy.domain.study.scheduler;
+﻿package com.ssafy.domain.study.scheduler;
 
 import com.ssafy.domain.notification.entity.NotificationType;
 import com.ssafy.domain.notification.service.NotificationService;
@@ -23,10 +23,10 @@ import java.util.List;
  * 세션 시작 시간 자동 알림 스케줄러
  * 1분마다 실행되어 시작 시간이 된 세션을 찾아 멤버들에게 알림 전송
  */
-@Slf4j
-@Component
-@RequiredArgsConstructor
-public class SessionStartScheduler {
+ @Slf4j
+ @Component
+ @RequiredArgsConstructor
+ public class SessionStartScheduler {
 
     private final StudySessionRepository studySessionRepository;
     private final StudyRepository studyRepository;
@@ -56,13 +56,10 @@ public class SessionStartScheduler {
             try {
                 // 세션 시작 처리
                 session.start();
-                log.info("세션 자동 시작 - sessionId: {}, studyId: {}", session.getId(), session.getStudyId());
-
-                // 알림 전송
+// 알림 전송
                 sendSessionStartNotification(session);
             } catch (Exception e) {
-                log.error("세션 자동 시작 실패 - sessionId: {}, error: {}", session.getId(), e.getMessage());
-            }
+}
         }
     }
 
@@ -76,7 +73,6 @@ public class SessionStartScheduler {
                     .orElse(null);
 
             if (study == null) {
-                log.warn("스터디를 찾을 수 없음 - studyId: {}", session.getStudyId());
                 return;
             }
 
@@ -99,16 +95,11 @@ public class SessionStartScheduler {
                             study.getId()
                     );
                 } catch (Exception e) {
-                    log.warn("세션 시작 알림 전송 실패 - userId: {}, error: {}",
-                            member.getUserId(), e.getMessage());
-                }
+}
             }
 
-            log.info("세션 시작 알림 전송 완료 - studyId: {}, sessionId: {}, memberCount: {}",
-                    study.getId(), session.getId(), activeMembers.size());
-        } catch (Exception e) {
-            log.error("세션 시작 알림 전송 중 오류 발생 - sessionId: {}, error: {}",
-                    session.getId(), e.getMessage());
-        }
+} catch (Exception e) {
+}
     }
 }
+

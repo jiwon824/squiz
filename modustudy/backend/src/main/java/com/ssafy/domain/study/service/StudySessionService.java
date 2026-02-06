@@ -1,4 +1,4 @@
-package com.ssafy.domain.study.service;
+﻿package com.ssafy.domain.study.service;
 
 import com.ssafy.common.exception.NotFoundException;
 import com.ssafy.common.exception.StudyException;
@@ -65,9 +65,7 @@ public class StudySessionService {
 
         StudySession saved = studySessionRepository.save(session);
         studySessionRepository.flush();
-        log.info("세션 생성 완료 - studyId: {}, sessionNumber: {}", studyId, nextSessionNumber);
-
-        // 날짜 순서에 따라 세션 번호 재정렬
+// 날짜 순서에 따라 세션 번호 재정렬
         reorderSessionsByScheduledAt(studyId);
 
         // 재정렬 후 최신 세션 정보 조회
@@ -120,9 +118,7 @@ public class StudySessionService {
         // 일괄 저장
         List<StudySession> savedSessions = studySessionRepository.saveAll(sessions);
         studySessionRepository.flush();
-        log.info("세션 일괄 생성 완료 - studyId: {}, count: {}", studyId, savedSessions.size());
-
-        // 날짜 순서에 따라 세션 번호 재정렬
+// 날짜 순서에 따라 세션 번호 재정렬
         reorderSessionsByScheduledAt(studyId);
 
         // 재정렬 후 최신 세션 목록 조회
@@ -231,9 +227,7 @@ public class StudySessionService {
                 request.getIsOnline()
         );
 
-        log.info("세션 수정 완료 - sessionId: {}", sessionId);
-
-        // 날짜가 변경된 경우 세션 번호 재정렬
+// 날짜가 변경된 경우 세션 번호 재정렬
         if (scheduledAtChanged) {
             studySessionRepository.flush();
             reorderSessionsByScheduledAt(studyId);
@@ -271,9 +265,7 @@ public class StudySessionService {
 
         studySessionRepository.delete(session);
         studySessionRepository.flush();
-        log.info("세션 삭제 완료 - sessionId: {}", sessionId);
-
-        // 삭제 후 남은 세션 번호 재정렬
+// 삭제 후 남은 세션 번호 재정렬
         reorderSessionsByScheduledAt(studyId);
     }
 
@@ -292,9 +284,7 @@ public class StudySessionService {
 
         // 세션 시작 (Entity 비즈니스 로직)
         session.start();
-        log.info("세션 시작 - sessionId: {}", sessionId);
-
-        // 스터디 멤버들에게 세션 시작 알림 전송
+// 스터디 멤버들에게 세션 시작 알림 전송
         sendSessionStartNotification(study, session);
 
         return StudySessionResponse.from(session);
@@ -315,8 +305,6 @@ public class StudySessionService {
 
         // 세션 완료 (Entity 비즈니스 로직)
         session.complete();
-        log.info("세션 완료 - sessionId: {}", sessionId);
-
         return StudySessionResponse.from(session);
     }
 
@@ -335,8 +323,6 @@ public class StudySessionService {
 
         // 세션 취소 (Entity 비즈니스 로직)
         session.cancel();
-        log.info("세션 취소 - sessionId: {}", sessionId);
-
         return StudySessionResponse.from(session);
     }
 
@@ -409,8 +395,7 @@ public class StudySessionService {
         }
         studySessionRepository.saveAll(sessions);
 
-        log.info("세션 번호 재정렬 완료 - studyId: {}, count: {}", studyId, sessions.size());
-    }
+}
 
     private Study getStudyOrThrow(Long studyId) {
         return studyRepository.findById(studyId)
@@ -472,21 +457,13 @@ public class StudySessionService {
                             "STUDY_SESSION",
                             study.getId()
                     );
-                    log.debug("세션 시작 알림 전송 - userId: {}, sessionId: {}",
-                            member.getUserId(), session.getId());
-                } catch (Exception e) {
+} catch (Exception e) {
                     // 개별 멤버 알림 실패 시 로그만 남기고 계속 진행
-                    log.warn("세션 시작 알림 전송 실패 - userId: {}, error: {}",
-                            member.getUserId(), e.getMessage());
-                }
+}
             }
 
-            log.info("세션 시작 알림 전송 완료 - studyId: {}, sessionId: {}, memberCount: {}",
-                    study.getId(), session.getId(), activeMembers.size());
-        } catch (Exception e) {
-            log.error("세션 시작 알림 전송 중 오류 발생 - sessionId: {}, error: {}",
-                    session.getId(), e.getMessage());
-        }
+} catch (Exception e) {
+}
     }
 
     /**
@@ -513,3 +490,4 @@ public class StudySessionService {
                 .toList();
     }
 }
+

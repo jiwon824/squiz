@@ -1,4 +1,4 @@
-package com.ssafy.domain.recruitment.dto.response;
+﻿package com.ssafy.domain.recruitment.dto.response;
 
 public record RecruitmentResponse() {
 }

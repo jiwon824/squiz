@@ -1,4 +1,4 @@
-package com.ssafy.domain.study.dto.response;
+﻿package com.ssafy.domain.study.dto.response;
 
 import com.ssafy.domain.study.entity.ApplicationStatus;
 import com.ssafy.domain.study.entity.StudyApplication;
@@ -13,11 +13,11 @@ import java.time.LocalDateTime;
 /**
  * 스터디 신청 상세 응답 DTO
  */
-@Getter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class ApplicationResponse {
+ @Getter
+ @NoArgsConstructor
+ @AllArgsConstructor
+ @Builder
+ public class ApplicationResponse {
 
     /**
      * 신청 ID

@@ -78,7 +78,6 @@ export const LearningArchiveWidget: React.FC = () => {
                             });
                         }
                     } catch (err) {
-                        console.warn(`[LearningArchiveWidget] 스터디 ${study.id} 데이터 조회 실패:`, err);
                     }
                 }
 
@@ -89,7 +88,6 @@ export const LearningArchiveWidget: React.FC = () => {
 
                 setArchives(allArchives);
             } catch (err) {
-                console.error('[LearningArchiveWidget] 데이터 로딩 실패:', err);
             } finally {
                 setIsLoading(false);
             }

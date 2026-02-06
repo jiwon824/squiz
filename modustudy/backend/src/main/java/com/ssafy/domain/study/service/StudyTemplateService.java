@@ -1,4 +1,4 @@
-package com.ssafy.domain.study.service;
+﻿package com.ssafy.domain.study.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.domain.study.dto.request.CreateTemplateRequest;
@@ -33,11 +33,11 @@ import java.util.stream.Collectors;
 /**
  * 스터디 템플릿 Service
  */
-@Slf4j
-@Service
-@RequiredArgsConstructor
-@Transactional(readOnly = true)
-public class StudyTemplateService {
+ @Slf4j
+ @Service
+ @RequiredArgsConstructor
+ @Transactional(readOnly = true)
+ public class StudyTemplateService {
 
     private final StudyTemplateRepository studyTemplateRepository;
     private final ProfileRepository profileRepository;
@@ -53,11 +53,8 @@ public class StudyTemplateService {
      */
     @Transactional
     public StudyTemplateResponse createTemplate(CreateTemplateRequest request, Long userId) {
-        log.info("템플릿 생성 시작 - userId: {}, name: {}", userId, request.getName());
-
-        // 이름 중복 체크
+// 이름 중복 체크
         if (studyTemplateRepository.existsByUserIdAndName(userId, request.getName())) {
-            log.warn("템플릿 이름 중복 - userId: {}, name: {}", userId, request.getName());
             throw new IllegalStateException("이미 같은 이름의 템플릿이 존재합니다.");
         }
 
@@ -81,8 +78,6 @@ public class StudyTemplateService {
                 .build();
 
         StudyTemplate saved = studyTemplateRepository.save(template);
-        log.info("템플릿 생성 완료 - templateId: {}", saved.getId());
-
         return StudyTemplateResponse.from(saved);
     }
 
@@ -90,8 +85,6 @@ public class StudyTemplateService {
      * 내 템플릿 목록 조회
      */
     public List<StudyTemplateResponse> getMyTemplates(Long userId) {
-        log.info("내 템플릿 목록 조회 - userId: {}", userId);
-
         List<StudyTemplate> templates = studyTemplateRepository.findByUserId(userId);
 
         // 최신순 정렬 - 새로운 리스트로 변환 후 정렬
@@ -105,8 +98,6 @@ public class StudyTemplateService {
      * 시스템 템플릿 목록 조회
      */
     public List<StudyTemplateResponse> getSystemTemplates(String templateType) {
-        log.info("시스템 템플릿 조회 - templateType: {}", templateType);
-
         List<StudyTemplate> templates;
 
         if (templateType != null && !templateType.isEmpty()) {
@@ -126,21 +117,16 @@ public class StudyTemplateService {
      * 템플릿 상세 조회
      */
     public StudyTemplateResponse getTemplate(Long templateId, Long userId) {
-        log.info("템플릿 상세 조회 - templateId: {}, userId: {}", templateId, userId);
-
         StudyTemplate template = studyTemplateRepository.findById(templateId)
                 .orElseThrow(() -> {
-                    log.error("존재하지 않는 템플릿 - templateId: {}", templateId);
                     return new IllegalArgumentException("존재하지 않는 템플릿입니다.");
                 });
 
         // 시스템 템플릿이거나 본인 템플릿인 경우만 조회 가능
         if (!template.isSystem() && !template.getUserId().equals(userId)) {
-            log.warn("템플릿 조회 권한 없음 - templateId: {}, userId: {}", templateId, userId);
             throw new IllegalStateException("템플릿 조회 권한이 없습니다.");
         }
 
-        log.info("템플릿 조회 완료 - templateId: {}", templateId);
         return StudyTemplateResponse.from(template);
     }
 
@@ -149,19 +135,15 @@ public class StudyTemplateService {
      */
     @Transactional
     public StudyTemplateResponse updateTemplate(Long templateId, UpdateTemplateRequest request, Long userId) {
-        log.info("템플릿 수정 시작 - templateId: {}, userId: {}", templateId, userId);
-
-        // 권한 체크 (본인 템플릿만 수정 가능)
+// 권한 체크 (본인 템플릿만 수정 가능)
         StudyTemplate template = studyTemplateRepository.findByIdAndUserId(templateId, userId)
                 .orElseThrow(() -> {
-                    log.error("템플릿을 찾을 수 없거나 권한 없음 - templateId: {}, userId: {}", templateId, userId);
                     return new IllegalArgumentException("템플릿을 찾을 수 없거나 수정 권한이 없습니다.");
                 });
 
         // 이름 변경 시 중복 체크
         if (request.getName() != null && !request.getName().equals(template.getName())) {
             if (studyTemplateRepository.existsByUserIdAndName(userId, request.getName())) {
-                log.warn("템플릿 이름 중복 - userId: {}, name: {}", userId, request.getName());
                 throw new IllegalStateException("이미 같은 이름의 템플릿이 존재합니다.");
             }
             template.setName(request.getName());
@@ -182,8 +164,6 @@ public class StudyTemplateService {
         if (request.getPenaltyPolicy() != null) template.setPenaltyPolicy(request.getPenaltyPolicy());
 
         StudyTemplate updated = studyTemplateRepository.save(template);
-        log.info("템플릿 수정 완료 - templateId: {}", templateId);
-
         return StudyTemplateResponse.from(updated);
     }
 
@@ -192,27 +172,21 @@ public class StudyTemplateService {
      */
     @Transactional
     public void deleteTemplate(Long templateId, Long userId) {
-        log.info("템플릿 삭제 시작 - templateId: {}, userId: {}", templateId, userId);
-
-        // 권한 체크 (본인 템플릿만 삭제 가능)
+// 권한 체크 (본인 템플릿만 삭제 가능)
         StudyTemplate template = studyTemplateRepository.findByIdAndUserId(templateId, userId)
                 .orElseThrow(() -> {
-                    log.error("템플릿을 찾을 수 없거나 권한 없음 - templateId: {}, userId: {}", templateId, userId);
                     return new IllegalArgumentException("템플릿을 찾을 수 없거나 삭제 권한이 없습니다.");
                 });
 
         studyTemplateRepository.delete(template);
-        log.info("템플릿 삭제 완료 - templateId: {}", templateId);
-    }
+}
 
     /**
      * AI 템플릿 추천
      * AI 서버에 사용자 정보를 전달하고 추천 결과를 반환
      */
     public TemplateRecommendResponse recommendTemplate(TemplateRecommendRequest request, Long userId) {
-        log.info("AI 템플릿 추천 시작 - userId: {}", userId);
-
-        // AI 서버 요청 바디 구성
+// AI 서버 요청 바디 구성
         Map<String, Object> aiRequest = new HashMap<>();
 
         // 사용자 기술 스택 조회
@@ -223,8 +197,7 @@ public class StudyTemplateService {
                 userTech = objectMapper.readValue(profile.getTech(), List.class);
             }
         } catch (Exception e) {
-            log.warn("기술 스택 조회 실패 - userId: {}, error: {}", userId, e.getMessage());
-        }
+}
         aiRequest.put("user_tech", userTech);
 
         // 사용자 가용 스케줄 조회
@@ -289,13 +262,9 @@ public class StudyTemplateService {
                             ? (List<Map<String, Object>>) result.get("curriculum") : null)
                     .build();
 
-            log.info("AI 템플릿 추천 완료 - type: {}, topic: {}",
-                    response.getTemplateType(), response.getTopic());
-
-            return response;
+                    return response;
 
         } catch (Exception e) {
-            log.error("AI 서버 호출 실패 - userId: {}, error: {}", userId, e.getMessage());
             throw new RuntimeException("AI 추천 서비스를 일시적으로 사용할 수 없습니다.", e);
         }
     }
@@ -311,9 +280,7 @@ public class StudyTemplateService {
             Long userId,
             SseEmitter emitter) {
 
-        log.info("스트리밍 템플릿 추천 시작 - userId: {}, topic: {}", userId, topicInput);
-
-        HttpURLConnection connection = null;
+                HttpURLConnection connection = null;
         BufferedReader reader = null;
 
         try {
@@ -331,8 +298,7 @@ public class StudyTemplateService {
                     userTech = objectMapper.readValue(profile.getTech(), List.class);
                 }
             } catch (Exception e) {
-                log.warn("기술 스택 조회 실패 - userId: {}", userId);
-            }
+}
             aiRequest.put("user_tech", userTech);
 
             // 사용자 가용 스케줄 조회
@@ -367,7 +333,6 @@ public class StudyTemplateService {
             // 응답 스트림 읽기
             int responseCode = connection.getResponseCode();
             if (responseCode != 200) {
-                log.error("AI 서버 응답 오류: {}", responseCode);
                 emitter.send(SseEmitter.event()
                         .name("error")
                         .data("{\"error\": \"AI 서버 응답 오류: " + responseCode + "\"}"));
@@ -407,11 +372,8 @@ public class StudyTemplateService {
             }
 
             emitter.complete();
-            log.info("스트리밍 템플릿 추천 완료 - userId: {}", userId);
-
-        } catch (IOException e) {
-            log.error("스트리밍 중 IO 오류 - userId: {}, error: {}", userId, e.getMessage());
-            try {
+} catch (IOException e) {
+    try {
                 emitter.send(SseEmitter.event()
                         .name("error")
                         .data("{\"error\": \"" + e.getMessage() + "\"}"));

@@ -1,4 +1,4 @@
-package com.ssafy.domain.notification.controller;
+﻿package com.ssafy.domain.notification.controller;
 
 import com.ssafy.common.response.ApiResponse;
 import com.ssafy.domain.notification.dto.request.FcmTokenDeleteRequest;
@@ -37,15 +37,9 @@ public class NotificationController {
             @RequestParam(required = false) NotificationType type,
             @PageableDefault(size = 20) Pageable pageable) {
 
-        log.info("API 호출 - 알림 목록 조회: userId={}, type={}, page={}, size={}",
-                userId, type, pageable.getPageNumber(), pageable.getPageSize());
+                NotificationListResponse response = notificationService.getNotifications(userId, type, pageable);
 
-        NotificationListResponse response = notificationService.getNotifications(userId, type, pageable);
-
-        log.info("API 응답 - 알림 목록: userId={}, count={}, unreadCount={}",
-                userId, response.getContent().size(), response.getUnreadCount());
-
-        return ResponseEntity.ok(ApiResponse.success(response));
+                return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     /**
@@ -56,13 +50,9 @@ public class NotificationController {
     public ResponseEntity<ApiResponse<UnreadCountResponse>> getUnreadCount(
             @RequestHeader("User-Id") Long userId) {
 
-        log.info("API 호출 - 읽지 않은 알림 수 조회: userId={}", userId);
+                UnreadCountResponse response = notificationService.getUnreadCount(userId);
 
-        UnreadCountResponse response = notificationService.getUnreadCount(userId);
-
-        log.info("API 응답 - 읽지 않은 알림 수: userId={}, unreadCount={}", userId, response.getUnreadCount());
-
-        return ResponseEntity.ok(ApiResponse.success(response));
+                return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     /**
@@ -74,13 +64,9 @@ public class NotificationController {
             @RequestHeader("User-Id") Long userId,
             @PathVariable Long notificationId) {
 
-        log.info("API 호출 - 알림 읽음 처리: userId={}, notificationId={}", userId, notificationId);
+                notificationService.markAsRead(userId, notificationId);
 
-        notificationService.markAsRead(userId, notificationId);
-
-        log.info("API 응답 - 알림 읽음 처리 완료: notificationId={}", notificationId);
-
-        return ResponseEntity.ok(ApiResponse.success("알림을 읽음 처리했습니다."));
+                return ResponseEntity.ok(ApiResponse.success("알림을 읽음 처리했습니다."));
     }
 
     /**
@@ -91,13 +77,9 @@ public class NotificationController {
     public ResponseEntity<ApiResponse<ReadAllResponse>> markAllAsRead(
             @RequestHeader("User-Id") Long userId) {
 
-        log.info("API 호출 - 전체 읽음 처리: userId={}", userId);
+                ReadAllResponse response = notificationService.markAllAsRead(userId);
 
-        ReadAllResponse response = notificationService.markAllAsRead(userId);
-
-        log.info("API 응답 - 전체 읽음 처리 완료: userId={}, readCount={}", userId, response.getReadCount());
-
-        return ResponseEntity.ok(ApiResponse.success(response));
+                return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     /**
@@ -108,14 +90,9 @@ public class NotificationController {
     public ResponseEntity<ApiResponse<NotificationSettingListResponse>> getSettings(
             @RequestHeader("User-Id") Long userId) {
 
-        log.info("API 호출 - 알림 설정 조회: userId={}", userId);
+                NotificationSettingListResponse response = notificationSettingService.getSettings(userId);
 
-        NotificationSettingListResponse response = notificationSettingService.getSettings(userId);
-
-        log.info("API 응답 - 알림 설정 조회 완료: userId={}, settingCount={}",
-                userId, response.getSettings().size());
-
-        return ResponseEntity.ok(ApiResponse.success(response));
+                return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     /**
@@ -127,13 +104,9 @@ public class NotificationController {
             @RequestHeader("User-Id") Long userId,
             @Valid @RequestBody NotificationSettingUpdateRequest request) {
 
-        log.info("API 호출 - 알림 설정 수정: userId={}", userId);
+                notificationSettingService.updateSettings(userId, request);
 
-        notificationSettingService.updateSettings(userId, request);
-
-        log.info("API 응답 - 알림 설정 수정 완료: userId={}", userId);
-
-        return ResponseEntity.ok(ApiResponse.success("알림 설정이 저장되었습니다."));
+                return ResponseEntity.ok(ApiResponse.success("알림 설정이 저장되었습니다."));
     }
 
     /**
@@ -145,13 +118,9 @@ public class NotificationController {
             @RequestHeader("User-Id") Long userId,
             @Valid @RequestBody FcmTokenRequest request) {
 
-        log.info("API 호출 - FCM 토큰 등록: userId={}, deviceType={}", userId, request.getDeviceType());
+                fcmTokenService.registerToken(userId, request);
 
-        fcmTokenService.registerToken(userId, request);
-
-        log.info("API 응답 - FCM 토큰 등록 완료: userId={}", userId);
-
-        return ResponseEntity.ok(ApiResponse.success("FCM 토큰이 등록되었습니다."));
+                return ResponseEntity.ok(ApiResponse.success("FCM 토큰이 등록되었습니다."));
     }
 
     /**
@@ -163,12 +132,8 @@ public class NotificationController {
             @RequestHeader("User-Id") Long userId,
             @Valid @RequestBody FcmTokenDeleteRequest request) {
 
-        log.info("API 호출 - FCM 토큰 삭제: userId={}", userId);
+                fcmTokenService.deleteToken(userId, request);
 
-        fcmTokenService.deleteToken(userId, request);
-
-        log.info("API 응답 - FCM 토큰 삭제 완료: userId={}", userId);
-
-        return ResponseEntity.ok(ApiResponse.success("FCM 토큰이 삭제되었습니다."));
+                return ResponseEntity.ok(ApiResponse.success("FCM 토큰이 삭제되었습니다."));
     }
 }

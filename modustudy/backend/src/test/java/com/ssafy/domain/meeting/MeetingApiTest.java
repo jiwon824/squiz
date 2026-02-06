@@ -1,4 +1,4 @@
-package com.ssafy.domain.meeting;
+﻿package com.ssafy.domain.meeting;
 
 import com.ssafy.common.auth.SsafyUserDetails;
 import com.ssafy.config.SfuProperties;

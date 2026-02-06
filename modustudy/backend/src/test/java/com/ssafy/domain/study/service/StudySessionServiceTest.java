@@ -1,4 +1,4 @@
-package com.ssafy.domain.study.service;
+﻿package com.ssafy.domain.study.service;
 
 import com.ssafy.common.exception.NotFoundException;
 import com.ssafy.common.exception.StudyException;
@@ -31,9 +31,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 /**
  * StudySessionService 통합 테스트
  */
-@SpringBootTest
-@Transactional
-class StudySessionServiceTest {
+ @SpringBootTest
+ @Transactional
+ class StudySessionServiceTest {
 
     @Autowired
     private StudySessionService studySessionService;

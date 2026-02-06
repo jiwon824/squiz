@@ -1,4 +1,4 @@
-package com.ssafy.domain.news.dto.response;
+﻿package com.ssafy.domain.news.dto.response;
 
 import com.ssafy.domain.news.entity.ItNews;
 import lombok.Builder;

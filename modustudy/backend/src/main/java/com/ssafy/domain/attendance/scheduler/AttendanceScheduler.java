@@ -1,4 +1,4 @@
-package com.ssafy.domain.attendance.scheduler;
+﻿package com.ssafy.domain.attendance.scheduler;
 
 import com.ssafy.domain.attendance.service.AttendanceService;
 import com.ssafy.domain.study.entity.StudySession;
@@ -33,8 +33,7 @@ public class AttendanceScheduler {
             try {
                 attendanceService.initializeAttendanceRows(session);
             } catch (Exception ex) {
-                log.warn("출석 초기화 실패 - sessionId={}, error={}", session.getId(), ex.getMessage());
-            }
+}
         }
     }
 
@@ -54,9 +53,9 @@ public class AttendanceScheduler {
                 try {
                     attendanceService.finalizeAttendanceForSession(session);
                 } catch (Exception ex) {
-                    log.warn("출석 마감 실패 - sessionId={}, error={}", session.getId(), ex.getMessage());
-                }
+}
             }
         }
     }
 }
+

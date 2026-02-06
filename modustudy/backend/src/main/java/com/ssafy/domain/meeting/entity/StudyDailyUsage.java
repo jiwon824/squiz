@@ -1,4 +1,4 @@
-package com.ssafy.domain.meeting.entity;
+﻿package com.ssafy.domain.meeting.entity;
 
 import com.ssafy.domain.study.entity.Study;
 import jakarta.persistence.*;
@@ -14,15 +14,15 @@ import java.time.LocalDateTime;
  * - 온라인 미팅: 3시간(10800초) 한도
  * - 오프라인 STT: 2시간(7200초) 한도
  */
-@Entity
-@Table(name = "study_daily_usage",
+ @Entity
+ @Table(name = "study_daily_usage",
         uniqueConstraints = @UniqueConstraint(columnNames = {"study_id", "usage_date"}))
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class StudyDailyUsage {
+        @Getter
+        @Setter
+        @NoArgsConstructor
+        @AllArgsConstructor
+        @Builder
+        public class StudyDailyUsage {
 
     /** 온라인 미팅 일일 한도 (3시간 = 10800초) */
     public static final int ONLINE_MEETING_DAILY_LIMIT_SECONDS = 10800;

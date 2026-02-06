@@ -1,4 +1,4 @@
-package com.ssafy.domain.gamification.repository;
+﻿package com.ssafy.domain.gamification.repository;
 
 import com.ssafy.domain.gamification.entity.Badge;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -11,7 +11,7 @@ import java.util.Optional;
  * 호출자: {@link com.ssafy.domain.quiz.service.QuizCourseService}
  *
  */
-public interface BadgeRepository extends JpaRepository<Badge, Long> {
+ public interface BadgeRepository extends JpaRepository<Badge, Long> {
     /**
      * 배지 코드를 기준으로 배지 목록을 조회한다.
      *

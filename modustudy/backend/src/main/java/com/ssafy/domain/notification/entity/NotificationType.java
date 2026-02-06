@@ -1,4 +1,4 @@
-package com.ssafy.domain.notification.entity;
+﻿package com.ssafy.domain.notification.entity;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

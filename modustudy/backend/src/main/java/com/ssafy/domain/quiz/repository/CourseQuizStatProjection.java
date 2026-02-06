@@ -1,4 +1,4 @@
-package com.ssafy.domain.quiz.repository;
+﻿package com.ssafy.domain.quiz.repository;
 
 public interface CourseQuizStatProjection {
     String getCourseName();

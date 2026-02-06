@@ -1,4 +1,4 @@
-package com.ssafy.domain.material.controller;
+﻿package com.ssafy.domain.material.controller;
 
 import com.ssafy.domain.material.dto.request.MaterialCreateRequest;
 import com.ssafy.domain.material.dto.request.MaterialSearchCondition;
@@ -27,11 +27,11 @@ import org.springframework.web.multipart.MultipartFile;
  * 자료 컨트롤러
  * Base URL: /api/v1/studies/{studyId}/materials
  */
-@Slf4j
-@RestController
-@RequestMapping("/api/v1/studies/{studyId}/materials")
-@RequiredArgsConstructor
-public class MaterialController {
+ @Slf4j
+ @RestController
+ @RequestMapping("/api/v1/studies/{studyId}/materials")
+ @RequiredArgsConstructor
+ public class MaterialController {
 
     private final MaterialService materialService;
     private final FileStorageService fileStorageService;
@@ -48,10 +48,7 @@ public class MaterialController {
             @RequestParam(required = false) String keyword,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
 
-        log.info("자료 목록 조회 요청 - studyId: {}, weekNumber: {}, type: {}, keyword: {}",
-                studyId, weekNumber, type, keyword);
-
-        MaterialSearchCondition condition = MaterialSearchCondition.builder()
+                MaterialSearchCondition condition = MaterialSearchCondition.builder()
                 .weekNumber(weekNumber)
                 .type(type)
                 .keyword(keyword)
@@ -71,9 +68,7 @@ public class MaterialController {
             @PathVariable Long studyId,
             @PathVariable Long materialId) {
 
-        log.info("자료 상세 조회 요청 - studyId: {}, materialId: {}", studyId, materialId);
-
-        MaterialDetailResponse result = materialService.getMaterialDetail(studyId, materialId);
+                MaterialDetailResponse result = materialService.getMaterialDetail(studyId, materialId);
 
         return ResponseEntity.ok(result);
     }
@@ -89,9 +84,7 @@ public class MaterialController {
             @RequestHeader("User-Id") Long userId,
             @Valid @RequestBody MaterialCreateRequest request) {
 
-        log.info("링크 자료 생성 요청 - studyId: {}, userId: {}, title: {}", studyId, userId, request.getTitle());
-
-        MaterialCreateResponse result = materialService.createLinkMaterial(studyId, userId, request);
+                MaterialCreateResponse result = materialService.createLinkMaterial(studyId, userId, request);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(result);
     }
@@ -110,10 +103,7 @@ public class MaterialController {
             @RequestParam(value = "description", required = false) String description,
             @RequestParam(value = "weekNumber", required = false) Integer weekNumber) {
 
-        log.info("파일 자료 업로드 요청 - studyId: {}, userId: {}, fileName: {}, title: {}",
-                studyId, userId, file.getOriginalFilename(), title);
-
-        // 1. 파일 저장
+// 1. 파일 저장
         String directory = "materials/study_" + studyId;
         FileStorageService.FileUploadResult uploadResult = fileStorageService.upload(file, directory);
 
@@ -134,8 +124,6 @@ public class MaterialController {
                 weekNumber
         );
 
-        log.info("파일 자료 업로드 완료 - materialId: {}", result.getId());
-
         return ResponseEntity.status(HttpStatus.CREATED).body(result);
     }
 
@@ -150,9 +138,7 @@ public class MaterialController {
             @RequestHeader("User-Id") Long userId,
             @Valid @RequestBody MaterialUpdateRequest request) {
 
-        log.info("자료 수정 요청 - studyId: {}, materialId: {}, userId: {}", studyId, materialId, userId);
-
-        materialService.updateMaterial(studyId, materialId, userId, request);
+                materialService.updateMaterial(studyId, materialId, userId, request);
 
         return ResponseEntity.ok().build();
     }
@@ -168,10 +154,7 @@ public class MaterialController {
             @RequestHeader("User-Id") Long userId,
             @RequestHeader(value = "Is-Leader", defaultValue = "false") Boolean isLeader) {
 
-        log.info("자료 삭제 요청 - studyId: {}, materialId: {}, userId: {}, isLeader: {}",
-                studyId, materialId, userId, isLeader);
-
-        materialService.deleteMaterial(studyId, materialId, userId, isLeader);
+                materialService.deleteMaterial(studyId, materialId, userId, isLeader);
 
         return ResponseEntity.noContent().build();
     }

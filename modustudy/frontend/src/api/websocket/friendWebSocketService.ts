@@ -77,7 +77,6 @@ class FriendWebSocketService {
         this.handlers.onPresence?.(event);
       }
     } catch (e) {
-      console.error('[Friend WS] event parse failed:', e);
     }
   }
 

@@ -1,4 +1,4 @@
-package com.ssafy.domain.meeting.dto.response;
+﻿package com.ssafy.domain.meeting.dto.response;
 
 import java.time.LocalDateTime;
 
@@ -12,5 +12,5 @@ public record MeetingRecordingResponse(
         Long fileSize,
         String status,
         LocalDateTime createdAt
-) {
+        ) {
 }

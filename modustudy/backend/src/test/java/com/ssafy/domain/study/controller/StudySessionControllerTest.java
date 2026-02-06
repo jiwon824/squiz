@@ -1,4 +1,4 @@
-package com.ssafy.domain.study.controller;
+﻿package com.ssafy.domain.study.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.domain.study.dto.request.StudySessionCreateRequest;
@@ -39,11 +39,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * - 목록 조회: List 반환 (Page가 아님)
  * - 통계: /statistics (stats가 아님)
  */
-@SpringBootTest
-@AutoConfigureMockMvc
-@Transactional
-@WithMockUser(username = "testuser", roles = {"USER"})
-class StudySessionControllerTest {
+ @SpringBootTest
+ @AutoConfigureMockMvc
+ @Transactional
+ @WithMockUser(username = "testuser", roles = {"USER"})
+ class StudySessionControllerTest {
 
     @Autowired
     private MockMvc mockMvc;

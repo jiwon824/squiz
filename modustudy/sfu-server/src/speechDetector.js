@@ -155,12 +155,6 @@ class SpeechDetector {
     });
 
     this.setupEventHandlers();
-    // eslint-disable-next-line no-console
-    console.log('[speech] AudioLevelObserver initialized', {
-      meetingId: this.meetingId,
-      threshold: SPEECH_THRESHOLD,
-      interval: SPEECH_INTERVAL
-    });
   }
 
   setupEventHandlers() {
@@ -237,11 +231,7 @@ class SpeechDetector {
         segment: null,
         endTimer: null
       });
-      // eslint-disable-next-line no-console
-      console.log('[speech] Producer added', { producerId: producer.id, userId, meetingId: this.meetingId });
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('[speech] Failed to add producer', { producerId: producer.id, error: err.message });
     }
   }
 
@@ -262,13 +252,10 @@ class SpeechDetector {
     try {
       await this.audioLevelObserver.removeProducer({ producerId });
     } catch (err) {
-      // 이미 제거되었거나 존재하지 않는 경우 무시
     }
 
     this.speakingState.delete(producerId);
     this.producerUserMap.delete(producerId);
-    // eslint-disable-next-line no-console
-    console.log('[speech] Producer removed', { producerId, meetingId: this.meetingId });
   }
 
   /**
@@ -282,29 +269,16 @@ class SpeechDetector {
     state.speaking = true;
     state.startTime = Date.now();
 
-    // eslint-disable-next-line no-console
-    console.log('[speech] Speech started', {
-      producerId,
-      userId,
-      volume,
-      meetingId: this.meetingId
-    });
 
-    // 발화 세그먼트 녹음 시작
     try {
       const segment = await this.startSegmentRecording(producerId, userId);
       state.segment = segment;
 
-      // 최대 발화 시간 초과 시 강제 종료
       state.maxDurationTimer = setTimeout(() => {
-        // eslint-disable-next-line no-console
-        console.log('[speech] Max duration reached, forcing end', { producerId, userId });
         this.onSpeechEnd(producerId);
       }, MAX_SPEECH_DURATION);
 
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('[speech] Failed to start segment recording', { producerId, error: err.message });
     }
   }
 
@@ -324,18 +298,7 @@ class SpeechDetector {
       state.maxDurationTimer = null;
     }
 
-    // eslint-disable-next-line no-console
-    console.log('[speech] Speech ended', {
-      producerId,
-      userId,
-      durationMs: duration,
-      meetingId: this.meetingId
-    });
-
-    // 최소 발화 길이 체크 (노이즈 필터링)
     if (duration < MIN_SPEECH_DURATION) {
-      // eslint-disable-next-line no-console
-      console.log('[speech] Segment too short, discarding', { producerId, durationMs: duration });
       if (state.segment) {
         await this.abortSegmentRecording(state.segment);
         state.segment = null;
@@ -343,16 +306,12 @@ class SpeechDetector {
       return;
     }
 
-    // 녹음 종료 및 AI 서버로 전송
     if (state.segment) {
       await this.finishAndUploadSegment(state.segment, userId, state.startTime, duration);
       state.segment = null;
     }
   }
 
-  /**
-   * 세그먼트 녹음 시작
-   */
   async startSegmentRecording(producerId, userId) {
     const producer = this.findProducer(producerId);
     if (!producer) {
@@ -420,20 +379,6 @@ class SpeechDetector {
     });
 
     ffmpeg.stderr.on('data', (data) => {
-      // 에러 로깅 (디버깅용)
-      const text = data.toString().trim();
-      if (text && !text.includes('Last message repeated')) {
-        // eslint-disable-next-line no-console
-        console.error('[speech] ffmpeg stderr', { segmentPath, text });
-      }
-    });
-
-    // eslint-disable-next-line no-console
-    console.log('[speech] Segment recording started', {
-      producerId,
-      userId,
-      segmentPath,
-      port
     });
 
     return {
@@ -477,14 +422,9 @@ class SpeechDetector {
         fs.unlinkSync(segment.sdpPath);
       }
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('[speech] Error aborting segment', { error: err.message });
     }
   }
 
-  /**
-   * 세그먼트 완료 및 AI 서버 업로드
-   */
   async finishAndUploadSegment(segment, userId, startTime, durationMs) {
     try {
       // FFmpeg 정상 종료
@@ -529,31 +469,16 @@ class SpeechDetector {
         fs.unlinkSync(segment.sdpPath);
       }
 
-      // 파일 존재 및 크기 확인
       if (!fs.existsSync(segment.segmentPath)) {
-        // eslint-disable-next-line no-console
-        console.warn('[speech] Segment file not found', { segmentPath: segment.segmentPath });
         return;
       }
 
       const fileSize = fs.statSync(segment.segmentPath).size;
       if (fileSize < 100) {
-        // eslint-disable-next-line no-console
-        console.warn('[speech] Segment file too small', { segmentPath: segment.segmentPath, fileSize });
         fs.unlinkSync(segment.segmentPath);
         return;
       }
 
-      // eslint-disable-next-line no-console
-      console.log('[speech] Segment ready for upload', {
-        meetingId: this.meetingId,
-        userId,
-        segmentPath: segment.segmentPath,
-        fileSize,
-        durationMs
-      });
-
-      // AI 서버로 비동기 업로드
       this.uploadToAiServer({
         meetingId: this.meetingId,
         userId,
@@ -562,7 +487,6 @@ class SpeechDetector {
         filePath: segment.segmentPath
       });
 
-      // 콜백 호출 (옵션)
       if (this.onSegmentReady) {
         this.onSegmentReady({
           meetingId: this.meetingId,
@@ -574,14 +498,9 @@ class SpeechDetector {
       }
 
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('[speech] Error finishing segment', { error: err.message });
     }
   }
 
-  /**
-   * AI 서버로 세그먼트 업로드
-   */
   async uploadToAiServer({ meetingId, userId, timestamp, durationMs, filePath }) {
     try {
       const response = await fetch(`${AI_SERVER_URL}/api/process-speech-segment`, {
@@ -597,27 +516,11 @@ class SpeechDetector {
       });
 
       const result = await response.json();
-      // eslint-disable-next-line no-console
-      console.log('[speech] AI server upload result', {
-        meetingId,
-        userId,
-        status: response.status,
-        result
-      });
 
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('[speech] AI server upload failed', {
-        meetingId,
-        userId,
-        error: err.message
-      });
     }
   }
 
-  /**
-   * Producer 찾기 헬퍼
-   */
   findProducer(producerId) {
     for (const peer of this.room.peers.values()) {
       for (const entry of peer.producers.values()) {
@@ -629,13 +532,9 @@ class SpeechDetector {
     return null;
   }
 
-  /**
-   * 모든 리소스 정리 및 종료
-   */
   async stop() {
     this.stopped = true;
 
-    // 모든 활성 발화 종료
     for (const [producerId, state] of this.speakingState) {
       if (state.endTimer) {
         clearTimeout(state.endTimer);
@@ -653,22 +552,15 @@ class SpeechDetector {
       }
     }
 
-    // AudioLevelObserver 종료
     if (this.audioLevelObserver) {
       this.audioLevelObserver.close();
     }
 
     this.speakingState.clear();
     this.producerUserMap.clear();
-
-    // eslint-disable-next-line no-console
-    console.log('[speech] SpeechDetector stopped', { meetingId: this.meetingId });
   }
 }
 
-/**
- * SpeechDetector 팩토리 함수
- */
 const createSpeechDetector = ({ router, room, meetingId, config, onSegmentReady }) => {
   return new SpeechDetector({ router, room, meetingId, config, onSegmentReady });
 };

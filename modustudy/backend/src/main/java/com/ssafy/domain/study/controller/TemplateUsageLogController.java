@@ -1,4 +1,4 @@
-package com.ssafy.domain.study.controller;
+﻿package com.ssafy.domain.study.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.domain.study.dto.request.TemplateUsageLogRequest;
@@ -21,11 +21,11 @@ import java.util.*;
  * 템플릿 사용 로그 Controller
  * 사용자의 템플릿 사용 패턴 수집 (AI 파인튜닝용)
  */
-@RestController
-@RequestMapping("/api/v1/template-usage")
-@RequiredArgsConstructor
-@Slf4j
-public class TemplateUsageLogController {
+ @RestController
+ @RequestMapping("/api/v1/template-usage")
+ @RequiredArgsConstructor
+ @Slf4j
+ public class TemplateUsageLogController {
 
     private final TemplateUsageLogService templateUsageLogService;
     private final ProfileRepository profileRepository;
@@ -41,9 +41,7 @@ public class TemplateUsageLogController {
             @Valid @RequestBody TemplateUsageLogRequest request,
             @RequestHeader("user-id") Long userId) {
 
-        log.info("API 호출 - 템플릿 사용 로그: userId={}, templateId={}", userId, request.getTemplateId());
-
-        // 사용자 기술 스택 스냅샷
+// 사용자 기술 스택 스냅샷
         Map<String, Object> userTechStack = null;
         try {
             Profile profile = profileRepository.findByUserId(userId).orElse(null);
@@ -52,8 +50,7 @@ public class TemplateUsageLogController {
                 userTechStack = Map.of("tech", techList);
             }
         } catch (Exception e) {
-            log.warn("기술 스택 조회 실패 - userId: {}, error: {}", userId, e.getMessage());
-        }
+}
 
         // 사용자 가용 스케줄 스냅샷
         Map<String, Object> userSchedule = null;
@@ -68,8 +65,7 @@ public class TemplateUsageLogController {
                 userSchedule = scheduleMap;
             }
         } catch (Exception e) {
-            log.warn("스케줄 조회 실패 - userId: {}, error: {}", userId, e.getMessage());
-        }
+}
 
         TemplateUsageLogResponse response = templateUsageLogService.logUsage(
                 request, userId, userTechStack, userSchedule);
@@ -85,9 +81,7 @@ public class TemplateUsageLogController {
     public ResponseEntity<Map<String, Object>> getTemplateStats(
             @PathVariable Long templateId) {
 
-        log.info("API 호출 - 템플릿 사용 통계: templateId={}", templateId);
-
-        Map<String, Object> stats = templateUsageLogService.getTemplateStats(templateId);
+                Map<String, Object> stats = templateUsageLogService.getTemplateStats(templateId);
 
         return ResponseEntity.ok(stats);
     }
@@ -100,10 +94,9 @@ public class TemplateUsageLogController {
     public ResponseEntity<List<TemplateUsageLogResponse>> getMyLogs(
             @RequestHeader("user-id") Long userId) {
 
-        log.info("API 호출 - 내 사용 로그: userId={}", userId);
-
-        List<TemplateUsageLogResponse> response = templateUsageLogService.getUserLogs(userId);
+                List<TemplateUsageLogResponse> response = templateUsageLogService.getUserLogs(userId);
 
         return ResponseEntity.ok(response);
     }
 }
+

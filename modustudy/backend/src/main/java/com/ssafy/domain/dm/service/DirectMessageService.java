@@ -1,4 +1,4 @@
-package com.ssafy.domain.dm.service;
+﻿package com.ssafy.domain.dm.service;
 
 import com.ssafy.common.exception.BusinessException;
 import com.ssafy.domain.dm.dto.request.DirectMessageRequest;
@@ -81,7 +81,6 @@ public class DirectMessageService {
 
         // 첫 친구 채팅이면 게이미피케이션 이벤트 발행
         if (isFirstChat) {
-            log.info("친구와 첫 채팅 이벤트 발행 - senderId: {}, receiverId: {}", senderId, receiverId);
             eventPublisher.publishEvent(new FirstFriendChatEvent(
                     senderId,
                     receiverId,
@@ -109,10 +108,8 @@ public class DirectMessageService {
             );
             DmWebSocketEvent receiverEvent = DmWebSocketEvent.newMessage(receiverResponse);
             dmRedisPublisher.publishToUser(receiverId, "/queue/dm", receiverEvent);
-            log.debug("REST API DM 전송 - WebSocket 알림: senderId={}, receiverId={}", senderId, receiverId);
-        } catch (Exception e) {
-            log.warn("WebSocket 알림 전송 실패 (메시지는 저장됨): {}", e.getMessage());
-        }
+} catch (Exception e) {
+}
 
         return senderResponse;
     }
@@ -270,3 +267,4 @@ public class DirectMessageService {
         }
     }
 }
+

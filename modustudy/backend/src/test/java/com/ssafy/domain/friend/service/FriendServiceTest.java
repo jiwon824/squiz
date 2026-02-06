@@ -1,4 +1,4 @@
-package com.ssafy.domain.friend.service;
+﻿package com.ssafy.domain.friend.service;
 
 import com.ssafy.common.exception.BusinessException;
 import com.ssafy.domain.friend.dto.response.*;

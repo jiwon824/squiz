@@ -47,7 +47,6 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ studyId, maxMembers
 
             setMembers(mappedMembers);
         } catch (error) {
-            console.error('멤버 목록 조회 실패:', error);
             showToast('멤버 목록을 불러오는데 실패했습니다.', 'error');
         } finally {
             setLoading(false);

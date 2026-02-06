@@ -1,4 +1,4 @@
-package com.ssafy.domain.ai.service;
+﻿package com.ssafy.domain.ai.service;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -24,8 +24,8 @@ import static org.mockito.Mockito.when;
 /**
  * AiService 미팅 처리 기능 테스트
  */
-@ExtendWith(MockitoExtension.class)
-class AiServiceMeetingTest {
+ @ExtendWith(MockitoExtension.class)
+ class AiServiceMeetingTest {
 
     @Mock
     private RestTemplate restTemplate;

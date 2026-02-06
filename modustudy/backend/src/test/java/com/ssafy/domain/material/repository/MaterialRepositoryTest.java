@@ -1,4 +1,4 @@
-package com.ssafy.domain.material.repository;
+﻿package com.ssafy.domain.material.repository;
 
 import com.ssafy.domain.material.entity.Material;
 import com.ssafy.domain.material.entity.MaterialType;
@@ -40,9 +40,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  * - 부모 엔티티 저장 후 flush() 호출
  * - 벌크 삭제 후 entityManager.flush() + clear() 호출
  */
-@SpringBootTest
-@Transactional
-class MaterialRepositoryTest {
+ @SpringBootTest
+ @Transactional
+ class MaterialRepositoryTest {
 
     @Autowired
     private MaterialRepository materialRepository;

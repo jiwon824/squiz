@@ -1,4 +1,4 @@
-package com.ssafy.infra.storage.dto;
+﻿package com.ssafy.infra.storage.dto;
 
 public record StorageRequest() {
 }

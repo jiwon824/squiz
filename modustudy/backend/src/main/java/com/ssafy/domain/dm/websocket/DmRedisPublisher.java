@@ -1,4 +1,4 @@
-package com.ssafy.domain.dm.websocket;
+﻿package com.ssafy.domain.dm.websocket;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -10,8 +10,8 @@ import org.springframework.stereotype.Service;
  * Redis Pub/Sub를 통한 DM 메시지 발행
  * Blue/Green 배포 시 서버 간 메시지 전달
  */
-@Service
-public class DmRedisPublisher {
+ @Service
+ public class DmRedisPublisher {
 
     private static final Logger log = LoggerFactory.getLogger(DmRedisPublisher.class);
     private static final String DM_CHANNEL_PREFIX = "dm:user:";
@@ -32,8 +32,7 @@ public class DmRedisPublisher {
         DmRedisMessage message = new DmRedisMessage(userId, destination, payload);
         String channel = DM_CHANNEL_PREFIX + userId;
         redisTemplate.convertAndSend(channel, message);
-        log.debug("Published DM to Redis: channel={}, destination={}", channel, destination);
-    }
+}
 
     /**
      * Redis 메시지 래퍼
@@ -59,3 +58,4 @@ public class DmRedisPublisher {
         public void setPayload(Object payload) { this.payload = payload; }
     }
 }
+

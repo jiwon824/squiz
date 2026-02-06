@@ -1,4 +1,4 @@
-package com.ssafy.domain.dm.entity;
+﻿package com.ssafy.domain.dm.entity;
 
 import lombok.*;
 
@@ -7,12 +7,12 @@ import java.time.LocalDateTime;
 /**
  * DM 메시지 엔티티
  */
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class DirectMessage {
+ @Getter
+ @Setter
+ @NoArgsConstructor
+ @AllArgsConstructor
+ @Builder
+ public class DirectMessage {
 
     private Long id;
 

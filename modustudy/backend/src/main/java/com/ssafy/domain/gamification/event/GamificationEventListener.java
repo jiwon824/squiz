@@ -1,4 +1,4 @@
-package com.ssafy.domain.gamification.event;
+﻿package com.ssafy.domain.gamification.event;
 
 import com.ssafy.domain.gamification.config.ExperienceConfig;
 import com.ssafy.domain.gamification.entity.*;
@@ -35,8 +35,6 @@ public class GamificationEventListener {
     @EventListener
     @Transactional
     public void handleStudyAttendance(StudyAttendanceEvent event) {
-        log.info("[Gamification] 스터디 출석: userId={}, studyId={}", event.getUserId(), event.getStudyId());
-
         User user = findUser(event.getUserId());
         UserStats stats = getOrCreateUserStats(user);
 
@@ -60,9 +58,7 @@ public class GamificationEventListener {
 
         userStatsRepository.save(stats);
 
-        log.info("[Gamification] 스터디 출석 완료: +{}XP (기본 {}XP + 연속보너스 {}XP), 레벨업={}",
-                totalExp, ExperienceConfig.STUDY_ATTENDANCE, streakBonus, leveledUp);
-    }
+}
 
     /**
      * 퀴즈 풀이 이벤트 처리
@@ -70,9 +66,6 @@ public class GamificationEventListener {
     @EventListener
     @Transactional
     public void handleQuizSolved(QuizSolvedEvent event) {
-        log.info("[Gamification] 퀴즈 풀이: userId={}, quizId={}, correct={}",
-                event.getUserId(), event.getQuizId(), event.isCorrect());
-
         User user = findUser(event.getUserId());
         UserStats stats = getOrCreateUserStats(user);
 
@@ -97,8 +90,7 @@ public class GamificationEventListener {
 
         userStatsRepository.save(stats);
 
-        log.info("[Gamification] 퀴즈 풀이 완료: +{}XP, 레벨업={}", totalExp, leveledUp);
-    }
+}
 
     /**
      * 스터디 가입 이벤트 처리 (첫 가입만 경험치 지급)
@@ -106,9 +98,6 @@ public class GamificationEventListener {
     @EventListener
     @Transactional
     public void handleStudyJoin(StudyJoinEvent event) {
-        log.info("[Gamification] 스터디 가입: userId={}, studyId={}, isFirst={}",
-                event.getUserId(), event.getStudyId(), event.isFirstStudy());
-
         User user = findUser(event.getUserId());
         UserStats stats = getOrCreateUserStats(user);
 
@@ -132,11 +121,8 @@ public class GamificationEventListener {
             int totalExp = ExperienceConfig.FIRST_STUDY_JOIN_BONUS + streakBonus;
             boolean leveledUp = stats.addExperience(totalExp);
 
-            log.info("[Gamification] 첫 스터디 가입 완료: +{}XP (첫가입 {}XP + 연속 {}XP), 레벨업={}",
-                    totalExp, ExperienceConfig.FIRST_STUDY_JOIN_BONUS, streakBonus, leveledUp);
-        } else {
-            log.info("[Gamification] 스터디 가입 (경험치 없음 - 첫 가입 아님)");
-        }
+} else {
+}
 
         userStatsRepository.save(stats);
     }
@@ -157,8 +143,6 @@ public class GamificationEventListener {
     @EventListener
     @Transactional
     public void handleMaterialUpload(MaterialUploadEvent event) {
-        log.info("[Gamification] 자료 업로드: userId={}, materialId={}", event.getUserId(), event.getMaterialId());
-
         User user = findUser(event.getUserId());
         UserStats stats = getOrCreateUserStats(user);
 
@@ -182,8 +166,7 @@ public class GamificationEventListener {
 
         userStatsRepository.save(stats);
 
-        log.info("[Gamification] 자료 업로드 완료: +{}XP, 레벨업={}", totalExp, leveledUp);
-    }
+}
 
     /**
      * 회고록 작성 이벤트 처리
@@ -191,8 +174,6 @@ public class GamificationEventListener {
     @EventListener
     @Transactional
     public void handleRetrospectiveWrite(RetrospectiveWriteEvent event) {
-        log.info("[Gamification] 회고록 작성: userId={}, retrospectiveId={}", event.getUserId(), event.getRetrospectiveId());
-
         User user = findUser(event.getUserId());
         UserStats stats = getOrCreateUserStats(user);
 
@@ -216,18 +197,12 @@ public class GamificationEventListener {
 
         userStatsRepository.save(stats);
 
-        log.info("[Gamification] 회고록 작성 완료: +{}XP, 레벨업={}", totalExp, leveledUp);
-    }
+}
 
     // 스터디 채팅 경험치 비활성화 - 친구 DM 첫 채팅만 경험치 지급
     // /**
     //  * 채팅 메시지 이벤트 처리 (일일 제한 적용)
     //  */
-    // @EventListener
-    // @Transactional
-    // public void handleChatMessage(ChatMessageEvent event) {
-    //     ...
-    // }
 
     /**
      * 친구와 첫 채팅 이벤트 처리
@@ -235,9 +210,6 @@ public class GamificationEventListener {
     @EventListener
     @Transactional
     public void handleFirstFriendChat(FirstFriendChatEvent event) {
-        log.info("[Gamification] 친구와 첫 채팅: userId={}, friendId={}",
-                event.getUserId(), event.getFriendId());
-
         User user = findUser(event.getUserId());
         UserStats stats = getOrCreateUserStats(user);
 
@@ -263,9 +235,7 @@ public class GamificationEventListener {
 
         userStatsRepository.save(stats);
 
-        log.info("[Gamification] 친구와 첫 채팅 완료: +{}XP (첫채팅 {}XP + 연속 {}XP), 레벨업={}",
-                totalExp, ExperienceConfig.FIRST_FRIEND_CHAT_BONUS, streakBonus, leveledUp);
-    }
+}
 
     /**
      * 첫 스터디장 리뷰 작성 이벤트 처리
@@ -273,9 +243,6 @@ public class GamificationEventListener {
     @EventListener
     @Transactional
     public void handleFirstLeaderReview(FirstLeaderReviewEvent event) {
-        log.info("[Gamification] 첫 스터디장 리뷰 작성: userId={}, studyId={}, leaderId={}",
-                event.getUserId(), event.getStudyId(), event.getLeaderId());
-
         User user = findUser(event.getUserId());
         UserStats stats = getOrCreateUserStats(user);
 
@@ -296,9 +263,7 @@ public class GamificationEventListener {
 
         userStatsRepository.save(stats);
 
-        log.info("[Gamification] 첫 스터디장 리뷰 작성 완료: +{}XP (첫리뷰 {}XP + 연속 {}XP), 레벨업={}",
-                totalExp, ExperienceConfig.FIRST_LEADER_REVIEW_BONUS, streakBonus, leveledUp);
-    }
+}
 
     // ========== Helper Methods ==========
 
@@ -362,3 +327,4 @@ public class GamificationEventListener {
         return trimmed.substring(0, REFERENCE_NAME_MAX_LENGTH);
     }
 }
+

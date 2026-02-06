@@ -1,4 +1,4 @@
-package com.ssafy.domain.quiz.repository;
+﻿package com.ssafy.domain.quiz.repository;
 
 import com.ssafy.domain.quiz.entity.QuizCourseQuestion;
 import org.springframework.data.domain.Pageable;
@@ -28,7 +28,7 @@ import java.util.Optional;
  * 가중치가 높을수록 선택될 확률이 높지만, 낮은 문제도 선택될 수 있음 (랜덤성 유지)
  * </p>
  */
-public interface ContinuousQuizRepository extends JpaRepository<QuizCourseQuestion, Long> {
+ public interface ContinuousQuizRepository extends JpaRepository<QuizCourseQuestion, Long> {
 
     /**
      * 특정 섹션에서 가중치 기반 랜덤으로 다음 문제를 선택한다.

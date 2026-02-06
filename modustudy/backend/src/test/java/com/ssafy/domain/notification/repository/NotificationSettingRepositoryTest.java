@@ -1,4 +1,4 @@
-package com.ssafy.domain.notification.repository;
+﻿package com.ssafy.domain.notification.repository;
 
 import com.ssafy.domain.notification.entity.NotificationSetting;
 import com.ssafy.domain.user.entity.Role;

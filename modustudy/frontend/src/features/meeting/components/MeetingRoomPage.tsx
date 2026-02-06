@@ -299,7 +299,6 @@ const MeetingRoomPage: React.FC = () => {
                 if (!cancelled) {
                     setLeaderId(null);
                 }
-                console.warn('Failed to fetch study detail for leader check', error);
             }
         })();
         return () => {
@@ -378,11 +377,9 @@ const MeetingRoomPage: React.FC = () => {
 
     const updateOutgoingAudio = useCallback(async (nextTrack: MediaStreamTrack | null) => {
         if (!sfuClientRef.current) {
-            console.warn('[audio] updateOutgoingAudio: no SFU client');
             return;
         }
         if (!nextTrack || nextTrack.readyState !== 'live') {
-            console.warn('[audio] updateOutgoingAudio: track not live', { hasTrack: !!nextTrack, state: nextTrack?.readyState });
             return;
         }
         if (publishedAudioTrackIdRef.current === nextTrack.id) {
@@ -483,7 +480,6 @@ const MeetingRoomPage: React.FC = () => {
 
     const attachMicStreamToMixer = useCallback((stream: MediaStream) => {
         if (!micAudioContextRef.current || !micDestinationRef.current) {
-            console.warn('[mic] attachMicStreamToMixer: missing context or destination!');
             return;
         }
         micAudioContextRef.current.resume().catch(() => {});
@@ -591,7 +587,6 @@ const MeetingRoomPage: React.FC = () => {
             const track = stream.getVideoTracks()?.[0];
             if (track) {
                 const handleEnded = () => {
-                    console.warn('[ai] detection track ended/inactive');
                     if (aiDetectionCleanupRef.current) {
                         aiDetectionCleanupRef.current();
                         aiDetectionCleanupRef.current = null;
@@ -605,7 +600,6 @@ const MeetingRoomPage: React.FC = () => {
             }
             return stream;
         } catch (error) {
-            console.error('Failed to access camera for AI detection', error);
             return null;
         }
     }, []);
@@ -627,7 +621,6 @@ const MeetingRoomPage: React.FC = () => {
         aiVideoRef.current.muted = true;
         aiVideoRef.current.playsInline = true;
         aiVideoRef.current.play().catch((error) => {
-            console.warn('[ai] video play failed', error);
         });
         if (!aiDetectionCleanupRef.current) {
             aiDetectionCleanupRef.current = aiDetection.startDetection(aiVideoRef.current, (isPresent) => {
@@ -725,7 +718,6 @@ const MeetingRoomPage: React.FC = () => {
                 setChatMessages((prev) => prev.filter((message) => message.id !== target.id));
             })
             .catch((error) => {
-                console.error('Failed to delete chat message', error);
                 showToast('채팅 삭제에 실패했습니다.', 'error');
             });
     }, [numericMeetingId, numericStudyId, showToast]);
@@ -814,7 +806,6 @@ const MeetingRoomPage: React.FC = () => {
                     }
                 }
             } catch (error) {
-                console.error('Failed to update composed stream', error);
                 canvasComposer.stopComposing();
                 if (screenTrack && screenTrack.readyState === 'live') {
                     nextStream = screenStream;
@@ -931,7 +922,6 @@ const MeetingRoomPage: React.FC = () => {
                     voiceUploadChainRef.current = voiceUploadChainRef.current
                         .then(() => meetingApi.uploadRecordingAudioSegment(numericStudyId, numericMeetingId, blob))
                         .catch((error) => {
-                            console.error('Failed to upload voice segment', error);
                         });
                 }
                 if (voiceStopResolverRef.current) {
@@ -981,7 +971,6 @@ const MeetingRoomPage: React.FC = () => {
                 try {
                     await axios.post(url, { roomId });
                 } catch (error) {
-                    console.error('Failed to stop SFU recording', error);
                 } finally {
                     sfuRecordingStateRef.current = 'idle';
                     sfuRecordingRoomIdRef.current = null;
@@ -1000,7 +989,6 @@ const MeetingRoomPage: React.FC = () => {
             await voiceUploadChainRef.current;
             await meetingApi.concatRecordingAudio(numericStudyId, numericMeetingId);
         } catch (error) {
-            console.error('Failed to finalize voice recording', error);
         }
     }, [
         canEndMeeting,
@@ -1029,7 +1017,6 @@ const MeetingRoomPage: React.FC = () => {
                 sfuRecordingStateRef.current = 'recording';
                 sfuRecordingRoomIdRef.current = roomId;
             } catch (error) {
-                console.error('Failed to start SFU recording', error);
                 sfuRecordingStateRef.current = 'idle';
             }
         });
@@ -1140,7 +1127,6 @@ const MeetingRoomPage: React.FC = () => {
                             });
                         }
                     } catch (error) {
-                        console.error('[STT] STT 처리 실패:', error);
                     }
                 }
                 resolve();
@@ -1326,7 +1312,6 @@ const MeetingRoomPage: React.FC = () => {
                     );
                 }
             } catch (error) {
-                console.error('Failed to access microphone', error);
                 if (!effectiveSilentMode) {
                     setMicEnabled(false);
                 }
@@ -1358,7 +1343,6 @@ const MeetingRoomPage: React.FC = () => {
             const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
             stream.getTracks().forEach((track) => track.stop());
         } catch (error) {
-            console.error('Failed to access camera permission', error);
         }
     }, []);
 
@@ -1452,7 +1436,6 @@ const MeetingRoomPage: React.FC = () => {
             updateVoiceRecordingSource();
             void ensureAiDetection();
         } catch (error) {
-            console.error('Failed to access camera', error);
             setCameraEnabled(false);
         }
     }, [cameraEnabled, ensureAiDetection, isPresenter, updateOutgoingVideo, updateSelfParticipant, updateVoiceRecordingSource]);
@@ -1545,7 +1528,6 @@ const MeetingRoomPage: React.FC = () => {
                     });
                 }
             } catch (error) {
-                console.error('Failed to start screen share', error);
                 setScreenSharing(false);
             }
         },
@@ -1716,7 +1698,6 @@ const MeetingRoomPage: React.FC = () => {
             try {
                 await sfuClientRef.current?.closeProducer('video');
             } catch (error) {
-                console.warn('[sfu] closeProducer failed on presenter release', error);
             }
             updateOutgoingVideo({ publish: false, cameraEnabledOverride: false, nextScreenStream: null });
             void refreshOutgoingAudio();
@@ -1848,7 +1829,6 @@ const MeetingRoomPage: React.FC = () => {
             await writeImageToClipboard(blob);
             showToast('발표화면 저장, 클립보드 복사가 되었습니다.', 'success');
         } catch (error) {
-            console.error('Failed to capture meeting screen', error);
             showToast('캡쳐에 실패했습니다. 잠시 후 다시 시도해주세요.', 'warning');
         } finally {
             setIsCapturing(false);
@@ -1882,7 +1862,6 @@ const MeetingRoomPage: React.FC = () => {
             const detail = await meetingApi.updatePlannedDuration(numericStudyId, numericMeetingId, nextSeconds);
             setPlannedDurationSeconds(detail.plannedDurationSeconds ?? nextSeconds);
         } catch (error) {
-            console.error('Failed to extend meeting duration', error);
         } finally {
             setIsExtendConfirmOpen(false);
         }
@@ -1913,7 +1892,6 @@ const MeetingRoomPage: React.FC = () => {
                 // 리더 쪽 녹음 정리는 이벤트 전파 후 처리
                 await finalizeVoiceRecording();
             } catch (error) {
-                console.error('Failed to end meeting', error);
             } finally {
                 stopCameraHardware();
                 sessionStorage.setItem(`meeting-end-reload-${numericMeetingId}`, '1');
@@ -2052,7 +2030,7 @@ const MeetingRoomPage: React.FC = () => {
                 const track = payload.stream.getAudioTracks()?.[0] ?? null;
                 audio.play()
                     .then(() => {})
-                    .catch((err) => console.error('[consumer] audio play failed', { producerId: payload.producerId, error: err.message }));
+                    .catch((err) => {});
                 remoteAudioElementsRef.current.set(payload.producerId, audio);
                 if (track) {
                     remoteAudioTracksRef.current.set(payload.producerId, track);
@@ -2190,7 +2168,6 @@ const MeetingRoomPage: React.FC = () => {
                 joinData = await meetingApi.joinMeeting(numericStudyId, numericMeetingId);
                 joinSuccessRef.current = true;
             } catch (error) {
-                console.error('Failed to join meeting', error);
                 joinSuccessRef.current = false;
                 if (!cancelled && axios.isAxiosError(error) && error.response?.status === 404) {
                     setRoomGuardStatus('blocked');
@@ -2222,7 +2199,6 @@ const MeetingRoomPage: React.FC = () => {
                 wsUnsubscribeRef.current.push(wsClient.subscribeChatHistory(roomId, (e) => setupCallbacksRef.current.handleRoomEvent(e)));
                 wsClient.joinRoom(roomId, { displayName: displayNameRef.current });
             } catch (error) {
-                console.error('Failed to connect websocket', error);
             }
 
             let sfuBaseUrl = import.meta.env.VITE_SFU_URL || 'http://localhost:4000';
@@ -2262,7 +2238,6 @@ const MeetingRoomPage: React.FC = () => {
                     sfuRecordingStateRef.current = 'starting';
                 }
             } catch (error) {
-                console.error('Failed to connect SFU', error);
             }
         };
         setup();
@@ -2328,7 +2303,6 @@ const MeetingRoomPage: React.FC = () => {
             canvasComposer.stopComposing();
             if (joinSuccessRef.current) {
                 meetingApi.leaveMeeting(numericStudyId, numericMeetingId).catch((error) => {
-                    console.error('Failed to leave meeting', error);
                 });
             }
         };

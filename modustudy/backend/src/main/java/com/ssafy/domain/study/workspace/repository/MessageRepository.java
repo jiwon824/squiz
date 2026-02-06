@@ -1,4 +1,4 @@
-package com.ssafy.domain.study.workspace.repository;
+﻿package com.ssafy.domain.study.workspace.repository;
 
 import com.ssafy.domain.study.workspace.entity.Message;
 import com.ssafy.domain.study.workspace.entity.MessageType;
@@ -16,8 +16,8 @@ import java.util.List;
 /**
  * 메시지 Repository
  */
-@Repository
-public interface MessageRepository extends JpaRepository<Message, Long> {
+ @Repository
+ public interface MessageRepository extends JpaRepository<Message, Long> {
 
     /**
      * 워크스페이스 ID로 메시지 목록 조회 (삭제되지 않은 것만, 생성일 내림차순)

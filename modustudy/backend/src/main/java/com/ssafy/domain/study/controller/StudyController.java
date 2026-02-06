@@ -1,4 +1,4 @@
-package com.ssafy.domain.study.controller;
+﻿package com.ssafy.domain.study.controller;
 
 import com.ssafy.common.response.ApiResponse;
 import com.ssafy.domain.study.dto.request.StudyCreateRequest;
@@ -43,10 +43,7 @@ public class StudyController {
     public ResponseEntity<Page<StudyResponse>> getAllStudies(
             @PageableDefault(size = 20) Pageable pageable) {
 
-        log.info("API 호출 - 전체 스터디 목록 조회: page={}, size={}",
-                pageable.getPageNumber(), pageable.getPageSize());
-
-        Page<StudyResponse> studies = studyService.getAllStudies(pageable);
+                Page<StudyResponse> studies = studyService.getAllStudies(pageable);
 
         return ResponseEntity.ok(studies);
     }
@@ -59,9 +56,7 @@ public class StudyController {
     @GetMapping("/recruiting")
     public ResponseEntity<Page<StudyResponse>> getRecruitingStudies(
             @PageableDefault(size = 20) Pageable pageable) {
-        log.info("API 호출 - 모집중인 스터디 목록 조회");
-
-        Page<StudyResponse> studies = studyService.getRecruitingStudies(pageable);
+                Page<StudyResponse> studies = studyService.getRecruitingStudies(pageable);
 
         return ResponseEntity.ok(studies);
     }
@@ -78,14 +73,9 @@ public class StudyController {
             @RequestParam(required = false) Status status,
             @PageableDefault(size = 20) Pageable pageable) {
 
-        log.info("API 호출 - 내 스터디 목록 조회: userId={}, status={}", userId, status);
+                Page<StudyResponse> studies = studyService.getMyStudies(userId, status, pageable);
 
-        Page<StudyResponse> studies = studyService.getMyStudies(userId, status, pageable);
-
-        log.info("API 응답 - 내 스터디 목록: userId={}, status={}, count={}",
-                userId, status, studies.getTotalElements());
-
-        return ResponseEntity.ok(studies);
+                return ResponseEntity.ok(studies);
     }
     /**
      * 스터디 검색/필터링
@@ -97,10 +87,7 @@ public class StudyController {
             @ModelAttribute StudySearchCondition condition,
             @PageableDefault(size = 20) Pageable pageable) {
 
-        log.info("API 호출 - 스터디 검색 : keyword={}, topic={}",
-                condition.getKeyword(), condition.getTopicId());
-
-        Page<StudyResponse> studies = studyService.searchStudies(condition, pageable);
+                Page<StudyResponse> studies = studyService.searchStudies(condition, pageable);
 
         return ResponseEntity.ok(studies);
     }
@@ -115,9 +102,7 @@ public class StudyController {
             @PathVariable Long leaderId,
             @PageableDefault(size = 20) Pageable pageable) {
 
-        log.info("API 호출 - 스터디장별 조회: leaderId={}", leaderId);
-
-        Page<StudyResponse> studies = studyService.getStudiesByLeader(leaderId, pageable);
+                Page<StudyResponse> studies = studyService.getStudiesByLeader(leaderId, pageable);
 
         return ResponseEntity.ok(studies);
     }
@@ -133,9 +118,7 @@ public class StudyController {
             @PathVariable Status status,
             @PageableDefault(size = 20) Pageable pageable) {
 
-        log.info("API 호출 - 스터디장 + 상태 조회: leaderId={}, status={}", leaderId, status);
-
-        Page<StudyResponse> studies = studyService.getStudiesByLeaderAndStatus(leaderId, status, pageable);
+                Page<StudyResponse> studies = studyService.getStudiesByLeaderAndStatus(leaderId, status, pageable);
 
         return ResponseEntity.ok(studies);
     }
@@ -150,9 +133,7 @@ public class StudyController {
             @PathVariable Long studyId,
             @RequestHeader(value = "User-Id", required = false) Long userId) {
 
-        log.info("API 호출 - 스터디 상세 조회: studyId={}", studyId);
-
-        StudyResponse study = studyService.getStudyById(studyId);
+                StudyResponse study = studyService.getStudyById(studyId);
 
         // 추천 반응 자동 기록 (로그인 사용자가 추천에서 클릭한 경우)
         if (userId != null) {
@@ -170,9 +151,7 @@ public class StudyController {
     public ResponseEntity<Long> countStudies(
             @RequestParam Status status) {
 
-        log.info("API 호출 - 스터디 개수 조회: status={}", status);
-
-        Long count = studyService.countStudiesByStatus(status);
+                Long count = studyService.countStudiesByStatus(status);
 
         return ResponseEntity.ok(count);
     }
@@ -185,9 +164,7 @@ public class StudyController {
     public ResponseEntity<Boolean> existsStudy(
             @PathVariable Long studyId) {
 
-        log.info("API 호출 - 스터디 존재 확인: studyId={}", studyId);
-
-        boolean exists = studyService.existsStudy(studyId);
+                boolean exists = studyService.existsStudy(studyId);
 
         return ResponseEntity.ok(exists);
     }
@@ -201,9 +178,7 @@ public class StudyController {
             @Valid @RequestBody StudyCreateRequest request,
             @RequestHeader("User-Id") Long userId) {
 
-        log.info("API 호출 - 스터디 생성: userId={}, studyName={}", userId, request.getName());
-
-        StudyResponse response = studyService.createStudy(request, userId);
+                StudyResponse response = studyService.createStudy(request, userId);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -217,9 +192,7 @@ public class StudyController {
             @Valid @RequestBody StudyUpdateRequest request,
             @RequestHeader("User-Id") Long userId) {
 
-        log.info("API 호출 - 스터디 수정: studyId={}, userId={}", studyId, userId);
-
-        StudyResponse response = studyService.updateStudy(studyId, request, userId);
+                StudyResponse response = studyService.updateStudy(studyId, request, userId);
 
         return ResponseEntity.ok(response);
     }
@@ -233,9 +206,7 @@ public class StudyController {
             @PathVariable Long studyId,
             @RequestHeader("User-Id") Long userId) {
 
-        log.info("API 호출 - 스터디 삭제: studyId={}, userId={}", studyId, userId);
-
-        studyService.deleteStudy(studyId, userId);
+                studyService.deleteStudy(studyId, userId);
 
         return ResponseEntity.noContent().build();
     }
@@ -249,9 +220,7 @@ public class StudyController {
             @PathVariable Long studyId,
             @RequestHeader("User-Id") Long userId) {
 
-        log.info("API 호출 - 관리자 스터디 삭제: studyId={}, adminUserId={}", studyId, userId);
-
-        studyService.adminDeleteStudy(studyId, userId);
+                studyService.adminDeleteStudy(studyId, userId);
 
         return ResponseEntity.noContent().build();
     }
@@ -280,10 +249,7 @@ public class StudyController {
             @RequestBody StatusUpdateRequest request,
             @RequestHeader("User-Id") Long userId) {
 
-        log.info("API 호출 - 스터디 상태 변경: studyId={}, newStatus={}, userId={}",
-                studyId, request.getStatus(), userId);
-
-        StudyResponse response = studyService.updateStudyStatus(studyId, request.getStatus(), userId);
+                StudyResponse response = studyService.updateStudyStatus(studyId, request.getStatus(), userId);
 
         return ResponseEntity.ok(response);
     }
@@ -298,10 +264,7 @@ public class StudyController {
             @RequestBody RecruitmentExtensionRequest request,
             @RequestHeader("User-Id") Long userId) {
 
-        log.info("API 호출 - 모집 기간 연장: studyId={}, newEndDate={}, userId={}",
-                studyId, request.getNewEndDate(), userId);
-
-        StudyResponse response = studyService.extendRecruitment(studyId, request.getNewEndDate(), userId);
+                StudyResponse response = studyService.extendRecruitment(studyId, request.getNewEndDate(), userId);
 
         return ResponseEntity.ok(response);
     }
@@ -317,13 +280,9 @@ public class StudyController {
             @PathVariable Long studyId,
             @RequestHeader("User-Id") Long userId) {
 
-        log.info("API 호출 - 스터디 시작: studyId={}, userId={}", studyId, userId);
+                StudyResponse response = studyService.startStudy(studyId, userId);
 
-        StudyResponse response = studyService.startStudy(studyId, userId);
-
-        log.info("API 응답 - 스터디 시작 완료: studyId={}, status={}", studyId, response.getStatus());
-
-        return ResponseEntity.ok(response);
+                return ResponseEntity.ok(response);
     }
 
     /**
@@ -336,13 +295,9 @@ public class StudyController {
             @RequestHeader("User-Id") Long userId,
             @RequestParam(required = false, defaultValue = "10") Integer limit) {
 
-        log.info("API 호출 - 스터디 참여 추천: userId={}, limit={}", userId, limit);
+                List<StudyRecommendDto> recommendations = studyRecommendService.getRecommendedStudies(userId, limit);
 
-        List<StudyRecommendDto> recommendations = studyRecommendService.getRecommendedStudies(userId, limit);
-
-        log.info("API 응답 - 스터디 참여 추천: userId={}, count={}", userId, recommendations.size());
-
-        return ResponseEntity.ok(recommendations);
+                return ResponseEntity.ok(recommendations);
     }
 
     /**
@@ -355,9 +310,7 @@ public class StudyController {
             @PathVariable Long topicId,
             @RequestParam(required = false, defaultValue = "10") Integer limit) {
 
-        log.info("API 호출 - 토픽 기반 스터디 추천: userId={}, topicId={}, limit={}", userId, topicId, limit);
-
-        List<StudyRecommendDto> recommendations = studyRecommendService.getRecommendedStudiesByTopic(userId, topicId, limit);
+                List<StudyRecommendDto> recommendations = studyRecommendService.getRecommendedStudiesByTopic(userId, topicId, limit);
 
         return ResponseEntity.ok(recommendations);
     }
@@ -386,4 +339,5 @@ public class StudyController {
         private LocalDate newEndDate;
     }
 }
+
 
