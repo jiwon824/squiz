@@ -99,7 +99,7 @@ export const QuizSingleChoice: React.FC<QuizSingleChoiceProps> = ({
                             'hover:shadow-md',
                             !showResult && selectedAnswer === index && 'border-primary bg-primary/5',
                             !showResult && selectedAnswer !== index && 'border-gray-200 hover:border-gray-300',
-                            showResult && index === correctAnswerIndex && 'border-accent bg-accent/10',
+                            showResult && index === correctAnswerIndex && 'border-secondary bg-secondary/10',
                             showResult &&
                             index === selectedAnswer &&
                             index !== correctAnswerIndex &&
@@ -116,7 +116,7 @@ export const QuizSingleChoice: React.FC<QuizSingleChoiceProps> = ({
                                 <div className={cn(
                                     "transition-colors",
                                     !showResult && selectedAnswer === index ? "text-primary" : "text-gray-400",
-                                    showResult && index === correctAnswerIndex ? "text-accent" : "",
+                                    showResult && index === correctAnswerIndex ? "text-secondary" : "",
                                     showResult && selectedAnswer === index && index !== correctAnswerIndex ? "text-error" : ""
                                 )}>
                                     {selectedAnswer === index || (showResult && index === correctAnswerIndex) ? (
@@ -128,7 +128,7 @@ export const QuizSingleChoice: React.FC<QuizSingleChoiceProps> = ({
                                 <span className="text-text-primary">{option}</span>
                             </div>
                             {showResult && index === correctAnswerIndex && (
-                                <Check className="text-accent" size={20} />
+                                <Check className="text-secondary" size={20} />
                             )}
                             {showResult && index === selectedAnswer && index !== correctAnswerIndex && (
                                 <X className="text-error" size={20} />
@@ -143,10 +143,10 @@ export const QuizSingleChoice: React.FC<QuizSingleChoiceProps> = ({
                 <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-accent/10 rounded-xl p-4"
+                    className="bg-secondary/10 rounded-xl p-4"
                 >
                     <h5 className="font-bold text-text-primary mb-2 flex items-center gap-2">
-                        <ChevronRight size={16} className="text-accent" />
+                        <ChevronRight size={16} className="text-secondary" />
                         해설
                     </h5>
                     <p className="text-sm text-text-secondary leading-relaxed">{quiz.explanation}</p>
@@ -264,7 +264,7 @@ export const QuizMultipleChoice: React.FC<QuizMultipleChoiceProps> = ({
                                 !showResult && isSelected && 'border-primary bg-primary/5',
                                 !showResult && !isSelected && 'border-gray-200 hover:border-gray-300',
                                 // 결과 보기: 정답인 항목 (선택 여부 상관없이 정답 표시)
-                                showResult && isCorrect && 'border-accent bg-accent/10',
+                                showResult && isCorrect && 'border-secondary bg-secondary/10',
                                 // 결과 보기: 내가 잘못 선택한 오답
                                 showResult && isSelected && !isCorrect && 'border-error bg-error/10',
                                 // 결과 보기: 선택 안 했고 정답도 아닌 나머지
@@ -276,7 +276,7 @@ export const QuizMultipleChoice: React.FC<QuizMultipleChoiceProps> = ({
                                     <div className={cn(
                                         "transition-colors",
                                         !showResult && isSelected ? "text-primary" : "text-gray-400",
-                                        showResult && isCorrect ? "text-accent" : "",
+                                        showResult && isCorrect ? "text-secondary" : "",
                                         showResult && isSelected && !isCorrect ? "text-error" : ""
                                     )}>
                                         {isSelected ? <CheckSquare size={20} /> : <Square size={20} />}
@@ -285,7 +285,7 @@ export const QuizMultipleChoice: React.FC<QuizMultipleChoiceProps> = ({
                                 </div>
 
                                 {showResult && isCorrect && (
-                                    <Check className="text-accent" size={20} />
+                                    <Check className="text-secondary" size={20} />
                                 )}
                                 {showResult && isSelected && !isCorrect && (
                                     <X className="text-error" size={20} />
@@ -301,10 +301,10 @@ export const QuizMultipleChoice: React.FC<QuizMultipleChoiceProps> = ({
                 <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-accent/10 rounded-xl p-4"
+                    className="bg-secondary/10 rounded-xl p-4"
                 >
                     <h5 className="font-bold text-text-primary mb-2 flex items-center gap-2">
-                        <ChevronRight size={16} className="text-accent" />
+                        <ChevronRight size={16} className="text-secondary" />
                         해설
                     </h5>
                     <p className="text-sm text-text-secondary leading-relaxed">{quiz.explanation}</p>
@@ -434,7 +434,7 @@ export const QuizShortAnswer: React.FC<QuizShortAnswerProps> = ({
                         'w-full p-4 rounded-xl border-2 transition-all',
                         'focus:outline-none focus:ring-2 focus:ring-primary/20',
                         !showResult && 'border-gray-200 focus:border-primary',
-                        showResult && isCorrect && 'border-accent bg-accent/10',
+                        showResult && isCorrect && 'border-secondary bg-secondary/10',
                         showResult && !isCorrect && 'border-error bg-error/10',
                         'disabled:cursor-not-allowed'
                     )}
@@ -443,8 +443,8 @@ export const QuizShortAnswer: React.FC<QuizShortAnswerProps> = ({
                     <div className="flex items-center gap-2 text-sm">
                         {isCorrect ? (
                             <>
-                                <Check className="text-accent" size={16} />
-                                <span className="text-accent font-medium">정답입니다!</span>
+                                <Check className="text-secondary" size={16} />
+                                <span className="text-secondary font-medium">정답입니다!</span>
                             </>
                         ) : (
                             <>
@@ -463,10 +463,10 @@ export const QuizShortAnswer: React.FC<QuizShortAnswerProps> = ({
                 <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-accent/10 rounded-xl p-4"
+                    className="bg-secondary/10 rounded-xl p-4"
                 >
                     <h5 className="font-bold text-text-primary mb-2 flex items-center gap-2">
-                        <ChevronRight size={16} className="text-accent" />
+                        <ChevronRight size={16} className="text-secondary" />
                         해설
                     </h5>
                     <p className="text-sm text-text-secondary leading-relaxed">{quiz.explanation}</p>
