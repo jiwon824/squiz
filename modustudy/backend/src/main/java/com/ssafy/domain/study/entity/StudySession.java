@@ -78,10 +78,12 @@ public class StudySession {
 
     /**
      * 세션 완료
+     * 진행 중(IN_PROGRESS) 또는 예정(SCHEDULED) 상태의 세션을 완료 처리
+     * 오프라인 녹음 업로드 시 SCHEDULED 상태에서 바로 완료될 수 있음
      */
     public void complete() {
-        if (this.status != SessionStatus.IN_PROGRESS) {
-            throw new IllegalStateException("진행 중인 세션만 완료할 수 있습니다.");
+        if (this.status != SessionStatus.IN_PROGRESS && this.status != SessionStatus.SCHEDULED) {
+            throw new IllegalStateException("진행 중이거나 예정된 세션만 완료할 수 있습니다.");
         }
         this.status = SessionStatus.COMPLETED;
         this.completedAt = LocalDateTime.now();
