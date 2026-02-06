@@ -51,7 +51,6 @@ export const useMyQuiz = (): UseMyQuizReturn => {
   const [activeTab, setActiveTab] = useState<TabType>('review');
   const [wrongSortType, setWrongSortType] = useState<WrongAnswerSortType>('LATEST');
   const [wrongPage, setWrongPage] = useState(1);
-  const PAGE_SIZE = 5;
 
   // === 퀴즈 재도전 상태 ===
   const [retryState, setRetryState] = useState<QuizRetryState>(INITIAL_RETRY_STATE);
@@ -63,9 +62,10 @@ export const useMyQuiz = (): UseMyQuizReturn => {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
+      // 클라이언트에서 SHORT_ANSWER를 필터링하므로, 틀린 문제는 전체를 가져와서 클라이언트 페이지네이션 사용
       const results = await Promise.allSettled([
         getTodayReviews(),
-        getWrongAnswers(wrongSortType, wrongPage - 1, PAGE_SIZE),
+        getWrongAnswers(wrongSortType, 0, 10000),
         getCourseWeaknessStats(),
         getCourseQuizStats(),
         getReviewStats(),
@@ -86,7 +86,7 @@ export const useMyQuiz = (): UseMyQuizReturn => {
       ) as ReviewItemDto[];
       setTodayReviews(filteredToday);
       setWrongReviews(filteredWrong);
-      setWrongTotalCount(wrongData?.totalCount || 0);
+      setWrongTotalCount(filteredWrong.length);
       setCourseStats(statsData || null);
       setCourseQuizStats(quizStatsData || []);
       setReviewStats(reviewStatsData || null);
@@ -98,7 +98,7 @@ export const useMyQuiz = (): UseMyQuizReturn => {
     } finally {
       setLoading(false);
     }
-  }, [wrongSortType, wrongPage]);
+  }, [wrongSortType]);
 
   // 정렬 타입 변경 시 데이터 재패칭 및 페이지 초기화
   useEffect(() => {

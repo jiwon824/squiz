@@ -52,8 +52,6 @@ export const MyQuizPage: React.FC = () => {
     avgWrongCount,
     courseQuizStats,
     reviewStats,
-    wrongPage,
-    setWrongPage,
     wrongTotalCount,
   } = useMyQuiz();
 
@@ -125,8 +123,6 @@ export const MyQuizPage: React.FC = () => {
             courseQuizStats={courseQuizStats}
             reviewStats={reviewStats}
             onRetry={handleStartRetry}
-            wrongPage={wrongPage}
-            setWrongPage={setWrongPage}
             wrongTotalCount={wrongTotalCount}
           />
         )}
@@ -211,8 +207,6 @@ interface MainContentProps {
   courseQuizStats: ReturnType<typeof useMyQuiz>['courseQuizStats'];
   reviewStats: ReturnType<typeof useMyQuiz>['reviewStats'];
   onRetry: (item: ReturnType<typeof useMyQuiz>['todayReviews'][0]) => void;
-  wrongPage: ReturnType<typeof useMyQuiz>['wrongPage'];
-  setWrongPage: ReturnType<typeof useMyQuiz>['setWrongPage'];
   wrongTotalCount: number;
 }
 
@@ -231,8 +225,6 @@ const MainContent: React.FC<MainContentProps> = React.memo(
     courseQuizStats,
     reviewStats,
     onRetry,
-    wrongPage,
-    setWrongPage,
     wrongTotalCount,
   }) => (
     <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
@@ -272,9 +264,6 @@ const MainContent: React.FC<MainContentProps> = React.memo(
                     items={wrongReviews}
                     onRetry={onRetry}
                     type="wrong"
-                    currentPage={wrongPage}
-                    totalPages={Math.ceil(wrongTotalCount / 5)}
-                    onPageChange={setWrongPage}
                   />
                 </TabContent>
               )}
