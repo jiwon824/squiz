@@ -153,7 +153,6 @@ const CommentleQuiz = () => {
             const result = await saveToLeaderboard(nickname, attemptCount, elapsedTime);
 
             if (result.success) {
-                console.log(`리더보드 저장 성공: ${result.rank}위 / ${result.totalPlayers}명`);
 
                 // 리더보드 재조회
                 const leaderboardData = await fetchLeaderboard(currentDate, 10);

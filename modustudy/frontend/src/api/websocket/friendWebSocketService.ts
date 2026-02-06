@@ -22,7 +22,11 @@ class FriendWebSocketService {
   private client: Client | null = null;
   private userId: number | null = null;
   private handlers: FriendWebSocketHandlers = {};
-  private connectionStatus: ConnectionStatus = 'DISCONNECTED';
+  private _connectionStatus: ConnectionStatus = 'DISCONNECTED';
+
+  get connectionStatus(): ConnectionStatus {
+    return this._connectionStatus;
+  }
 
   connect(userId: number, handlers: FriendWebSocketHandlers = {}): void {
     if (this.client?.connected && this.userId === userId) {
@@ -42,11 +46,7 @@ class FriendWebSocketService {
       connectHeaders: {
         userId: userId.toString(),
       },
-      debug: (str) => {
-        if (import.meta.env.DEV) {
-          console.log('[Friend WS]', str);
-        }
-      },
+      debug: () => {},
       reconnectDelay: 5000,
       heartbeatIncoming: 4000,
       heartbeatOutgoing: 4000,
@@ -91,7 +91,7 @@ class FriendWebSocketService {
   }
 
   private setConnectionStatus(status: ConnectionStatus): void {
-    this.connectionStatus = status;
+    this._connectionStatus = status;
     this.handlers.onConnectionChange?.(status);
   }
 

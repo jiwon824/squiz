@@ -198,7 +198,6 @@ export const fetchLeaderboard = async (date = null, limit = 10) => {
         params.append('_t', Date.now().toString());
 
         const url = `${AI_SERVICE_URL}/api/leaderboard?${params.toString()}`;
-        console.log('🏆 리더보드 조회 URL:', url);
 
         const response = await fetch(url, {
             headers: {
@@ -206,12 +205,10 @@ export const fetchLeaderboard = async (date = null, limit = 10) => {
                 'Pragma': 'no-cache'
             }
         });
-        console.log('🏆 리더보드 응답 상태:', response.status);
 
         if (!response.ok) throw new Error('Failed to fetch leaderboard');
 
         const data = await response.json();
-        console.log('🏆 리더보드 데이터:', data);
         return data;
     } catch (error) {
         console.error('fetchLeaderboard error:', error);

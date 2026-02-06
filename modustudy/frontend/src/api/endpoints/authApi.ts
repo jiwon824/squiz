@@ -1,4 +1,5 @@
 import api from '../axios';
+import type { ApiResponse } from '../types';
 import { AuthResponse, AuthUrlResponse, OAuth2CallbackRequest, UserDTO } from '@/features/auth/types';
 
 // 프로필 설정 요청 타입
@@ -21,18 +22,18 @@ export const authApi = {
      */
     login: async (email: string, password: string) => {
         const request: LoginRequest = { email, password };
-        const response = await api.post<any>('/api/v1/auth/login', request);
+        const response = await api.post<ApiResponse<AuthResponse>>('/api/v1/auth/login', request);
         // 백엔드에서 ApiResponse<AuthResponse> 반환함
-        return response.data.data as AuthResponse;
+        return response.data.data;
     },
 
     /**
      * 카카오 로그인 URL 가져오기
      */
     getKakaoAuthUrl: async () => {
-        const response = await api.get<any>('/api/v1/auth/oauth/kakao');
+        const response = await api.get<ApiResponse<AuthUrlResponse>>('/api/v1/auth/oauth/kakao');
         // 백엔드에서 ApiResponse<AuthUrlResponse> 반환함
-        return response.data.data as AuthUrlResponse;
+        return response.data.data;
     },
 
     /**
@@ -40,36 +41,36 @@ export const authApi = {
      */
     handleKakaoCallback: async (code: string) => {
         const request: OAuth2CallbackRequest = { code };
-        const response = await api.post<any>('/api/v1/auth/oauth/kakao/callback', request);
+        const response = await api.post<ApiResponse<AuthResponse>>('/api/v1/auth/oauth/kakao/callback', request);
         // 백엔드에서 ApiResponse<AuthResponse> 반환함
-        return response.data.data as AuthResponse;
+        return response.data.data;
     },
 
     /**
      * 네이버 로그인 URL 가져오기
      */
     getNaverAuthUrl: async () => {
-        const response = await api.get<any>('/api/v1/auth/oauth/naver');
+        const response = await api.get<ApiResponse<AuthUrlResponse>>('/api/v1/auth/oauth/naver');
         // 백엔드에서 ApiResponse<AuthUrlResponse> 반환함
-        return response.data.data as AuthUrlResponse;
+        return response.data.data;
     },
 
     /**
      * 네이버 로그인 콜백 처리 (인가 코드를 JWT로 교환)
      */
     handleNaverCallback: async (code: string, state: string) => {
-        const response = await api.post<any>(`/api/v1/auth/oauth/naver/callback?state=${encodeURIComponent(state)}`, { code });
+        const response = await api.post<ApiResponse<AuthResponse>>(`/api/v1/auth/oauth/naver/callback?state=${encodeURIComponent(state)}`, { code });
         // 백엔드에서 ApiResponse<AuthResponse> 반환함
-        return response.data.data as AuthResponse;
+        return response.data.data;
     },
 
     /**
      * 구글 로그인 URL 가져오기
      */
     getGoogleAuthUrl: async () => {
-        const response = await api.get<any>('/api/v1/auth/oauth/google');
+        const response = await api.get<ApiResponse<AuthUrlResponse>>('/api/v1/auth/oauth/google');
         // 백엔드에서 ApiResponse<AuthUrlResponse> 반환함
-        return response.data.data as AuthUrlResponse;
+        return response.data.data;
     },
 
     /**
@@ -77,9 +78,9 @@ export const authApi = {
      */
     handleGoogleCallback: async (code: string) => {
         const request: OAuth2CallbackRequest = { code };
-        const response = await api.post<any>('/api/v1/auth/oauth/google/callback', request);
+        const response = await api.post<ApiResponse<AuthResponse>>('/api/v1/auth/oauth/google/callback', request);
         // 백엔드에서 ApiResponse<AuthResponse> 반환함
-        return response.data.data as AuthResponse;
+        return response.data.data;
     },
 
     /**
@@ -87,7 +88,7 @@ export const authApi = {
      * POST /api/v1/auth/social/google/link
      */
     linkGoogleAccount: async (code: string) => {
-        const response = await api.post<any>('/api/v1/auth/social/google/link', { code });
+        const response = await api.post<ApiResponse<Record<string, unknown>>>('/api/v1/auth/social/google/link', { code });
         // 백엔드에서 ApiResponse<SocialAccountResponse> 반환함
         return response.data.data;
     },
@@ -98,9 +99,9 @@ export const authApi = {
      */
     setupProfile: async (name: string, nickname: string, password: string) => {
         const request: ProfileSetupRequest = { name, nickname, password };
-        const response = await api.post<any>('/api/v1/users/me/profile', request);
+        const response = await api.post<ApiResponse<UserDTO>>('/api/v1/users/me/profile', request);
         // 백엔드에서 ApiResponse<UserDTO> 반환함
-        return response.data.data as UserDTO;
+        return response.data.data;
     },
 
     /**
@@ -108,9 +109,9 @@ export const authApi = {
      * GET /api/v1/users/me
      */
     getMe: async () => {
-        const response = await api.get<any>('/api/v1/users/me');
+        const response = await api.get<ApiResponse<UserDTO>>('/api/v1/users/me');
         // 백엔드에서 ApiResponse<UserDTO> 반환함
-        return response.data.data as UserDTO;
+        return response.data.data;
     },
 
     /**
@@ -118,7 +119,7 @@ export const authApi = {
      * POST /api/v1/auth/password/reset-request
      */
     requestPasswordReset: async (email: string) => {
-        const response = await api.post<any>('/api/v1/auth/password/reset-request', { email });
+        const response = await api.post<ApiResponse<void>>('/api/v1/auth/password/reset-request', { email });
         return response.data;
     },
 
@@ -127,7 +128,7 @@ export const authApi = {
      * POST /api/v1/auth/password/reset
      */
     resetPassword: async (token: string, newPassword: string) => {
-        const response = await api.post<any>('/api/v1/auth/password/reset', { token, newPassword });
+        const response = await api.post<ApiResponse<void>>('/api/v1/auth/password/reset', { token, newPassword });
         return response.data;
     },
 
@@ -136,7 +137,7 @@ export const authApi = {
      * POST /api/v1/auth/token/refresh
      */
     refreshToken: async (refreshToken: string) => {
-        const response = await api.post<any>('/api/v1/auth/token/refresh', { refreshToken });
-        return response.data.data as { accessToken: string; expiresIn: number };
+        const response = await api.post<ApiResponse<{ accessToken: string; expiresIn: number }>>('/api/v1/auth/token/refresh', { refreshToken });
+        return response.data.data;
     },
 };

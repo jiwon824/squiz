@@ -965,7 +965,6 @@ export const CurriculumRoadmapDemo: React.FC = () => {
                 curriculum={sampleCurriculum}
                 currentSession={currentSession}
                 onStopClick={(session) => {
-                    console.log(`회차 ${session} 클릭됨`);
                     setCurrentSession(session);
                 }}
             />

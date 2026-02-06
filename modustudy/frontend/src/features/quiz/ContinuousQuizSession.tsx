@@ -463,10 +463,6 @@ export const ContinuousQuizSession = () => {
                 setCurrentQuestion(uiQuestion);
                 setCurrentApiQuestion(response.question);
 
-                console.log('[ContinuousQuizSession] 첫 번째 문제 로드 완료:', {
-                    questionId: response.question.questionId,
-                });
-
                 setIsLoading(false);
             } catch (err) {
                 console.error('[ContinuousQuizSession] 초기화 실패:', err);

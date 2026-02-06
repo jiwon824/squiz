@@ -85,7 +85,7 @@ const StudyFilter: React.FC<StudyFilterProps> = ({
     };
 
     const handleFilterToggle = (category: keyof FilterState, value: string | number) => {
-        const categoryFilters = filters[category] as any[];
+        const categoryFilters = filters[category] as (string | number)[];
         const newFilters = categoryFilters.includes(value)
             ? categoryFilters.filter((v) => v !== value)
             : [...categoryFilters, value];

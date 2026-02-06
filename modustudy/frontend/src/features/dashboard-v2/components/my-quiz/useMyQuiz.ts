@@ -144,14 +144,6 @@ export const useMyQuiz = (): UseMyQuizReturn => {
     }));
   }, []);
 
-  const setSelectedAnswer = useCallback((index: number | null) => {
-    setRetryState((prev) => ({ ...prev, selectedAnswer: index }));
-  }, []);
-
-  const setShortAnswer = useCallback((answer: string | null) => {
-    setRetryState((prev) => ({ ...prev, shortAnswer: answer }));
-  }, []);
-
   const handleSubmitMultiple = useCallback(async () => {
     const { selectedReviewItem, selectedAnswer, selectedAnswers } = retryState;
     if (!selectedReviewItem) return;

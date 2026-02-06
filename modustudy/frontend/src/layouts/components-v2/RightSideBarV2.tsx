@@ -1,6 +1,6 @@
 ﻿import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useUIStore } from '@/store/uiStore';
 import { useAuthStore } from '@/store/authStore';
 import { Users, MessageSquare, Video, Calendar, Clock, Play, X } from 'lucide-react';
@@ -59,7 +59,6 @@ const resolveNextSession = (sessions: StudySessionDTO[], currentTime: Date) => {
 // 다가오는 미팅 빠른 접근
 const MeetingQuickAccess: React.FC = () => {
     const navigate = useNavigate();
-    const location = useLocation();
     const { showToast } = useUIStore();
     const [meetings, setMeetings] = useState<UpcomingMeeting[]>([]);
     const [isLoading, setIsLoading] = useState(true);

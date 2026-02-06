@@ -10,6 +10,7 @@ import {
   deleteLeaderReview,
 } from '@/api/endpoints/studyApi';
 import { useUIStore } from '@/store/uiStore';
+import { getErrorMessage } from '@/shared/utils/errorUtils';
 
 interface LeaderReviewWriteModalProps {
   isOpen: boolean;
@@ -95,8 +96,8 @@ const LeaderReviewWriteModal: React.FC<LeaderReviewWriteModalProps> = ({
 
       onSuccess();
       onClose();
-    } catch (error: any) {
-      const message = error.response?.data?.message || '리뷰 등록에 실패했습니다.';
+    } catch (error: unknown) {
+      const message = getErrorMessage(error, '리뷰 등록에 실패했습니다.');
       showToast(message, 'error');
     } finally {
       setIsSubmitting(false);
@@ -114,8 +115,8 @@ const LeaderReviewWriteModal: React.FC<LeaderReviewWriteModalProps> = ({
       showToast('리뷰가 삭제되었습니다.', 'success');
       onSuccess();
       onClose();
-    } catch (error: any) {
-      const message = error.response?.data?.message || '리뷰 삭제에 실패했습니다.';
+    } catch (error: unknown) {
+      const message = getErrorMessage(error, '리뷰 삭제에 실패했습니다.');
       showToast(message, 'error');
     } finally {
       setIsSubmitting(false);

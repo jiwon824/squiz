@@ -41,12 +41,9 @@ const DMListMini: React.FC = () => {
         isLoadingConversations,
         pendingDMUser,
         fetchConversations,
-        fetchUnreadCount,
         setCurrentConversation,
         sendMessage,
         clearPendingDM,
-        connectWebSocket,
-        disconnectWebSocket
     } = useDMStore();
 
     const [messageInput, setMessageInput] = useState('');
@@ -69,7 +66,6 @@ const DMListMini: React.FC = () => {
     useEffect(() => {
         const authStore = useAuthStore.getState();
         if (!authStore.user) {
-            console.log('[DM] User not logged in, skipping WebSocket connection');
             return;
         }
 

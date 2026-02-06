@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Guess } from '../hooks/useCommentleGame';
 import { History, Hash, Target } from 'lucide-react';
-import { cn } from '@/shared/utils/cn';
+import { cn, classBuilder } from '@/shared/utils/cn';
 
 interface CommentleHistoryProps {
     guesses: Guess[];

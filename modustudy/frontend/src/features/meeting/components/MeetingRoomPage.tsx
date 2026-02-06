@@ -377,15 +377,6 @@ const MeetingRoomPage: React.FC = () => {
     }, []);
 
     const updateOutgoingAudio = useCallback(async (nextTrack: MediaStreamTrack | null) => {
-        console.log('[audio] updateOutgoingAudio called', {
-            hasTrack: !!nextTrack,
-            trackId: nextTrack?.id,
-            trackReadyState: nextTrack?.readyState,
-            trackEnabled: nextTrack?.enabled,
-            trackMuted: nextTrack?.muted,
-            publishedTrackId: publishedAudioTrackIdRef.current,
-            hasSfuClient: !!sfuClientRef.current,
-        });
         if (!sfuClientRef.current) {
             console.warn('[audio] updateOutgoingAudio: no SFU client');
             return;
@@ -395,13 +386,10 @@ const MeetingRoomPage: React.FC = () => {
             return;
         }
         if (publishedAudioTrackIdRef.current === nextTrack.id) {
-            console.log('[audio] updateOutgoingAudio: same track already published');
             return;
         }
-        console.log('[audio] updateOutgoingAudio: producing audio track');
         await sfuClientRef.current.produceTrack('audio', nextTrack);
         publishedAudioTrackIdRef.current = nextTrack.id;
-        console.log('[audio] updateOutgoingAudio: audio track published successfully');
     }, []);
 
     const stopMixedAudioTrack = useCallback(() => {
@@ -464,10 +452,6 @@ const MeetingRoomPage: React.FC = () => {
 
     const ensureMicProcessedTrack = useCallback(() => {
         if (micProcessedTrackRef.current && micProcessedTrackRef.current.readyState === 'live') {
-            console.log('[mic] ensureMicProcessedTrack: using existing track', {
-                trackId: micProcessedTrackRef.current.id,
-                readyState: micProcessedTrackRef.current.readyState,
-            });
             return micProcessedTrackRef.current;
         }
         stopMicProcessedTrack();
@@ -482,11 +466,6 @@ const MeetingRoomPage: React.FC = () => {
         micDestinationRef.current = destination;
         micConstantSourceRef.current = constantSource;
         micProcessedTrackRef.current = destination.stream.getAudioTracks()[0] ?? null;
-        console.log('[mic] ensureMicProcessedTrack: created new track', {
-            trackId: micProcessedTrackRef.current?.id,
-            readyState: micProcessedTrackRef.current?.readyState,
-            contextState: context.state,
-        });
         return micProcessedTrackRef.current;
     }, [stopMicProcessedTrack]);
 
@@ -500,17 +479,9 @@ const MeetingRoomPage: React.FC = () => {
                 // ignore resume errors
             }
         }
-        console.log('[mic] context state', context.state);
     }, []);
 
     const attachMicStreamToMixer = useCallback((stream: MediaStream) => {
-        console.log('[mic] attachMicStreamToMixer called', {
-            hasContext: !!micAudioContextRef.current,
-            hasDestination: !!micDestinationRef.current,
-            contextState: micAudioContextRef.current?.state,
-            streamActive: stream?.active,
-            streamTracks: stream?.getTracks().length,
-        });
         if (!micAudioContextRef.current || !micDestinationRef.current) {
             console.warn('[mic] attachMicStreamToMixer: missing context or destination!');
             return;
@@ -531,14 +502,6 @@ const MeetingRoomPage: React.FC = () => {
         gainNode.connect(micDestinationRef.current);
         micSourceNodeRef.current = source;
         micGainNodeRef.current = gainNode;
-        const track = stream.getAudioTracks()[0] ?? null;
-        console.log('[mic] attach mixer', {
-            gain: gainNode.gain.value,
-            trackId: track?.id,
-            trackEnabled: track?.enabled,
-            trackMuted: track?.muted,
-            trackReadyState: track?.readyState,
-        });
     }, []);
 
     const normalizeSfuHttpBaseUrl = useCallback((baseUrl: string) => {
@@ -617,19 +580,16 @@ const MeetingRoomPage: React.FC = () => {
         if (aiDetectionStreamRef.current) {
             const track = aiDetectionStreamRef.current.getVideoTracks()?.[0];
             if (track && track.readyState === 'live') {
-                console.log('[ai] reuse detection stream', { trackId: track.id, readyState: track.readyState });
                 return aiDetectionStreamRef.current;
             }
             stopTracks(aiDetectionStreamRef.current);
             aiDetectionStreamRef.current = null;
         }
         try {
-            console.log('[ai] request detection stream');
             const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
             aiDetectionStreamRef.current = stream;
             const track = stream.getVideoTracks()?.[0];
             if (track) {
-                console.log('[ai] detection stream acquired', { trackId: track.id, readyState: track.readyState });
                 const handleEnded = () => {
                     console.warn('[ai] detection track ended/inactive');
                     if (aiDetectionCleanupRef.current) {
@@ -651,7 +611,6 @@ const MeetingRoomPage: React.FC = () => {
     }, []);
 
     const ensureAiDetection = useCallback(async () => {
-        console.log('[ai] ensureAiDetection called');
         const detectionStream =
             aiDetectionStreamRef.current ?? (await ensureAiDetectionStream()) ?? localCameraStreamRef.current;
         if (!detectionStream || !aiVideoRef.current) return;
@@ -659,7 +618,6 @@ const MeetingRoomPage: React.FC = () => {
         if (!track || track.readyState !== 'live') return;
         const shouldRestart = aiVideoRef.current.srcObject !== detectionStream;
         if (shouldRestart && aiDetectionCleanupRef.current) {
-            console.log('[ai] restart detection loop due to stream change');
             aiDetectionCleanupRef.current();
             aiDetectionCleanupRef.current = null;
         }
@@ -672,11 +630,9 @@ const MeetingRoomPage: React.FC = () => {
             console.warn('[ai] video play failed', error);
         });
         if (!aiDetectionCleanupRef.current) {
-            console.log('[ai] start detection loop');
             aiDetectionCleanupRef.current = aiDetection.startDetection(aiVideoRef.current, (isPresent) => {
                 if (presenceRef.current === isPresent) return;
                 presenceRef.current = isPresent;
-                console.log('[ai] presence changed', { isPresent });
                 updateSelfParticipant({ isPresent });
                 if (wsClientRef.current && roomIdRef.current) {
                     wsClientRef.current.setPresence(roomIdRef.current, { present: isPresent });
@@ -688,10 +644,8 @@ const MeetingRoomPage: React.FC = () => {
     useEffect(() => {
         aiDetectionRestartRef.current = () => {
             if (aiDetectionRestartTimerRef.current) return;
-            console.log('[ai] schedule detection restart');
             aiDetectionRestartTimerRef.current = window.setTimeout(() => {
                 aiDetectionRestartTimerRef.current = null;
-                console.log('[ai] restart detection now');
                 void ensureAiDetection();
             }, 300);
         };
@@ -706,7 +660,6 @@ const MeetingRoomPage: React.FC = () => {
     useEffect(() => {
         const watchdogId = window.setInterval(() => {
             if (!aiDetectionCleanupRef.current) {
-                console.log('[ai] watchdog: detection loop missing, restarting');
                 void ensureAiDetection();
             }
         }, 4000);
@@ -988,7 +941,6 @@ const MeetingRoomPage: React.FC = () => {
             };
             recorder.start(VOICE_RECORDER_SLICE_MS);
             voiceRecorderRef.current = recorder;
-            console.log('Voice recording started'); // 디버깅용
         },
         [isLoggedIn, numericMeetingId, numericStudyId, canEndMeeting]
     );
@@ -1116,7 +1068,6 @@ const MeetingRoomPage: React.FC = () => {
         return { track, sourceId };
     }, [ensureRecordingAudioTrack, stopRecordingAudioTrack]);
 
-
     // 실시간 STT: 발화 녹음 시작
     const startUtteranceRecording = useCallback((stream: MediaStream) => {
         if (utteranceRecorderRef.current) return;
@@ -1137,7 +1088,6 @@ const MeetingRoomPage: React.FC = () => {
         };
         recorder.start(500); // 500ms마다 데이터 수집
         utteranceRecorderRef.current = recorder;
-        console.log('[STT] 발화 녹음 시작');
     }, []);
 
     // 실시간 STT: 발화 녹음 종료 및 STT 처리
@@ -1165,19 +1115,15 @@ const MeetingRoomPage: React.FC = () => {
                 // 최소 500ms 이상의 녹음만 처리
                 const durationMs = Date.now() - startTimeMs;
                 if (blob.size < 1000 || durationMs < 500) {
-                    console.log('[STT] 녹음이 너무 짧아 무시함', { size: blob.size, durationMs });
                     resolve();
                     return;
                 }
-
-                console.log('[STT] 발화 녹음 완료, STT 요청 시작', { size: blob.size, durationMs });
 
                 // STT 처리
                 if (numericStudyId && numericMeetingId && user?.id && meetingStartedAt) {
                     try {
                         // AI 서버로 STT 요청
                         const sttResult = await meetingApi.speechToText(blob);
-                        console.log('[STT] STT 결과:', sttResult);
 
                         if (sttResult.text && sttResult.text.trim()) {
                             // 미팅 시작 시간 기준 타임스탬프 계산
@@ -1192,7 +1138,6 @@ const MeetingRoomPage: React.FC = () => {
                                 startMs: startTimeMs - meetingStartMs,
                                 endMs: Date.now() - meetingStartMs,
                             });
-                            console.log('[STT] 트랜스크립트 저장 완료');
                         }
                     } catch (error) {
                         console.error('[STT] STT 처리 실패:', error);
@@ -1321,14 +1266,6 @@ const MeetingRoomPage: React.FC = () => {
                 attachMicStreamToMixer(localMicStreamRef.current);
                 if (micGainNodeRef.current) {
                     micGainNodeRef.current.gain.value = effectiveSilentMode ? 0 : 1;
-                    console.log('[mic] set gain (existing stream)', {
-                        silentMode: effectiveSilentMode,
-                        gain: micGainNodeRef.current.gain.value,
-                        micEnabled: micEnabledRef.current,
-                        trackEnabled: track?.enabled,
-                        trackMuted: track?.muted,
-                        trackReadyState: track?.readyState,
-                    });
                 }
                 if (!effectiveSilentMode && !audioDetectionActiveRef.current) {
                     audioDetectionActiveRef.current = Boolean(
@@ -1356,13 +1293,10 @@ const MeetingRoomPage: React.FC = () => {
                 const track = stream.getAudioTracks()[0] ?? null;
                 if (track) {
                     track.addEventListener('ended', () => {
-                        console.log('[mic] track ended', { trackId: track.id });
                     });
                     track.addEventListener('mute', () => {
-                        console.log('[mic] track muted', { trackId: track.id });
                     });
                     track.addEventListener('unmute', () => {
-                        console.log('[mic] track unmuted', { trackId: track.id });
                     });
                 }
                 await resumeMicContext();
@@ -1372,11 +1306,6 @@ const MeetingRoomPage: React.FC = () => {
                 attachMicStreamToMixer(stream);
                 if (micGainNodeRef.current) {
                     micGainNodeRef.current.gain.value = effectiveSilentMode ? 0 : 1;
-                    console.log('[mic] set gain (new stream)', {
-                        silentMode: effectiveSilentMode,
-                        gain: micGainNodeRef.current.gain.value,
-                        micEnabled: micEnabledRef.current,
-                    });
                 }
                 updateVoiceRecordingSource();
                 if (useSfuRecording && sfuRecordingStateRef.current === 'starting') {
@@ -1442,12 +1371,10 @@ const MeetingRoomPage: React.FC = () => {
     }, [ensureAiDetection, ensureMicrophoneStream, requestCameraPermission]);
 
     const startMicrophone = useCallback(async () => {
-        console.log('[mic] start requested', { micEnabled: micEnabledRef.current });
         await ensureMicrophoneStream(false);
     }, [ensureMicrophoneStream]);
 
     const stopMicrophone = useCallback(async () => {
-        console.log('[mic] stop requested', { micEnabled: micEnabledRef.current });
         audioDetection.stopDetection();
         audioDetectionActiveRef.current = false;
         speakingRef.current = false;
@@ -1586,10 +1513,6 @@ const MeetingRoomPage: React.FC = () => {
                 // 화면 공유 오디오 트랙이 있으면 SFU로 전송
                 const screenAudioTrack = stream.getAudioTracks()[0];
                 if (screenAudioTrack && sfuClientRef.current) {
-                    console.log('[screen] publishing screen audio track', {
-                        trackId: screenAudioTrack.id,
-                        trackReadyState: screenAudioTrack.readyState,
-                    });
                     await sfuClientRef.current.produceTrack('screen-audio', screenAudioTrack, { source: 'screen' });
                 }
 
@@ -1808,7 +1731,6 @@ const MeetingRoomPage: React.FC = () => {
         void handleShareModeChange('camera');
     }, [handleShareModeChange, isPresenter]);
 
-
     useEffect(() => {
         const wasPresenter = prevPresenterRef.current;
         prevPresenterRef.current = isPresenter;
@@ -1819,12 +1741,6 @@ const MeetingRoomPage: React.FC = () => {
             }
         }
         if (isPresenter || wasPresenter) {
-            console.log('[mic] presenter change', {
-                isPresenter,
-                micEnabled: micEnabledRef.current,
-                gain: micGainNodeRef.current?.gain?.value,
-                micTrack: localMicStreamRef.current?.getAudioTracks()?.[0]?.readyState,
-            });
             if (micEnabledRef.current) {
                 void ensureMicrophoneStream(false);
             }
@@ -2129,28 +2045,13 @@ const MeetingRoomPage: React.FC = () => {
 
     const handleNewConsumer = useCallback(
         (payload: SfuConsumerPayload) => {
-            console.log('[consumer] handleNewConsumer', {
-                kind: payload.kind,
-                producerId: payload.producerId,
-                consumerId: payload.consumerId,
-                peerId: payload.peerId,
-                streamActive: payload.stream?.active,
-                trackCount: payload.stream?.getTracks().length,
-            });
             if (payload.kind === 'audio') {
                 const audio = new Audio();
                 audio.srcObject = payload.stream;
                 audio.autoplay = true;
                 const track = payload.stream.getAudioTracks()?.[0] ?? null;
-                console.log('[consumer] audio consumer details', {
-                    producerId: payload.producerId,
-                    trackId: track?.id,
-                    trackReadyState: track?.readyState,
-                    trackEnabled: track?.enabled,
-                    trackMuted: track?.muted,
-                });
                 audio.play()
-                    .then(() => console.log('[consumer] audio play success', { producerId: payload.producerId }))
+                    .then(() => {})
                     .catch((err) => console.error('[consumer] audio play failed', { producerId: payload.producerId, error: err.message }));
                 remoteAudioElementsRef.current.set(payload.producerId, audio);
                 if (track) {
@@ -2381,7 +2282,6 @@ const MeetingRoomPage: React.FC = () => {
             }
             setSfuReady(false);
             if (aiDetectionCleanupRef.current) {
-                console.log('[ai] cleanup detection on unmount');
                 aiDetectionCleanupRef.current();
                 aiDetectionCleanupRef.current = null;
             }

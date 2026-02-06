@@ -4,6 +4,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import { userApi } from '@/api/endpoints/userApi';
 import { Button } from '@/shared/components/Button';
+import { getErrorMessage } from '@/shared/utils/errorUtils';
 
 interface EditProfileModalProps {
     isOpen: boolean;
@@ -54,9 +55,9 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
 
             showToast('프로필 정보가 수정되었습니다.', 'success');
             onClose();
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Profile update error:', err);
-            setError(err.response?.data?.message || '프로필 수정 중 오류가 발생했습니다.');
+            setError(getErrorMessage(err, '프로필 수정 중 오류가 발생했습니다.'));
         } finally {
             setIsLoading(false);
         }
@@ -120,7 +121,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
                             <textarea
                                 name="bio"
                                 value={formData.bio}
-                                onChange={handleChange as any}
+                                onChange={handleChange}
                                 placeholder="자신을 한 줄로 표현해 보세요"
                                 rows={2}
                                 maxLength={100}
