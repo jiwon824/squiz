@@ -223,19 +223,49 @@ export const UserDashboardV2: React.FC = () => {
             }}
         >
             <div className="max-w-7xl mx-auto px-4 py-6 space-y-6 sm:px-6 sm:py-8 sm:space-y-8 lg:px-8">
-                {/* 환영 메시지 */}
+                {/* 환영 메시지 + 포스트잇 */}
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-2xl pt-6 px-4 pb-3 sm:pt-8 sm:px-8 sm:pb-4"
+                    className="flex flex-col lg:flex-row gap-4 sm:gap-6"
                 >
-                    <div className="flex items-center gap-3 mb-3">
-                        <Sparkles className="text-primary flex-shrink-0" size={28} />
-                        <h1 className="text-xl sm:text-3xl font-black text-text-primary mb-0">
-                            안녕하세요 {user?.nickname || user?.name || ''}님! 👋
-                        </h1>
+                    {/* 좌측: 인사말 */}
+                    <div className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-2xl pt-6 px-4 pb-3 sm:pt-8 sm:px-8 sm:pb-4 lg:flex-shrink-0 flex flex-col justify-center">
+                        <div className="flex items-center gap-3 mb-3">
+                            <Sparkles className="text-primary flex-shrink-0" size={28} />
+                            <h1 className="text-xl sm:text-3xl font-black text-text-primary mb-0 whitespace-nowrap">
+                                안녕하세요 {user?.nickname || user?.name || ''}님! 👋
+                            </h1>
+                        </div>
+                        <p className="text-text-secondary text-sm sm:text-lg">오늘도 즐거운 학습 되세요!</p>
                     </div>
-                    <p className="text-text-secondary text-sm sm:text-lg">오늘도 즐거운 학습 되세요!</p>
+
+                    {/* 우측: 포스트잇 3개 - 엇갈림 배치 */}
+                    <div className="flex-1 min-w-0 grid grid-cols-3 gap-5 items-start py-2 px-4">
+                        <div className="mt-2">
+                            <TodayGoalsCard />
+                        </div>
+                        <div className="-mt-1">
+                            <InfoCard
+                                icon={Calendar}
+                                title="다가오는 일정"
+                                items={scheduleItems}
+                                color="green"
+                                rotate={-1.5}
+                                tapeRotate={2}
+                            />
+                        </div>
+                        <div className="mt-3">
+                            <InfoCard
+                                icon={Trophy}
+                                title="레벨업 진행"
+                                items={levelUpItems}
+                                color="pink"
+                                rotate={-0.8}
+                                tapeRotate={-1}
+                            />
+                        </div>
+                    </div>
                 </motion.div>
 
                 {/* 내 스터디 위젯 */}
@@ -255,28 +285,6 @@ export const UserDashboardV2: React.FC = () => {
 
                 {/* 학습 보관함 */}
                 <LearningArchiveWidget />
-
-                {/* 추가 정보 카드 (포스트잇) */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 pt-2">
-                    {/* 오늘의 목표 - Zustand store로 캘린더와 동기화 */}
-                    <TodayGoalsCard />
-                    <InfoCard
-                        icon={Calendar}
-                        title="다가오는 일정"
-                        items={scheduleItems}
-                        color="green"
-                        rotate={-1.5}
-                        tapeRotate={2}
-                    />
-                    <InfoCard
-                        icon={Trophy}
-                        title="레벨업 진행"
-                        items={levelUpItems}
-                        color="pink"
-                        rotate={-0.8}
-                        tapeRotate={-1}
-                    />
-                </div>
             </div>
         </div>
     );

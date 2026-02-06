@@ -336,7 +336,7 @@ const Embedding3DViewer: React.FC<Embedding3DViewerProps> = ({ guesses = [] }) =
 
     return (
         <div className="w-full">
-            <div className="w-full h-[400px] lg:h-[550px] bg-slate-900 rounded-2xl lg:rounded-3xl overflow-hidden relative">
+            <div className="w-full h-[300px] lg:h-[340px] bg-slate-900 rounded-2xl lg:rounded-3xl overflow-hidden relative">
                 {/* Canvas는 항상 렌더링 - Three.js 미리 초기화 */}
                 <Canvas camera={{ position: [1.5, 1.5, 1.5], fov: 50 }}>
                     <Scene guesses={guesses} />
