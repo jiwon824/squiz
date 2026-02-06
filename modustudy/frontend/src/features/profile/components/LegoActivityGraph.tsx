@@ -43,7 +43,7 @@ export const LegoActivityGraph: React.FC<LegoActivityGraphProps> = ({ data }) =>
     const config = THEMES[theme];
 
     return (
-        <Card variant="flat" className="lego-graph-card bg-white/50 backdrop-blur-xl border border-gray-100 p-6 rounded-[32px] overflow-hidden">
+        <Card variant="flat" className="lego-graph-card bg-white p-6 rounded-[24px] overflow-hidden shadow-[0_4px_15px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)] transition-all duration-300">
             <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-3">
                     <div className="p-2 bg-blue-50 rounded-xl text-blue-600">
