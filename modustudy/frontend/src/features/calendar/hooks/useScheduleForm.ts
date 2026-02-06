@@ -4,6 +4,7 @@ import { UnifiedSchedule } from '../types';
 import { getTodayString, getCurrentTimeString } from '../utils';
 import { CreatePersonalScheduleRequest, UpdatePersonalScheduleRequest } from '@/api/endpoints/calendarApi';
 import { useUIStore } from '@/store/uiStore';
+import { getErrorMessage } from '@/shared/utils/errorUtils';
 
 /**
  * 일정 폼 관리 훅
@@ -82,8 +83,8 @@ export const useScheduleForm = (initialSchedule?: UnifiedSchedule) => {
             await createSchedule(formData);
             showToast('일정이 생성되었습니다.', 'success');
             return true;
-        } catch (error: any) {
-            showToast(error.message || '일정 생성에 실패했습니다.', 'error');
+        } catch (error: unknown) {
+            showToast(getErrorMessage(error, '일정 생성에 실패했습니다.'), 'error');
             return false;
         } finally {
             setSubmitting(false);
@@ -100,8 +101,8 @@ export const useScheduleForm = (initialSchedule?: UnifiedSchedule) => {
             await updateSchedule(scheduleId, updateData);
             showToast('일정이 수정되었습니다.', 'success');
             return true;
-        } catch (error: any) {
-            showToast(error.message || '일정 수정에 실패했습니다.', 'error');
+        } catch (error: unknown) {
+            showToast(getErrorMessage(error, '일정 수정에 실패했습니다.'), 'error');
             return false;
         } finally {
             setSubmitting(false);
@@ -152,8 +153,8 @@ export const useDeleteSchedule = () => {
             await deleteSchedule(scheduleId);
             showToast('일정이 삭제되었습니다.', 'success');
             return true;
-        } catch (error: any) {
-            showToast(error.message || '일정 삭제에 실패했습니다.', 'error');
+        } catch (error: unknown) {
+            showToast(getErrorMessage(error, '일정 삭제에 실패했습니다.'), 'error');
             return false;
         } finally {
             setDeleting(false);
@@ -182,8 +183,8 @@ export const useQuickAddSchedule = () => {
             });
             showToast('일정이 추가되었습니다.', 'success');
             return true;
-        } catch (error: any) {
-            showToast(error.message || '일정 추가에 실패했습니다.', 'error');
+        } catch (error: unknown) {
+            showToast(getErrorMessage(error, '일정 추가에 실패했습니다.'), 'error');
             return false;
         }
     };

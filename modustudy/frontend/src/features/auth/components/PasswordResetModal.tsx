@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { authApi } from '@/api/endpoints/authApi';
 import { useAuthStore } from '@/store/authStore';
+import { getErrorMessage } from '@/shared/utils/errorUtils';
 
 interface PasswordResetModalProps {
     isOpen: boolean;
@@ -46,11 +47,11 @@ export const PasswordResetModal = ({ isOpen, onClose }: PasswordResetModalProps)
             setTimeout(() => {
                 handleClose();
             }, 5000);
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Password reset error:', error);
             setMessage({
                 type: 'error',
-                text: error.response?.data?.message || '비밀번호 재설정 요청에 실패했습니다. 다시 시도해주세요.'
+                text: getErrorMessage(error, '비밀번호 재설정 요청에 실패했습니다. 다시 시도해주세요.')
             });
         } finally {
             setIsLoading(false);

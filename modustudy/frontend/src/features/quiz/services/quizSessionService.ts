@@ -104,7 +104,6 @@ export const createNewSession = (sectionId: string): QuizSession => {
     // 세션 저장
     saveSession(session);
 
-    console.log('[QuizSession] 새 세션 생성:', session.sessionId);
     return session;
 };
 
@@ -123,7 +122,6 @@ export const resumeOrCreateSession = (sectionId: string): { session: QuizSession
     const storedSession = getStoredSession(sectionId);
 
     if (storedSession) {
-        console.log('[QuizSession] 세션 복원:', storedSession.sessionId);
         return { session: storedSession, isResumed: true };
     }
 
@@ -147,7 +145,6 @@ export const saveSession = (session: QuizSession): void => {
             lastSavedAt: Date.now(),
         };
         localStorage.setItem(key, JSON.stringify(updatedSession));
-        console.log('[QuizSession] 세션 저장 완료');
     } catch (error) {
         console.error('[QuizSession] 세션 저장 실패:', error);
     }
@@ -165,7 +162,6 @@ export const clearSession = (sectionId: string): void => {
     try {
         const key = getSessionStorageKey(sectionId);
         localStorage.removeItem(key);
-        console.log('[QuizSession] 세션 삭제 완료');
     } catch (error) {
         console.error('[QuizSession] 세션 삭제 실패:', error);
     }
@@ -242,18 +238,12 @@ export const updateCurrentIndex = (session: QuizSession, newIndex: number): Quiz
  * @returns Promise<boolean> - 성공 여부
  */
 export const syncAnswerToServer = async (
-    sessionId: string,
-    answer: QuizAnswer
+    _sessionId: string,
+    _answer: QuizAnswer
 ): Promise<boolean> => {
     // Mock API: 200ms 딜레이
     return new Promise((resolve) => {
         setTimeout(() => {
-            console.log('[Mock API] POST /api/quiz/answers', {
-                sessionId,
-                questionId: answer.questionId,
-                answer: answer.answer,
-                timestamp: answer.timestamp,
-            });
             resolve(true);
         }, 200);
     });
@@ -279,14 +269,6 @@ export const completeSession = async (
             const totalQuestions = session.questionOrder.length;
             const answeredQuestions = Object.keys(session.answers).length;
             const score = Math.round((answeredQuestions / totalQuestions) * 100);
-
-            console.log('[Mock API] POST /api/quiz/complete', {
-                sessionId: session.sessionId,
-                sectionId: session.sectionId,
-                totalQuestions,
-                answeredQuestions,
-                score,
-            });
 
             // 세션 삭제 (완료했으므로)
             clearSession(session.sectionId);

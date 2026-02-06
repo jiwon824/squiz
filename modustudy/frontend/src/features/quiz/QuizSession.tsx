@@ -40,6 +40,7 @@ import {
 } from '@/api/endpoints/quizCourseApi';
 
 import type { QuizQuestion as QuizQuestionType, QuestionType } from './types/QuizQuestion.types';
+import { getErrorStatus } from '@/shared/utils/errorUtils';
 
 // =============================================================================
 // HELPER FUNCTIONS
@@ -161,10 +162,8 @@ export const QuizSession = () => {
                 // API 호출: attemptId가 있으면 명시적 재개, 없으면 시작/재개
                 let data: AttemptData;
                 if (initialAttemptId && !isNaN(initialAttemptId)) {
-                    console.log('[QuizSession] Resuming with explicit attemptId:', initialAttemptId);
                     data = await resumeAttempt(numericCourseId, numericSectionNumber, initialAttemptId);
                 } else {
-                    console.log('[QuizSession] Starting or resuming attempt (auto mode)');
                     data = await startOrResumeAttempt(numericCourseId, numericSectionNumber);
                 }
 
@@ -204,20 +203,12 @@ export const QuizSession = () => {
                 const hasRestoredAnswers = Object.keys(savedAnswers).length > 0;
                 setIsResumed(hasRestoredAnswers);
 
-                console.log('[QuizSession] Session initialized:', {
-                    attemptId: data.attemptId,
-                    startingAt: calculatedIndex + 1,
-                    isResumed: hasRestoredAnswers,
-                    usedExplicitId: !!initialAttemptId,
-                    retryCount
-                });
-
                 // 성공 시 로딩 종료
                 setIsLoading(false);
 
-            } catch (err: any) {
+            } catch (err: unknown) {
                 // 409 Conflict 발생 시: 백엔드에서 중복 시도를 정리 중인 상태임
-                if (err.response?.status === 409 && retryCount < 2) {
+                if (getErrorStatus(err) === 409 && retryCount < 2) {
                     const delay = Math.pow(2, retryCount) * 500; // 500ms, 1000ms 순으로 대기
 
                     console.warn(`[QuizSession] Conflict(409) 감지. ${delay}ms 후 재시도합니다. (${retryCount + 1}/2)`);
@@ -240,10 +231,6 @@ export const QuizSession = () => {
     useEffect(() => {
         if (questions.length > 0 && currentIndex < questions.length) {
             startTimer();
-            const q = questions[currentIndex];
-            console.log(
-                `[QuizSession] 새 문제 로드: #${currentIndex + 1}/${questions.length}, questionId=${q?.id}, 타이머 재시작`
-            );
         }
     }, [currentIndex, questions.length, startTimer]);
 
@@ -264,7 +251,6 @@ export const QuizSession = () => {
 
         // 타이머 정지하여 응답 시간 측정
         const responseTimeMs = stopTimer();
-        console.log(`[QuizSession] 답안 제출 준비: questionId=${currentQuestion.id}, responseTimeMs=${responseTimeMs}ms`);
 
         // 로컬 상태 업데이트
         setAnswers(prev => ({
@@ -284,7 +270,6 @@ export const QuizSession = () => {
                 answer,
                 responseTimeMs
             );
-            console.log(`[QuizSession] 서버 저장 완료: questionId=${currentQuestion.id}, responseTimeMs=${responseTimeMs}ms`);
         } catch (err) {
             console.error('[QuizSession] 답안 저장 실패:', err);
             // 실패해도 로컬 상태는 유지 (다음 저장 시 재시도)
@@ -335,8 +320,6 @@ export const QuizSession = () => {
                 attemptData.attemptId
             );
 
-            console.log('[QuizSession] 퀴즈 완료:', result);
-
             // TODO: 결과 페이지로 이동 또는 결과 모달 표시
             showToast(`점수: ${result.score}점 (정답: ${result.correctCount}/${result.totalQuestions}) ${result.isPassed ? '- 통과!' : '- 다시 도전해보세요!'}`, result.isPassed ? 'success' : 'info');
 
@@ -376,7 +359,6 @@ export const QuizSession = () => {
                 parseInt(sectionNumber, 10),
                 attemptData.attemptId
             );
-            console.log('[QuizSession] 시도 포기 완료');
         } catch (err) {
             console.error('[QuizSession] 시도 포기 실패:', err);
         }

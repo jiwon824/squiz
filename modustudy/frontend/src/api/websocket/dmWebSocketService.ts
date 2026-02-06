@@ -50,11 +50,7 @@ class DmWebSocketService {
                 userId: userId.toString(),
                 nickname: nickname,
             },
-            debug: (str) => {
-                if (import.meta.env.DEV) {
-                    console.log('[DM WS]', str);
-                }
-            },
+            debug: () => {},
             reconnectDelay: 5000,
             heartbeatIncoming: 4000,
             heartbeatOutgoing: 4000,
@@ -70,7 +66,6 @@ class DmWebSocketService {
      * 연결 성공 시
      */
     private onConnected(): void {
-        console.log('DM WebSocket connected');
         this.setConnectionStatus('CONNECTED');
 
         // DM 연결 메시지 전송
@@ -142,7 +137,6 @@ class DmWebSocketService {
     private handlePresenceEvent(message: IMessage): void {
         try {
             const event: FriendPresenceEvent = JSON.parse(message.body);
-            console.log('[DM WS] Friend presence event:', event);
             this.handlers.onPresence?.(event);
         } catch (e) {
             console.error('Failed to parse presence event:', e);
@@ -153,7 +147,6 @@ class DmWebSocketService {
      * 연결 해제 시
      */
     private onDisconnected(): void {
-        console.log('DM WebSocket disconnected');
         this.setConnectionStatus('DISCONNECTED');
     }
 

@@ -7,6 +7,7 @@ import { useSettingStore } from '@/features/setting/store/settingStore';
 import type { SocialProvider } from '@/features/setting/types';
 import AuthLayout from './AuthLayout';
 import { Spinner } from '@/shared/components/Spinner';
+import { getErrorMessage } from '@/shared/utils/errorUtils';
 
 export const LoginCallbackPage = () => {
     const [searchParams] = useSearchParams();
@@ -41,7 +42,6 @@ export const LoginCallbackPage = () => {
 
             // 이미 처리 중이면 중복 요청 방지
             if (isProcessingRef.current) {
-                console.log('[INFO] 이미 처리 중입니다.');
                 return;
             }
             isProcessingRef.current = true;
@@ -53,7 +53,6 @@ export const LoginCallbackPage = () => {
             // 연동 모드인 경우 (기존 로그인 상태에서 추가 계정 연동)
             if (oauthMode === 'link') {
                 setIsLinkMode(true);
-                console.log(`[INFO] ${provider} 계정 연동 처리 시작`);
 
                 try {
                     await completeSocialLink(
@@ -72,14 +71,12 @@ export const LoginCallbackPage = () => {
                     sessionStorage.removeItem('oauth_redirect_path');
 
                     navigateWithExit(redirectPath || '/setting');
-                } catch (error: any) {
+                } catch (error: unknown) {
                     console.error('Social link error:', error);
                     isProcessingRef.current = false;
 
                     // 에러 메시지 처리
-                    const errorMessage = error.response?.data?.error?.message
-                        || error.message
-                        || '계정 연동에 실패했습니다.';
+                    const errorMessage = getErrorMessage(error, '계정 연동에 실패했습니다.');
                     showToast(errorMessage, 'error');
 
                     // 세션 스토리지 정리
@@ -96,14 +93,11 @@ export const LoginCallbackPage = () => {
             try {
                 const provider = sessionStorage.getItem('oauth_provider') || 'kakao'; // 기본값은 kakao (하위 호환)
                 const oauthAction = sessionStorage.getItem('oauth_action'); // 'link' = 계정 연동, null = 로그인
-                console.log(`[INFO] ${provider} ${oauthAction === 'link' ? '계정 연동' : '로그인'} 처리 시작`);
 
                 // 이미 로그인된 상태에서 Google 계정 연동하는 경우 (캘린더 연동)
                 if (oauthAction === 'link' && provider === 'google') {
-                    console.log('[INFO] Google 계정 연동 (기존 사용자에게 추가)');
                     try {
                         await authApi.linkGoogleAccount(code);
-                        console.log('[INFO] Google 계정 연동 성공!');
 
                         // 연동 후 원래 페이지로 복귀
                         const redirectUrl = sessionStorage.getItem('oauth_redirect_path') || '/calendar';
@@ -114,9 +108,9 @@ export const LoginCallbackPage = () => {
                         showToast('Google Calendar가 연동되었습니다.', 'success');
                         navigateWithExit(redirectUrl);
                         return;
-                    } catch (linkError: any) {
+                    } catch (linkError: unknown) {
                         console.error('Google 계정 연동 실패:', linkError);
-                        showToast(linkError?.response?.data?.error?.message || 'Google 계정 연동에 실패했습니다.', 'error');
+                        showToast(getErrorMessage(linkError, 'Google 계정 연동에 실패했습니다.'), 'error');
 
                         const redirectUrl = sessionStorage.getItem('oauth_redirect_path') || '/calendar';
                         sessionStorage.removeItem('oauth_action');
@@ -127,7 +121,6 @@ export const LoginCallbackPage = () => {
                         return;
                     }
                 }
-                console.log(`[INFO] ${provider} 로그인 처리 시작`);
 
                 let data;
                 if (provider === 'naver') {
@@ -139,11 +132,8 @@ export const LoginCallbackPage = () => {
                     data = await authApi.handleKakaoCallback(code);
                 }
 
-                console.log('[DEBUG] Server Response Data:', data);
-
                 // 신규 유저인 경우 아직 닉네임 등이 없어 추가 정보 입력이 필요함
                 if (data.isNewUser) {
-                    console.log('[INFO] 신규 소셜 유저 - 추가 정보 입력 페이지로 이동');
 
                     // 임시 데이터 저장 (SignupPage에서 사용)
                     localStorage.setItem('oauthTempData', JSON.stringify({
@@ -169,8 +159,6 @@ export const LoginCallbackPage = () => {
                         loginProvider: provider.toUpperCase() as 'KAKAO' | 'GOOGLE' | 'NAVER',
                         role: data.user.role as 'USER' | 'ADMIN' || 'USER'
                     });
-
-                    console.log('[INFO] 기존 소셜 유저 로그인 성공!');
 
                     // 로그인 전 페이지로 리다이렉트 (저장된 URL이 있으면)
                     const loginRedirectUrl = sessionStorage.getItem('redirectAfterLogin')

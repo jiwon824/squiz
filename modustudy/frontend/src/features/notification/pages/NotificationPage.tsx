@@ -363,6 +363,7 @@ const NotificationDetail = ({
     onNavigate: () => void;
 }) => {
     const config = notificationTypeConfigWithReport[notification.type];
+    const isReport = notification.type === 'REPORT';
 
     // 버튼 텍스트
     const getButtonText = () => {

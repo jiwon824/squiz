@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useCalendarStore } from '../services/calendarStore';
 import { useUIStore } from '@/store/uiStore';
+import { getErrorMessage } from '@/shared/utils/errorUtils';
 
 /**
  * Google Calendar 연동 훅
@@ -41,8 +42,8 @@ export const useGoogleCalendar = () => {
 
             // Google OAuth 페이지로 리다이렉트
             window.location.href = authUrl;
-        } catch (error: any) {
-            showToast(error.message || 'Google 연동에 실패했습니다.', 'error');
+        } catch (error: unknown) {
+            showToast(getErrorMessage(error, 'Google 연동에 실패했습니다.'), 'error');
             setConnecting(false);
         }
     };
@@ -57,8 +58,8 @@ export const useGoogleCalendar = () => {
         try {
             await disconnectGoogle();
             showToast('Google Calendar 연동이 해제되었습니다.', 'success');
-        } catch (error: any) {
-            showToast(error.message || '연동 해제에 실패했습니다.', 'error');
+        } catch (error: unknown) {
+            showToast(getErrorMessage(error, '연동 해제에 실패했습니다.'), 'error');
         } finally {
             setDisconnecting(false);
         }
@@ -70,8 +71,8 @@ export const useGoogleCalendar = () => {
         try {
             await syncGoogle();
             showToast('Google Calendar 동기화가 완료되었습니다.', 'success');
-        } catch (error: any) {
-            showToast(error.message || '동기화에 실패했습니다.', 'error');
+        } catch (error: unknown) {
+            showToast(getErrorMessage(error, '동기화에 실패했습니다.'), 'error');
         } finally {
             setSyncing(false);
         }

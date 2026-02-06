@@ -16,6 +16,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { materialApi } from '@/api/endpoints/materialApi';
+import { getErrorMessage } from '@/shared/utils/errorUtils';
 
 interface MaterialUploadModalProps {
   studyId: number;
@@ -177,13 +178,8 @@ export const MaterialUploadModal: React.FC<MaterialUploadModalProps> = ({
       }
 
       onComplete();
-    } catch (err: any) {
-      // 에러 메시지 추출
-      const errorMsg = err?.response?.data?.message
-        || err?.response?.data?.error
-        || err?.message
-        || '업로드에 실패했습니다.';
-      setError(errorMsg);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, '업로드에 실패했습니다.'));
     } finally {
       setIsUploading(false);
     }

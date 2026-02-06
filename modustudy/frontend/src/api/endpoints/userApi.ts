@@ -1,4 +1,5 @@
 import api from '../axios';
+import type { ApiResponse } from '../types';
 import { UserDTO } from '@/features/auth/types';
 
 export interface ProfileUpdateRequest {
@@ -13,8 +14,8 @@ export const userApi = {
      * PUT /api/v1/users/me
      */
     updateProfile: async (data: ProfileUpdateRequest) => {
-        const response = await api.put<any>('/api/v1/users/me', data);
-        return response.data.data as UserDTO;
+        const response = await api.put<ApiResponse<UserDTO>>('/api/v1/users/me', data);
+        return response.data.data;
     },
 
     /**
@@ -53,7 +54,7 @@ export const userApi = {
      * DELETE /api/v1/users/me/profile-image
      */
     deleteProfileImage: async () => {
-        const response = await api.delete<any>('/api/v1/users/me/profile-image');
-        return response.data.data as UserDTO;
+        const response = await api.delete<ApiResponse<UserDTO>>('/api/v1/users/me/profile-image');
+        return response.data.data;
     },
 };

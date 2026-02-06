@@ -76,9 +76,7 @@ export async function submitReview(data: ReviewSubmitRequest): Promise<ReviewSub
     correct: data.isCorrect,
     responseTimeMs: data.responseTimeMs,
   };
-  console.log('[reviewApi] submitReview 요청:', backendPayload);
   const res = await api.post<{ success: boolean; data: ReviewSubmitResponse }>(BASE, backendPayload);
-  console.log('[reviewApi] submitReview 응답:', res.data);
   return res.data.data;
 }
 

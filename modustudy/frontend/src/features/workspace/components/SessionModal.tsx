@@ -4,6 +4,7 @@ import { sessionApi, type StudySessionResponse, type SessionCreateRequest } from
 import { useUIStore } from '@/store/uiStore';
 import { cn } from '@/shared/utils/cn';
 import { formatDate, getTodayString } from '@/features/calendar/utils';
+import { getErrorMessage } from '@/shared/utils/errorUtils';
 import {
   Tag,
   AlignLeft,
@@ -419,9 +420,9 @@ export const SessionModal: React.FC<SessionModalProps> = ({
 
       onSuccess?.();
       onClose();
-    } catch (err: any) {
+    } catch (err: unknown) {
       const errorMessage =
-        err?.response?.data?.message || '일정 저장에 실패했습니다.';
+        getErrorMessage(err, '일정 저장에 실패했습니다.');
       showToast?.(errorMessage, 'error');
     } finally {
       setSubmitting(false);

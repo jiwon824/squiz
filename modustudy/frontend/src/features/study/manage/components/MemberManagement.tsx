@@ -36,13 +36,13 @@ const MemberManagement: React.FC<MemberManagementProps> = ({ studyId, maxMembers
             const response = await studyApi.getStudyMembers(studyId, 0, 100);
             const content = response?.content || [];
 
-            const mappedMembers: Member[] = content.map((member: any) => ({
-                userId: member.userId || member.id,
-                nickname: member.userNickname || member.nickname || member.userName || '익명',
-                profileImage: member.profileImage,
+            const mappedMembers: Member[] = content.map((member) => ({
+                userId: member.userId ?? 0,
+                nickname: member.userNickname || member.userName || '익명',
+                profileImage: member.profileImage ?? undefined,
                 role: member.role || 'MEMBER',
-                joinedAt: member.joinedAt || member.createdAt || new Date().toISOString(),
-                attendanceRate: member.attendanceRate || 0,
+                joinedAt: new Date().toISOString(),
+                attendanceRate: 0,
             }));
 
             setMembers(mappedMembers);

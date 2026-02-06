@@ -21,15 +21,15 @@ export const materialApi = {
    * GET /api/v1/studies/{studyId}/materials
    */
   getMaterials: async (studyId: number, params?: MaterialSearchCondition) => {
-    const response = await api.get<any>(`/api/v1/studies/${studyId}/materials`, { params });
+    const response = await api.get(`/api/v1/studies/${studyId}/materials`, { params });
     // 백엔드 Page 응답 형식: { content: [...], totalElements, totalPages, ... }
-    const data = response.data;
+    const data = response.data as { content?: MaterialListResponse[] } | MaterialListResponse[];
     // Page 응답이면 content 추출, 배열이면 그대로, 아니면 빈 배열
-    if (data?.content && Array.isArray(data.content)) {
-      return data.content as MaterialListResponse[];
+    if (!Array.isArray(data) && data?.content && Array.isArray(data.content)) {
+      return data.content;
     }
     if (Array.isArray(data)) {
-      return data as MaterialListResponse[];
+      return data;
     }
     return [];
   },
@@ -39,9 +39,9 @@ export const materialApi = {
    * GET /api/v1/studies/{studyId}/materials/{materialId}
    */
   getMaterialDetail: async (studyId: number, materialId: number) => {
-    const response = await api.get<any>(`/api/v1/studies/${studyId}/materials/${materialId}`);
+    const response = await api.get<MaterialDetailResponse>(`/api/v1/studies/${studyId}/materials/${materialId}`);
     // 백엔드가 MaterialDetailResponse를 직접 반환
-    return response.data as MaterialDetailResponse;
+    return response.data;
   },
 
   /**
@@ -49,9 +49,9 @@ export const materialApi = {
    * POST /api/v1/studies/{studyId}/materials
    */
   createMaterial: async (studyId: number, data: MaterialCreateRequest) => {
-    const response = await api.post<any>(`/api/v1/studies/${studyId}/materials`, data);
+    const response = await api.post<MaterialCreateResponse>(`/api/v1/studies/${studyId}/materials`, data);
     // 백엔드가 MaterialCreateResponse를 직접 반환
-    return response.data as MaterialCreateResponse;
+    return response.data;
   },
 
   /**
@@ -71,7 +71,7 @@ export const materialApi = {
     if (description) formData.append('description', description);
     if (weekNumber) formData.append('weekNumber', String(weekNumber));
 
-    const response = await api.post<any>(
+    const response = await api.post<MaterialCreateResponse>(
       `/api/v1/studies/${studyId}/materials/upload`,
       formData,
       {
@@ -81,7 +81,7 @@ export const materialApi = {
       }
     );
     // 백엔드가 MaterialCreateResponse를 직접 반환
-    return response.data as MaterialCreateResponse;
+    return response.data;
   },
 
   /**
@@ -89,7 +89,7 @@ export const materialApi = {
    * PUT /api/v1/studies/{studyId}/materials/{materialId}
    */
   updateMaterial: async (studyId: number, materialId: number, data: MaterialUpdateRequest) => {
-    const response = await api.put<any>(
+    const response = await api.put<void>(
       `/api/v1/studies/${studyId}/materials/${materialId}`,
       data
     );
@@ -110,9 +110,9 @@ export const materialApi = {
    * GET /api/v1/studies/{studyId}/materials/{materialId}/comments
    */
   getComments: async (studyId: number, materialId: number) => {
-    const response = await api.get<any>(`/api/v1/studies/${studyId}/materials/${materialId}/comments`);
+    const response = await api.get<MaterialCommentResponse[]>(`/api/v1/studies/${studyId}/materials/${materialId}/comments`);
     // 백엔드가 List<MaterialCommentResponse>를 직접 반환
-    return (response.data || []) as MaterialCommentResponse[];
+    return response.data || [];
   },
 
   /**
@@ -120,8 +120,8 @@ export const materialApi = {
    * POST /api/v1/studies/{studyId}/materials/{materialId}/comments
    */
   createComment: async (studyId: number, materialId: number, data: MaterialCommentCreateRequest) => {
-    const response = await api.post<any>(`/api/v1/studies/${studyId}/materials/${materialId}/comments`, data);
-    return response.data as MaterialCommentCreateResponse;
+    const response = await api.post<MaterialCommentCreateResponse>(`/api/v1/studies/${studyId}/materials/${materialId}/comments`, data);
+    return response.data;
   },
 
   /**

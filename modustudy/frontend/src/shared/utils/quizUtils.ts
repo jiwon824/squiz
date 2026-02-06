@@ -201,15 +201,9 @@ export const transformToQuizQuestion = (item: ReviewItemDto): QuizQuestion => {
 
     if ((isMultiple || isMultipleAnswer) && q.options && q.options.length > 0) {
         // 디버깅 로그
-        console.log('[transformToQuizQuestion] 변환 시작:', {
-            questionType: q.questionType,
-            rawCorrectAnswer: q.correctAnswer,
-            optionIds: q.options.map(o => o.id)
-        });
 
         // normalizeCorrectAnswer를 사용하여 통일된 방식으로 변환 (항상 number[] 반환)
         const normalized = normalizeCorrectAnswer(q.correctAnswer);
-        console.log('[transformToQuizQuestion] normalizeCorrectAnswer 결과:', normalized);
 
         if (isMultipleAnswer) {
             // 복수 정답: 배열 그대로 사용
@@ -219,7 +213,6 @@ export const transformToQuizQuestion = (item: ReviewItemDto): QuizQuestion => {
             correctAnswer = normalized.length > 0 ? normalized[0] : q.correctAnswer;
         }
 
-        console.log('[transformToQuizQuestion] 최종 correctAnswer:', correctAnswer);
     }
 
     return {

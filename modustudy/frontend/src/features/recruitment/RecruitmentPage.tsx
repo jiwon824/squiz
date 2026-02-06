@@ -13,6 +13,7 @@ import { getProfileImageUrl } from '@/shared/utils/profileImage';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { getErrorMessage } from '@/shared/utils/errorUtils';
 import {
     RecruitmentPostDetail,
     RecruitmentPostSummary,
@@ -121,8 +122,8 @@ export const RecruitmentPage = () => {
         try {
             await reportRecruitmentPost(reportTargetId, { reason });
             showToast('신고가 접수되었습니다.', 'success');
-        } catch (error: any) {
-            const message = error?.response?.data?.message || '신고 접수에 실패했습니다.';
+        } catch (error: unknown) {
+            const message = getErrorMessage(error, '신고 접수에 실패했습니다.');
             showToast(message, 'error');
         }
     };
