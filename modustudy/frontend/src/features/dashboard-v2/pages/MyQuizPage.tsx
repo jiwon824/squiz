@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -46,48 +46,38 @@ export const MyQuizPage: React.FC = () => {
     handleSubmitShort,
     handleFinishRetry,
     resetRetryState,
+    setSelectedAnswer,
+    setShortAnswer,
     totalWrongCount,
     avgWrongCount,
     courseQuizStats,
     reviewStats,
-    wrongPage,
-    setWrongPage,
     wrongTotalCount,
   } = useMyQuiz();
-
-  // 퀴즈 재도전 상태에서 개별 값 사용을 위한 로컬 상태
-  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
-  const [shortAnswer, setShortAnswer] = useState<string | null>('');
 
   // 뒤로가기 핸들러
   const handleBack = useCallback(() => {
     if (retryState.isRetrying) {
       resetRetryState();
-      setSelectedAnswer(null);
-      setShortAnswer('');
     } else {
       navigate(-1);
     }
   }, [retryState.isRetrying, resetRetryState, navigate]);
 
-  // 재도전 시작 핸들러 (로컬 상태도 리셋)
+  // 재도전 시작 핸들러
   const handleStartRetry = useCallback(
     (item: typeof todayReviews[0]) => {
-      setSelectedAnswer(null);
-      setShortAnswer('');
       handleRetry(item);
     },
     [handleRetry]
   );
 
-  // 재도전 종료 핸들러 (로컬 상태도 리셋)
+  // 재도전 종료 핸들러
   const handleEndRetry = useCallback(() => {
-    setSelectedAnswer(null);
-    setShortAnswer('');
     handleFinishRetry();
   }, [handleFinishRetry]);
 
-  const { selectedReviewItem, isRetrying, showResult, isCorrectAnswer, selectedAnswers } =
+  const { selectedReviewItem, isRetrying, showResult, isCorrectAnswer, selectedAnswers, selectedAnswer, shortAnswer } =
     retryState;
 
   return (
@@ -133,8 +123,6 @@ export const MyQuizPage: React.FC = () => {
             courseQuizStats={courseQuizStats}
             reviewStats={reviewStats}
             onRetry={handleStartRetry}
-            wrongPage={wrongPage}
-            setWrongPage={setWrongPage}
             wrongTotalCount={wrongTotalCount}
           />
         )}
@@ -219,8 +207,6 @@ interface MainContentProps {
   courseQuizStats: ReturnType<typeof useMyQuiz>['courseQuizStats'];
   reviewStats: ReturnType<typeof useMyQuiz>['reviewStats'];
   onRetry: (item: ReturnType<typeof useMyQuiz>['todayReviews'][0]) => void;
-  wrongPage: ReturnType<typeof useMyQuiz>['wrongPage'];
-  setWrongPage: ReturnType<typeof useMyQuiz>['setWrongPage'];
   wrongTotalCount: number;
 }
 
@@ -239,8 +225,6 @@ const MainContent: React.FC<MainContentProps> = React.memo(
     courseQuizStats,
     reviewStats,
     onRetry,
-    wrongPage,
-    setWrongPage,
     wrongTotalCount,
   }) => (
     <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
@@ -280,9 +264,6 @@ const MainContent: React.FC<MainContentProps> = React.memo(
                     items={wrongReviews}
                     onRetry={onRetry}
                     type="wrong"
-                    currentPage={wrongPage}
-                    totalPages={Math.ceil(wrongTotalCount / 5)}
-                    onPageChange={setWrongPage}
                   />
                 </TabContent>
               )}

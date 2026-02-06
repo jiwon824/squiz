@@ -21,7 +21,6 @@ import { useTimer } from './useTimer';
 import {
     fetchNextQuestion,
     submitAnswer,
-    ContinuousQuizQuestion,
 } from '@/api/endpoints/continuousQuizApi';
 import {
     QuestionState,
@@ -29,8 +28,6 @@ import {
     ModalState,
     SessionState,
     UiState,
-    SessionSummary,
-    FeedbackData,
     isValidAnswer,
     mapApiQuestionToUiQuestion,
 } from '../types/ContinuousQuiz.types';

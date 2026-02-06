@@ -51,7 +51,6 @@ export const useMyQuiz = (): UseMyQuizReturn => {
   const [activeTab, setActiveTab] = useState<TabType>('review');
   const [wrongSortType, setWrongSortType] = useState<WrongAnswerSortType>('LATEST');
   const [wrongPage, setWrongPage] = useState(1);
-  const PAGE_SIZE = 5;
 
   // === 퀴즈 재도전 상태 ===
   const [retryState, setRetryState] = useState<QuizRetryState>(INITIAL_RETRY_STATE);
@@ -59,23 +58,36 @@ export const useMyQuiz = (): UseMyQuizReturn => {
   // === 타이머 훅 ===
   const timer = useTimer();
 
-  // === 데이터 패칭 ===
+  // === 데이터 패칭 (개별 API 실패가 다른 데이터에 영향을 주지 않도록 분리) ===
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [todayData, wrongData, statsData, quizStatsData, reviewStatsData] = await Promise.all([
+      // 클라이언트에서 SHORT_ANSWER를 필터링하므로, 틀린 문제는 전체를 가져와서 클라이언트 페이지네이션 사용
+      const results = await Promise.allSettled([
         getTodayReviews(),
-        getWrongAnswers(wrongSortType, wrongPage - 1, PAGE_SIZE),
+        getWrongAnswers(wrongSortType, 0, 10000),
         getCourseWeaknessStats(),
         getCourseQuizStats(),
         getReviewStats(),
       ]);
-      // question이 null인 항목 필터링 (백엔드 데이터 무결성 방어)
-      const filteredToday = (todayData?.items || []).filter(item => item.question != null) as ReviewItemDto[];
-      const filteredWrong = (wrongData?.items || []).filter(item => item.question != null) as ReviewItemDto[];
+
+      const todayData = results[0].status === 'fulfilled' ? results[0].value : null;
+      const wrongData = results[1].status === 'fulfilled' ? results[1].value : null;
+      const statsData = results[2].status === 'fulfilled' ? results[2].value : null;
+      const quizStatsData = results[3].status === 'fulfilled' ? results[3].value : null;
+      const reviewStatsData = results[4].status === 'fulfilled' ? results[4].value : null;
+
+      // 퀴즈코스(COURSE_QUESTION)만 표시 + question null 필터링 + 주관식(SHORT_ANSWER) 임시 제외
+      const isCourseQuiz = (item: ReviewItemDto) =>
+        item.contentType === 'COURSE_QUESTION' &&
+        item.question != null &&
+        item.question.questionType !== 'SHORT_ANSWER';
+
+      const filteredToday = (todayData?.items || []).filter(isCourseQuiz) as ReviewItemDto[];
+      const filteredWrong = (wrongData?.items || []).filter(isCourseQuiz) as ReviewItemDto[];
       setTodayReviews(filteredToday);
       setWrongReviews(filteredWrong);
-      setWrongTotalCount(wrongData?.totalCount || 0);
+      setWrongTotalCount(filteredWrong.length);
       setCourseStats(statsData || null);
       setCourseQuizStats(quizStatsData || []);
       setReviewStats(reviewStatsData || null);
@@ -87,7 +99,7 @@ export const useMyQuiz = (): UseMyQuizReturn => {
     } finally {
       setLoading(false);
     }
-  }, [wrongSortType, wrongPage]);
+  }, [wrongSortType]);
 
   // 정렬 타입 변경 시 데이터 재패칭 및 페이지 초기화
   useEffect(() => {
@@ -117,6 +129,15 @@ export const useMyQuiz = (): UseMyQuizReturn => {
   // === 퀴즈 재도전 액션 ===
   const resetRetryState = useCallback(() => {
     setRetryState(INITIAL_RETRY_STATE);
+  }, []);
+
+  // retryState 내부 필드 개별 setter (MyQuizPage에서 직접 사용)
+  const setSelectedAnswer = useCallback((index: number | null) => {
+    setRetryState((prev) => ({ ...prev, selectedAnswer: index }));
+  }, []);
+
+  const setShortAnswer = useCallback((answer: string | null) => {
+    setRetryState((prev) => ({ ...prev, shortAnswer: answer }));
   }, []);
 
   const handleRetry = useCallback(
@@ -254,6 +275,8 @@ export const useMyQuiz = (): UseMyQuizReturn => {
     handleSubmitShort,
     handleFinishRetry,
     resetRetryState,
+    setSelectedAnswer,
+    setShortAnswer,
 
     // 통계
     totalWrongCount,
@@ -262,27 +285,6 @@ export const useMyQuiz = (): UseMyQuizReturn => {
     // 데이터 갱신
     fetchData,
   };
-};
-
-// 개별 상태 업데이트를 위한 추가 훅 (필요 시 사용)
-export const useQuizRetryActions = (
-  setRetryState: React.Dispatch<React.SetStateAction<QuizRetryState>>
-) => {
-  const setSelectedAnswer = useCallback(
-    (index: number | null) => {
-      setRetryState((prev) => ({ ...prev, selectedAnswer: index }));
-    },
-    [setRetryState]
-  );
-
-  const setShortAnswer = useCallback(
-    (answer: string | null) => {
-      setRetryState((prev) => ({ ...prev, shortAnswer: answer }));
-    },
-    [setRetryState]
-  );
-
-  return { setSelectedAnswer, setShortAnswer };
 };
 
 export default useMyQuiz;

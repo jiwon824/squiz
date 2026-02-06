@@ -1,25 +1,23 @@
 // 미팅 기반 퀴즈 인라인 풀이 뷰
-// 미팅 종료 후 AI가 자동 생성한 퀴즈를 탭 내에서 풀 수 있도록 함
+// shared QuizForm 컴포넌트를 활용하여 퀴즈 UI를 렌더링
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    CheckCircle2,
     XCircle,
-    ChevronRight,
-    Circle,
     Trophy,
     RotateCcw,
     Sparkles,
-    Send,
 } from 'lucide-react';
 import { Spinner } from '@/shared/components/Spinner';
-import { cn, conditionalClasses } from '@/shared/utils/cn';
+import { cn } from '@/shared/utils/cn';
+import { QuizSingleChoice, QuizShortAnswer } from '@/shared/components';
+import { FeedbackModal } from '@/features/quiz/components/continuous/FeedbackModal';
 import {
     studyQuizApi,
     type StudyQuizDetail,
-    type StudyQuizSubmitResponse,
 } from '@/api/endpoints/studyQuizApi';
+import { transformStudyQuizQuestion, parseOptions, indexToOptionId } from '@/shared/utils/quizUtils';
 
 interface QuizViewProps {
     /** 현재 선택된 스터디 ID */
@@ -29,55 +27,6 @@ interface QuizViewProps {
     /** 추가 클래스명 */
     className?: string;
 }
-
-/** options JSON 문자열을 파싱 */
-const parseOptions = (optionsStr: string | null): { id: string; text: string }[] => {
-    if (!optionsStr) return [];
-    try {
-        const parsed = JSON.parse(optionsStr);
-        if (Array.isArray(parsed)) {
-            return parsed.map((opt, idx) => {
-                const defaultId = String.fromCharCode(65 + idx);
-                if (typeof opt === 'string') {
-                    // 이미 "A. " 또는 "A." 형태의 prefix가 있는지 확인
-                    const prefixMatch = opt.match(/^([A-Z])\.[\s]*(.*)/);
-                    if (prefixMatch) {
-                        // prefix가 있으면 ID는 추출, text는 prefix 제거된 내용만
-                        return { id: prefixMatch[1], text: prefixMatch[2] };
-                    }
-                    return { id: defaultId, text: opt };
-                }
-                if (typeof opt === 'object' && opt !== null) {
-                    const id = opt.id || defaultId;
-                    let text = opt.text || opt.label || String(opt.id || '');
-                    // 객체의 text도 prefix 중복 확인
-                    const textMatch = text.match(/^([A-Z])\.[\s]*(.*)/);
-                    if (textMatch) {
-                        text = textMatch[2];
-                    }
-                    return { id, text };
-                }
-                return { id: defaultId, text: String(opt) };
-            });
-        }
-        return [];
-    } catch {
-        return [];
-    }
-};
-
-/** 정답 텍스트 찾기 헬퍼 함수 */
-const getCorrectAnswerText = (
-    correctAnswer: string | null | undefined,
-    options: { id: string; text: string }[]
-): string => {
-    if (!correctAnswer) return correctAnswer ?? '';
-    // correctAnswer가 "A", "B" 같은 ID인 경우 해당 옵션의 text 반환
-    const option = options.find(opt => opt.id === correctAnswer);
-    if (option) return `${option.id}. ${option.text}`;
-    // ID로 못 찾으면 원본 값 반환
-    return correctAnswer;
-};
 
 export const QuizView: React.FC<QuizViewProps> = ({
     studyId,
@@ -91,12 +40,20 @@ export const QuizView: React.FC<QuizViewProps> = ({
 
     // 풀이 상태
     const [currentIndex, setCurrentIndex] = useState(0);
-    const [userAnswer, setUserAnswer] = useState('');
+    const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+    const [shortAnswer, setShortAnswer] = useState('');
     const [submitting, setSubmitting] = useState(false);
-    const [submitted, setSubmitted] = useState(false);
-    const [result, setResult] = useState<StudyQuizSubmitResponse | null>(null);
+    const [showResult, setShowResult] = useState(false);
     const [correctCount, setCorrectCount] = useState(0);
     const [isComplete, setIsComplete] = useState(false);
+
+    // 피드백 모달 상태
+    const [showFeedback, setShowFeedback] = useState(false);
+    const [feedbackData, setFeedbackData] = useState<{
+        isCorrect: boolean;
+        correctAnswer: string;
+        explanation?: string;
+    } | null>(null);
 
     // 응답 시간 측정
     const startTimeRef = useRef<number>(Date.now());
@@ -139,64 +96,103 @@ export const QuizView: React.FC<QuizViewProps> = ({
         startTimeRef.current = Date.now();
     }, [currentIndex]);
 
-    // 답안 제출
-    const handleSubmit = useCallback(async () => {
-        if (!quiz || !userAnswer.trim()) return;
+    // 객관식 답안 제출
+    const handleSubmitSingle = useCallback(async () => {
+        if (!quiz || selectedAnswer === null || submitting) return;
+
+        const question = quiz.questions[currentIndex];
+        const options = parseOptions(question.options);
+        const optionId = options[selectedAnswer]?.id || indexToOptionId(selectedAnswer);
+        const responseTimeMs = Date.now() - startTimeRef.current;
+
+        let isCorrect = false;
+        setSubmitting(true);
+        try {
+            const res = await studyQuizApi.submitAnswer(
+                studyId, quiz.id, question.id,
+                { userAnswer: optionId, responseTimeMs }
+            );
+            isCorrect = res.isCorrect;
+        } catch (err) {
+            console.error('답안 제출 실패:', err);
+            isCorrect = optionId.toUpperCase() === question.correctAnswer.trim().toUpperCase();
+        } finally {
+            setSubmitting(false);
+        }
+
+        if (isCorrect) setCorrectCount(prev => prev + 1);
+        setShowResult(true);
+
+        // 정답 텍스트 결정 (모달 표시용)
+        const correctOption = options.find(o => o.id === question.correctAnswer);
+        const correctAnswerText = correctOption?.text || question.correctAnswer;
+
+        setFeedbackData({
+            isCorrect,
+            correctAnswer: correctAnswerText,
+            explanation: question.explanation || undefined,
+        });
+        setShowFeedback(true);
+    }, [quiz, currentIndex, selectedAnswer, submitting, studyId]);
+
+    // 주관식 답안 제출
+    const handleSubmitShort = useCallback(async () => {
+        if (!quiz || !shortAnswer.trim() || submitting) return;
 
         const question = quiz.questions[currentIndex];
         const responseTimeMs = Date.now() - startTimeRef.current;
 
+        let isCorrect = false;
         setSubmitting(true);
         try {
             const res = await studyQuizApi.submitAnswer(
-                studyId,
-                quiz.id,
-                question.id,
-                { userAnswer, responseTimeMs }
+                studyId, quiz.id, question.id,
+                { userAnswer: shortAnswer.trim(), responseTimeMs }
             );
-            setResult(res);
-            setSubmitted(true);
-            if (res.isCorrect) {
-                setCorrectCount(prev => prev + 1);
-            }
+            isCorrect = res.isCorrect;
         } catch (err) {
             console.error('답안 제출 실패:', err);
-            // 제출 실패 시에도 로컬에서 정답 비교
-            setResult({
-                isCorrect: userAnswer.trim().toLowerCase() === question.correctAnswer.trim().toLowerCase(),
-                correctAnswer: question.correctAnswer,
-                explanation: question.explanation,
-            } as StudyQuizSubmitResponse);
-            setSubmitted(true);
-            if (userAnswer.trim().toLowerCase() === question.correctAnswer.trim().toLowerCase()) {
-                setCorrectCount(prev => prev + 1);
-            }
+            isCorrect = shortAnswer.trim().toLowerCase() === question.correctAnswer.trim().toLowerCase();
         } finally {
             setSubmitting(false);
         }
-    }, [quiz, currentIndex, userAnswer, studyId]);
 
-    // 다음 문제
-    const handleNext = useCallback(() => {
+        if (isCorrect) setCorrectCount(prev => prev + 1);
+        setShowResult(true);
+
+        setFeedbackData({
+            isCorrect,
+            correctAnswer: question.correctAnswer,
+            explanation: question.explanation || undefined,
+        });
+        setShowFeedback(true);
+    }, [quiz, currentIndex, shortAnswer, submitting, studyId]);
+
+    // 피드백 모달에서 다음 문제로 이동
+    const handleFeedbackContinue = useCallback(() => {
+        setShowFeedback(false);
+        setFeedbackData(null);
         if (!quiz) return;
         if (currentIndex + 1 >= quiz.questions.length) {
             setIsComplete(true);
         } else {
             setCurrentIndex(prev => prev + 1);
-            setUserAnswer('');
-            setSubmitted(false);
-            setResult(null);
+            setSelectedAnswer(null);
+            setShortAnswer('');
+            setShowResult(false);
         }
     }, [quiz, currentIndex]);
 
     // 다시 풀기
     const handleRetry = useCallback(() => {
         setCurrentIndex(0);
-        setUserAnswer('');
-        setSubmitted(false);
-        setResult(null);
+        setSelectedAnswer(null);
+        setShortAnswer('');
+        setShowResult(false);
         setCorrectCount(0);
         setIsComplete(false);
+        setShowFeedback(false);
+        setFeedbackData(null);
     }, []);
 
     // 로딩 상태
@@ -332,13 +328,13 @@ export const QuizView: React.FC<QuizViewProps> = ({
 
     // 문제 풀이 화면
     const currentQuestion = quiz.questions[currentIndex];
-    const options = parseOptions(currentQuestion.options);
+    const currentQuiz = transformStudyQuizQuestion(currentQuestion);
     const progress = ((currentIndex + 1) / quiz.questions.length) * 100;
 
     return (
         <div className={cn('space-y-4', className)}>
-            {/* 헤더: 퀴즈 제목 + 진행률 */}
             <div className="rounded-xl border border-border overflow-hidden">
+                {/* 헤더: 퀴즈 제목 + 진행률 */}
                 <div className={cn(
                     'px-5 py-4 border-b border-border',
                     'bg-background/50 flex items-center justify-between'
@@ -368,7 +364,7 @@ export const QuizView: React.FC<QuizViewProps> = ({
                     />
                 </div>
 
-                {/* 문제 영역 */}
+                {/* 문제 영역 - shared QuizForm 컴포넌트 활용 (해설은 모달에서 표시) */}
                 <div className="p-6">
                     <AnimatePresence mode="wait">
                         <motion.div
@@ -378,163 +374,40 @@ export const QuizView: React.FC<QuizViewProps> = ({
                             exit={{ opacity: 0, y: -10 }}
                             transition={{ duration: 0.2 }}
                         >
-                            {/* 문제 번호 + 유형 */}
-                            <div className="flex items-center gap-2 mb-4">
-                                <span className={cn(
-                                    'px-2.5 py-1 text-xs font-bold rounded-full',
-                                    'bg-primary text-white'
-                                )}>
-                                    Q{currentIndex + 1}
-                                </span>
-                                <span className="text-xs text-text-tertiary">
-                                    객관식
-                                </span>
-                            </div>
-
-                            {/* 문제 텍스트 */}
-                            <p className="text-base font-medium text-text-primary mb-6 leading-relaxed">
-                                {currentQuestion.questionText}
-                            </p>
-
-                            {/* 선택지 (객관식 전용) */}
-                            {options.length > 0 && (
-                                <div className="space-y-2.5">
-                                    {options.map(opt => {
-                                        const isSelected = userAnswer === opt.id;
-                                        const showCorrect = submitted && result && opt.id === result.correctAnswer;
-                                        const showWrong = submitted && result && isSelected && !result.isCorrect;
-
-                                        return (
-                                            <button
-                                                key={opt.id}
-                                                onClick={() => !submitted && setUserAnswer(opt.id)}
-                                                disabled={submitted}
-                                                className={cn(
-                                                    'w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-left transition-all',
-                                                    'border-2',
-                                                    !submitted && conditionalClasses.state(
-                                                        isSelected,
-                                                        'border-primary bg-primary/5',
-                                                        'border-border hover:border-primary/40 hover:bg-surface-hover'
-                                                    ),
-                                                    submitted && showCorrect && 'border-secondary bg-secondary/5',
-                                                    submitted && showWrong && 'border-error bg-error/5',
-                                                    submitted && !showCorrect && !showWrong && 'border-border opacity-50',
-                                                    submitted && 'cursor-default'
-                                                )}
-                                            >
-                                                {/* 아이콘 */}
-                                                {submitted && showCorrect ? (
-                                                    <CheckCircle2 size={18} className="text-secondary flex-shrink-0" />
-                                                ) : submitted && showWrong ? (
-                                                    <XCircle size={18} className="text-error flex-shrink-0" />
-                                                ) : (
-                                                    <Circle
-                                                        size={18}
-                                                        className={cn(
-                                                            'flex-shrink-0',
-                                                            isSelected ? 'text-primary' : 'text-text-tertiary'
-                                                        )}
-                                                    />
-                                                )}
-                                                <span className={cn(
-                                                    'text-sm font-medium',
-                                                    submitted && showCorrect && 'text-secondary-dark',
-                                                    submitted && showWrong && 'text-error',
-                                                    !submitted && isSelected && 'text-primary',
-                                                    !submitted && !isSelected && 'text-text-secondary',
-                                                    submitted && !showCorrect && !showWrong && 'text-text-tertiary'
-                                                )}>
-                                                    {opt.id}. {opt.text}
-                                                </span>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
+                            {currentQuestion.questionType === 'MULTIPLE_CHOICE' ? (
+                                <QuizSingleChoice
+                                    quiz={{ ...currentQuiz, explanation: '' }}
+                                    questionNumber={currentIndex + 1}
+                                    selectedAnswer={selectedAnswer}
+                                    showResult={showResult}
+                                    onSelectAnswer={setSelectedAnswer}
+                                    onSubmit={handleSubmitSingle}
+                                />
+                            ) : (
+                                <QuizShortAnswer
+                                    quiz={{ ...currentQuiz, explanation: '' }}
+                                    questionNumber={currentIndex + 1}
+                                    userAnswer={shortAnswer}
+                                    showResult={showResult}
+                                    onChangeAnswer={(val) => setShortAnswer(val || '')}
+                                    onSubmit={handleSubmitShort}
+                                />
                             )}
-
-                            {/* 피드백 영역 */}
-                            <AnimatePresence>
-                                {submitted && result && (
-                                    <motion.div
-                                        initial={{ opacity: 0, height: 0 }}
-                                        animate={{ opacity: 1, height: 'auto' }}
-                                        exit={{ opacity: 0, height: 0 }}
-                                        className="mt-5"
-                                    >
-                                        <div className={cn(
-                                            'rounded-xl p-4 border',
-                                            result.isCorrect
-                                                ? 'bg-secondary/5 border-secondary/30'
-                                                : 'bg-error/5 border-error/30'
-                                        )}>
-                                            <div className="flex items-center gap-2 mb-2">
-                                                {result.isCorrect ? (
-                                                    <CheckCircle2 size={18} className="text-secondary" />
-                                                ) : (
-                                                    <XCircle size={18} className="text-error" />
-                                                )}
-                                                <span className={cn(
-                                                    'text-sm font-semibold',
-                                                    result.isCorrect ? 'text-secondary-dark' : 'text-error'
-                                                )}>
-                                                    {result.isCorrect ? '정답입니다!' : '오답입니다'}
-                                                </span>
-                                            </div>
-                                            {!result.isCorrect && (
-                                                <p className="text-sm text-text-secondary mb-1">
-                                                    정답: <span className="font-medium text-secondary">
-                                                        {getCorrectAnswerText(result.correctAnswer, options)}
-                                                    </span>
-                                                </p>
-                                            )}
-                                            {result.explanation && (
-                                                <p className="text-sm text-text-secondary mt-2">
-                                                    {result.explanation}
-                                                </p>
-                                            )}
-                                        </div>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-
-                            {/* 버튼 영역 */}
-                            <div className="mt-6 flex justify-end">
-                                {!submitted ? (
-                                    <button
-                                        onClick={handleSubmit}
-                                        disabled={!userAnswer.trim() || submitting}
-                                        className={cn(
-                                            'inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-lg transition-colors',
-                                            'bg-primary text-white',
-                                            'hover:bg-primary-dark',
-                                            'disabled:opacity-50 disabled:cursor-not-allowed'
-                                        )}
-                                    >
-                                        {submitting ? (
-                                            <Spinner size="sm" />
-                                        ) : (
-                                            <Send size={15} />
-                                        )}
-                                        제출하기
-                                    </button>
-                                ) : (
-                                    <button
-                                        onClick={handleNext}
-                                        className={cn(
-                                            'inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-lg transition-colors',
-                                            'bg-primary text-white hover:bg-primary-dark'
-                                        )}
-                                    >
-                                        {currentIndex + 1 >= quiz.questions.length ? '결과 보기' : '다음 문제'}
-                                        <ChevronRight size={15} />
-                                    </button>
-                                )}
-                            </div>
                         </motion.div>
                     </AnimatePresence>
                 </div>
             </div>
+
+            {/* 피드백 모달 */}
+            {feedbackData && (
+                <FeedbackModal
+                    isOpen={showFeedback}
+                    isCorrect={feedbackData.isCorrect}
+                    correctAnswer={feedbackData.correctAnswer}
+                    explanation={feedbackData.explanation}
+                    onContinue={handleFeedbackContinue}
+                />
+            )}
         </div>
     );
 };

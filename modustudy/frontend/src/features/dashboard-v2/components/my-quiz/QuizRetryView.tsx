@@ -5,6 +5,7 @@ import { cn } from '@/shared/utils/cn';
 import {
   QuizSingleChoice,
   QuizMultipleChoice,
+  QuizShortAnswer,
 } from '@/shared/components';
 import { transformToQuizQuestion } from '@/shared/utils/quizUtils';
 import { QuizRetryViewProps } from './types';
@@ -22,11 +23,14 @@ export const QuizRetryView: React.FC<QuizRetryViewProps> = React.memo(
     selectedReviewItem,
     selectedAnswer,
     selectedAnswers,
+    shortAnswer,
     showResult,
     isCorrectAnswer,
     onSelectAnswer,
     onToggleAnswer,
+    onChangeShortAnswer,
     onSubmitMultiple,
+    onSubmitShort,
     onFinishRetry,
   }) => {
     const questionType = selectedReviewItem.question.questionType;
@@ -66,7 +70,15 @@ export const QuizRetryView: React.FC<QuizRetryViewProps> = React.memo(
                 />
               )}
 
-              {/* 주관식 문제는 더 이상 지원하지 않음 - 객관식 전용 시스템 */}
+              {questionType === 'SHORT_ANSWER' && (
+                <QuizShortAnswer
+                  quiz={quizData}
+                  userAnswer={shortAnswer}
+                  showResult={showResult}
+                  onChangeAnswer={onChangeShortAnswer}
+                  onSubmit={onSubmitShort}
+                />
+              )}
 
               {/* 결과 표시 */}
               {showResult && (

@@ -5,7 +5,7 @@ export * from './types';
 export * from './utils';
 
 // Hooks
-export { useMyQuiz, useQuizRetryActions } from './useMyQuiz';
+export { useMyQuiz } from './useMyQuiz';
 
 // Components
 export { ReviewItemList } from './ReviewItemList';

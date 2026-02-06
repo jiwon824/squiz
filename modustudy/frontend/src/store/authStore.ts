@@ -8,7 +8,7 @@ interface User {
     email: string;
     avatar?: string;
     bio?: string;
-    loginProvider?: 'KAKAO' | 'GOOGLE' | 'NAVER';
+    loginProvider?: 'KAKAO' | 'GOOGLE' | 'NAVER' | 'EMAIL';
     role?: 'USER' | 'ADMIN';
 }
 

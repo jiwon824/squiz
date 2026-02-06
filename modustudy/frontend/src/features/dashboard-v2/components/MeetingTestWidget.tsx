@@ -7,25 +7,32 @@ import {
     ClipboardCheck,
     Calendar,
     Play,
-    CheckCircle2,
     Circle,
-    ChevronRight,
-    XCircle,
-    Send,
     RotateCcw,
     Trophy,
 } from 'lucide-react';
 import { Spinner } from '@/shared/components/Spinner';
-import { cn, conditionalClasses } from '@/shared/utils/cn';
+import { cn } from '@/shared/utils/cn';
 import { WidgetHeader, WidgetContainer } from '@/shared/components/layouts';
+import {
+    QuizSingleChoice,
+    QuizShortAnswer,
+    QuizProgress,
+} from '@/shared/components';
+import type { QuizQuestion } from '@/shared/components/QuizForm';
 import { studyApi } from '@/api/endpoints/studyApi';
 import { meetingApi } from '@/features/meeting/services/meetingApi';
 import {
     studyQuizApi,
     type StudyQuizListItem,
     type StudyQuizDetail,
-    type StudyQuizSubmitResponse,
+    type StudyQuizQuestion,
 } from '@/api/endpoints/studyQuizApi';
+import {
+    parseOptions as parseQuizOptions,
+    indexToOptionId,
+    normalizeCorrectAnswer,
+} from '@/shared/utils/quizUtils';
 
 // 위젯용 퀴즈 아이템
 interface MeetingQuizItem {
@@ -36,53 +43,24 @@ interface MeetingQuizItem {
 
 type ViewMode = 'list' | 'quiz';
 
-/** options JSON 문자열을 파싱 */
-const parseOptions = (optionsStr: string | null): { id: string; text: string }[] => {
-    if (!optionsStr) return [];
-    try {
-        const parsed = JSON.parse(optionsStr);
-        if (Array.isArray(parsed)) {
-            return parsed.map((opt, idx) => {
-                const defaultId = String.fromCharCode(65 + idx);
-                if (typeof opt === 'string') {
-                    // 이미 "A. " 또는 "A." 형태의 prefix가 있는지 확인
-                    const prefixMatch = opt.match(/^([A-Z])\.[\s]*(.*)/);
-                    if (prefixMatch) {
-                        // prefix가 있으면 ID는 추출, text는 prefix 제거된 내용만
-                        return { id: prefixMatch[1], text: prefixMatch[2] };
-                    }
-                    return { id: defaultId, text: opt };
-                }
-                if (typeof opt === 'object' && opt !== null) {
-                    const id = opt.id || defaultId;
-                    let text = opt.text || opt.label || String(opt.id || '');
-                    // 객체의 text도 prefix 중복 확인
-                    const textMatch = text.match(/^([A-Z])\.[\s]*(.*)/);
-                    if (textMatch) {
-                        text = textMatch[2];
-                    }
-                    return { id, text };
-                }
-                return { id: defaultId, text: String(opt) };
-            });
-        }
-        return [];
-    } catch {
-        return [];
-    }
-};
+/** StudyQuizQuestion → QuizForm용 QuizQuestion으로 변환 */
+const transformStudyQuizToQuizQuestion = (question: StudyQuizQuestion): QuizQuestion => {
+    const isMultipleChoice = question.questionType === 'MULTIPLE_CHOICE';
+    const parsedOptions = parseQuizOptions(question.options);
 
-/** 정답 텍스트 찾기 헬퍼 함수 */
-const getCorrectAnswerText = (
-    correctAnswer: string | null | undefined,
-    options: { id: string; text: string }[]
-): string => {
-    if (!correctAnswer) return correctAnswer ?? '';
-    // correctAnswer가 "A", "B" 같은 ID인 경우 해당 옵션의 text 반환
-    const option = options.find(opt => opt.id === correctAnswer);
-    if (option) return `${option.id}. ${option.text}`;
-    // ID로 못 찾으면 원본 값 반환
-    return correctAnswer;
+    // 객관식: "A" 같은 정답을 0-based 인덱스로 변환, 주관식: 원본 문자열 유지
+    const correctAnswer = isMultipleChoice
+        ? (normalizeCorrectAnswer(question.correctAnswer)[0] ?? question.correctAnswer)
+        : question.correctAnswer;
+
+    return {
+        id: question.id,
+        type: isMultipleChoice ? 'multiple' : 'short',
+        question: question.questionText,
+        options: isMultipleChoice ? parsedOptions.map(o => o.text) : undefined,
+        correctAnswer,
+        explanation: question.explanation || '',
+    };
 };
 
 export const MeetingTestWidget: React.FC = () => {
@@ -96,10 +74,9 @@ export const MeetingTestWidget: React.FC = () => {
     const [selectedItem, setSelectedItem] = useState<MeetingQuizItem | null>(null);
     const [quizDetail, setQuizDetail] = useState<StudyQuizDetail | null>(null);
     const [currentIndex, setCurrentIndex] = useState(0);
-    const [userAnswer, setUserAnswer] = useState('');
-    const [submitting, setSubmitting] = useState(false);
-    const [submitted, setSubmitted] = useState(false);
-    const [result, setResult] = useState<StudyQuizSubmitResponse | null>(null);
+    const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+    const [shortAnswer, setShortAnswer] = useState('');
+    const [showResult, setShowResult] = useState(false);
     const [correctCount, setCorrectCount] = useState(0);
     const [isComplete, setIsComplete] = useState(false);
     const [startTime, setStartTime] = useState(Date.now());
@@ -165,9 +142,9 @@ export const MeetingTestWidget: React.FC = () => {
             setSelectedItem(item);
             setViewMode('quiz');
             setCurrentIndex(0);
-            setUserAnswer('');
-            setSubmitted(false);
-            setResult(null);
+            setSelectedAnswer(null);
+            setShortAnswer('');
+            setShowResult(false);
             setCorrectCount(0);
             setIsComplete(false);
             setStartTime(Date.now());
@@ -184,41 +161,64 @@ export const MeetingTestWidget: React.FC = () => {
         setQuizDetail(null);
     };
 
-    // 답안 제출
-    const handleSubmit = useCallback(async () => {
-        if (!quizDetail || !selectedItem || !userAnswer.trim()) return;
+    // 객관식 답안 제출
+    const handleSubmitMultiple = useCallback(async () => {
+        if (!quizDetail || !selectedItem || selectedAnswer === null) return;
+        const question = quizDetail.questions[currentIndex];
+        const options = parseQuizOptions(question.options);
+        const responseTimeMs = Date.now() - startTime;
+
+        // 인덱스를 옵션 ID로 변환 (0 → "A", 1 → "B", ...)
+        const optionId = options[selectedAnswer]?.id || indexToOptionId(selectedAnswer);
+
+        let isCorrect = false;
+        try {
+            const res = await studyQuizApi.submitAnswer(
+                selectedItem.studyId, quizDetail.id, question.id,
+                { userAnswer: optionId, responseTimeMs }
+            );
+            isCorrect = res.isCorrect;
+        } catch {
+            // 제출 실패 시 로컬 비교
+            const correctIdx = normalizeCorrectAnswer(question.correctAnswer);
+            isCorrect = correctIdx.includes(selectedAnswer);
+        }
+
+        if (isCorrect) setCorrectCount(prev => prev + 1);
+        setShowResult(true);
+    }, [quizDetail, selectedItem, currentIndex, selectedAnswer, startTime]);
+
+    // 주관식 답안 제출
+    const handleSubmitShort = useCallback(async () => {
+        if (!quizDetail || !selectedItem || !shortAnswer.trim()) return;
         const question = quizDetail.questions[currentIndex];
         const responseTimeMs = Date.now() - startTime;
 
-        setSubmitting(true);
+        let isCorrect = false;
         try {
             const res = await studyQuizApi.submitAnswer(
-                selectedItem.studyId, quizDetail.id, question.id, { userAnswer, responseTimeMs }
+                selectedItem.studyId, quizDetail.id, question.id,
+                { userAnswer: shortAnswer, responseTimeMs }
             );
-            setResult(res);
-            setSubmitted(true);
-            if (res.isCorrect) setCorrectCount(prev => prev + 1);
+            isCorrect = res.isCorrect;
         } catch {
-            // 제출 실패 시 로컬 비교
-            const isCorrect = userAnswer.trim().toLowerCase() === question.correctAnswer.trim().toLowerCase();
-            setResult({ isCorrect, correctAnswer: question.correctAnswer, explanation: question.explanation } as StudyQuizSubmitResponse);
-            setSubmitted(true);
-            if (isCorrect) setCorrectCount(prev => prev + 1);
-        } finally {
-            setSubmitting(false);
+            isCorrect = shortAnswer.trim().toLowerCase() === question.correctAnswer.trim().toLowerCase();
         }
-    }, [quizDetail, selectedItem, currentIndex, userAnswer, startTime]);
 
-    // 다음 문제
+        if (isCorrect) setCorrectCount(prev => prev + 1);
+        setShowResult(true);
+    }, [quizDetail, selectedItem, currentIndex, shortAnswer, startTime]);
+
+    // 다음 문제로 이동
     const handleNext = useCallback(() => {
         if (!quizDetail) return;
         if (currentIndex + 1 >= quizDetail.questions.length) {
             setIsComplete(true);
         } else {
             setCurrentIndex(prev => prev + 1);
-            setUserAnswer('');
-            setSubmitted(false);
-            setResult(null);
+            setSelectedAnswer(null);
+            setShortAnswer('');
+            setShowResult(false);
             setStartTime(Date.now());
         }
     }, [quizDetail, currentIndex]);
@@ -226,9 +226,9 @@ export const MeetingTestWidget: React.FC = () => {
     // 다시 풀기
     const handleRetry = useCallback(() => {
         setCurrentIndex(0);
-        setUserAnswer('');
-        setSubmitted(false);
-        setResult(null);
+        setSelectedAnswer(null);
+        setShortAnswer('');
+        setShowResult(false);
         setCorrectCount(0);
         setIsComplete(false);
         setStartTime(Date.now());
@@ -265,7 +265,7 @@ export const MeetingTestWidget: React.FC = () => {
                 rightActions={
                     viewMode === 'quiz' && correctCount > 0 ? (
                         <div className="text-sm font-bold text-text-primary">
-                            {correctCount} / {currentIndex + (submitted ? 1 : 0)}
+                            {correctCount} / {currentIndex + (showResult ? 1 : 0)}
                         </div>
                     ) : undefined
                 }
@@ -352,174 +352,41 @@ export const MeetingTestWidget: React.FC = () => {
                         >
                             {(() => {
                                 const question = quizDetail.questions[currentIndex];
-                                const options = parseOptions(question.options);
-                                const progress = ((currentIndex + 1) / quizDetail.questions.length) * 100;
+                                const currentQuiz = transformStudyQuizToQuizQuestion(question);
 
                                 return (
                                     <>
                                         {/* 진행률 */}
-                                        <div className="w-full bg-gray-100 rounded-full h-1.5 mb-5">
-                                            <motion.div
-                                                className="h-1.5 bg-accent rounded-full"
-                                                initial={{ width: 0 }}
-                                                animate={{ width: `${progress}%` }}
-                                                transition={{ duration: 0.3 }}
+                                        <QuizProgress
+                                            current={currentIndex + 1}
+                                            total={quizDetail.questions.length}
+                                            className="pt-0 border-t-0 mb-4"
+                                        />
+
+                                        {/* 문제 풀이 - QuizForm 공유 컴포넌트 사용 (인라인 해설) */}
+                                        {question.questionType === 'MULTIPLE_CHOICE' ? (
+                                            <QuizSingleChoice
+                                                quiz={currentQuiz}
+                                                questionNumber={currentIndex + 1}
+                                                selectedAnswer={selectedAnswer}
+                                                showResult={showResult}
+                                                onSelectAnswer={setSelectedAnswer}
+                                                onSubmit={handleSubmitMultiple}
+                                                onNext={handleNext}
+                                                isLastQuestion={currentIndex + 1 >= quizDetail.questions.length}
                                             />
-                                        </div>
-
-                                        {/* 문제 번호 */}
-                                        <div className="flex items-center gap-2 mb-3">
-                                            <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-accent text-white">
-                                                Q{currentIndex + 1}
-                                            </span>
-                                            <span className="text-xs text-text-tertiary">
-                                                {question.questionType === 'MULTIPLE_CHOICE' ? '객관식' : '단답형'}
-                                            </span>
-                                            <span className="text-xs text-text-tertiary ml-auto">
-                                                {currentIndex + 1} / {quizDetail.questions.length}
-                                            </span>
-                                        </div>
-
-                                        {/* 문제 텍스트 */}
-                                        <p className="text-sm font-medium text-text-primary mb-4 leading-relaxed">
-                                            {question.questionText}
-                                        </p>
-
-                                        {/* 선택지 / 입력 */}
-                                        {question.questionType === 'MULTIPLE_CHOICE' && options.length > 0 ? (
-                                            <div className="space-y-2">
-                                                {options.map(opt => {
-                                                    const isSelected = userAnswer === opt.id;
-                                                    const showCorrect = submitted && result && opt.id === result.correctAnswer;
-                                                    const showWrong = submitted && result && isSelected && !result.isCorrect;
-
-                                                    return (
-                                                        <button
-                                                            key={opt.id}
-                                                            onClick={() => !submitted && setUserAnswer(opt.id)}
-                                                            disabled={submitted}
-                                                            className={cn(
-                                                                'w-full flex items-center gap-2.5 px-3.5 py-3 rounded-xl text-left transition-all',
-                                                                'border-2 text-sm',
-                                                                !submitted && conditionalClasses.state(
-                                                                    isSelected,
-                                                                    'border-accent bg-accent/5',
-                                                                    'border-gray-100 hover:border-accent/40'
-                                                                ),
-                                                                submitted && showCorrect && 'border-secondary bg-secondary/5',
-                                                                submitted && showWrong && 'border-error bg-error/5',
-                                                                submitted && !showCorrect && !showWrong && 'border-gray-100 opacity-50',
-                                                                submitted && 'cursor-default'
-                                                            )}
-                                                        >
-                                                            {submitted && showCorrect ? (
-                                                                <CheckCircle2 size={16} className="text-secondary flex-shrink-0" />
-                                                            ) : submitted && showWrong ? (
-                                                                <XCircle size={16} className="text-error flex-shrink-0" />
-                                                            ) : (
-                                                                <Circle size={16} className={cn('flex-shrink-0', isSelected ? 'text-accent' : 'text-gray-300')} />
-                                                            )}
-                                                            <span className={cn(
-                                                                'font-medium',
-                                                                submitted && showCorrect && 'text-secondary-dark',
-                                                                submitted && showWrong && 'text-error',
-                                                                !submitted && isSelected && 'text-accent',
-                                                                !submitted && !isSelected && 'text-text-secondary'
-                                                            )}>
-                                                                {opt.id}. {opt.text}
-                                                            </span>
-                                                        </button>
-                                                    );
-                                                })}
-                                            </div>
                                         ) : (
-                                            <input
-                                                type="text"
-                                                value={userAnswer}
-                                                onChange={e => !submitted && setUserAnswer(e.target.value)}
-                                                onKeyDown={e => e.key === 'Enter' && !submitted && userAnswer.trim() && handleSubmit()}
-                                                disabled={submitted}
-                                                placeholder="답을 입력하세요..."
-                                                className={cn(
-                                                    'w-full px-3.5 py-2.5 text-sm rounded-xl transition-all',
-                                                    'border-2 border-gray-200 bg-gray-50',
-                                                    'focus:border-accent focus:outline-none',
-                                                    submitted && 'cursor-default opacity-80'
-                                                )}
+                                            <QuizShortAnswer
+                                                quiz={currentQuiz}
+                                                questionNumber={currentIndex + 1}
+                                                userAnswer={shortAnswer}
+                                                showResult={showResult}
+                                                onChangeAnswer={(val) => setShortAnswer(val || '')}
+                                                onSubmit={handleSubmitShort}
+                                                onNext={handleNext}
+                                                isLastQuestion={currentIndex + 1 >= quizDetail.questions.length}
                                             />
                                         )}
-
-                                        {/* 피드백 */}
-                                        <AnimatePresence>
-                                            {submitted && result && (
-                                                <motion.div
-                                                    initial={{ opacity: 0, height: 0 }}
-                                                    animate={{ opacity: 1, height: 'auto' }}
-                                                    exit={{ opacity: 0, height: 0 }}
-                                                    className="mt-4"
-                                                >
-                                                    <div className={cn(
-                                                        'rounded-xl p-3 border text-sm',
-                                                        result.isCorrect
-                                                            ? 'bg-secondary/5 border-secondary/30'
-                                                            : 'bg-error/5 border-error/30'
-                                                    )}>
-                                                        <div className="flex items-center gap-2 mb-1">
-                                                            {result.isCorrect ? (
-                                                                <CheckCircle2 size={16} className="text-secondary" />
-                                                            ) : (
-                                                                <XCircle size={16} className="text-error" />
-                                                            )}
-                                                            <span className={cn(
-                                                                'font-semibold',
-                                                                result.isCorrect ? 'text-secondary-dark' : 'text-error'
-                                                            )}>
-                                                                {result.isCorrect ? '정답!' : '오답'}
-                                                            </span>
-                                                        </div>
-                                                        {!result.isCorrect && (
-                                                            <p className="text-text-secondary ml-6">
-                                                                정답: <span className="font-medium text-secondary">
-                                                                    {getCorrectAnswerText(result.correctAnswer, options)}
-                                                                </span>
-                                                            </p>
-                                                        )}
-                                                        {result.explanation && (
-                                                            <p className="text-text-secondary ml-6 mt-1">{result.explanation}</p>
-                                                        )}
-                                                    </div>
-                                                </motion.div>
-                                            )}
-                                        </AnimatePresence>
-
-                                        {/* 버튼 */}
-                                        <div className="mt-5 flex justify-end">
-                                            {!submitted ? (
-                                                <button
-                                                    onClick={handleSubmit}
-                                                    disabled={!userAnswer.trim() || submitting}
-                                                    className={cn(
-                                                        'inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-colors',
-                                                        'bg-accent text-white hover:bg-accent/90',
-                                                        'disabled:opacity-50 disabled:cursor-not-allowed'
-                                                    )}
-                                                >
-                                                    {submitting ? <Spinner size="sm" /> : <Send size={14} />}
-                                                    제출
-                                                </button>
-                                            ) : (
-                                                <button
-                                                    onClick={handleNext}
-                                                    className={cn(
-                                                        'inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-colors',
-                                                        'bg-accent text-white hover:bg-accent/90'
-                                                    )}
-                                                >
-                                                    {currentIndex + 1 >= quizDetail.questions.length ? '결과 보기' : '다음'}
-                                                    <ChevronRight size={14} />
-                                                </button>
-                                            )}
-                                        </div>
                                     </>
                                 );
                             })()}
