@@ -292,7 +292,7 @@ export const MeetingTestPage: React.FC = () => {
                 <PageNavHeader
                     title="미팅 퀴즈"
                     breadcrumbs={[
-                        { label: '대시보드', path: '/dashboard' },
+                        { label: '마이홈', path: '/dashboard' },
                         { label: '미팅 퀴즈' },
                     ]}
                     onBack={() => navigate(-1)}

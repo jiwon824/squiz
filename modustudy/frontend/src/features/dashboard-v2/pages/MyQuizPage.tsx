@@ -148,7 +148,7 @@ const PageHeader: React.FC<PageHeaderProps> = React.memo(
           onClick={onNavigateDashboard}
           className="text-text-tertiary hover:text-primary transition-colors"
         >
-          대시보드
+          마이홈
         </button>
         <ChevronRight size={14} className="text-text-tertiary" />
         <button

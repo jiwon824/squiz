@@ -6,7 +6,7 @@ import { PostIt, getPostItTheme, PostItColor } from '@/shared/components/layouts
 import { STTReportWidget } from './STTReportWidget';
 import { MeetingTestWidget } from './MeetingTestWidget';
 import { MyQuizWidget } from './MyQuizWidget';
-import { LearningArchiveWidget } from './LearningArchiveWidget';
+
 import { TodayGoalsCard } from './TodayGoalsCard';
 import { MyCreatedStudiesWidget } from './MyCreatedStudiesWidget';
 import { MyApplicationsWidget } from './MyApplicationsWidget';
@@ -283,8 +283,6 @@ export const UserDashboardV2: React.FC = () => {
                     <MyQuizWidget />
                 </div>
 
-                {/* 학습 보관함 */}
-                <LearningArchiveWidget />
             </div>
         </div>
     );

@@ -181,7 +181,7 @@ export const LearningArchivePage: React.FC = () => {
                 <PageNavHeader
                     title={selectedArchive ? selectedArchive.title : '학습 보관함'}
                     breadcrumbs={[
-                        { label: '대시보드', path: '/dashboard' },
+                        { label: '마이홈', path: '/dashboard' },
                         ...(selectedArchive
                             ? [
                                 { label: '학습 보관함', onClick: () => setSelectedArchive(null) },
