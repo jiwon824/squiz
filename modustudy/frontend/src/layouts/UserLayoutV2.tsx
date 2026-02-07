@@ -40,7 +40,7 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEntering
     const setActiveRightTab = useUIStore((state) => state.setActiveRightTab);
     const showToast = useUIStore((state) => state.showToast);
     const { user, logout, isLoggedIn } = useAuthStore();
-    const { notifications, unreadCount, fetchNotifications, fetchUnreadCount, markNotificationAsRead } = useNotificationStore();
+    const { notifications, unreadCount, fetchNotifications, fetchUnreadCount, markNotificationAsRead, markAllNotificationsAsRead } = useNotificationStore();
     const { stats, fetchStats, isLevelUpModalOpen, levelUpInfo, closeLevelUpModal } = useGamificationStore();
     const [windowWidth, setWindowWidth] = useState(window.innerWidth);
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
@@ -304,7 +304,15 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEntering
                                     <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                                         <h6 className="text-base font-semibold text-gray-900">알림</h6>
                                         {unreadCount > 0 && (
-                                            <span className="text-xs text-gray-500">{unreadCount}개의 새 알림</span>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    markAllNotificationsAsRead();
+                                                }}
+                                                className="text-xs text-study-blue hover:text-study-blue-dark font-medium"
+                                            >
+                                                전체 읽기
+                                            </button>
                                         )}
                                     </div>
 
