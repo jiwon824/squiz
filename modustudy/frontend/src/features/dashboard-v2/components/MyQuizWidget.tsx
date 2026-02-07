@@ -391,32 +391,30 @@ const ReviewItemList: React.FC<ReviewItemListProps> = ({ items, onSelect }) => {
                             key={item.reviewItemId}
                             onClick={() => onSelect(item)}
                             className={cn(
-                                'w-full p-4 rounded-xl bg-white text-left transition-all',
-                                'shadow-[0_4px_15px_rgba(0,0,0,0.05)]',
-                                'hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)] hover:bg-gray-50'
+                                'w-full flex items-center justify-between text-left group',
+                                'rounded-xl p-3 transition-all duration-200',
+                                'hover:bg-white hover:shadow-sm border border-transparent hover:border-blue-100'
                             )}
                         >
-                            <div className="flex items-start justify-between gap-3">
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <span className={cn('px-2 py-0.5 rounded text-xs font-medium', diffColor)}>
-                                            {diffLabel}
-                                        </span>
-                                        <span className="text-xs text-text-tertiary bg-gray-100 px-2 py-0.5 rounded">
-                                            {item.question?.category || '일반'}
-                                        </span>
-                                        <span className="text-xs text-error font-medium flex items-center gap-1 ml-auto sm:ml-2">
-                                            <Clock size={12} />
-                                            {overdueLabel}
-                                        </span>
-                                    </div>
-                                    <h4 className="font-medium text-text-primary line-clamp-2 text-sm leading-relaxed">
-                                        {item.question?.questionText || '문제를 불러올 수 없습니다'}
-                                    </h4>
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <span className={cn('px-2 py-0.5 rounded text-xs font-medium', diffColor)}>
+                                        {diffLabel}
+                                    </span>
+                                    <span className="text-xs text-text-tertiary bg-gray-100 px-2 py-0.5 rounded">
+                                        {item.question?.category || '일반'}
+                                    </span>
+                                    <span className="text-xs text-error font-medium flex items-center gap-1 ml-auto sm:ml-2">
+                                        <Clock size={12} />
+                                        {overdueLabel}
+                                    </span>
                                 </div>
-                                <div className="flex-shrink-0 self-center">
-                                    <Play size={18} className="text-primary/70" />
-                                </div>
+                                <h4 className="font-medium text-text-primary line-clamp-2 text-sm leading-relaxed">
+                                    {item.question?.questionText || '문제를 불러올 수 없습니다'}
+                                </h4>
+                            </div>
+                            <div className="flex-shrink-0 self-center pl-3">
+                                <Play size={18} className="text-primary/70 group-hover:text-primary transition-colors" />
                             </div>
                         </button>
                     );
@@ -424,7 +422,7 @@ const ReviewItemList: React.FC<ReviewItemListProps> = ({ items, onSelect }) => {
             </div>
 
             {showPagination && (
-                <nav className="flex items-center justify-center gap-1 mt-4 pt-4 border-t border-gray-100">
+                <nav className="flex items-center justify-center gap-1 mt-2 pt-2 border-t border-gray-100">
                     <button
                         type="button"
                         onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
