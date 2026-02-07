@@ -21,8 +21,8 @@ import java.util.stream.Collectors;
  * 여러 도메인에서 동일한 채점 기준을 적용하기 위해 분리됨.
  * </p>
  */
-@Slf4j
-public class QuizGradingUtils {
+ @Slf4j
+ public class QuizGradingUtils {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -84,7 +84,6 @@ public class QuizGradingUtils {
             String normalizedUserAnswer = trimmedUserAnswer.toLowerCase().replaceAll("\\s+", " ");
             String normalizedCorrect = normalizedCorrectAnswer.toLowerCase().replaceAll("\\s+", " ");
             if (normalizedUserAnswer.contains(normalizedCorrect)) {
-                log.debug("서술형 포함 채점: '{}' 포함 '{}' → 정답", normalizedCorrect, normalizedUserAnswer);
                 return true;
             }
         }
@@ -123,16 +122,13 @@ public class QuizGradingUtils {
                 }
                 // 키워드가 사용자 답변에 포함되어 있는지 확인
                 if (!normalizedUserAnswer.contains(keyword)) {
-                    log.debug("키워드 '{}' 미포함, 오답 처리", keyword);
                     return false;
                 }
             }
 
-            log.debug("모든 키워드 포함, 정답 처리");
             return true;
 
         } catch (Exception e) {
-            log.warn("키워드 JSON 파싱 실패: {}", keywordsJson, e);
             return false;
         }
     }
@@ -233,8 +229,7 @@ public class QuizGradingUtils {
                     return sb.toString();
                 }
             } catch (Exception e) {
-                log.warn("correct_answer JSON parsing failed: {}", trimmed);
-            }
+}
         }
 
         // JSON 문자열 형식인 경우: "B" (따옴표로 감싸진 경우)
@@ -291,8 +286,7 @@ public class QuizGradingUtils {
                 index++;
             }
         } catch (Exception e) {
-            log.warn("Options JSON parsing failed: {}", optionsJson);
-        }
+}
 
         return null;
     }
@@ -316,3 +310,4 @@ public class QuizGradingUtils {
                 .collect(Collectors.toSet());
     }
 }
+

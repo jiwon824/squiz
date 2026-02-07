@@ -28,10 +28,10 @@ import java.util.Map;
  * 스터디 퀴즈 서비스
  * 미팅 AI 처리 결과에서 퀴즈를 저장
  */
-@Service
-@RequiredArgsConstructor
-@Transactional(readOnly = true)
-public class StudyQuizService {
+ @Service
+ @RequiredArgsConstructor
+ @Transactional(readOnly = true)
+ public class StudyQuizService {
 
     private static final Logger log = LoggerFactory.getLogger(StudyQuizService.class);
 
@@ -54,13 +54,11 @@ public class StudyQuizService {
     @Transactional
     public StudyQuiz saveQuizFromMeeting(Long studyId, Long sessionId, Long meetingId, String title, String quizRaw) {
         if (quizRaw == null || quizRaw.isBlank()) {
-            log.warn("퀴즈 데이터가 비어있음 - meetingId: {}", meetingId);
             return null;
         }
 
         // 이미 해당 미팅에서 생성된 퀴즈가 있는지 확인
         if (studyQuizRepository.existsBySourceTypeAndSourceId(StudyQuiz.SourceType.MEETING, meetingId)) {
-            log.info("이미 해당 미팅에서 생성된 퀴즈가 존재함 - meetingId: {}", meetingId);
             return studyQuizRepository.findBySourceTypeAndSourceId(StudyQuiz.SourceType.MEETING, meetingId)
                     .orElse(null);
         }
@@ -69,7 +67,6 @@ public class StudyQuizService {
             // 퀴즈 파싱
             List<Map<String, Object>> questions = parseQuizJson(quizRaw);
             if (questions.isEmpty()) {
-                log.warn("파싱된 퀴즈 문제가 없음 - meetingId: {}", meetingId);
                 return null;
             }
 
@@ -104,13 +101,9 @@ public class StudyQuizService {
             }
 
             StudyQuiz saved = studyQuizRepository.save(quiz);
-            log.info("미팅 기반 퀴즈 저장 완료 - quizId: {}, meetingId: {}, questions: {} (객관식만)",
-                    saved.getId(), meetingId, addedCount);
-
             return saved;
 
         } catch (Exception e) {
-            log.error("퀴즈 저장 실패 - meetingId: {}, error: {}", meetingId, e.getMessage());
             return null;
         }
     }
@@ -140,7 +133,6 @@ public class StudyQuizService {
             return objectMapper.readValue(jsonText, new TypeReference<>() {});
 
         } catch (Exception e) {
-            log.warn("퀴즈 JSON 파싱 실패: {}", e.getMessage());
             return List.of();
         }
     }
@@ -166,8 +158,7 @@ public class StudyQuizService {
                     optionsJson = (String) optionsObj;
                 }
             } catch (Exception e) {
-                log.warn("options JSON 변환 실패: {}", e.getMessage());
-            }
+}
         }
 
         // answer_keywords 처리 (서술형 채점용)
@@ -181,8 +172,7 @@ public class StudyQuizService {
                     answerKeywordsJson = (String) keywordsObj;
                 }
             } catch (Exception e) {
-                log.warn("answer_keywords JSON 변환 실패: {}", e.getMessage());
-            }
+}
         }
 
         // 타입 변환
@@ -238,12 +228,8 @@ public class StudyQuizService {
         try {
             eventPublisher.publishEvent(new QuizSolvedEvent(
                     this, userId, questionId, questionText, isCorrect, LocalDate.now()));
-            log.debug("QuizSolvedEvent 발행 - userId: {}, questionId: {}, isCorrect: {}",
-                    userId, questionId, isCorrect);
-        } catch (Exception e) {
-            log.warn("QuizSolvedEvent 발행 실패 - userId: {}, questionId: {}, error: {}",
-                    userId, questionId, e.getMessage());
-        }
+} catch (Exception e) {
+}
     }
 
     /**
@@ -261,3 +247,4 @@ public class StudyQuizService {
                 .orElseThrow(() -> new IllegalArgumentException("퀴즈를 찾을 수 없습니다: " + quizId));
     }
 }
+

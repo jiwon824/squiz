@@ -19,9 +19,9 @@ import java.util.UUID;
 /**
  * 로컬 파일 저장 서비스 구현체
  */
-@Slf4j
-@Service
-public class MaterialFileStorageService implements FileStorageService {
+ @Slf4j
+ @Service
+ public class MaterialFileStorageService implements FileStorageService {
 
     @Value("${app.storage.base-path:./uploads}")
     private String uploadDir;
@@ -66,10 +66,8 @@ public class MaterialFileStorageService implements FileStorageService {
             Path uploadPath = Paths.get(uploadDir);
             if (!Files.exists(uploadPath)) {
                 Files.createDirectories(uploadPath);
-                log.info("업로드 디렉토리 생성: {}", uploadPath.toAbsolutePath());
-            }
+}
         } catch (IOException e) {
-            log.error("업로드 디렉토리 생성 실패", e);
             throw new RuntimeException("업로드 디렉토리를 생성할 수 없습니다.", e);
         }
     }
@@ -79,10 +77,7 @@ public class MaterialFileStorageService implements FileStorageService {
         // 1. 파일 유효성 검사 (null 체크 포함)
         validateFile(file);
 
-        log.info("파일 업로드 시작 - 원본파일명: {}, 크기: {}, 디렉토리: {}",
-                file.getOriginalFilename(), file.getSize(), directory);
-
-        // 2. 저장 디렉토리 생성
+// 2. 저장 디렉토리 생성
         Path targetDir = Paths.get(uploadDir, directory);
         createDirectoryIfNotExists(targetDir);
 
@@ -95,10 +90,8 @@ public class MaterialFileStorageService implements FileStorageService {
         Path targetPath = targetDir.resolve(storedFileName);
         try {
             Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
-            log.info("파일 저장 완료: {}", targetPath.toAbsolutePath());
-        } catch (IOException e) {
-            log.error("파일 저장 실패", e);
-            throw new MaterialException.FileUploadFailedException("파일 저장에 실패했습니다.");
+} catch (IOException e) {
+    throw new MaterialException.FileUploadFailedException("파일 저장에 실패했습니다.");
         }
 
         // 5. 상대 경로 반환 (DB 저장용)
@@ -122,11 +115,9 @@ public class MaterialFileStorageService implements FileStorageService {
             Path path = Paths.get(uploadDir, filePath);
             if (Files.exists(path)) {
                 Files.delete(path);
-                log.info("파일 삭제 완료: {}", path);
-            }
+}
         } catch (IOException e) {
-            log.error("파일 삭제 실패: {}", filePath, e);
-            // 파일 삭제 실패는 예외를 던지지 않음 (DB 데이터는 삭제됨)
+// 파일 삭제 실패는 예외를 던지지 않음 (DB 데이터는 삭제됨)
         }
     }
 
@@ -183,7 +174,6 @@ public class MaterialFileStorageService implements FileStorageService {
                 Files.createDirectories(path);
             }
         } catch (IOException e) {
-            log.error("디렉토리 생성 실패: {}", path, e);
             throw new MaterialException.FileUploadFailedException("저장 디렉토리를 생성할 수 없습니다.");
         }
     }

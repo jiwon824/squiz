@@ -8,8 +8,8 @@ import lombok.*;
  * 실시간 발화 세그먼트 (STT 결과)
  * 미팅 중 발화 단위로 저장되며, 미팅 종료 시 timestamp 순으로 정렬하여 전체 transcript 생성
  */
-@Entity
-@Table(name = "meeting_speech_segment", indexes = {
+ @Entity
+ @Table(name = "meeting_speech_segment", indexes = {
     @Index(name = "idx_speech_segment_meeting_timestamp", columnList = "meeting_id, speech_timestamp")
 })
 @Getter

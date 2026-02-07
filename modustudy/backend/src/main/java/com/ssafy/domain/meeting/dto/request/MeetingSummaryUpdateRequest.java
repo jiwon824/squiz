@@ -9,5 +9,5 @@ public record MeetingSummaryUpdateRequest(
         List<MeetingActionItemRequest> actionItems,
         List<String> keywords,
         SummaryStatus status
-) {
+        ) {
 }

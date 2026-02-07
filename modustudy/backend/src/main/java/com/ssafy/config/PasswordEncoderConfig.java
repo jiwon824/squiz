@@ -8,8 +8,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 /**
  * PasswordEncoder 빈을 별도 구성으로 분리하여 SecurityConfig와의 순환 참조를 방지한다.
  */
-@Configuration
-public class PasswordEncoderConfig {
+ @Configuration
+ public class PasswordEncoderConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {

@@ -100,7 +100,6 @@ const MeetingHistoryPage: React.FC = () => {
                 return;
             }
             alert('미팅 시작에 실패했습니다. 백엔드 연결과 CORS 설정을 확인해주세요.');
-            console.error(error);
         }
     };
 

@@ -119,7 +119,6 @@ const StudyCreatePage: React.FC = () => {
                 setFormats(formatsData);
                 setProvinces(provincesData);
             } catch (err) {
-                console.error('초기 데이터 로딩 실패:', err);
             }
         };
         loadData();
@@ -198,7 +197,6 @@ const StudyCreatePage: React.FC = () => {
                     curriculum: curriculumData
                 }));
             } catch (err) {
-                console.error('스터디 데이터 로딩 실패:', err);
                 showToast('스터디 정보를 불러오는데 실패했습니다.', 'error');
             } finally {
                 setIsLoadingStudy(false);
@@ -213,7 +211,7 @@ const StudyCreatePage: React.FC = () => {
         if (formData.provinceId) {
             getDistricts(formData.provinceId)
                 .then(setDistricts)
-                .catch((err) => console.error('시/군/구 로딩 실패:', err));
+                .catch((err) => {});
         } else {
             setDistricts([]);
         }
@@ -1425,7 +1423,6 @@ const StudyCreatePage: React.FC = () => {
                     onError: (error) => {
                         if (stepInterval) clearInterval(stepInterval);
                         setGenerationStep('');
-                        console.error('스트리밍 오류:', error);
                         setStreamingText('');
                         showToast('AI 생성에 실패했습니다. 다시 시도해주세요.', 'error');
                         setIsAiGenerating(false);
@@ -1439,7 +1436,6 @@ const StudyCreatePage: React.FC = () => {
             if (stepInterval) clearInterval(stepInterval);
             const message = getErrorMessage(err, 'AI 생성에 실패했습니다. 다시 시도해주세요.');
             showToast(message, 'error');
-            console.error('AI 스터디 계획 생성 실패:', err);
             setGenerationStep('');
             setStreamingText('');
             setIsAiGenerating(false);
@@ -1480,7 +1476,6 @@ const StudyCreatePage: React.FC = () => {
         } catch (err: unknown) {
             const message = getErrorMessage(err, '임시저장에 실패했습니다.');
             showToast(message, 'error');
-            console.error('임시저장 실패:', err);
         } finally {
             setIsSavingTemplate(false);
         }

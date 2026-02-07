@@ -28,9 +28,7 @@ public class FcmTokenService {
      */
     @Transactional
     public void registerToken(Long userId, FcmTokenRequest request) {
-        log.info("FCM 토큰 등록 - userId: {}, deviceType: {}", userId, request.getDeviceType());
-
-        // 기존 토큰 확인
+// 기존 토큰 확인
         Optional<FcmToken> existingToken = fcmTokenRepository.findByToken(request.getToken());
 
         if (existingToken.isPresent()) {
@@ -38,20 +36,17 @@ public class FcmTokenService {
             if (token.getUserId().equals(userId)) {
                 // 같은 사용자의 토큰 -> 활성화
                 token.activate();
-                log.info("기존 FCM 토큰 활성화 - tokenId: {}", token.getId());
-            } else {
+} else {
                 // 다른 사용자의 토큰 -> 기존 토큰 비활성화 후 새로 등록
                 token.deactivate();
                 FcmToken newToken = request.toEntity(userId);
                 fcmTokenRepository.save(newToken);
-                log.info("다른 사용자 토큰 비활성화 후 새 토큰 등록 - userId: {}", userId);
-            }
+}
         } else {
             // 새 토큰 등록
             FcmToken newToken = request.toEntity(userId);
             fcmTokenRepository.save(newToken);
-            log.info("새 FCM 토큰 등록 완료 - userId: {}", userId);
-        }
+}
     }
 
     /**
@@ -59,15 +54,12 @@ public class FcmTokenService {
      */
     @Transactional
     public void deleteToken(Long userId, FcmTokenDeleteRequest request) {
-        log.info("FCM 토큰 삭제 - userId: {}", userId);
-
         FcmToken token = fcmTokenRepository.findByUserIdAndToken(userId, request.getToken())
                 .orElseThrow(NotificationException.FcmTokenNotFoundException::new);
 
         fcmTokenRepository.delete(token);
 
-        log.info("FCM 토큰 삭제 완료 - tokenId: {}", token.getId());
-    }
+}
 
     /**
      * 사용자의 활성화된 FCM 토큰 목록 조회 (푸시 발송용)
@@ -81,23 +73,17 @@ public class FcmTokenService {
      */
     @Transactional
     public void deactivateAllTokens(Long userId) {
-        log.info("모든 FCM 토큰 비활성화 - userId: {}", userId);
-
         List<FcmToken> tokens = fcmTokenRepository.findByUserId(userId);
         tokens.forEach(FcmToken::deactivate);
 
-        log.info("모든 FCM 토큰 비활성화 완료 - userId: {}, count: {}", userId, tokens.size());
-    }
+}
 
     /**
      * 사용자의 모든 FCM 토큰 삭제 (회원탈퇴 시)
      */
     @Transactional
     public void deleteAllTokens(Long userId) {
-        log.info("모든 FCM 토큰 삭제 - userId: {}", userId);
-
         fcmTokenRepository.deleteByUserId(userId);
 
-        log.info("모든 FCM 토큰 삭제 완료 - userId: {}", userId);
-    }
+}
 }

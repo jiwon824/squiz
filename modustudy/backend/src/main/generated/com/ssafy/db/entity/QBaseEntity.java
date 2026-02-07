@@ -12,8 +12,8 @@ import com.querydsl.core.types.Path;
 /**
  * QBaseEntity is a Querydsl query type for BaseEntity
  */
-@Generated("com.querydsl.codegen.SupertypeSerializer")
-public class QBaseEntity extends EntityPathBase<BaseEntity> {
+ @Generated("com.querydsl.codegen.SupertypeSerializer")
+ public class QBaseEntity extends EntityPathBase<BaseEntity> {
 
     private static final long serialVersionUID = 1717725014L;
 

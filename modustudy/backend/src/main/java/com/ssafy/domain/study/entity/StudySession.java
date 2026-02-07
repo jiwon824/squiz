@@ -15,13 +15,13 @@ import java.time.LocalDateTime;
                         columnNames = {"study_id", "session_number"}
                 )
         }
-)
-@Getter
-@Setter
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class StudySession {
+        )
+        @Getter
+        @Setter
+        @Builder
+        @NoArgsConstructor
+        @AllArgsConstructor
+        public class StudySession {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

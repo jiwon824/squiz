@@ -8,7 +8,7 @@ import org.springframework.data.domain.Pageable;
  * Study Custom Repository 인터페이스
  * 동적 쿼리용
  */
-public interface StudyRepositoryCustom {
+ public interface StudyRepositoryCustom {
 
     /**
      * 동적 조건으로 스터디 검색/필터링

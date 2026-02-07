@@ -39,7 +39,6 @@ class WorkspaceWebSocketService {
     handlers: WorkspaceWebSocketHandlers = {}
   ): void {
     if (this.client?.connected && this.workspaceId === workspaceId) {
-      console.warn('[Workspace WS] 이미 연결됨');
       return;
     }
 
@@ -145,7 +144,6 @@ class WorkspaceWebSocketService {
         default:
       }
     } catch (e) {
-      console.error('[Workspace WS] 이벤트 파싱 실패:', e);
     }
   }
 
@@ -160,7 +158,6 @@ class WorkspaceWebSocketService {
    * 에러 발생 시
    */
   private onError(errorMessage: string): void {
-    console.error('[Workspace WS] 에러:', errorMessage);
     this.setConnectionStatus('ERROR');
     this.handlers.onError?.(errorMessage);
   }
@@ -178,7 +175,6 @@ class WorkspaceWebSocketService {
    */
   sendMessage(content: string, messageType: string = 'TEXT'): void {
     if (!this.client?.connected || !this.workspaceId) {
-      console.error('[Workspace WS] 연결되지 않음');
       return;
     }
 

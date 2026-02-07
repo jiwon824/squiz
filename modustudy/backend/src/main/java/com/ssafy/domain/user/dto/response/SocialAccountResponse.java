@@ -11,10 +11,10 @@ import java.time.LocalDateTime;
 /**
  * 소셜 계정 정보 응답
  */
-@Getter
-@Builder
-@AllArgsConstructor
-public class SocialAccountResponse {
+ @Getter
+ @Builder
+ @AllArgsConstructor
+ public class SocialAccountResponse {
     private SocialProvider provider;  // GOOGLE, KAKAO, NAVER
     private String email;
     private LocalDateTime linkedAt;

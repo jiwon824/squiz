@@ -13,10 +13,10 @@ import java.util.stream.Collectors;
 /**
  * Topic 서비스
  */
-@Service
-@RequiredArgsConstructor
-@Transactional(readOnly = true)
-public class TopicService {
+ @Service
+ @RequiredArgsConstructor
+ @Transactional(readOnly = true)
+ public class TopicService {
 
     private final TopicRepository topicRepository;
 

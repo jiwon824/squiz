@@ -8,7 +8,7 @@
  * 핵심 특징:
  * - Atomic Interaction: 매 제출마다 다음 문제를 직접 반환
  * - Forward-only: 뒤로가기 없는 전진 전용 플로우
- * - FSRS Timing: useContinuousQuiz 훅에서 문제 렌더링 시점부터 제출까지의 시간 측정
+ * - FSRS Timing: useRef로 문제 렌더링 시점부터 제출까지의 시간 측정
  * - Instant Feedback: 제출 즉시 정답/오답 피드백 표시
  *
  * URL: /continuous-quiz/:courseId/section/:sectionNumber

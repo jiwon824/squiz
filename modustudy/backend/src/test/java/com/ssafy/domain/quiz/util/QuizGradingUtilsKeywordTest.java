@@ -9,7 +9,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * 서술형 키워드 기반 채점 테스트
  */
-class QuizGradingUtilsKeywordTest {
+ class QuizGradingUtilsKeywordTest {
 
     @Test
     @DisplayName("키워드 1개 - 정확히 일치")

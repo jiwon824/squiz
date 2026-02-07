@@ -47,9 +47,7 @@ public class RetrospectiveService {
      * 스터디별 회고 목록 조회 (최신순)
      */
     public Page<RetrospectiveListResponse> getRetrospectives(Long studyId, Long userId, Pageable pageable) {
-        log.info("회고 목록 조회 - studyId: {}, userId: {}", studyId, userId);
-
-        // 스터디 존재 여부 확인
+// 스터디 존재 여부 확인
         if (!studyRepository.existsById(studyId)) {
             throw new StudyException.StudyNotFoundException(studyId);
         }
@@ -79,18 +77,14 @@ public class RetrospectiveService {
                 .map(retro -> toListResponse(retro, userId))
                 .toList();
 
-        log.info("회고 목록 조회 완료 - studyId: {}, count: {}", studyId, content.size());
-
-        return new PageImpl<>(content, pageable, sorted.size());
+                return new PageImpl<>(content, pageable, sorted.size());
     }
 
     /**
      * 회고 상세 조회
      */
     public RetrospectiveDetailResponse getRetrospectiveDetail(Long studyId, Long retroId) {
-        log.info("회고 상세 조회 - studyId: {}, retroId: {}", studyId, retroId);
-
-        // 스터디 존재 여부 확인
+// 스터디 존재 여부 확인
         if (!studyRepository.existsById(studyId)) {
             throw new StudyException.StudyNotFoundException(studyId);
         }
@@ -123,9 +117,7 @@ public class RetrospectiveService {
                         )
                 ));
 
-        log.info("회고 상세 조회 완료 - retroId: {}, itemCount: {}", retroId, items.size());
-
-        return RetrospectiveDetailResponse.of(retrospective, session, itemsMap);
+                return RetrospectiveDetailResponse.of(retrospective, session, itemsMap);
     }
 
     /**
@@ -133,9 +125,7 @@ public class RetrospectiveService {
      */
     @Transactional
     public RetrospectiveDetailResponse createRetrospective(Long studyId, RetrospectiveCreateRequest request, Long userId) {
-        log.info("회고 생성 - studyId: {}, userId: {}, title: {}", studyId, userId, request.getTitle());
-
-        // 스터디 존재 여부 확인
+// 스터디 존재 여부 확인
         if (!studyRepository.existsById(studyId)) {
             throw new StudyException.StudyNotFoundException(studyId);
         }
@@ -154,9 +144,7 @@ public class RetrospectiveService {
         Retrospective retrospective = request.toEntity(studyId, userId);
         Retrospective saved = retrospectiveRepository.save(retrospective);
 
-        log.info("회고 생성 완료 - retroId: {}", saved.getId());
-
-        // 스터디 이름 조회
+// 스터디 이름 조회
         Study study = studyRepository.findById(studyId)
                 .orElseThrow(() -> new StudyException.StudyNotFoundException(studyId));
 
@@ -178,9 +166,7 @@ public class RetrospectiveService {
      */
     @Transactional
     public void deleteRetrospective(Long studyId, Long retroId, Long userId) {
-        log.info("회고 삭제 - studyId: {}, retroId: {}, userId: {}", studyId, retroId, userId);
-
-        // 스터디 조회
+// 스터디 조회
         Study study = studyRepository.findById(studyId)
                 .orElseThrow(() -> new StudyException.StudyNotFoundException(studyId));
 
@@ -202,8 +188,7 @@ public class RetrospectiveService {
         // 회고 삭제
         retrospectiveRepository.delete(retrospective);
 
-        log.info("회고 삭제 완료 - retroId: {}", retroId);
-    }
+}
 
     /**
      * Retrospective -> RetrospectiveListResponse 변환

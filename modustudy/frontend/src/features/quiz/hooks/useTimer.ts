@@ -27,7 +27,6 @@ export function useTimer() {
   const stop = useCallback((): number => {
     // 타이머가 실행 중이지 않고, 누적 시간도 없으면(시작조차 안 함) 경고
     if ((!isRunning && accumulatedTimeRef.current === 0) || (isRunning && startTimeRef.current === null)) {
-      console.warn('[useTimer] 타이머가 시작되지 않은 상태에서 stop 호출');
       return accumulatedTimeRef.current;
     }
 

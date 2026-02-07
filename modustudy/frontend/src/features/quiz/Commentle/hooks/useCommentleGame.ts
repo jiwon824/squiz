@@ -69,14 +69,12 @@ export const useCommentleGame = () => {
                     hints: data.hints || [],
                 });
             } else {
-                console.error('Failed to load problem:', problemResult.reason);
             }
 
             // 리더보드 처리 (문제 실패와 무관하게 항상 시도)
             if (leaderboardResult.status === 'fulfilled') {
                 setLeaderboard(leaderboardResult.value.rankings || []);
             } else {
-                console.error('Failed to load leaderboard:', leaderboardResult.reason);
                 setLeaderboard([]);
             }
 
@@ -124,7 +122,6 @@ export const useCommentleGame = () => {
                 setShowSuccess(true);
             }
         } catch (error) {
-            console.error('Error:', error);
         } finally {
             setLoading(false);
         }
@@ -144,7 +141,6 @@ export const useCommentleGame = () => {
                 setLeaderboard(leaderboardData.rankings || []);
             }
         } catch (error) {
-            console.error('Failed to update leaderboard:', error);
         }
     };
 

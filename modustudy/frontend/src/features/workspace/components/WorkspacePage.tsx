@@ -293,7 +293,7 @@ export const WorkspacePage: React.FC = () => {
         setPinnedMessages(pinnedData);
       } catch (err) {
         // 고정 메시지 로드 실패는 무시
-        console.warn('고정 메시지 로드 실패:', err);
+        
       }
     };
 
@@ -440,7 +440,7 @@ export const WorkspacePage: React.FC = () => {
         }
       },
       onError: (errorMessage) => {
-        console.error('[Workspace] WebSocket 에러:', errorMessage);
+        
       },
     });
 
@@ -552,7 +552,7 @@ export const WorkspacePage: React.FC = () => {
           setActiveMeetingId(null);
           setActiveMeetingEnded(null);
         }
-        console.warn('Failed to resolve active meeting id', error);
+        
       }
     })();
     return () => {

@@ -11,7 +11,7 @@ import java.util.Map;
 /**
  * WebSocket Handshake 시 사용자 정보를 설정하는 Interceptor
  */
-public class WebSocketHandshakeInterceptor implements HandshakeInterceptor {
+ public class WebSocketHandshakeInterceptor implements HandshakeInterceptor {
 
     @Override
     public boolean beforeHandshake(ServerHttpRequest request, ServerHttpResponse response,

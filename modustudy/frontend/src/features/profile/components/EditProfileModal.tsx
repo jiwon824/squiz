@@ -56,7 +56,6 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
             showToast('프로필 정보가 수정되었습니다.', 'success');
             onClose();
         } catch (err: unknown) {
-            console.error('Profile update error:', err);
             setError(getErrorMessage(err, '프로필 수정 중 오류가 발생했습니다.'));
         } finally {
             setIsLoading(false);

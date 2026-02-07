@@ -25,11 +25,11 @@ const ReuseTest = () => {
                         <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Back Buttons (3 Types)</h3>
                         <div className="flex items-center gap-4">
                             {/* Type 1: 아이콘만 */}
-                            <BackButton variant="icon-only" onClick={() => console.log('백버튼 클릭')} />
+                            <BackButton variant="icon-only" onClick={() => {}} />
                             {/* Type 2: 텍스트 포함 */}
-                            <BackButton variant="with-text" onClick={() => console.log('목록으로 클릭')} />
+                            <BackButton variant="with-text" onClick={() => {}} />
                             {/* Type 3: 텍스트 포함2 */}
-                            <BackButton variant="with-text-2" onClick={() => console.log('뒤로 가기')} />
+                            <BackButton variant="with-text-2" onClick={() => {}} />
                         </div>
                     </article>
 
@@ -37,8 +37,8 @@ const ReuseTest = () => {
                     <article className="space-y-4 p-6 bg-white rounded-3xl shadow-sm">
                         <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Arrow Controls</h3>
                         <div className="flex items-center gap-4">
-                            <ArrowButton direction="left" onClick={() => console.log('이전')} size="sm" />
-                            <ArrowButton direction="right" onClick={() => console.log('다음')} size="sm" />
+                            <ArrowButton direction="left" onClick={() => {}} size="sm" />
+                            <ArrowButton direction="right" onClick={() => {}} size="sm" />
                         </div>
                     </article>
 

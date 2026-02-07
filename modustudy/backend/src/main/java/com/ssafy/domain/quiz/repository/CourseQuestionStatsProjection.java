@@ -7,7 +7,7 @@ package com.ssafy.domain.quiz.repository;
  * Native Query 결과를 타입 안전하게 매핑하기 위해 사용된다.
  * </p>
  */
-public interface CourseQuestionStatsProjection {
+ public interface CourseQuestionStatsProjection {
 
     /**
      * 코스 ID

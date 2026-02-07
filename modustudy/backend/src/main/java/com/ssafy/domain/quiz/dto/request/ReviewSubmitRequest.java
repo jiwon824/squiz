@@ -14,8 +14,8 @@ import jakarta.validation.constraints.Positive;
  * @param userAnswer     사용자 답안
  * @param responseTimeMs 응답 시간 (밀리초)
  */
-@Schema(description = "복습 결과 제출 요청")
-public record ReviewSubmitRequest(
+ @Schema(description = "복습 결과 제출 요청")
+ public record ReviewSubmitRequest(
 
         @Schema(description = "콘텐츠 유형", example = "COURSE_QUESTION") @NotNull(message = "콘텐츠 유형은 필수입니다") ReviewContentType contentType,
 

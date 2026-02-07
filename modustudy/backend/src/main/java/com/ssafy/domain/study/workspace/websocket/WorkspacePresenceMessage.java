@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotNull;
 /**
  * 워크스페이스 상태 전송용 DTO
  */
-public class WorkspacePresenceMessage {
+ public class WorkspacePresenceMessage {
 
     @NotNull
     private Long workspaceId;

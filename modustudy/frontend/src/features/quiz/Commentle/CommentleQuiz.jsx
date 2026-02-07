@@ -91,7 +91,6 @@ const CommentleQuiz = () => {
                 // 오래된 추측 기록 정리
                 cleanupOldGuesses();
             } catch (error) {
-                console.error('Failed to load quiz data:', error);
             } finally {
                 setProblemLoading(false);
             }
@@ -132,7 +131,6 @@ const CommentleQuiz = () => {
                 setTimeout(() => setShowSuccess(false), 3000);
             }
         } catch (error) {
-            console.error('Error:', error);
         } finally {
             setLoading(false);
         }
@@ -159,7 +157,6 @@ const CommentleQuiz = () => {
                 setLeaderboard(leaderboardData.rankings || []);
             }
         } catch (error) {
-            console.error('Failed to update leaderboard:', error);
         }
     };
 

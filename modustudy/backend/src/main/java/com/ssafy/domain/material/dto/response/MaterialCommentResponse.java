@@ -9,9 +9,9 @@ import java.time.LocalDateTime;
 /**
  * 자료 댓글 응답 DTO
  */
-@Getter
-@Builder
-public class MaterialCommentResponse {
+ @Getter
+ @Builder
+ public class MaterialCommentResponse {
 
     private Long id;
     private UploaderInfo user;

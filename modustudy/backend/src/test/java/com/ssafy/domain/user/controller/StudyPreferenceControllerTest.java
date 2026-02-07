@@ -35,10 +35,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * 스터디 선호 설정 API 컨트롤러 테스트
  */
-@SpringBootTest
-@AutoConfigureMockMvc
-@Transactional
-class StudyPreferenceControllerTest {
+ @SpringBootTest
+ @AutoConfigureMockMvc
+ @Transactional
+ class StudyPreferenceControllerTest {
 
     @Autowired
     private MockMvc mockMvc;

@@ -95,12 +95,9 @@ public class GoogleCalendarService {
                     .insert("primary", event)
                     .execute();
 
-            log.info("Google Calendar 이벤트 생성: userId={}, eventId={}", userId, createdEvent.getId());
-
-            return createdEvent.getId();
+                    return createdEvent.getId();
 
         } catch (Exception e) {
-            log.error("Google Calendar 이벤트 생성 실패: userId={}, error={}", userId, e.getMessage());
             throw new RuntimeException("Google Calendar 이벤트 생성에 실패했습니다.", e);
         }
     }
@@ -119,11 +116,8 @@ public class GoogleCalendarService {
                     .update("primary", googleEventId, event)
                     .execute();
 
-            log.info("Google Calendar 이벤트 수정: userId={}, eventId={}", userId, googleEventId);
-
-        } catch (Exception e) {
-            log.error("Google Calendar 이벤트 수정 실패: userId={}, eventId={}, error={}", userId, googleEventId, e.getMessage());
-            throw new RuntimeException("Google Calendar 이벤트 수정에 실패했습니다.", e);
+} catch (Exception e) {
+    throw new RuntimeException("Google Calendar 이벤트 수정에 실패했습니다.", e);
         }
     }
 
@@ -139,11 +133,8 @@ public class GoogleCalendarService {
                     .delete("primary", googleEventId)
                     .execute();
 
-            log.info("Google Calendar 이벤트 삭제: userId={}, eventId={}", userId, googleEventId);
-
-        } catch (Exception e) {
-            log.error("Google Calendar 이벤트 삭제 실패: userId={}, eventId={}, error={}", userId, googleEventId, e.getMessage());
-            // 이벤트가 이미 삭제되었을 수 있으므로 예외를 던지지 않음
+} catch (Exception e) {
+// 이벤트가 이미 삭제되었을 수 있으므로 예외를 던지지 않음
         }
     }
 
@@ -170,7 +161,6 @@ public class GoogleCalendarService {
                     .collect(Collectors.toList());
 
         } catch (Exception e) {
-            log.error("Google Calendar 이벤트 조회 실패: userId={}, error={}", userId, e.getMessage());
             throw new RuntimeException("Google Calendar 이벤트 조회에 실패했습니다.", e);
         }
     }
@@ -198,8 +188,7 @@ public class GoogleCalendarService {
                 try {
                     stopWatch(userId, existing.getChannelId(), existing.getResourceId());
                 } catch (Exception e) {
-                    log.warn("기존 watch 중지 실패: {}", e.getMessage());
-                }
+}
                 calendarWatchRepository.delete(existing);
             });
 
@@ -224,7 +213,6 @@ public class GoogleCalendarService {
             return calendarWatchRepository.save(watch);
 
         } catch (Exception e) {
-            log.error("Calendar Watch 등록 실패: userId={}, error={}", userId, e.getMessage());
             throw new RuntimeException("Calendar Watch 등록에 실패했습니다.", e);
         }
     }
@@ -242,11 +230,8 @@ public class GoogleCalendarService {
 
             calendarService.channels().stop(channel).execute();
 
-            log.info("Calendar Watch 중지: userId={}, channelId={}", userId, channelId);
-
-        } catch (Exception e) {
-            log.error("Calendar Watch 중지 실패: {}", e.getMessage());
-        }
+} catch (Exception e) {
+}
     }
 
     /**
@@ -270,7 +255,6 @@ public class GoogleCalendarService {
             return events.getItems();
 
         } catch (Exception e) {
-            log.error("Incremental Sync 실패: userId={}, error={}", userId, e.getMessage());
             throw new RuntimeException("Calendar 동기화에 실패했습니다.", e);
         }
     }
@@ -283,7 +267,6 @@ public class GoogleCalendarService {
     public void saveEventMapping(Long sessionId, Long userId, String googleEventId) {
         // 이미 매핑이 존재하면 스킵
         if (mappingRepository.findBySessionIdAndUserId(sessionId, userId).isPresent()) {
-            log.debug("캘린더 매핑 이미 존재 - sessionId: {}, userId: {}", sessionId, userId);
             return;
         }
 
@@ -313,8 +296,7 @@ public class GoogleCalendarService {
             try {
                 deleteEvent(mapping.getUserId(), mapping.getGoogleEventId());
             } catch (Exception e) {
-                log.warn("이벤트 삭제 실패: sessionId={}, userId={}", sessionId, mapping.getUserId());
-            }
+}
         }
         mappingRepository.deleteBySessionId(sessionId);
     }
@@ -408,3 +390,4 @@ public class GoogleCalendarService {
                 .build();
     }
 }
+

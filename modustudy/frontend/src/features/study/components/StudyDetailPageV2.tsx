@@ -58,7 +58,6 @@ const StudyDetailPageV2: React.FC = () => {
                     setIsBookmarked((data as unknown as Record<string, boolean>).isBookmarked || false);
                 }
             } catch (error) {
-                console.error('스터디 상세 조회 실패:', error);
                 showToast('스터디 정보를 불러오는데 실패했습니다.', 'error');
                 navigate('/study');
             }
@@ -79,7 +78,6 @@ const StudyDetailPageV2: React.FC = () => {
                 'success'
             );
         } catch (error) {
-            console.error('북마크 토글 실패:', error);
             showToast('북마크 처리에 실패했습니다.', 'error');
         }
     };

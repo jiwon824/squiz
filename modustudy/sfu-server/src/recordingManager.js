@@ -14,7 +14,6 @@ const RECORDING_VIDEO_READY_POLL_MS = Number(process.env.RECORDING_VIDEO_READY_P
 const RECORDING_STOP_GRACE_MS = Number(process.env.RECORDING_STOP_GRACE_MS || 1500);
 const RECORDING_VIDEO_ENABLED =
   String(process.env.RECORDING_VIDEO_ENABLED ?? 'true').toLowerCase() !== 'false';
-console.log('[recording] RECORDING_VIDEO_ENABLED:', RECORDING_VIDEO_ENABLED, 'env:', process.env.RECORDING_VIDEO_ENABLED);
 const reservedPorts = new Set();
 const RECORDING_RTP_PORT_MIN = Number(process.env.RECORDING_RTP_PORT_MIN || 45000);
 const RECORDING_RTP_PORT_MAX = Number(process.env.RECORDING_RTP_PORT_MAX || 47000);
@@ -465,19 +464,13 @@ const createSegmentProcess = async ({
   const stderrChunks = [];
   let exitInfo = null;
   proc.on('error', (err) => {
-    // eslint-disable-next-line no-console
-    console.error('[recording] ffmpeg spawn error', err);
   });
   proc.stderr.on('data', (data) => {
     const text = data.toString();
     stderrChunks.push(text);
-    // eslint-disable-next-line no-console
-    console.error('[recording] ffmpeg stderr', text.trim());
   });
   proc.on('exit', (code, signal) => {
     exitInfo = { code, signal };
-    // eslint-disable-next-line no-console
-    console.log('[recording] ffmpeg exit', { code, signal, outputPath });
   });
   return {
     proc,
@@ -497,24 +490,6 @@ const logProducerStats = async (label, producer, roomId) => {
   if (!producer || producer.closed) return;
   try {
     const stats = await producer.getStats();
-    const report = Array.from(stats.values())[0] || {};
-    const packetsSent = report.packetsSent ?? report.packetCount ?? report.packets;
-    const bytesSent = report.bytesSent ?? report.byteCount ?? report.bytes;
-    const packetsReceived = report.packetsReceived ?? report.packets;
-    const bytesReceived = report.bytesReceived ?? report.bytes;
-    // eslint-disable-next-line no-console
-    console.log('[recording] producer stats', {
-      roomId,
-      producerId: producer.id,
-      label,
-      kind: producer.kind,
-      type: report.type,
-      ssrc: report.ssrc,
-      packetsSent,
-      bytesSent,
-      packetsReceived,
-      bytesReceived,
-    });
   } catch {
     // ignore stats failures
   }
@@ -524,52 +499,15 @@ const logConsumerStats = async (label, consumer, transport, roomId, producerId) 
   if (!consumer || consumer.closed) return;
   try {
     const stats = await consumer.getStats();
-    const report = Array.from(stats.values())[0] || {};
-    const packetsReceived = report.packetsReceived ?? report.packetCount ?? report.packets;
-    const bytesReceived = report.bytesReceived ?? report.byteCount ?? report.bytes;
-    const packetsSent = report.packetsSent ?? report.packetCount ?? report.packets;
-    const bytesSent = report.bytesSent ?? report.byteCount ?? report.bytes;
-    // eslint-disable-next-line no-console
-    console.log('[recording] consumer stats', {
-      roomId,
-      producerId,
-      label,
-      kind: consumer.kind,
-      paused: consumer.paused,
-      producerPaused: consumer.producerPaused,
-      type: report.type,
-      ssrc: report.ssrc,
-      packetsReceived,
-      bytesReceived,
-      packetsSent,
-      bytesSent,
-    });
   } catch {
     // ignore stats failures
   }
   if (transport && typeof transport.getStats === 'function') {
     try {
       const stats = await transport.getStats();
-      const report = Array.from(stats.values())[0] || {};
-      // eslint-disable-next-line no-console
-      console.log('[recording] transport stats', {
-        roomId,
-        label,
-        bytesSent: report.bytesSent,
-        packetsSent: report.packetsSent,
-      });
     } catch {
       // ignore
     }
-  }
-  if (transport && transport.tuple) {
-    // eslint-disable-next-line no-console
-    console.log('[recording] transport tuple', {
-      roomId,
-      label,
-      tuple: transport.tuple,
-      rtcpTuple: transport.rtcpTuple,
-    });
   }
 };
 
@@ -618,8 +556,6 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
     const state = recordings.get(roomId);
     if (!state) return Promise.resolve();
     state.queue = (state.queue || Promise.resolve()).then(task).catch((err) => {
-      // eslint-disable-next-line no-console
-      console.error('[recording] task failed', err);
     });
     return state.queue;
   };
@@ -693,11 +629,8 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
       const exited = await waitForExitWithTimeout(proc, Math.max(800, RECORDING_STOP_GRACE_MS));
       if (!exited && !proc.killed) {
         proc.kill('SIGINT');
-        // SIGINT 후 3초 대기, 안 되면 SIGKILL
         const exitedAfterInt = await waitForExitWithTimeout(proc, 3000);
         if (!exitedAfterInt && !proc.killed) {
-          // eslint-disable-next-line no-console
-          console.warn('[recording] ffmpeg not responding to SIGINT, sending SIGKILL', { roomId: state.roomId });
           proc.kill('SIGKILL');
           await waitForExitWithTimeout(proc, 1000);
         }
@@ -809,26 +742,13 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
             videoConsumerRef = consumer;
             transports.push(transport);
             videoConsumerInfo = { port, rtpParameters: consumer.rtpParameters, producerId: producer.id };
-            // eslint-disable-next-line no-console
-            console.log('[recording] video transport connected', {
-              roomId,
-              producerId: producer.id,
-              port,
-              tuple: transport.tuple,
-              rtcpTuple: transport.rtcpTuple,
-            });
           } catch (err) {
-            // eslint-disable-next-line no-console
-            console.error('[recording] video consume failed', { roomId, producerId: producer.id, err: String(err) });
             try {
               transport.close();
             } catch {
               // ignore
             }
           }
-        } else {
-          // eslint-disable-next-line no-console
-          console.warn('[recording] video producer missing', { roomId, videoProducerId });
         }
       }
 
@@ -860,17 +780,7 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
             audioConsumerRef = consumer;
             audioTransportRef = transport;
           }
-          // eslint-disable-next-line no-console
-          console.log('[recording] audio transport connected', {
-            roomId,
-            producerId: producer.id,
-            port,
-            tuple: transport.tuple,
-            rtcpTuple: transport.rtcpTuple,
-          });
         } catch (err) {
-          // eslint-disable-next-line no-console
-          console.error('[recording] audio consume failed', { roomId, producerId: producer.id, err: String(err) });
           try {
             transport.close();
           } catch {
@@ -885,17 +795,8 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
         });
       }
 
-      // 요청한 오디오 producer 수와 실제 생성된 consumer 수가 다르면 재시도
-      // 일부 producer가 아직 준비되지 않았을 수 있음
       if (audioProducerIds.length > 0 && audioConsumerInfos.length < audioProducerIds.length) {
-        // eslint-disable-next-line no-console
-        console.warn('[recording] not all audio consumers created', {
-          roomId,
-          attempt,
-          expected: audioProducerIds.length,
-          actual: audioConsumerInfos.length,
-        });
-        // 생성된 consumer/transport 정리
+
         consumers.forEach((consumer) => {
           try {
             consumer.close();
@@ -915,9 +816,6 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
           await delay(400);
           continue;
         }
-        // 최대 재시도 후에도 실패하면 현재 가진 consumer로 진행
-        // eslint-disable-next-line no-console
-        console.warn('[recording] proceeding with partial audio consumers after max retries');
       }
 
       let sdpContent = null;
@@ -1013,11 +911,9 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
               return null;
             }
           }
-          // For audio-only, don't abort if packets are delayed; keep the segment running.
           if (!state.firstVideoAt && videoConsumerInfo) {
             state.firstVideoAt = Date.now();
           }
-          // 오디오 consumer가 있으면 패킷 수신 여부 확인 (실패해도 계속 진행)
           if (audioConsumerRef && !videoConsumerInfo) {
             const audioReady = await waitForConsumerPackets(
               audioConsumerRef,
@@ -1025,13 +921,6 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
               800, // 오디오는 더 짧은 타임아웃
               100
             );
-            if (!audioReady) {
-              // eslint-disable-next-line no-console
-              console.warn('[recording] audio packets not received yet, but continuing', {
-                roomId,
-                audioCount: audioConsumerInfos.length,
-              });
-            }
           }
         const nextSegment = {
           ffmpeg: proc,
@@ -1047,21 +936,11 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
         };
         state.currentSegment = nextSegment;
         state.segments.push(segmentPath);
-        // eslint-disable-next-line no-console
-        console.log('[recording] segment started successfully', {
-          roomId,
-          segmentIndex: state.segments.length - 1,
-          audioCount: audioConsumerInfos.length,
-          hasVideo: Boolean(videoConsumerInfo),
-          key: nextSegment.key,
-        });
         return nextSegment;
       }
 
       const stderrText = getStderr();
       const exitInfo = getExitInfo();
-      // eslint-disable-next-line no-console
-      console.warn('[recording] ffmpeg exited early', { roomId, attempt, exitInfo });
       consumers.forEach((consumer) => {
         try {
           consumer.close();
@@ -1141,15 +1020,7 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
         return;
       }
       if (state.currentSegment.key !== nextKey) {
-        // eslint-disable-next-line no-console
-        console.log('[recording] segment key changed, switching', {
-          roomId,
-          oldKey: state.currentSegment.key,
-          newKey: nextKey,
-          audioCount: nextAudio.length,
-        });
         await stopSegment(state);
-        // 세그먼트 전환 시 안정성을 위해 짧은 지연 추가
         await delay(200);
         if (!state.pendingGapStartedAt) {
           state.pendingGapStartedAt = Date.now();
@@ -1367,19 +1238,11 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
       const videoStartOffsetMs =
         state.firstVideoAt && state.startedAt ? Math.max(0, state.firstVideoAt - state.startedAt) : null;
 
-      // AI 서버로 녹음 파일 업로드 (concat 완료 직후, HTTP 응답과 무관하게)
       if (config.aiServerUrl && state.meetingId) {
         const uploadData = {
           meeting_id: state.meetingId,
           file_path: outputPath
         };
-        // eslint-disable-next-line no-console
-        console.log('[recording] uploading to AI server (from stopRecording)', {
-          aiServerUrl: config.aiServerUrl,
-          meetingId: state.meetingId,
-          outputPath
-        });
-        // 비동기 업로드 (결과 대기하지 않음)
         fetch(`${config.aiServerUrl}/api/upload-recording`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1387,47 +1250,34 @@ const createRecordingManager = ({ getOrCreateRoom, rooms, config }) => {
         })
           .then((res) => res.json())
           .then((result) => {
-            // eslint-disable-next-line no-console
-            console.log('[recording] AI upload success', { meetingId: state.meetingId, result });
           })
           .catch((err) => {
-            // eslint-disable-next-line no-console
-            console.error('[recording] AI upload failed', { meetingId: state.meetingId, error: err.message });
           });
       }
 
       return { status: 'stopped', outputPath, fileSize, videoStartOffsetMs, meetingId: state.meetingId };
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('[recording] concat failed', err);
       recordings.delete(roomId);
       return { status: 'failed', outputPath: null };
     }
   };
 
-  // 디바운스 타이머 저장 (roomId -> timer)
   const refreshDebounceTimers = new Map();
-  const REFRESH_DEBOUNCE_MS = 500; // 500ms 내에 여러 변경이 있으면 마지막 것만 처리
+  const REFRESH_DEBOUNCE_MS = 500;
 
   const onProducersChanged = async (roomId) => {
-    // 녹음이 시작되지 않았으면 자동으로 시작 (meeting-{id} 형식일 때만)
     if (!recordings.has(roomId) && roomId.startsWith('meeting-')) {
       const meetingIdStr = roomId.replace('meeting-', '');
       const meetingId = parseInt(meetingIdStr, 10);
       if (!isNaN(meetingId)) {
-        // eslint-disable-next-line no-console
-        console.log('[recording] auto-start triggered by producer change', { roomId, meetingId });
         try {
           await startRecording({ roomId, meetingId });
         } catch (err) {
-          // eslint-disable-next-line no-console
-          console.error('[recording] auto-start failed', { roomId, meetingId, error: err.message });
         }
       }
     }
     if (!recordings.has(roomId)) return;
 
-    // 디바운스: 빠른 연속 변경 시 마지막 것만 처리
     const existingTimer = refreshDebounceTimers.get(roomId);
     if (existingTimer) {
       clearTimeout(existingTimer);

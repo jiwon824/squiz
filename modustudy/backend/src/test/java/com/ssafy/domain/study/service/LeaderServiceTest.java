@@ -30,8 +30,8 @@ import static org.mockito.BDDMockito.*;
 /**
  * LeaderService 단위 테스트
  */
-@ExtendWith(MockitoExtension.class)
-class LeaderServiceTest {
+ @ExtendWith(MockitoExtension.class)
+ class LeaderServiceTest {
 
     @Mock
     private StudyRepository studyRepository;

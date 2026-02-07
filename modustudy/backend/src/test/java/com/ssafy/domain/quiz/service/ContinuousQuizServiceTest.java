@@ -48,8 +48,8 @@ import static org.mockito.Mockito.verify;
  * <li>자동 Rating 산출 로직 검증</li>
  * </ul>
  */
-@ExtendWith(MockitoExtension.class)
-class ContinuousQuizServiceTest {
+ @ExtendWith(MockitoExtension.class)
+ class ContinuousQuizServiceTest {
 
         @InjectMocks
         private ContinuousQuizService continuousQuizService;

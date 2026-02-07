@@ -35,7 +35,6 @@ class DmWebSocketService {
      */
     connect(userId: number, nickname: string, handlers: DmWebSocketHandlers = {}): void {
         if (this.client?.connected) {
-            console.warn('DM WebSocket already connected');
             return;
         }
 
@@ -127,7 +126,6 @@ class DmWebSocketService {
                     break;
             }
         } catch (e) {
-            console.error('Failed to parse DM event:', e);
         }
     }
 
@@ -139,7 +137,6 @@ class DmWebSocketService {
             const event: FriendPresenceEvent = JSON.parse(message.body);
             this.handlers.onPresence?.(event);
         } catch (e) {
-            console.error('Failed to parse presence event:', e);
         }
     }
 
@@ -154,7 +151,6 @@ class DmWebSocketService {
      * 에러 발생 시
      */
     private onError(errorMessage: string): void {
-        console.error('DM WebSocket error:', errorMessage);
         this.setConnectionStatus('ERROR');
         this.handlers.onError?.(errorMessage);
     }
@@ -172,7 +168,6 @@ class DmWebSocketService {
      */
     sendMessage(receiverId: number, content: string): void {
         if (!this.client?.connected) {
-            console.error('WebSocket not connected');
             return;
         }
 

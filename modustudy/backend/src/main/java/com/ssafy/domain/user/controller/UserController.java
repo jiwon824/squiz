@@ -32,10 +32,10 @@ import java.util.List;
 /**
  * 사용자 API Controller
  */
-@RestController
-@RequestMapping("/api/v1/users")
-@RequiredArgsConstructor
-public class UserController {
+ @RestController
+ @RequestMapping("/api/v1/users")
+ @RequiredArgsConstructor
+ public class UserController {
 
     private final UserService userService;
     private final OAuth2Service oAuth2Service;

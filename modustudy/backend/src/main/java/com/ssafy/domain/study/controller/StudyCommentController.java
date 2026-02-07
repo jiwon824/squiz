@@ -39,14 +39,9 @@ public class StudyCommentController {
             @Valid @RequestBody StudyCommentCreateRequest request,
             @RequestHeader("user-id") Long userId) {
 
-        log.info("API 호출 - 댓글 생성: studyId={}, userId={}, parentId={}",
-                studyId, userId, request.getParentId());
+                StudyCommentResponse response = commentService.createComment(studyId, request, userId);
 
-        StudyCommentResponse response = commentService.createComment(studyId, request, userId);
-
-        log.info("API 응답 - 댓글 생성 완료: commentId={}", response.getId());
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+                return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     // ============================================================
@@ -62,15 +57,9 @@ public class StudyCommentController {
             @PathVariable Long studyId,
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
 
-        log.info("API 호출 - 스터디별 댓글 목록 조회: studyId={}, page={}, size={}",
-                studyId, pageable.getPageNumber(), pageable.getPageSize());
+                StudyCommentPageResponse response = commentService.getCommentsByStudy(studyId, pageable);
 
-        StudyCommentPageResponse response = commentService.getCommentsByStudy(studyId, pageable);
-
-        log.info("API 응답 - 댓글 목록: studyId={}, totalElements={}, totalPages={}",
-                studyId, response.getTotalElements(), response.getTotalPages());
-
-        return ResponseEntity.ok(response);
+                return ResponseEntity.ok(response);
     }
 
     /**
@@ -82,15 +71,9 @@ public class StudyCommentController {
             @PathVariable Long studyId,
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
 
-        log.info("API 호출 - 최상위 댓글만 조회: studyId={}, page={}, size={}",
-                studyId, pageable.getPageNumber(), pageable.getPageSize());
+                StudyCommentPageResponse response = commentService.getParentCommentsOnly(studyId, pageable);
 
-        StudyCommentPageResponse response = commentService.getParentCommentsOnly(studyId, pageable);
-
-        log.info("API 응답 - 최상위 댓글 목록: studyId={}, totalElements={}",
-                studyId, response.getTotalElements());
-
-        return ResponseEntity.ok(response);
+                return ResponseEntity.ok(response);
     }
 
     /**
@@ -102,13 +85,9 @@ public class StudyCommentController {
             @PathVariable Long studyId,
             @PathVariable Long commentId) {
 
-        log.info("API 호출 - 대댓글 목록 조회: studyId={}, parentCommentId={}", studyId, commentId);
+                List<StudyCommentResponse> response = commentService.getReplies(studyId, commentId);
 
-        List<StudyCommentResponse> response = commentService.getReplies(studyId, commentId);
-
-        log.info("API 응답 - 대댓글 목록: parentCommentId={}, count={}", commentId, response.size());
-
-        return ResponseEntity.ok(response);
+                return ResponseEntity.ok(response);
     }
 
     // ============================================================
@@ -124,14 +103,9 @@ public class StudyCommentController {
             @PathVariable Long studyId,
             @PathVariable Long commentId) {
 
-        log.info("API 호출 - 댓글 상세 조회: studyId={}, commentId={}", studyId, commentId);
+                StudyCommentResponse response = commentService.getComment(studyId, commentId);
 
-        StudyCommentResponse response = commentService.getComment(studyId, commentId);
-
-        log.info("API 응답 - 댓글 상세: commentId={}, userId={}",
-                response.getId(), response.getUserId());
-
-        return ResponseEntity.ok(response);
+                return ResponseEntity.ok(response);
     }
 
     // ============================================================
@@ -149,14 +123,9 @@ public class StudyCommentController {
             @Valid @RequestBody StudyCommentUpdateRequest request,
             @RequestHeader("user-id") Long userId) {
 
-        log.info("API 호출 - 댓글 수정: studyId={}, commentId={}, userId={}",
-                studyId, commentId, userId);
+                StudyCommentResponse response = commentService.updateComment(studyId, commentId, request, userId);
 
-        StudyCommentResponse response = commentService.updateComment(studyId, commentId, request, userId);
-
-        log.info("API 응답 - 댓글 수정 완료: commentId={}", response.getId());
-
-        return ResponseEntity.ok(response);
+                return ResponseEntity.ok(response);
     }
 
     // ============================================================
@@ -173,14 +142,9 @@ public class StudyCommentController {
             @PathVariable Long commentId,
             @RequestHeader("user-id") Long userId) {
 
-        log.info("API 호출 - 댓글 삭제: studyId={}, commentId={}, userId={}",
-                studyId, commentId, userId);
+                commentService.deleteComment(studyId, commentId, userId);
 
-        commentService.deleteComment(studyId, commentId, userId);
-
-        log.info("API 응답 - 댓글 삭제 완료: commentId={}", commentId);
-
-        return ResponseEntity.noContent().build();
+                return ResponseEntity.noContent().build();
     }
 
     // ============================================================
@@ -195,12 +159,8 @@ public class StudyCommentController {
     public ResponseEntity<Long> getCommentCount(
             @PathVariable Long studyId) {
 
-        log.info("API 호출 - 댓글 개수 조회: studyId={}", studyId);
+                Long count = commentService.getCommentCount(studyId);
 
-        Long count = commentService.getCommentCount(studyId);
-
-        log.info("API 응답 - 댓글 개수: studyId={}, count={}", studyId, count);
-
-        return ResponseEntity.ok(count);
+                return ResponseEntity.ok(count);
     }
 }

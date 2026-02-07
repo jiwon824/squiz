@@ -14,7 +14,7 @@ import java.util.Optional;
  * 호출자: {@link com.ssafy.domain.quiz.service.QuizCourseService}
  *
  */
-public interface QuizCourseRepository extends JpaRepository<QuizCourse, Long> {
+ public interface QuizCourseRepository extends JpaRepository<QuizCourse, Long> {
     /**
      * 활성 코스를 정렬 기준에 맞춰 조회한다.
      *

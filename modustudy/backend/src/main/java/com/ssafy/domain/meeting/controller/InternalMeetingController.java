@@ -23,11 +23,11 @@ import org.springframework.web.multipart.MultipartFile;
  * AI 서버에서 녹음 파일 업로드 시 사용
  * studyId 없이 meetingId만으로 처리 (향후 스터디 외 미팅 지원)
  */
-@Tag(name = "Internal Meeting API", description = "서버 간 내부 통신용 API")
-@RestController
-@RequestMapping("/api/internal/meetings")
-@RequiredArgsConstructor
-public class InternalMeetingController {
+ @Tag(name = "Internal Meeting API", description = "서버 간 내부 통신용 API")
+ @RestController
+ @RequestMapping("/api/internal/meetings")
+ @RequiredArgsConstructor
+ public class InternalMeetingController {
 
     private final MeetingRecordingService meetingRecordingService;
     private final MeetingSttService meetingSttService;

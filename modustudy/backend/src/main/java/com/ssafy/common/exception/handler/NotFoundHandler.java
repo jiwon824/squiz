@@ -25,8 +25,8 @@ import org.springframework.web.servlet.NoHandlerFoundException;
  *
  */
 
-@ControllerAdvice
-public class NotFoundHandler {
+ @ControllerAdvice
+ public class NotFoundHandler {
 	@Value("${spa.default-file}")
 	String defaultFile;
 
@@ -57,7 +57,6 @@ public class NotFoundHandler {
 			String body = StreamUtils.copyToString(inputStream, Charset.defaultCharset());
 			return ResponseEntity.ok().contentType(MediaType.TEXT_HTML).body(body);
 		} catch (IOException e) {
-			e.printStackTrace();
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("There was an error completing the action.");
 		}
 	}

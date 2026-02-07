@@ -13,7 +13,7 @@ import java.lang.annotation.Target;
  * @GetMapping("/me")
  * public ResponseEntity<?> getMe(@CurrentUserId Long userId) { ... }
  */
-@Target(ElementType.PARAMETER)
-@Retention(RetentionPolicy.RUNTIME)
-public @interface CurrentUserId {
+ @Target(ElementType.PARAMETER)
+ @Retention(RetentionPolicy.RUNTIME)
+ public @interface CurrentUserId {
 }

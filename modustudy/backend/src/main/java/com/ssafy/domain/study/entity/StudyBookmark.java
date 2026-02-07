@@ -12,12 +12,12 @@ import java.time.LocalDateTime;
                 name = "uk_user_study",
                 columnNames = {"user_id", "study_id"}
         ))
-@Getter
-@Setter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
-@Builder
-public class StudyBookmark {
+        @Getter
+        @Setter
+        @NoArgsConstructor(access = AccessLevel.PROTECTED)
+        @AllArgsConstructor
+        @Builder
+        public class StudyBookmark {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

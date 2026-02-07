@@ -12,5 +12,5 @@ public record MeetingRecordingRequest(
         LocalDateTime endedAt,
         Long fileSize,
         RecordingStatus status
-) {
+        ) {
 }

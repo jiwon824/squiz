@@ -90,7 +90,6 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
                 error: getErrorMessage(error, '일정 조회에 실패했습니다.'),
                 loading: false
             });
-            console.error('일정 조회 실패:', error);
         }
     },
 
@@ -132,7 +131,6 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
         } catch (error: unknown) {
             // 실패 시 롤백
             set({ schedules: previousSchedules });
-            console.error('일정 생성 실패 (롤백됨):', error);
             throw error;
         }
     },
@@ -160,7 +158,6 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
         } catch (error: unknown) {
             // 실패 시 롤백
             set({ schedules: previousSchedules });
-            console.error('일정 수정 실패 (롤백됨):', error);
             throw error;
         }
     },
@@ -181,7 +178,6 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
         } catch (error: unknown) {
             // 실패 시 롤백
             set({ schedules: previousSchedules });
-            console.error('일정 삭제 실패 (롤백됨):', error);
             throw error;
         }
     },
@@ -266,7 +262,6 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
             return authUrl;
         } catch (error: unknown) {
             set({ error: getErrorMessage(error, 'Google Calendar 연동에 실패했습니다.') });
-            console.error('Google 연동 실패:', error);
             throw error;
         }
     },
@@ -282,7 +277,6 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
             });
         } catch (error: unknown) {
             set({ error: getErrorMessage(error, 'Google Calendar 연동 해제에 실패했습니다.') });
-            console.error('Google 연동 해제 실패:', error);
             throw error;
         }
     },
@@ -301,7 +295,6 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
                 error: getErrorMessage(error, 'Google Calendar 동기화에 실패했습니다.'),
                 loading: false
             });
-            console.error('Google 동기화 실패:', error);
             throw error;
         }
     },
@@ -314,7 +307,6 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
                 googleEmail: status.email || null
             });
         } catch (error) {
-            console.error('Google 상태 확인 실패:', error);
         }
     }
 }));

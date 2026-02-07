@@ -13,11 +13,11 @@ import java.time.LocalDateTime;
 /**
  * 스터디 신청 목록 응답 DTO (간략 버전)
  */
-@Getter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class ApplicationListResponse {
+ @Getter
+ @NoArgsConstructor
+ @AllArgsConstructor
+ @Builder
+ public class ApplicationListResponse {
 
     /**
      * 신청 ID

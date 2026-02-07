@@ -112,7 +112,6 @@ const MeetingQuickAccess: React.FC = () => {
                             try {
                                 return await calendarApi.getStudySessions(study.id, startDate, endDateString);
                             } catch (error) {
-                                console.warn('[MeetingQuickAccess] study sessions load failed', study.id, error);
                                 return [];
                             }
                         })
@@ -134,7 +133,6 @@ const MeetingQuickAccess: React.FC = () => {
                             const meetings = await meetingApi.listMeetings(studyId, { page: 0, size: 50 });
                             return { studyId, meetings: meetings.content };
                         } catch (error) {
-                            console.warn('[MeetingQuickAccess] meeting list load failed', studyId, error);
                             return { studyId, meetings: [] };
                         }
                     })
@@ -172,7 +170,6 @@ const MeetingQuickAccess: React.FC = () => {
 
                 setMeetings(upcomingMeetings);
             } catch (err) {
-                console.error('[MeetingQuickAccess] 미팅 일정 로딩 실패:', err);
             } finally {
                 setIsLoading(false);
             }
@@ -319,7 +316,6 @@ export const RightSideBarV2: React.FC = () => {
                     try {
                         return await calendarApi.getStudySessions(study.id, startDate, endDateString);
                     } catch (error) {
-                        console.warn('[MeetingBadge] study sessions load failed', study.id, error);
                         return [];
                     }
                 })
@@ -368,7 +364,6 @@ export const RightSideBarV2: React.FC = () => {
                     setBadgeMeetings(data);
                 }
             } catch (error) {
-                console.warn('[MeetingBadge] load failed', error);
             }
         };
 

@@ -12,8 +12,6 @@ import { Button } from '@/shared/components/Button';
 
 export const ThemeDisplaySection = () => {
     // TODO: 테마 설정 상태 (API 구현 후 스토어로 이동)
-    // const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('light');
-    // const [fontSize, setFontSize] = useState<'small' | 'medium' | 'large'>('medium');
 
     return (
         <section className="setting-section todo-section">

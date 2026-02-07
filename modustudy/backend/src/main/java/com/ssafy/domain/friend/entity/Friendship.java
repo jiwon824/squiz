@@ -9,12 +9,12 @@ import java.time.LocalDateTime;
  * - PENDING: 친구 요청 보냄 (requester → addressee)
  * - ACCEPTED: 친구 수락됨 (양방향 친구)
  */
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class Friendship {
+ @Getter
+ @Setter
+ @NoArgsConstructor
+ @AllArgsConstructor
+ @Builder
+ public class Friendship {
     private Long id;
     private Long requesterId;
     private Long addresseeId;

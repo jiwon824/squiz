@@ -8,5 +8,5 @@ public record MeetingSttDataResponse(
         Integer timestampSeconds,
         Integer startMs,
         Integer endMs
-) {
+        ) {
 }

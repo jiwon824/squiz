@@ -17,7 +17,6 @@ export const WeakConceptWidget: React.FC = () => {
       setConcepts(data);
     } catch (err) {
       setError(true);
-      console.error(err);
     } finally {
       setLoading(false);
     }

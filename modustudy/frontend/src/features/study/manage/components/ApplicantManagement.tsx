@@ -58,7 +58,6 @@ const ApplicantManagement: React.FC<ApplicantManagementProps> = ({ studyId }) =>
 
             setApplicants(mappedApplicants);
         } catch (error) {
-            console.error('신청자 목록 조회 실패:', error);
             showToast('신청자 목록을 불러오는데 실패했습니다.', 'error');
         } finally {
             setLoading(false);
@@ -90,7 +89,6 @@ const ApplicantManagement: React.FC<ApplicantManagementProps> = ({ studyId }) =>
             // 목록 새로고침
             await fetchApplicants();
         } catch (error: unknown) {
-            console.error('신청 처리 실패:', error);
 
             // 정원 초과 에러 체크
             const axiosErr = error as { response?: { data?: { message?: string; code?: string; error?: { message?: string; code?: string } } } };

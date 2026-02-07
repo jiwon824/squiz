@@ -104,7 +104,6 @@ const MeetingDetailPanel: React.FC<MeetingDetailPanelProps> = ({ studyId, meetin
         setSelectedPhotoIds(new Set());
         showToast('선택된 이미지가 초기화되었습니다.', 'info');
       } catch (error) {
-        console.error('Failed to clear report photo selection', error);
         showToast('이미지 선택 초기화에 실패했습니다.', 'error');
       } finally {
         setIsSavingSelection(false);
@@ -121,7 +120,6 @@ const MeetingDetailPanel: React.FC<MeetingDetailPanelProps> = ({ studyId, meetin
       setPhotos(updated);
       showToast('보고서에 이미지가 첨부되었습니다.', 'success');
     } catch (error) {
-      console.error('Failed to save report photo selection', error);
       showToast('이미지 첨부에 실패했습니다.', 'error');
     } finally {
       setIsSavingSelection(false);
@@ -155,7 +153,6 @@ const MeetingDetailPanel: React.FC<MeetingDetailPanelProps> = ({ studyId, meetin
           URL.revokeObjectURL(linkUrl);
         } catch (error) {
           window.open(url, '_blank', 'noopener,noreferrer');
-          console.error('Failed to download meeting photo', error);
         }
       }
     } finally {

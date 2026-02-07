@@ -12,5 +12,5 @@ public record MeetingAudioRecordingResponse(
         String format,
         Long fileSize,
         LocalDateTime createdAt
-) {
+        ) {
 }

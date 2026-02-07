@@ -26,8 +26,8 @@ import static org.mockito.Mockito.verify;
 /**
  * RegionService 단위 테스트
  */
-@ExtendWith(MockitoExtension.class)
-class RegionServiceTest {
+ @ExtendWith(MockitoExtension.class)
+ class RegionServiceTest {
 
     @Mock
     private RegionRepository regionRepository;

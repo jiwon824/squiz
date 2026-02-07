@@ -8,9 +8,9 @@ import java.time.LocalDate;
 /**
  * 스터디 가입 이벤트
  */
-@Getter
-@AllArgsConstructor
-public class StudyJoinEvent {
+ @Getter
+ @AllArgsConstructor
+ public class StudyJoinEvent {
     private final Long userId;
     private final Long studyId;
     private final String studyName;

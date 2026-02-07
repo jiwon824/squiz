@@ -32,15 +32,9 @@ public class RetrospectiveController {
             @RequestHeader("User-Id") Long userId,
             @PageableDefault(size = 20) Pageable pageable) {
 
-        log.info("API 호출 - 회고 목록 조회: studyId={}, userId={}, page={}, size={}",
-                studyId, userId, pageable.getPageNumber(), pageable.getPageSize());
+                Page<RetrospectiveListResponse> response = retrospectiveService.getRetrospectives(studyId, userId, pageable);
 
-        Page<RetrospectiveListResponse> response = retrospectiveService.getRetrospectives(studyId, userId, pageable);
-
-        log.info("API 응답 - 회고 목록: studyId={}, count={}, totalElements={}",
-                studyId, response.getContent().size(), response.getTotalElements());
-
-        return ResponseEntity.ok(response);
+                return ResponseEntity.ok(response);
     }
 
     /**
@@ -52,13 +46,9 @@ public class RetrospectiveController {
             @PathVariable Long studyId,
             @PathVariable Long retroId) {
 
-        log.info("API 호출 - 회고 상세 조회: studyId={}, retroId={}", studyId, retroId);
+                RetrospectiveDetailResponse response = retrospectiveService.getRetrospectiveDetail(studyId, retroId);
 
-        RetrospectiveDetailResponse response = retrospectiveService.getRetrospectiveDetail(studyId, retroId);
-
-        log.info("API 응답 - 회고 상세: retroId={}, title={}", response.getId(), response.getTitle());
-
-        return ResponseEntity.ok(response);
+                return ResponseEntity.ok(response);
     }
 
     /**
@@ -71,13 +61,9 @@ public class RetrospectiveController {
             @RequestHeader("User-Id") Long userId,
             @Valid @RequestBody RetrospectiveCreateRequest request) {
 
-        log.info("API 호출 - 회고 생성: studyId={}, userId={}, title={}", studyId, userId, request.getTitle());
+                RetrospectiveDetailResponse response = retrospectiveService.createRetrospective(studyId, request, userId);
 
-        RetrospectiveDetailResponse response = retrospectiveService.createRetrospective(studyId, request, userId);
-
-        log.info("API 응답 - 회고 생성 완료: retroId={}", response.getId());
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+                return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     /**
@@ -90,12 +76,8 @@ public class RetrospectiveController {
             @PathVariable Long retroId,
             @RequestHeader("User-Id") Long userId) {
 
-        log.info("API 호출 - 회고 삭제: studyId={}, retroId={}, userId={}", studyId, retroId, userId);
+                retrospectiveService.deleteRetrospective(studyId, retroId, userId);
 
-        retrospectiveService.deleteRetrospective(studyId, retroId, userId);
-
-        log.info("API 응답 - 회고 삭제 완료: retroId={}", retroId);
-
-        return ResponseEntity.noContent().build();
+                return ResponseEntity.noContent().build();
     }
 }

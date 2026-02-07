@@ -12,5 +12,5 @@ public record MeetingRecordingResponse(
         Long fileSize,
         String status,
         LocalDateTime createdAt
-) {
+        ) {
 }

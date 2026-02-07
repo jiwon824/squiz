@@ -7,5 +7,5 @@ public record MeetingParticipantSummaryResponse(
         Long userId,
         String summary,
         LocalDateTime createdAt
-) {
+        ) {
 }

@@ -15,8 +15,8 @@ import java.util.Optional;
 /**
  * 스터디 세션 Repository
  */
-@Repository
-public interface StudySessionRepository extends JpaRepository<StudySession, Long> {
+ @Repository
+ public interface StudySessionRepository extends JpaRepository<StudySession, Long> {
 
     /**
      * 특정 스터디의 모든 세션 조회

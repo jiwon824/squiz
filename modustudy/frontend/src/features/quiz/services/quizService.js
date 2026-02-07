@@ -31,7 +31,6 @@ export const fetchRandomWord = async (difficulty = null, category = null) => {
         currentProblem = data;
         return data;
     } catch (error) {
-        console.error('fetchRandomWord error:', error);
         // 폴백: 기존 mock 데이터 사용
         return getFallbackProblem();
     }
@@ -69,7 +68,6 @@ export const checkSimilarity = async (userWord) => {
             bonuses: data.bonuses || {}
         };
     } catch (error) {
-        console.error('checkSimilarity error:', error);
         // 폴백: 기존 mock 로직 사용
         return checkSimilarityFallback(userWord);
     }
@@ -129,7 +127,6 @@ export const getEmbedding3DBatch = async (answerWord, attemptWords, category = n
         if (!response.ok) throw new Error('Failed to get embedding 3D batch');
         return await response.json();
     } catch (error) {
-        console.error('getEmbedding3DBatch error:', error);
         return null;
     }
 };
@@ -149,7 +146,6 @@ export const fetchDailyWord = async () => {
         currentProblem = data;
         return data;
     } catch (error) {
-        console.error('fetchDailyWord error:', error);
         // 폴백: 랜덤 단어 사용
         return await fetchRandomWord();
     }
@@ -167,7 +163,6 @@ export const fetchYesterdayWord = async () => {
 
         return await response.json();
     } catch (error) {
-        console.error('fetchYesterdayWord error:', error);
         // 폴백: 로컬 계산
         return getYesterdayAnswerFallback();
     }
@@ -211,7 +206,6 @@ export const fetchLeaderboard = async (date = null, limit = 10) => {
         const data = await response.json();
         return data;
     } catch (error) {
-        console.error('fetchLeaderboard error:', error);
         return { date: date || new Date().toISOString().split('T')[0], rankings: [], total: 0 };
     }
 };
@@ -236,7 +230,6 @@ export const saveToLeaderboard = async (nickname, attempts, time) => {
 
         return await response.json();
     } catch (error) {
-        console.error('saveToLeaderboard error:', error);
         return { success: false, error: error.message };
     }
 };
@@ -263,7 +256,6 @@ export const getLocalUserGuesses = (userId, date = null) => {
             return JSON.parse(stored);
         }
     } catch (error) {
-        console.error('getLocalUserGuesses error:', error);
     }
 
     return [];
@@ -282,7 +274,6 @@ export const saveLocalUserGuesses = (userId, guesses, date = null) => {
     try {
         localStorage.setItem(storageKey, JSON.stringify(guesses));
     } catch (error) {
-        console.error('saveLocalUserGuesses error:', error);
     }
 };
 
@@ -307,7 +298,6 @@ export const cleanupOldGuesses = () => {
 
         keysToRemove.forEach(key => localStorage.removeItem(key));
     } catch (error) {
-        console.error('cleanupOldGuesses error:', error);
     }
 };
 
@@ -335,7 +325,6 @@ export const getCategories = async () => {
         if (!response.ok) throw new Error('Failed to fetch categories');
         return await response.json();
     } catch (error) {
-        console.error('getCategories error:', error);
         return { categories: ['자료구조', '알고리즘', '네트워크', '데이터베이스', '운영체제'] };
     }
 };
@@ -350,7 +339,6 @@ export const getDifficulties = async () => {
         if (!response.ok) throw new Error('Failed to fetch difficulties');
         return await response.json();
     } catch (error) {
-        console.error('getDifficulties error:', error);
         return { difficulties: ['easy', 'medium', 'hard'] };
     }
 };

@@ -6,7 +6,7 @@ import java.util.Map;
  * 경험치 시스템 설정
  * 활동별 경험치, 레벨별 필요 경험치 등 정의
  */
-public final class ExperienceConfig {
+ public final class ExperienceConfig {
 
     private ExperienceConfig() {}
 

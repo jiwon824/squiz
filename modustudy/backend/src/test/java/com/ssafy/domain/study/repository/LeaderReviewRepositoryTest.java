@@ -22,9 +22,9 @@ import static org.assertj.core.api.Assertions.*;
 /**
  * LeaderReviewRepository 테스트
  */
-@SpringBootTest
-@Transactional
-class LeaderReviewRepositoryTest {
+ @SpringBootTest
+ @Transactional
+ class LeaderReviewRepositoryTest {
 
     @Autowired
     private LeaderReviewRepository leaderReviewRepository;
