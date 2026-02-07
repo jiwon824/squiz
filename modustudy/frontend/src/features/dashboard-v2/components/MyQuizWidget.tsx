@@ -372,7 +372,7 @@ const ReviewItemList: React.FC<ReviewItemListProps> = ({ items, onSelect }) => {
 
     return (
         <div className="flex flex-col">
-            <div className="max-h-[400px] overflow-y-auto space-y-3 pr-2 quiz-list-scroll">
+            <div className="max-h-[400px] overflow-y-auto space-y-3 pr-2">
                 {currentItems.map((item) => {
                     // 난이도 표시용
                     const diffLabel = item.difficulty < 3 ? '쉬움' : item.difficulty < 7 ? '보통' : '어려움';
