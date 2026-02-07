@@ -238,7 +238,7 @@ const Pagination: React.FC<PaginationProps> = React.memo(
             'flex items-center gap-1 px-2 py-1.5 rounded-lg text-sm transition-colors',
             currentPage === 1
               ? 'text-gray-300 cursor-not-allowed'
-              : 'text-text-secondary hover:text-text-primary'
+              : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
           )}
         >
           <ChevronLeft size={18} />
@@ -254,8 +254,8 @@ const Pagination: React.FC<PaginationProps> = React.memo(
               className={cn(
                 'w-8 h-8 rounded-lg text-sm font-medium transition-colors',
                 page === currentPage
-                  ? 'text-primary bg-primary/10'
-                  : 'text-text-secondary hover:text-text-primary'
+                  ? 'text-[var(--color-primary)] font-bold'
+                  : 'text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]'
               )}
             >
               {page}
@@ -271,7 +271,7 @@ const Pagination: React.FC<PaginationProps> = React.memo(
             'flex items-center gap-1 px-2 py-1.5 rounded-lg text-sm transition-colors',
             currentPage === totalPages
               ? 'text-gray-300 cursor-not-allowed'
-              : 'text-text-secondary hover:text-text-primary'
+              : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
           )}
         >
           <span className="hidden sm:inline">다음</span>
