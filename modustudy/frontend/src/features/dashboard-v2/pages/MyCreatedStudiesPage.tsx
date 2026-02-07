@@ -121,7 +121,7 @@ export const MyCreatedStudiesPage: React.FC = () => {
         <PageNavHeader
           title="개설한 스터디"
           breadcrumbs={[
-            { label: '대시보드', path: '/dashboard' },
+            { label: '마이홈', path: '/dashboard' },
             { label: '개설한 스터디' },
           ]}
           badge={{ text: `${studies.length}개`, className: 'bg-blue-50 text-blue-600' }}

@@ -238,7 +238,7 @@ export const MyApplicationsPage: React.FC = () => {
         <PageNavHeader
           title="내 참여 스터디"
           breadcrumbs={[
-            { label: '대시보드', path: '/dashboard' },
+            { label: '마이홈', path: '/dashboard' },
             { label: '내 참여 스터디' },
           ]}
           badge={{ text: `${participations.length}개`, className: 'bg-violet-50 text-violet-600' }}
