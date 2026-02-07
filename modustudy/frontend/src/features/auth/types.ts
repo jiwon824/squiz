@@ -8,6 +8,7 @@ export interface UserDTO {
     levelName: string;
     currentLevel: number;
     role?: 'USER' | 'ADMIN';
+    loginProvider?: 'KAKAO' | 'NAVER' | 'GOOGLE' | 'EMAIL';
 }
 
 export interface AuthResponse {

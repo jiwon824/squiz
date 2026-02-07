@@ -13,7 +13,6 @@ import {
     Circle,
     CheckCircle2,
     XCircle,
-    ChevronRight,
     Send,
     RotateCcw,
     Trophy,
@@ -22,6 +21,7 @@ import {
 import { Spinner } from '@/shared/components/Spinner';
 import { cn, conditionalClasses } from '@/shared/utils/cn';
 import { PageNavHeader } from '@/shared/components/layouts';
+import { FeedbackModal } from '@/features/quiz/components/continuous/FeedbackModal';
 import { studyApi } from '@/api/endpoints/studyApi';
 import {
     studyQuizApi,
@@ -119,6 +119,14 @@ export const MeetingTestPage: React.FC = () => {
     const [isComplete, setIsComplete] = useState(false);
     const startTimeRef = useRef<number>(Date.now());
 
+    // 피드백 모달 상태
+    const [showFeedback, setShowFeedback] = useState(false);
+    const [feedbackModalData, setFeedbackModalData] = useState<{
+        isCorrect: boolean;
+        correctAnswer: string;
+        explanation?: string;
+    } | null>(null);
+
     // 스터디 목록 로드
     useEffect(() => {
         const loadStudies = async () => {
@@ -207,28 +215,47 @@ export const MeetingTestPage: React.FC = () => {
     const handleSubmit = useCallback(async () => {
         if (!quizDetail || !selectedQuiz || !userAnswer.trim()) return;
         const question = quizDetail.questions[currentIndex];
+        const options = parseOptions(question.options);
         const responseTimeMs = Date.now() - startTimeRef.current;
+
+        let isCorrect = false;
+        let correctAnswerRaw = question.correctAnswer;
+        let explanation = question.explanation;
 
         setSubmitting(true);
         try {
             const res = await studyQuizApi.submitAnswer(
                 selectedQuiz.studyId, quizDetail.id, question.id, { userAnswer, responseTimeMs }
             );
+            isCorrect = res.isCorrect;
+            correctAnswerRaw = res.correctAnswer || correctAnswerRaw;
+            explanation = res.explanation || explanation;
             setResult(res);
-            setSubmitted(true);
-            if (res.isCorrect) setCorrectCount(prev => prev + 1);
         } catch {
-            const isCorrect = userAnswer.trim().toLowerCase() === question.correctAnswer.trim().toLowerCase();
+            isCorrect = userAnswer.trim().toLowerCase() === question.correctAnswer.trim().toLowerCase();
             setResult({ isCorrect, correctAnswer: question.correctAnswer, explanation: question.explanation } as StudyQuizSubmitResponse);
-            setSubmitted(true);
-            if (isCorrect) setCorrectCount(prev => prev + 1);
         } finally {
             setSubmitting(false);
         }
+
+        setSubmitted(true);
+        if (isCorrect) setCorrectCount(prev => prev + 1);
+
+        // 정답 텍스트 결정 (모달 표시용)
+        const correctAnswerText = getCorrectAnswerText(correctAnswerRaw, options);
+
+        setFeedbackModalData({
+            isCorrect,
+            correctAnswer: correctAnswerText,
+            explanation: explanation || undefined,
+        });
+        setShowFeedback(true);
     }, [quizDetail, selectedQuiz, currentIndex, userAnswer]);
 
-    // 다음 문제
-    const handleNext = useCallback(() => {
+    // 피드백 모달에서 다음 문제로 이동
+    const handleFeedbackContinue = useCallback(() => {
+        setShowFeedback(false);
+        setFeedbackModalData(null);
         if (!quizDetail) return;
         if (currentIndex + 1 >= quizDetail.questions.length) {
             setIsComplete(true);
@@ -248,6 +275,8 @@ export const MeetingTestPage: React.FC = () => {
         setResult(null);
         setCorrectCount(0);
         setIsComplete(false);
+        setShowFeedback(false);
+        setFeedbackModalData(null);
     }, []);
 
     // 검색 필터링
@@ -551,52 +580,9 @@ export const MeetingTestPage: React.FC = () => {
                                                                 />
                                                             )}
 
-                                                            {/* 피드백 */}
-                                                            <AnimatePresence>
-                                                                {submitted && result && (
-                                                                    <motion.div
-                                                                        initial={{ opacity: 0, height: 0 }}
-                                                                        animate={{ opacity: 1, height: 'auto' }}
-                                                                        exit={{ opacity: 0, height: 0 }}
-                                                                        className="mt-5"
-                                                                    >
-                                                                        <div className={cn(
-                                                                            'rounded-xl p-4 border',
-                                                                            result.isCorrect
-                                                                                ? 'bg-secondary/5 border-secondary/30'
-                                                                                : 'bg-error/5 border-error/30'
-                                                                        )}>
-                                                                            <div className="flex items-center gap-2 mb-2">
-                                                                                {result.isCorrect ? (
-                                                                                    <CheckCircle2 size={18} className="text-secondary" />
-                                                                                ) : (
-                                                                                    <XCircle size={18} className="text-error" />
-                                                                                )}
-                                                                                <span className={cn(
-                                                                                    'text-sm font-semibold',
-                                                                                    result.isCorrect ? 'text-secondary-dark' : 'text-error'
-                                                                                )}>
-                                                                                    {result.isCorrect ? '정답입니다!' : '오답입니다'}
-                                                                                </span>
-                                                                            </div>
-                                                                            {!result.isCorrect && (
-                                                                                <p className="text-sm text-text-secondary mb-1">
-                                                                                    정답: <span className="font-medium text-secondary">
-                                                                                        {getCorrectAnswerText(result.correctAnswer, options)}
-                                                                                    </span>
-                                                                                </p>
-                                                                            )}
-                                                                            {result.explanation && (
-                                                                                <p className="text-sm text-text-secondary mt-2">{result.explanation}</p>
-                                                                            )}
-                                                                        </div>
-                                                                    </motion.div>
-                                                                )}
-                                                            </AnimatePresence>
-
-                                                            {/* 버튼 */}
-                                                            <div className="mt-6 flex justify-end">
-                                                                {!submitted ? (
+                                                            {/* 제출 버튼 (모달이 네비게이션을 처리하므로 제출 버튼만 표시) */}
+                                                            {!submitted && (
+                                                                <div className="mt-6 flex justify-end">
                                                                     <button
                                                                         onClick={handleSubmit}
                                                                         disabled={!userAnswer.trim() || submitting}
@@ -609,19 +595,19 @@ export const MeetingTestPage: React.FC = () => {
                                                                         {submitting ? <Spinner size="sm" /> : <Send size={15} />}
                                                                         제출하기
                                                                     </button>
-                                                                ) : (
-                                                                    <button
-                                                                        onClick={handleNext}
-                                                                        className={cn(
-                                                                            'inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-lg transition-colors',
-                                                                            'bg-accent text-white hover:bg-accent/90'
-                                                                        )}
-                                                                    >
-                                                                        {currentIndex + 1 >= quizDetail.questions.length ? '결과 보기' : '다음 문제'}
-                                                                        <ChevronRight size={15} />
-                                                                    </button>
-                                                                )}
-                                                            </div>
+                                                                </div>
+                                                            )}
+
+                                                            {/* 피드백 모달 */}
+                                                            {feedbackModalData && (
+                                                                <FeedbackModal
+                                                                    isOpen={showFeedback}
+                                                                    isCorrect={feedbackModalData.isCorrect}
+                                                                    correctAnswer={feedbackModalData.correctAnswer}
+                                                                    explanation={feedbackModalData.explanation}
+                                                                    onContinue={handleFeedbackContinue}
+                                                                />
+                                                            )}
                                                         </>
                                                     );
                                                 })()}

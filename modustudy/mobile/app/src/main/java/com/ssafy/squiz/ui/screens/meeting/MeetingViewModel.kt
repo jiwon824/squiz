@@ -107,9 +107,13 @@ class MeetingViewModel : ViewModel() {
     private val _showSessionSelectDialog = MutableStateFlow(false)
     val showSessionSelectDialog: StateFlow<Boolean> = _showSessionSelectDialog.asStateFlow()
 
-    // 스터디 세션 목록
+    // 스터디 세션 목록 (업로드 가능한 세션만)
     private val _sessions = MutableStateFlow<List<StudySessionDTO>>(emptyList())
     val sessions: StateFlow<List<StudySessionDTO>> = _sessions.asStateFlow()
+
+    // 전체 세션 목록 (세션명 조회용, 업로드 여부와 무관)
+    private val _allSessions = MutableStateFlow<List<StudySessionDTO>>(emptyList())
+    val allSessions: StateFlow<List<StudySessionDTO>> = _allSessions.asStateFlow()
 
     // 이미 업로드된 세션 ID 목록 (이 세션들은 녹음 불가)
     private val _uploadedSessionIds = MutableStateFlow<Set<Long>>(emptySet())
@@ -328,7 +332,7 @@ class MeetingViewModel : ViewModel() {
             // 이미 업로드된 세션인지 체크
             if (sessionId != null && sessionId in _uploadedSessionIds.value) {
                 Log.w(TAG, "이미 업로드된 세션입니다: sessionId=$sessionId")
-                _recordingStartError.value = "이미 녹음이 업로드된 세션입니다."
+                _recordingStartError.value = "이미 녹음파일이 업로드 된 세션입니다!"
                 return@launch
             }
 
@@ -536,10 +540,13 @@ class MeetingViewModel : ViewModel() {
                 Log.d(TAG, "세션 목록 로드 시작: studyId=$studyId")
                 val response = RetrofitClient.studyApi.getStudySessions(studyId)
                 if (response.isSuccessful) {
+                    // 모든 세션 저장 (세션명 조회용)
+                    val allSessionsFromApi = response.body() ?: emptyList()
+                    _allSessions.value = allSessionsFromApi
+                    Log.d(TAG, "전체 세션 ${allSessionsFromApi.size}개 로드됨")
+
                     // 오프라인 세션만 필터링 (isOnline == false 또는 null)
-                    val allSessions = response.body() ?: emptyList()
-                    Log.d(TAG, "전체 세션 ${allSessions.size}개 로드됨")
-                    val offlineSessions = allSessions.filter { it.isOnline != true }
+                    val offlineSessions = allSessionsFromApi.filter { it.isOnline != true }
                     Log.d(TAG, "오프라인 세션: ${offlineSessions.size}개")
 
                     // 이미 미팅이 업로드된 세션 제외

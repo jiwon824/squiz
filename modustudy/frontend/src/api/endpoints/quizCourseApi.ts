@@ -326,7 +326,12 @@ export const startOrResumeAttempt = async (
     if (!response.data.success) {
         throw new Error(response.data.error?.message || '퀴즈를 시작하는데 실패했습니다.');
     }
-    return response.data.data;
+    const data = response.data.data;
+    // 주관식(SHORT_ANSWER) 임시 제외
+    return {
+        ...data,
+        questions: data.questions.filter(q => q.questionType !== 'SHORT_ANSWER'),
+    };
 };
 
 /**
@@ -345,7 +350,12 @@ export const resumeAttempt = async (
     if (!response.data.success) {
         throw new Error(response.data.error?.message || '퀴즈를 재개하는데 실패했습니다.');
     }
-    return response.data.data;
+    const data = response.data.data;
+    // 주관식(SHORT_ANSWER) 임시 제외
+    return {
+        ...data,
+        questions: data.questions.filter(q => q.questionType !== 'SHORT_ANSWER'),
+    };
 };
 
 /**

@@ -126,6 +126,9 @@ const transformQuestion = (
 ): ContinuousQuizQuestion | null => {
     if (!backendQuestion) return null;
 
+    // 주관식(SHORT_ANSWER) 임시 제외 - null 반환으로 스킵 처리
+    if (backendQuestion.questionType === 'SHORT_ANSWER') return null;
+
     return {
         questionId: backendQuestion.questionId,
         questionText: backendQuestion.questionText,
