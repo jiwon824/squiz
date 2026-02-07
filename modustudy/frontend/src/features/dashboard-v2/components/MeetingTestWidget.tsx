@@ -306,32 +306,30 @@ export const MeetingTestWidget: React.FC = () => {
                                             key={item.quiz.id}
                                             onClick={() => handleSelect(item)}
                                             className={cn(
-                                                'w-full p-4 rounded-xl bg-white text-left transition-all',
-                                                'shadow-[0_4px_15px_rgba(0,0,0,0.05)]',
-                                                'hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)] hover:bg-gray-50'
+                                                'w-full flex items-center justify-between text-left group',
+                                                'rounded-xl p-3 transition-all duration-200',
+                                                'hover:bg-white hover:shadow-sm border border-transparent hover:border-blue-100'
                                             )}
                                         >
-                                            <div className="flex items-start justify-between gap-3">
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-2 mb-2">
-                                                        <span className="px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700">
-                                                            {item.quiz.questionCount}문제
-                                                        </span>
-                                                        <span className="text-xs text-text-tertiary bg-gray-100 px-2 py-0.5 rounded flex items-center gap-1">
-                                                            <Calendar size={12} />
-                                                            {item.quiz.createdAt.split('T')[0]}
-                                                        </span>
-                                                    </div>
-                                                    <h4 className="font-medium text-text-primary line-clamp-2 text-sm leading-relaxed mb-1">
-                                                        {item.quiz.title}
-                                                    </h4>
-                                                    <p className="text-xs text-text-secondary truncate">
-                                                        {item.studyName}
-                                                    </p>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <span className="px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700">
+                                                        {item.quiz.questionCount}문제
+                                                    </span>
+                                                    <span className="text-xs text-text-tertiary bg-gray-100 px-2 py-0.5 rounded flex items-center gap-1">
+                                                        <Calendar size={12} />
+                                                        {item.quiz.createdAt.split('T')[0]}
+                                                    </span>
                                                 </div>
-                                                <div className="flex-shrink-0 self-center">
-                                                    <Play size={18} className="text-primary/70" />
-                                                </div>
+                                                <h4 className="font-medium text-text-primary line-clamp-2 text-sm leading-relaxed mb-1">
+                                                    {item.quiz.title}
+                                                </h4>
+                                                <p className="text-xs text-text-secondary truncate">
+                                                    {item.studyName}
+                                                </p>
+                                            </div>
+                                            <div className="flex-shrink-0 self-center pl-3">
+                                                <Play size={18} className="text-primary/70 group-hover:text-primary transition-colors" />
                                             </div>
                                         </button>
                                     ))}

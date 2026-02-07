@@ -226,51 +226,52 @@ export const LearningArchiveWidget: React.FC = () => {
                                 viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : 'space-y-3'
                             )}
                         >
-                        {filteredArchives.map((archive) => (
-                            <div
-                                key={`${archive.studyId}-${archive.meetingId}`}
-                                className={cn(
-                                    'bg-gray-50 rounded-xl p-4 cursor-pointer',
-                                    'hover:shadow-md hover:bg-white border border-gray-100'
-                                )}
-                            >
-                                <div className="flex items-start justify-between mb-2">
-                                    <h4 className="font-bold text-text-primary mb-0">{archive.title}</h4>
-                                    <span className="text-xs text-text-tertiary flex items-center gap-1">
-                                        <Calendar size={12} />
-                                        {archive.date}
-                                    </span>
-                                </div>
+                            {filteredArchives.map((archive) => (
+                                <div
+                                    key={`${archive.studyId}-${archive.meetingId}`}
+                                    className={cn(
+                                        'rounded-xl p-4 cursor-pointer transition-all duration-200 group',
+                                        'border border-transparent hover:border-blue-100',
+                                        'hover:bg-white hover:shadow-sm'
+                                    )}
+                                >
+                                    <div className="flex items-start justify-between mb-2">
+                                        <h4 className="font-bold text-text-primary mb-0">{archive.title}</h4>
+                                        <span className="text-xs text-text-tertiary flex items-center gap-1">
+                                            <Calendar size={12} />
+                                            {archive.date}
+                                        </span>
+                                    </div>
 
-                                <p className="text-sm text-text-secondary mb-3 line-clamp-2">
-                                    {archive.studyName}
-                                </p>
+                                    <p className="text-sm text-text-secondary mb-3 line-clamp-2">
+                                        {archive.studyName}
+                                    </p>
 
-                                <div className="flex items-center justify-between">
-                                    <div className="flex flex-wrap gap-1.5">
-                                        {archive.tags.length > 0 ? (
-                                            archive.tags.map((tag) => (
-                                                <span
-                                                    key={tag}
-                                                    className="px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full"
-                                                >
-                                                    {tag}
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {archive.tags.length > 0 ? (
+                                                archive.tags.map((tag) => (
+                                                    <span
+                                                        key={tag}
+                                                        className="px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full"
+                                                    >
+                                                        {tag}
+                                                    </span>
+                                                ))
+                                            ) : (
+                                                <span className="px-2 py-0.5 bg-gray-100 text-gray-500 text-xs rounded-full">
+                                                    {archive.studyName}
                                                 </span>
-                                            ))
-                                        ) : (
-                                            <span className="px-2 py-0.5 bg-gray-100 text-gray-500 text-xs rounded-full">
-                                                {archive.studyName}
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div className="flex items-center gap-3 text-xs text-text-tertiary">
-                                        {archive.quizCount > 0 && (
-                                            <span>퀴즈 {archive.quizCount}문제</span>
-                                        )}
+                                            )}
+                                        </div>
+                                        <div className="flex items-center gap-3 text-xs text-text-tertiary">
+                                            {archive.quizCount > 0 && (
+                                                <span>퀴즈 {archive.quizCount}문제</span>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            ))}
                         </div>
                     </div>
                 ) : (
