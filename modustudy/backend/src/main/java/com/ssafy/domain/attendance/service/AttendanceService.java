@@ -66,6 +66,19 @@ public class AttendanceService {
         validateLeader(studyId, leaderId);
         validateAttendanceTimeWindow(session);
         initializeAttendanceRows(session);
+
+        // 스터디장 본인은 자동으로 출석 처리 (아직 출석 안 한 경우에만)
+        Attendance leaderAttendance = getOrCreateAttendance(session, leaderId);
+        if (leaderAttendance.getStatus() != AttendanceStatus.PRESENT &&
+            leaderAttendance.getStatus() != AttendanceStatus.LATE) {
+            updateCheckInfo(leaderAttendance, AttendanceCheckType.BLE, session);
+            leaderAttendance.setCheckedBy(getUserOrThrow(leaderId));
+            Attendance saved = attendanceRepository.save(leaderAttendance);
+
+            // 스터디장 출석 게이미피케이션 이벤트 발행
+            publishAttendanceEvent(saved, studyId);
+        }
+
         return new MessageResponse("BLE 출석이 시작되었습니다.");
     }
 
