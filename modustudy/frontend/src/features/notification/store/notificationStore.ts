@@ -72,12 +72,10 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
                     return notification;
                 });
 
-            // 필터링된 알림 기준으로 읽지 않은 개수 재계산
-            const filteredUnreadCount = filteredNotifications.filter(n => !n.isRead).length;
-
+            // unreadCount는 fetchUnreadCount()에서만 갱신 (덮어쓰기 방지)
+            // 드롭다운에서 표시할 알림 개수와 배지 숫자 불일치 버그 수정
             set({
                 notifications: filteredNotifications,
-                unreadCount: filteredUnreadCount,
                 isLoading: false,
                 hasFetched: true,
             });
