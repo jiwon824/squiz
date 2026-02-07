@@ -520,6 +520,7 @@ export const UserLayoutV2: React.FC<UserLayoutV2Props> = ({ children, isEntering
                                                                 level={stats.level}
                                                                 size="sm"
                                                                 variant="text"
+                                                                popoverAlign="left"
                                                             />
                                                         )}
                                                     </div>

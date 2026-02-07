@@ -22,5 +22,5 @@ public record MeetingDetailResponse(
         List<MeetingParticipantResponse> participants,
         List<String> keywords,
         MeetingSummaryResponse summary
-) {
+        ) {
 }

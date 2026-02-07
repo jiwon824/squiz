@@ -10,5 +10,5 @@ public record BoardPostCreateRequest(
         @NotBlank String recruitmentField,
         @NotNull MeetingType meetingType,
         @NotNull Integer targetMembers
-) {
+        ) {
 }

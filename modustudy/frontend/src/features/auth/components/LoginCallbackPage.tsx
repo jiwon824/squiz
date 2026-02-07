@@ -35,7 +35,6 @@ export const LoginCallbackPage = () => {
 
             // 인가 코드가 없으면 로그인 페이지로
             if (!code) {
-                console.error('No authorization code found in URL');
                 navigate('/login', { replace: true });
                 return;
             }
@@ -72,7 +71,6 @@ export const LoginCallbackPage = () => {
 
                     navigateWithExit(redirectPath || '/setting');
                 } catch (error: unknown) {
-                    console.error('Social link error:', error);
                     isProcessingRef.current = false;
 
                     // 에러 메시지 처리
@@ -109,7 +107,6 @@ export const LoginCallbackPage = () => {
                         navigateWithExit(redirectUrl);
                         return;
                     } catch (linkError: unknown) {
-                        console.error('Google 계정 연동 실패:', linkError);
                         showToast(getErrorMessage(linkError, 'Google 계정 연동에 실패했습니다.'), 'error');
 
                         const redirectUrl = sessionStorage.getItem('oauth_redirect_path') || '/calendar';
@@ -174,7 +171,6 @@ export const LoginCallbackPage = () => {
                 // 처리 완료 후 provider 삭제
                 sessionStorage.removeItem('oauth_provider');
             } catch (error) {
-                console.error('Login callback error:', error);
 
                 // 에러 발생 시 플래그 리셋 (재시도 가능하도록)
                 isProcessingRef.current = false;

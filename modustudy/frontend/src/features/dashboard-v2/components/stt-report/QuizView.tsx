@@ -80,7 +80,6 @@ export const QuizView: React.FC<QuizViewProps> = ({
                 setQuiz(null);
             }
         } catch (err) {
-            console.error('퀴즈 로드 실패:', err);
             setError('퀴즈를 불러오는 중 오류가 발생했습니다.');
         } finally {
             setLoading(false);
@@ -151,7 +150,7 @@ export const QuizView: React.FC<QuizViewProps> = ({
             );
             isCorrect = res.isCorrect;
         } catch (err) {
-            console.error('답안 제출 실패:', err);
+            // 제출 실패 시에도 로컬에서 정답 비교
             isCorrect = shortAnswer.trim().toLowerCase() === question.correctAnswer.trim().toLowerCase();
         } finally {
             setSubmitting(false);

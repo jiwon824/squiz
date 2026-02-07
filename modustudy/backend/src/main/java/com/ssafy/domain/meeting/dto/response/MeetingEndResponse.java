@@ -4,5 +4,5 @@ public record MeetingEndResponse(
         Integer durationSeconds,
         Integer participantCount,
         String summaryStatus
-) {
+        ) {
 }

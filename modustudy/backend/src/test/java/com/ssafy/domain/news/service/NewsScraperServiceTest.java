@@ -49,8 +49,6 @@ class NewsScraperServiceTest {
         assertThat(firstNews.getSourceUrl()).isNotNull();
         assertThat(firstNews.getCategory()).isEqualTo("IT");
 
-        System.out.println("✅ 크롤링 테스트 성공!");
-        System.out.println("크롤링된 뉴스: " + afterCount + "개");
     }
 
     @Test
@@ -74,6 +72,6 @@ class NewsScraperServiceTest {
         assertThat(exists).isTrue();
         assertThat(itNewsRepository.count()).isEqualTo(1);
 
-        System.out.println("✅ 중복 방지 테스트 성공!");
-    }
 }
+}
+

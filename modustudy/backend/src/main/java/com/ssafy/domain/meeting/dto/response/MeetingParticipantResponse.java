@@ -7,5 +7,5 @@ public record MeetingParticipantResponse(
         String nickname,
         LocalDateTime joinedAt,
         LocalDateTime leftAt
-) {
+        ) {
 }

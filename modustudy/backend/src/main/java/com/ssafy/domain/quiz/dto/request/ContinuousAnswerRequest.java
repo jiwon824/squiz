@@ -7,9 +7,9 @@ import lombok.NoArgsConstructor;
 /**
  * Continuous Learning 모드 답변 제출 요청 DTO.
  */
-@Getter
-@NoArgsConstructor
-public class ContinuousAnswerRequest {
+ @Getter
+ @NoArgsConstructor
+ public class ContinuousAnswerRequest {
 
     /**
      * 사용자 답변

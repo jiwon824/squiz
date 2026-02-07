@@ -6,9 +6,9 @@ import lombok.Getter;
 /**
  * 업로더 정보 DTO
  */
-@Getter
-@Builder
-public class UploaderInfo {
+ @Getter
+ @Builder
+ public class UploaderInfo {
 
     private Long id;
     private String nickname;

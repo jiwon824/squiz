@@ -9,13 +9,13 @@ import java.time.LocalDateTime;
 /**
  * 회고 엔티티
  */
-@Entity
-@Table(name = "retrospective")
-@Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
-@Builder
-public class Retrospective {
+ @Entity
+ @Table(name = "retrospective")
+ @Getter
+ @NoArgsConstructor(access = AccessLevel.PROTECTED)
+ @AllArgsConstructor
+ @Builder
+ public class Retrospective {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

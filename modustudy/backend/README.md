@@ -1,4 +1,4 @@
-0# ModuStudy Backend API
+﻿0# ModuStudy Backend API
 
 > Spring Boot 기반 스터디 관리 플랫폼 백엔드 서버
 
@@ -394,13 +394,10 @@ const socket = new SockJS('http://localhost:8080/ws');
 const stompClient = Stomp.over(socket);
 
 stompClient.connect({}, (frame) => {
-  console.log('Connected: ' + frame);
-  
-  // 채팅 메시지 구독
+// 채팅 메시지 구독
   stompClient.subscribe('/topic/chat/1', (message) => {
     const chatMessage = JSON.parse(message.body);
-    console.log('Received:', chatMessage);
-  });
+});
   
   // 메시지 전송
   stompClient.send('/app/chat/1', {}, JSON.stringify({
@@ -481,3 +478,4 @@ stompClient.connect({}, (frame) => {
 ---
 
 **Last Updated**: 2026-01-17
+

@@ -21,9 +21,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * StudySessionRepository 통합 테스트
  */
-@SpringBootTest
-@Transactional
-class StudySessionRepositoryTest {
+ @SpringBootTest
+ @Transactional
+ class StudySessionRepositoryTest {
 
     @Autowired
     private StudySessionRepository studySessionRepository;

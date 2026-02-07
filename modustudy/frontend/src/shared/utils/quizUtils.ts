@@ -54,7 +54,6 @@ export const optionIdToIndex = (id: string): number => {
  */
 export const indexToOptionId = (index: number): string => {
     if (index < 0 || index > 25) {
-        console.warn('[quizUtils] indexToOptionId: 범위 초과:', index);
         return String(index);
     }
     return String.fromCharCode(65 + index); // 65 = 'A'
@@ -94,15 +93,12 @@ export const parseOptions = (optionsInput: string | unknown[] | null): QuestionO
         try {
             parsed = JSON.parse(optionsInput);
             if (!Array.isArray(parsed)) {
-                console.warn('[quizUtils] parseOptions: 파싱 결과가 배열이 아님:', parsed);
                 return [];
             }
         } catch (e) {
-            console.error('[quizUtils] parseOptions: JSON 파싱 실패:', e, optionsInput);
             return [];
         }
     } else {
-        console.warn('[quizUtils] parseOptions: 지원하지 않는 입력 타입:', typeof optionsInput);
         return [];
     }
 
@@ -201,8 +197,6 @@ export const transformToQuizQuestion = (item: ReviewItemDto): QuizQuestion => {
     let correctAnswer: number | number[] | string = q.correctAnswer;
 
     if ((isMultiple || isMultipleAnswer) && q.options && q.options.length > 0) {
-        // 디버깅 로그
-
         // normalizeCorrectAnswer를 사용하여 통일된 방식으로 변환 (항상 number[] 반환)
         const normalized = normalizeCorrectAnswer(q.correctAnswer);
 

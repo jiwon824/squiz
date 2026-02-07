@@ -11,5 +11,5 @@ public record MeetingSttSummaryResponse(
         String fileUrl,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
-) {
+        ) {
 }

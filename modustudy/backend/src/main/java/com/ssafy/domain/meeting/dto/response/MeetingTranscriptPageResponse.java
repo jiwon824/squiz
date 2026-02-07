@@ -6,5 +6,5 @@ public record MeetingTranscriptPageResponse(
         List<MeetingTranscriptItemResponse> content,
         long totalElements,
         boolean hasMore
-) {
+        ) {
 }

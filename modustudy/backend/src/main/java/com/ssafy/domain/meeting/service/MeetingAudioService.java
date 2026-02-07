@@ -101,7 +101,6 @@ public class MeetingAudioService {
         // 일일 오프라인 STT 한도 체크 (남은 시간이 0이면 업로드 차단)
         int remainingSeconds = dailyUsageService.getOfflineSttRemainingSeconds(studyId);
         if (remainingSeconds <= 0) {
-            log.warn("[일일 한도 초과] 오프라인 STT 업로드 차단 - studyId: {}, 남은시간: {}초", studyId, remainingSeconds);
             throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "OFFLINE_STT_DAILY_LIMIT_EXCEEDED");
         }
         String filename = helper.buildIndividualVoiceFilename(userId);
@@ -148,7 +147,6 @@ public class MeetingAudioService {
         // 일일 오프라인 STT 한도 체크 (남은 시간이 0이면 병합 차단)
         int remainingSeconds = dailyUsageService.getOfflineSttRemainingSeconds(studyId);
         if (remainingSeconds <= 0) {
-            log.warn("[일일 한도 초과] 오프라인 STT 세그먼트 병합 차단 - studyId: {}, 남은시간: {}초", studyId, remainingSeconds);
             throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "OFFLINE_STT_DAILY_LIMIT_EXCEEDED");
         }
         Path segmentsDir = localFileStorageService.resolveMeetingVoiceSegmentsDir(meetingId, userId);
@@ -221,9 +219,7 @@ public class MeetingAudioService {
             try {
                 concatVoiceSegmentsIfExists(meetingId, userId);
             } catch (Exception e) {
-                log.warn("Failed to finalize voice segments. meetingId={} userId={} error={}",
-                        meetingId, userId, e.toString());
-            }
+}
         });
     }
 
@@ -239,7 +235,6 @@ public class MeetingAudioService {
                     .sorted()
                     .toList();
         } catch (IOException e) {
-            log.warn("Voice segment read failed. meetingId={} userId={} error={}", meetingId, userId, e.toString());
             return;
         }
         if (segments.isEmpty()) {
@@ -249,7 +244,6 @@ public class MeetingAudioService {
         try {
             Files.createDirectories(voiceDir);
         } catch (IOException e) {
-            log.warn("Voice dir create failed. meetingId={} userId={} error={}", meetingId, userId, e.toString());
             return;
         }
         Path concatFile = voiceDir.resolve("segments-" + userId + ".txt").normalize();
@@ -260,14 +254,12 @@ public class MeetingAudioService {
                     .orElse("");
             Files.writeString(concatFile, contents);
         } catch (IOException e) {
-            log.warn("Voice concat list failed. meetingId={} userId={} error={}", meetingId, userId, e.toString());
             return;
         }
         Path outputPath = localFileStorageService.resolveMeetingVoiceFile(meetingId, helper.buildIndividualVoiceFilename(userId));
         try {
             runFfmpegConcat(concatFile, outputPath);
         } catch (ResponseStatusException e) {
-            log.warn("Voice concat ffmpeg failed. meetingId={} userId={} error={}", meetingId, userId, e.toString());
             return;
         }
         Long fileSize;
@@ -306,7 +298,6 @@ public class MeetingAudioService {
                     .filter(Objects::nonNull)
                     .toList();
         } catch (IOException e) {
-            log.warn("Voice segment user scan failed. meetingId={} error={}", meetingId, e.toString());
             return List.of();
         }
     }
@@ -375,12 +366,10 @@ public class MeetingAudioService {
             String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
             int exit = process.waitFor();
             if (exit != 0) {
-                log.warn("FFmpeg failed. label={} meetingId={} exit={} output={}", label, meetingId, exit, output.trim());
                 throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "FFMPEG_FAILED");
             }
         } catch (IOException | InterruptedException e) {
             Thread.currentThread().interrupt();
-            log.warn("FFmpeg error. label={} meetingId={} error={}", label, meetingId, e.toString());
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "FFMPEG_FAILED");
         }
     }
@@ -427,14 +416,13 @@ public class MeetingAudioService {
             String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8).trim();
             int exit = process.waitFor();
             if (exit != 0) {
-                log.warn("ffprobe 오디오 길이 추출 실패. file={} exit={}", audioFile, exit);
                 return 0;
             }
             double duration = Double.parseDouble(output);
             return (int) Math.ceil(duration);
         } catch (IOException | InterruptedException | NumberFormatException e) {
-            log.warn("ffprobe 오디오 길이 추출 에러. file={} error={}", audioFile, e.toString());
             return 0;
         }
     }
 }
+

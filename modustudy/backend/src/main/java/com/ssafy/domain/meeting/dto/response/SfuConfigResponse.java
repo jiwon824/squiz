@@ -6,5 +6,5 @@ public record SfuConfigResponse(
         // Base SFU signaling URL (ws/wss).
         String baseUrl,
         List<MeetingIceServerResponse> iceServers
-) {
+        ) {
 }

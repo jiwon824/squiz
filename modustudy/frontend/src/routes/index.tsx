@@ -131,7 +131,6 @@ export const AppRouter = () => {
                     role: user.role as 'USER' | 'ADMIN' || 'USER'
                 });
             } catch (error) {
-                console.error('[AUTH] Session restoration failed:', error);
                 logout();
             } finally {
                 setInitialized(true);

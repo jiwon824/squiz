@@ -22,9 +22,9 @@ import static org.assertj.core.api.Assertions.*;
 /**
  * StudyTemplateRepository 테스트
  */
-@SpringBootTest
-@Transactional
-class StudyTemplateRepositoryTest {
+ @SpringBootTest
+ @Transactional
+ class StudyTemplateRepositoryTest {
 
     @Autowired
     private StudyTemplateRepository studyTemplateRepository;

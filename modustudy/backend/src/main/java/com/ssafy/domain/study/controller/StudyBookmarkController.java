@@ -31,14 +31,9 @@ public class StudyBookmarkController {
             @PathVariable Long studyId,
             @RequestHeader("user-id") Long userId) {
 
-        log.info("API 호출 - 북마크 토글: studyId={}, userId={}", studyId, userId);
+                StudyBookmarkResponse response = bookmarkService.toggleBookmark(studyId, userId);
 
-        StudyBookmarkResponse response = bookmarkService.toggleBookmark(studyId, userId);
-
-        log.info("API 응답 - 북마크 토글 완료: studyId={}, isBookmarked={}",
-                studyId, response.getIsBookmarked());
-
-        return ResponseEntity.ok(response);
+                return ResponseEntity.ok(response);
     }
 
     // ============================================================
@@ -53,15 +48,9 @@ public class StudyBookmarkController {
             @RequestHeader("user-id") Long userId,
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
 
-        log.info("API 호출 - 내 북마크 목록 조회: userId={}, page={}, size={}",
-                userId, pageable.getPageNumber(), pageable.getPageSize());
+                Page<StudyBookmarkResponse> response = bookmarkService.getMyBookmarks(userId, pageable);
 
-        Page<StudyBookmarkResponse> response = bookmarkService.getMyBookmarks(userId, pageable);
-
-        log.info("API 응답 - 내 북마크 목록: userId={}, totalElements={}",
-                userId, response.getTotalElements());
-
-        return ResponseEntity.ok(response);
+                return ResponseEntity.ok(response);
     }
 
     /**
@@ -72,13 +61,9 @@ public class StudyBookmarkController {
             @PathVariable Long studyId,
             @RequestHeader("user-id") Long userId) {
 
-        log.info("API 호출 - 북마크 여부 확인: studyId={}, userId={}", studyId, userId);
+                boolean result = bookmarkService.isBookmarked(studyId, userId);
 
-        boolean result = bookmarkService.isBookmarked(studyId, userId);
-
-        log.info("API 응답 - 북마크 여부: studyId={}, isBookmarked={}", studyId, result);
-
-        return ResponseEntity.ok(result);
+                return ResponseEntity.ok(result);
     }
 
     // ============================================================
@@ -92,13 +77,9 @@ public class StudyBookmarkController {
     public ResponseEntity<Long> getBookmarkCount(
             @PathVariable Long studyId) {
 
-        log.info("API 호출 - 스터디 북마크 개수 조회: studyId={}", studyId);
+                Long count = bookmarkService.getBookmarkCount(studyId);
 
-        Long count = bookmarkService.getBookmarkCount(studyId);
-
-        log.info("API 응답 - 북마크 개수: studyId={}, count={}", studyId, count);
-
-        return ResponseEntity.ok(count);
+                return ResponseEntity.ok(count);
     }
 
     /**
@@ -109,12 +90,9 @@ public class StudyBookmarkController {
     public ResponseEntity<Long> getMyBookmarkCount(
             @RequestHeader("user-id") Long userId) {
 
-        log.info("API 호출 - 내 북마크 개수 조회: userId={}", userId);
+                Long count = bookmarkService.getMyBookmarkCount(userId);
 
-        Long count = bookmarkService.getMyBookmarkCount(userId);
-
-        log.info("API 응답 - 내 북마크 개수: userId={}, count={}", userId, count);
-
-        return ResponseEntity.ok(count);
+                return ResponseEntity.ok(count);
     }
 }
+

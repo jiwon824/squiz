@@ -14,5 +14,5 @@ public record MeetingListItemResponse(
         Boolean hasSummary,
         Boolean hasTranscript,
         Integer photoCount
-) {
+        ) {
 }

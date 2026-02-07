@@ -10,14 +10,14 @@ import java.time.LocalTime;
 /**
  * 개인 일정 엔티티
  */
-@Entity
-@Table(name = "personal_schedule")
-@Getter
-@Setter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
-@Builder
-public class PersonalSchedule extends BaseEntity {
+ @Entity
+ @Table(name = "personal_schedule")
+ @Getter
+ @Setter
+ @NoArgsConstructor(access = AccessLevel.PROTECTED)
+ @AllArgsConstructor
+ @Builder
+ public class PersonalSchedule extends BaseEntity {
 
     @Column(name = "user_id", nullable = false)
     private Long userId;

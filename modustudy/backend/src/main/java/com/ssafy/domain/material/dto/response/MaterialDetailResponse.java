@@ -10,9 +10,9 @@ import java.time.LocalDateTime;
 /**
  * 자료 상세 응답 DTO
  */
-@Getter
-@Builder
-public class MaterialDetailResponse {
+ @Getter
+ @Builder
+ public class MaterialDetailResponse {
 
     private Long id;
     private String title;

@@ -231,7 +231,6 @@ export const useSttStore = create<SttState>((set, get) => ({
                 get().fetchMeetingDetail(selected.id);
             }
         } catch (err) {
-            console.error('[SttStore] 미팅 목록 조회 실패:', err);
             set({
                 reports: [],
                 selectedReport: null,

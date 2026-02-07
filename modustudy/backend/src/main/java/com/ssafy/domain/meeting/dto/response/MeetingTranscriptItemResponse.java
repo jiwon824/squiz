@@ -10,5 +10,5 @@ public record MeetingTranscriptItemResponse(
         Integer startMs,
         Integer endMs,
         LocalDateTime createdAt
-) {
+        ) {
 }

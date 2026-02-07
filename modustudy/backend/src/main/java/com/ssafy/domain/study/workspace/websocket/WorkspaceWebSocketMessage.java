@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotNull;
 /**
  * 워크스페이스 WebSocket 메시지 전송용 DTO
  */
-public class WorkspaceWebSocketMessage {
+ public class WorkspaceWebSocketMessage {
 
     @NotNull
     private Long workspaceId;

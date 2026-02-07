@@ -47,9 +47,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * - 부모 엔티티 저장 후 flush() 호출
  * - 벌크 삭제 후 entityManager.flush() + clear() 호출
  */
-@SpringBootTest
-@Transactional
-class MaterialServiceTest {
+ @SpringBootTest
+ @Transactional
+ class MaterialServiceTest {
 
     @Autowired
     private MaterialService materialService;

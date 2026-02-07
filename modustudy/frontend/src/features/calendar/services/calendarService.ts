@@ -109,7 +109,6 @@ class CalendarService {
 
             return [...personalSchedules, ...studySessions, ...googleEvents];
         } catch (error) {
-            console.error('모든 일정 조회 실패:', error);
             // 통합 API가 없으면 개별 호출
             return this.getAllSchedulesSeparately(startDate, endDate);
         }
@@ -145,7 +144,6 @@ class CalendarService {
                 schedules.push(...googleEvents.map(dto => this.mapGoogleEventToUnified(dto)));
             }
         } catch (error) {
-            console.warn('Google Calendar 이벤트 조회 실패:', error);
         }
 
         return schedules;

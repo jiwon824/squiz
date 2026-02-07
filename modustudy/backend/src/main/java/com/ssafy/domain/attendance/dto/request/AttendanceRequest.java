@@ -7,5 +7,5 @@ import io.swagger.v3.oas.annotations.media.Schema;
 public record AttendanceRequest(
         @Schema(description = "출석 체크 방식 (BLE, SELF, AUTO)", example = "BLE")
         AttendanceCheckType checkType
-) {
+        ) {
 }

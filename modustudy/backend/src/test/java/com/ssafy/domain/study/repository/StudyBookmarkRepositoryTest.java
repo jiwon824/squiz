@@ -24,9 +24,9 @@ import static org.assertj.core.api.Assertions.*;
 /**
  * StudyBookmarkRepository 테스트
  */
-@SpringBootTest
-@Transactional
-class StudyBookmarkRepositoryTest {
+ @SpringBootTest
+ @Transactional
+ class StudyBookmarkRepositoryTest {
 
     @Autowired
     private StudyBookmarkRepository bookmarkRepository;

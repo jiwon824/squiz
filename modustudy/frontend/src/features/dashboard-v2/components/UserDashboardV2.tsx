@@ -64,7 +64,6 @@ export const UserDashboardV2: React.FC = () => {
                 const stats = await gamificationApi.getStats();
                 setGamificationStats(stats);
             } catch (error) {
-                console.error('[Dashboard] 게이미피케이션 통계 로딩 실패:', error);
             }
         };
 
@@ -97,7 +96,6 @@ export const UserDashboardV2: React.FC = () => {
                             try {
                                 return await calendarApi.getStudySessions(study.id, startDate, endDateString);
                             } catch (error) {
-                                console.warn('[UpcomingSchedule] study sessions load failed', study.id, error);
                                 return [];
                             }
                         })
@@ -132,7 +130,6 @@ export const UserDashboardV2: React.FC = () => {
 
                 setUpcomingMeetings(meetings);
             } catch (error) {
-                console.error('[UpcomingSchedule] 일정 로딩 실패:', error);
             }
         };
 

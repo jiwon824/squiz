@@ -32,14 +32,8 @@ const useHttps = String(process.env.SFU_USE_HTTPS ?? 'true').toLowerCase() !== '
 let server;
 if (useHttps) {
   if (!fs.existsSync(config.sslKeyPath) || !fs.existsSync(config.sslCertPath)) {
-    // eslint-disable-next-line no-console
-    console.error('Missing SSL files for SFU server', {
-      key: config.sslKeyPath,
-      cert: config.sslCertPath
-    });
     process.exit(1);
   }
-  // Use HTTPS in production; local dev can opt-out with SFU_USE_HTTPS=false.
   server = https.createServer({
     key: fs.readFileSync(config.sslKeyPath),
     cert: fs.readFileSync(config.sslCertPath)
@@ -57,13 +51,11 @@ const io = new Server(server, {
 
 const rooms = new Map();
 const emptyRoomStopTimers = new Map();
-const speechDetectors = new Map();  // roomId -> SpeechDetector (실시간 발화 감지)
-// 멀티 Worker 배열 및 라운드로빈 인덱스
+const speechDetectors = new Map();
 const workers = [];
 let nextWorkerIdx = 0;
 let recordingManager;
 
-// 개별 Worker 생성 및 재시작 로직
 async function createSingleWorker(index) {
   const worker = await mediasoup.createWorker({
     rtcMinPort: config.rtcMinPort,
@@ -72,40 +64,28 @@ async function createSingleWorker(index) {
   });
 
   worker.on('died', async () => {
-    // eslint-disable-next-line no-console
-    console.error(`mediasoup worker[${index}] died, restarting...`);
     workers[index] = null;
     try {
       workers[index] = await createSingleWorker(index);
-      // eslint-disable-next-line no-console
-      console.log(`mediasoup worker[${index}] restarted`);
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error(`Failed to restart worker[${index}]`, err);
     }
   });
 
   return worker;
 }
 
-// 멀티 Worker 생성
 async function createWorkers() {
   const numWorkers = config.numWorkers;
-  // eslint-disable-next-line no-console
-  console.log(`Creating ${numWorkers} mediasoup workers...`);
   for (let i = 0; i < numWorkers; i++) {
     const worker = await createSingleWorker(i);
     workers.push(worker);
   }
-  // eslint-disable-next-line no-console
-  console.log(`${workers.length} mediasoup workers created`);
 }
 
 async function getOrCreateRoom(roomId) {
   if (rooms.has(roomId)) {
     return rooms.get(roomId);
   }
-  // 라운드로빈으로 Worker 배정
   const worker = workers[nextWorkerIdx % workers.length];
   nextWorkerIdx++;
   const router = await worker.createRouter({ mediaCodecs: config.mediaCodecs });
@@ -135,14 +115,12 @@ function listProducers(room, excludeSocketId) {
   return producerInfos;
 }
 
-// 실시간 발화 감지기 초기화 (auto-start 지원)
 async function ensureSpeechDetector(roomId) {
   if (speechDetectors.has(roomId)) return;
 
   const room = rooms.get(roomId);
   if (!room) return;
 
-  // roomId에서 meetingId 추출 (meeting-{id} 형식)
   const meetingIdStr = roomId.replace('meeting-', '');
   const meetingId = parseInt(meetingIdStr, 10);
   if (isNaN(meetingId)) return;
@@ -154,13 +132,10 @@ async function ensureSpeechDetector(roomId) {
       meetingId,
       config,
       onSegmentReady: (segment) => {
-        // eslint-disable-next-line no-console
-        console.log('[speech] Segment ready callback', segment);
       }
     });
     await speechDetector.initialize();
 
-    // 기존 오디오 Producer들 등록
     for (const [peerId, peer] of room.peers) {
       for (const [, entry] of peer.producers) {
         if (entry.kind === 'audio') {
@@ -171,19 +146,13 @@ async function ensureSpeechDetector(roomId) {
     }
 
     speechDetectors.set(roomId, speechDetector);
-    // eslint-disable-next-line no-console
-    console.log('[speech] SpeechDetector started (auto)', { roomId, meetingId });
   } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error('[speech] SpeechDetector auto-start failed', { roomId, error: err.message });
   }
 }
 
-// recordingManager.onProducersChanged 호출 후 SpeechDetector도 시작
 async function handleProducersChanged(roomId) {
   if (recordingManager) {
     await recordingManager.onProducersChanged(roomId);
-    // 녹음이 시작되었으면 SpeechDetector도 시작
     if (recordingManager.recordings.has(roomId)) {
       await ensureSpeechDetector(roomId);
     }
@@ -233,31 +202,22 @@ io.on('connection', (socket) => {
         preferUdp: config.rtcPreferUdp,
         initialAvailableOutgoingBitrate: 1000000
       });
-      // eslint-disable-next-line no-console
-      console.log('[webrtc] transport created', { roomId, transportId: transport.id, direction: 'client' });
 
       transport.on('connectionstatechange', (state) => {
-        // eslint-disable-next-line no-console
-        console.log('[webrtc] transport state', { roomId, transportId: transport.id, state });
       });
 
       transport.on('icestatechange', (state) => {
-        // eslint-disable-next-line no-console
-        console.log('[webrtc] transport ice', { roomId, transportId: transport.id, state });
       });
 
       const peer = getPeer(room, socket.id);
       peer.transports.set(transport.id, transport);
 
       transport.on('dtlsstatechange', (dtlsState) => {
-        // eslint-disable-next-line no-console
-        console.log('[webrtc] transport dtls', { roomId, transportId: transport.id, dtlsState });
         if (dtlsState === 'closed') {
           transport.close();
         }
       });
 
-      // TURN 서버 설정이 있으면 iceServers에 포함
       const iceServers = [];
       if (config.turnUrl) {
         iceServers.push({
@@ -299,13 +259,11 @@ io.on('connection', (socket) => {
       const peer = getPeer(room, socket.id);
       const transport = peer.transports.get(transportId);
 
-      // 기존 video Producer 찾기 (교체 시 끊김 최소화를 위해)
       let existingVideoEntry = null;
       if (kind === 'video') {
         existingVideoEntry = Array.from(peer.producers.values()).find((item) => item.kind === 'video');
       }
 
-      // 새 Producer 먼저 생성
       const producer = await transport.produce({ kind, rtpParameters, appData });
       peer.producers.set(producer.id, {
         producer,
@@ -320,24 +278,18 @@ io.on('connection', (socket) => {
         handleProducersChanged(roomId);
       });
 
-      // 새 Producer 알림 먼저 전송
       socket.to(roomId).emit('newProducer', { producerId: producer.id, producerPeerId: socket.id, kind, displayName: peer.displayName });
       handleProducersChanged(roomId);
 
-      // 실시간 발화 감지: 오디오 Producer 추가
       if (kind === 'audio') {
         const speechDetector = speechDetectors.get(roomId);
         if (speechDetector) {
-          // userId는 peer의 authToken에서 추출하거나 displayName 사용
           const userId = peer.authToken ? peer.id : peer.displayName || socket.id;
           speechDetector.addProducer(producer, userId).catch((err) => {
-            // eslint-disable-next-line no-console
-            console.error('[speech] addProducer failed', { roomId, producerId: producer.id, error: err.message });
           });
         }
       }
 
-      // 기존 video Producer가 있으면 딜레이 후 정리 (끊김 최소화)
       if (existingVideoEntry) {
         const oldProducerId = existingVideoEntry.producer.id;
         setTimeout(() => {
@@ -370,13 +322,10 @@ io.on('connection', (socket) => {
         return;
       }
 
-      // 실시간 발화 감지: 오디오 Producer 제거
       if (entry.kind === 'audio') {
         const speechDetector = speechDetectors.get(roomId);
         if (speechDetector) {
           speechDetector.removeProducer(producerId).catch((err) => {
-            // eslint-disable-next-line no-console
-            console.error('[speech] removeProducer failed', { roomId, producerId, error: err.message });
           });
         }
       }
@@ -439,8 +388,6 @@ io.on('connection', (socket) => {
         try {
           await consumer.requestKeyFrame();
         } catch (e) {
-          // transport가 아직 연결 중일 때 keyFrame 요청 실패 가능 - 무시
-          console.warn('[webrtc] requestKeyFrame failed (transport may not be connected yet)', e.message);
         }
       }
       callback({ resumed: true });
@@ -481,8 +428,6 @@ io.on('connection', (socket) => {
             recordingManager
               .stopRecording({ roomId })
               .catch((err) => {
-                // eslint-disable-next-line no-console
-                console.error('[recording] auto-stop failed', err);
               })
               .finally(() => {
                 if (room.peers.size === 0) {
@@ -506,13 +451,8 @@ app.post('/recordings/start', async (req, res) => {
       res.status(400).json({ error: 'roomId and meetingId required' });
       return;
     }
-    // eslint-disable-next-line no-console
-    console.log('[recording] start request', { roomId, meetingId });
     const result = await recordingManager.startRecording({ roomId, meetingId });
-    // eslint-disable-next-line no-console
-    console.log('[recording] start response', { roomId, result });
 
-    // 실시간 발화 감지 시작
     if (!speechDetectors.has(roomId)) {
       const room = rooms.get(roomId);
       if (room) {
@@ -522,13 +462,10 @@ app.post('/recordings/start', async (req, res) => {
           meetingId,
           config,
           onSegmentReady: (segment) => {
-            // eslint-disable-next-line no-console
-            console.log('[speech] Segment ready callback', segment);
           }
         });
         await speechDetector.initialize();
 
-        // 기존 오디오 Producer들 등록
         for (const [peerId, peer] of room.peers) {
           for (const [, entry] of peer.producers) {
             if (entry.kind === 'audio') {
@@ -539,15 +476,11 @@ app.post('/recordings/start', async (req, res) => {
         }
 
         speechDetectors.set(roomId, speechDetector);
-        // eslint-disable-next-line no-console
-        console.log('[speech] SpeechDetector started', { roomId, meetingId });
       }
     }
 
     res.json(result);
   } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error('[recording] start failed', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -559,28 +492,17 @@ app.post('/recordings/stop', async (req, res) => {
       res.status(400).json({ error: 'roomId required' });
       return;
     }
-    // eslint-disable-next-line no-console
-    console.log('[recording] stop request', { roomId });
 
-    // 실시간 발화 감지 종료
     const speechDetector = speechDetectors.get(roomId);
     if (speechDetector) {
       await speechDetector.stop();
       speechDetectors.delete(roomId);
-      // eslint-disable-next-line no-console
-      console.log('[speech] SpeechDetector stopped', { roomId });
     }
 
     const result = await recordingManager.stopRecording({ roomId });
-    // eslint-disable-next-line no-console
-    console.log('[recording] stop response', { roomId, result });
-
-    // AI 서버 업로드는 recordingManager.stopRecording 내부에서 처리됨 (중복 호출 방지)
 
     res.json(result);
   } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error('[recording] stop failed', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -593,14 +515,8 @@ createWorkers()
   .then(() => {
     recordingManager = createRecordingManager({ getOrCreateRoom, rooms, config });
     server.listen(config.port, () => {
-      // eslint-disable-next-line no-console
-      console.log(`SFU server listening on ${config.port}`);
-      // eslint-disable-next-line no-console
-      console.log(`SFU announcedIp: ${config.announcedIp}, listenIp: ${config.listenIp}`);
     });
   })
   .catch((err) => {
-    // eslint-disable-next-line no-console
-    console.error('Failed to start SFU server', err);
     process.exit(1);
   });

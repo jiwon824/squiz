@@ -31,9 +31,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 /**
  * StudySessionService 통합 테스트
  */
-@SpringBootTest
-@Transactional
-class StudySessionServiceTest {
+ @SpringBootTest
+ @Transactional
+ class StudySessionServiceTest {
 
     @Autowired
     private StudySessionService studySessionService;

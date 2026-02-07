@@ -17,10 +17,10 @@ import java.time.LocalDateTime;
                 name = "uk_user_date",
                 columnNames = {"user_id", "contribution_date"}
         )
-)
-@Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class DailyContribution {
+        )
+        @Getter
+        @NoArgsConstructor(access = AccessLevel.PROTECTED)
+        public class DailyContribution {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

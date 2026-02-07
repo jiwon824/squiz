@@ -28,7 +28,7 @@ const LEVEL_COLORS: Record<number, { bg: string; text: string; border: string; g
 // 레벨별 아이콘 이모지
 const LEVEL_ICONS: Record<number, string> = {
     1: '🌱',
-    2: '📚',
+    2: '📖',
     3: '🔥',
     4: '⭐',
     5: '👑',

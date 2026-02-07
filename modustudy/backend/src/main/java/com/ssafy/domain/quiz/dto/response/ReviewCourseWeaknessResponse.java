@@ -7,7 +7,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 /**
  * 코스별 취약점 분석을 위한 통계 응답 DTO (totalReps, totalLapses 포함)
  */
-public record ReviewCourseWeaknessResponse(
+ public record ReviewCourseWeaknessResponse(
         @Schema(description = "코스별 취약점 통계 리스트") List<CourseWeaknessStatDto> courseWeaknessStats) {
 
     public record CourseWeaknessStatDto(

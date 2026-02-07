@@ -5,7 +5,7 @@ import org.springframework.http.HttpStatus;
 /**
  * 자료실 관련 예외 클래스
  */
-public class MaterialException {
+ public class MaterialException {
 
     /**
      * 자료를 찾을 수 없음 (404)

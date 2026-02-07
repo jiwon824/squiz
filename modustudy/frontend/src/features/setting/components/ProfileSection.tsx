@@ -52,7 +52,6 @@ export const ProfileSection = () => {
             updateUser({ avatar: updatedUser.profileImage || undefined });
             setMessage({ type: 'success', text: '프로필 이미지가 변경되었습니다.' });
         } catch (error) {
-            console.error('Image upload error:', error);
             setMessage({ type: 'error', text: '이미지 업로드 중 오류가 발생했습니다.' });
         } finally {
             setIsImageUploading(false);

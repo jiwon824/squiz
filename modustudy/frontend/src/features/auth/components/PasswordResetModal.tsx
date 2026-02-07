@@ -48,7 +48,6 @@ export const PasswordResetModal = ({ isOpen, onClose }: PasswordResetModalProps)
                 handleClose();
             }, 5000);
         } catch (error: unknown) {
-            console.error('Password reset error:', error);
             setMessage({
                 type: 'error',
                 text: getErrorMessage(error, '비밀번호 재설정 요청에 실패했습니다. 다시 시도해주세요.')

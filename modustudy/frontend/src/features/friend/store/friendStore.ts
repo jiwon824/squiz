@@ -63,7 +63,6 @@ export const useFriendStore = create<FriendState>((set, get) => ({
             const receivedRequests = await getReceivedRequests();
             set({ receivedRequests });
         } catch (error: unknown) {
-            console.error('친구 요청 목록 조회 실패:', error);
         }
     },
 
@@ -79,7 +78,6 @@ export const useFriendStore = create<FriendState>((set, get) => ({
             set({ searchResults: results, isLoading: false });
         } catch (error: unknown) {
             set({ isLoading: false });
-            console.error('사용자 검색 실패:', error);
         }
     },
 

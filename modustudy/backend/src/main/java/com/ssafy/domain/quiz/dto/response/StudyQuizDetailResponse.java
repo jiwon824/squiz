@@ -11,9 +11,9 @@ import java.util.List;
 /**
  * 스터디 퀴즈 상세 응답 DTO
  */
-@Getter
-@Builder
-public class StudyQuizDetailResponse {
+ @Getter
+ @Builder
+ public class StudyQuizDetailResponse {
 
     private Long id;
     private Long studyId;

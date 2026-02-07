@@ -17,9 +17,9 @@ import java.time.LocalDateTime;
  * <b>무한 루프 지원:</b> 섹션 완료 개념 없음. nextQuestion은 섹션에 문제가 있으면 항상 존재.
  * </p>
  */
-@Getter
-@Builder
-public class ContinuousSubmitResponse {
+ @Getter
+ @Builder
+ public class ContinuousSubmitResponse {
 
     // ══════════════════════════════════════════════════════
     // 답변 결과 (Submission Result)

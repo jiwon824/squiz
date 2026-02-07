@@ -71,7 +71,6 @@ const mapApiCourseToUiCourse = (apiCourse: CourseListItem): Course => {
 
     // courseId가 없는 경우 경고 로그 출력 (디버깅용)
     if (rawCourseId === undefined || rawCourseId === null) {
-        console.warn('[mapApiCourseToUiCourse] courseId가 없습니다. API 응답:', apiCourse);
     }
 
     return {
@@ -136,7 +135,6 @@ export const QuizCourseList = () => {
 
                 setCourses(uiCourses);
             } catch (err) {
-                console.error('[QuizCourseList] 코스 로딩 실패:', err);
                 setError(err instanceof Error ? err.message : '코스를 불러오는데 실패했습니다.');
             } finally {
                 setIsLoading(false);
@@ -164,7 +162,6 @@ export const QuizCourseList = () => {
     const handleCardClick = (courseId: string) => {
         // courseId가 유효하지 않은 경우 네비게이션 방지
         if (!courseId || courseId === 'undefined' || courseId === 'null') {
-            console.error('[handleCardClick] 유효하지 않은 courseId:', courseId);
             return;
         }
         navigate(`/quiz-practice/${courseId}`);
