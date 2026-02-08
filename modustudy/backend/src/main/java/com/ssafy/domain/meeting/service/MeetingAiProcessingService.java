@@ -64,9 +64,7 @@ public class MeetingAiProcessingService {
 
         if (segmentCount > 0) {
             // 실시간 STT 결과가 있으면 transcript-only 처리 (STT 스킵)
-            log.info("실시간 STT 세그먼트 발견 - meetingId: {}, count: {}", meetingId, segmentCount);
-
-            // 시간순으로 정렬된 transcript 조회
+// 시간순으로 정렬된 transcript 조회
             List<String> transcriptLines = speechSegmentService.getTranscriptByMeetingId(meetingId);
             String transcript = String.join("\n", transcriptLines);
 
@@ -80,13 +78,10 @@ public class MeetingAiProcessingService {
                     .toList();
 
             String jobId = aiService.summarizeTranscriptAsync(transcript, speakerIds, true);
-            log.info("Transcript 기반 AI 처리 시작 - meetingId: {}, jobId: {}", meetingId, jobId);
             return jobId;
         }
 
         // 2. 실시간 STT 없으면 기존 방식 (오디오 파일 STT + 요약)
-        log.info("실시간 STT 없음, 오디오 파일 처리 - meetingId: {}", meetingId);
-
         List<MeetingAudioRecording> mixedRecordings = meetingAudioRecordingRepository
                 .findByMeetingIdAndTrackTypeOrderByCreatedAtAsc(meetingId, MeetingAudioTrackType.MIXED);
         if (mixedRecordings.isEmpty()) {
@@ -111,7 +106,6 @@ public class MeetingAiProcessingService {
 
         String jobId = aiService.processMeetingAsync(mixedAudioPath, individualPaths, true);
 
-        log.info("AI 처리 시작 - meetingId: {}, jobId: {}", meetingId, jobId);
         return jobId;
     }
 
@@ -138,8 +132,6 @@ public class MeetingAiProcessingService {
             long segmentCount = speechSegmentService.countByMeetingId(meetingId);
             SummarySource summarySource = segmentCount > 0 ? SummarySource.REALTIME_STT : SummarySource.FULL_AUDIO;
             summary.updateSummarySource(summarySource);
-            log.info("요약 소스 설정 - meetingId: {}, source: {}, segmentCount: {}", meetingId, summarySource, segmentCount);
-
             if (result.getSummary() != null) {
                 String summaryFileUrl = localFileStorageService.saveMeetingTextContent(
                         meetingId, null, true, "summary.txt", result.getSummary());
@@ -152,8 +144,7 @@ public class MeetingAiProcessingService {
 
             if (result.getHighlights() != null && !result.getHighlights().isEmpty()) {
                 summary.updateHighlightsJson(helper.writeJson(result.getHighlights()));
-                log.info("주요 내용(highlights) 저장 완료 - meetingId: {}, count: {}", meetingId, result.getHighlights().size());
-            }
+}
 
             // 액션 아이템 저장
             if (result.getActionItems() != null && !result.getActionItems().isEmpty()) {
@@ -173,8 +164,7 @@ public class MeetingAiProcessingService {
                     ));
                 }
                 summary.updateActionItemsJson(helper.writeJson(actionItemResponses));
-                log.info("액션 아이템 저장 완료 - meetingId: {}, count: {}", meetingId, result.getActionItems().size());
-            }
+}
 
             meetingSttService.saveSummary(summary);
 
@@ -188,19 +178,15 @@ public class MeetingAiProcessingService {
 
             if (hasData) {
                 meeting.updateSummaryStatus(SummaryStatus.DONE);
-                log.info("AI 처리 완료 - meetingId: {}", meetingId);
-
-                // 미팅 참가자들에게 AI 요약 완료 알림 전송
+// 미팅 참가자들에게 AI 요약 완료 알림 전송
                 sendAiSummaryCompletedNotification(meeting, meetingId);
             } else {
                 meeting.updateSummaryStatus(SummaryStatus.PENDING);
-                log.warn("AI 처리 완료했으나 데이터 없음 - meetingId: {}", meetingId);
-            }
+}
 
         } else if ("failed".equals(result.getStatus())) {
             meeting.updateSummaryStatus(SummaryStatus.PENDING);
-            log.error("AI 처리 실패 - meetingId: {}, error: {}", meetingId, result.getError());
-        }
+}
 
         return result.getStatus();
     }
@@ -231,9 +217,8 @@ public class MeetingAiProcessingService {
                 }
             }
 
-            log.info("AI 요약 완료 알림 전송 - meetingId: {}, studyId: {}, 스터디원 수: {}", meetingId, studyId, members.size());
-        } catch (Exception e) {
-            log.error("AI 요약 완료 알림 전송 실패 - meetingId: {}, error: {}", meetingId, e.getMessage());
-        }
+} catch (Exception e) {
+}
     }
 }
+

@@ -12,11 +12,11 @@ import java.time.LocalDateTime;
 /**
  * 스터디장 리뷰 응답 DTO
  */
-@Getter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class LeaderReviewResponse {
+ @Getter
+ @NoArgsConstructor
+ @AllArgsConstructor
+ @Builder
+ public class LeaderReviewResponse {
 
     /**
      * 리뷰 ID

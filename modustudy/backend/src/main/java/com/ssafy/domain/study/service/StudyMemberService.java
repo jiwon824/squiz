@@ -35,9 +35,7 @@ public class StudyMemberService {
      * - 승인된 멤버만 조회 (APPROVED)
      */
     public Page<StudyMemberResponse> getStudyMembers(Long studyId, Pageable pageable) {
-        log.info("스터디 멤버 목록 조회 - studyId: {}", studyId);
-
-        // 1. 스터디 존재 확인
+// 1. 스터디 존재 확인
         if (!studyRepository.existsById(studyId)) {
             throw new StudyException.StudyNotFoundException(studyId);
         }
@@ -61,9 +59,7 @@ public class StudyMemberService {
                 })
                 .toList();
 
-        log.info("스터디 멤버 목록 조회 완료 - studyId: {}, count: {}", studyId, responses.size());
-
-        // 5. 페이징 처리
+// 5. 페이징 처리
         int start = (int) pageable.getOffset();
         int end = Math.min(start + pageable.getPageSize(), responses.size());
 
@@ -79,9 +75,7 @@ public class StudyMemberService {
      * 스터디 멤버 수 조회
      */
     public int countStudyMembers(Long studyId) {
-        log.info("스터디 멤버 수 조회 - studyId: {}", studyId);
-
-        // 스터디 존재 확인
+// 스터디 존재 확인
         if (!studyRepository.existsById(studyId)) {
             throw new StudyException.StudyNotFoundException(studyId);
         }
@@ -93,8 +87,6 @@ public class StudyMemberService {
      * 특정 사용자가 스터디 멤버인지 확인
      */
     public boolean isMember(Long studyId, Long userId) {
-        log.info("멤버 여부 확인 - studyId: {}, userId: {}", studyId, userId);
-
         return studyMemberRepository.existsByStudyIdAndUserIdAndStatus(studyId, userId, MemberStatus.APPROVED);
     }
 
@@ -104,9 +96,7 @@ public class StudyMemberService {
      */
     @Transactional
     public void leaveStudy(Long studyId, Long userId) {
-        log.info("스터디 탈퇴 시작 - studyId: {}, userId: {}", studyId, userId);
-
-        // 1. 스터디 존재 확인
+// 1. 스터디 존재 확인
         var study = studyRepository.findById(studyId)
                 .orElseThrow(() -> new StudyException.StudyNotFoundException(studyId));
 
@@ -129,6 +119,5 @@ public class StudyMemberService {
         member.setLeftAt(java.time.LocalDateTime.now());
         studyMemberRepository.save(member);
 
-        log.info("스터디 탈퇴 완료 - studyId: {}, userId: {}", studyId, userId);
-    }
+}
 }

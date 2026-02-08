@@ -5,5 +5,5 @@ import java.util.List;
 
 public record MeetingKeywordUpdateRequest(
         @NotEmpty List<String> keywords
-) {
+        ) {
 }

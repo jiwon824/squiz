@@ -84,7 +84,6 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
       const response = await workspaceApi.searchMessages(workspaceId, searchKeyword.trim());
       setResults(response.content);
     } catch (error) {
-      console.error('검색 실패:', error);
       setResults([]);
     } finally {
       setIsLoading(false);

@@ -58,9 +58,7 @@ public class DailyReportService {
     // 리포트 단건 삭제 (스터디장만 가능)
     @Transactional
     public void deleteReport(Long studyId, Long reportId, Long userId) {
-        log.info("데일리 리포트 삭제 시작 - studyId: {}, reportId: {}, userId: {}", studyId, reportId, userId);
-
-        // 스터디장 권한 검증
+// 스터디장 권한 검증
         validateStudyLeader(studyId, userId);
 
         if (!dailyReportRepository.existsById(reportId)) {
@@ -68,21 +66,17 @@ public class DailyReportService {
         }
         dailyReportRepository.deleteById(reportId);
 
-        log.info("데일리 리포트 삭제 완료 - reportId: {}", reportId);
-    }
+}
 
     // 스터디별 리포트 전체 삭제 (스터디장만 가능)
     @Transactional
     public void deleteReportsByStudyId(Long studyId, Long userId) {
-        log.info("데일리 리포트 전체 삭제 시작 - studyId: {}, userId: {}", studyId, userId);
-
-        // 스터디장 권한 검증
+// 스터디장 권한 검증
         validateStudyLeader(studyId, userId);
 
         dailyReportRepository.deleteByStudyId(studyId);
 
-        log.info("데일리 리포트 전체 삭제 완료 - studyId: {}", studyId);
-    }
+}
 
     // 스터디장 권한 검증
     private void validateStudyLeader(Long studyId, Long userId) {

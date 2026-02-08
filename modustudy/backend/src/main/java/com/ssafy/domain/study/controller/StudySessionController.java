@@ -33,8 +33,7 @@ public class StudySessionController {
             @RequestHeader("User-Id") Long userId,
             @Valid @RequestBody List<StudySessionCreateRequest> requests) {
 
-        log.info("세션 생성 요청 - studyId: {}, userId: {}, count: {}", studyId, userId, requests.size());
-        List<StudySessionResponse> responses = studySessionService.createSessionsBulk(studyId, userId, requests);
+                List<StudySessionResponse> responses = studySessionService.createSessionsBulk(studyId, userId, requests);
         return ResponseEntity.status(HttpStatus.CREATED).body(responses);
     }
 
@@ -47,8 +46,7 @@ public class StudySessionController {
             @PathVariable Long studyId,
             @PathVariable Long sessionId) {
 
-        log.info("세션 조회 요청 - studyId: {}, sessionId: {}", studyId, sessionId);
-        StudySessionResponse response = studySessionService.getSession(studyId, sessionId);
+                StudySessionResponse response = studySessionService.getSession(studyId, sessionId);
         return ResponseEntity.ok(response);
     }
 
@@ -61,8 +59,7 @@ public class StudySessionController {
             @PathVariable Long studyId,
             @PathVariable Integer sessionNumber) {
 
-        log.info("세션 회차 조회 요청 - studyId: {}, sessionNumber: {}", studyId, sessionNumber);
-        StudySessionResponse response = studySessionService.getSessionByNumber(studyId, sessionNumber);
+                StudySessionResponse response = studySessionService.getSessionByNumber(studyId, sessionNumber);
         return ResponseEntity.ok(response);
     }
 
@@ -75,9 +72,7 @@ public class StudySessionController {
             @PathVariable Long studyId,
             @RequestParam(required = false) SessionStatus status) {
 
-        log.info("세션 목록 조회 요청 - studyId: {}, status: {}", studyId, status);
-
-        List<StudySessionResponse> sessions;
+                List<StudySessionResponse> sessions;
         if (status != null) {
             sessions = studySessionService.getSessionsByStatus(studyId, status);
         } else {
@@ -95,8 +90,7 @@ public class StudySessionController {
     public ResponseEntity<StudySessionResponse> getNextSession(
             @PathVariable Long studyId) {
 
-        log.info("다음 세션 조회 요청 - studyId: {}", studyId);
-        StudySessionResponse response = studySessionService.getNextSession(studyId);
+                StudySessionResponse response = studySessionService.getNextSession(studyId);
         return ResponseEntity.ok(response);
     }
 
@@ -111,8 +105,7 @@ public class StudySessionController {
             @RequestHeader("User-Id") Long userId,
             @Valid @RequestBody StudySessionUpdateRequest request) {
 
-        log.info("세션 수정 요청 - studyId: {}, sessionId: {}, userId: {}", studyId, sessionId, userId);
-        StudySessionResponse response = studySessionService.updateSession(studyId, sessionId, userId, request);
+                StudySessionResponse response = studySessionService.updateSession(studyId, sessionId, userId, request);
         return ResponseEntity.ok(response);
     }
 
@@ -126,8 +119,7 @@ public class StudySessionController {
             @PathVariable Long sessionId,
             @RequestHeader("User-Id") Long userId) {
 
-        log.info("세션 삭제 요청 - studyId: {}, sessionId: {}, userId: {}", studyId, sessionId, userId);
-        studySessionService.deleteSession(studyId, sessionId, userId);
+                studySessionService.deleteSession(studyId, sessionId, userId);
         return ResponseEntity.noContent().build();
     }
 
@@ -141,8 +133,7 @@ public class StudySessionController {
             @PathVariable Long sessionId,
             @RequestHeader("User-Id") Long userId) {
 
-        log.info("세션 시작 요청 - studyId: {}, sessionId: {}, userId: {}", studyId, sessionId, userId);
-        StudySessionResponse response = studySessionService.startSession(studyId, sessionId, userId);
+                StudySessionResponse response = studySessionService.startSession(studyId, sessionId, userId);
         return ResponseEntity.ok(response);
     }
 
@@ -156,8 +147,7 @@ public class StudySessionController {
             @PathVariable Long sessionId,
             @RequestHeader("User-Id") Long userId) {
 
-        log.info("세션 완료 요청 - studyId: {}, sessionId: {}, userId: {}", studyId, sessionId, userId);
-        StudySessionResponse response = studySessionService.completeSession(studyId, sessionId, userId);
+                StudySessionResponse response = studySessionService.completeSession(studyId, sessionId, userId);
         return ResponseEntity.ok(response);
     }
 
@@ -171,8 +161,7 @@ public class StudySessionController {
             @PathVariable Long sessionId,
             @RequestHeader("User-Id") Long userId) {
 
-        log.info("세션 취소 요청 - studyId: {}, sessionId: {}, userId: {}", studyId, sessionId, userId);
-        StudySessionResponse response = studySessionService.cancelSession(studyId, sessionId, userId);
+                StudySessionResponse response = studySessionService.cancelSession(studyId, sessionId, userId);
         return ResponseEntity.ok(response);
     }
 
@@ -184,8 +173,7 @@ public class StudySessionController {
     public ResponseEntity<StudySessionService.SessionStatistics> getSessionStatistics(
             @PathVariable Long studyId) {
 
-        log.info("세션 통계 조회 요청 - studyId: {}", studyId);
-        StudySessionService.SessionStatistics statistics = studySessionService.getSessionStatistics(studyId);
+                StudySessionService.SessionStatistics statistics = studySessionService.getSessionStatistics(studyId);
         return ResponseEntity.ok(statistics);
     }
 }

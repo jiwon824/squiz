@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 /**
  * 친구 정보 응답 DTO
  */
-public record FriendResponse(
+ public record FriendResponse(
         Long friendshipId,
         Long userId,
         String nickname,
@@ -15,7 +15,7 @@ public record FriendResponse(
         Boolean isOnline,
         LocalDateTime lastSeenAt,
         LocalDateTime friendSince
-) {
+        ) {
     public static FriendResponse from(Friendship friendship, Long myId) {
         boolean isRequester = friendship.getRequesterId().equals(myId);
         return new FriendResponse(

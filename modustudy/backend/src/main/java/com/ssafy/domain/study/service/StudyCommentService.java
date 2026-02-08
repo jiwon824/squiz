@@ -44,19 +44,15 @@ public class StudyCommentService {
      */
     @Transactional
     public StudyCommentResponse createComment(Long studyId, StudyCommentCreateRequest request, Long userId) {
-        log.info("댓글 생성 시작 - studyId: {}, userId: {}, parentId: {}", studyId, userId, request.getParentId());
-
-        // 1. 스터디 존재 확인
+// 1. 스터디 존재 확인
         Study study = studyRepository.findById(studyId)
                 .orElseThrow(() -> {
-                    log.error("존재하지 않는 스터디 - studyId: {}", studyId);
                     return new StudyException.StudyNotFoundException(studyId);
                 });
 
         // 2. 사용자 존재 확인
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> {
-                    log.error("존재하지 않는 사용자 - userId: {}", userId);
                     return new IllegalArgumentException("존재하지 않는 사용자입니다: " + userId);
                 });
 
@@ -76,9 +72,7 @@ public class StudyCommentService {
 
         StudyComment saved = commentRepository.save(comment);
 
-        log.info("댓글 생성 완료 - commentId: {}, isReply: {}", saved.getId(), saved.isReply());
-
-        // 스터디장에게 알림 전송 (본인이 스터디장이 아닌 경우에만)
+// 스터디장에게 알림 전송 (본인이 스터디장이 아닌 경우에만)
         sendCommentNotificationToLeader(study, user, saved);
 
         return StudyCommentResponse.from(saved, user);
@@ -92,12 +86,8 @@ public class StudyCommentService {
      * 스터디별 댓글 목록 조회 (최상위 댓글 + 대댓글 포함)
      */
     public StudyCommentPageResponse getCommentsByStudy(Long studyId, Pageable pageable) {
-        log.info("스터디별 댓글 목록 조회 - studyId: {}, page: {}, size: {}",
-                studyId, pageable.getPageNumber(), pageable.getPageSize());
-
-        // 1. 스터디 존재 확인
+// 1. 스터디 존재 확인
         if (!studyRepository.existsById(studyId)) {
-            log.error("존재하지 않는 스터디 - studyId: {}", studyId);
             throw new StudyException.StudyNotFoundException(studyId);
         }
 
@@ -144,9 +134,7 @@ public class StudyCommentService {
                 })
                 .toList();
 
-        log.info("댓글 목록 조회 완료 - studyId: {}, totalElements: {}", studyId, parentComments.getTotalElements());
-
-        return StudyCommentPageResponse.of(
+                return StudyCommentPageResponse.of(
                 commentResponses,
                 parentComments.getTotalElements(),
                 parentComments.getTotalPages(),
@@ -160,9 +148,7 @@ public class StudyCommentService {
      * 스터디별 댓글 목록 조회 (최상위 댓글만, 대댓글 개수만)
      */
     public StudyCommentPageResponse getParentCommentsOnly(Long studyId, Pageable pageable) {
-        log.info("스터디별 최상위 댓글 목록 조회 - studyId: {}", studyId);
-
-        // 1. 스터디 존재 확인
+// 1. 스터디 존재 확인
         if (!studyRepository.existsById(studyId)) {
             throw new StudyException.StudyNotFoundException(studyId);
         }
@@ -202,9 +188,7 @@ public class StudyCommentService {
      * 대댓글 목록 조회
      */
     public List<StudyCommentResponse> getReplies(Long studyId, Long parentId) {
-        log.info("대댓글 목록 조회 - studyId: {}, parentId: {}", studyId, parentId);
-
-        // 1. 부모 댓글 존재 확인
+// 1. 부모 댓글 존재 확인
         validateParentComment(studyId, parentId);
 
         // 2. 대댓글 조회
@@ -219,9 +203,7 @@ public class StudyCommentService {
         Map<Long, User> userMap = userRepository.findAllById(userIds).stream()
                 .collect(Collectors.toMap(User::getId, user -> user));
 
-        log.info("대댓글 목록 조회 완료 - parentId: {}, count: {}", parentId, replies.size());
-
-        // 4. DTO 변환
+// 4. DTO 변환
         return replies.stream()
                 .map(reply -> StudyCommentResponse.from(reply, userMap.get(reply.getUserId())))
                 .toList();
@@ -231,12 +213,9 @@ public class StudyCommentService {
      * 댓글 상세 조회
      */
     public StudyCommentResponse getComment(Long studyId, Long commentId) {
-        log.info("댓글 상세 조회 - studyId: {}, commentId: {}", studyId, commentId);
-
-        // 1. 댓글 조회
+// 1. 댓글 조회
         StudyComment comment = commentRepository.findByIdAndStudyIdAndIsDeletedFalse(commentId, studyId)
                 .orElseThrow(() -> {
-                    log.error("존재하지 않는 댓글 - commentId: {}, studyId: {}", commentId, studyId);
                     return new IllegalArgumentException("존재하지 않는 댓글입니다: " + commentId);
                 });
 
@@ -244,9 +223,7 @@ public class StudyCommentService {
         User author = userRepository.findById(comment.getUserId())
                 .orElse(null);
 
-        log.info("댓글 상세 조회 완료 - commentId: {}", commentId);
-
-        return StudyCommentResponse.from(comment, author);
+                return StudyCommentResponse.from(comment, author);
     }
 
     // ============================================================
@@ -258,18 +235,14 @@ public class StudyCommentService {
      */
     @Transactional
     public StudyCommentResponse updateComment(Long studyId, Long commentId, StudyCommentUpdateRequest request, Long userId) {
-        log.info("댓글 수정 시작 - studyId: {}, commentId: {}, userId: {}", studyId, commentId, userId);
-
-        // 1. 댓글 조회
+// 1. 댓글 조회
         StudyComment comment = commentRepository.findByIdAndStudyIdAndIsDeletedFalse(commentId, studyId)
                 .orElseThrow(() -> {
-                    log.error("존재하지 않는 댓글 - commentId: {}, studyId: {}", commentId, studyId);
                     return new IllegalArgumentException("존재하지 않는 댓글입니다: " + commentId);
                 });
 
         // 2. 작성자 확인
         if (!comment.isAuthor(userId)) {
-            log.warn("댓글 수정 권한 없음 - commentId: {}, userId: {}", commentId, userId);
             throw new IllegalStateException("댓글을 수정할 권한이 없습니다");
         }
 
@@ -283,9 +256,7 @@ public class StudyCommentService {
         User author = userRepository.findById(userId)
                 .orElse(null);
 
-        log.info("댓글 수정 완료 - commentId: {}", commentId);
-
-        return StudyCommentResponse.from(comment, author);
+                return StudyCommentResponse.from(comment, author);
     }
 
     // ============================================================
@@ -297,12 +268,9 @@ public class StudyCommentService {
      */
     @Transactional
     public void deleteComment(Long studyId, Long commentId, Long userId) {
-        log.info("댓글 삭제 시작 - studyId: {}, commentId: {}, userId: {}", studyId, commentId, userId);
-
-        // 1. 댓글 조회
+// 1. 댓글 조회
         StudyComment comment = commentRepository.findByIdAndStudyIdAndIsDeletedFalse(commentId, studyId)
                 .orElseThrow(() -> {
-                    log.error("존재하지 않는 댓글 - commentId: {}, studyId: {}", commentId, studyId);
                     return new IllegalArgumentException("존재하지 않는 댓글입니다: " + commentId);
                 });
 
@@ -314,15 +282,13 @@ public class StudyCommentService {
         boolean isLeader = study.getLeaderId().equals(userId);
 
         if (!isAuthor && !isLeader) {
-            log.warn("댓글 삭제 권한 없음 - commentId: {}, userId: {}", commentId, userId);
             throw new IllegalStateException("댓글을 삭제할 권한이 없습니다");
         }
 
         // 3. Soft Delete
         comment.delete();
 
-        log.info("댓글 삭제 완료 - commentId: {}, deletedBy: {}", commentId, isAuthor ? "작성자" : "스터디장");
-    }
+}
 
     // ============================================================
     // 통계 조회
@@ -332,11 +298,7 @@ public class StudyCommentService {
      * 스터디별 댓글 개수 조회
      */
     public Long getCommentCount(Long studyId) {
-        log.info("스터디별 댓글 개수 조회 - studyId: {}", studyId);
-
         Long count = commentRepository.countByStudyIdAndIsDeletedFalse(studyId);
-
-        log.info("댓글 개수 조회 완료 - studyId: {}, count: {}", studyId, count);
 
         return count;
     }
@@ -351,13 +313,11 @@ public class StudyCommentService {
     private void validateParentComment(Long studyId, Long parentId) {
         StudyComment parent = commentRepository.findByIdAndStudyIdAndIsDeletedFalse(parentId, studyId)
                 .orElseThrow(() -> {
-                    log.error("존재하지 않는 부모 댓글 - parentId: {}, studyId: {}", parentId, studyId);
                     return new IllegalArgumentException("존재하지 않는 부모 댓글입니다: " + parentId);
                 });
 
         // 대댓글에 대댓글 달기 방지 (2단계까지만 허용)
         if (parent.isReply()) {
-            log.warn("대댓글에 대댓글 시도 - parentId: {}", parentId);
             throw new IllegalArgumentException("대댓글에는 답글을 달 수 없습니다");
         }
     }
@@ -370,7 +330,6 @@ public class StudyCommentService {
 
         // 본인이 스터디장인 경우 알림 전송하지 않음
         if (leaderId.equals(commenter.getId())) {
-            log.debug("스터디장 본인 댓글 - 알림 생략");
             return;
         }
 
@@ -390,11 +349,9 @@ public class StudyCommentService {
                     study.getId()
             );
 
-            log.info("스터디장에게 댓글 알림 전송 완료 - leaderId: {}, studyId: {}", leaderId, study.getId());
-        } catch (Exception e) {
+} catch (Exception e) {
             // 알림 전송 실패해도 댓글 생성은 성공해야 함
-            log.error("댓글 알림 전송 실패 - leaderId: {}, error: {}", leaderId, e.getMessage());
-        }
+}
     }
 
     /**

@@ -12,8 +12,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * 사용자 ID와 WebSocket 세션 ID 매핑 관리
  * Redis Pub/Sub 연동으로 다중 서버 지원
  */
-@Service
-public class DmSessionService {
+ @Service
+ public class DmSessionService {
 
     // userId -> Set<sessionId> (한 유저가 여러 기기로 접속 가능)
     private final Map<Long, Set<String>> userSessions = new ConcurrentHashMap<>();

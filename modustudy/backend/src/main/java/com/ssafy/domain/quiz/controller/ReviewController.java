@@ -30,12 +30,12 @@ import java.util.List;
  * MalBoka 방식 자동 간격 반복 복습 시스템의 REST 엔드포인트를 제공한다.
  * 비즈니스 로직과 접근 제어는 FsrsService에 위임한다.
  */
-@Slf4j
-@Tag(name = "Review", description = "AI 복습 (FSRS) API")
-@RestController
-@RequestMapping("/api/v1/reviews")
-@RequiredArgsConstructor
-public class ReviewController {
+ @Slf4j
+ @Tag(name = "Review", description = "AI 복습 (FSRS) API")
+ @RestController
+ @RequestMapping("/api/v1/reviews")
+ @RequiredArgsConstructor
+ public class ReviewController {
 
         private final FsrsService fsrsService;
 
@@ -66,10 +66,7 @@ public class ReviewController {
                                 request.userAnswer(),
                                 request.responseTimeMs());
 
-                log.info("[ReviewController] 복습 제출 - userId: {}, contentType: {}, contentId: {}, isCorrect: {}",
-                                userId, request.contentType(), request.contentId(), result.isCorrect());
-
-                return ApiResponse
+                                return ApiResponse
                                 .success(ReviewSubmitResponse.from(result.getItem(), result.isCorrect(),
                                                 result.getCorrectAnswer()));
         }
@@ -193,3 +190,4 @@ public class ReviewController {
                 return ApiResponse.success(fsrsService.getCourseWeaknessStats(userId));
         }
 }
+

@@ -17,8 +17,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * Redis Pub/Sub 구독자
  * 다른 서버에서 발행한 DM 메시지를 수신하여 로컬 WebSocket 세션에 전달
  */
-@Service
-public class DmRedisSubscriber implements MessageListener {
+ @Service
+ public class DmRedisSubscriber implements MessageListener {
 
     private static final Logger log = LoggerFactory.getLogger(DmRedisSubscriber.class);
     private static final String DM_CHANNEL_PREFIX = "dm:user:";
@@ -52,8 +52,7 @@ public class DmRedisSubscriber implements MessageListener {
         ChannelTopic topic = new ChannelTopic(channelName);
         listenerContainer.addMessageListener(this, topic);
         subscribedChannels.put(userId, topic);
-        log.debug("Subscribed to Redis channel: {}", channelName);
-    }
+}
 
     /**
      * 사용자 채널 구독 해제
@@ -62,8 +61,7 @@ public class DmRedisSubscriber implements MessageListener {
         ChannelTopic topic = subscribedChannels.remove(userId);
         if (topic != null) {
             listenerContainer.removeMessageListener(this, topic);
-            log.debug("Unsubscribed from Redis channel: {}", topic.getTopic());
-        }
+}
     }
 
     @Override
@@ -85,10 +83,8 @@ public class DmRedisSubscriber implements MessageListener {
                     destination,
                     payload
             );
-            log.debug("Forwarded Redis message to userId={} via Principal", userId);
-
-        } catch (Exception e) {
-            log.error("Failed to process Redis message", e);
-        }
+} catch (Exception e) {
+}
     }
 }
+

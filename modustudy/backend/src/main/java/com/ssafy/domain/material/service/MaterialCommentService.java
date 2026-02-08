@@ -20,11 +20,11 @@ import java.util.stream.Collectors;
 /**
  * 자료 댓글 서비스
  */
-@Slf4j
-@Service
-@RequiredArgsConstructor
-@Transactional(readOnly = true)
-public class MaterialCommentService {
+ @Slf4j
+ @Service
+ @RequiredArgsConstructor
+ @Transactional(readOnly = true)
+ public class MaterialCommentService {
 
     private final MaterialCommentRepository commentRepository;
     private final MaterialRepository materialRepository;
@@ -34,9 +34,7 @@ public class MaterialCommentService {
      * 댓글 목록 조회
      */
     public List<MaterialCommentResponse> getComments(Long materialId) {
-        log.info("댓글 목록 조회 - materialId: {}", materialId);
-
-        // 자료 존재 확인
+// 자료 존재 확인
         if (!materialRepository.existsById(materialId)) {
             throw new MaterialException.MaterialNotFoundException(materialId);
         }
@@ -56,9 +54,7 @@ public class MaterialCommentService {
      */
     @Transactional
     public MaterialCommentCreateResponse createComment(Long materialId, Long userId, MaterialCommentCreateRequest request) {
-        log.info("댓글 작성 - materialId: {}, userId: {}", materialId, userId);
-
-        // 자료 존재 확인
+// 자료 존재 확인
         if (!materialRepository.existsById(materialId)) {
             throw new MaterialException.MaterialNotFoundException(materialId);
         }
@@ -70,8 +66,6 @@ public class MaterialCommentService {
         );
 
         MaterialComment saved = commentRepository.save(comment);
-        log.info("댓글 작성 완료 - commentId: {}", saved.getId());
-
         return MaterialCommentCreateResponse.from(saved);
     }
 
@@ -80,8 +74,6 @@ public class MaterialCommentService {
      */
     @Transactional
     public void deleteComment(Long materialId, Long commentId, Long userId) {
-        log.info("댓글 삭제 - materialId: {}, commentId: {}, userId: {}", materialId, commentId, userId);
-
         MaterialComment comment = commentRepository.findById(commentId)
                 .orElseThrow(MaterialException.MaterialCommentNotFoundException::new);
 
@@ -96,8 +88,7 @@ public class MaterialCommentService {
         }
 
         commentRepository.delete(comment);
-        log.info("댓글 삭제 완료 - commentId: {}", commentId);
-    }
+}
 
     /**
      * 사용자 정보 조회

@@ -5,9 +5,9 @@ package com.ssafy.domain.quiz.dto.response;
  *
  * 코스 상세 응답 내 badge 객체로 사용된다.
  */
-public record BadgeInfo(
+ public record BadgeInfo(
         String code,
         String name,
         String description
-) {
+        ) {
 }

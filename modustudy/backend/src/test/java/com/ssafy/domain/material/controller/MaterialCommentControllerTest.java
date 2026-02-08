@@ -43,10 +43,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * - 부모 엔티티 저장 후 flush() 호출
  * - 벌크 삭제 후 entityManager.flush() + clear() 호출
  */
-@SpringBootTest
-@AutoConfigureMockMvc
-@Transactional
-class MaterialCommentControllerTest {
+ @SpringBootTest
+ @AutoConfigureMockMvc
+ @Transactional
+ class MaterialCommentControllerTest {
 
     @Autowired
     private MockMvc mockMvc;

@@ -26,10 +26,8 @@ public class EmailService {
             message.setText(text);
 
             mailSender.send(message);
-            log.info("이메일 전송 성공: {}", to);
-        } catch (Exception e) {
-            log.error("이메일 전송 실패: {}", to, e);
-            throw new RuntimeException("이메일 전송에 실패했습니다.", e);
+} catch (Exception e) {
+    throw new RuntimeException("이메일 전송에 실패했습니다.", e);
         }
     }
 
@@ -73,10 +71,8 @@ public class EmailService {
             helper.setText(htmlContent, true); // true = HTML 형식
 
             mailSender.send(message);
-            log.info("비밀번호 재설정 이메일 전송 성공: {}", toEmail);
-        } catch (Exception e) {
-            log.error("이메일 전송 실패: {}", toEmail, e);
-            throw new RuntimeException("이메일 전송에 실패했습니다.", e);
+} catch (Exception e) {
+    throw new RuntimeException("이메일 전송에 실패했습니다.", e);
         }
     }
 

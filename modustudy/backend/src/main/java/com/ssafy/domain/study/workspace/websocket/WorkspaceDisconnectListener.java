@@ -10,8 +10,8 @@ import org.springframework.web.socket.messaging.SessionDisconnectEvent;
  * 워크스페이스 WebSocket 연결 해제 리스너
  * 사용자가 비정상적으로 연결이 끊어졌을 때 세션 정리
  */
-@Component
-public class WorkspaceDisconnectListener {
+ @Component
+ public class WorkspaceDisconnectListener {
 
     private static final Logger log = LoggerFactory.getLogger(WorkspaceDisconnectListener.class);
 
@@ -31,8 +31,7 @@ public class WorkspaceDisconnectListener {
 
         if (workspaceId != null && userId != null) {
             sessionService.leaveWorkspace(sessionId);
-            log.info("워크스페이스 연결 해제 감지: workspaceId={}, userId={}, sessionId={}",
-                    workspaceId, userId, sessionId);
-        }
+}
     }
 }
+

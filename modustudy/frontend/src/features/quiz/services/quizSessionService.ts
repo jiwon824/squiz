@@ -68,7 +68,6 @@ export const getStoredSession = (sectionId: string): QuizSession | null => {
         }
         return null;
     } catch (error) {
-        console.error('[QuizSession] 세션 조회 실패:', error);
         return null;
     }
 };
@@ -146,7 +145,6 @@ export const saveSession = (session: QuizSession): void => {
         };
         localStorage.setItem(key, JSON.stringify(updatedSession));
     } catch (error) {
-        console.error('[QuizSession] 세션 저장 실패:', error);
     }
 };
 
@@ -163,7 +161,6 @@ export const clearSession = (sectionId: string): void => {
         const key = getSessionStorageKey(sectionId);
         localStorage.removeItem(key);
     } catch (error) {
-        console.error('[QuizSession] 세션 삭제 실패:', error);
     }
 };
 

@@ -139,7 +139,6 @@ export const MeetingTestPage: React.FC = () => {
                     setSelectedStudyId(opts[0].id);
                 }
             } catch (err) {
-                console.error('스터디 목록 조회 실패:', err);
             } finally {
                 setStudiesLoading(false);
             }
@@ -165,7 +164,6 @@ export const MeetingTestPage: React.FC = () => {
                 setSelectedQuiz(null);
                 setQuizDetail(null);
             } catch (err) {
-                console.error('퀴즈 목록 조회 실패:', err);
             } finally {
                 setQuizLoading(false);
             }
@@ -200,7 +198,6 @@ export const MeetingTestPage: React.FC = () => {
             setQuizDetail(detail);
             startTimeRef.current = Date.now();
         } catch (err) {
-            console.error('퀴즈 상세 조회 실패:', err);
         } finally {
             setDetailLoading(false);
         }

@@ -145,7 +145,6 @@ export const WorkspaceCalendarArea: React.FC<WorkspaceCalendarAreaProps> = ({
       });
       setAttendanceBySessionId(nextMap);
     } catch (error) {
-      console.warn('출석 달력 조회 실패:', error);
       setAttendanceBySessionId({});
     }
   }, [currentDate, studyId]);
@@ -272,7 +271,6 @@ export const WorkspaceCalendarArea: React.FC<WorkspaceCalendarAreaProps> = ({
       await loadAttendanceCalendar();
       handleExcuseModalClose();
     } catch (error) {
-      console.error('결석 소명 제출 실패:', error);
       showToast?.('결석 소명 제출에 실패했습니다.', 'error');
     } finally {
       setExcuseSubmitting(false);

@@ -15,8 +15,8 @@ import java.util.List;
 /**
  * Study 기본 Repository
  */
-@Repository
-public interface StudyRepository extends JpaRepository<Study, Long>, StudyRepositoryCustom {
+ @Repository
+ public interface StudyRepository extends JpaRepository<Study, Long>, StudyRepositoryCustom {
 
     /**
      * 공개된 스터디 조회 (DRAFT 제외, is_public = true)

@@ -31,11 +31,7 @@ public class NewsScraperService {
      * Google News IT 뉴스 크롤링 (여러 키워드)
      */
     public void scrapeGoogleNewsIT() {
-        log.info("========================================");
-        log.info("Google News IT 뉴스 크롤링 시작");
-        log.info("========================================");
-
-        // 다양한 IT 키워드 목록
+// 다양한 IT 키워드 목록
         List<String> keywords = Arrays.asList(
                 "IT+기술",
                 "인공지능+AI",
@@ -69,21 +65,14 @@ public class NewsScraperService {
                 totalSaved += saved;
                 successCount++;
 
-                log.info("[{}] 키워드로 {}개 뉴스 저장", keyword, saved);
-
-                // 서버 부하 방지를 위한 대기 (1초)
+// 서버 부하 방지를 위한 대기 (1초)
                 Thread.sleep(1000);
 
             } catch (Exception e) {
                 failCount++;
-                log.error("키워드 [{}] 크롤링 실패", keyword, e);
-            }
+}
         }
 
-        log.info("========================================");
-        log.info("크롤링 완료 - 성공: {}/{}, 실패: {}", successCount, keywords.size(), failCount);
-        log.info("총 {}개의 새로운 뉴스 저장", totalSaved);
-        log.info("========================================");
     }
 
     /**
@@ -129,7 +118,6 @@ public class NewsScraperService {
                     // 중복 체크 - 이제 트랜잭션 안에서 정상 작동!
                     // 중복 체크 부분
                     if (itNewsRepository.existsBySourceUrl(link)) {
-                        log.info("🔴 중복 뉴스 발견! URL: {}", link);
                         continue;
                     }
 
@@ -156,8 +144,7 @@ public class NewsScraperService {
                             );
                             publishedAt = zonedDateTime.toLocalDateTime();
                         } catch (Exception e) {
-                            log.debug("날짜 파싱 실패, 현재 시간 사용");
-                        }
+}
                     }
 
                     // 출처 추출
@@ -186,16 +173,15 @@ public class NewsScraperService {
                     }
 
                 } catch (Exception e) {
-                    log.error("개별 뉴스 처리 에러", e);
-                }
+}
             }
 
             return savedCount;
 
         } catch (Exception e) {
-            log.error("키워드 [{}] RSS 크롤링 실패", keyword, e);
             return 0; // 예외 발생 시 0 반환 (throw 하지 않음)
         }
     }
 
 }
+

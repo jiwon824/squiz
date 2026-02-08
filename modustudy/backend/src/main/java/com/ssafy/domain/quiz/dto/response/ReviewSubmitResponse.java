@@ -19,8 +19,8 @@ import java.time.LocalDateTime;
  * @param scheduledMinutes 다음 복습까지 간격 (분)
  * @param nextReviewAt     다음 복습 예정일
  */
-@Schema(description = "복습 결과 제출 응답")
-public record ReviewSubmitResponse(
+ @Schema(description = "복습 결과 제출 응답")
+ public record ReviewSubmitResponse(
 
         @Schema(description = "복습 항목 ID", example = "1") Long reviewItemId,
 

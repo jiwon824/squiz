@@ -30,8 +30,8 @@ import org.springframework.stereotype.Controller;
  * 구독:
  * - /topic/workspace/{workspaceId}        : 워크스페이스 메시지 수신 (브로드캐스트)
  */
-@Controller
-public class WorkspaceWebSocketController {
+ @Controller
+ public class WorkspaceWebSocketController {
 
     private static final Logger log = LoggerFactory.getLogger(WorkspaceWebSocketController.class);
 
@@ -70,8 +70,7 @@ public class WorkspaceWebSocketController {
                 workspaceId, userId, nickname, profileImageUrl);
         broadcastToWorkspace(workspaceId, joinEvent);
 
-        log.info("워크스페이스 입장: workspaceId={}, userId={}, sessionId={}", workspaceId, userId, sessionId);
-    }
+}
 
     /**
      * 워크스페이스 퇴장
@@ -88,8 +87,7 @@ public class WorkspaceWebSocketController {
         WorkspaceWebSocketEvent leaveEvent = WorkspaceWebSocketEvent.leave(workspaceId, userId, nickname);
         broadcastToWorkspace(workspaceId, leaveEvent);
 
-        log.info("워크스페이스 퇴장: workspaceId={}, userId={}, sessionId={}", workspaceId, userId, sessionId);
-    }
+}
 
     /**
      * 메시지 전송
@@ -106,8 +104,7 @@ public class WorkspaceWebSocketController {
                     messageType = MessageType.valueOf(message.getMessageType());
                 }
             } catch (IllegalArgumentException e) {
-                log.warn("알 수 없는 메시지 타입: {}, 기본값 TEXT 사용", message.getMessageType());
-            }
+}
 
             // 메시지 저장
             MessageCreateRequest request = MessageCreateRequest.builder()
@@ -122,12 +119,8 @@ public class WorkspaceWebSocketController {
             WorkspaceWebSocketEvent messageEvent = WorkspaceWebSocketEvent.newMessage(response);
             broadcastToWorkspace(workspaceId, messageEvent);
 
-            log.debug("워크스페이스 메시지 전송: workspaceId={}, userId={}, messageId={}",
-                    workspaceId, userId, response.getId());
-
-        } catch (Exception e) {
-            log.error("워크스페이스 메시지 전송 실패: workspaceId={}, userId={}", workspaceId, userId, e);
-            // 에러 이벤트를 발신자에게 전송
+} catch (Exception e) {
+// 에러 이벤트를 발신자에게 전송
             sendErrorToUser(userId, workspaceId, e.getMessage());
         }
     }
@@ -151,8 +144,7 @@ public class WorkspaceWebSocketController {
             broadcastToWorkspace(workspaceId, typingEvent);
 
         } catch (Exception e) {
-            log.warn("입력 중 표시 전송 실패: workspaceId={}, userId={}", workspaceId, userId);
-        }
+}
     }
 
     /**
@@ -175,8 +167,7 @@ public class WorkspaceWebSocketController {
                     workspaceId, userId, nickname, profileImageUrl, message.getStatus());
             broadcastToWorkspace(workspaceId, presenceEvent);
         } catch (Exception e) {
-            log.warn("상태 변경 전송 실패: workspaceId={}, userId={}", workspaceId, userId);
-        }
+}
     }
 
     /**
@@ -185,8 +176,7 @@ public class WorkspaceWebSocketController {
     private void broadcastToWorkspace(Long workspaceId, Object payload) {
         String destination = "/topic/workspace/" + workspaceId;
         messagingTemplate.convertAndSend(destination, payload);
-        log.debug("워크스페이스 브로드캐스트: destination={}", destination);
-    }
+}
 
     /**
      * 특정 사용자에게 에러 메시지 전송
@@ -196,3 +186,4 @@ public class WorkspaceWebSocketController {
         messagingTemplate.convertAndSend(destination, errorMessage);
     }
 }
+

@@ -91,7 +91,6 @@ const ExcuseManagement: React.FC<ExcuseManagementProps> = ({ studyId }) => {
 
                     allExcuses.push(...sessionExcuses);
                 } catch (error) {
-                    console.warn(`세션 ${session.id} 출석 정보 조회 실패:`, error);
                 }
             }
 
@@ -110,7 +109,6 @@ const ExcuseManagement: React.FC<ExcuseManagementProps> = ({ studyId }) => {
             });
             setExcuses(allExcuses);
         } catch (error) {
-            console.error('소명 목록 조회 실패:', error);
             showToast('소명 목록을 불러오는데 실패했습니다.', 'error');
         } finally {
             setLoading(false);
@@ -136,7 +134,6 @@ const ExcuseManagement: React.FC<ExcuseManagementProps> = ({ studyId }) => {
 
             await fetchExcuses();
         } catch (error) {
-            console.error('소명 처리 실패:', error);
             showToast('소명 처리에 실패했습니다.', 'error');
         }
     };

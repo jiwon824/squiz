@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 /**
  * 친구 요청 정보 응답 DTO
  */
-public record FriendRequestResponse(
+ public record FriendRequestResponse(
         Long requestId,
         Long userId,
         String nickname,
@@ -16,7 +16,7 @@ public record FriendRequestResponse(
         Boolean isOnline,
         FriendshipStatus status,
         LocalDateTime createdAt
-) {
+        ) {
     /**
      * 받은 친구 요청 (requester 정보 반환)
      */

@@ -225,7 +225,6 @@ const LightningStudyEditPage: React.FC = () => {
                 });
 
             } catch (error) {
-                console.error('스터디 정보 로드 실패:', error);
                 showToast('스터디 정보를 불러오는데 실패했습니다.', 'error');
                 navigate('/study');
             } finally {
@@ -244,7 +243,6 @@ const LightningStudyEditPage: React.FC = () => {
                     const districtsData = await getDistricts(formData.provinceId);
                     setDistricts(districtsData);
                 } catch (error) {
-                    console.error('구/군 목록 불러오기 실패:', error);
                     setDistricts([]);
                 }
             } else {

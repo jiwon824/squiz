@@ -30,9 +30,7 @@ public class NotificationSettingService {
      * - 설정이 없는 타입은 기본값(enabled=true)으로 반환
      */
     public NotificationSettingListResponse getSettings(Long userId) {
-        log.info("알림 설정 조회 - userId: {}", userId);
-
-        // 기존 설정 조회
+// 기존 설정 조회
         List<NotificationSetting> existingSettings = notificationSettingRepository.findByUserId(userId);
         Map<String, NotificationSetting> settingMap = existingSettings.stream()
                 .collect(Collectors.toMap(NotificationSetting::getNotificationType, s -> s));
@@ -49,8 +47,6 @@ public class NotificationSettingService {
             }
         }
 
-        log.info("알림 설정 조회 완료 - userId: {}, settingCount: {}", userId, settings.size());
-
         return NotificationSettingListResponse.of(settings);
     }
 
@@ -59,8 +55,6 @@ public class NotificationSettingService {
      */
     @Transactional
     public void updateSettings(Long userId, NotificationSettingUpdateRequest request) {
-        log.info("알림 설정 수정 - userId: {}", userId);
-
         for (NotificationSettingUpdateRequest.SettingItem item : request.getSettings()) {
             // 유효한 알림 타입인지 검증
             try {
@@ -88,8 +82,7 @@ public class NotificationSettingService {
             }
         }
 
-        log.info("알림 설정 수정 완료 - userId: {}", userId);
-    }
+}
 
     /**
      * 특정 알림 타입 활성화 여부 확인
@@ -106,8 +99,6 @@ public class NotificationSettingService {
      */
     @Transactional
     public void initializeDefaultSettings(Long userId) {
-        log.info("기본 알림 설정 초기화 - userId: {}", userId);
-
         for (NotificationType type : NotificationType.values()) {
             NotificationSetting setting = NotificationSetting.builder()
                     .userId(userId)
@@ -117,6 +108,5 @@ public class NotificationSettingService {
             notificationSettingRepository.save(setting);
         }
 
-        log.info("기본 알림 설정 초기화 완료 - userId: {}", userId);
-    }
+}
 }

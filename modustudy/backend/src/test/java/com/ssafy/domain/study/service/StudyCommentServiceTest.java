@@ -36,8 +36,8 @@ import static org.mockito.BDDMockito.*;
 /**
  * StudyCommentService 단위 테스트
  */
-@ExtendWith(MockitoExtension.class)
-class StudyCommentServiceTest {
+ @ExtendWith(MockitoExtension.class)
+ class StudyCommentServiceTest {
 
     @Mock
     private StudyCommentRepository commentRepository;
@@ -130,7 +130,6 @@ class StudyCommentServiceTest {
             when(savedComment.getUserId()).thenReturn(userId);
             when(savedComment.getContent()).thenReturn("새로운 댓글입니다.");
             when(savedComment.getIsDeleted()).thenReturn(false);
-            when(savedComment.isReply()).thenReturn(false);
 
             given(studyRepository.findById(studyId)).willReturn(Optional.of(mockStudy));
             given(userRepository.findById(userId)).willReturn(Optional.of(mockUser));
@@ -168,7 +167,6 @@ class StudyCommentServiceTest {
             when(savedReply.getParentId()).thenReturn(parentId);
             when(savedReply.getContent()).thenReturn("대댓글입니다.");
             when(savedReply.getIsDeleted()).thenReturn(false);
-            when(savedReply.isReply()).thenReturn(true);
 
             given(studyRepository.findById(studyId)).willReturn(Optional.of(mockStudy));
             given(userRepository.findById(userId)).willReturn(Optional.of(mockUser2));

@@ -19,9 +19,9 @@ import static com.ssafy.domain.study.entity.QStudy.study;
 /**
  * QueryDSL을 이용한 동적 쿼리 구현
  */
-@Repository
-@RequiredArgsConstructor
-public class StudyRepositoryImpl implements StudyRepositoryCustom {
+ @Repository
+ @RequiredArgsConstructor
+ public class StudyRepositoryImpl implements StudyRepositoryCustom {
 
     private final JPAQueryFactory queryFactory;
     private final EntityManager entityManager;

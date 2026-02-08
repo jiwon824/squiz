@@ -67,7 +67,6 @@ class CanvasComposerService {
         this.offscreenCanvas = this.canvas.transferControlToOffscreen();
         this.initFrameWorker();
       } catch (e) {
-        console.warn('OffscreenCanvas not available, using fallback', e);
         this.useOffscreen = false;
       }
     }
@@ -303,7 +302,6 @@ class CanvasComposerService {
         this.needsRedraw = true; // ✅ 추가
         }
       } catch (e) {
-        console.warn('screen frame error', e);
       }
     };
 
@@ -321,7 +319,6 @@ class CanvasComposerService {
           [cameraBitmap]
         );
       } catch (e) {
-        console.warn('camera frame error', e);
       }
     };
 

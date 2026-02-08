@@ -11,5 +11,5 @@ public record MeetingRequest(
         Boolean autoShareSummary,
         Long shareWorkspaceId,
         Integer plannedDurationSeconds
-) {
+        ) {
 }

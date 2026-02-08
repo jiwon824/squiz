@@ -92,7 +92,6 @@ export const useMyQuiz = (): UseMyQuizReturn => {
       setCourseQuizStats(quizStatsData || []);
       setReviewStats(reviewStatsData || null);
     } catch (error) {
-      console.error('Failed to fetch reviews', error);
       setTodayReviews([]);
       setWrongReviews([]);
       setWrongTotalCount(0);
@@ -199,7 +198,6 @@ export const useMyQuiz = (): UseMyQuizReturn => {
         showResult: true,
       }));
     } catch (e) {
-      console.error('Review submission failed', e);
       setRetryState((prev) => ({
         ...prev,
         isCorrectAnswer: false,
@@ -227,7 +225,6 @@ export const useMyQuiz = (): UseMyQuizReturn => {
         showResult: true,
       }));
     } catch (e) {
-      console.error('Review submission failed', e);
       setRetryState((prev) => ({
         ...prev,
         isCorrectAnswer: false,

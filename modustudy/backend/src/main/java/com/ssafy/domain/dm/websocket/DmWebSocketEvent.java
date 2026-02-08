@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 /**
  * DM WebSocket 이벤트 DTO
  */
-public class DmWebSocketEvent {
+ public class DmWebSocketEvent {
 
     public enum Type {
         MESSAGE,        // 새 메시지

@@ -48,16 +48,11 @@ public class JwtTokenUtil {
             verifier.verify(token);
             return true;
         } catch (AlgorithmMismatchException e) {
-            log.error("Invalid JWT algorithm");
-        } catch (TokenExpiredException e) {
-            log.error("Expired JWT token");
-        } catch (SignatureVerificationException e) {
-            log.error("Invalid JWT signature");
-        } catch (JWTDecodeException e) {
-            log.error("Invalid JWT token");
-        } catch (JWTVerificationException e) {
-            log.error("JWT verification failed");
-        }
+} catch (TokenExpiredException e) {
+} catch (SignatureVerificationException e) {
+} catch (JWTDecodeException e) {
+} catch (JWTVerificationException e) {
+}
         return false;
     }
     /**
@@ -82,3 +77,4 @@ public class JwtTokenUtil {
                 .sign(Algorithm.HMAC512(secretKey.getBytes()));
     }
 }
+

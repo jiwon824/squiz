@@ -35,9 +35,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 /**
  * MessageService 통합 테스트
  */
-@SpringBootTest
-@Transactional
-class MessageServiceTest {
+ @SpringBootTest
+ @Transactional
+ class MessageServiceTest {
 
     @Autowired
     private MessageService messageService;

@@ -14,12 +14,12 @@ import lombok.NoArgsConstructor;
 /**
  * 템플릿 생성 요청 DTO
  */
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-@Schema(description = "템플릿 생성 요청")
-public class CreateTemplateRequest {
+ @Data
+ @NoArgsConstructor
+ @AllArgsConstructor
+ @Builder
+ @Schema(description = "템플릿 생성 요청")
+ public class CreateTemplateRequest {
 
     @Schema(description = "템플릿 이름", example = "알고리즘 스터디 템플릿", required = true)
     @NotBlank(message = "템플릿 이름은 필수입니다")

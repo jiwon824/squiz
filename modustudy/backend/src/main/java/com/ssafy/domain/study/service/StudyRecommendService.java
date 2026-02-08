@@ -99,11 +99,9 @@ public class StudyRecommendService {
                                 .build();
 
                         recommendActionRepository.save(action);
-                        log.debug("추천 반응 자동 기록: userId={}, studyId={}, action={}", userId, studyId, actionType);
-                    });
+});
         } catch (Exception e) {
-            log.warn("추천 반응 기록 실패 (무시): {}", e.getMessage());
-        }
+}
     }
 
     /**
@@ -162,10 +160,8 @@ public class StudyRecommendService {
             }
 
         } catch (JsonProcessingException e) {
-            log.warn("추천 로그 스냅샷 직렬화 실패: {}", e.getMessage());
-        } catch (Exception e) {
-            log.error("추천 로그 저장 실패 (추천 결과에는 영향 없음): {}", e.getMessage());
-        }
+} catch (Exception e) {
+}
     }
 
     private String buildMatchReason(StudyRecommendDto dto) {
@@ -191,3 +187,4 @@ public class StudyRecommendService {
         return String.join(", ", reasons);
     }
 }
+

@@ -24,9 +24,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  * - test 프로필에서는 DataInitializer가 @Profile("!test")로 비활성화되므로
  *   직접 인스턴스를 생성하여 초기 데이터 삽입 로직을 검증합니다.
  */
-@SpringBootTest
-@Transactional
-class DataInitializerTest {
+ @SpringBootTest
+ @Transactional
+ class DataInitializerTest {
 
     @Autowired
     private TopicRepository topicRepository;

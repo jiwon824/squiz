@@ -24,8 +24,8 @@ import static org.mockito.Mockito.when;
 /**
  * AiService 미팅 처리 기능 테스트
  */
-@ExtendWith(MockitoExtension.class)
-class AiServiceMeetingTest {
+ @ExtendWith(MockitoExtension.class)
+ class AiServiceMeetingTest {
 
     @Mock
     private RestTemplate restTemplate;

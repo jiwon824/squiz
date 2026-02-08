@@ -5,5 +5,5 @@ import java.util.List;
 public record MeetingJoinResponse(
         String roomToken,
         List<MeetingIceServerResponse> iceServers
-) {
+        ) {
 }

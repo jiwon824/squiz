@@ -88,9 +88,7 @@ public class GoogleCalendarController {
             throw new IllegalArgumentException("Authorization code가 필요합니다.");
         }
 
-        log.info("Google Calendar 연동 요청: userId={}", userId);
-
-        // OAuth2Service를 통해 Google 계정 연동 (Calendar scope 포함된 토큰 저장)
+// OAuth2Service를 통해 Google 계정 연동 (Calendar scope 포함된 토큰 저장)
         oAuth2Service.linkSocialAccount(userId, SocialProvider.GOOGLE, code);
 
         // 연동 완료 후 상태 반환
@@ -106,9 +104,7 @@ public class GoogleCalendarController {
                 .calendarId(socialAccount.getCalendarId())
                 .build();
 
-        log.info("Google Calendar 연동 완료: userId={}, email={}", userId, socialAccount.getEmail());
-
-        return ResponseEntity.ok(ApiResponse.success(response));
+                return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @PostMapping("/connect/mobile")
@@ -122,9 +118,7 @@ public class GoogleCalendarController {
             throw new IllegalArgumentException("Authorization code가 필요합니다.");
         }
 
-        log.info("Google Calendar 모바일 연동 요청: userId={}", userId);
-
-        // 모바일용 연동 (redirect_uri 없이)
+// 모바일용 연동 (redirect_uri 없이)
         oAuth2Service.linkSocialAccountMobile(userId, SocialProvider.GOOGLE, code);
 
         // 연동 완료 후 상태 반환
@@ -140,9 +134,7 @@ public class GoogleCalendarController {
                 .calendarId(socialAccount.getCalendarId())
                 .build();
 
-        log.info("Google Calendar 모바일 연동 완료: userId={}, email={}", userId, socialAccount.getEmail());
-
-        return ResponseEntity.ok(ApiResponse.success(response));
+                return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @PostMapping("/disconnect")
@@ -165,8 +157,6 @@ public class GoogleCalendarController {
         socialAccount.setRefreshToken(null);
         socialAccount.setTokenExpiresAt(null);
         socialAccountRepository.save(socialAccount);
-
-        log.info("캘린더 연동 해제: userId={}", userId);
 
         return ResponseEntity.ok(ApiResponse.success(null, "캘린더 연동이 해제되었습니다."));
     }
@@ -194,11 +184,8 @@ public class GoogleCalendarController {
                 String webhookUrl = "https://i14d106.p.ssafy.io/api/v1/calendar/webhook";
                 googleCalendarService.registerWatch(userId, webhookUrl);
             } catch (Exception e) {
-                log.warn("Calendar Watch 등록 실패 (무시됨): {}", e.getMessage());
-            }
+}
         }
-
-        log.info("수동 동기화 요청: userId={}", userId);
 
         return ResponseEntity.ok(ApiResponse.success(null, "동기화가 시작되었습니다."));
     }
@@ -210,9 +197,7 @@ public class GoogleCalendarController {
             @RequestHeader(value = "X-Goog-Resource-ID", required = false) String resourceId,
             @RequestHeader(value = "X-Goog-Resource-State", required = false) String resourceState) {
 
-        log.info("Webhook 수신: channelId={}, resourceState={}", channelId, resourceState);
-
-        if (channelId == null) {
+                if (channelId == null) {
             return ResponseEntity.ok().build();
         }
 
@@ -223,10 +208,8 @@ public class GoogleCalendarController {
             if (watch != null && watch.getSyncToken() != null) {
                 try {
                     googleCalendarService.incrementalSync(watch.getUserId(), watch.getSyncToken());
-                    log.info("Incremental sync 완료: userId={}", watch.getUserId());
-                } catch (Exception e) {
-                    log.error("Incremental sync 실패: {}", e.getMessage());
-                }
+} catch (Exception e) {
+}
             }
         }
 
@@ -264,9 +247,7 @@ public class GoogleCalendarController {
             @RequestParam String startDate,
             @RequestParam String endDate) {
 
-        log.info("모든 일정 통합 조회: userId={}, startDate={}, endDate={}", userId, startDate, endDate);
-
-        // 1. 개인 일정 조회
+// 1. 개인 일정 조회
         List<PersonalScheduleResponse> personalSchedules = personalScheduleService.getSchedules(userId, startDate, endDate);
 
         // 2. 스터디 세션 조회
@@ -305,24 +286,16 @@ public class GoogleCalendarController {
 
             // 디버그 로깅
             if (socialAccount == null) {
-                log.info("Google Calendar 조회 스킵: Google 소셜 계정 없음, userId={}", userId);
-            } else {
-                log.info("Google Calendar 상태: userId={}, hasCalendarAccess={}, isTokenExpired={}, refreshToken존재={}",
-                        userId,
-                        socialAccount.hasCalendarAccess(),
-                        socialAccount.isTokenExpired(),
-                        socialAccount.getRefreshToken() != null);
-            }
+} else {
+}
 
             if (socialAccount != null && socialAccount.hasCalendarAccess() && !socialAccount.isTokenExpired()) {
                 LocalDateTime startDateTime = start.atStartOfDay();
                 LocalDateTime endDateTime = end.plusDays(1).atStartOfDay();
                 googleEvents = googleCalendarService.getEvents(userId, startDateTime, endDateTime);
-                log.info("Google Calendar 이벤트 조회 완료: {}개 이벤트", googleEvents.size());
-            }
+}
         } catch (Exception e) {
-            log.warn("Google Calendar 이벤트 조회 실패: {}", e.getMessage(), e);
-        }
+}
 
         AllSchedulesResponse response = AllSchedulesResponse.builder()
                 .personal(personalSchedules)
@@ -333,3 +306,4 @@ public class GoogleCalendarController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 }
+

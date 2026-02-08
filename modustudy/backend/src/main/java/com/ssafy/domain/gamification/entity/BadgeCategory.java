@@ -3,7 +3,7 @@ package com.ssafy.domain.gamification.entity;
 /**
  * 배지 카테고리.
  */
-public enum BadgeCategory {
+ public enum BadgeCategory {
     /** 활동 뱃지 - 첫 활동, 첫 게시글 작성 등 */
     ACTIVITY,
 

@@ -13,11 +13,11 @@ import java.util.List;
 /**
  * 스터디 형식(Format) 조회 API
  */
-@Tag(name = "Format", description = "스터디 형식 조회 API")
-@RestController
-@RequestMapping("/api/v1/formats")
-@RequiredArgsConstructor
-public class FormatController {
+ @Tag(name = "Format", description = "스터디 형식 조회 API")
+ @RestController
+ @RequestMapping("/api/v1/formats")
+ @RequiredArgsConstructor
+ public class FormatController {
 
     private final FormatService formatService;
 

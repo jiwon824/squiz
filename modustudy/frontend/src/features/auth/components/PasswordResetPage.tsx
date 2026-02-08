@@ -48,7 +48,6 @@ export const PasswordResetPage = () => {
                 navigate('/login');
             }, 3000);
         } catch (error: unknown) {
-            console.error('Password reset error:', error);
             setMessage({
                 type: 'error',
                 text: getErrorMessage(error, '비밀번호 변경에 실패했습니다. 링크가 만료되었을 수 있습니다.')

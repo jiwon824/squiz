@@ -52,9 +52,6 @@ public class StudyService {
      * - 순환참조 방지를 위해 StudyResponse DTO로 반환
      */
     public Page<StudyResponse> getAllStudies(Pageable pageable) {
-        log.info("전체 스터디 목록 조회 - page: {}, size: {}",
-                pageable.getPageNumber(), pageable.getPageSize());
-
         Page<Study> studies = studyRepository.findAllPublicStudies(Status.DRAFT, pageable);
         return studies.map(study -> {
             int currentMembers = studyMemberRepository.countByStudyIdAndStatus(study.getId(), MemberStatus.APPROVED);
@@ -69,9 +66,6 @@ public class StudyService {
      * - 순환참조 방지를 위해 StudyResponse DTO로 반환
      */
     public Page<StudyResponse> getRecruitingStudies(Pageable pageable) {
-        log.info("모집중인 스터디 목록 조회 - page: {}, size: {}",
-                pageable.getPageNumber(), pageable.getPageSize());
-
         Page<Study> studies = studyRepository.findRecruitingStudies(pageable);
         return studies.map(study -> {
             int currentMembers = studyMemberRepository.countByStudyIdAndStatus(study.getId(), MemberStatus.APPROVED);
@@ -86,12 +80,6 @@ public class StudyService {
      * - 순환참조 방지를 위해 StudyResponse DTO로 반환
      */
     public Page<StudyResponse> searchStudies(StudySearchCondition condition, Pageable pageable) {
-        log.info("스터디 검색 - 조건: keyword={}, topicId={}, status={}, meetingType={}",
-                condition.getKeyword(),
-                condition.getTopicId(),
-                condition.getStatus(),
-                condition.getMeetingType());
-
         Page<Study> studies = studyRepository.searchStudies(condition, pageable);
         return studies.map(study -> {
             int currentMembers = studyMemberRepository.countByStudyIdAndStatus(study.getId(), MemberStatus.APPROVED);
@@ -106,8 +94,6 @@ public class StudyService {
      * - 순환참조 방지를 위해 StudyResponse DTO로 반환
      */
     public Page<StudyResponse> getStudiesByLeader(Long leaderId, Pageable pageable) {
-        log.info("스터디장 {} 의 스터디 목록 조회", leaderId);
-
         Page<Study> studies = studyRepository.findByLeaderId(leaderId, pageable);
         return studies.map(study -> {
             int currentMembers = studyMemberRepository.countByStudyIdAndStatus(study.getId(), MemberStatus.APPROVED);
@@ -122,8 +108,6 @@ public class StudyService {
      * - 순환참조 방지를 위해 StudyResponse DTO로 반환
      */
     public Page<StudyResponse> getStudiesByLeaderAndStatus(Long leaderId, Status status, Pageable pageable) {
-        log.info("스터디장 {} 의 {} 상태 스터디 목록 조회", leaderId, status);
-
         Page<Study> studies = studyRepository.findByLeaderIdAndStatus(leaderId, status, pageable);
         return studies.map(study -> {
             int currentMembers = studyMemberRepository.countByStudyIdAndStatus(study.getId(), MemberStatus.APPROVED);
@@ -138,11 +122,8 @@ public class StudyService {
      * - 순환참조 방지를 위해 StudyResponse DTO로 반환
      */
     public StudyResponse getStudyById(Long studyId) {
-        log.info("스터디 상세 조회 - ID: {}", studyId);
-
         Study study = studyRepository.findById(studyId)
                 .orElseThrow(() -> {
-                    log.error("존재하지 않는 스터디 ID: {}", studyId);
                     return new StudyException.StudyNotFoundException(studyId);
                 });
 
@@ -162,8 +143,6 @@ public class StudyService {
      * 특정 상태의 스터디 개수 조회
      */
     public Long countStudiesByStatus(Status status) {
-        log.info("스터디 개수 조회 - 상태: {}", status);
-
         return studyRepository.countByStatus(status);
     }
 
@@ -172,8 +151,6 @@ public class StudyService {
      */
     public boolean existsStudy(Long studyId) {
         boolean exists = studyRepository.existsById(studyId);
-        log.info("스터디 존재 확인 - ID: {}, 존재 여부: {}", studyId, exists);
-
         return exists;
     }
 
@@ -190,22 +167,18 @@ public class StudyService {
      */
     @Transactional
     public StudyResponse createStudy(StudyCreateRequest request, Long leaderId) {
-        log.info("스터디 생성 시작 - 스터디장: {}, 스터디명: {}", leaderId, request.getName());
-
-        // 1. 첫 스터디 여부 확인 (INSERT 전에 체크 - EXISTS 쿼리 사용)
+// 1. 첫 스터디 여부 확인 (INSERT 전에 체크 - EXISTS 쿼리 사용)
         boolean isFirstStudy = !studyRepository.existsByLeaderId(leaderId);
 
         // 2. 스터디장(User) 존재 확인
         User leader = userRepository.findById(leaderId)
                 .orElseThrow(() -> {
-                    log.error("존재하지 않는 사용자 - leaderId: {}", leaderId);
                     return NotFoundException.user();
                 });
 
         // 3. Topic 조회 (필수)
         Topic topic = topicRepository.findById(request.getTopicId())
                 .orElseThrow(() -> {
-                    log.error("존재하지 않는 주제 - topicId: {}", request.getTopicId());
                     return new StudyException.InvalidStudyRequestException("존재하지 않는 주제입니다: " + request.getTopicId());
                 });
 
@@ -214,7 +187,6 @@ public class StudyService {
         if (request.getFormatId() != null) {
             format = formatRepository.findById(request.getFormatId())
                     .orElseThrow(() -> {
-                        log.error("존재하지 않는 형식 - formatId: {}", request.getFormatId());
                         return new StudyException.InvalidStudyRequestException("존재하지 않는 형식입니다: " + request.getFormatId());
                     });
         }
@@ -240,10 +212,7 @@ public class StudyService {
 
         studyMemberRepository.save(leaderMember);
 
-        log.info("스터디 생성 완료 - studyId: {}, topicId: {}, formatId: {}",
-                savedStudy.getId(), topic.getId(), format != null ? format.getId() : null);
-
-        // 9. 게이미피케이션 이벤트 발행 (비동기 처리됨)
+// 9. 게이미피케이션 이벤트 발행 (비동기 처리됨)
         eventPublisher.publishEvent(new StudyCreateEvent(
                 leaderId,
                 savedStudy.getId(),
@@ -260,8 +229,6 @@ public class StudyService {
      */
     @Transactional
     public StudyResponse updateStudy(Long studyId, StudyUpdateRequest request, Long leaderId) {
-        log.info("스터디 수정 시작 - studyId: {}, 요청자: {}", studyId, leaderId);
-
         Study study = studyRepository.findById(studyId)
                 .orElseThrow(() -> new StudyException.StudyNotFoundException(studyId));
 
@@ -288,9 +255,7 @@ public class StudyService {
 
         request.updateEntity(study, topic, format);
 
-        log.info("스터디 수정 완료 - studyId: {}", studyId);
-
-        // 스터디장 정보 조회
+// 스터디장 정보 조회
         User leader = userRepository.findById(leaderId).orElse(null);
 
         return StudyResponse.from(study, leader);
@@ -301,8 +266,6 @@ public class StudyService {
      */
     @Transactional
     public void deleteStudy(Long studyId, Long leaderId) {
-        log.info("스터디 삭제 시작 - studyId: {}, 요청자: {}", studyId, leaderId);
-
         Study study = studyRepository.findById(studyId)
                 .orElseThrow(() -> new StudyException.StudyNotFoundException(studyId));
 
@@ -318,17 +281,14 @@ public class StudyService {
 
         studyRepository.delete(study);
 
-        log.info("스터디 삭제 완료 - studyId: {}", studyId);
-    }
+}
 
     /**
      * 관리자용 스터디 삭제 (상태 무관)
      */
     @Transactional
     public void adminDeleteStudy(Long studyId, Long adminUserId) {
-        log.info("관리자 스터디 삭제 시작 - studyId: {}, adminUserId: {}", studyId, adminUserId);
-
-        // 관리자 권한 확인
+// 관리자 권한 확인
         User admin = userRepository.findById(adminUserId)
                 .orElseThrow(NotFoundException::user);
 
@@ -342,16 +302,13 @@ public class StudyService {
         // 관리자는 상태에 관계없이 삭제 가능
         studyRepository.delete(study);
 
-        log.info("관리자 스터디 삭제 완료 - studyId: {}, adminUserId: {}", studyId, adminUserId);
-    }
+}
 
     /**
      * 스터디 상태 변경
      */
     @Transactional
     public StudyResponse updateStudyStatus(Long studyId, Status newStatus, Long leaderId) {
-        log.info("스터디 상태 변경 - studyId: {}, 새 상태: {}", studyId, newStatus);
-
         Study study = studyRepository.findById(studyId)
                 .orElseThrow(() -> new StudyException.StudyNotFoundException(studyId));
 
@@ -366,10 +323,7 @@ public class StudyService {
         // 상태 변경
         study.updateStatus(newStatus);
 
-        log.info("스터디 상태 변경 완료 - studyId: {}, 이전: {} -> 새: {}",
-                studyId, study.getStatus(), newStatus);
-
-        // 스터디장 정보 조회
+// 스터디장 정보 조회
         User leader = userRepository.findById(leaderId).orElse(null);
 
         return StudyResponse.from(study, leader);
@@ -383,8 +337,6 @@ public class StudyService {
      */
     @Transactional
     public StudyResponse extendRecruitment(Long studyId, LocalDate newEndDate, Long leaderId) {
-        log.info("모집 기간 연장 - studyId: {}, 새 종료일: {}", studyId, newEndDate);
-
         Study study = studyRepository.findById(studyId)
                 .orElseThrow(() -> new StudyException.StudyNotFoundException(studyId));
 
@@ -424,10 +376,7 @@ public class StudyService {
             }
         }
 
-        log.info("모집 기간 연장 완료 - studyId: {}, 연장 횟수: {}, 상태: {} -> {}",
-                studyId, study.getExtensionCount(), previousStatus, study.getStatus());
-
-        // 스터디장 정보 조회
+// 스터디장 정보 조회
         User leader = userRepository.findById(leaderId).orElse(null);
 
         return StudyResponse.from(study, leader);
@@ -442,8 +391,6 @@ public class StudyService {
      */
     @Transactional
     public StudyResponse startStudy(Long studyId, Long leaderId) {
-        log.info("스터디 시작 - studyId: {}, leaderId: {}", studyId, leaderId);
-
         Study study = studyRepository.findById(studyId)
                 .orElseThrow(() -> new StudyException.StudyNotFoundException(studyId));
 
@@ -479,9 +426,7 @@ public class StudyService {
             );
         }
 
-        log.info("스터디 시작 완료 - studyId: {}, 새 상태: {}", studyId, study.getStatus());
-
-        // 스터디장 정보 조회
+// 스터디장 정보 조회
         User leader = userRepository.findById(leaderId).orElse(null);
         int currentMembers = studyMemberRepository.countByStudyIdAndStatus(studyId, MemberStatus.APPROVED);
 
@@ -533,8 +478,6 @@ public class StudyService {
      */
     @Transactional
     public void checkAndUpdateRecruitmentStatus(Long studyId) {
-        log.info("모집 인원 충족 여부 확인 - studyId: {}", studyId);
-
         Study study = studyRepository.findById(studyId)
                 .orElseThrow(() -> new StudyException.StudyNotFoundException(studyId));
 
@@ -560,8 +503,7 @@ public class StudyService {
                     studyId
             );
 
-            log.info("모집 완료로 상태 변경 - studyId: {}, 현재 인원: {}/{}", studyId, currentMembers, maxMembers);
-        }
+}
     }
 
     /**
@@ -570,9 +512,7 @@ public class StudyService {
      * - 순환참조 방지를 위해 StudyResponse DTO로 반환
      */
     public Page<StudyResponse> getMyStudies(Long userId, Status status, Pageable pageable) {
-        log.info("내 스터디 목록 조회 - userId: {}, status: {}", userId, status);
-
-        // 1. 내가 멤버인 스터디 ID 목록 조회
+// 1. 내가 멤버인 스터디 ID 목록 조회
         List<StudyMember> myMemberships = studyMemberRepository.findByUserIdAndStatus(userId, MemberStatus.APPROVED);
 
         List<Long> memberStudyIds = myMemberships.stream()
@@ -619,9 +559,7 @@ public class StudyService {
                 })
                 .toList();
 
-        log.info("내 스터디 목록 조회 완료 - userId: {}, status: {}, count: {}", userId, status, allStudies.size());
-
-        return new PageImpl<>(sortedResponses, pageable, allStudies.size());
+                return new PageImpl<>(sortedResponses, pageable, allStudies.size());
     }
 
     // ============================================================
@@ -668,3 +606,4 @@ public class StudyService {
         }
     }
 }
+

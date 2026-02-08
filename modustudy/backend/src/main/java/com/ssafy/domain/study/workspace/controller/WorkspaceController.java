@@ -14,11 +14,11 @@ import java.util.Set;
 /**
  * 워크스페이스 컨트롤러
  */
-@Slf4j
-@RestController
-@RequestMapping("/api/v1/workspaces")
-@RequiredArgsConstructor
-public class WorkspaceController {
+ @Slf4j
+ @RestController
+ @RequestMapping("/api/v1/workspaces")
+ @RequiredArgsConstructor
+ public class WorkspaceController {
 
     private final WorkspaceService workspaceService;
     private final WorkspaceSessionService workspaceSessionService;
@@ -31,13 +31,9 @@ public class WorkspaceController {
             @PathVariable Long studyId,
             @RequestHeader("User-Id") Long userId) {
 
-        log.info("API 호출 - 워크스페이스 생성: studyId={}, userId={}", studyId, userId);
+                WorkspaceResponse response = workspaceService.createWorkspace(studyId);
 
-        WorkspaceResponse response = workspaceService.createWorkspace(studyId);
-
-        log.info("API 응답 - 워크스페이스 생성 완료: workspaceId={}", response.getId());
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+                return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     /**
@@ -47,13 +43,9 @@ public class WorkspaceController {
     public ResponseEntity<WorkspaceResponse> getWorkspace(
             @PathVariable Long workspaceId) {
 
-        log.info("API 호출 - 워크스페이스 조회: workspaceId={}", workspaceId);
+                WorkspaceResponse response = workspaceService.getWorkspace(workspaceId);
 
-        WorkspaceResponse response = workspaceService.getWorkspace(workspaceId);
-
-        log.info("API 응답 - 워크스페이스 조회 완료: studyId={}", response.getStudyId());
-
-        return ResponseEntity.ok(response);
+                return ResponseEntity.ok(response);
     }
 
     /**
@@ -63,13 +55,9 @@ public class WorkspaceController {
     public ResponseEntity<WorkspaceResponse> getWorkspaceByStudyId(
             @PathVariable Long studyId) {
 
-        log.info("API 호출 - 스터디 ID로 워크스페이스 조회: studyId={}", studyId);
+                WorkspaceResponse response = workspaceService.getWorkspaceByStudyId(studyId);
 
-        WorkspaceResponse response = workspaceService.getWorkspaceByStudyId(studyId);
-
-        log.info("API 응답 - 워크스페이스 조회 완료: workspaceId={}", response.getId());
-
-        return ResponseEntity.ok(response);
+                return ResponseEntity.ok(response);
     }
 
     /**
@@ -79,13 +67,9 @@ public class WorkspaceController {
     public ResponseEntity<Boolean> existsWorkspace(
             @PathVariable Long studyId) {
 
-        log.info("API 호출 - 워크스페이스 존재 여부 확인: studyId={}", studyId);
+                boolean exists = workspaceService.existsWorkspace(studyId);
 
-        boolean exists = workspaceService.existsWorkspace(studyId);
-
-        log.info("API 응답 - 워크스페이스 존재 여부: {}", exists);
-
-        return ResponseEntity.ok(exists);
+                return ResponseEntity.ok(exists);
     }
 
     /**
@@ -95,13 +79,9 @@ public class WorkspaceController {
     public ResponseEntity<Set<Long>> getWorkspacePresence(
             @PathVariable Long workspaceId) {
 
-        log.info("API 호출 - 워크스페이스 접속 중인 사용자 목록 조회: workspaceId={}", workspaceId);
+                Set<Long> users = workspaceSessionService.getWorkspaceUsers(workspaceId);
 
-        Set<Long> users = workspaceSessionService.getWorkspaceUsers(workspaceId);
-
-        log.info("API 응답 - 워크스페이스 접속 중인 사용자 목록 조회 완료: count={}", users.size());
-
-        return ResponseEntity.ok(users);
+                return ResponseEntity.ok(users);
     }
 
     /**
@@ -112,13 +92,9 @@ public class WorkspaceController {
             @PathVariable Long workspaceId,
             @RequestHeader("User-Id") Long userId) {
 
-        log.info("API 호출 - 워크스페이스 삭제: workspaceId={}, userId={}", workspaceId, userId);
+                workspaceService.deleteWorkspace(workspaceId);
 
-        workspaceService.deleteWorkspace(workspaceId);
-
-        log.info("API 응답 - 워크스페이스 삭제 완료");
-
-        return ResponseEntity.noContent().build();
+                return ResponseEntity.noContent().build();
     }
 
     /**
@@ -129,12 +105,9 @@ public class WorkspaceController {
             @PathVariable Long studyId,
             @RequestHeader("User-Id") Long userId) {
 
-        log.info("API 호출 - 스터디 ID로 워크스페이스 삭제: studyId={}, userId={}", studyId, userId);
+                workspaceService.deleteWorkspaceByStudyId(studyId);
 
-        workspaceService.deleteWorkspaceByStudyId(studyId);
-
-        log.info("API 응답 - 워크스페이스 삭제 완료");
-
-        return ResponseEntity.noContent().build();
+                return ResponseEntity.noContent().build();
     }
 }
+

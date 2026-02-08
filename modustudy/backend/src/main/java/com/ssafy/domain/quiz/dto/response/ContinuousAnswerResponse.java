@@ -13,9 +13,9 @@ import java.time.LocalDateTime;
  * 정답 여부, 해설, FSRS 갱신 정보를 포함한다.
  * </p>
  */
-@Getter
-@Builder
-public class ContinuousAnswerResponse {
+ @Getter
+ @Builder
+ public class ContinuousAnswerResponse {
 
     // ── 답변 결과 ──
 

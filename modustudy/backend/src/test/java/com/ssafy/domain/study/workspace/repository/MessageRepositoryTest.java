@@ -29,9 +29,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * MessageRepository 통합 테스트
  */
-@SpringBootTest
-@Transactional
-class MessageRepositoryTest {
+ @SpringBootTest
+ @Transactional
+ class MessageRepositoryTest {
 
     @Autowired
     private MessageRepository messageRepository;
